@@ -1,13 +1,17 @@
 """Agent graph wired with PII anonymization middleware for end-to-end testing."""
-from typing import Any, Callable, Awaitable
+
+from typing import Callable, Awaitable
 
 from dotenv import load_dotenv
-from langchain.agents import create_agent, AgentState
-from langchain.agents.middleware import hook_config, AgentMiddleware, ModelRequest, ExtendedModelResponse
-from langchain.agents.middleware.types import StateT, ModelResponse, ResponseT
+from langchain.agents import create_agent
+from langchain.agents.middleware import (
+    AgentMiddleware,
+    ModelRequest,
+    ExtendedModelResponse,
+)
+from langchain.agents.middleware.types import ModelResponse, ResponseT
 from langchain_core.messages import AIMessage, AnyMessage
 from langchain_core.tools import tool
-from langgraph.runtime import Runtime
 from langgraph.typing import ContextT
 from loguru import logger
 from langfuse import get_client
@@ -44,22 +48,8 @@ def get_weather(country_or_city: str) -> str:
     """
     return f"The weather in {country_or_city} is 22°C and sunny."
 
-class Anonymizer:
-    def anonymize_state(self, state: AgentState) -> AgentState:
-        new_messages = []
-        for message in state["messages"]:
-            message.content = message.content.replace("Pierre", "{name}")
-            message.content = message.content.replace("Lyon", "{city}")
-            new_messages.append(message)
-        return state
 
-    def deanonymize_state(self, state: AgentState) -> AgentState:
-        for message in state["messages"]:
-            if "{name}" in message.content:
-                message.content = message.content.replace("{name}", "Pierre")
-            if "{city}" in message.content:
-                message.content = message.content.replace("{city}", "Lyon")
-        return state
+class Anonymizer:
     def deanonymize_messages(self, messages: list[AnyMessage]) -> list[AnyMessage]:
         for message in messages:
             if "{name}" in message.content:
@@ -85,7 +75,9 @@ class CustomMiddleware(AgentMiddleware):
     async def awrap_model_call(
         self,
         request: ModelRequest[ContextT],
-        handler: Callable[[ModelRequest[ContextT]], Awaitable[ModelResponse[ResponseT]]],
+        handler: Callable[
+            [ModelRequest[ContextT]], Awaitable[ModelResponse[ResponseT]]
+        ],
     ) -> ModelResponse[ResponseT] | AIMessage | ExtendedModelResponse[ResponseT]:
         # Cache uniquement la réponse du modèle sur l'interface et au rechargement du thread
         print(f"Model request: {request.messages}")
@@ -108,6 +100,7 @@ class CustomMiddleware(AgentMiddleware):
             result=[ai_msg],
             structured_response=response.structured_response,
         )
+
 
 system_prompt = """\
 You are a helpful assistant. Some inputs may contain anonymized placeholders that replace real values for privacy reasons.
