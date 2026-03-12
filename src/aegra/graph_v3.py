@@ -1,6 +1,5 @@
 """Agent graph wired with PII anonymization middleware for end-to-end testing."""
 
-
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.tools import tool
