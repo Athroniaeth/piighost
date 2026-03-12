@@ -68,40 +68,19 @@ class Anonymizer:
                 message.content = message.content.replace("{city}", "Lyon")
         return messages
 
+    def anonymize_messages(self, messages: list[AnyMessage]) -> list[AnyMessage]:
+        new_messages = []
+        for message in messages:
+            message.content = message.content.replace("Pierre", "{name}")
+            message.content = message.content.replace("Lyon", "{city}")
+            new_messages.append(message)
+        return new_messages
+
+
 class CustomMiddleware(AgentMiddleware):
     def __init__(self):
         super().__init__()
         self.anonymizer = Anonymizer()
-
-    def before_model(self, state: AgentState, runtime: Runtime) -> AgentState | None:
-        # if len(state["messages"]) >= self.max_messages:
-        #     response: AgentState = {
-        #         "messages": [AIMessage("Conversation limit reached.")],
-        #         "jump_to": "end"
-        #     }
-        #     return response
-
-        # Ne cache rien sur l'interface et rechargement
-        print(f"Messages: {[m.content for m in state['messages']]}")
-        state = self.anonymizer.anonymize_state(state)
-        print(f"Messages after deanonymization: {[m.content for m in state['messages']]}")
-
-        return None
-
-    def after_model(self, state: AgentState, runtime: Runtime) -> AgentState | None:
-
-        # Ne cache rien sur l'interface et rechargement
-        print(f"Messages (anon): {[m.content for m in state['messages']]}")
-        state = self.anonymizer.deanonymize_state(state)
-        print(f"Messages after deanonymization: {[m.content for m in state['messages']]}")
-        return None
-
-    def after_agent(self, state: StateT, runtime: Runtime[ContextT]) -> AgentState | None:
-        # This runs after the entire agent execution, just before returning the final response.
-        # You can use it to modify the final output or perform any cleanup actions.
-        print(f"Final state before returning response: {[m.content for m in state['messages']]}")
-        return None
-
 
     async def awrap_model_call(
         self,
@@ -109,14 +88,24 @@ class CustomMiddleware(AgentMiddleware):
         handler: Callable[[ModelRequest[ContextT]], Awaitable[ModelResponse[ResponseT]]],
     ) -> ModelResponse[ResponseT] | AIMessage | ExtendedModelResponse[ResponseT]:
         # Cache uniquement la réponse du modèle sur l'interface et au rechargement du thread
-        print(f"Request: {request.messages}")
-        print(f"Model request: {[m.content for m in request.messages]}")
+        print(f"Model request: {request.messages}")
+        request.messages = self.anonymizer.anonymize_messages(request.messages)
+        print(f"Model request after anonymization: {request.messages}\n")
+
         response = await handler(request)
+
         ai_msg = response.result[0]
+
+        print(f"Model request before deanonymization: {request.messages}\n")
+        print(f"Model response before deanonymization: {ai_msg.content}")
+
         ai_msg = self.anonymizer.deanonymize_messages([ai_msg])[0]
         request.messages = self.anonymizer.deanonymize_messages(request.messages)
+
+        print(f"Model request after deanonymization: {request.messages}")
+        print(f"Model response after deanonymization: {ai_msg.content}")
         return ModelResponse(
-            result=[AIMessage(content=f"{ai_msg.content}")],
+            result=[ai_msg],
             structured_response=response.structured_response,
         )
 
