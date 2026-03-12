@@ -2,6 +2,6 @@
 .PHONY: lint
 
 lint:
-	uv run ruff format .
-	uv run ruff check --fix . || true
-	uv run pyrefly check .
+	-uv run ruff format .
+	-uv run ruff check --fix .
+	-uv run pyrefly check .
