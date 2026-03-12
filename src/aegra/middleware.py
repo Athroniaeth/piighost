@@ -33,6 +33,7 @@ _ENTITY_LABELS: dict[str, str] = {
     "organization": "ORGANIZATION",
     "email address": "EMAIL_ADDRESS",
     "phone number": "PHONE_NUMBER",
+    "town": "TOWN",
 }
 
 _DEFAULT_FIELDS: list[str] = list(_ENTITY_LABELS.values())
@@ -190,9 +191,17 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         hits.sort(key=lambda h: h[0], reverse=True)
 
         for start, end, entity_type in hits:
-            original = text[start:end]
+            span = text[start:end]
+            original = span.strip()
+            if not original:
+                continue
+            # Narrow replacement boundaries to the stripped content so that
+            # surrounding whitespace is preserved and the key in _to_token is
+            # always whitespace-free (e.g. "Lyon" not "Lyon ").
+            actual_start = start + len(span) - len(span.lstrip())
+            actual_end = end - (len(span) - len(span.rstrip()))
             token = self._get_or_create_token(original, entity_type)
-            text = text[:start] + token + text[end:]
+            text = text[:actual_start] + token + text[actual_end:]
 
         # 4. Restore masked tokens.
         for ph, token in placeholders.items():
