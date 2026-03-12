@@ -4,6 +4,7 @@ import hashlib
 from typing import Any, Awaitable, Callable
 
 from dotenv import load_dotenv
+from langchain.agents import create_agent
 from langchain.agents.middleware import (
     AgentMiddleware,
     AgentState,
@@ -13,13 +14,12 @@ from langchain.agents.middleware import (
 from langchain.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain.tools.tool_node import ToolCallRequest
 from langchain_core.messages import ToolCall
+from langchain_core.tools import tool
 from langgraph.runtime import Runtime
 from langgraph.types import Command
+from loguru import logger
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
-from langchain.agents import create_agent
-from langchain_core.tools import tool
-from loguru import logger
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -131,6 +131,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
     def anonymize(self, text: str) -> str:
         """Detect PII in *text* and replace with deterministic tokens."""
+        # 1. Replace any already-known original values using the existing mapping
+        for original, token in self._to_token.items():
+            text = text.replace(original, token)
+
+        # 2. Run Presidio to catch any new PII not yet in the mapping
         results = self._analyzer.analyze(
             text=text,
             language=self.language,
@@ -396,9 +401,9 @@ def send_email(to: str, subject: str, body: str) -> str:
 
 
 @tool
-def get_weather(city: str) -> str:
-    """Get the current weather for a given city."""
-    return f"The weather in {city} is 22°C and sunny."
+def get_weather(country_or_city: str) -> str:
+    """Get the current weather for a given country or city."""
+    return f"The weather in {country_or_city} is 22°C and sunny."
 
 
 # ---------------------------------------------------------------------------
@@ -429,28 +434,29 @@ pii_middleware = PIIAnonymizationMiddleware(
     ],
 )
 
-
 # ---------------------------------------------------------------------------
 # Agent
 # ---------------------------------------------------------------------------
 
 graph = create_agent(
-    model="gpt-5-nano",
-    system_prompt=(
-        "You are a helpful assistant that can perform tasks and answer questions. "
-        "There are maybe placeholder hashes in the input that represent real values "
-        "(e.g. <PERSON:a1b2c3d4>); treat them as opaque tokens and do not attempt to "
-        "reverse them yourself. Use the provided tools when needed."
-        "If user asks you to provide info about the placeholders (e.g. 'what's the email address domain?'), "
-        "respond with the token value (e.g. 'the email is <EMAIL_ADDRESS:abcd1234>') "
-        "and the system will take care of deanonymization on the user side. If user asks precision on a placeholder ("
-        "e.g. 'what's the first character of the email address?'), respond that you cannot see the original value and that it's represented by a token "
-        "(e.g. 'I cannot see the original email address, but I can tell you that the token is <EMAIL_ADDRESS:abcd1234>')."
-    ),
+    model="gpt-5",
+    system_prompt="""You are a helpful assistant. Some inputs may contain anonymized tokens
+(e.g. <LOCATION:a1b2c3>, <PERSON:x9y8z7>, <EMAIL_ADDRESS:d4e5f6>) that replace real values for privacy reasons.
+
+Rules:
+1. Treat every token as if it were the real value — never comment on its format,
+   never say it's a token, never ask the user to reveal it.
+2. A confidential data (placeholder/token) can be use by tools, just use tools normally with the token as input (e.g. get_weather(<LOCATION:a1b2c3>)).
+3. If a tool fails or returns no result because the token is unresolvable,
+   give a short, natural explanation — one sentence max — without technical jargon.
+   Example: "Je ne peux pas dire dans quel pays ce situe la ville '<LOCATION:a1b2c3>' car cette donnée est anonymisée pour protéger vos informations personnelles."
+4. Never expose internal reasoning about anonymization to the user.
+5. If the user asks for a specific detail about a token (e.g. "what's the first letter?"),
+   reply briefly: "Je ne peux pas répondre à cette question car les données ont été anonymisées pour protéger vos données personnelles."
+   """,
     tools=[send_email, get_weather],
     middleware=[pii_middleware],
 )
-
 
 # ---------------------------------------------------------------------------
 # Run
