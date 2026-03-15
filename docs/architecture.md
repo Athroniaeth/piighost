@@ -4,17 +4,7 @@ title: Architecture & Flux d'anonymisation
 
 # Architecture & Flux d'anonymisation
 
-Cette page décrit en détail comment Aegra protège les données personnelles tout au long du cycle de vie d'une conversation avec l'agent LLM.
-
-## Vue d'ensemble
-
-Aegra repose sur trois hooks de middleware injectés dans le graphe LangGraph :
-
-| Hook | Moment d'exécution | Opération |
-|------|--------------------|-----------|
-| `before_model` | Avant chaque appel LLM | Anonymisation des messages entrants |
-| `wrap_tool_call` | Avant/après chaque outil | Désanonymisation des arguments, résultat brut stocké |
-| `after_agent` | Après la réponse finale | Désanonymisation pour l'utilisateur |
+Cette page décrit en détail le pipeline d'anonymisation d'Aegra — comment les entités sont détectées, couvertes, remplacées et restituées sans biaiser les offsets de caractères.
 
 ---
 
@@ -23,35 +13,28 @@ Aegra repose sur trois hooks de middleware injectés dans le graphe LangGraph :
 ```mermaid
 sequenceDiagram
     participant U as Utilisateur
-    participant MW as Middleware (before_model)
+    participant A as Anonymizer
     participant NER as GLiNER2 (NER)
     participant LLM as Modèle LLM
     participant Tool as Outil (ex: get_weather)
-    participant MW2 as Middleware (wrap_tool_call)
-    participant MW3 as Middleware (after_agent)
 
-    U->>MW: "Donne moi la météo de Lyon"
-    MW->>NER: Détection entités PII
-    NER-->>MW: "Lyon" → LOCATION (conf: 0.92)
-    MW->>MW: Assigne <LOCATION_1>
-    MW->>LLM: "Donne moi la météo de <LOCATION_1>"
+    U->>A: "Donne moi la météo de Lyon"
+    A->>NER: Détection entités PII
+    NER-->>A: "Lyon" → LOCATION (conf: 0.92)
+    A->>A: expand_placeholders → couvre toutes les occurrences
+    A->>A: Assigne <LOCATION_1>, remplace en ordre inverse
+    A->>LLM: "Donne moi la météo de <LOCATION_1>"
 
-    LLM->>MW2: call get_weather(<LOCATION_1>)
-    MW2->>MW2: Désanonymise args
-    MW2->>Tool: call get_weather("Lyon")
-    Tool-->>MW2: "Weather in Lyon: 22°C sunny"
-    MW2-->>LLM: ToolMessage (raw, avec "Lyon")
+    LLM->>A: call get_weather(<LOCATION_1>)
+    A->>A: deanonymize args → "Lyon"
+    A->>Tool: call get_weather("Lyon")
+    Tool-->>A: "Weather in Lyon: 22°C sunny"
+    A-->>LLM: ToolMessage (sera ré-anonymisé au prochain tour)
 
-    Note over LLM: Prochain tour: le ToolMessage<br/>sera ré-anonymisé par before_model
-
-    LLM->>MW3: "Pour <LOCATION_1>, il fait 22°C"
-    MW3->>MW3: Désanonymise réponse finale
-    MW3->>U: "Pour Lyon, il fait 22°C"
+    LLM->>A: "Pour <LOCATION_1>, il fait 22°C"
+    A->>A: deanonymize réponse finale
+    A->>U: "Pour Lyon, il fait 22°C"
 ```
-
-### Pourquoi le LLM ne "connaît" pas les vraies valeurs ?
-
-Le modèle opère **exclusivement** sur des jetons opaques. Il ne reçoit jamais `"Lyon"` directement — il manipule `<LOCATION_1>` (ou `<LOCATION:e5f6a7b8>` dans la variante déterministe). Quand il appelle un outil avec ce jeton, `wrap_tool_call` traduit l'argument **avant** l'exécution. Le résultat de l'outil peut contenir la vraie valeur, mais `before_model` la réanonymise au tour suivant avant que le LLM ne relise ce `ToolMessage`.
 
 ---
 
@@ -59,36 +42,113 @@ Le modèle opère **exclusivement** sur des jetons opaques. Il ne reçoit jamais
 
 ```mermaid
 flowchart TD
-    A[Texte brut] --> B[detect_entities]
-    B --> C{confidence >= 0.5 ?}
+    A[Texte brut] --> B[detect_entities via GLiNER2]
+    B --> C{confidence >= min_confidence ?}
     C -- Non --> D[Ignoré]
     C -- Oui --> E[assign_placeholders]
-    E --> F{Déjà dans\nthread_store ?}
+    E --> F{Texte déjà dans\nthread_store ?}
     F -- Oui --> G[Réutilise placeholder existant]
-    F -- Non --> H[Crée nouveau placeholder]
-    G & H --> I[expand_placeholders\nrecherche occurrences supplémentaires]
-    I --> J[replace_with_placeholders\nfiltrage greedy chevauchements]
+    F -- Non --> H[Crée nouveau placeholder\nindex = max existant + 1]
+    G & H --> I[expand_placeholders\nre.finditer sur le texte original]
+    I --> I2{Alias configurés ?}
+    I2 -- Oui --> I3[Construit pattern multi-surface\nParis|Pari — plus long en premier]
+    I2 -- Non --> I4[Pattern exact : re.escape surface]
+    I3 & I4 --> J[replace_with_placeholders\ntri greedy + remplacement en ordre inverse]
     J --> K[Texte anonymisé]
-    K --> L[compute_anonymized_spans\nanon_start / anon_end]
+    K --> L[compute_anonymized_spans\nre-scan du texte anonymisé final]
     L --> M[Mise à jour thread_store]
 ```
 
-### Étapes détaillées
+---
 
-**`detect_entities`**
-: Appelle `GLiNER2.extract_entities()` avec les labels configurés (`company`, `person`, `product`, `location` par défaut). Chaque entité détectée est enrichie avec son score de confiance et ses offsets de caractères.
+## Mécanismes de robustesse
 
-**`assign_placeholders`**
-: Assigne un jeton unique par surface form. Deux occurrences du même texte reçoivent le **même** placeholder. Un texte différent d'un même type reçoit un index supérieur (`<PERSON_2>`, `<PERSON_3>`...).
+### Occurrences manquantes — `expand_placeholders`
 
-**`expand_placeholders`**
-: GLiNER2 ne détecte souvent que la première occurrence d'une entité. Cette étape balaye le texte complet via regex pour capturer toutes les occurrences supplémentaires.
+GLiNER2 ne détecte souvent que la **première occurrence** d'une entité dans un texte.
+`expand_placeholders` compense cela en balayant le texte original via `re.finditer` pour trouver toutes les occurrences supplémentaires.
 
-**`replace_with_placeholders`**
-: Algorithme greedy : trie les candidats par confiance puis par longueur de span, accepte les spans non chevauchantes, applique les remplacements en sens inverse pour préserver les indices.
+```
+Texte   : "Pierre habite à Lyon. Pierre travaille à Lyon."
+GLiNER  : "Pierre" @0  "Lyon" @16               ← première occurrence seulement
+expand  : "Pierre" @0 @22   "Lyon" @16 @38       ← toutes les occurrences
+```
 
-**`compute_anonymized_spans`**
-: Après remplacement, calcule `anon_start` / `anon_end` de chaque jeton dans le texte anonymisé (utile pour le rendu frontend).
+Le matching est **exact** (`re.escape`). Les spans déjà connus (détectés par GLiNER) sont dédupliqués avant l'ajout. Les nouvelles occurrences reçoivent `confidence=1.0`.
+
+---
+
+### Variantes et aliases
+
+Par défaut, `expand_placeholders` ne matche que la surface textuelle exacte.
+Pour couvrir des variantes (`"Pari"` → `<LOCATION_1>` comme `"Paris"`), il faut construire un pattern qui couvre **toutes les formes** d'une même entité.
+
+Le principe : construire un `pattern OR` à partir d'un dictionnaire d'aliases, avec le plus long en premier pour éviter qu'une forme courte avale une forme longue :
+
+```python
+aliases = {"Pari": "Paris", "Tim": "Tim Cook"}
+
+# Pour l'entité dont la surface canonique est "Paris" :
+surfaces = {"Paris"} | {k for k, v in aliases.items() if v == "Paris"}
+# → {"Paris", "Pari"}
+
+pattern = "|".join(re.escape(s) for s in sorted(surfaces, key=len, reverse=True))
+# → "Paris|Pari"  (plus long en premier)
+```
+
+Chaque match crée un `NamedEntity` avec son texte **brut** (pas la forme canonique),
+ce qui permet à `deanonymize` de restituer la vraie surface d'origine :
+
+```
+"Pari est belle"  →  <LOCATION_1> est belle
+deanonymize       →  "Pari est belle"   ← surface brute préservée
+```
+
+!!! warning
+    Ce mécanisme n'est pas intégré nativement dans `expand_placeholders` — il s'agit d'un point d'extension. Un dictionnaire d'aliases doit être fourni explicitement et appliqué lors de la construction du pattern regex.
+
+---
+
+### Cohérence des offsets — remplacement en ordre inverse
+
+Quand plusieurs entités sont remplacées dans un même texte, chaque remplacement change la longueur du texte et décale les offsets des entités qui suivent. Par exemple :
+
+```
+Texte original : "Pierre habite à Lyon, Lyon est belle"
+                  0123456789...        16  20 22  26
+```
+
+Si on remplace dans l'ordre naturel (gauche → droite) :
+
+```
+① "Pierre" (0–6) → <PERSON_1> (10 chars, +4)
+   → les offsets de "Lyon" @16 et @22 sont maintenant @20 et @26 — invalides
+```
+
+La solution est de trier les remplacements par **position décroissante** et de les appliquer de droite à gauche :
+
+```mermaid
+sequenceDiagram
+    participant T as Texte (mutable)
+    participant R as Remplacements triés desc
+
+    R->>T: ① offset 22→26 : "Lyon" → <LOCATION_1>
+    Note over T: "Pierre habite à Lyon, <LOCATION_1> est belle"
+    R->>T: ② offset 16→20 : "Lyon" → <LOCATION_1>
+    Note over T: "Pierre habite à <LOCATION_1>, <LOCATION_1> est belle"
+    R->>T: ③ offset 0→6 : "Pierre" → <PERSON_1>
+    Note over T: "<PERSON_1> habite à <LOCATION_1>, <LOCATION_1> est belle"
+```
+
+Chaque remplacement ne modifie que le texte **à sa droite** — or les remplacements restants à traiter sont à des offsets **plus petits**, donc non affectés. Les offsets de `NamedEntity.start/end` restent valides jusqu'à leur tour.
+
+---
+
+### `compute_anonymized_spans` — pourquoi après coup
+
+Les offsets `anon_start/anon_end` (position du placeholder dans le texte **anonymisé**) ne peuvent pas être calculés à l'avance : ils dépendent du nombre et de la taille de tous les remplacements précédents. La solution est de re-scanner le texte anonymisé final via `re.finditer` une fois tous les remplacements effectués.
+
+L'association occurrence ↔ entité repose sur l'ordre d'apparition : les occurrences de `re.finditer` sont en ordre gauche-droite, et les entités dans `placeholders[placeholder]` sont aussi dans cet ordre (GLiNER d'abord, puis `expand_placeholders` en ordre croissant). Le zip est donc stable.
 
 ---
 
@@ -102,40 +162,45 @@ sequenceDiagram
 
     U->>A: Tour 1: "Je m'appelle Pierre"
     A->>TS: Lecture vocab (vide)
-    A->>A: "Pierre" → <PERSON_1>
-    A->>TS: Écriture {Pierre: <PERSON_1>}
+    A->>A: GLiNER détecte "Pierre" → <PERSON_1>
+    A->>TS: Écriture {"Pierre": <PERSON_1>}
 
     U->>A: Tour 2: "Pierre est-il présent ?"
-    A->>TS: Lecture vocab {Pierre: <PERSON_1>}
-    A->>A: "Pierre" → <PERSON_1> (réutilisé)
+    A->>TS: Lecture vocab {"Pierre": <PERSON_1>}
+    A->>A: "Pierre" → <PERSON_1> (réutilisé, sans appel GLiNER)
     Note over A: Même placeholder garanti<br/>sur toute la conversation
+
+    U->>A: Tour 3: "Rappelle-moi le nom de cet utilisateur"
+    A->>TS: Lecture vocab {"Pierre": <PERSON_1>}
+    A->>A: Aucune nouvelle entité détectée
+    Note over A: thread_store inchangé
 ```
 
-### Pourquoi c'est crucial
+### Pourquoi c'est nécessaire
 
-Sans persistance du vocabulaire entre les tours, le même nom pourrait être mappé à `<PERSON_1>` au tour 1 et `<PERSON_2>` au tour 3 — rendant la désanonymisation impossible. Le `thread_store` (ou `PIIState` dans la variante middleware) garantit **l'unicité et la stabilité** des jetons pour toute la durée d'une conversation.
+Sans persistance du vocabulaire entre les tours :
+
+- Tour 1 : `"Pierre"` → `<PERSON_1>` — assigné
+- Tour 3 : GLiNER détecte `"Pierre"` à nouveau, `existing_vocab` est vide → `<PERSON_1>` serait réassigné par chance si aucune autre entité n'a été vue, ou `<PERSON_2>` si le slot 1 est occupé
+
+Le `thread_store` (dict `{surface → Placeholder}` indexé par `thread_id`) garantit l'unicité et la stabilité des jetons pour toute la durée d'une conversation.
 
 ---
 
 ## Format des jetons
 
-Aegra supporte deux variantes de jetons selon le composant utilisé :
+```
+<TYPE_N>
+```
 
-| Variante | Format | Exemple | Déterminisme |
-|----------|--------|---------|--------------|
-| `Anonymizer` (bas niveau) | `<TYPE_N>` | `<PERSON_1>` | Par ordre d'apparition |
-| `PIIAnonymizationMiddleware` | `<TYPE:hash8>` | `<LOCATION:e5f6a7b8>` | SHA-256 de la valeur |
+- `TYPE` : label de l'entité en majuscules (`PERSON`, `LOCATION`, `COMPANY`, `PRODUCT`)
+- `N` : index 1-based dans ce type, incrémenté par `assign_placeholders`
 
-La variante middleware utilise un hash SHA-256 tronqué (8 hex chars) : la même valeur produit **toujours** le même jeton, même dans des sessions différentes.
+```
+"Tim Cook"   → <PERSON_1>
+"Steve Jobs" → <PERSON_2>
+"Apple"      → <COMPANY_1>
+"Cupertino"  → <LOCATION_1>
+```
 
----
-
-## Sécurité : ce qui ne traverse jamais le LLM
-
-| Donnée | Traverse le LLM ? |
-|--------|-------------------|
-| Texte brut utilisateur | Non — anonymisé par `before_model` |
-| Arguments d'outil | Non — désanonymisés avant exécution |
-| Résultats d'outil | Brièvement (1 tour max), puis réanonymisés |
-| Réponse finale au LLM | Non — désanonymisée par `after_agent` |
-| Mapping jeton↔valeur | Stocké dans `PIIState` (LangGraph checkpoint) |
+Un même texte reçoit toujours le même index au sein d'un thread — c'est `assign_placeholders` + `thread_store` qui le garantissent.

@@ -6,7 +6,7 @@ title: Anonymizer — Référence API
 
 `src/aegra/anonymizer.py`
 
-Composant bas niveau responsable de la détection NER et du remplacement par placeholders. Peut être utilisé indépendamment du middleware pour des cas d'usage custom.
+Composant responsable de la détection NER et du remplacement par placeholders. Conçu pour être utilisé directement, indépendamment de toute couche de transport ou d'orchestration.
 
 ---
 
@@ -42,13 +42,16 @@ class NamedEntity:
 
 Entité enrichie produite par le pipeline d'anonymisation.
 
-| Attribut | Description |
-|----------|-------------|
-| `text` | Surface form de l'entité dans le texte source |
-| `entity_type` | Label de catégorie (`"person"`, `"location"`, etc.) |
-| `confidence` | Score de confiance GLiNER2, entre 0 et 1 |
-| `start` / `end` | Offsets dans le texte **original** (inclusif / exclusif) |
-| `anon_start` / `anon_end` | Offsets du placeholder dans le texte **anonymisé** |
+| Attribut | Espace de coordonnées | Description |
+|----------|----------------------|-------------|
+| `text` | — | Surface form brute telle qu'elle apparaît dans le texte source |
+| `entity_type` | — | Label de catégorie (`"person"`, `"location"`, etc.) |
+| `confidence` | — | Score GLiNER2 ∈ [0, 1] ; `1.0` pour les occurrences ajoutées par `expand_placeholders` |
+| `start` / `end` | **texte original** | Offsets caractères (inclusif / exclusif) dans le texte **avant** anonymisation |
+| `anon_start` / `anon_end` | **texte anonymisé** | Offsets du placeholder dans le texte **après** anonymisation — calculés par `compute_anonymized_spans` |
+
+!!! note "Deux espaces de coordonnées"
+    `start/end` et `anon_start/anon_end` vivent dans des espaces différents. Ne pas les mélanger : les offsets originaux ne sont plus valides dans le texte anonymisé (les placeholders ont une longueur différente des entités d'origine).
 
 ---
 
@@ -58,9 +61,9 @@ Entité enrichie produite par le pipeline d'anonymisation.
 class Placeholder(str): ...
 ```
 
-Sous-classe de `str` représentant un jeton d'anonymisation, ex : `<PERSON_1>`.
+Sous-classe de `str` représentant un jeton d'anonymisation. Format : `<TYPE_N>` — ex. `<PERSON_1>`, `<LOCATION_3>`.
 
-Format : `<TYPE_N>` où `TYPE` est le label en majuscules et `N` l'index 1-based dans ce type.
+`TYPE` est le label en majuscules, `N` l'index 1-based par type au sein d'un thread.
 
 ---
 
@@ -81,8 +84,6 @@ Identifiant de fil de conversation. Généré automatiquement via UUID si non fo
 ```python
 def build_placeholder(label: str, index: int) -> Placeholder
 ```
-
-Construit un jeton placeholder.
 
 ```python
 build_placeholder("person", 1)   # → "<PERSON_1>"
@@ -116,10 +117,12 @@ class Anonymizer:
 | Paramètre | Défaut | Description |
 |-----------|--------|-------------|
 | `extractor` | — | Instance GLiNER2 (ex: `GLiNER2.from_pretrained("fastino/gliner2-base-v1")`) |
-| `entity_types` | `["company", "person", "product", "location"]` | Labels à détecter |
-| `min_confidence` | `0.5` | Score minimum pour qu'une entité soit prise en compte |
+| `entity_types` | `["company", "person", "product", "location"]` | Labels GLiNER2 à détecter |
+| `min_confidence` | `0.5` | Seuil de confiance minimum — les entités en dessous sont ignorées |
 
 ---
+
+## Méthodes
 
 ### `detect_entities(text)`
 
@@ -127,9 +130,11 @@ class Anonymizer:
 def detect_entities(self, text: str) -> List[NamedEntity]
 ```
 
-Détecte les entités dans `text` via GLiNER2 et filtre par `min_confidence`.
+Appelle `GLiNER2.extract_entities()` avec les labels configurés, enrichit chaque résultat en `NamedEntity`, puis filtre par `min_confidence`.
 
-**Retourne :** Liste de `NamedEntity` triés par ordre d'apparition.
+**Retourne :** liste de `NamedEntity` avec `start`, `end`, `confidence` renseignés.
+
+**Limite connue :** GLiNER2 ne détecte typiquement que la **première occurrence** d'une entité dans un texte long. Les occurrences suivantes doivent être couvertes par `expand_placeholders`.
 
 ---
 
@@ -143,15 +148,15 @@ def assign_placeholders(
 ) -> Dict[Placeholder, List[NamedEntity]]
 ```
 
-Assigne un placeholder à chaque entité unique.
+Assigne un placeholder à chaque surface form unique dans `detections`.
 
-**Comportement :**
+**Règles d'assignation :**
 
-- Deux occurrences du même texte → même placeholder
-- Textes distincts d'un même type → indices croissants (`<PERSON_1>`, `<PERSON_2>`...)
-- Si `existing_vocab` est fourni : les textes déjà connus réutilisent leur placeholder ; les nouveaux indices partent après les déjà assignés
+- Deux entités avec le **même texte** → même placeholder
+- Deux entités avec des textes différents d'un même type → indices distincts (`<PERSON_1>`, `<PERSON_2>`)
+- Si `existing_vocab` est fourni (thread_store du tour précédent) : les surfaces déjà connues réutilisent leur placeholder existant ; les nouveaux indices partent après le maximum déjà utilisé, évitant ainsi les collisions
 
-**Retourne :** `Dict[Placeholder → List[NamedEntity]]`
+**Retourne :** `Dict[Placeholder, List[NamedEntity]]`
 
 ---
 
@@ -165,10 +170,32 @@ def expand_placeholders(
 ) -> Dict[Placeholder, List[NamedEntity]]
 ```
 
-Balaye le texte complet pour trouver des occurrences supplémentaires non détectées par GLiNER2.
+Compense la détection partielle de GLiNER2 en balayant le texte original à la recherche de toutes les occurrences de chaque surface détectée.
 
-!!! note
-    GLiNER2 ne détecte souvent que la première occurrence d'une entité. Cette étape garantit une couverture complète via `re.finditer`.
+**Mécanisme :**
+
+Pour chaque placeholder, la référence est `detections[0].text` (la surface telle que GLiNER l'a retournée). Un pattern `re.escape(surface)` est appliqué sur le texte original via `re.finditer`. Les spans déjà connus sont dédupliqués avant ajout. Les nouvelles occurrences reçoivent `confidence=1.0`.
+
+```
+Texte   : "Pierre habite à Lyon. Pierre est à Lyon aussi."
+GLiNER  : "Pierre" @0   "Lyon" @16         ← premières occurrences uniquement
+expand  : "Pierre" @0 @22   "Lyon" @16 @38  ← toutes les occurrences
+```
+
+**Extension — variantes et aliases :**
+
+Le matching exact ne couvre pas les variantes (`"Pari"` vs `"Paris"`). Pour les prendre en compte, il faut construire un pattern OR couvrant toutes les surfaces d'une même entité, avec le plus long en premier pour éviter la capture partielle :
+
+```python
+surfaces = {"Paris", "Pari"}  # forme canonique + aliases
+pattern = "|".join(re.escape(s) for s in sorted(surfaces, key=len, reverse=True))
+# → "Paris|Pari"
+```
+
+Chaque match crée un `NamedEntity` avec son texte **brut** (pas la forme canonique), ce qui permet à `deanonymize` de restituer la vraie surface d'origine, y compris la variante.
+
+!!! warning
+    Ce point d'extension n'est pas encore intégré dans l'API actuelle. Un dictionnaire d'aliases doit être fourni et appliqué manuellement lors de la construction du pattern.
 
 ---
 
@@ -182,14 +209,33 @@ def replace_with_placeholders(
 ) -> str
 ```
 
-Remplace les spans détectés par leurs jetons.
+Remplace les spans détectés par leurs jetons en préservant la cohérence des offsets.
 
-**Algorithme :**
+**Algorithme en deux temps :**
+
+**Temps 1 — sélection greedy des spans à garder :**
 
 1. Collecte tous les candidats `(start, end, placeholder, confidence)`
-2. Trie par confiance décroissante, puis par longueur de span décroissante
-3. Greedy : accepte les spans non chevauchantes
-4. Applique les remplacements en sens inverse (index décroissants) pour préserver la cohérence des offsets
+2. Tri par confiance décroissante, puis par longueur décroissante (un span long et confiant prime sur un court chevauchant)
+3. Accepte chaque candidat s'il ne chevauche aucun span déjà accepté
+
+**Temps 2 — remplacement en ordre inverse :**
+
+Les candidats sélectionnés sont triés par `start` **décroissant** et appliqués de droite à gauche :
+
+```
+Texte : "Pierre habite à Lyon, Lyon est belle"
+        offset: 0      16   20 22   26
+
+① offset 22→26 : "Lyon"   → <LOCATION_1>   (pas d'impact sur offsets 0–21)
+② offset 16→20 : "Lyon"   → <LOCATION_1>   (pas d'impact sur offsets 0–15)
+③ offset 0→6   : "Pierre" → <PERSON_1>
+```
+
+Chaque remplacement ne modifie que le texte **à sa droite**. Les spans restants à traiter sont à des positions **plus petites**, donc leurs offsets ne sont jamais décalés avant leur tour.
+
+!!! danger "Si l'ordre était naturel (gauche → droite)"
+    Le remplacement de `"Pierre"` @0–6 par `<PERSON_1>` (10 chars au lieu de 6) décalerait tous les offsets suivants de +4. `"Lyon"` @16 deviendrait introuvable à l'offset 16 — il faudrait recalculer à chaque étape.
 
 ---
 
@@ -203,7 +249,11 @@ def compute_anonymized_spans(
 ) -> Dict[Placeholder, List[NamedEntity]]
 ```
 
-Calcule `anon_start` / `anon_end` de chaque entité en scannant le texte anonymisé.
+Calcule `anon_start` / `anon_end` de chaque entité en re-scannant le texte **après** tous les remplacements.
+
+**Pourquoi après coup :** les offsets dans le texte anonymisé dépendent de la taille cumulée de tous les remplacements précédents — ils ne peuvent être connus qu'une fois le texte final produit.
+
+**Association occurrence ↔ entité :** `re.finditer` retourne les occurrences dans l'ordre gauche-droite. Les entités dans `placeholders[placeholder]` sont aussi dans cet ordre (GLiNER d'abord, `expand_placeholders` en ordre croissant de `start`). Le `zip` est donc stable.
 
 ---
 
@@ -217,14 +267,16 @@ def anonymize(
 ) -> tuple[str, Dict[Placeholder, List[NamedEntity]]]
 ```
 
-Pipeline complet d'anonymisation avec persistance du vocabulaire par thread.
+Orchestre le pipeline complet : `detect_entities` → `assign_placeholders` → `expand_placeholders` → `replace_with_placeholders` → `compute_anonymized_spans` → mise à jour du `thread_store`.
 
 ```python
 anon_text, placeholders = anonymizer.anonymize(
-    "Tim Cook habite à Cupertino.",
+    "Tim Cook habite à Cupertino. Tim Cook reviendra à Cupertino.",
     thread_id="thread-001",
 )
-# anon_text → "<PERSON_1> habite à <LOCATION_1>."
+# GLiNER détecte "Tim Cook" @0 et "Cupertino" @18
+# expand_placeholders ajoute "Tim Cook" @31 et "Cupertino" @49
+# → "<PERSON_1> habite à <LOCATION_1>. <PERSON_1> reviendra à <LOCATION_1>."
 ```
 
 **Retourne :** `(texte_anonymisé, placeholders)`
@@ -241,9 +293,13 @@ def deanonymize(
 ) -> str
 ```
 
-Restaure les valeurs originales en remplaçant les jetons.
+Restaure les valeurs originales. Les occurrences multiples d'un même placeholder sont restituées dans l'ordre d'apparition original (tri par `entity.start`), ce qui permet de restituer des surfaces différentes sous un même jeton — utile dans le cas des aliases.
 
-Les occurrences multiples d'un même jeton sont restituées dans l'ordre d'apparition original (tri par `entity.start`), ce qui permet de gérer des entités avec des surfaces légèrement différentes.
+```python
+# Avec aliases : "Paris" et "Pari" → <LOCATION_1>
+# Les deux NamedEntity gardent leur text brut : "Paris" et "Pari"
+# deanonymize restitue chacune à sa place d'origine
+```
 
 ---
 
@@ -257,10 +313,10 @@ def anonymize_messages(
 ) -> tuple[list[AnyMessage], Dict[Placeholder, List[NamedEntity]]]
 ```
 
-Anonymise une liste de messages LangChain en préservant le contexte de thread.
+Anonymise une liste de messages LangChain en appelant `anonymize` sur le contenu de chacun, en partageant le `thread_id` pour maintenir la cohérence du vocabulaire.
 
 !!! warning
-    Seuls les messages avec `content` de type `str` sont supportés.
+    Seuls les messages dont le `content` est de type `str` sont supportés.
 
 ---
 
@@ -275,7 +331,7 @@ def deanonymize_messages(
 ) -> list[AnyMessage]
 ```
 
-Désanonymise une liste de messages. Priorité : `placeholders` explicites > lookup par `thread_id`.
+Désanonymise une liste de messages. Priorité : `placeholders` explicites > lookup du `thread_store` par `thread_id`.
 
 ---
 
@@ -288,15 +344,24 @@ from aegra.anonymizer import Anonymizer
 extractor = GLiNER2.from_pretrained("fastino/gliner2-base-v1")
 anonymizer = Anonymizer(extractor, min_confidence=0.5)
 
-# Tour 1
-anon1, ph1 = anonymizer.anonymize("Pierre habite à Lyon.", thread_id="conv-1")
-# anon1 → "<PERSON_1> habite à <LOCATION_1>."
+# --- Tour 1 ---
+text1 = "Pierre habite à Lyon. Pierre est souvent à Lyon."
+anon1, ph1 = anonymizer.anonymize(text1, thread_id="conv-1")
+# GLiNER détecte "Pierre" @0, "Lyon" @16
+# expand ajoute "Pierre" @22, "Lyon" @37
+# → "<PERSON_1> habite à <LOCATION_1>. <PERSON_1> est souvent à <LOCATION_1>."
+print(anon1)
 
-# Tour 2 — Pierre et Lyon sont réutilisés
-anon2, ph2 = anonymizer.anonymize("Pierre est-il à Lyon aujourd'hui ?", thread_id="conv-1")
-# anon2 → "<PERSON_1> est-il à <LOCATION_1> aujourd'hui ?"
+# --- Tour 2 — réutilisation du vocabulaire ---
+text2 = "Pierre est-il encore à Lyon ?"
+anon2, ph2 = anonymizer.anonymize(text2, thread_id="conv-1")
+# existing_vocab = {"Pierre": <PERSON_1>, "Lyon": <LOCATION_1>}
+# assign_placeholders réutilise les placeholders sans appel GLiNER
+# → "<PERSON_1> est-il encore à <LOCATION_1> ?"
+print(anon2)
 
-# Désanonymisation
-original = anonymizer.deanonymize(anon1, ph1)
-# original → "Pierre habite à Lyon."
+# --- Désanonymisation ---
+original1 = anonymizer.deanonymize(anon1, ph1)
+# → "Pierre habite à Lyon. Pierre est souvent à Lyon."
+print(original1)
 ```
