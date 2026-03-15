@@ -49,15 +49,15 @@ flowchart TD
     E --> F{Texte déjà dans\nthread_store ?}
     F -- Oui --> G[Réutilise placeholder existant]
     F -- Non --> H[Crée nouveau placeholder\nindex = max existant + 1]
-    G & H --> I[expand_placeholders\nre.finditer sur le texte original]
-    I --> I2{Alias configurés ?}
-    I2 -- Oui --> I3[Construit pattern multi-surface\nParis|Pari — plus long en premier]
-    I2 -- Non --> I4[Pattern exact : re.escape surface]
-    I3 & I4 --> J[replace_with_placeholders\ntri greedy + remplacement en ordre inverse]
+    G & H --> I[expand_placeholders\nre.finditer — exact match sur le texte original\nAjoute toutes les occurrences manquantes]
+    I --> J[replace_with_placeholders\ntri greedy + remplacement en ordre inverse]
     J --> K[Texte anonymisé]
     K --> L[compute_anonymized_spans\nre-scan du texte anonymisé final]
     L --> M[Mise à jour thread_store]
 ```
+
+!!! note "Point d'extension — aliases"
+    Le diagramme ci-dessus montre le comportement par défaut : `expand_placeholders` effectue un match exact sur la surface textuelle. Pour couvrir des variantes (`"Pari"` → même placeholder que `"Paris"`), il faudrait construire un pattern OR à partir d'un dictionnaire d'aliases (plus long en premier pour éviter la capture partielle). Ce mécanisme n'est pas intégré nativement — voir la section [Variantes et aliases](#variantes-et-aliases) pour le détail.
 
 ---
 
@@ -141,6 +141,16 @@ sequenceDiagram
 ```
 
 Chaque remplacement ne modifie que le texte **à sa droite** — or les remplacements restants à traiter sont à des offsets **plus petits**, donc non affectés. Les offsets de `NamedEntity.start/end` restent valides jusqu'à leur tour.
+
+#### Biais des offsets avec N placeholders
+
+| Étape | Remplacement | Décalage introduit | Offsets suivants affectés ? |
+|-------|-------------|-------------------|-----------------------------|
+| ① droite→gauche | `"Lyon"` @38→42 → `<LOCATION_1>` (+8) | +8 | aucun (rien à droite) |
+| ② | `"Lyon"` @16→20 → `<LOCATION_1>` (+8) | +8 | aucun (positions 0–15 inchangées) |
+| ③ | `"Pierre"` @0→6 → `<PERSON_1>` (+4) | +4 | aucun (c'est le dernier) |
+
+Conclusion : chaque remplacement de droite à gauche ne perturbe que les offsets à sa gauche — or on a déjà traité tout ce qui était à droite.
 
 ---
 
