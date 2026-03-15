@@ -194,8 +194,8 @@ pattern = "|".join(re.escape(s) for s in sorted(surfaces, key=len, reverse=True)
 
 Chaque match crée un `NamedEntity` avec son texte **brut** (pas la forme canonique), ce qui permet à `deanonymize` de restituer la vraie surface d'origine, y compris la variante.
 
-!!! warning
-    Ce point d'extension n'est pas encore intégré dans l'API actuelle. Un dictionnaire d'aliases doit être fourni et appliqué manuellement lors de la construction du pattern.
+!!! note "Point d'extension"
+    Ce mécanisme n'est pas intégré nativement dans `expand_placeholders`. C'est un point d'extension : pour l'activer, il faut fournir un dictionnaire d'aliases et construire le pattern OR manuellement avant d'appeler `re.finditer`. Le point d'intervention dans le code est la boucle sur `placeholders` dans `expand_placeholders`, là où le pattern est actuellement `re.escape(detections[0].text)`.
 
 ---
 
@@ -332,6 +332,60 @@ def deanonymize_messages(
 ```
 
 Désanonymise une liste de messages. Priorité : `placeholders` explicites > lookup du `thread_store` par `thread_id`.
+
+---
+
+## Walkthrough bout-en-bout
+
+Les trois mécanismes illustrés sur un seul texte :
+
+```
+Texte brut : "Pierre habite à Lyon, Pierre sera à Lyon demain."
+
+── detect_entities ──────────────────────────────────────────
+GLiNER détecte : "Pierre" @0   conf=0.91
+                 "Lyon"   @16  conf=0.88
+(deuxièmes occurrences non détectées)
+
+── assign_placeholders ──────────────────────────────────────
+"Pierre" → <PERSON_1>   (index 1 dans type "person")
+"Lyon"   → <LOCATION_1> (index 1 dans type "location")
+
+── expand_placeholders ──────────────────────────────────────
+re.finditer("Pierre") → @0, @22   (+1 occurrence)
+re.finditer("Lyon")   → @16, @38  (+1 occurrence)
+Résultat : 4 NamedEntity avec leurs start/end dans le texte original
+
+── replace_with_placeholders ────────────────────────────────
+Candidats triés par start décroissant :
+  (38, 42) → <LOCATION_1>   texte restant non affecté à gauche
+  (22, 28) → <PERSON_1>     texte restant non affecté à gauche
+  (16, 20) → <LOCATION_1>   texte restant non affecté à gauche
+  (0,  6)  → <PERSON_1>     fin
+
+Résultat : "<PERSON_1> habite à <LOCATION_1>, <PERSON_1> sera à <LOCATION_1> demain."
+
+── compute_anonymized_spans ─────────────────────────────────
+re.finditer("<PERSON_1>")   → @0, @22   → anon_start/end sur chaque entité
+re.finditer("<LOCATION_1>") → @12, @34  → anon_start/end
+(entités triées par start original avant zip pour stabilité)
+
+── thread_store update ──────────────────────────────────────
+{"Pierre": <PERSON_1>, "Lyon": <LOCATION_1>}
+```
+
+**Sans aliases vs avec aliases dans `expand_placeholders` :**
+
+```
+Sans alias : re.finditer("Paris") → trouve "Paris" seulement
+
+Avec alias {"Pari": "Paris"} :
+  pattern = "Paris|Pari"  (plus long en premier)
+  re.finditer("Paris|Pari") → trouve "Paris" @0 et "Pari" @20
+  NamedEntity text="Paris" @0   → <LOCATION_1>
+  NamedEntity text="Pari"  @20  → <LOCATION_1>
+  deanonymize : <LOCATION_1>@0 → "Paris", <LOCATION_1>@8 → "Pari"
+```
 
 ---
 
