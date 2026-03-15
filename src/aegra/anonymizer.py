@@ -35,8 +35,10 @@ class NamedEntity:
         text: The surface form of the entity as it appears in the text.
         entity_type: Category label (e.g. "person", "company").
         confidence: Detection confidence score in [0, 1].
-        start: Character offset of the first character (inclusive).
-        end: Character offset past the last character (exclusive).
+        start: Character offset of the first character (inclusive) in the source text.
+        end: Character offset past the last character (exclusive) in the source text.
+        anon_start: Character offset of the placeholder (inclusive) in the anonymized text.
+        anon_end: Character offset past the placeholder (exclusive) in the anonymized text.
     """
 
     text: str
@@ -44,6 +46,8 @@ class NamedEntity:
     confidence: float
     start: Optional[int] = None
     end: Optional[int] = None
+    anon_start: Optional[int] = None
+    anon_end: Optional[int] = None
 
 
 class ThreadID(str): ...
@@ -87,12 +91,18 @@ class Anonymizer:
 
     extractor: GLiNER2
     entity_types: List[str]
-    _thread_store: Dict[ThreadID, Dict[Placeholder, List[NamedEntity]]]
+    _thread_store: Dict[ThreadID, Dict[str, "Placeholder"]]
 
-    def __init__(self, extractor: GLiNER2, entity_types: Optional[List[str]] = None):
+    def __init__(
+        self,
+        extractor: GLiNER2,
+        entity_types: Optional[List[str]] = None,
+        min_confidence: float = 0.5,
+    ):
         self.extractor = extractor
         self.entity_types = entity_types or ["company", "person", "product", "location"]
-        self._thread_store: Dict[ThreadID, Dict[Placeholder, List[NamedEntity]]] = {}
+        self.min_confidence = min_confidence
+        self._thread_store: Dict[ThreadID, Dict[str, Placeholder]] = {}
 
     def detect_entities(self, text: str) -> List[NamedEntity]:
         """Detect and return named entities found in the text.
@@ -124,46 +134,51 @@ class Anonymizer:
                     )
                 )
 
+        detections = [d for d in detections if d.confidence >= self.min_confidence]
         return detections
 
     def assign_placeholders(
         self,
         detections: List[NamedEntity],
-        existing_placeholders: Optional[Dict[Placeholder, List[NamedEntity]]] = None,
+        existing_vocab: Optional[Dict[str, Placeholder]] = None,
     ) -> Dict[Placeholder, List[NamedEntity]]:
         """Assign a placeholder key to each unique entity text.
 
         Entities with the same surface form share the same placeholder.
         Different surface forms within the same label get distinct indices.
-        If existing_placeholders is provided, known texts reuse their existing
+        If existing_vocab is provided, known texts reuse their existing
         placeholder and new indices start after the already-assigned ones.
 
         Args:
             detections: List of detected named entities.
-            existing_placeholders: Previously assigned placeholders to reuse.
+            existing_vocab: Previously built vocabulary mapping entity text to placeholder.
 
         Returns:
             Mapping from Placeholder to all detections that share that placeholder.
         """
+        occupied: Dict[Placeholder, str] = {}
+        if existing_vocab:
+            for text, ph in existing_vocab.items():
+                occupied[ph] = text
+
         placeholders: Dict[Placeholder, List[NamedEntity]] = defaultdict(list)
-        if existing_placeholders:
-            for ph, entities in existing_placeholders.items():
-                placeholders[ph].extend(entities)
 
         for detection in detections:
             label = detection.entity_type
 
+            if existing_vocab and detection.text in existing_vocab:
+                placeholders[existing_vocab[detection.text]].append(detection)
+                continue
+
             for index in range(1, 1000):
                 placeholder = build_placeholder(label, index)
-                if placeholder not in placeholders:
+                if placeholder not in occupied:
+                    placeholders[placeholder].append(detection)
+                    occupied[placeholder] = detection.text
+                    break
+                elif occupied[placeholder] == detection.text:
                     placeholders[placeholder].append(detection)
                     break
-                else:
-                    first_detection = placeholders[placeholder][0]
-                    # Todo : use fuzzy matching ?
-                    if first_detection.text == detection.text:
-                        placeholders[placeholder].append(detection)
-                        break
 
         return placeholders
 
@@ -236,21 +251,51 @@ class Anonymizer:
         Returns:
             Text with all entity spans substituted by placeholder tokens.
         """
-        replacements = []
-
+        candidates = []
         for placeholder, detections in placeholders.items():
             for detection in detections:
                 if detection.start is None or detection.end is None:
                     continue
-                replacements.append((detection.start, detection.end, placeholder))
+                candidates.append((detection.start, detection.end, placeholder, detection.confidence))
 
-        # Note: sort in reverse order to preserve character indices during replacement
-        replacements.sort(key=lambda x: x[0], reverse=True)
+        # Greedy: prefer high confidence, then longer span
+        candidates.sort(key=lambda x: (x[3], x[1] - x[0]), reverse=True)
 
-        for start, end, placeholder in replacements:
+        kept: List[tuple[int, int, str]] = []
+        accepted_spans: List[tuple[int, int]] = []
+        for start, end, placeholder, _ in candidates:
+            if any(start < ae and end > as_ for as_, ae in accepted_spans):
+                continue
+            kept.append((start, end, placeholder))
+            accepted_spans.append((start, end))
+
+        # Apply in reverse start order to preserve indices
+        kept.sort(key=lambda x: x[0], reverse=True)
+        for start, end, placeholder in kept:
             text = text[:start] + placeholder + text[end:]
 
         return text
+
+    def compute_anonymized_spans(
+        self,
+        anonymized_text: str,
+        placeholders: Dict[Placeholder, List[NamedEntity]],
+    ) -> Dict[Placeholder, List[NamedEntity]]:
+        """Populate anon_start/anon_end on each entity by scanning the anonymized text.
+
+        Args:
+            anonymized_text: Text after all replacements have been applied.
+            placeholders: Mapping from placeholder to detections.
+
+        Returns:
+            The same placeholders dict with anon_start/anon_end set on each entity.
+        """
+        for placeholder, entities in placeholders.items():
+            occurrences = list(re.finditer(re.escape(placeholder), anonymized_text))
+            for match, entity in zip(occurrences, entities):
+                entity.anon_start = match.start()
+                entity.anon_end = match.end()
+        return placeholders
 
     def anonymize(
         self,
@@ -268,13 +313,21 @@ class Anonymizer:
             each Placeholder token to the list of NamedEntity objects it replaced.
         """
         tid = resolve_thread_id(thread_id)
-        stored = self._thread_store.get(tid, {})
+        existing_vocab = self._thread_store.get(tid, {})
         detections = self.detect_entities(text)
-        placeholders = self.assign_placeholders(detections, existing_placeholders=stored)
+        placeholders = self.assign_placeholders(detections, existing_vocab=existing_vocab)
         placeholders = self.expand_placeholders(text, placeholders)
-        self._thread_store[tid] = placeholders
-        text = self.replace_with_placeholders(text, placeholders)
-        return text, placeholders
+        anonymized_text = self.replace_with_placeholders(text, placeholders)
+
+        placeholders = self.compute_anonymized_spans(anonymized_text, placeholders)
+
+        updated_vocab = dict(existing_vocab)
+        for ph, entities in placeholders.items():
+            if entities:
+                updated_vocab[entities[0].text] = ph
+        self._thread_store[tid] = updated_vocab
+
+        return anonymized_text, placeholders
 
     def deanonymize(
         self,
@@ -361,13 +414,20 @@ class Anonymizer:
         """
         if placeholders is None and thread_id is not None:
             tid = resolve_thread_id(thread_id)
-            placeholders = self._thread_store.get(tid, {})
-        effective_placeholders = placeholders or {}
+            vocab = self._thread_store.get(tid, {})
+            reverse_vocab: Dict[str, str] = {ph: text for text, ph in vocab.items()}
+        else:
+            reverse_vocab = {
+                ph: entities[0].text
+                for ph, entities in (placeholders or {}).items()
+                if entities
+            }
         for message in messages:
             assert isinstance(message.content, str), (
                 "This simple anonymizer only works for string content."
             )
-            message.content = self.deanonymize(message.content, effective_placeholders)
+            for ph, original_text in reverse_vocab.items():
+                message.content = message.content.replace(ph, original_text)
         return messages
 
 
