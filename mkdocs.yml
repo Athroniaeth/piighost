@@ -1,0 +1,13 @@
+site_name: Aegra
+site_description: Privacy-first LLM agent framework with automatic PII anonymization
+site_author: Aegra Team
+docs_dir: docs
+
+nav:
+  - Accueil: index.md
+  - Architecture & Flux: architecture.md
+  - Démarrage rapide: getting-started.md
+  - Référence:
+    - Anonymizer: anonymizer.md
+    - Middleware: middleware.md
+    - Configuration: configuration.md

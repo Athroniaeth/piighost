@@ -34,4 +34,5 @@ dev = [
     "commitizen>=4.13.9",
     "pyrefly>=0.55.0",
     "ruff>=0.15.5",
+    "zensical>=0.0.27",
 ]
