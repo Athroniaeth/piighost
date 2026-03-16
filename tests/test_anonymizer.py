@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from maskara.anonymizer import Anonymizer
+from maskara.old_anonymizer import Anonymizer
 
 
 # ------------------------------------------------------------------
