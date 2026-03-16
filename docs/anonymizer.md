@@ -190,7 +190,7 @@ Remplace toutes les cles du mapping par leurs valeurs, en traitant les cles les 
 
 ```python
 from gliner2 import GLiNER2
-from maskara.anonymizer import Anonymizer
+from maskara.old_anonymizer import Anonymizer
 
 extractor = GLiNER2.from_pretrained("fastino/gliner2-base-v1")
 anonymizer = Anonymizer(extractor, min_confidence=0.5)

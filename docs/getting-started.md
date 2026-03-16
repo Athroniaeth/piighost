@@ -108,7 +108,7 @@ print(result["messages"][-1].content)
 
 ```python
 from gliner2 import GLiNER2
-from maskara.anonymizer import Anonymizer
+from maskara.old_anonymizer import Anonymizer
 
 extractor = GLiNER2.from_pretrained("fastino/gliner2-base-v1")
 anonymizer = Anonymizer(extractor)
