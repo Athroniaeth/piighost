@@ -1,10 +1,8 @@
 """Validation logic for spans, separated behind a Protocol for DI."""
 
-from __future__ import annotations
-
 from typing import Protocol, Sequence
 
-from span_replacer.models import Span
+from maskara.span_replacer.models import Span
 
 
 class SpanValidator(Protocol):
@@ -45,9 +43,7 @@ class DefaultSpanValidator:
         # Check if have any incoherence between consecutive spans (overlaps)
         for prev, curr in zip(sorted_spans, sorted_spans[1:]):
             if curr.start < prev.end:
-                raise ValueError(
-                    f"Overlapping spans: {prev} and {curr}"
-                )
+                raise ValueError(f"Overlapping spans: {prev} and {curr}")
 
     @staticmethod
     def _check_bounds(span: Span, text_length: int) -> None:
@@ -65,6 +61,4 @@ class DefaultSpanValidator:
                 f"Span {span} out of bounds for text of length {text_length}"
             )
         if span.start >= span.end:
-            raise ValueError(
-                f"Span {span} is empty or reversed (start >= end)"
-            )
+            raise ValueError(f"Span {span} is empty or reversed (start >= end)")

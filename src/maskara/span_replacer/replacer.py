@@ -1,11 +1,9 @@
 """Core replacement engine: apply spans forward, restore backward."""
 
-from __future__ import annotations
-
 from typing import Sequence
 
-from span_replacer.models import ReplacementResult, Span
-from span_replacer.validator import DefaultSpanValidator, SpanValidator
+from maskara.span_replacer.models import ReplacementResult, Span
+from maskara.span_replacer.validator import DefaultSpanValidator, SpanValidator
 
 
 class SpanReplacer:
@@ -62,9 +60,7 @@ class SpanReplacer:
 
             # Replace original text by span text
             result_text = (
-                result_text[:adj_start]
-                + span.replacement
-                + result_text[adj_end:]
+                result_text[:adj_start] + span.replacement + result_text[adj_end:]
             )
 
             # We know the beginning of the span; now we need the end (after modification)

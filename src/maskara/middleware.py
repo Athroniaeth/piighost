@@ -1,7 +1,5 @@
 """PII anonymization middleware backed by GLiNER2 zero-shot NER."""
 
-from __future__ import annotations
-
 import hashlib
 import re
 from typing import Annotated, Any, Awaitable, Callable

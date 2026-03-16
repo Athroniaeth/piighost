@@ -1,8 +1,8 @@
 """Span-based text replacement with reversible mappings."""
 
-from span_replacer.models import Span, ReplacementResult
-from span_replacer.validator import SpanValidator, DefaultSpanValidator
-from span_replacer.replacer import SpanReplacer
+from maskara.span_replacer.models import Span, ReplacementResult
+from maskara.span_replacer.validator import SpanValidator, DefaultSpanValidator
+from maskara.span_replacer.replacer import SpanReplacer
 
 __all__ = [
     "Span",

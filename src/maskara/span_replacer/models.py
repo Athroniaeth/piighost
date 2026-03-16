@@ -1,7 +1,5 @@
 """Immutable data models for span-based text replacement."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 
