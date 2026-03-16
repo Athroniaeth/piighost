@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Optional
 from uuid import uuid4
 
@@ -113,7 +111,9 @@ class Anonymizer:
             assert isinstance(message.content, str), (
                 "This simple anonymizer only works for string content."
             )
-            message.content, vocab = self.anonymize(message.content, thread_id=thread_id)
+            message.content, vocab = self.anonymize(
+                message.content, thread_id=thread_id
+            )
             combined_vocab.update(vocab)
         return messages, combined_vocab
 

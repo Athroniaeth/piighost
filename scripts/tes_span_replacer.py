@@ -1,4 +1,4 @@
-from span_replacer import SpanReplacer, Span
+from maskara.span_replacer import SpanReplacer, Span
 
 text = "Bonjour je m'appelle Patrick, j'ai 25 ans, c'est un beau prénom Patrick non ?"
 spans = [Span(21, 28, "{name_1}"), Span(35, 41, "{age_1}"), Span(64, 71, "{name_1}")]

@@ -111,7 +111,9 @@ class CustomMiddleware(AgentMiddleware):
         print(f"Model response before deanonymization: {ai_msg.content}")
 
         ai_msg = self.anonymizer.deanonymize_messages([ai_msg], thread_id=thread_id)[0]
-        request.messages = self.anonymizer.deanonymize_messages(request.messages, thread_id=thread_id)
+        request.messages = self.anonymizer.deanonymize_messages(
+            request.messages, thread_id=thread_id
+        )
 
         print(f"Model request after deanonymization: {request.messages}")
         print(f"Model response after deanonymization: {ai_msg.content}")
