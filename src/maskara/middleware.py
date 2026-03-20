@@ -80,45 +80,28 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             An update dict replacing the ``messages`` key, or *None* if
             nothing changed.
         """
-        messages = list(state["messages"])
         changed = False
+        messages = state["messages"]
 
         for idx, message in enumerate(messages):
             content = message.content
             if not isinstance(content, str) or not content.strip():
-                continue
+                raise ValueError("There are censed have Langchain message")
 
-            if isinstance(message, HumanMessage):
+            if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
                 result = await self._pipeline.anonymize(content)
                 new_content = result.anonymized_text
-            elif isinstance(message, (AIMessage, ToolMessage)):
-                new_content = self._pipeline.reanonymize_text(content)
             else:
-                continue
+                raise ValueError("There are censed have Langchain message")
 
             if new_content == content:
                 continue
 
-            if isinstance(message, HumanMessage):
-                messages[idx] = HumanMessage(
-                    content=new_content,
-                    **_preserve_metadata(message),
-                )
-            elif isinstance(message, AIMessage):
-                messages[idx] = AIMessage(
-                    content=new_content,
-                    tool_calls=message.tool_calls,
-                    **_preserve_metadata(message),
-                )
-            elif isinstance(message, ToolMessage):
-                messages[idx] = ToolMessage(
-                    content=new_content,
-                    tool_call_id=message.tool_call_id,
-                    name=message.name,
-                )
+            if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
+                messages[idx].content = new_content
 
+            logger.debug(f"Anonymised message {idx}")
             changed = True
-            logger.debug("Anonymised message %d", idx)
 
         return {"messages": messages} if changed else None
 
@@ -176,7 +159,9 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             changed = True
 
         if changed:
-            logger.debug("Deanonymised %d message(s)", sum(1 for _ in range(len(messages))))
+            logger.debug(
+                "Deanonymised %d message(s)", sum(1 for _ in range(len(messages)))
+            )
         return {"messages": messages} if changed else None
 
     # -----------------------------------------------------------------

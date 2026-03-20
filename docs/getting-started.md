@@ -78,7 +78,7 @@ Le serveur demarre sur `http://localhost:{PORT}` (defaut: 8000).
 ### Avec le middleware LangGraph (production)
 
 ```python
-from maskara.middleware import PIIAnonymizationMiddleware, PIIState
+from maskara.old_middleware import PIIAnonymizationMiddleware, PIIState
 from langchain.agents import create_agent
 from langchain_core.tools import tool
 

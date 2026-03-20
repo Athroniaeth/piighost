@@ -77,7 +77,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 ## Utilisation
 
 ```python
-from maskara.middleware import PIIAnonymizationMiddleware, PIIState
+from maskara.old_middleware import PIIAnonymizationMiddleware, PIIState
 from langchain.agents import create_agent
 
 graph = create_agent(
@@ -158,7 +158,7 @@ L'etape 2 (masquage null-byte) est specifique au middleware. Elle empeche la cre
 ## Exemple bout-en-bout
 
 ```python
-from maskara.middleware import PIIAnonymizationMiddleware, PIIState
+from maskara.old_middleware import PIIAnonymizationMiddleware, PIIState
 from langchain.agents import create_agent
 from langchain_core.tools import tool
 
