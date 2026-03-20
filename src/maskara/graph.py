@@ -60,7 +60,7 @@ langfuse = get_client()
 
 # Initialize Langfuse CallbackHandler for Langchain (tracing)
 langfuse_handler = CallbackHandler()
-extractor = GLiNER2.from_pretrained("fastino/gliner2-base-v1")
+extractor = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
 detector = GlinerDetector(model=extractor, threshold=0.5, flat_ner=True)
 anonymizer = Anonymizer(detector=detector)
@@ -75,4 +75,3 @@ graph = create_agent(
     tools=[send_email, get_weather],
     middleware=[middleware],
 )
-

@@ -5,7 +5,6 @@ Uses a fake detector to avoid loading a real GLiNER model in CI.
 
 from typing import Sequence
 
-import pytest
 
 from maskara.anonymizer.anonymizer import Anonymizer
 from maskara.anonymizer.models import Entity
@@ -106,9 +105,11 @@ class TestAnonymizer:
     """Integration tests for the full anonymization pipeline."""
 
     def test_single_entity_single_occurrence(self) -> None:
-        detector = FakeDetector([
-            Entity(text="Patrick", label="PERSON", start=10, end=17, score=0.95),
-        ])
+        detector = FakeDetector(
+            [
+                Entity(text="Patrick", label="PERSON", start=10, end=17, score=0.95),
+            ]
+        )
         anonymizer = Anonymizer(detector=detector)
 
         result = anonymizer.anonymize(
@@ -123,9 +124,11 @@ class TestAnonymizer:
     def test_expands_to_all_occurrences(self) -> None:
         # NER only finds the first "Patrick" but the pipeline should
         # replace *both*.
-        detector = FakeDetector([
-            Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-        ])
+        detector = FakeDetector(
+            [
+                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
+            ]
+        )
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick est gentil. Patrick habite ici."
 
@@ -135,10 +138,12 @@ class TestAnonymizer:
         assert "Patrick" not in result.anonymized_text
 
     def test_multiple_entity_types(self) -> None:
-        detector = FakeDetector([
-            Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-            Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85),
-        ])
+        detector = FakeDetector(
+            [
+                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
+                Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85),
+            ]
+        )
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick habite à Paris."
 
@@ -150,10 +155,12 @@ class TestAnonymizer:
         assert "Paris" not in result.anonymized_text
 
     def test_deanonymize_restores_original(self) -> None:
-        detector = FakeDetector([
-            Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-            Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85),
-        ])
+        detector = FakeDetector(
+            [
+                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
+                Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85),
+            ]
+        )
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick habite à Paris."
 
@@ -163,9 +170,11 @@ class TestAnonymizer:
         assert restored == text
 
     def test_deanonymize_with_expanded_occurrences(self) -> None:
-        detector = FakeDetector([
-            Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-        ])
+        detector = FakeDetector(
+            [
+                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
+            ]
+        )
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick aime Patrick."
 
@@ -186,9 +195,11 @@ class TestAnonymizer:
 
     def test_partial_word_not_replaced(self) -> None:
         # "APatrick" should NOT be touched.
-        detector = FakeDetector([
-            Entity(text="Patrick", label="PERSON", start=6, end=13, score=0.9),
-        ])
+        detector = FakeDetector(
+            [
+                Entity(text="Patrick", label="PERSON", start=6, end=13, score=0.9),
+            ]
+        )
         anonymizer = Anonymizer(detector=detector)
         text = "Salut Patrick, APatrick ne compte pas."
 

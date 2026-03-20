@@ -11,6 +11,7 @@ from maskara.anonymizer.placeholder import (
 )
 from maskara.span_replacer.models import Span
 from maskara.span_replacer.replacer import SpanReplacer
+from maskara.span_replacer.models import ReplacementResult
 
 
 class Anonymizer:
@@ -76,25 +77,22 @@ class Anonymizer:
             the placeholders created, and the reverse spans for
             deanonymization.
         """
-        self._placeholder_factory.reset()
-
         entities = self._detector.detect(text, labels)
 
         # Deduplicate: keep the first (highest-position) entity per
         # unique (text, label) pair.  Order does not matter because
         # occurrence expansion will relocate every position anyway.
-        unique_entities = {
-            (ent.text, ent.label): ent for ent in entities
-        }
+        unique_entities = {(ent.text, ent.label): ent for ent in entities}
 
         # Build spans for every occurrence of every unique entity.
         spans: list[Span] = []
         placeholders: list[Placeholder] = []
         occupied: set[tuple[int, int]] = set()
 
-        for (ent_text, ent_label) in unique_entities:
+        for ent_text, ent_label in unique_entities:
             placeholder = self._placeholder_factory.get_or_create(
-                ent_text, ent_label,
+                ent_text,
+                ent_label,
             )
             placeholders.append(placeholder)
 
@@ -127,7 +125,6 @@ class Anonymizer:
         Returns:
             The original text before anonymization.
         """
-        from maskara.span_replacer.models import ReplacementResult
 
         replacement_result = ReplacementResult(
             text=result.anonymized_text,
