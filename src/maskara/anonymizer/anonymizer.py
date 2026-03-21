@@ -77,17 +77,17 @@ class Anonymizer:
             the placeholders created, and the reverse spans for
             deanonymization.
         """
+        # Build spans for every occurrence of every unique entity.
+        spans: list[Span] = []
+        placeholders: list[Placeholder] = []
+        occupied: set[tuple[int, int]] = set()
+
         entities = self._detector.detect(text, labels)
 
         # Deduplicate: keep the first (highest-position) entity per
         # unique (text, label) pair.  Order does not matter because
         # occurrence expansion will relocate every position anyway.
         unique_entities = {(ent.text, ent.label): ent for ent in entities}
-
-        # Build spans for every occurrence of every unique entity.
-        spans: list[Span] = []
-        placeholders: list[Placeholder] = []
-        occupied: set[tuple[int, int]] = set()
 
         for ent_text, ent_label in unique_entities:
             placeholder = self._placeholder_factory.get_or_create(
@@ -101,9 +101,12 @@ class Anonymizer:
                 if (start, end) in occupied:
                     continue
                 occupied.add((start, end))
-                spans.append(
-                    Span(start=start, end=end, replacement=placeholder.replacement),
+                span = Span(
+                    start=start,
+                    end=end,
+                    replacement=placeholder.replacement,
                 )
+                spans.append(span)
 
         replacement_result = self._replacer.apply(text, spans)
 
