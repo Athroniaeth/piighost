@@ -14,8 +14,6 @@ Public API:
 * ``reanonymize_text`` (sync) – replace originals back to tags.
 """
 
-from __future__ import annotations
-
 import hashlib
 import logging
 from typing import Protocol, Sequence
