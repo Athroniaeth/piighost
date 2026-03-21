@@ -1,0 +1,28 @@
+[project]
+name = "graph"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Athroniaeth" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "aegra-cli>=0.8.3",
+    "aiosqlite>=0.22.1",
+    "keyshield[argon2,fastapi]>=2.0.0",
+    "langchain>=1.2.13",
+    "langchain-openai>=1.1.11",
+    "langfuse>=4.0.1",
+    "langgraph>=1.1.3",
+    "loguru>=0.7.3",
+    "maskara",
+    "python-dotenv>=1.2.2",
+]
+
+[tool.uv.sources]
+maskara = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"

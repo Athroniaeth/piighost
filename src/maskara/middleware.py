@@ -14,7 +14,10 @@ All caching, hashing, and text-level replacement logic is delegated to
 ``AnonymizationPipeline``.  This class is a thin LangChain adapter.
 """
 
-from __future__ import annotations
+try:
+    import langchain
+except ModuleNotFoundError:
+    raise ImportError("You must install maskara[langchain] for use middleware")
 
 import logging
 from typing import Any, Awaitable, Callable
