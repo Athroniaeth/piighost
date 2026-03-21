@@ -1,0 +1,52 @@
+[project]
+site_name = "Maskara"
+site_description = "Bibliothèque d'anonymisation PII pour agents LLM, basée sur GLiNER2"
+site_author = "Maskara"
+docs_dir = "docs"
+
+nav = [
+  { "Accueil" = "index.md" },
+  { "Démarrage rapide" = "getting-started.md" },
+  { "Architecture" = "architecture.md" },
+  { "Exemples" = [
+    { "Usage basique" = "examples/basic.md" },
+    { "Intégration LangChain" = "examples/langchain.md" },
+  ]},
+  { "Étendre Maskara" = "extending.md" },
+  { "Référence API" = [
+    { "Anonymizer" = "reference/anonymizer.md" },
+    { "Pipeline" = "reference/pipeline.md" },
+    { "Middleware" = "reference/middleware.md" },
+  ]},
+]
+
+[project.theme]
+language = "fr"
+features = [
+  "announce.dismiss",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Passer en mode sombre"
+
+[[project.theme.palette]]
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Passer en mode clair"
