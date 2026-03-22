@@ -186,6 +186,26 @@ class AnonymizationPipeline:
                 text = text.replace(placeholder.replacement, placeholder.original)
         return text
 
+    def deanonymize_value(self, value: str) -> str:
+        """Resolve a single value that may be a placeholder tag or contain one.
+
+        Intended for individual tool-call argument values provided by the LLM,
+        which sees only anonymized entities.  Works across all registered
+        detectors and results accumulated in this session.
+
+        Args:
+            value: A string that may equal or contain a placeholder tag
+                   (e.g. ``"<<PERSON_1>>"``).
+
+        Returns:
+            The original value if a matching placeholder is found, or *value*
+            unchanged.
+        """
+        for result in self._results:
+            for placeholder in result.placeholders:
+                value = value.replace(placeholder.replacement, placeholder.original)
+        return value
+
     def reanonymize_text(self, text: str) -> str:
         """Replace every known original value in *text* with its placeholder tag.
 
