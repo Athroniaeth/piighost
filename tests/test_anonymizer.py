@@ -31,7 +31,9 @@ class FakeDetector:
     def __init__(self, entities: list[Entity]) -> None:
         self._entities = entities
 
-    def detect(self, text: str, labels: Sequence[str]) -> list[Entity]:
+    def detect(
+        self, text: str, active_labels: Sequence[str] | None = None
+    ) -> list[Entity]:
         """Return pre-configured entities regardless of input."""
         return self._entities
 
@@ -173,7 +175,7 @@ class TestAnonymizer:
 
         result = anonymizer.anonymize(
             "Bonjour, Patrick !",
-            labels=["PERSON"],
+            active_labels=["PERSON"],
         )
 
         assert "Patrick" not in result.anonymized_text
@@ -191,7 +193,7 @@ class TestAnonymizer:
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick est gentil. Patrick habite ici."
 
-        result = anonymizer.anonymize(text, labels=["PERSON"])
+        result = anonymizer.anonymize(text, active_labels=["PERSON"])
 
         assert result.anonymized_text.count("<<PERSON_1>>") == 2
         assert "Patrick" not in result.anonymized_text
@@ -206,7 +208,7 @@ class TestAnonymizer:
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick habite à Paris."
 
-        result = anonymizer.anonymize(text, labels=["PERSON", "LOCATION"])
+        result = anonymizer.anonymize(text, active_labels=["PERSON", "LOCATION"])
 
         assert "<<PERSON_1>>" in result.anonymized_text
         assert "<<LOCATION_1>>" in result.anonymized_text
@@ -223,7 +225,7 @@ class TestAnonymizer:
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick habite à Paris."
 
-        result = anonymizer.anonymize(text, labels=["PERSON", "LOCATION"])
+        result = anonymizer.anonymize(text, active_labels=["PERSON", "LOCATION"])
         restored = anonymizer.deanonymize(result)
 
         assert restored == text
@@ -237,7 +239,7 @@ class TestAnonymizer:
         anonymizer = Anonymizer(detector=detector)
         text = "Patrick aime Patrick."
 
-        result = anonymizer.anonymize(text, labels=["PERSON"])
+        result = anonymizer.anonymize(text, active_labels=["PERSON"])
         restored = anonymizer.deanonymize(result)
 
         assert restored == text
@@ -247,7 +249,7 @@ class TestAnonymizer:
         anonymizer = Anonymizer(detector=detector)
         text = "Rien de spécial ici."
 
-        result = anonymizer.anonymize(text, labels=["PERSON"])
+        result = anonymizer.anonymize(text, active_labels=["PERSON"])
 
         assert result.anonymized_text == text
         assert result.placeholders == ()
@@ -262,7 +264,7 @@ class TestAnonymizer:
         anonymizer = Anonymizer(detector=detector)
         text = "Salut Patrick, APatrick ne compte pas."
 
-        result = anonymizer.anonymize(text, labels=["PERSON"])
+        result = anonymizer.anonymize(text, active_labels=["PERSON"])
 
         assert "APatrick" in result.anonymized_text
         assert result.anonymized_text.count("<<PERSON_1>>") == 1
@@ -281,7 +283,7 @@ class TestRegexDetector:
     def test_detects_matching_pattern(self) -> None:
         detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
         key = "sk-proj-abc123xyz456789ABCDEF"
-        entities = detector.detect(f"My key is {key}", ["OPENAI_API_KEY"])
+        entities = detector.detect(f"My key is {key}")
         assert len(entities) == 1
         assert entities[0].text == key
         assert entities[0].label == "OPENAI_API_KEY"
@@ -290,28 +292,19 @@ class TestRegexDetector:
     def test_returns_correct_span(self) -> None:
         detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
         text = "key: sk-abc123xyz456789ABCDEF end"
-        entities = detector.detect(text, ["OPENAI_API_KEY"])
+        entities = detector.detect(text)
         assert len(entities) == 1
         start, end = entities[0].start, entities[0].end
         assert text[start:end] == entities[0].text
 
-    def test_ignores_label_not_requested(self) -> None:
+    def test_active_labels_filter_excludes_unconfigured(self) -> None:
         detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        entities = detector.detect("sk-proj-abc123xyz456789ABCDEF", ["PERSON"])
+        entities = detector.detect(
+            "sk-proj-abc123xyz456789ABCDEF", active_labels=["PERSON"]
+        )
         assert entities == []
 
-    def test_multiple_matches_in_text(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        text = "k1=sk-abc123xyz456789ABCDEF k2=sk-proj-zyxwvu987654321fedcba"
-        entities = detector.detect(text, ["OPENAI_API_KEY"])
-        assert len(entities) == 2
-
-    def test_no_match_returns_empty(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        entities = detector.detect("no key here", ["OPENAI_API_KEY"])
-        assert entities == []
-
-    def test_multiple_patterns_different_labels(self) -> None:
+    def test_no_filter_runs_all_configured_patterns(self) -> None:
         detector = RegexDetector(
             patterns={
                 "OPENAI_API_KEY": self.OPENAI_PATTERN,
@@ -319,15 +312,26 @@ class TestRegexDetector:
             }
         )
         text = "key=sk-abc123xyz456789ABCDEF mail=user@example.com"
-        entities = detector.detect(text, ["OPENAI_API_KEY", "EMAIL"])
+        entities = detector.detect(text)  # no filter — both patterns run
         labels = {e.label for e in entities}
         assert labels == {"OPENAI_API_KEY", "EMAIL"}
 
-    def test_integration_with_anonymizer(self) -> None:
+    def test_multiple_matches_in_text(self) -> None:
+        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
+        text = "k1=sk-abc123xyz456789ABCDEF k2=sk-proj-zyxwvu987654321fedcba"
+        entities = detector.detect(text)
+        assert len(entities) == 2
+
+    def test_no_match_returns_empty(self) -> None:
+        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
+        entities = detector.detect("no key here")
+        assert entities == []
+
+    def test_integration_with_anonymizer_no_filter(self) -> None:
         detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
         anonymizer = Anonymizer(detector=detector)
         text = "My API key is sk-proj-secretkey1234567890abcdef here."
-        result = anonymizer.anonymize(text, labels=["OPENAI_API_KEY"])
+        result = anonymizer.anonymize(text)  # labels configured at init
         assert "sk-proj-secretkey1234567890abcdef" not in result.anonymized_text
         assert "<<OPENAI_API_KEY_1>>" in result.anonymized_text
 
@@ -353,24 +357,24 @@ class TestCompositeDetector:
                 FakeDetector([key_entity]),
             ]
         )
-        entities = composite.detect("Patrick - sk-abc123", ["PERSON", "OPENAI_API_KEY"])
+        entities = composite.detect("Patrick - sk-abc123")
         assert person_entity in entities
         assert key_entity in entities
 
     def test_empty_detectors_returns_empty(self) -> None:
         composite = CompositeDetector(detectors=[])
-        assert composite.detect("some text", ["PERSON"]) == []
+        assert composite.detect("some text") == []
 
-    def test_forwards_labels_to_children(self) -> None:
+    def test_active_labels_filter_forwarded_to_children(self) -> None:
         regex_detector = RegexDetector(
             patterns={"OPENAI_API_KEY": r"sk-[A-Za-z0-9\-_]{20,}"}
         )
         composite = CompositeDetector(detectors=[regex_detector])
-        # Label not requested — regex_detector should skip it
-        entities = composite.detect("sk-abc123xyz456789ABCDE", ["PERSON"])
+        # Filter excludes OPENAI_API_KEY — regex_detector should skip it
+        entities = composite.detect("sk-abc123xyz456789ABCDE", active_labels=["PERSON"])
         assert entities == []
 
-    def test_integration_gliner_and_regex(self) -> None:
+    def test_integration_gliner_and_regex_no_filter(self) -> None:
         person_entity = Entity(
             text="Patrick", label="PERSON", start=0, end=7, score=0.9
         )
@@ -384,7 +388,9 @@ class TestCompositeDetector:
         )
         anonymizer = Anonymizer(detector=composite)
         text = "Patrick a utilisé la clé sk-proj-mysecretkey12345678abcd"
-        result = anonymizer.anonymize(text, labels=["PERSON", "OPENAI_API_KEY"])
+        result = anonymizer.anonymize(
+            text
+        )  # no filter — each detector uses its own labels
         assert "Patrick" not in result.anonymized_text
         assert "sk-proj-mysecretkey12345678abcd" not in result.anonymized_text
         assert "<<PERSON_1>>" in result.anonymized_text

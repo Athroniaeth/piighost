@@ -16,12 +16,19 @@ class EntityDetector(Protocol):
     API, etc.  The anonymiser depends only on this protocol.
     """
 
-    def detect(self, text: str, labels: Sequence[str]) -> list[Entity]:
-        """Detect entities in *text* for the requested *labels*.
+    def detect(
+        self,
+        text: str,
+        active_labels: Sequence[str] | None = None,
+    ) -> list[Entity]:
+        """Detect entities in *text*.
 
         Args:
             text: The source string to analyse.
-            labels: Entity types to look for (e.g. ``["PERSON", "LOCATION"]``).
+            active_labels: Optional runtime filter.  When *None* (default),
+                the detector uses all labels it was configured with at init.
+                When provided, only the intersection with the configured
+                labels is used.
 
         Returns:
             A list of detected entities (may contain duplicates across
@@ -39,33 +46,45 @@ class GlinerDetector:
 
     Args:
         model: A loaded ``GLiNER`` model instance.
+        labels: Entity types this detector is configured to find.
         threshold: Minimum confidence score to keep a prediction.
         flat_ner: Whether to use flat NER mode (no nested entities).
 
     Example:
         >>> from gliner import GLiNER
         >>> model = GLiNER.from_pretrained("urchade/gliner_multi_pii-v1")
-        >>> detector = GlinerDetector(model=model, threshold=0.5)
-        >>> entities = detector.detect("Je m'appelle Patrick", ["PERSON"])
+        >>> detector = GlinerDetector(model=model, labels=["PERSON", "LOCATION"])
+        >>> entities = detector.detect("Je m'appelle Patrick")
     """
 
     model: GLiNER2
+    labels: list[str]
     threshold: float = 0.5
     flat_ner: bool = True
 
-    def detect(self, text: str, labels: Sequence[str]) -> list[Entity]:
+    def detect(
+        self,
+        text: str,
+        active_labels: Sequence[str] | None = None,
+    ) -> list[Entity]:
         """Run GLiNER prediction and convert results to ``Entity`` objects.
 
         Args:
             text: The source string.
-            labels: Entity types to search for.
+            active_labels: Optional runtime filter (intersection with
+                ``self.labels``).  Defaults to all configured labels.
 
         Returns:
             Entities whose score meets the configured threshold.
         """
+        effective = (
+            list(set(active_labels) & set(self.labels))
+            if active_labels is not None
+            else self.labels
+        )
         raw_entities = self.model.extract_entities(
             text,
-            entity_types=list(labels),
+            entity_types=effective,
             threshold=self.threshold,
             include_spans=True,
             include_confidence=True,
@@ -104,32 +123,44 @@ class RegexDetector:
 
     patterns: dict[str, str | re.Pattern[str]] = field(default_factory=dict)
 
-    def detect(self, text: str, labels: Sequence[str]) -> list[Entity]:
-        """Find all regex matches for the requested *labels*.
+    def detect(
+        self,
+        text: str,
+        active_labels: Sequence[str] | None = None,
+    ) -> list[Entity]:
+        """Find all regex matches for the configured patterns.
 
         Args:
             text: The source string to analyse.
-            labels: Only patterns whose label appears here are executed.
+            active_labels: Optional runtime filter.  When *None*, all
+                configured patterns are executed.  When provided, only
+                patterns whose label is in the intersection are executed.
 
         Returns:
             One ``Entity`` per regex match, with ``score=1.0``.
         """
         entities: list[Entity] = []
-        label_set = set(labels)
+        effective = (
+            set(active_labels) & self.patterns.keys()
+            if active_labels is not None
+            else self.patterns.keys()
+        )
         for label, pattern in self.patterns.items():
-            if label not in label_set:
+            if label not in effective:
                 continue
+
             compiled = re.compile(pattern) if isinstance(pattern, str) else pattern
+
             for m in compiled.finditer(text):
-                entities.append(
-                    Entity(
-                        text=m.group(),
-                        label=label,
-                        start=m.start(),
-                        end=m.end(),
-                        score=1.0,
-                    )
+                entity = Entity(
+                    text=m.group(),
+                    label=label,
+                    start=m.start(),
+                    end=m.end(),
+                    score=1.0,
                 )
+                entities.append(entity)
+
         return entities
 
 
@@ -153,17 +184,21 @@ class CompositeDetector:
 
     detectors: list[EntityDetector] = field(default_factory=list)
 
-    def detect(self, text: str, labels: Sequence[str]) -> list[Entity]:
+    def detect(
+        self,
+        text: str,
+        active_labels: Sequence[str] | None = None,
+    ) -> list[Entity]:
         """Collect entities from every child detector.
 
         Args:
             text: The source string.
-            labels: Forwarded to each child detector unchanged.
+            active_labels: Forwarded to each child detector unchanged.
 
         Returns:
             Concatenated list of entities from all detectors.
         """
         entities: list[Entity] = []
         for detector in self.detectors:
-            entities.extend(detector.detect(text, labels))
+            entities.extend(detector.detect(text, active_labels))
         return entities

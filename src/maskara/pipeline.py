@@ -16,7 +16,7 @@ Public API:
 
 import hashlib
 import logging
-from typing import Protocol, Sequence
+from typing import Protocol
 
 from maskara.anonymizer.anonymizer import Anonymizer
 from maskara.anonymizer.models import AnonymizationResult
@@ -108,15 +108,11 @@ class AnonymizationPipeline:
 
     Args:
         anonymizer: The stateless anonymization engine.
-        labels: Entity types forwarded to the detector on every pass.
         store: Async key-value backend.  Defaults to
             ``InMemoryPlaceholderStore``.
 
     Example:
-        >>> pipeline = AnonymizationPipeline(
-        ...     anonymizer=my_anonymizer,
-        ...     labels=["PERSON", "LOCATION"],
-        ... )
+        >>> pipeline = AnonymizationPipeline(anonymizer=my_anonymizer)
         >>> result = await pipeline.anonymize("Patrick habite a Paris.")
         >>> result.anonymized_text
         '<<PERSON_1>> habite a <<LOCATION_1>>.'
@@ -129,11 +125,9 @@ class AnonymizationPipeline:
     def __init__(
         self,
         anonymizer: Anonymizer,
-        labels: Sequence[str],
         store: PlaceholderStore | None = None,
     ) -> None:
         self._anonymizer = anonymizer
-        self._labels = list(labels)
         self._store = store or InMemoryPlaceholderStore()
         self._results: list[AnonymizationResult] = []
 
@@ -161,7 +155,7 @@ class AnonymizationPipeline:
             self._register(cached)
             return cached
 
-        result = self._anonymizer.anonymize(text, labels=self._labels)
+        result = self._anonymizer.anonymize(text)
 
         if result.anonymized_text != text:
             await self._store.set(key, result)
