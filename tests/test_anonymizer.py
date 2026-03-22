@@ -312,7 +312,7 @@ class TestRegexDetector:
             }
         )
         text = "key=sk-abc123xyz456789ABCDEF mail=user@example.com"
-        entities = detector.detect(text)  # no filter — both patterns run
+        entities = detector.detect(text)  # no filter both patterns run
         labels = {e.label for e in entities}
         assert labels == {"OPENAI_API_KEY", "EMAIL"}
 
@@ -370,7 +370,7 @@ class TestCompositeDetector:
             patterns={"OPENAI_API_KEY": r"sk-[A-Za-z0-9\-_]{20,}"}
         )
         composite = CompositeDetector(detectors=[regex_detector])
-        # Filter excludes OPENAI_API_KEY — regex_detector should skip it
+        # Filter excludes OPENAI_API_KEY regex_detector should skip it
         entities = composite.detect("sk-abc123xyz456789ABCDE", active_labels=["PERSON"])
         assert entities == []
 
@@ -390,7 +390,7 @@ class TestCompositeDetector:
         text = "Patrick a utilisé la clé sk-proj-mysecretkey12345678abcd"
         result = anonymizer.anonymize(
             text
-        )  # no filter — each detector uses its own labels
+        )  # no filter each detector uses its own labels
         assert "Patrick" not in result.anonymized_text
         assert "sk-proj-mysecretkey12345678abcd" not in result.anonymized_text
         assert "<<PERSON_1>>" in result.anonymized_text

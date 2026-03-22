@@ -97,7 +97,7 @@ class HashPlaceholderFactory:
 
     Uses a SHA-256 digest of the original text (truncated to
     ``digest_length`` hex characters) to produce a deterministic,
-    opaque tag — identical to the strategy used by LangChain's
+    opaque tag identical to the strategy used by LangChain's
     built-in PII redaction middleware.
 
     The same ``(original, label)`` pair always produces the same tag,

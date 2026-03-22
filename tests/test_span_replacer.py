@@ -1,4 +1,4 @@
-"""Tests for span_replacer — uses DI to swap validator in tests."""
+"""Tests for span_replacer uses DI to swap validator in tests."""
 
 import pytest
 from typing import Sequence

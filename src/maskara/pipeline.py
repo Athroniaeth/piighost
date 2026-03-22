@@ -172,7 +172,7 @@ class AnonymizationPipeline:
         """Replace every known placeholder tag in *text* with its original.
 
         This performs simple string replacement (not span-based) so it
-        works on *any* string derived from an anonymised text — including
+        works on *any* string derived from an anonymised text including
         LLM-generated tool-call arguments.
 
         Args:
