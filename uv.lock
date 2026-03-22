@@ -703,10 +703,12 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "faker" },
-    { name = "gliner2" },
 ]
 
 [package.optional-dependencies]
+gliner = [
+    { name = "gliner2" },
+]
 langchain = [
     { name = "langchain" },
 ]
@@ -723,10 +725,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "faker", specifier = ">=40.8.0" },
-    { name = "gliner2", specifier = ">=1.2" },
+    { name = "gliner2", marker = "extra == 'gliner'", specifier = ">=1.2" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2" },
 ]
-provides-extras = ["langchain"]
+provides-extras = ["gliner", "langchain"]
 
 [package.metadata.requires-dev]
 dev = [

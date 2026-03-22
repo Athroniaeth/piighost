@@ -1,10 +1,13 @@
 """Entity detection abstraction and GLiNER2 implementation."""
 
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass, field
-from typing import Protocol, Sequence
+from typing import TYPE_CHECKING, Protocol, Sequence
 
-from gliner2 import GLiNER2
+if TYPE_CHECKING:
+    from gliner2 import GLiNER2
 
 from maskara.anonymizer.models import Entity
 
