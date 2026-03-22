@@ -62,12 +62,11 @@ langfuse = get_client()
 langfuse_handler = CallbackHandler()
 extractor = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
-detector = GlinerDetector(model=extractor, threshold=0.5, flat_ner=True)
-anonymizer = Anonymizer(detector=detector)
-pipeline = AnonymizationPipeline(
-    anonymizer=anonymizer,
-    labels=["PERSON", "LOCATION"],
+detector = GlinerDetector(
+    model=extractor, labels=["PERSON", "LOCATION"], threshold=0.5, flat_ner=True
 )
+anonymizer = Anonymizer(detector=detector)
+pipeline = AnonymizationPipeline(anonymizer=anonymizer)
 middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 graph = create_agent(
     model="openai:gpt-5-mini",

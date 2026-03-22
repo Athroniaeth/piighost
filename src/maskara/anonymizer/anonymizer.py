@@ -64,13 +64,14 @@ class Anonymizer:
     def anonymize(
         self,
         text: str,
-        labels: Sequence[str],
+        active_labels: Sequence[str] | None = None,
     ) -> AnonymizationResult:
         """Anonymise *text* by detecting and replacing sensitive entities.
 
         Args:
             text: The source string.
-            labels: Entity types to search for (forwarded to the detector).
+            active_labels: Optional runtime filter forwarded to the detector.
+                When *None*, the detector uses all its configured labels.
 
         Returns:
             An ``AnonymizationResult`` containing the anonymised text,
@@ -82,7 +83,7 @@ class Anonymizer:
         placeholders: list[Placeholder] = []
         occupied: set[tuple[int, int]] = set()
 
-        entities = self._detector.detect(text, labels)
+        entities = self._detector.detect(text, active_labels)
 
         # Deduplicate: keep the first (highest-position) entity per
         # unique (text, label) pair.  Order does not matter because

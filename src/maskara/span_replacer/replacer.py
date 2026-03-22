@@ -47,10 +47,10 @@ class SpanReplacer:
         self._validator.validate(text, spans)
 
         # Get list spans ordered by span start
-        sorted_spans = sorted(spans, key=lambda s: s.start)
-        reverse_spans: list[Span] = []
-        result_text = text
         offset = 0
+        result_text = text
+        reverse_spans: list[Span] = []
+        sorted_spans = sorted(spans, key=lambda s: s.start)
 
         for span in sorted_spans:
             # Get original text who will be replaced by span text
@@ -65,7 +65,11 @@ class SpanReplacer:
 
             # We know the beginning of the span; now we need the end (after modification)
             rev_end = adj_start + len(span.replacement)
-            rev_span = Span(start=adj_start, end=rev_end, replacement=original_fragment)
+            rev_span = Span(
+                start=adj_start,
+                end=rev_end,
+                replacement=original_fragment,
+            )
             reverse_spans.append(rev_span)
 
             # Calculate the offset between the coordinates of the span (the original text)

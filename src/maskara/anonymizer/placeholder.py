@@ -142,10 +142,15 @@ class HashPlaceholderFactory:
         if key in self._cache:
             return self._cache[key]
 
-        digest = hashlib.sha256(original.encode()).hexdigest()[: self._digest_length]
+        bytes_ = original.encode()
+        hash_ = hashlib.sha256(bytes_).hexdigest()
+        digest = hash_[: self._digest_length]
+
         replacement = self._template.format(label=label, digest=digest)
         placeholder = Placeholder(
-            original=original, label=label, replacement=replacement
+            original=original,
+            label=label,
+            replacement=replacement,
         )
         self._cache[key] = placeholder
         return placeholder
