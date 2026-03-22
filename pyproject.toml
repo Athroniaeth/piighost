@@ -9,6 +9,11 @@ dependencies = [
     "faker>=40.8.0",
 ]
 
+[project.optional-dependencies]
+langchain = [
+    "langchain>=1.2",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
