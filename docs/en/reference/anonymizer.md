@@ -172,6 +172,43 @@ factory.get_or_create("Patrick", "PERSON").replacement  # '<<PERSON_1>>' (cached
 factory.reset()  # clears counters and cache
 ```
 
+### `HashPlaceholderFactory`
+
+Generates deterministic, opaque hash-based tags — the same strategy as LangChain's built-in PII redaction middleware.
+
+```python
+HashPlaceholderFactory(
+    digest_length: int = 8,
+    template: str = "<{label}:{digest}>",
+)
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `digest_length` | `8` | Number of hex characters from the SHA-256 digest |
+| `template` | `"<{label}:{digest}>"` | Format string with `{label}` and `{digest}` |
+
+```python
+from maskara.anonymizer import HashPlaceholderFactory
+
+factory = HashPlaceholderFactory()
+factory.get_or_create("Patrick", "PERSON").replacement  # '<PERSON:3b4c5d6e>'
+factory.get_or_create("Patrick", "PERSON").replacement  # '<PERSON:3b4c5d6e>' (same hash)
+factory.get_or_create("Marie", "PERSON").replacement    # '<PERSON:9f2a1c7b>' (different)
+factory.reset()  # clears cache
+```
+
+The hash is computed from the original text only — the same entity always produces the same placeholder, regardless of encounter order.
+
+**Usage with `Anonymizer`:**
+
+```python
+anonymizer = Anonymizer(
+    detector=detector,
+    placeholder_factory=HashPlaceholderFactory(digest_length=12),
+)
+```
+
 ---
 
 ## Data models

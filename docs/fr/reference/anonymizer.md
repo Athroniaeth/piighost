@@ -172,6 +172,43 @@ factory.get_or_create("Patrick", "PERSON").replacement  # '<<PERSON_1>>' (mis en
 factory.reset()  # efface compteurs et cache
 ```
 
+### `HashPlaceholderFactory`
+
+Génère des tags opaques et déterministes basés sur un hash SHA-256 — identique à la stratégie utilisée par le middleware de redaction PII intégré à LangChain.
+
+```python
+HashPlaceholderFactory(
+    digest_length: int = 8,
+    template: str = "<{label}:{digest}>",
+)
+```
+
+| Paramètre | Défaut | Description |
+|-----------|--------|-------------|
+| `digest_length` | `8` | Nombre de caractères hex du digest SHA-256 |
+| `template` | `"<{label}:{digest}>"` | Template avec `{label}` et `{digest}` |
+
+```python
+from maskara.anonymizer import HashPlaceholderFactory
+
+factory = HashPlaceholderFactory()
+factory.get_or_create("Patrick", "PERSON").replacement  # '<PERSON:3b4c5d6e>'
+factory.get_or_create("Patrick", "PERSON").replacement  # '<PERSON:3b4c5d6e>' (même hash)
+factory.get_or_create("Marie", "PERSON").replacement    # '<PERSON:9f2a1c7b>' (différent)
+factory.reset()  # efface le cache
+```
+
+Le hash est calculé uniquement à partir du texte original — la même entité produit toujours le même placeholder, quel que soit l'ordre de rencontre.
+
+**Utilisation avec `Anonymizer` :**
+
+```python
+anonymizer = Anonymizer(
+    detector=detector,
+    placeholder_factory=HashPlaceholderFactory(digest_length=12),
+)
+```
+
 ---
 
 ## Modèles de données

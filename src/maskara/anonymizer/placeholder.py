@@ -1,5 +1,6 @@
 """Strategies for generating placeholder replacement strings."""
 
+import hashlib
 from collections import defaultdict
 from typing import Protocol
 
@@ -88,4 +89,67 @@ class CounterPlaceholderFactory:
     def reset(self) -> None:
         """Clear counters and cache for a new anonymization pass."""
         self._counters.clear()
+        self._cache.clear()
+
+
+class HashPlaceholderFactory:
+    """Generate hash-based placeholders, e.g. ``<PERSON:a1b2c3d4>``.
+
+    Uses a SHA-256 digest of the original text (truncated to
+    ``digest_length`` hex characters) to produce a deterministic,
+    opaque tag — identical to the strategy used by LangChain's
+    built-in PII redaction middleware.
+
+    The same ``(original, label)`` pair always produces the same tag,
+    regardless of the order in which entities are encountered.
+
+    Args:
+        digest_length: Number of hex characters to keep from the
+            SHA-256 digest.  Defaults to ``8``.
+        template: Format string with ``{label}`` and ``{digest}``
+            placeholders.  Defaults to ``"<{label}:{digest}>"``.
+
+    Example:
+        >>> factory = HashPlaceholderFactory()
+        >>> p = factory.get_or_create("Patrick", "PERSON")
+        >>> p.replacement
+        '<PERSON:3b4c5d6e>'
+        >>> factory.get_or_create("Patrick", "PERSON") is p
+        True
+    """
+
+    def __init__(
+        self,
+        digest_length: int = 8,
+        template: str = "<{label}:{digest}>",
+    ) -> None:
+        self._digest_length = digest_length
+        self._template = template
+        self._cache: dict[tuple[str, str], Placeholder] = {}
+
+    def get_or_create(self, original: str, label: str) -> Placeholder:
+        """Return a cached placeholder or mint a new hash-based one.
+
+        Args:
+            original: The sensitive text fragment.
+            label: The entity type (e.g. ``"PERSON"``).
+
+        Returns:
+            A ``Placeholder`` whose replacement is a deterministic
+            hash tag derived from *original* and *label*.
+        """
+        key = (original, label)
+        if key in self._cache:
+            return self._cache[key]
+
+        digest = hashlib.sha256(original.encode()).hexdigest()[: self._digest_length]
+        replacement = self._template.format(label=label, digest=digest)
+        placeholder = Placeholder(
+            original=original, label=label, replacement=replacement
+        )
+        self._cache[key] = placeholder
+        return placeholder
+
+    def reset(self) -> None:
+        """Clear the cache for a new anonymization pass."""
         self._cache.clear()
