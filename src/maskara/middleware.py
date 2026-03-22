@@ -91,13 +91,13 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         for idx, message in enumerate(messages):
             content = message.content
             if not isinstance(content, str) or not content.strip():
-                raise ValueError("There are censed have Langchain message")
+                raise ValueError("This code only takes Langchain messages into account")
 
             if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
                 result = await self._pipeline.anonymize(content)
                 new_content = result.anonymized_text
             else:
-                raise ValueError("There are censed have Langchain message")
+                raise ValueError("This code only takes Langchain messages into account")
 
             if new_content == content:
                 continue
@@ -129,45 +129,32 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             An update dict replacing the ``messages`` key, or *None* if
             nothing changed.
         """
-        messages = list(state["messages"])
         changed = False
+        messages = list(state["messages"])
 
         for idx, message in enumerate(messages):
             content = message.content
+
             if not isinstance(content, str) or not content.strip():
-                continue
+                raise ValueError("This code only takes Langchain messages into account")
 
             restored = self._pipeline.deanonymize_text(content)
-            if restored == content:
-                continue
 
-            if isinstance(message, HumanMessage):
-                messages[idx] = HumanMessage(
-                    content=restored,
-                    **_preserve_metadata(message),
-                )
-            elif isinstance(message, AIMessage):
-                messages[idx] = AIMessage(
-                    content=restored,
-                    tool_calls=message.tool_calls,
-                    **_preserve_metadata(message),
-                )
-            elif isinstance(message, ToolMessage):
-                messages[idx] = ToolMessage(
-                    content=restored,
-                    tool_call_id=message.tool_call_id,
-                    name=message.name,
-                )
+            if restored == content:
+                raise ValueError("This code only takes Langchain messages into account")
+
+            if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
+                messages[idx].content = restored
             else:
-                continue
+                raise ValueError("This code only takes Langchain messages into account")
 
             changed = True
 
         if changed:
-            logger.debug(
-                "Deanonymised %d message(s)", sum(1 for _ in range(len(messages)))
-            )
+            nbr_messages = sum(1 for _ in range(len(messages)))
+            logger.debug(f"Deanonymised {nbr_messages} message(s)")
         return {"messages": messages} if changed else None
+
 
     # -----------------------------------------------------------------
     # awrap_tool_call – deanonymise args → run tool → anonymise result
@@ -188,14 +175,14 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         Returns:
             A ``ToolMessage`` (or ``Command``) with re-anonymised content.
         """
-        # Deanonymise string arguments.
+        # Deanonymise string arguments, provided by the LLM (which sees only anonymized entities)
         call = request.tool_call
         args = call["args"]
         patched_args: dict[str, Any] = {}
 
         for arg_name, arg_value in args.items():
             if isinstance(arg_value, str):
-                arg_value = self._pipeline.deanonymize_text(arg_value)
+                arg_value = self._pipeline.deanonymize_value(arg_value)
             patched_args[arg_name] = arg_value
 
         call["args"] = patched_args
@@ -205,35 +192,8 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
         # Re-anonymise the tool response.
         if isinstance(response, ToolMessage) and isinstance(response.content, str):
-            anonymized_content = self._pipeline.reanonymize_text(
-                response.content,
-            )
-            return ToolMessage(
-                content=anonymized_content,
-                tool_call_id=response.tool_call_id,
-                name=response.name,
-            )
+            anonymized_content = self._pipeline.reanonymize_text(response.content)
+            response.content = anonymized_content
+            return response
 
         return response
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _preserve_metadata(message: HumanMessage | AIMessage) -> dict[str, Any]:
-    """Extract metadata fields to forward when re-creating a message.
-
-    Args:
-        message: The original message.
-
-    Returns:
-        A dict with ``id``, ``name`` etc.
-    """
-    meta: dict[str, Any] = {}
-    if message.id is not None:
-        meta["id"] = message.id
-    if message.name is not None:
-        meta["name"] = message.name
-    return meta
