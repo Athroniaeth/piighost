@@ -9,7 +9,10 @@ from typing import Sequence
 from maskara.anonymizer.anonymizer import Anonymizer
 from maskara.anonymizer.models import Entity
 from maskara.anonymizer.occurrence import RegexOccurrenceFinder
-from maskara.anonymizer.placeholder import CounterPlaceholderFactory
+from maskara.anonymizer.placeholder import (
+    CounterPlaceholderFactory,
+    HashPlaceholderFactory,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +97,61 @@ class TestCounterPlaceholderFactory:
         factory.reset()
         p = factory.get_or_create("Marie", "PERSON")
         assert p.replacement == "<<PERSON_1>>"
+
+
+# ---------------------------------------------------------------------------
+# HashPlaceholderFactory
+# ---------------------------------------------------------------------------
+
+
+class TestHashPlaceholderFactory:
+    """Unit tests for ``HashPlaceholderFactory``."""
+
+    def test_format(self) -> None:
+        factory = HashPlaceholderFactory()
+        p = factory.get_or_create("Patrick", "PERSON")
+        assert p.replacement.startswith("<PERSON:")
+        assert p.replacement.endswith(">")
+        # "<PERSON:" (8) + 8 hex chars + ">" (1) = 17
+        assert len(p.replacement) == 8 + 8 + 1
+
+    def test_deterministic(self) -> None:
+        factory = HashPlaceholderFactory()
+        p1 = factory.get_or_create("Patrick", "PERSON")
+        p2 = factory.get_or_create("Patrick", "PERSON")
+        assert p1 is p2
+
+    def test_different_originals_different_hash(self) -> None:
+        factory = HashPlaceholderFactory()
+        p1 = factory.get_or_create("Patrick", "PERSON")
+        p2 = factory.get_or_create("Marie", "PERSON")
+        assert p1.replacement != p2.replacement
+
+    def test_same_text_different_label_different_replacement(self) -> None:
+        factory = HashPlaceholderFactory()
+        p1 = factory.get_or_create("Paris", "PERSON")
+        p2 = factory.get_or_create("Paris", "LOCATION")
+        assert p1.replacement != p2.replacement
+
+    def test_reset_clears_cache(self) -> None:
+        factory = HashPlaceholderFactory()
+        p1 = factory.get_or_create("Patrick", "PERSON")
+        factory.reset()
+        p2 = factory.get_or_create("Patrick", "PERSON")
+        assert p1 is not p2
+        assert p1.replacement == p2.replacement  # same hash, different object
+
+    def test_custom_digest_length(self) -> None:
+        factory = HashPlaceholderFactory(digest_length=16)
+        p = factory.get_or_create("Patrick", "PERSON")
+        digest_part = p.replacement.split(":")[1].rstrip(">")
+        assert len(digest_part) == 16
+
+    def test_custom_template(self) -> None:
+        factory = HashPlaceholderFactory(template="[[{label}:{digest}]]")
+        p = factory.get_or_create("Patrick", "PERSON")
+        assert p.replacement.startswith("[[PERSON:")
+        assert p.replacement.endswith("]]")
 
 
 # ---------------------------------------------------------------------------
