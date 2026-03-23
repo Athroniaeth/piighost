@@ -57,3 +57,12 @@ class AnonymizationResult:
     anonymized_text: str
     placeholders: tuple[Placeholder, ...]
     reverse_spans: tuple  # tuple[Span, ...] – avoids circular import
+
+
+class IrreversibleAnonymizationError(Exception):
+    """Raised when attempting to deanonymize a non-reversible anonymization.
+
+    Some placeholder factories (e.g. ``RedactPlaceholderFactory``) produce
+    identical replacement tags for every entity, making it impossible to
+    map a tag back to its original value.
+    """

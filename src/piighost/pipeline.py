@@ -19,7 +19,7 @@ import logging
 from typing import Protocol
 
 from piighost.anonymizer.anonymizer import Anonymizer
-from piighost.anonymizer.models import AnonymizationResult
+from piighost.anonymizer.models import AnonymizationResult, IrreversibleAnonymizationError
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +168,15 @@ class AnonymizationPipeline:
 
         return result
 
+    def _check_reversible(self) -> None:
+        """Raise if the underlying anonymizer is not reversible."""
+        if not self._anonymizer.reversible:
+            msg = (
+                "Deanonymization requires a ReversiblePlaceholderFactory. "
+                "The current anonymizer uses a non-reversible factory."
+            )
+            raise IrreversibleAnonymizationError(msg)
+
     def deanonymize_text(self, text: str) -> str:
         """Replace every known placeholder tag in *text* with its original.
 
@@ -180,7 +189,12 @@ class AnonymizationPipeline:
 
         Returns:
             The string with placeholders restored to original values.
+
+        Raises:
+            IrreversibleAnonymizationError: If the placeholder factory
+                is not reversible.
         """
+        self._check_reversible()
         for result in self._results:
             for placeholder in result.placeholders:
                 text = text.replace(placeholder.replacement, placeholder.original)
@@ -200,7 +214,12 @@ class AnonymizationPipeline:
         Returns:
             The original value if a matching placeholder is found, or *value*
             unchanged.
+
+        Raises:
+            IrreversibleAnonymizationError: If the placeholder factory
+                is not reversible.
         """
+        self._check_reversible()
         for result in self._results:
             for placeholder in result.placeholders:
                 value = value.replace(placeholder.replacement, placeholder.original)
@@ -210,7 +229,12 @@ class AnonymizationPipeline:
         """Replace every known original value in *text* with its placeholder tag.
 
         This is the inverse of ``deanonymize_text``.
+
+        Raises:
+            IrreversibleAnonymizationError: If the placeholder factory
+                is not reversible.
         """
+        self._check_reversible()
         for result in self._results:
             for placeholder in result.placeholders:
                 text = text.replace(placeholder.original, placeholder.replacement)
