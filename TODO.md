@@ -4,17 +4,17 @@ Fonctionnalités manquantes identifiées par analyse comparative avec [PIICloak]
 
 ## Priorité haute
 
-- [ ] **Détecteurs PII prêts à l'emploi** — Fournir des `RegexDetector` préconfigurés pour les types PII courants :
-  - [ ] Email
-  - [ ] Numéro de téléphone (formats internationaux)
-  - [ ] Carte de crédit
-  - [ ] SSN (US)
-  - [ ] IBAN
-  - [ ] Adresse IP (v4/v6)
-  - [ ] URL
-  - [ ] Clé API (OpenAI, AWS, GitHub, Stripe)
-  - [ ] Passeport
-  - [ ] Permis de conduire
+- [x] **Détecteurs PII prêts à l'emploi** — `RegexDetector` préconfigurés dans `examples/detectors/` :
+  - [x] Email
+  - [x] Numéro de téléphone (formats internationaux, US, FR, DE)
+  - [x] Carte de crédit
+  - [x] SSN (US + FR INSEE)
+  - [x] IBAN
+  - [x] Adresse IP (v4/v6)
+  - [x] URL
+  - [x] Clé API (OpenAI, AWS, GitHub, Stripe)
+  - [x] Passeport (US)
+  - [ ] ~~Permis de conduire~~
 
 - [ ] **Stratégies d'anonymisation supplémentaires** — Nouveaux `PlaceholderFactory` :
   - [ ] Masquage partiel (`MaskPlaceholderFactory`) — ex: `****4567`, `j***@email.com`

@@ -1,4 +1,4 @@
-"""Common PII regex patterns — universal across regions.
+"""Common PII regex patterns universal across regions.
 
 Covers emails, IP addresses, URLs, credit cards, international phone numbers,
 and cloud provider API keys.  These patterns work regardless of locale.

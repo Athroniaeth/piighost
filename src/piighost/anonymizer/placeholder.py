@@ -1,6 +1,7 @@
 """Strategies for generating placeholder replacement strings."""
 
 import hashlib
+from abc import ABC
 from collections import defaultdict
 from typing import Protocol
 
@@ -10,9 +11,13 @@ from piighost.anonymizer.models import Placeholder
 class PlaceholderFactory(Protocol):
     """Interface for creating placeholder tags.
 
-    Each call must return a *unique* replacement string for a given
+    Each call must return a replacement string for a given
     ``(original, label)`` pair, and return the *same* string if the
     same pair is requested again within the same pass.
+
+    Not all factories are reversible.  Factories that produce unique,
+    distinguishable tags should inherit from
+    ``ReversiblePlaceholderFactory``.
     """
 
     def get_or_create(self, original: str, label: str) -> Placeholder:
@@ -23,8 +28,7 @@ class PlaceholderFactory(Protocol):
             label: The entity type (e.g. ``"PERSON"``).
 
         Returns:
-            A ``Placeholder`` whose ``replacement`` is unique for this
-            ``(original, label)`` pair.
+            A ``Placeholder`` with the replacement tag.
         """
         ...  # pragma: no cover
 
@@ -33,7 +37,19 @@ class PlaceholderFactory(Protocol):
         ...  # pragma: no cover
 
 
-class CounterPlaceholderFactory:
+class ReversiblePlaceholderFactory(ABC):
+    """Base class for factories that support deanonymization.
+
+    Factories inheriting from this class produce *unique* replacement
+    tags for each ``(original, label)`` pair, making it possible to map
+    a tag back to its original value.
+
+    Use ``isinstance(factory, ReversiblePlaceholderFactory)`` to check
+    at runtime whether deanonymization is safe.
+    """
+
+
+class CounterPlaceholderFactory(ReversiblePlaceholderFactory):
     """Generate tags like ``<<PERSON_1>>``, ``<<LOCATION_2>>``, etc.
 
     The factory maintains per-label counters so that each distinct
@@ -92,7 +108,7 @@ class CounterPlaceholderFactory:
         self._cache.clear()
 
 
-class HashPlaceholderFactory:
+class HashPlaceholderFactory(ReversiblePlaceholderFactory):
     """Generate hash-based placeholders, e.g. ``<PERSON:a1b2c3d4>``.
 
     Uses a SHA-256 digest of the original text (truncated to
@@ -151,6 +167,65 @@ class HashPlaceholderFactory:
             original=original,
             label=label,
             replacement=replacement,
+        )
+        self._cache[key] = placeholder
+        return placeholder
+
+    def reset(self) -> None:
+        """Clear the cache for a new anonymization pass."""
+        self._cache.clear()
+
+
+class RedactPlaceholderFactory:
+    """Replace all entities with a single opaque tag: ``[REDACTED]``.
+
+    Every entity is mapped to the *same* replacement string regardless
+    of its label or original text.  This makes deanonymization
+    impossible — no information leaks about whether two occurrences
+    refer to the same entity.
+
+    This factory does **not** implement ``ReversiblePlaceholderFactory``.
+    Passing it to any component that requires deanonymization (e.g.
+    ``AnonymizationPipeline``) will raise
+    ``IrreversibleAnonymizationError`` at runtime, and the type checker
+    will flag the mismatch statically.
+
+    Args:
+        tag: The replacement string for all entities.
+            Defaults to ``"[REDACTED]"``.
+
+    Example:
+        >>> factory = RedactPlaceholderFactory()
+        >>> factory.get_or_create("Patrick", "PERSON").replacement
+        '[REDACTED]'
+        >>> factory.get_or_create("Paris", "LOCATION").replacement
+        '[REDACTED]'
+    """
+
+    def __init__(self, tag: str = "[REDACTED]") -> None:
+        self._tag = tag
+        self._cache: dict[tuple[str, str], Placeholder] = {}
+
+    def get_or_create(self, original: str, label: str) -> Placeholder:
+        """Return a cached placeholder or create a new one.
+
+        All placeholders share the same replacement tag.
+
+        Args:
+            original: The sensitive text fragment.
+            label: The entity type.
+
+        Returns:
+            A ``Placeholder`` whose ``replacement`` is always ``self._tag``.
+        """
+        key = (original, label)
+        if key in self._cache:
+            return self._cache[key]
+
+        placeholder = Placeholder(
+            original=original,
+            label=label,
+            replacement=self._tag,
         )
         self._cache[key] = placeholder
         return placeholder

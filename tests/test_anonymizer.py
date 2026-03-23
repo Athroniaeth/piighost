@@ -5,14 +5,17 @@ Uses a fake detector to avoid loading a real GLiNER model in CI.
 
 from typing import Sequence
 
+import pytest
 
 from piighost.anonymizer.anonymizer import Anonymizer
 from piighost.anonymizer.detector import CompositeDetector, RegexDetector
-from piighost.anonymizer.models import Entity
+from piighost.anonymizer.models import Entity, IrreversibleAnonymizationError
 from piighost.anonymizer.occurrence import RegexOccurrenceFinder
 from piighost.anonymizer.placeholder import (
     CounterPlaceholderFactory,
     HashPlaceholderFactory,
+    RedactPlaceholderFactory,
+    ReversiblePlaceholderFactory,
 )
 
 
@@ -395,3 +398,87 @@ class TestCompositeDetector:
         assert "sk-proj-mysecretkey12345678abcd" not in result.anonymized_text
         assert "<<PERSON_1>>" in result.anonymized_text
         assert "<<OPENAI_API_KEY_1>>" in result.anonymized_text
+
+
+# ---------------------------------------------------------------------------
+# RedactPlaceholderFactory
+# ---------------------------------------------------------------------------
+
+
+class TestRedactPlaceholderFactory:
+    """Unit tests for ``RedactPlaceholderFactory``."""
+
+    def test_produces_redacted_tag(self) -> None:
+        factory = RedactPlaceholderFactory()
+        p = factory.get_or_create("Patrick", "PERSON")
+        assert p.replacement == "[REDACTED]"
+
+    def test_all_entities_share_same_tag(self) -> None:
+        factory = RedactPlaceholderFactory()
+        p1 = factory.get_or_create("Patrick", "PERSON")
+        p2 = factory.get_or_create("Paris", "LOCATION")
+        assert p1.replacement == p2.replacement == "[REDACTED]"
+
+    def test_same_pair_returns_cached(self) -> None:
+        factory = RedactPlaceholderFactory()
+        p1 = factory.get_or_create("Patrick", "PERSON")
+        p2 = factory.get_or_create("Patrick", "PERSON")
+        assert p1 is p2
+
+    def test_custom_tag(self) -> None:
+        factory = RedactPlaceholderFactory(tag="***")
+        p = factory.get_or_create("Patrick", "PERSON")
+        assert p.replacement == "***"
+
+    def test_reset_clears_cache(self) -> None:
+        factory = RedactPlaceholderFactory()
+        p1 = factory.get_or_create("Patrick", "PERSON")
+        factory.reset()
+        p2 = factory.get_or_create("Patrick", "PERSON")
+        assert p1 is not p2
+
+    def test_is_not_reversible(self) -> None:
+        factory = RedactPlaceholderFactory()
+        assert not isinstance(factory, ReversiblePlaceholderFactory)
+
+    def test_counter_is_reversible(self) -> None:
+        factory = CounterPlaceholderFactory()
+        assert isinstance(factory, ReversiblePlaceholderFactory)
+
+    def test_hash_is_reversible(self) -> None:
+        factory = HashPlaceholderFactory()
+        assert isinstance(factory, ReversiblePlaceholderFactory)
+
+
+class TestRedactAnonymizer:
+    """Integration tests for ``Anonymizer`` with ``RedactPlaceholderFactory``."""
+
+    def test_anonymize_works(self) -> None:
+        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
+        detector = FakeDetector([entity])
+        anonymizer = Anonymizer(
+            detector=detector,
+            placeholder_factory=RedactPlaceholderFactory(),
+        )
+        result = anonymizer.anonymize("Patrick habite à Paris.")
+        assert "Patrick" not in result.anonymized_text
+        assert "[REDACTED]" in result.anonymized_text
+
+    def test_deanonymize_raises(self) -> None:
+        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
+        detector = FakeDetector([entity])
+        anonymizer = Anonymizer(
+            detector=detector,
+            placeholder_factory=RedactPlaceholderFactory(),
+        )
+        result = anonymizer.anonymize("Patrick habite à Paris.")
+        with pytest.raises(IrreversibleAnonymizationError):
+            anonymizer.deanonymize(result)
+
+    def test_reversible_property(self) -> None:
+        detector = FakeDetector([])
+        assert Anonymizer(detector=detector).reversible is True
+        assert Anonymizer(
+            detector=detector,
+            placeholder_factory=RedactPlaceholderFactory(),
+        ).reversible is False
