@@ -63,7 +63,14 @@ packages = ["src/piighost"]
 dev = [
     "ruff>=0.15.5",
     "pytest>=9.0.2",
+    "pytest-cov>=6.0",
     "pyrefly>=0.55.0",
     "zensical>=0.0.27",
     "commitizen>=4.13.9",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--cov=src/piighost"
+
+[tool.coverage.report]
+show_missing = true
