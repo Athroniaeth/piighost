@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from piighost.span_replacer.models import Span
+
 
 @dataclass(frozen=True)
 class Entity:
@@ -56,7 +58,7 @@ class AnonymizationResult:
     original_text: str
     anonymized_text: str
     placeholders: tuple[Placeholder, ...]
-    reverse_spans: tuple  # tuple[Span, ...] – avoids circular import
+    reverse_spans: tuple[Span, ...]
 
 
 class IrreversibleAnonymizationError(Exception):
@@ -66,4 +68,5 @@ class IrreversibleAnonymizationError(Exception):
     identical replacement tags for every entity, making it impossible to
     map a tag back to its original value.
     """
+
     ...

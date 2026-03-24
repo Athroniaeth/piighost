@@ -11,8 +11,12 @@ from piighost.anonymizer.models import IrreversibleAnonymizationError, Placehold
 class PlaceholderFactory(ABC):
     """Abstract base for all placeholder factories.
 
-    Subclasses must implement ``get_or_create``, ``reset``,
+    Subclasses must implement ``_create``,
     the ``reversible`` property, and ``check_reversible``.
+
+    The cache and ``get_or_create`` / ``reset`` logic is handled here;
+    subclasses only provide the creation strategy via ``_create``
+    (and optionally ``_reset`` for extra state like counters).
 
     Use one of the two intermediate bases instead of subclassing
     this directly:
@@ -21,7 +25,9 @@ class PlaceholderFactory(ABC):
     * ``IrreversiblePlaceholderFactory`` — opaque tags, no deanonymization.
     """
 
-    @abstractmethod
+    def __init__(self) -> None:
+        self._cache: dict[tuple[str, str], Placeholder] = {}
+
     def get_or_create(self, original: str, label: str) -> Placeholder:
         """Return an existing placeholder or create a new one.
 
@@ -32,10 +38,33 @@ class PlaceholderFactory(ABC):
         Returns:
             A ``Placeholder`` with the replacement tag.
         """
+        key = (original, label)
+        if key in self._cache:
+            return self._cache[key]
+
+        placeholder = self._create(original, label)
+        self._cache[key] = placeholder
+        return placeholder
 
     @abstractmethod
+    def _create(self, original: str, label: str) -> Placeholder:
+        """Create a new placeholder (called only on cache miss).
+
+        Args:
+            original: The sensitive text fragment.
+            label: The entity type.
+
+        Returns:
+            A fresh ``Placeholder``.
+        """
+
     def reset(self) -> None:
         """Clear internal state for a fresh anonymization pass."""
+        self._cache.clear()
+        self._reset()
+
+    def _reset(self) -> None:
+        """Hook for subclass-specific reset logic. Override if needed."""
 
     @property
     @abstractmethod
@@ -116,12 +145,12 @@ class CounterPlaceholderFactory(ReversiblePlaceholderFactory):
     """
 
     def __init__(self, template: str = "<<{label}_{index}>>") -> None:
+        super().__init__()
         self._template = template
         self._counters: dict[str, int] = defaultdict(int)
-        self._cache: dict[tuple[str, str], Placeholder] = {}
 
-    def get_or_create(self, original: str, label: str) -> Placeholder:
-        """Return a cached placeholder or mint a new one.
+    def _create(self, original: str, label: str) -> Placeholder:
+        """Mint a new counter-based placeholder.
 
         Args:
             original: The sensitive text.
@@ -130,27 +159,20 @@ class CounterPlaceholderFactory(ReversiblePlaceholderFactory):
         Returns:
             A ``Placeholder`` with a deterministic replacement tag.
         """
-        key = (original, label)
-        if key in self._cache:
-            return self._cache[key]
-
         self._counters[label] += 1
         replacement = self._template.format(
             label=label,
             index=self._counters[label],
         )
-        placeholder = Placeholder(
+        return Placeholder(
             original=original,
             label=label,
             replacement=replacement,
         )
-        self._cache[key] = placeholder
-        return placeholder
 
-    def reset(self) -> None:
-        """Clear counters and cache for a new anonymization pass."""
+    def _reset(self) -> None:
+        """Clear per-label counters."""
         self._counters.clear()
-        self._cache.clear()
 
 
 class HashPlaceholderFactory(ReversiblePlaceholderFactory):
@@ -184,12 +206,12 @@ class HashPlaceholderFactory(ReversiblePlaceholderFactory):
         digest_length: int = 8,
         template: str = "<{label}:{digest}>",
     ) -> None:
+        super().__init__()
         self._digest_length = digest_length
         self._template = template
-        self._cache: dict[tuple[str, str], Placeholder] = {}
 
-    def get_or_create(self, original: str, label: str) -> Placeholder:
-        """Return a cached placeholder or mint a new hash-based one.
+    def _create(self, original: str, label: str) -> Placeholder:
+        """Mint a new hash-based placeholder.
 
         Args:
             original: The sensitive text fragment.
@@ -199,26 +221,16 @@ class HashPlaceholderFactory(ReversiblePlaceholderFactory):
             A ``Placeholder`` whose replacement is a deterministic
             hash tag derived from *original* and *label*.
         """
-        key = (original, label)
-        if key in self._cache:
-            return self._cache[key]
-
         bytes_ = original.encode()
         hash_ = hashlib.sha256(bytes_).hexdigest()
         digest = hash_[: self._digest_length]
 
         replacement = self._template.format(label=label, digest=digest)
-        placeholder = Placeholder(
+        return Placeholder(
             original=original,
             label=label,
             replacement=replacement,
         )
-        self._cache[key] = placeholder
-        return placeholder
-
-    def reset(self) -> None:
-        """Clear the cache for a new anonymization pass."""
-        self._cache.clear()
 
 
 class RedactPlaceholderFactory(IrreversiblePlaceholderFactory):
@@ -248,13 +260,11 @@ class RedactPlaceholderFactory(IrreversiblePlaceholderFactory):
     """
 
     def __init__(self, tag: str = "[REDACTED]") -> None:
+        super().__init__()
         self._tag = tag
-        self._cache: dict[tuple[str, str], Placeholder] = {}
 
-    def get_or_create(self, original: str, label: str) -> Placeholder:
-        """Return a cached placeholder or create a new one.
-
-        All placeholders share the same replacement tag.
+    def _create(self, original: str, label: str) -> Placeholder:
+        """Create a redacted placeholder.
 
         Args:
             original: The sensitive text fragment.
@@ -263,18 +273,8 @@ class RedactPlaceholderFactory(IrreversiblePlaceholderFactory):
         Returns:
             A ``Placeholder`` whose ``replacement`` is always ``self._tag``.
         """
-        key = (original, label)
-        if key in self._cache:
-            return self._cache[key]
-
-        placeholder = Placeholder(
+        return Placeholder(
             original=original,
             label=label,
             replacement=self._tag,
         )
-        self._cache[key] = placeholder
-        return placeholder
-
-    def reset(self) -> None:
-        """Clear the cache for a new anonymization pass."""
-        self._cache.clear()

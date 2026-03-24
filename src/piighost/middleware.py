@@ -44,11 +44,8 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             anonymizer, labels, and store).
 
     Example:
-        >>> from piighost.anonymizer.pipeline import AnonymizationPipeline
-        >>> pipeline = AnonymizationPipeline(
-        ...     anonymizer=anonymizer,
-        ...     labels=["PERSON", "LOCATION"],
-        ... )
+        >>> from piighost.pipeline import AnonymizationPipeline
+        >>> pipeline = AnonymizationPipeline(anonymizer=anonymizer)
         >>> middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
         >>> agent = create_agent(
         ...     model="anthropic:claude-sonnet-4-20250514",
@@ -94,18 +91,18 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
                 # This happens when the LLM uses a tool
                 continue
 
-            if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
+            if isinstance(message, HumanMessage):
                 result = await self._pipeline.anonymize(content)
                 new_content = result.anonymized_text
+            elif isinstance(message, (AIMessage, ToolMessage)):
+                new_content = self._pipeline.reanonymize_text(content)
             else:
                 raise ValueError("This code only takes Langchain messages into account")
 
             if new_content == content:
-                # This happens in the second message of a conversation
                 continue
 
-            if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
-                messages[idx].content = new_content
+            messages[idx].content = new_content
 
             logger.debug(f"Anonymised message {idx}")
             changed = True
@@ -141,20 +138,20 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
                 # This happens when the LLM uses a tool
                 continue
 
+            if not isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
+                raise ValueError("This code only takes Langchain messages into account")
+
             restored = self._pipeline.deanonymize_text(content)
 
             if restored == content:
                 continue
 
-            if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
-                messages[idx].content = restored
-            else:
-                raise ValueError("This code only takes Langchain messages into account")
+            messages[idx].content = restored
 
             changed = True
 
         if changed:
-            nbr_messages = sum(1 for _ in range(len(messages)))
+            nbr_messages = len(messages)
             logger.debug(f"Deanonymised {nbr_messages} message(s)")
         return {"messages": messages} if changed else None
 
