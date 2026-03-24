@@ -130,6 +130,7 @@ class AnonymizationPipeline:
         self._anonymizer = anonymizer
         self._store = store or InMemoryPlaceholderStore()
         self._results: list[AnonymizationResult] = []
+        self._result_ids: set[int] = set()
 
     # -----------------------------------------------------------------
     # Public API
@@ -214,11 +215,7 @@ class AnonymizationPipeline:
             IrreversibleAnonymizationError: If the placeholder factory
                 is not reversible.
         """
-        self._check_reversible()
-        for result in self._results:
-            for placeholder in result.placeholders:
-                value = value.replace(placeholder.replacement, placeholder.original)
-        return value
+        return self.deanonymize_text(value)
 
     def reanonymize_text(self, text: str) -> str:
         """Replace every known original value in *text* with its placeholder tag.
@@ -246,5 +243,7 @@ class AnonymizationPipeline:
 
     def _register(self, result: AnonymizationResult) -> None:
         """Append *result* to the in-memory registry if not already present."""
-        if result not in self._results:
+        rid = id(result)
+        if rid not in self._result_ids:
+            self._result_ids.add(rid)
             self._results.append(result)

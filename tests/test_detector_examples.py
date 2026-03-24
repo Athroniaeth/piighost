@@ -5,7 +5,6 @@ correctly detect AND anonymize entities when followed by '.' or ','
 (typical end-of-sentence / list separators).
 """
 
-
 from piighost.anonymizer.anonymizer import Anonymizer
 from piighost.anonymizer.detector import RegexDetector
 
