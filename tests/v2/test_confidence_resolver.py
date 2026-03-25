@@ -1,7 +1,7 @@
 """Tests for ``ConfidenceSpanConflictResolver``."""
 
 from v2.models import Detection, Span
-from v2.resolver import ConfidenceSpanConflictResolver
+from v2.span_resolver import ConfidenceSpanConflictResolver
 
 
 def _make(label: str, start: int, end: int, confidence: float, text: str = "") -> Detection:
