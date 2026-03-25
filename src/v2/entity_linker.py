@@ -67,10 +67,15 @@ class ExactEntityLinker:
         if not detections:
             return []
 
+        # Track positions already covered by existing detections
+        # so we don't create duplicate detections at the same span.
         occupied: set[Span] = {d.position for d in detections}
 
         all_detections = list(detections)
 
+        # Step 1: Expansion — for each known detection, search the full text
+        # for other occurrences the detector may have missed.
+        # Example: NER found "Patrick" at pos 0 but missed "Patrick" at pos 30.
         for detection in detections:
             for start, end in self._find_all(text, detection.text):
                 position = Span(start_pos=start, end_pos=end)
@@ -82,16 +87,21 @@ class ExactEntityLinker:
                             text=text[start:end],
                             label=detection.label,
                             position=position,
+                            # 1.0 because this is an exact text match,
+                            # not a probabilistic NER prediction.
                             confidence=1.0,
                         ),
                     )
 
+        # Step 2: Grouping — detections with the same normalized text
+        # and label refer to the same PII, so they become one Entity.
+        # We use .lower() so "Patrick" and "PATRICK" are grouped together.
         groups: dict[tuple[str, str], list[Detection]] = defaultdict(list)
         for d in all_detections:
             key = (d.text.lower(), d.label)
             groups[key].append(d)
 
-        entities = [Entity(detections=detections) for detections in groups.values()]
+        entities = [Entity(detections=dets) for dets in groups.values()]
         entities.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
         return entities
 
@@ -105,8 +115,14 @@ class ExactEntityLinker:
         Returns:
             A list of ``(start, end)`` tuples for every match.
         """
+        # Escape special regex characters so "M. Dupont" doesn't treat "." as wildcard.
         escaped = re.escape(fragment)
 
+        # Word boundaries (\b) prevent partial matches inside longer words:
+        # searching "Patrick" won't match "APatrick".
+        # But \b only works when the character at the boundary is alphanumeric
+        # or underscore. For fragments starting/ending with special chars
+        # (e.g. "+33..."), we use lookarounds instead: (?<!\w) and (?!\w).
         prefix = (
             r"\b"
             if fragment[0:1].isalnum() or fragment[0:1] == "_"

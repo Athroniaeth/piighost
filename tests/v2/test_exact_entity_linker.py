@@ -2,7 +2,7 @@
 
 import pytest
 
-from v2.linker import ExactEntityLinker
+from v2.entity_linker import ExactEntityLinker
 from v2.models import Detection, Entity, Span
 
 

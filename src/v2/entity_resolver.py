@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Protocol
 
 from v2.models import Detection, Entity
@@ -88,40 +87,39 @@ class MergeEntityConflictResolver:
         if not entities:
             return []
 
-        n = len(entities)
-        parent = list(range(n))
+        # Start with a copy so we don't mutate the input.
+        result: list[Entity] = list(entities)
 
-        def find(x: int) -> int:
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
+        # Keep merging until no more conflicts are found.
+        # On each pass, we look for two entities that share a detection
+        # and merge them into one. We repeat until a full pass finds
+        # no conflicts (meaning all remaining entities are independent).
+        changed = True
+        while changed:
+            changed = False
 
-        def union(x: int, y: int) -> None:
-            px, py = find(x), find(y)
-            if px != py:
-                parent[px] = py
+            for i in range(len(result)):
+                for j in range(i + 1, len(result)):
+                    if self.have_conflict(result[i], result[j]):
+                        # Merge entity j into entity i (deduplicate detections).
+                        seen: set[Detection] = set(result[i].detections)
+                        merged_detections = list(result[i].detections)
+                        for d in result[j].detections:
+                            if d not in seen:
+                                seen.add(d)
+                                merged_detections.append(d)
 
-        for i in range(n):
-            for j in range(i + 1, n):
-                if self.have_conflict(entities[i], entities[j]):
-                    union(i, j)
+                        # Replace i with the merged entity, remove j.
+                        result[i] = Entity(detections=merged_detections)
+                        result.pop(j)
 
-        groups: dict[int, list[int]] = defaultdict(list)
-        for i in range(n):
-            groups[find(i)].append(i)
+                        # Restart the scan — indices have shifted after pop.
+                        changed = True
+                        break
 
-        result: list[Entity] = []
-        for indices in groups.values():
-            seen: set[Detection] = set()
-            merged_detections: list[Detection] = []
-            for idx in indices:
-                for d in entities[idx].detections:
-                    if d not in seen:
-                        seen.add(d)
-                        merged_detections.append(d)
-            entity = Entity(detections=merged_detections)
-            result.append(entity)
+                # Break the outer for-loop too so we restart the while.
+                if changed:
+                    break
 
         result.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
         return result
