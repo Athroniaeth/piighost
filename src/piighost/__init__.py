@@ -21,6 +21,7 @@ from piighost.anonymizer import (
     RegexOccurrenceFinder,
     ReversiblePlaceholderFactory,
 )
+from piighost.registry import PlaceholderRegistry
 from piighost.span_replacer import (
     DefaultSpanValidator,
     ReplacementResult,
@@ -29,14 +30,11 @@ from piighost.span_replacer import (
     SpanValidator,
 )
 
-# ---- Tier 2: Session (stateful registry + async caching) ----
+# ---- Tier 2: Session (sync session, async caching + persistence) ----
 
-from piighost.pipeline import (
-    AnonymizationPipeline,
-    InMemoryPlaceholderStore,
-    PlaceholderStore,
-)
-from piighost.registry import PlaceholderRegistry
+from piighost.pipeline import AnonymizationPipeline
+from piighost.session import AnonymizationSession
+from piighost.store import InMemoryPlaceholderStore, PlaceholderStore
 
 # ---- Tier 3: Integration (LangChain/LangGraph) ----
 # NOT re-exported here — importing middleware.py triggers an ImportError
@@ -66,11 +64,12 @@ __all__ = [
     "DefaultSpanValidator",
     "ReplacementResult",
     "Span",
+    "PlaceholderRegistry",
     "SpanReplacer",
     "SpanValidator",
     # Session
     "AnonymizationPipeline",
+    "AnonymizationSession",
     "InMemoryPlaceholderStore",
-    "PlaceholderRegistry",
     "PlaceholderStore",
 ]

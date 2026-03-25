@@ -3,8 +3,6 @@
 Uses a fake detector to avoid loading a real GLiNER model in CI.
 """
 
-from typing import Sequence
-
 import pytest
 
 from piighost.anonymizer.anonymizer import Anonymizer
@@ -16,28 +14,9 @@ from piighost.anonymizer.placeholder import (
     HashPlaceholderFactory,
     RedactPlaceholderFactory,
 )
+from piighost.registry import PlaceholderRegistry
 
-
-# ---------------------------------------------------------------------------
-# Fakes / stubs
-# ---------------------------------------------------------------------------
-
-
-class FakeDetector:
-    """Deterministic detector that returns pre-configured entities.
-
-    Args:
-        entities: The entities to return for every call to ``detect``.
-    """
-
-    def __init__(self, entities: list[Entity]) -> None:
-        self._entities = entities
-
-    def detect(
-        self, text: str, active_labels: Sequence[str] | None = None
-    ) -> list[Entity]:
-        """Return pre-configured entities regardless of input."""
-        return self._entities
+from tests.fakes import FakeDetector
 
 
 # ---------------------------------------------------------------------------
@@ -524,3 +503,57 @@ class TestRedactAnonymizer:
             ).reversible
             is False
         )
+
+
+# ---------------------------------------------------------------------------
+# Anonymizer with registry (cache deduplication)
+# ---------------------------------------------------------------------------
+
+
+class TestAnonymizerWithRegistry:
+    """Tests for Anonymizer with an attached PlaceholderRegistry."""
+
+    def test_registry_used_instead_of_factory_cache(self) -> None:
+        """When registry is set, factory.create() is used, not get_or_create()."""
+        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
+        registry = PlaceholderRegistry()
+        factory = CounterPlaceholderFactory()
+        anonymizer = Anonymizer(detector=FakeDetector([entity]))
+        anonymizer._placeholder_factory = factory
+        anonymizer.registry = registry
+
+        anonymizer.anonymize("Patrick habite à Paris.")
+
+        # Registry contains the placeholder
+        assert len(registry) == 1
+        assert registry.lookup_original("Patrick", "PERSON") is not None
+        # Factory cache is empty (create() was called, not get_or_create())
+        assert len(factory._cache) == 0
+
+    def test_registry_deduplicates_across_calls(self) -> None:
+        """Same entity across two calls gets the same placeholder via registry."""
+        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
+        registry = PlaceholderRegistry()
+        anonymizer = Anonymizer(detector=FakeDetector([entity]))
+        anonymizer.registry = registry
+
+        r1 = anonymizer.anonymize("Patrick est là.")
+        r2 = anonymizer.anonymize("Patrick revient.")
+
+        assert r1.placeholders[0].replacement == r2.placeholders[0].replacement
+        assert len(registry) == 1
+
+    def test_without_registry_uses_factory_cache(self) -> None:
+        """Without registry, factory.get_or_create() is used (standalone mode)."""
+        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
+        factory = CounterPlaceholderFactory()
+        anonymizer = Anonymizer(
+            detector=FakeDetector([entity]),
+            placeholder_factory=factory,
+        )
+        # No registry set
+
+        anonymizer.anonymize("Patrick habite à Paris.")
+
+        # Factory cache is populated
+        assert len(factory._cache) == 1

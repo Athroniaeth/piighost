@@ -1,6 +1,8 @@
 """High-level anonymiser that orchestrates the full pipeline."""
 
-from typing import Sequence
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Sequence
 
 from piighost.anonymizer.detector import EntityDetector
 from piighost.anonymizer.models import (
@@ -15,6 +17,9 @@ from piighost.anonymizer.placeholder import (
 from piighost.span_replacer.models import ReplacementResult, Span
 from piighost.span_replacer.replacer import SpanReplacer
 
+if TYPE_CHECKING:
+    from piighost.registry import PlaceholderRegistry
+
 
 class Anonymizer:
     """Orchestrate entity detection, occurrence expansion, and replacement.
@@ -25,15 +30,19 @@ class Anonymizer:
     2. **Expand** – for each unique detected text, the
        ``OccurrenceFinder`` locates *every* occurrence in the source
        (not just the ones the model found).
-    3. **Map** – the ``PlaceholderFactory`` assigns a stable tag to each
-       unique ``(text, label)`` pair.
+    3. **Map** – a ``Placeholder`` is resolved for each unique
+       ``(text, label)`` pair.
     4. **Replace** – the ``SpanReplacer`` applies the substitutions and
        computes reverse spans for deanonymization.
 
-    The ``PlaceholderFactory`` maintains an internal cache across calls
-    so that the same ``(text, label)`` pair always receives the same
-    placeholder tag within a session.  Call ``reset`` to clear that
-    state and start a fresh session.
+    **Placeholder resolution** depends on whether a ``registry`` is
+    attached:
+
+    * **Without registry** (standalone): the ``PlaceholderFactory``'s
+      built-in cache (``get_or_create``) handles deduplication.
+    * **With registry** (via ``AnonymizationSession``): the registry
+      is the single source of truth — ``factory.create()`` is called
+      only for genuinely new entities, eliminating duplicate caching.
 
     All collaborators are injected so they can be swapped or mocked.
 
@@ -67,6 +76,39 @@ class Anonymizer:
         self._occurrence_finder = occurrence_finder or RegexOccurrenceFinder()
         self._placeholder_factory = placeholder_factory or CounterPlaceholderFactory()
         self._replacer = replacer or SpanReplacer()
+        self._registry: PlaceholderRegistry | None = None
+
+    @property
+    def registry(self) -> PlaceholderRegistry | None:
+        """The attached ``PlaceholderRegistry``, or *None*.
+
+        When set, the anonymizer uses the registry for placeholder
+        lookup instead of the factory's internal cache, eliminating
+        duplicate state.  Typically set by ``AnonymizationSession``.
+        """
+        return self._registry
+
+    @registry.setter
+    def registry(self, value: PlaceholderRegistry | None) -> None:
+        self._registry = value
+
+    def _resolve_placeholder(self, original: str, label: str) -> Placeholder:
+        """Look up or create a placeholder for *(original, label)*.
+
+        When a ``registry`` is attached, it is consulted first; on miss
+        ``factory.create()`` mints a fresh placeholder and registers it.
+
+        Without a registry the factory's own ``get_or_create`` cache
+        handles deduplication (standalone mode).
+        """
+        if self._registry is not None:
+            existing = self._registry.lookup_original(original, label)
+            if existing is not None:
+                return existing
+            placeholder = self._placeholder_factory.create(original, label)
+            self._registry.register_placeholder(placeholder)
+            return placeholder
+        return self._placeholder_factory.get_or_create(original, label)
 
     def anonymize(
         self,
@@ -98,10 +140,7 @@ class Anonymizer:
         unique_entities = {(ent.text, ent.label): ent for ent in entities}
 
         for ent_text, ent_label in unique_entities:
-            placeholder = self._placeholder_factory.get_or_create(
-                ent_text,
-                ent_label,
-            )
+            placeholder = self._resolve_placeholder(ent_text, ent_label)
             placeholders.append(placeholder)
 
             occurrences = self._occurrence_finder.find_all(text, ent_text)

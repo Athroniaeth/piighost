@@ -181,7 +181,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
         for arg_name, arg_value in args.items():
             if isinstance(arg_value, str):
-                arg_value = self._pipeline.deanonymize_value(arg_value)
+                arg_value = self._pipeline.deanonymize_text(arg_value)
             patched_args[arg_name] = arg_value
 
         call["args"] = patched_args
