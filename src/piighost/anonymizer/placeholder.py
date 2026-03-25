@@ -11,12 +11,19 @@ from piighost.anonymizer.models import IrreversibleAnonymizationError, Placehold
 class PlaceholderFactory(ABC):
     """Abstract base for all placeholder factories.
 
-    Subclasses must implement ``_create``,
-    the ``reversible`` property, and ``check_reversible``.
+    A factory has **two roles**:
 
-    The cache and ``get_or_create`` / ``reset`` logic is handled here;
-    subclasses only provide the creation strategy via ``_create``
-    (and optionally ``_reset`` for extra state like counters).
+    1. **Naming strategy** — ``create`` generates a fresh ``Placeholder``
+       for a given ``(original, label)`` pair.  Override this in
+       subclasses.
+    2. **Self-caching convenience** — ``get_or_create`` wraps ``create``
+       with an internal ``(original, label) → Placeholder`` cache so
+       the same pair always receives the same tag.
+
+    Use ``create`` directly when an **external** cache (e.g.
+    ``PlaceholderRegistry``) already handles deduplication.
+    Use ``get_or_create`` for **standalone** usage where the factory
+    manages its own cache.
 
     Use one of the two intermediate bases instead of subclassing
     this directly:
@@ -31,6 +38,10 @@ class PlaceholderFactory(ABC):
     def get_or_create(self, original: str, label: str) -> Placeholder:
         """Return an existing placeholder or create a new one.
 
+        Uses an internal cache keyed by ``(original, label)``.  For
+        external caching (e.g. via ``PlaceholderRegistry``), call
+        ``create`` directly instead.
+
         Args:
             original: The sensitive text fragment.
             label: The entity type (e.g. ``"PERSON"``).
@@ -42,13 +53,17 @@ class PlaceholderFactory(ABC):
         if key in self._cache:
             return self._cache[key]
 
-        placeholder = self._create(original, label)
+        placeholder = self.create(original, label)
         self._cache[key] = placeholder
         return placeholder
 
     @abstractmethod
-    def _create(self, original: str, label: str) -> Placeholder:
-        """Create a new placeholder (called only on cache miss).
+    def create(self, original: str, label: str) -> Placeholder:
+        """Create a fresh placeholder (pure naming strategy).
+
+        This method always mints a **new** placeholder and should be
+        called through ``get_or_create`` when deduplication is needed,
+        or called directly when an external cache handles it.
 
         Args:
             original: The sensitive text fragment.
@@ -149,7 +164,7 @@ class CounterPlaceholderFactory(ReversiblePlaceholderFactory):
         self._template = template
         self._counters: dict[str, int] = defaultdict(int)
 
-    def _create(self, original: str, label: str) -> Placeholder:
+    def create(self, original: str, label: str) -> Placeholder:
         """Mint a new counter-based placeholder.
 
         Args:
@@ -210,7 +225,7 @@ class HashPlaceholderFactory(ReversiblePlaceholderFactory):
         self._digest_length = digest_length
         self._template = template
 
-    def _create(self, original: str, label: str) -> Placeholder:
+    def create(self, original: str, label: str) -> Placeholder:
         """Mint a new hash-based placeholder.
 
         Args:
@@ -263,7 +278,7 @@ class RedactPlaceholderFactory(IrreversiblePlaceholderFactory):
         super().__init__()
         self._tag = tag
 
-    def _create(self, original: str, label: str) -> Placeholder:
+    def create(self, original: str, label: str) -> Placeholder:
         """Create a redacted placeholder.
 
         Args:
