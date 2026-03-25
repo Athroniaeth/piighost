@@ -1,5 +1,4 @@
 import re
-from abc import abstractmethod
 from collections import defaultdict
 from typing import Protocol
 
@@ -28,25 +27,7 @@ class AnyEntityLinker(Protocol):
         ...
 
 
-class AbstractEntityLinker(AnyEntityLinker):
-    """Abstract base class for entity linkers."""
-
-    @abstractmethod
-    def link(self, text: str, detections: list[Detection]) -> list[Entity]:
-        """Link detections to entities.
-
-        Args:
-            text: The original source text.
-            detections: Pre-existing detections from a detector.
-
-        Returns:
-            A list of ``Entity`` objects, each grouping detections
-            that refer to the same PII.
-        """
-        ...
-
-
-class ExactEntityLinker(AbstractEntityLinker):
+class ExactEntityLinker:
     """Entity linker that expands and groups detections by exact text match.
 
     For each detection, finds all exact occurrences of its surface text

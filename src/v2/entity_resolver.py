@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from collections import defaultdict
 from typing import Protocol
 
@@ -37,37 +36,7 @@ class AnyEntityConflictResolver(Protocol):
         ...
 
 
-class AbstractEntityConflictResolver(AnyEntityConflictResolver):
-    """Abstract base class for entity conflict resolvers."""
-
-    @abstractmethod
-    def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
-        """Check whether two entities are in conflict.
-
-        Args:
-            entity_a: The first entity.
-            entity_b: The second entity.
-
-        Returns:
-            ``True`` if the two entities share at least one detection.
-        """
-        ...
-
-    @abstractmethod
-    def resolve(self, entities: list[Entity]) -> list[Entity]:
-        """Resolve conflicts across all entities.
-
-        Args:
-            entities: The full list of entities, potentially with
-                shared detections.
-
-        Returns:
-            A list of entities with all conflicts resolved.
-        """
-        ...
-
-
-class MergeEntityConflictResolver(AbstractEntityConflictResolver):
+class MergeEntityConflictResolver:
     """Resolver that merges entities sharing common detections.
 
     When two entities share at least one detection, they are merged

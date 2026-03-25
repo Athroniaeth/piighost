@@ -1,5 +1,4 @@
 import re
-from abc import abstractmethod
 from typing import Protocol
 
 from v2.models import Detection, Span
@@ -24,27 +23,7 @@ class AnyDetector(Protocol):
         ...
 
 
-class AbstractDetector(AnyDetector):
-    """Abstract base class for entity detectors.
-
-    Provides the structural contract that all concrete detector
-    implementations must fulfill by implementing the ``detect`` method.
-    """
-
-    @abstractmethod
-    def detect(self, text: str) -> list[Detection]:
-        """Detect and extract entities from the given text.
-
-        Args:
-            text: The input text to analyze for entities.
-
-        Returns:
-            A list of ``Detection`` objects representing each entity found.
-        """
-        ...
-
-
-class ExactMatchDetector(AbstractDetector):
+class ExactMatchDetector:
     """Detector that finds entities by exact word matching against a dictionary.
 
     Uses word-boundary regex to match whole words only, preventing partial
