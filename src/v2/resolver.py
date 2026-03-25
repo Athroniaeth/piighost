@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Protocol
 
 from v2.models import Detection
@@ -25,24 +24,7 @@ class AnySpanConflictResolver(Protocol):
         ...
 
 
-class AbstractSpanConflictResolver(AnySpanConflictResolver):
-    """Abstract base class for span conflict resolvers."""
-
-    @abstractmethod
-    def resolve(self, detections: list[Detection]) -> list[Detection]:
-        """Resolve overlapping detections and return only the winners.
-
-        Args:
-            detections: The full list of detections, potentially with
-                overlapping spans.
-
-        Returns:
-            A filtered list of detections with no overlapping spans.
-        """
-        ...
-
-
-class ConfidenceSpanConflictResolver(AbstractSpanConflictResolver):
+class ConfidenceSpanConflictResolver:
     """Resolver that keeps the detection with the highest confidence on overlap.
 
     When two or more detections have overlapping spans, only the one with
