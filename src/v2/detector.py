@@ -76,23 +76,15 @@ class ExactMatchDetector:
         for word, label in self.bag_of_words:
             escaped = re.escape(word)
 
-            prefix = (
-                r"\b"
-                if word[0:1].isalnum() or word[0:1] == "_"
-                else r"(?<!\w)"
-            )
-            suffix = (
-                r"\b"
-                if word[-1:].isalnum() or word[-1:] == "_"
-                else r"(?!\w)"
-            )
+            prefix = r"\b" if word[0:1].isalnum() or word[0:1] == "_" else r"(?<!\w)"
+            suffix = r"\b" if word[-1:].isalnum() or word[-1:] == "_" else r"(?!\w)"
 
             pattern = re.compile(f"{prefix}{escaped}{suffix}", self._flags)
 
             for match in pattern.finditer(text):
                 detections.append(
                     Detection(
-                        text=text[match.start():match.end()],
+                        text=text[match.start() : match.end()],
                         label=label,
                         position=Span(
                             start_pos=match.start(),

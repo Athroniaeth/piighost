@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class Span:
     """Represents the position of a substring within a text.
@@ -57,7 +58,7 @@ class Detection:
         return f"{self.text}:{self.label}:{self.position.start_pos}:{self.position.end_pos}:{self.confidence}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Entity:
     """Group of detections that refer to the same PII.
 
@@ -65,13 +66,13 @@ class Entity:
     derived from the first detection in the list.
 
     Attributes:
-        detections: List of detections referring to the same PII.
+        detections: Tuple of detections referring to the same PII.
 
     Raises:
         ValueError: If ``detections`` is empty.
     """
 
-    detections: list[Detection]
+    detections: tuple[Detection, ...]
 
     def __post_init__(self) -> None:
         if not self.detections:
@@ -85,5 +86,3 @@ class Entity:
             The label string (e.g. ``"PERSON"``).
         """
         return self.detections[0].label
-
-
