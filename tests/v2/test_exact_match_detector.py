@@ -2,15 +2,15 @@
 
 import re
 
-import pytest
 
 from v2.detector import ExactMatchDetector
-from v2.models import Detection, Span
+from v2.models import Detection
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _labels(detections: list[Detection]) -> list[str]:
     return [d.label for d in detections]

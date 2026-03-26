@@ -4,8 +4,12 @@ from v2.entity_resolver import MergeEntityConflictResolver
 from v2.models import Detection, Entity, Span
 
 
-def _det(text: str, label: str, start: int, end: int, confidence: float = 0.9) -> Detection:
-    return Detection(text=text, label=label, position=Span(start, end), confidence=confidence)
+def _det(
+    text: str, label: str, start: int, end: int, confidence: float = 0.9
+) -> Detection:
+    return Detection(
+        text=text, label=label, position=Span(start, end), confidence=confidence
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -18,20 +22,30 @@ class TestHaveConflict:
 
     def test_shared_detection_is_conflict(self) -> None:
         shared = _det("Patrick", "PERSON", 20, 27)
-        entity_a = Entity(detections=[_det("Patrick", "PERSON", 0, 7), shared])
-        entity_b = Entity(detections=[shared, _det("patric", "PERSON", 30, 36)])
+        entity_a = Entity(
+            detections=(
+                _det("Patrick", "PERSON", 0, 7),
+                shared,
+            )
+        )
+        entity_b = Entity(
+            detections=(
+                shared,
+                _det("patric", "PERSON", 30, 36),
+            )
+        )
 
         assert MergeEntityConflictResolver().have_conflict(entity_a, entity_b)
 
     def test_no_shared_detection_no_conflict(self) -> None:
-        entity_a = Entity(detections=[_det("Patrick", "PERSON", 0, 7)])
-        entity_b = Entity(detections=[_det("Paris", "LOCATION", 20, 25)])
+        entity_a = Entity(detections=(_det("Patrick", "PERSON", 0, 7),))
+        entity_b = Entity(detections=(_det("Paris", "LOCATION", 20, 25),))
 
         assert not MergeEntityConflictResolver().have_conflict(entity_a, entity_b)
 
     def test_same_text_different_position_no_conflict(self) -> None:
-        entity_a = Entity(detections=[_det("Patrick", "PERSON", 0, 7)])
-        entity_b = Entity(detections=[_det("Patrick", "PERSON", 20, 27)])
+        entity_a = Entity(detections=(_det("Patrick", "PERSON", 0, 7),))
+        entity_b = Entity(detections=(_det("Patrick", "PERSON", 20, 27),))
 
         assert not MergeEntityConflictResolver().have_conflict(entity_a, entity_b)
 
@@ -48,15 +62,15 @@ class TestNoConflict:
         assert MergeEntityConflictResolver().resolve([]) == []
 
     def test_single_entity(self) -> None:
-        entity = Entity(detections=[_det("Patrick", "PERSON", 0, 7)])
+        entity = Entity(detections=(_det("Patrick", "PERSON", 0, 7),))
         result = MergeEntityConflictResolver().resolve([entity])
         assert len(result) == 1
         assert len(result[0].detections) == 1
 
     def test_no_conflicts_keeps_all(self) -> None:
         entities = [
-            Entity(detections=[_det("Patrick", "PERSON", 0, 7)]),
-            Entity(detections=[_det("Paris", "LOCATION", 20, 25)]),
+            Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
+            Entity(detections=(_det("Paris", "LOCATION", 20, 25),)),
         ]
         result = MergeEntityConflictResolver().resolve(entities)
         assert len(result) == 2
@@ -76,8 +90,18 @@ class TestMerging:
         d_c = _det("patric", "PERSON", 30, 36, confidence=0.8)
 
         entities = [
-            Entity(detections=[d_a, shared]),
-            Entity(detections=[shared, d_c]),
+            Entity(
+                detections=(
+                    d_a,
+                    shared,
+                )
+            ),
+            Entity(
+                detections=(
+                    shared,
+                    d_c,
+                )
+            ),
         ]
         result = MergeEntityConflictResolver().resolve(entities)
 
@@ -87,8 +111,13 @@ class TestMerging:
     def test_shared_detection_not_duplicated(self) -> None:
         shared = _det("Patrick", "PERSON", 20, 27)
         entities = [
-            Entity(detections=[shared, _det("Patrick", "PERSON", 0, 7)]),
-            Entity(detections=[shared]),
+            Entity(
+                detections=(
+                    shared,
+                    _det("Patrick", "PERSON", 0, 7),
+                )
+            ),
+            Entity(detections=(shared,)),
         ]
         result = MergeEntityConflictResolver().resolve(entities)
 
@@ -104,9 +133,20 @@ class TestMerging:
         d4 = _det("pat", "PERSON", 40, 43, confidence=0.7)
 
         entities = [
-            Entity(detections=[d1]),        # A
-            Entity(detections=[d1, d2]),     # B (shares d1 with A, d2 with C)
-            Entity(detections=[d2, d3, d4]), # C
+            Entity(detections=(d1,)),  # A
+            Entity(
+                detections=(
+                    d1,
+                    d2,
+                )
+            ),  # B (shares d1 with A, d2 with C)
+            Entity(
+                detections=(
+                    d2,
+                    d3,
+                    d4,
+                )
+            ),  # C
         ]
         result = MergeEntityConflictResolver().resolve(entities)
 
@@ -116,9 +156,19 @@ class TestMerging:
     def test_partial_merge_keeps_unrelated(self) -> None:
         shared = _det("Patrick", "PERSON", 0, 7)
         entities = [
-            Entity(detections=[shared, _det("Patrick", "PERSON", 20, 27)]),
-            Entity(detections=[shared, _det("patric", "PERSON", 30, 36)]),
-            Entity(detections=[_det("Paris", "LOCATION", 50, 55)]),  # unrelated
+            Entity(
+                detections=(
+                    shared,
+                    _det("Patrick", "PERSON", 20, 27),
+                )
+            ),
+            Entity(
+                detections=(
+                    shared,
+                    _det("patric", "PERSON", 30, 36),
+                )
+            ),
+            Entity(detections=(_det("Paris", "LOCATION", 50, 55),)),  # unrelated
         ]
         result = MergeEntityConflictResolver().resolve(entities)
 
@@ -137,8 +187,8 @@ class TestOutputOrdering:
 
     def test_sorted_by_earliest_start_pos(self) -> None:
         entities = [
-            Entity(detections=[_det("Paris", "LOCATION", 30, 35)]),
-            Entity(detections=[_det("Patrick", "PERSON", 0, 7)]),
+            Entity(detections=(_det("Paris", "LOCATION", 30, 35),)),
+            Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
         ]
         result = MergeEntityConflictResolver().resolve(entities)
         positions = [min(d.position.start_pos for d in e.detections) for e in result]

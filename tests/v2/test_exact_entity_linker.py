@@ -1,13 +1,16 @@
 """Tests for ``ExactEntityLinker``."""
 
-import pytest
 
 from v2.entity_linker import ExactEntityLinker
-from v2.models import Detection, Entity, Span
+from v2.models import Detection, Span
 
 
-def _det(text: str, label: str, start: int, end: int, confidence: float = 0.9) -> Detection:
-    return Detection(text=text, label=label, position=Span(start, end), confidence=confidence)
+def _det(
+    text: str, label: str, start: int, end: int, confidence: float = 0.9
+) -> Detection:
+    return Detection(
+        text=text, label=label, position=Span(start, end), confidence=confidence
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -33,7 +36,7 @@ class TestExpansion:
 
         confidences = {d.confidence for d in entities[0].detections}
         assert 0.85 in confidences  # original preserved
-        assert 1.0 in confidences   # expanded detection
+        assert 1.0 in confidences  # expanded detection
 
     def test_no_duplicate_when_already_detected(self) -> None:
         text = "Patrick est gentil. Patrick habite ici."

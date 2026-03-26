@@ -101,7 +101,7 @@ class ExactEntityLinker:
             key = (d.text.lower(), d.label)
             groups[key].append(d)
 
-        entities = [Entity(detections=dets) for dets in groups.values()]
+        entities = [Entity(detections=tuple(dets)) for dets in groups.values()]
         entities.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
         return entities
 
@@ -124,15 +124,9 @@ class ExactEntityLinker:
         # or underscore. For fragments starting/ending with special chars
         # (e.g. "+33..."), we use lookarounds instead: (?<!\w) and (?!\w).
         prefix = (
-            r"\b"
-            if fragment[0:1].isalnum() or fragment[0:1] == "_"
-            else r"(?<!\w)"
+            r"\b" if fragment[0:1].isalnum() or fragment[0:1] == "_" else r"(?<!\w)"
         )
-        suffix = (
-            r"\b"
-            if fragment[-1:].isalnum() or fragment[-1:] == "_"
-            else r"(?!\w)"
-        )
+        suffix = r"\b" if fragment[-1:].isalnum() or fragment[-1:] == "_" else r"(?!\w)"
 
         pattern = re.compile(f"{prefix}{escaped}{suffix}", self._flags)
         return [(m.start(), m.end()) for m in pattern.finditer(text)]
