@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from aiocache.backends.memory import SimpleMemoryBackend
 
 from v2.anonymizer import AnyAnonymizer
@@ -75,14 +77,14 @@ class AnonymizationPipeline:
         entities = self._entity_linker.link(text, detections)
         return self._entity_resolver.resolve(entities)
 
-    async def anonymize(self, text: str) -> str:
+    async def anonymize(self, text: str) -> Tuple[str, list[Entity]]:
         """Run the full pipeline: detect → resolve → link → resolve → anonymize.
 
         Args:
             text: The original text to anonymize.
 
         Returns:
-            The anonymized text.
+            A tuple of (anonymized text, entities used for anonymization).
         """
         entities = await self.detect_entities(text)
 
@@ -92,9 +94,9 @@ class AnonymizationPipeline:
         # Store both directions for deanonymization lookup.
         await self._store_mapping(text, anonymized, entities)
 
-        return anonymized
+        return anonymized, entities
 
-    async def deanonymize(self, anonymized_text: str) -> str:
+    async def deanonymize(self, anonymized_text: str) -> Tuple[str, list[Entity]]:
         """Deanonymize using the anonymized text as lookup key.
 
         Args:
@@ -113,7 +115,8 @@ class AnonymizationPipeline:
             raise KeyError("No anonymization found for this text")
 
         entities = self._deserialize_entities(cached["entities"])
-        return self._anonymizer.deanonymize(anonymized_text, entities)
+        result = self._anonymizer.deanonymize(anonymized_text, entities)
+        return result, entities
 
     # ------------------------------------------------------------------
     # Cache helpers

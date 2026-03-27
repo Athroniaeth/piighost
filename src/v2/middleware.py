@@ -94,8 +94,8 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
                 # Full NER detection for new user input.
                 result = await self._pipeline.anonymize(content)
             elif isinstance(message, ToolMessage):
-                # Fast str.replace for values already known from memory.
-                result = self._pipeline.anonymize_with_ent(content)
+                # Full NER — tools can return new sensitive data.
+                result = await self._pipeline.anonymize(content)
             elif isinstance(message, AIMessage):
                 # AI messages already contain tokens no anonymization needed.
                 continue
