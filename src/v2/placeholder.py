@@ -105,7 +105,7 @@ class HashPlaceholderFactory:
 class RedactPlaceholderFactory:
     """Factory that generates tokens like ``<PERSON>``.
 
-    All entities with the same label share the same token — there is
+    All entities with the same label share the same token there is
     no discrimination between different PIIs of the same type.
     Reversible because ``deanonymize`` receives the entities with
     their original positions.

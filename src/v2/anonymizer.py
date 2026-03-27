@@ -1,5 +1,40 @@
+from typing import Protocol
+
 from v2.models import Entity, Span
 from v2.placeholder import AnyPlaceholderFactory
+
+
+class AnyAnonymizer(Protocol):
+    """Protocol defining the interface for all anonymizers.
+
+    Any class implementing this protocol must provide methods for both
+    anonymization and deanonymization of text based on entities.
+    """
+
+    def anonymize(self, text: str, entities: list[Entity]) -> str:
+        """Replace entity detections in the text with tokens.
+
+        Args:
+            text: The original text to anonymize.
+            entities: The entities whose detections should be replaced.
+
+        Returns:
+            The anonymized text with all detections replaced by tokens.
+        """
+        ...
+
+    def deanonymize(self, anonymized_text: str, entities: list[Entity]) -> str:
+        """Restore the original text from an anonymized version.
+
+        Args:
+            anonymized_text: The text to deanonymize.
+            entities: The same entities used during anonymization,
+                carrying the original detection texts and positions.
+
+        Returns:
+            The restored original text.
+        """
+        ...
 
 
 class Anonymizer:
@@ -9,7 +44,7 @@ class Anonymizer:
     entities, then performs span-based replacement on the text.
 
     Args:
-        factory: The placeholder factory to use for token generation.
+        ph_factory: The placeholder factory to use for token generation.
 
     Example:
         >>> from v2.models import Detection, Entity, Span
@@ -22,8 +57,8 @@ class Anonymizer:
         '<<PERSON_1>> est gentil'
     """
 
-    def __init__(self, factory: AnyPlaceholderFactory) -> None:
-        self._factory = factory
+    def __init__(self, ph_factory: AnyPlaceholderFactory) -> None:
+        self._ph_factory = ph_factory
 
     def anonymize(self, text: str, entities: list[Entity]) -> str:
         """Replace each detection in the text with its entity's token.
@@ -42,7 +77,7 @@ class Anonymizer:
         replacements: list[tuple[Span, str]] = []
 
         # Ask the factory to create all tokens at once.
-        tokens = self._factory.create(entities)
+        tokens = self._ph_factory.create(entities)
 
         for entity, token in tokens.items():
             for detection in entity.detections:
@@ -76,7 +111,7 @@ class Anonymizer:
             The restored original text.
         """
         # Recreate the same tokens for each entity.
-        tokens = self._factory.create(entities)
+        tokens = self._ph_factory.create(entities)
 
         # Build a list of (original_position, token, original_text)
         # so we can replace tokens in the correct order.

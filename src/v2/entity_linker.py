@@ -73,7 +73,7 @@ class ExactEntityLinker:
 
         all_detections = list(detections)
 
-        # Step 1: Expansion — for each known detection, search the full text
+        # Step 1: Expansion for each known detection, search the full text
         # for other occurrences the detector may have missed.
         # Example: NER found "Patrick" at pos 0 but missed "Patrick" at pos 30.
         for detection in detections:
@@ -93,7 +93,7 @@ class ExactEntityLinker:
                         ),
                     )
 
-        # Step 2: Grouping — detections with the same normalized text
+        # Step 2: Grouping detections with the same normalized text
         # and label refer to the same PII, so they become one Entity.
         # We use .lower() so "Patrick" and "PATRICK" are grouped together.
         groups: dict[tuple[str, str], list[Detection]] = defaultdict(list)

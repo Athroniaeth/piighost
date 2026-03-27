@@ -37,7 +37,7 @@ from piighost.session import AnonymizationSession
 from piighost.store import InMemoryPlaceholderStore, PlaceholderStore
 
 # ---- Tier 3: Integration (LangChain/LangGraph) ----
-# NOT re-exported here — importing middleware.py triggers an ImportError
+# NOT re-exported here importing middleware.py triggers an ImportError
 # when langchain is not installed, which would break `import piighost`.
 # Users must import explicitly:
 #   from piighost.middleware import PIIAnonymizationMiddleware

@@ -1416,6 +1416,9 @@ dev = [
     { name = "ruff" },
     { name = "zensical" },
 ]
+pipeline = [
+    { name = "aiocache" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1436,6 +1439,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15.5" },
     { name = "zensical", specifier = ">=0.0.27" },
 ]
+pipeline = [{ name = "aiocache", specifier = ">=0.12.3" }]
 
 [[package]]
 name = "pluggy"

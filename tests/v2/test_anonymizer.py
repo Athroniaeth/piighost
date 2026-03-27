@@ -122,13 +122,16 @@ class TestDeanonymize:
             )
         ]
         text = "Patrick est gentil. Patrick habite ici."
-        anon = Anonymizer(CounterPlaceholderFactory())
+        ph_factory = CounterPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
         anonymized = anon.anonymize(text, entities)
+        assert anonymized == "<<PERSON_1>> est gentil. <<PERSON_1>> habite ici."
+
         restored = anon.deanonymize(anonymized, entities)
         assert restored == text
 
     def test_roundtrip_spelling_variants(self) -> None:
-        # Same entity but different spellings — both must be restored correctly.
+        # Same entity but different spellings both must be restored correctly.
         entities = [
             Entity(
                 detections=(
@@ -138,18 +141,24 @@ class TestDeanonymize:
             )
         ]
         text = "Patrick est gentil. patric habite ici."
-        anon = Anonymizer(CounterPlaceholderFactory())
+        ph_factory = CounterPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
+
         anonymized = anon.anonymize(text, entities)
         assert anonymized.count("<<PERSON_1>>") == 2
+
         restored = anon.deanonymize(anonymized, entities)
         assert restored == text
 
     def test_roundtrip_with_redact(self) -> None:
         entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
         text = "Patrick est gentil"
-        anon = Anonymizer(RedactPlaceholderFactory())
+        ph_factory = RedactPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
+
         anonymized = anon.anonymize(text, entities)
         assert anonymized == "<PERSON> est gentil"
+
         restored = anon.deanonymize(anonymized, entities)
         assert restored == text
 
@@ -159,7 +168,8 @@ class TestDeanonymize:
             Entity(detections=(_det("Henri", "PERSON", 11, 16),)),
         ]
         text = "Patrick et Henri sont amis"
-        anon = Anonymizer(RedactPlaceholderFactory())
+        ph_factory = RedactPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
         anonymized = anon.anonymize(text, entities)
         restored = anon.deanonymize(anonymized, entities)
         assert restored == text
@@ -167,7 +177,8 @@ class TestDeanonymize:
     def test_roundtrip_with_hash(self) -> None:
         entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
         text = "Patrick est gentil"
-        anon = Anonymizer(HashPlaceholderFactory())
+        ph_factory = HashPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
         anonymized = anon.anonymize(text, entities)
         restored = anon.deanonymize(anonymized, entities)
         assert restored == text

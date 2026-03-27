@@ -41,7 +41,7 @@ class Anonymizer:
     * **Without registry** (standalone): the ``PlaceholderFactory``'s
       built-in cache (``get_or_create``) handles deduplication.
     * **With registry** (via ``AnonymizationSession``): the registry
-      is the single source of truth — ``factory.create()`` is called
+      is the single source of truth ``factory.create()`` is called
       only for genuinely new entities, eliminating duplicate caching.
 
     All collaborators are injected so they can be swapped or mocked.

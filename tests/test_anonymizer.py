@@ -249,7 +249,7 @@ class TestAnonymizer:
         anonymizer.reset()
 
         r2 = anonymizer.anonymize("Patrick est ici.")
-        # After reset, counter restarts — still <<PERSON_1>>
+        # After reset, counter restarts still <<PERSON_1>>
         assert r2.placeholders[0].replacement == "<<PERSON_1>>"
 
     def test_reset_allows_new_counter_sequence(self) -> None:

@@ -1,17 +1,19 @@
-from __future__ import annotations
+from aiocache.backends.memory import SimpleMemoryBackend
 
-import hashlib
-from typing import TYPE_CHECKING
-
-from v2.anonymizer import Anonymizer
+from v2.anonymizer import AnyAnonymizer
 from v2.detector import AnyDetector
 from v2.entity_linker import AnyEntityLinker
 from v2.entity_resolver import AnyEntityConflictResolver
 from v2.models import Detection, Entity, Span
 from v2.span_resolver import AnySpanConflictResolver
+from v2.utils import hash_sha256
 
-if TYPE_CHECKING:
+try:
     from aiocache import BaseCache
+except ImportError:
+    raise ImportError(
+        "AnonymizationPipeline requires aiocache for caching. Install with `uv add piighost[pipeline]`."
+    )
 
 
 class AnonymizationPipeline:
@@ -23,9 +25,9 @@ class AnonymizationPipeline:
     - Anonymization mappings (allow deanonymize without passing entities)
 
     Cache keys use prefixes to avoid collisions:
-    - ``detect:<hash>`` — detector results
-    - ``anon:original:<hash>`` — original text → (anonymized, entities)
-    - ``anon:anonymized:<hash>`` — anonymized text → (original, entities)
+    - ``detect:<hash>`` detector results
+    - ``anon:original:<hash>`` original text → (anonymized, entities)
+    - ``anon:anonymized:<hash>`` anonymized text → (original, entities)
 
     Args:
         detector: The entity detector (async).
@@ -43,7 +45,7 @@ class AnonymizationPipeline:
         span_resolver: AnySpanConflictResolver,
         entity_linker: AnyEntityLinker,
         entity_resolver: AnyEntityConflictResolver,
-        anonymizer: Anonymizer,
+        anonymizer: AnyAnonymizer,
         cache: BaseCache | None = None,
     ) -> None:
         self._detector = detector
@@ -51,7 +53,7 @@ class AnonymizationPipeline:
         self._entity_linker = entity_linker
         self._entity_resolver = entity_resolver
         self._anonymizer = anonymizer
-        self._cache = cache
+        self._cache = cache or SimpleMemoryBackend()
 
     async def anonymize(self, text: str) -> str:
         """Run the full pipeline: detect → resolve → link → resolve → anonymize.
@@ -94,7 +96,7 @@ class AnonymizationPipeline:
         Raises:
             KeyError: If the anonymized text was never produced by this pipeline.
         """
-        key = f"anon:anonymized:{self._hash(anonymized_text)}"
+        key = f"anon:anonymized:{hash_sha256(anonymized_text)}"
         cached = await self._cache_get(key)
 
         if cached is None:
@@ -118,7 +120,7 @@ class AnonymizationPipeline:
             return
 
         serialized_entities = self._serialize_entities(entities)
-        key = f"anon:anonymized:{self._hash(anonymized)}"
+        key = f"anon:anonymized:{hash_sha256(anonymized)}"
 
         await self._cache.set(
             key,
@@ -133,14 +135,15 @@ class AnonymizationPipeline:
         if self._cache is None:
             return await self._detector.detect(text)
 
-        cache_key = f"detect:{self._hash(text)}"
+        cache_key = f"detect:{hash_sha256(text)}"
         cached = await self._cache.get(cache_key)
 
         if cached is not None:
             return self._deserialize_detections(cached)
 
         detections = await self._detector.detect(text)
-        await self._cache.set(cache_key, self._serialize_detections(detections))
+        value = self._serialize_detections(detections)
+        await self._cache.set(cache_key, value)
         return detections
 
     async def _cache_get(self, key: str) -> dict | None:
@@ -213,8 +216,3 @@ class AnonymizationPipeline:
             )
             for detections in data
         ]
-
-    @staticmethod
-    def _hash(text: str) -> str:
-        """SHA-256 hash of a text string."""
-        return hashlib.sha256(text.encode()).hexdigest()

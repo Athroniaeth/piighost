@@ -182,7 +182,7 @@ class PlaceholderRegistry:
         """Remove all registered placeholders.
 
         Unlike creating a new ``PlaceholderRegistry``, this preserves the
-        object identity — useful when the registry is shared between
+        object identity useful when the registry is shared between
         multiple sessions or components.
         """
         self._by_replacement.clear()

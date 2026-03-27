@@ -113,7 +113,7 @@ class MergeEntityConflictResolver:
                         result[i] = Entity(detections=tuple(merged_detections))
                         result.pop(j)
 
-                        # Restart the scan — indices have shifted after pop.
+                        # Restart the scan indices have shifted after pop.
                         changed = True
                         break
 
