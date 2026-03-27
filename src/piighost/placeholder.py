@@ -2,7 +2,7 @@ import hashlib
 from collections import defaultdict
 from typing import Protocol
 
-from v2.models import Entity
+from piighost.models import Entity
 
 
 class AnyPlaceholderFactory(Protocol):
@@ -32,7 +32,7 @@ class CounterPlaceholderFactory:
     entity gets ``<<LOCATION_1>>``.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
+        >>> from piighost.models import Detection, Entity, Span
         >>> factory = CounterPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> factory.create([e])[e]
@@ -70,7 +70,7 @@ class HashPlaceholderFactory:
             Defaults to 8.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
+        >>> from piighost.models import Detection, Entity, Span
         >>> factory = HashPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> token = factory.create([e])[e]
@@ -111,7 +111,7 @@ class RedactPlaceholderFactory:
     their original positions.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
+        >>> from piighost.models import Detection, Entity, Span
         >>> factory = RedactPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> factory.create([e])[e]

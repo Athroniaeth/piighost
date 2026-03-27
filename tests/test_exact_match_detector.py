@@ -4,8 +4,8 @@ import re
 
 import pytest
 
-from v2.detector import ExactMatchDetector
-from v2.models import Detection
+from piighost.detector import ExactMatchDetector
+from piighost.models import Detection
 
 pytestmark = pytest.mark.asyncio
 

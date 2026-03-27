@@ -1,7 +1,7 @@
 """Tests for placeholder factories."""
 
-from v2.models import Detection, Entity, Span
-from v2.placeholder import (
+from piighost.models import Detection, Entity, Span
+from piighost.placeholder import (
     CounterPlaceholderFactory,
     HashPlaceholderFactory,
     RedactPlaceholderFactory,

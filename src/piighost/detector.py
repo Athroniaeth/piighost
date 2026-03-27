@@ -1,7 +1,7 @@
 import re
 from typing import Protocol
 
-from v2.models import Detection, Span
+from piighost.models import Detection, Span
 
 
 class AnyDetector(Protocol):

@@ -1,8 +1,8 @@
 """Tests for ``MergeEntityConflictResolver`` and ``FuzzyEntityConflictResolver``."""
 
-from v2.entity_resolver import FuzzyEntityConflictResolver, MergeEntityConflictResolver
-from v2.models import Detection, Entity, Span
-from v2.similarity import levenshtein_similarity
+from piighost.entity_resolver import FuzzyEntityConflictResolver, MergeEntityConflictResolver
+from piighost.models import Detection, Entity, Span
+from piighost.similarity import levenshtein_similarity
 
 
 def _det(

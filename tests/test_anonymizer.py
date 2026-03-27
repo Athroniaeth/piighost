@@ -1,559 +1,184 @@
-"""Tests for the anonymization pipeline.
+"""Tests for ``Anonymizer``."""
 
-Uses a fake detector to avoid loading a real GLiNER model in CI.
-"""
-
-import pytest
-
-from piighost.anonymizer.anonymizer import Anonymizer
-from piighost.anonymizer.detector import CompositeDetector, RegexDetector
-from piighost.anonymizer.models import Entity, IrreversibleAnonymizationError
-from piighost.anonymizer.occurrence import RegexOccurrenceFinder
-from piighost.anonymizer.placeholder import (
+from piighost.anonymizer import Anonymizer
+from piighost.models import Detection, Entity, Span
+from piighost.placeholder import (
     CounterPlaceholderFactory,
     HashPlaceholderFactory,
     RedactPlaceholderFactory,
 )
-from piighost.registry import PlaceholderRegistry
-
-from tests.fakes import FakeDetector
 
 
-# ---------------------------------------------------------------------------
-# OccurrenceFinder
-# ---------------------------------------------------------------------------
-
-
-class TestRegexOccurrenceFinder:
-    """Unit tests for ``RegexOccurrenceFinder``."""
-
-    def test_finds_exact_word_boundary_match(self) -> None:
-        finder = RegexOccurrenceFinder()
-        result = finder.find_all("Bonjour Patrick, comment va Patrick ?", "Patrick")
-        assert result == [(8, 15), (28, 35)]
-
-    def test_ignores_partial_match_inside_word(self) -> None:
-        finder = RegexOccurrenceFinder()
-        result = finder.find_all("Salut Patrick, APatrick ne compte pas", "Patrick")
-        assert result == [(6, 13)]
-
-    def test_case_insensitive_by_default(self) -> None:
-        finder = RegexOccurrenceFinder()
-        result = finder.find_all("paris et PARIS", "Paris")
-        assert len(result) == 2
-
-    def test_no_match_returns_empty(self) -> None:
-        finder = RegexOccurrenceFinder()
-        assert finder.find_all("Rien à voir", "Patrick") == []
+def _det(
+    text: str, label: str, start: int, end: int, confidence: float = 0.9
+) -> Detection:
+    return Detection(
+        text=text, label=label, position=Span(start, end), confidence=confidence
+    )
 
 
 # ---------------------------------------------------------------------------
-# CounterPlaceholderFactory
+# Anonymize
 # ---------------------------------------------------------------------------
 
 
-class TestCounterPlaceholderFactory:
-    """Unit tests for ``CounterPlaceholderFactory``."""
+class TestAnonymize:
+    """anonymize() replaces detections with tokens."""
 
-    def test_increments_per_label(self) -> None:
-        factory = CounterPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        p2 = factory.get_or_create("Marie", "PERSON")
-        assert p1.replacement == "<<PERSON_1>>"
-        assert p2.replacement == "<<PERSON_2>>"
-
-    def test_same_pair_returns_cached(self) -> None:
-        factory = CounterPlaceholderFactory()
-        p1 = factory.get_or_create("Paris", "LOCATION")
-        p2 = factory.get_or_create("Paris", "LOCATION")
-        assert p1 is p2
-
-    def test_different_labels_get_own_counter(self) -> None:
-        factory = CounterPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        p2 = factory.get_or_create("Paris", "LOCATION")
-        assert p1.replacement == "<<PERSON_1>>"
-        assert p2.replacement == "<<LOCATION_1>>"
-
-    def test_reset_clears_state(self) -> None:
-        factory = CounterPlaceholderFactory()
-        factory.get_or_create("Patrick", "PERSON")
-        factory.reset()
-        p = factory.get_or_create("Marie", "PERSON")
-        assert p.replacement == "<<PERSON_1>>"
-
-
-# ---------------------------------------------------------------------------
-# HashPlaceholderFactory
-# ---------------------------------------------------------------------------
-
-
-class TestHashPlaceholderFactory:
-    """Unit tests for ``HashPlaceholderFactory``."""
-
-    def test_format(self) -> None:
-        factory = HashPlaceholderFactory()
-        p = factory.get_or_create("Patrick", "PERSON")
-        assert p.replacement.startswith("<PERSON:")
-        assert p.replacement.endswith(">")
-        # "<PERSON:" (8) + 8 hex chars + ">" (1) = 17
-        assert len(p.replacement) == 8 + 8 + 1
-
-    def test_deterministic(self) -> None:
-        factory = HashPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        p2 = factory.get_or_create("Patrick", "PERSON")
-        assert p1 is p2
-
-    def test_different_originals_different_hash(self) -> None:
-        factory = HashPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        p2 = factory.get_or_create("Marie", "PERSON")
-        assert p1.replacement != p2.replacement
-
-    def test_same_text_different_label_different_replacement(self) -> None:
-        factory = HashPlaceholderFactory()
-        p1 = factory.get_or_create("Paris", "PERSON")
-        p2 = factory.get_or_create("Paris", "LOCATION")
-        assert p1.replacement != p2.replacement
-
-    def test_reset_clears_cache(self) -> None:
-        factory = HashPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        factory.reset()
-        p2 = factory.get_or_create("Patrick", "PERSON")
-        assert p1 is not p2
-        assert p1.replacement == p2.replacement  # same hash, different object
-
-    def test_custom_digest_length(self) -> None:
-        factory = HashPlaceholderFactory(digest_length=16)
-        p = factory.get_or_create("Patrick", "PERSON")
-        digest_part = p.replacement.split(":")[1].rstrip(">")
-        assert len(digest_part) == 16
-
-    def test_custom_template(self) -> None:
-        factory = HashPlaceholderFactory(template="[[{label}:{digest}]]")
-        p = factory.get_or_create("Patrick", "PERSON")
-        assert p.replacement.startswith("[[PERSON:")
-        assert p.replacement.endswith("]]")
-
-
-# ---------------------------------------------------------------------------
-# Anonymizer (integration with fakes)
-# ---------------------------------------------------------------------------
-
-
-class TestAnonymizer:
-    """Integration tests for the full anonymization pipeline."""
-
-    def test_single_entity_single_occurrence(self) -> None:
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=10, end=17, score=0.95),
-            ]
+    def test_single_entity_single_detection(self) -> None:
+        entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
+        result = Anonymizer(CounterPlaceholderFactory()).anonymize(
+            "Patrick est gentil",
+            entities,
         )
-        anonymizer = Anonymizer(detector=detector)
+        assert result == "<<PERSON_1>> est gentil"
 
-        result = anonymizer.anonymize(
-            "Bonjour, Patrick !",
-            active_labels=["PERSON"],
-        )
-
-        assert "Patrick" not in result.anonymized_text
-        assert "<<PERSON_1>>" in result.anonymized_text
-        assert len(result.placeholders) == 1
-
-    def test_expands_to_all_occurrences(self) -> None:
-        # NER only finds the first "Patrick" but the pipeline should
-        # replace *both*.
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-            ]
-        )
-        anonymizer = Anonymizer(detector=detector)
+    def test_single_entity_multiple_detections(self) -> None:
+        entities = [
+            Entity(
+                detections=(
+                    _det("Patrick", "PERSON", 0, 7),
+                    _det("Patrick", "PERSON", 20, 27),
+                )
+            )
+        ]
         text = "Patrick est gentil. Patrick habite ici."
+        result = Anonymizer(CounterPlaceholderFactory()).anonymize(text, entities)
+        assert result == "<<PERSON_1>> est gentil. <<PERSON_1>> habite ici."
 
-        result = anonymizer.anonymize(text, active_labels=["PERSON"])
-
-        assert result.anonymized_text.count("<<PERSON_1>>") == 2
-        assert "Patrick" not in result.anonymized_text
-
-    def test_multiple_entity_types(self) -> None:
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-                Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85),
-            ]
+    def test_multiple_entities(self) -> None:
+        entities = [
+            Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
+            Entity(detections=(_det("Paris", "LOCATION", 17, 22),)),
+        ]
+        result = Anonymizer(CounterPlaceholderFactory()).anonymize(
+            "Patrick habite à Paris",
+            entities,
         )
-        anonymizer = Anonymizer(detector=detector)
-        text = "Patrick habite à Paris."
+        assert "<<PERSON_1>>" in result
+        assert "<<LOCATION_1>>" in result
+        assert "Patrick" not in result
+        assert "Paris" not in result
 
-        result = anonymizer.anonymize(text, active_labels=["PERSON", "LOCATION"])
+    def test_no_entities_returns_unchanged(self) -> None:
+        result = Anonymizer(CounterPlaceholderFactory()).anonymize("Hello world", [])
+        assert result == "Hello world"
 
-        assert "<<PERSON_1>>" in result.anonymized_text
-        assert "<<LOCATION_1>>" in result.anonymized_text
-        assert "Patrick" not in result.anonymized_text
-        assert "Paris" not in result.anonymized_text
-
-    def test_deanonymize_restores_original(self) -> None:
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-                Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85),
-            ]
+    def test_with_hash_factory(self) -> None:
+        entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
+        result = Anonymizer(HashPlaceholderFactory()).anonymize(
+            "Patrick est gentil",
+            entities,
         )
-        anonymizer = Anonymizer(detector=detector)
-        text = "Patrick habite à Paris."
+        assert result.startswith("<PERSON:")
+        assert "Patrick" not in result
 
-        result = anonymizer.anonymize(text, active_labels=["PERSON", "LOCATION"])
-        restored = anonymizer.deanonymize(result)
+    def test_with_redact_factory(self) -> None:
+        entities = [
+            Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
+            Entity(detections=(_det("Henri", "PERSON", 11, 16),)),
+        ]
+        result = Anonymizer(RedactPlaceholderFactory()).anonymize(
+            "Patrick et Henri sont amis",
+            entities,
+        )
+        assert result == "<PERSON> et <PERSON> sont amis"
 
+
+# ---------------------------------------------------------------------------
+# Deanonymize
+# ---------------------------------------------------------------------------
+
+
+class TestDeanonymize:
+    """deanonymize() restores the original text."""
+
+    def test_roundtrip_single_entity(self) -> None:
+        entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
+        text = "Patrick est gentil"
+        anon = Anonymizer(CounterPlaceholderFactory())
+        anonymized = anon.anonymize(text, entities)
+        restored = anon.deanonymize(anonymized, entities)
         assert restored == text
 
-    def test_deanonymize_with_expanded_occurrences(self) -> None:
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-            ]
-        )
-        anonymizer = Anonymizer(detector=detector)
-        text = "Patrick aime Patrick."
-
-        result = anonymizer.anonymize(text, active_labels=["PERSON"])
-        restored = anonymizer.deanonymize(result)
-
+    def test_roundtrip_multiple_entities(self) -> None:
+        entities = [
+            Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
+            Entity(detections=(_det("Paris", "LOCATION", 17, 22),)),
+        ]
+        text = "Patrick habite à Paris"
+        anon = Anonymizer(CounterPlaceholderFactory())
+        anonymized = anon.anonymize(text, entities)
+        restored = anon.deanonymize(anonymized, entities)
         assert restored == text
 
-    def test_no_entities_returns_original(self) -> None:
-        detector = FakeDetector([])
-        anonymizer = Anonymizer(detector=detector)
-        text = "Rien de spécial ici."
+    def test_roundtrip_multiple_detections(self) -> None:
+        entities = [
+            Entity(
+                detections=(
+                    _det("Patrick", "PERSON", 0, 7),
+                    _det("Patrick", "PERSON", 20, 27),
+                )
+            )
+        ]
+        text = "Patrick est gentil. Patrick habite ici."
+        ph_factory = CounterPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
+        anonymized = anon.anonymize(text, entities)
+        assert anonymized == "<<PERSON_1>> est gentil. <<PERSON_1>> habite ici."
 
-        result = anonymizer.anonymize(text, active_labels=["PERSON"])
+        restored = anon.deanonymize(anonymized, entities)
+        assert restored == text
 
-        assert result.anonymized_text == text
-        assert result.placeholders == ()
+    def test_roundtrip_spelling_variants(self) -> None:
+        # Same entity but different spellings both must be restored correctly.
+        entities = [
+            Entity(
+                detections=(
+                    _det("Patrick", "PERSON", 0, 7),
+                    _det("patric", "PERSON", 20, 26),
+                )
+            )
+        ]
+        text = "Patrick est gentil. patric habite ici."
+        ph_factory = CounterPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
 
-    def test_reset_clears_factory_state(self) -> None:
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9),
-            ]
-        )
-        anonymizer = Anonymizer(detector=detector)
+        anonymized = anon.anonymize(text, entities)
+        assert anonymized.count("<<PERSON_1>>") == 2
 
-        r1 = anonymizer.anonymize("Patrick est ici.")
-        assert r1.placeholders[0].replacement == "<<PERSON_1>>"
+        restored = anon.deanonymize(anonymized, entities)
+        assert restored == text
 
-        anonymizer.reset()
+    def test_roundtrip_with_redact(self) -> None:
+        entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
+        text = "Patrick est gentil"
+        ph_factory = RedactPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
 
-        r2 = anonymizer.anonymize("Patrick est ici.")
-        # After reset, counter restarts still <<PERSON_1>>
-        assert r2.placeholders[0].replacement == "<<PERSON_1>>"
+        anonymized = anon.anonymize(text, entities)
+        assert anonymized == "<PERSON> est gentil"
 
-    def test_reset_allows_new_counter_sequence(self) -> None:
-        detector = FakeDetector(
-            [
-                Entity(text="Marie", label="PERSON", start=0, end=5, score=0.9),
-            ]
-        )
-        anonymizer = Anonymizer(detector=detector)
+        restored = anon.deanonymize(anonymized, entities)
+        assert restored == text
 
-        # First session: Patrick gets PERSON_1 (from a different detector call)
-        anonymizer._placeholder_factory.get_or_create("Patrick", "PERSON")
-        r1 = anonymizer.anonymize("Marie est là.")
-        assert r1.placeholders[0].replacement == "<<PERSON_2>>"
+    def test_roundtrip_redact_multiple_same_label(self) -> None:
+        entities = [
+            Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
+            Entity(detections=(_det("Henri", "PERSON", 11, 16),)),
+        ]
+        text = "Patrick et Henri sont amis"
+        ph_factory = RedactPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
+        anonymized = anon.anonymize(text, entities)
+        restored = anon.deanonymize(anonymized, entities)
+        assert restored == text
 
-        anonymizer.reset()
-
-        # After reset: Marie gets PERSON_1 again
-        r2 = anonymizer.anonymize("Marie est là.")
-        assert r2.placeholders[0].replacement == "<<PERSON_1>>"
-
-    def test_partial_word_not_replaced(self) -> None:
-        # "APatrick" should NOT be touched.
-        detector = FakeDetector(
-            [
-                Entity(text="Patrick", label="PERSON", start=6, end=13, score=0.9),
-            ]
-        )
-        anonymizer = Anonymizer(detector=detector)
-        text = "Salut Patrick, APatrick ne compte pas."
-
-        result = anonymizer.anonymize(text, active_labels=["PERSON"])
-
-        assert "APatrick" in result.anonymized_text
-        assert result.anonymized_text.count("<<PERSON_1>>") == 1
-
-
-# ---------------------------------------------------------------------------
-# RegexDetector
-# ---------------------------------------------------------------------------
-
-
-class TestRegexDetector:
-    """Unit tests for ``RegexDetector``."""
-
-    OPENAI_PATTERN = r"sk-(?:proj-)?[A-Za-z0-9\-_]{20,}"
-
-    def test_detects_matching_pattern(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        key = "sk-proj-abc123xyz456789ABCDEF"
-        entities = detector.detect(f"My key is {key}")
-        assert len(entities) == 1
-        assert entities[0].text == key
-        assert entities[0].label == "OPENAI_API_KEY"
-        assert entities[0].score == 1.0
-
-    def test_returns_correct_span(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        text = "key: sk-abc123xyz456789ABCDEF end"
-        entities = detector.detect(text)
-        assert len(entities) == 1
-        start, end = entities[0].start, entities[0].end
-        assert text[start:end] == entities[0].text
-
-    def test_active_labels_filter_excludes_unconfigured(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        entities = detector.detect(
-            "sk-proj-abc123xyz456789ABCDEF", active_labels=["PERSON"]
-        )
-        assert entities == []
-
-    def test_no_filter_runs_all_configured_patterns(self) -> None:
-        detector = RegexDetector(
-            patterns={
-                "OPENAI_API_KEY": self.OPENAI_PATTERN,
-                "EMAIL": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
-            }
-        )
-        text = "key=sk-abc123xyz456789ABCDEF mail=user@example.com"
-        entities = detector.detect(text)  # no filter both patterns run
-        labels = {e.label for e in entities}
-        assert labels == {"OPENAI_API_KEY", "EMAIL"}
-
-    def test_multiple_matches_in_text(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        text = "k1=sk-abc123xyz456789ABCDEF k2=sk-proj-zyxwvu987654321fedcba"
-        entities = detector.detect(text)
-        assert len(entities) == 2
-
-    def test_no_match_returns_empty(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        entities = detector.detect("no key here")
-        assert entities == []
-
-    def test_integration_with_anonymizer_no_filter(self) -> None:
-        detector = RegexDetector(patterns={"OPENAI_API_KEY": self.OPENAI_PATTERN})
-        anonymizer = Anonymizer(detector=detector)
-        text = "My API key is sk-proj-secretkey1234567890abcdef here."
-        result = anonymizer.anonymize(text)  # labels configured at init
-        assert "sk-proj-secretkey1234567890abcdef" not in result.anonymized_text
-        assert "<<OPENAI_API_KEY_1>>" in result.anonymized_text
-
-
-# ---------------------------------------------------------------------------
-# CompositeDetector
-# ---------------------------------------------------------------------------
-
-
-class TestCompositeDetector:
-    """Unit tests for ``CompositeDetector``."""
-
-    def test_merges_results_from_all_detectors(self) -> None:
-        person_entity = Entity(
-            text="Patrick", label="PERSON", start=0, end=7, score=0.9
-        )
-        key_entity = Entity(
-            text="sk-abc123", label="OPENAI_API_KEY", start=10, end=19, score=1.0
-        )
-        composite = CompositeDetector(
-            detectors=[
-                FakeDetector([person_entity]),
-                FakeDetector([key_entity]),
-            ]
-        )
-        entities = composite.detect("Patrick - sk-abc123")
-        assert person_entity in entities
-        assert key_entity in entities
-
-    def test_empty_detectors_returns_empty(self) -> None:
-        composite = CompositeDetector(detectors=[])
-        assert composite.detect("some text") == []
-
-    def test_active_labels_filter_forwarded_to_children(self) -> None:
-        regex_detector = RegexDetector(
-            patterns={"OPENAI_API_KEY": r"sk-[A-Za-z0-9\-_]{20,}"}
-        )
-        composite = CompositeDetector(detectors=[regex_detector])
-        # Filter excludes OPENAI_API_KEY regex_detector should skip it
-        entities = composite.detect("sk-abc123xyz456789ABCDE", active_labels=["PERSON"])
-        assert entities == []
-
-    def test_integration_gliner_and_regex_no_filter(self) -> None:
-        person_entity = Entity(
-            text="Patrick", label="PERSON", start=0, end=7, score=0.9
-        )
-        composite = CompositeDetector(
-            detectors=[
-                FakeDetector([person_entity]),
-                RegexDetector(
-                    patterns={"OPENAI_API_KEY": r"sk-(?:proj-)?[A-Za-z0-9\-_]{20,}"}
-                ),
-            ]
-        )
-        anonymizer = Anonymizer(detector=composite)
-        text = "Patrick a utilisé la clé sk-proj-mysecretkey12345678abcd"
-        result = anonymizer.anonymize(
-            text
-        )  # no filter each detector uses its own labels
-        assert "Patrick" not in result.anonymized_text
-        assert "sk-proj-mysecretkey12345678abcd" not in result.anonymized_text
-        assert "<<PERSON_1>>" in result.anonymized_text
-        assert "<<OPENAI_API_KEY_1>>" in result.anonymized_text
-
-
-# ---------------------------------------------------------------------------
-# RedactPlaceholderFactory
-# ---------------------------------------------------------------------------
-
-
-class TestRedactPlaceholderFactory:
-    """Unit tests for ``RedactPlaceholderFactory``."""
-
-    def test_produces_redacted_tag(self) -> None:
-        factory = RedactPlaceholderFactory()
-        p = factory.get_or_create("Patrick", "PERSON")
-        assert p.replacement == "[REDACTED]"
-
-    def test_all_entities_share_same_tag(self) -> None:
-        factory = RedactPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        p2 = factory.get_or_create("Paris", "LOCATION")
-        assert p1.replacement == p2.replacement == "[REDACTED]"
-
-    def test_same_pair_returns_cached(self) -> None:
-        factory = RedactPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        p2 = factory.get_or_create("Patrick", "PERSON")
-        assert p1 is p2
-
-    def test_custom_tag(self) -> None:
-        factory = RedactPlaceholderFactory(tag="***")
-        p = factory.get_or_create("Patrick", "PERSON")
-        assert p.replacement == "***"
-
-    def test_reset_clears_cache(self) -> None:
-        factory = RedactPlaceholderFactory()
-        p1 = factory.get_or_create("Patrick", "PERSON")
-        factory.reset()
-        p2 = factory.get_or_create("Patrick", "PERSON")
-        assert p1 is not p2
-
-    def test_is_not_reversible(self) -> None:
-        factory = RedactPlaceholderFactory()
-        assert factory.reversible is False
-        with pytest.raises(IrreversibleAnonymizationError):
-            factory.check_reversible()
-
-    def test_counter_is_reversible(self) -> None:
-        factory = CounterPlaceholderFactory()
-        assert factory.reversible is True
-        factory.check_reversible()  # should not raise
-
-    def test_hash_is_reversible(self) -> None:
-        factory = HashPlaceholderFactory()
-        assert factory.reversible is True
-        factory.check_reversible()  # should not raise
-
-
-class TestRedactAnonymizer:
-    """Integration tests for ``Anonymizer`` with ``RedactPlaceholderFactory``."""
-
-    def test_anonymize_works(self) -> None:
-        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
-        detector = FakeDetector([entity])
-        anonymizer = Anonymizer(
-            detector=detector,
-            placeholder_factory=RedactPlaceholderFactory(),
-        )
-        result = anonymizer.anonymize("Patrick habite à Paris.")
-        assert "Patrick" not in result.anonymized_text
-        assert "[REDACTED]" in result.anonymized_text
-
-    def test_deanonymize_raises(self) -> None:
-        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
-        detector = FakeDetector([entity])
-        anonymizer = Anonymizer(
-            detector=detector,
-            placeholder_factory=RedactPlaceholderFactory(),
-        )
-        result = anonymizer.anonymize("Patrick habite à Paris.")
-        with pytest.raises(IrreversibleAnonymizationError):
-            anonymizer.deanonymize(result)
-
-    def test_reversible_property(self) -> None:
-        detector = FakeDetector([])
-        assert Anonymizer(detector=detector).reversible is True
-        assert (
-            Anonymizer(
-                detector=detector,
-                placeholder_factory=RedactPlaceholderFactory(),
-            ).reversible
-            is False
-        )
-
-
-# ---------------------------------------------------------------------------
-# Anonymizer with registry (cache deduplication)
-# ---------------------------------------------------------------------------
-
-
-class TestAnonymizerWithRegistry:
-    """Tests for Anonymizer with an attached PlaceholderRegistry."""
-
-    def test_registry_used_instead_of_factory_cache(self) -> None:
-        """When registry is set, factory.create() is used, not get_or_create()."""
-        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
-        registry = PlaceholderRegistry()
-        factory = CounterPlaceholderFactory()
-        anonymizer = Anonymizer(detector=FakeDetector([entity]))
-        anonymizer._placeholder_factory = factory
-        anonymizer.registry = registry
-
-        anonymizer.anonymize("Patrick habite à Paris.")
-
-        # Registry contains the placeholder
-        assert len(registry) == 1
-        assert registry.lookup_original("Patrick", "PERSON") is not None
-        # Factory cache is empty (create() was called, not get_or_create())
-        assert len(factory._cache) == 0
-
-    def test_registry_deduplicates_across_calls(self) -> None:
-        """Same entity across two calls gets the same placeholder via registry."""
-        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
-        registry = PlaceholderRegistry()
-        anonymizer = Anonymizer(detector=FakeDetector([entity]))
-        anonymizer.registry = registry
-
-        r1 = anonymizer.anonymize("Patrick est là.")
-        r2 = anonymizer.anonymize("Patrick revient.")
-
-        assert r1.placeholders[0].replacement == r2.placeholders[0].replacement
-        assert len(registry) == 1
-
-    def test_without_registry_uses_factory_cache(self) -> None:
-        """Without registry, factory.get_or_create() is used (standalone mode)."""
-        entity = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
-        factory = CounterPlaceholderFactory()
-        anonymizer = Anonymizer(
-            detector=FakeDetector([entity]),
-            placeholder_factory=factory,
-        )
-        # No registry set
-
-        anonymizer.anonymize("Patrick habite à Paris.")
-
-        # Factory cache is populated
-        assert len(factory._cache) == 1
+    def test_roundtrip_with_hash(self) -> None:
+        entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
+        text = "Patrick est gentil"
+        ph_factory = HashPlaceholderFactory()
+        anon = Anonymizer(ph_factory=ph_factory)
+        anonymized = anon.anonymize(text, entities)
+        restored = anon.deanonymize(anonymized, entities)
+        assert restored == text

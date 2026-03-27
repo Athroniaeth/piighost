@@ -2,7 +2,7 @@ import re
 from collections import defaultdict
 from typing import Protocol
 
-from v2.models import Detection, Entity, Span
+from piighost.models import Detection, Entity, Span
 
 
 class AnyEntityLinker(Protocol):
@@ -40,7 +40,7 @@ class ExactEntityLinker:
             ``re.IGNORECASE`` for case-insensitive matching.
 
     Example:
-        >>> from v2.models import Detection, Span
+        >>> from piighost.models import Detection, Span
         >>> detections = [Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9)]
         >>> linker = ExactEntityLinker()
         >>> entities = linker.link("Patrick est gentil. Patrick habite ici.", detections)

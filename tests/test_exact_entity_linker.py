@@ -1,7 +1,7 @@
 """Tests for ``ExactEntityLinker``."""
 
-from v2.entity_linker import ExactEntityLinker
-from v2.models import Detection, Span
+from piighost.entity_linker import ExactEntityLinker
+from piighost.models import Detection, Span
 
 
 def _det(
