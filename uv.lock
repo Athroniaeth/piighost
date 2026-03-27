@@ -1416,6 +1416,9 @@ dev = [
     { name = "ruff" },
     { name = "zensical" },
 ]
+langchain = [
+    { name = "langchain" },
+]
 pipeline = [
     { name = "aiocache" },
 ]
@@ -1439,6 +1442,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15.5" },
     { name = "zensical", specifier = ">=0.0.27" },
 ]
+langchain = [{ name = "langchain", specifier = ">=1.2.13" }]
 pipeline = [{ name = "aiocache", specifier = ">=0.12.3" }]
 
 [[package]]

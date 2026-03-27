@@ -2,6 +2,7 @@ from aiocache.backends.memory import SimpleMemoryBackend
 
 from v2.anonymizer import AnyAnonymizer
 from v2.detector import AnyDetector
+from v2.placeholder import AnyPlaceholderFactory
 from v2.entity_linker import AnyEntityLinker
 from v2.entity_resolver import AnyEntityConflictResolver
 from v2.models import Detection, Entity, Span
@@ -55,6 +56,25 @@ class AnonymizationPipeline:
         self._anonymizer = anonymizer
         self._cache = cache or SimpleMemoryBackend()
 
+    @property
+    def ph_factory(self) -> "AnyPlaceholderFactory":
+        """The placeholder factory used by the anonymizer."""
+        return self._anonymizer._ph_factory
+
+    async def detect_entities(self, text: str) -> list[Entity]:
+        """Run the detection pipeline: detect → resolve → link → resolve.
+
+        Args:
+            text: The text to analyze.
+
+        Returns:
+            Resolved and merged entities found in the text.
+        """
+        detections = await self._cached_detect(text)
+        detections = self._span_resolver.resolve(detections)
+        entities = self._entity_linker.link(text, detections)
+        return self._entity_resolver.resolve(entities)
+
     async def anonymize(self, text: str) -> str:
         """Run the full pipeline: detect → resolve → link → resolve → anonymize.
 
@@ -64,17 +84,7 @@ class AnonymizationPipeline:
         Returns:
             The anonymized text.
         """
-        # Detect entities (cached if a cache is configured).
-        detections = await self._cached_detect(text)
-
-        # Resolve overlapping spans (keep highest confidence).
-        detections = self._span_resolver.resolve(detections)
-
-        # Expand detections and group into entities.
-        entities = self._entity_linker.link(text, detections)
-
-        # Merge entities that share detections.
-        entities = self._entity_resolver.resolve(entities)
+        entities = await self.detect_entities(text)
 
         # Replace detections with placeholder tokens.
         anonymized = self._anonymizer.anonymize(text, entities)
