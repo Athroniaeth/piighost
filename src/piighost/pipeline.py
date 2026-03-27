@@ -1,132 +1,231 @@
-"""Async anonymization pipeline with caching.
+from typing import Tuple
 
-The ``AnonymizationPipeline`` extends ``AnonymizationSession`` with
-async result caching via a ``PlaceholderStore``.
+from aiocache import Cache
 
-Use ``AnonymizationSession`` when you need synchronous, session-aware
-anonymization without caching.  Use ``AnonymizationPipeline`` when you
-also need cross-request persistence (Redis, database, etc.).
+from piighost.anonymizer import AnyAnonymizer
+from piighost.detector import AnyDetector
+from piighost.placeholder import AnyPlaceholderFactory
+from piighost.entity_linker import AnyEntityLinker
+from piighost.entity_resolver import AnyEntityConflictResolver
+from piighost.models import Detection, Entity, Span
+from piighost.span_resolver import AnySpanConflictResolver
+from piighost.utils import hash_sha256
 
-Public API:
-
-* ``anonymize`` (async) – detect & replace PII, cache the result.
-* ``deanonymize_text`` (sync) – replace placeholder tags with originals.
-* ``reanonymize_text`` (sync) – replace originals back to tags.
-"""
-
-import logging
-
-from piighost.anonymizer.anonymizer import Anonymizer
-from piighost.anonymizer.models import AnonymizationResult
-from piighost.registry import PlaceholderRegistry
-from piighost.session import AnonymizationSession
-from piighost.store import InMemoryPlaceholderStore, PlaceholderStore, text_hash
-
-logger = logging.getLogger(__name__)
+try:
+    from aiocache import BaseCache
+except ImportError:
+    raise ImportError(
+        "AnonymizationPipeline requires aiocache for caching. Install with `uv add piighost[pipeline]`."
+    )
 
 
 class AnonymizationPipeline:
-    """Async anonymization pipeline with caching and bidirectional lookup.
+    """Orchestrates the full anonymization pipeline.
 
-    Wraps an ``AnonymizationSession`` and adds an async
-    ``PlaceholderStore`` for cross-request result caching.  All
-    synchronous operations (``deanonymize_text``, ``reanonymize_text``)
-    delegate to the underlying session.
+    Chains all components together: detect → resolve spans → link entities
+    → resolve entities → anonymize. Uses aiocache for:
+    - Detector results (avoid expensive NER re-computation)
+    - Anonymization mappings (allow deanonymize without passing entities)
+
+    Cache keys use prefixes to avoid collisions:
+    - ``detect:<hash>`` detector results
+    - ``anon:original:<hash>`` original text → (anonymized, entities)
+    - ``anon:anonymized:<hash>`` anonymized text → (original, entities)
 
     Args:
-        anonymizer: The anonymization engine.
-        store: Async key-value backend.  Defaults to
-            ``InMemoryPlaceholderStore``.
-        registry: Bidirectional placeholder lookup.  Defaults to a
-            fresh ``PlaceholderRegistry``.  Pass a shared instance to
-            allow multiple pipelines (or standalone code) to share the
-            same mapping.
-
-    Example:
-        >>> pipeline = AnonymizationPipeline(anonymizer=my_anonymizer)
-        >>> result = await pipeline.anonymize("Patrick habite a Paris.")
-        >>> result.anonymized_text
-        '<<PERSON_1>> habite a <<LOCATION_1>>.'
-        >>> pipeline.deanonymize_text("Cherche <<PERSON_1>>")
-        'Cherche Patrick'
-        >>> pipeline.reanonymize_text("Resultat pour Patrick a Paris")
-        'Resultat pour <<PERSON_1>> a <<LOCATION_1>>'
+        detector: The entity detector (async).
+        span_resolver: Resolves overlapping detection spans.
+        entity_linker: Expands and groups detections into entities.
+        entity_resolver: Merges conflicting entities.
+        anonymizer: Performs text replacement and deanonymization.
+        cache: Optional aiocache instance. If ``None``, no caching
+            is performed and deanonymize will raise KeyError.
     """
 
     def __init__(
         self,
-        anonymizer: Anonymizer,
-        store: PlaceholderStore | None = None,
-        registry: PlaceholderRegistry | None = None,
+        detector: AnyDetector,
+        span_resolver: AnySpanConflictResolver,
+        entity_linker: AnyEntityLinker,
+        entity_resolver: AnyEntityConflictResolver,
+        anonymizer: AnyAnonymizer,
+        cache: BaseCache | None = None,
     ) -> None:
-        self._session = AnonymizationSession(anonymizer, registry)
-        self._store = store if store is not None else InMemoryPlaceholderStore()
+        self._detector = detector
+        self._span_resolver = span_resolver
+        self._entity_linker = entity_linker
+        self._entity_resolver = entity_resolver
+        self._anonymizer = anonymizer
+        self._cache = cache or Cache(Cache.MEMORY)
 
-    # -----------------------------------------------------------------
-    # Public API
-    # -----------------------------------------------------------------
+    @property
+    def ph_factory(self) -> "AnyPlaceholderFactory":
+        """The placeholder factory used by the anonymizer."""
+        return self._anonymizer.ph_factory
 
-    async def anonymize(self, text: str) -> AnonymizationResult:
-        """Anonymise *text*, cache the result, and register it.
-
-        If the exact text has already been processed (cache hit), the
-        stored result is returned and its placeholders are registered in
-        the in-memory registry (if not already present).
+    async def detect_entities(self, text: str) -> list[Entity]:
+        """Run the detection pipeline: detect → resolve → link → resolve.
 
         Args:
-            text: The source string.
+            text: The text to analyze.
 
         Returns:
-            The ``AnonymizationResult`` (possibly cached).
+            Resolved and merged entities found in the text.
         """
-        key = text_hash(text)
-        cached = await self._store.get(key)
+        detections = await self._cached_detect(text)
+        detections = self._span_resolver.resolve(detections)
+        entities = self._entity_linker.link(text, detections)
+        return self._entity_resolver.resolve(entities)
+
+    async def anonymize(self, text: str) -> Tuple[str, list[Entity]]:
+        """Run the full pipeline: detect → resolve → link → resolve → anonymize.
+
+        Args:
+            text: The original text to anonymize.
+
+        Returns:
+            A tuple of (anonymized text, entities used for anonymization).
+        """
+        entities = await self.detect_entities(text)
+
+        # Replace detections with placeholder tokens.
+        anonymized = self._anonymizer.anonymize(text, entities)
+
+        # Store both directions for deanonymization lookup.
+        await self._store_mapping(text, anonymized, entities)
+
+        return anonymized, entities
+
+    async def deanonymize(self, anonymized_text: str) -> Tuple[str, list[Entity]]:
+        """Deanonymize using the anonymized text as lookup key.
+
+        Args:
+            anonymized_text: The anonymized text to restore.
+
+        Returns:
+            The restored original text.
+
+        Raises:
+            KeyError: If the anonymized text was never produced by this pipeline.
+        """
+        key = f"anon:anonymized:{hash_sha256(anonymized_text)}"
+        cached = await self._cache_get(key)
+
+        if cached is None:
+            raise KeyError("No anonymization found for this text")
+
+        entities = self._deserialize_entities(cached["entities"])
+        result = self._anonymizer.deanonymize(anonymized_text, entities)
+        return result, entities
+
+    # ------------------------------------------------------------------
+    # Cache helpers
+    # ------------------------------------------------------------------
+
+    async def _store_mapping(
+        self,
+        original: str,
+        anonymized: str,
+        entities: list[Entity],
+    ) -> None:
+        """Store the anonymization mapping in cache (both directions)."""
+        if self._cache is None:
+            return
+
+        serialized_entities = self._serialize_entities(entities)
+        key = f"anon:anonymized:{hash_sha256(anonymized)}"
+
+        await self._cache.set(
+            key,
+            {
+                "original": original,
+                "entities": serialized_entities,
+            },
+        )
+
+    async def _cached_detect(self, text: str) -> list[Detection]:
+        """Detect entities, using cache if available."""
+        if self._cache is None:
+            return await self._detector.detect(text)
+
+        cache_key = f"detect:{hash_sha256(text)}"
+        cached = await self._cache.get(cache_key)
 
         if cached is not None:
-            self._session.registry.register(cached)
-            return cached
+            return self._deserialize_detections(cached)
 
-        result = self._session.anonymize(text)
+        detections = await self._detector.detect(text)
+        value = self._serialize_detections(detections)
+        await self._cache.set(cache_key, value)
+        return detections
 
-        if result.anonymized_text != text:
-            await self._store.set(key, result)
-            logger.debug(
-                "Anonymised text (hash=%s): %d placeholder(s)",
-                key[:12],
-                len(result.placeholders),
-            )
-
+    async def _cache_get(self, key: str) -> dict | None:
+        """Get a value from cache, or None if no cache or key missing."""
+        if self._cache is None:
+            return None
+        result = await self._cache.get(key)
         return result
 
-    def deanonymize_text(self, text: str) -> str:
-        """Replace every known placeholder tag in *text* with its original.
+    # ------------------------------------------------------------------
+    # Serialization
+    # ------------------------------------------------------------------
 
-        Delegates to the underlying ``AnonymizationSession``.
-        """
-        return self._session.deanonymize_text(text)
+    @staticmethod
+    def _serialize_detections(detections: list[Detection]) -> list[dict]:
+        return [
+            {
+                "text": d.text,
+                "label": d.label,
+                "start": d.position.start_pos,
+                "end": d.position.end_pos,
+                "confidence": d.confidence,
+            }
+            for d in detections
+        ]
 
-    def reanonymize_text(self, text: str) -> str:
-        """Replace every known original value in *text* with its placeholder tag.
+    @staticmethod
+    def _deserialize_detections(data: list[dict]) -> list[Detection]:
+        return [
+            Detection(
+                text=d["text"],
+                label=d["label"],
+                position=Span(start_pos=d["start"], end_pos=d["end"]),
+                confidence=d["confidence"],
+            )
+            for d in data
+        ]
 
-        Delegates to the underlying ``AnonymizationSession``.
-        """
-        return self._session.reanonymize_text(text)
+    @staticmethod
+    def _serialize_entities(entities: list[Entity]) -> list[list[dict]]:
+        """Serialize entities as a list of detection lists."""
+        return [
+            [
+                {
+                    "text": d.text,
+                    "label": d.label,
+                    "start": d.position.start_pos,
+                    "end": d.position.end_pos,
+                    "confidence": d.confidence,
+                }
+                for d in entity.detections
+            ]
+            for entity in entities
+        ]
 
-    def reset(self) -> None:
-        """Reset session state (factory cache + registry).
-
-        The async ``PlaceholderStore`` is **not** cleared only the
-        in-memory session state is reset.  Call this between
-        conversations or when the anonymizer configuration changes.
-        """
-        self._session.reset()
-
-    @property
-    def session(self) -> AnonymizationSession:
-        """The underlying synchronous session."""
-        return self._session
-
-    @property
-    def registry(self) -> PlaceholderRegistry:
-        """The underlying placeholder registry (read-only access)."""
-        return self._session.registry
+    @staticmethod
+    def _deserialize_entities(data: list[list[dict]]) -> list[Entity]:
+        """Deserialize entities from a list of detection lists."""
+        return [
+            Entity(
+                detections=tuple(
+                    Detection(
+                        text=d["text"],
+                        label=d["label"],
+                        position=Span(start_pos=d["start"], end_pos=d["end"]),
+                        confidence=d["confidence"],
+                    )
+                    for d in detections
+                )
+            )
+            for detections in data
+        ]

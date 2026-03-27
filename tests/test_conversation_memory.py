@@ -1,7 +1,7 @@
 """Tests for ``ConversationMemory``."""
 
-from v2.conversation_memory import ConversationMemory
-from v2.models import Detection, Entity, Span
+from piighost.conversation_memory import ConversationMemory
+from piighost.models import Detection, Entity, Span
 
 
 def _entity(text: str, label: str, start: int = 0) -> Entity:

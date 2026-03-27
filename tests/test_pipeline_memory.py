@@ -2,19 +2,19 @@
 
 import pytest
 
-from v2.anonymizer import Anonymizer
-from v2.conversation_memory import ConversationMemory
-from v2.conversation_pipeline import ConversationAnonymizationPipeline
-from v2.detector import ExactMatchDetector
-from v2.entity_linker import ExactEntityLinker
-from v2.entity_resolver import FuzzyEntityConflictResolver, MergeEntityConflictResolver
-from v2.placeholder import CounterPlaceholderFactory, AnyPlaceholderFactory
-from v2.span_resolver import ConfidenceSpanConflictResolver
+from piighost.anonymizer import Anonymizer
+from piighost.conversation_memory import ConversationMemory
+from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+from piighost.detector import ExactMatchDetector
+from piighost.entity_linker import ExactEntityLinker
+from piighost.entity_resolver import FuzzyEntityConflictResolver, MergeEntityConflictResolver
+from piighost.placeholder import CounterPlaceholderFactory, AnyPlaceholderFactory
+from piighost.span_resolver import ConfidenceSpanConflictResolver
 
 pytestmark = pytest.mark.asyncio
 
 
-from v2.entity_resolver import AnyEntityConflictResolver
+from piighost.entity_resolver import AnyEntityConflictResolver
 
 
 def _pipeline(

@@ -1,7 +1,7 @@
 from typing import Protocol
 
-from v2.models import Detection, Entity
-from v2.similarity import AnySimilarityFn, jaro_winkler_similarity
+from piighost.models import Detection, Entity
+from piighost.similarity import AnySimilarityFn, jaro_winkler_similarity
 
 
 class AnyEntityConflictResolver(Protocol):
@@ -45,7 +45,7 @@ class MergeEntityConflictResolver:
     one with C, all three are merged into one entity.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
+        >>> from piighost.models import Detection, Entity, Span
         >>> d_a = Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9)
         >>> d_b = Detection(text="Patrick", label="PERSON", position=Span(20, 27), confidence=0.9)
         >>> d_c = Detection(text="patric", label="PERSON", position=Span(30, 36), confidence=0.8)
@@ -140,7 +140,7 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
             as the same.  Defaults to 0.85.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
+        >>> from piighost.models import Detection, Entity, Span
         >>> e1 = Entity(detections=(Detection("Patrick", "PERSON", Span(0, 7), 0.9),))
         >>> e2 = Entity(detections=(Detection("patric", "PERSON", Span(20, 26), 0.8),))
         >>> resolver = FuzzyEntityConflictResolver()

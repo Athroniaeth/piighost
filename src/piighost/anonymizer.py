@@ -1,7 +1,7 @@
 from typing import Protocol
 
-from v2.models import Entity, Span
-from v2.placeholder import AnyPlaceholderFactory
+from piighost.models import Entity, Span
+from piighost.placeholder import AnyPlaceholderFactory
 
 
 class AnyAnonymizer(Protocol):
@@ -49,8 +49,8 @@ class Anonymizer:
         ph_factory: The placeholder factory to use for token generation.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
-        >>> from v2.placeholder import CounterPlaceholderFactory
+        >>> from piighost.models import Detection, Entity, Span
+        >>> from piighost.placeholder import CounterPlaceholderFactory
         >>> entity = Entity(detections=[
         ...     Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),
         ... ])

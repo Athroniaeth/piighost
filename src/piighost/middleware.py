@@ -2,19 +2,21 @@
 
 Intercepts the agent loop at three points:
 
-* **abefore_model** – anonymises *all* messages (NER on human messages,
+* **abefore_model** anonymises *all* messages (NER on human messages,
   string-replace on AI / tool messages) before the LLM sees them.
-* **aafter_model** – deanonymises *all* messages so the user always sees
+* **aafter_model** deanonymises *all* messages so the user always sees
   real values in the conversation thread.
-* **awrap_tool_call** – deanonymises tool-call arguments so tools receive
+* **awrap_tool_call** deanonymises tool-call arguments so tools receive
   real data, then re-anonymises the tool response before it goes back
   to the LLM.
 
 All caching, hashing, and text-level replacement logic is delegated to
-``AnonymizationPipeline``.  This class is a thin LangChain adapter.
+``ConversationAnonymizationPipeline``.  This class is a thin LangChain adapter.
 """
 
 import importlib.util
+
+from piighost.conversation_pipeline import ConversationAnonymizationPipeline
 
 if importlib.util.find_spec("langchain") is None:
     raise ImportError(
@@ -31,7 +33,6 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 from langgraph.typing import ContextT
 
-from piighost.pipeline import AnonymizationPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +41,13 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     """Anonymise PII transparently around the LLM / tool boundary.
 
     Args:
-        pipeline: A configured ``AnonymizationPipeline`` (carries the
-            anonymizer, labels, and store).
+        pipeline: A configured ``ConversationAnonymizationPipeline``
+            (wraps the base pipeline with conversation memory).
 
     Example:
-        >>> from piighost.pipeline import AnonymizationPipeline
-        >>> pipeline = AnonymizationPipeline(anonymizer=anonymizer)
-        >>> middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
+        >>> from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+        >>> conv_pipeline = ConversationAnonymizationPipeline(pipeline=base, ph_factory=factory)
+        >>> middleware = PIIAnonymizationMiddleware(pipeline=conv_pipeline)
         >>> agent = create_agent(
         ...     model="anthropic:claude-sonnet-4-20250514",
         ...     tools=[...],
@@ -54,13 +55,9 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         ... )
     """
 
-    def __init__(self, pipeline: AnonymizationPipeline) -> None:
+    def __init__(self, pipeline: ConversationAnonymizationPipeline) -> None:
         super().__init__()
         self._pipeline = pipeline
-
-    # -----------------------------------------------------------------
-    # abefore_model – anonymise all messages
-    # -----------------------------------------------------------------
 
     async def abefore_model(
         self,
@@ -69,10 +66,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     ) -> dict[str, Any] | None:
         """Anonymise every message before the LLM sees the conversation.
 
-        * ``HumanMessage`` – full NER detection via ``pipeline.anonymize``.
-        * ``AIMessage`` / ``ToolMessage`` – fast string replacement via
-          ``pipeline.reanonymize_text`` (covers values deanonymised by
-          ``aafter_model`` on the previous turn).
+        * ``HumanMessage`` full NER detection via ``pipeline.anonymize``.
+        * ``ToolMessage`` fast string replacement via
+          ``pipeline.anonymize_with_ent`` (re-anonymises real values
+          that tools returned).
+        * ``AIMessage`` skipped the LLM already produces tokens.
 
         Args:
             state: The current agent state (contains ``messages``).
@@ -87,31 +85,29 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
         for idx, message in enumerate(messages):
             content = message.content
+
+            # This happens when the LLM uses a tool
             if not isinstance(content, str) or not content.strip():
-                # This happens when the LLM uses a tool
                 continue
 
-            if isinstance(message, HumanMessage):
-                result = await self._pipeline.anonymize(content)
-                new_content = result.anonymized_text
-            elif isinstance(message, (AIMessage, ToolMessage)):
-                new_content = self._pipeline.reanonymize_text(content)
+            if isinstance(message, (HumanMessage, ToolMessage)):
+                # Full NER detection for user input and tool can return new sensitive data..
+                result, _ = await self._pipeline.anonymize(content)
+            elif isinstance(message, AIMessage):
+                # AI messages already contain tokens no anonymization needed.
+                continue
             else:
                 raise ValueError("This code only takes Langchain messages into account")
 
-            if new_content == content:
+            if result == content:
                 continue
 
-            messages[idx].content = new_content
+            messages[idx].content = result
 
-            logger.debug(f"Anonymised message {idx}")
+            logger.debug(f"Anonymised message {idx} : {result}")
             changed = True
 
         return {"messages": messages} if changed else None
-
-    # -----------------------------------------------------------------
-    # aafter_model – deanonymise all messages for the user
-    # -----------------------------------------------------------------
 
     async def aafter_model(
         self,
@@ -134,14 +130,22 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         for idx, message in enumerate(messages):
             content = message.content
 
+            # This happens when the LLM uses a tool
             if not isinstance(content, str) or not content.strip():
-                # This happens when the LLM uses a tool
                 continue
 
             if not isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
                 raise ValueError("This code only takes Langchain messages into account")
 
-            restored = self._pipeline.deanonymize_text(content)
+            if isinstance(message, HumanMessage):
+                # Use cache-aware deanonymization for human messages,
+                # which may contain tokens from previous LLM output or tool calls.
+                restored = self._pipeline.deanonymize(content)
+            elif isinstance(message, (AIMessage, ToolMessage)):
+                # Fast string replacement for AI and tool messages, which
+                # should only contain tokens from the current conversation.
+
+                restored = self._pipeline.deanonymize_with_ent(content)
 
             if restored == content:
                 continue
@@ -153,10 +157,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         if changed:
             nbr_messages = len(messages)
             logger.debug(f"Deanonymised {nbr_messages} message(s)")
+
         return {"messages": messages} if changed else None
 
     # -----------------------------------------------------------------
-    # awrap_tool_call – deanonymise args → run tool → anonymise result
+    # awrap_tool_call deanonymise args → run tool → anonymise result
     # -----------------------------------------------------------------
 
     async def awrap_tool_call(
@@ -181,7 +186,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
         for arg_name, arg_value in args.items():
             if isinstance(arg_value, str):
-                arg_value = self._pipeline.deanonymize_text(arg_value)
+                arg_value = self._pipeline.deanonymize_with_ent(arg_value)
             patched_args[arg_name] = arg_value
 
         call["args"] = patched_args
@@ -191,7 +196,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
         # Re-anonymise the tool response.
         if isinstance(response, ToolMessage) and isinstance(response.content, str):
-            anonymized_content = self._pipeline.reanonymize_text(response.content)
+            anonymized_content, _ = await self._pipeline.anonymize(response.content)
             response.content = anonymized_content
             return response
 

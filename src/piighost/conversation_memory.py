@@ -9,7 +9,7 @@ pipeline to recreate consistent placeholder tokens across messages.
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from v2.models import Entity
+from piighost.models import Entity
 
 
 class AnyConversationMemory(Protocol):
@@ -32,7 +32,7 @@ class ConversationMemory:
     flattens all stored entities in insertion order, skipping duplicates.
 
     Example:
-        >>> from v2.models import Detection, Entity, Span
+        >>> from piighost.models import Detection, Entity, Span
         >>> memory = ConversationMemory()
         >>> e = Entity(detections=(Detection("Patrick", "PERSON", Span(0, 7), 0.9),))
         >>> memory.record("abc123", [e])

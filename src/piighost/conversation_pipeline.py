@@ -6,15 +6,15 @@ and ``anonymize_with_ent`` for simple ``str.replace``-based operations
 on any text containing known tokens or original values.
 """
 
-from v2.anonymizer import AnyAnonymizer
-from v2.conversation_memory import ConversationMemory, AnyConversationMemory
-from v2.detector import AnyDetector
-from v2.entity_linker import AnyEntityLinker
-from v2.entity_resolver import AnyEntityConflictResolver
-from v2.models import Entity
-from v2.pipeline import AnonymizationPipeline
-from v2.span_resolver import AnySpanConflictResolver
-from v2.utils import hash_sha256
+from piighost.anonymizer import AnyAnonymizer
+from piighost.conversation_memory import ConversationMemory, AnyConversationMemory
+from piighost.detector import AnyDetector
+from piighost.entity_linker import AnyEntityLinker
+from piighost.entity_resolver import AnyEntityConflictResolver
+from piighost.models import Entity
+from piighost.pipeline import AnonymizationPipeline
+from piighost.span_resolver import AnySpanConflictResolver
+from piighost.utils import hash_sha256
 
 
 class ConversationAnonymizationPipeline(AnonymizationPipeline):

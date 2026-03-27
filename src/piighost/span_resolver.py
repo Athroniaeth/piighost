@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from v2.models import Detection
+from piighost.models import Detection
 
 
 class AnySpanConflictResolver(Protocol):
@@ -36,7 +36,7 @@ class ConfidenceSpanConflictResolver:
     accepted detection.
 
     Example:
-        >>> from v2.models import Detection, Span
+        >>> from piighost.models import Detection, Span
         >>> detections = [
         ...     Detection(label="PERSON", position=Span(17, 24), confidence=0.91),
         ...     Detection(label="PERSON", position=Span(17, 22), confidence=0.51),

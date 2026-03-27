@@ -1,171 +1,166 @@
-"""Tests for AnonymizationPipeline with PlaceholderRegistry composition."""
-
-import asyncio
+"""Tests for ``AnonymizationPipeline``."""
 
 import pytest
+from aiocache import Cache, BaseCache
 
-from piighost.anonymizer.anonymizer import Anonymizer
-from piighost.anonymizer.models import (
-    Entity,
-    IrreversibleAnonymizationError,
-)
-from piighost.anonymizer.placeholder import (
-    RedactPlaceholderFactory,
-)
+from piighost.anonymizer import Anonymizer
+from piighost.detector import ExactMatchDetector
+from piighost.entity_linker import ExactEntityLinker
+from piighost.entity_resolver import MergeEntityConflictResolver
 from piighost.pipeline import AnonymizationPipeline
-from piighost.registry import PlaceholderRegistry
+from piighost.placeholder import (
+    CounterPlaceholderFactory,
+    RedactPlaceholderFactory,
+    AnyPlaceholderFactory,
+)
+from piighost.span_resolver import ConfidenceSpanConflictResolver
 
-from tests.fakes import FakeDetector
+pytestmark = pytest.mark.asyncio
+
+
+def _pipeline(
+    words: list[tuple[str, str]],
+    cache: BaseCache | None = None,
+    factory: AnyPlaceholderFactory | None = None,
+) -> AnonymizationPipeline:
+    """Build a pipeline with ExactMatchDetector for testing."""
+    return AnonymizationPipeline(
+        detector=ExactMatchDetector(words),
+        span_resolver=ConfidenceSpanConflictResolver(),
+        entity_linker=ExactEntityLinker(),
+        entity_resolver=MergeEntityConflictResolver(),
+        anonymizer=Anonymizer(factory or CounterPlaceholderFactory()),
+        cache=cache,
+    )
 
 
 # ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
-def _make_anonymizer(*entities: Entity) -> Anonymizer:
-    return Anonymizer(detector=FakeDetector(list(entities)))
-
-
-PATRICK = Entity(text="Patrick", label="PERSON", start=0, end=7, score=0.9)
-PARIS = Entity(text="Paris", label="LOCATION", start=18, end=23, score=0.85)
-
-
-@pytest.fixture()
-def pipeline() -> AnonymizationPipeline:
-    """Pipeline with a fake detector for Patrick + Paris."""
-    return AnonymizationPipeline(anonymizer=_make_anonymizer(PATRICK, PARIS))
-
-
-# ---------------------------------------------------------------------------
-# Anonymize
+# End-to-end anonymization
 # ---------------------------------------------------------------------------
 
 
 class TestAnonymize:
-    """Tests for the async anonymize method."""
+    """Full pipeline: detect → resolve → link → resolve → anonymize."""
 
-    def test_anonymize_registers_placeholders(
-        self, pipeline: AnonymizationPipeline
-    ) -> None:
-        result = asyncio.run(pipeline.anonymize("Patrick habite à Paris."))
+    async def test_single_entity(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        result, _ = await pipeline.anonymize("Bonjour Patrick")
+        assert result == "Bonjour <<PERSON_1>>"
 
-        assert "<<PERSON_1>>" in result.anonymized_text
-        assert "<<LOCATION_1>>" in result.anonymized_text
-        assert len(pipeline.registry) == 2
+    async def test_multiple_entities(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON"), ("Paris", "LOCATION")])
+        result, _ = await pipeline.anonymize("Patrick habite à Paris")
+        assert "<<PERSON_1>>" in result
+        assert "<<LOCATION_1>>" in result
+        assert "Patrick" not in result
+        assert "Paris" not in result
 
-    def test_cache_hit_returns_same_result(
-        self, pipeline: AnonymizationPipeline
-    ) -> None:
-        async def _run() -> None:
-            text = "Patrick habite à Paris."
-            r1 = await pipeline.anonymize(text)
-            r2 = await pipeline.anonymize(text)
-            assert r1 is r2
+    async def test_expands_to_all_occurrences(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        result, _ = await pipeline.anonymize("Patrick est gentil. Patrick habite ici.")
+        assert result.count("<<PERSON_1>>") == 2
 
-        asyncio.run(_run())
+    async def test_no_match_returns_unchanged(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        result, _ = await pipeline.anonymize("Rien à voir ici")
+        assert result == "Rien à voir ici"
 
-    def test_no_pii_skips_store(self) -> None:
-        p = AnonymizationPipeline(anonymizer=_make_anonymizer())
-        result = asyncio.run(p.anonymize("Rien de spécial."))
-
-        assert result.anonymized_text == "Rien de spécial."
-        assert len(p.registry) == 0
-
-
-# ---------------------------------------------------------------------------
-# Deanonymize / Reanonymize via registry
-# ---------------------------------------------------------------------------
-
-
-class TestDeanonymizeReanonymize:
-    """Tests for deanonymize_text and reanonymize_text."""
-
-    def test_deanonymize_text(self, pipeline: AnonymizationPipeline) -> None:
-        asyncio.run(pipeline.anonymize("Patrick habite à Paris."))
-
-        restored = pipeline.deanonymize_text("<<PERSON_1>> habite à <<LOCATION_1>>.")
-        assert restored == "Patrick habite à Paris."
-
-    def test_reanonymize_text(self, pipeline: AnonymizationPipeline) -> None:
-        asyncio.run(pipeline.anonymize("Patrick habite à Paris."))
-
-        reanon = pipeline.reanonymize_text("Résultat pour Patrick à Paris")
-        assert "<<PERSON_1>>" in reanon
-        assert "<<LOCATION_1>>" in reanon
-        assert "Patrick" not in reanon
-        assert "Paris" not in reanon
-
-    def test_deanonymize_on_derived_text(self, pipeline: AnonymizationPipeline) -> None:
-        """deanonymize_text works on LLM-generated text, not just exact output."""
-        asyncio.run(pipeline.anonymize("Patrick habite à Paris."))
-
-        llm_output = "J'ai envoyé un email à <<PERSON_1>> concernant <<LOCATION_1>>."
-        restored = pipeline.deanonymize_text(llm_output)
-        assert restored == "J'ai envoyé un email à Patrick concernant Paris."
-
-
-# ---------------------------------------------------------------------------
-# Reversibility check
-# ---------------------------------------------------------------------------
-
-
-class TestReversibilityCheck:
-    """Tests for _check_reversible via deanonymize/reanonymize."""
-
-    def test_irreversible_raises_on_deanonymize(self) -> None:
-        pipeline = AnonymizationPipeline(
-            anonymizer=Anonymizer(
-                detector=FakeDetector([PATRICK]),
-                placeholder_factory=RedactPlaceholderFactory(),
-            )
+    async def test_with_redact_factory(self) -> None:
+        pipeline = _pipeline(
+            [("Patrick", "PERSON"), ("Henri", "PERSON")],
+            factory=RedactPlaceholderFactory(),
         )
-        asyncio.run(pipeline.anonymize("Patrick est ici."))
+        result, _ = await pipeline.anonymize("Patrick et Henri")
+        assert result == "<PERSON> et <PERSON>"
 
-        with pytest.raises(IrreversibleAnonymizationError):
-            pipeline.deanonymize_text("[REDACTED] est ici.")
 
-    def test_irreversible_raises_on_reanonymize(self) -> None:
-        pipeline = AnonymizationPipeline(
-            anonymizer=Anonymizer(
-                detector=FakeDetector([PATRICK]),
-                placeholder_factory=RedactPlaceholderFactory(),
-            )
+# ---------------------------------------------------------------------------
+# Deanonymize
+# ---------------------------------------------------------------------------
+
+
+class TestDeanonymize:
+    """deanonymize() restores text using stored mappings in cache."""
+
+    async def test_deanonymize_from_anonymized_text(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")], cache=Cache(Cache.MEMORY))
+        text = "Bonjour Patrick"
+        anonymized, _ = await pipeline.anonymize(text)
+        restored, _ = await pipeline.deanonymize(anonymized)
+        assert restored == text
+
+    async def test_deanonymize_multiple_entities(self) -> None:
+        pipeline = _pipeline(
+            [("Patrick", "PERSON"), ("Paris", "LOCATION")], cache=Cache(Cache.MEMORY)
         )
-        asyncio.run(pipeline.anonymize("Patrick est ici."))
+        text = "Patrick habite à Paris"
+        anonymized, _ = await pipeline.anonymize(text)
+        restored, _ = await pipeline.deanonymize(anonymized)
+        assert restored == text
 
-        with pytest.raises(IrreversibleAnonymizationError):
-            pipeline.reanonymize_text("Patrick est ici.")
+    async def test_deanonymize_unknown_text_raises(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")], cache=Cache(Cache.MEMORY))
+        with pytest.raises(KeyError):
+            await pipeline.deanonymize("unknown text")
+
+    async def test_deanonymize_with_spelling_variants(self) -> None:
+        pipeline = _pipeline(
+            [("Patrick", "PERSON"), ("patric", "PERSON")], cache=Cache(Cache.MEMORY)
+        )
+        text = "Patrick et patric sont amis"
+        anonymized, _ = await pipeline.anonymize(text)
+        restored, _ = await pipeline.deanonymize(anonymized)
+        assert restored == text
+
+    async def test_deanonymize_with_default_cache(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")], cache=None)
+        text = "Bonjour Patrick"
+        anonymized, _ = await pipeline.anonymize(text)
+        restored, _ = await pipeline.deanonymize(anonymized)
+        assert restored == text
 
 
 # ---------------------------------------------------------------------------
-# Registry access
+# Cache
 # ---------------------------------------------------------------------------
 
 
-class TestRegistryAccess:
-    """Tests for the registry property and shared registries."""
+class TestCache:
+    """Detector results are cached via aiocache."""
 
-    def test_registry_property(self, pipeline: AnonymizationPipeline) -> None:
-        assert isinstance(pipeline.registry, PlaceholderRegistry)
+    async def test_cache_avoids_second_detection(self) -> None:
+        cache = Cache(Cache.MEMORY)
+        pipeline = _pipeline([("Patrick", "PERSON")], cache=cache)
 
-    def test_shared_registry(self) -> None:
-        """Multiple pipelines can share a single registry."""
-        shared = PlaceholderRegistry()
-        anonymizer = _make_anonymizer(PATRICK, PARIS)
-        p1 = AnonymizationPipeline(anonymizer=anonymizer, registry=shared)
-        p2 = AnonymizationPipeline(anonymizer=anonymizer, registry=shared)
+        # First call detector runs.
+        result1, _ = await pipeline.anonymize("Bonjour Patrick")
+        assert result1 == "Bonjour <<PERSON_1>>"
 
-        asyncio.run(p1.anonymize("Patrick habite à Paris."))
+        # Spy on the detector to check it's not called again.
+        original_detect = pipeline._detector.detect
+        call_count = 0
 
-        # p2 sees p1's placeholders via the shared registry
-        assert p2.deanonymize_text("<<PERSON_1>>") == "Patrick"
+        async def counting_detect(text):
+            nonlocal call_count
+            call_count += 1
+            return await original_detect(text)
 
-    def test_pipeline_reset(self) -> None:
-        """Pipeline.reset() clears session state."""
-        pipeline = AnonymizationPipeline(anonymizer=_make_anonymizer(PATRICK, PARIS))
-        asyncio.run(pipeline.anonymize("Patrick habite à Paris."))
-        assert len(pipeline.registry) == 2
+        pipeline._detector.detect = counting_detect  # type: ignore
 
-        pipeline.reset()
-        assert len(pipeline.registry) == 0
+        # Second call same text, should use cache.
+        result2, _ = await pipeline.anonymize("Bonjour Patrick")
+        assert result2 == "Bonjour <<PERSON_1>>"
+        assert call_count == 0
+
+    async def test_different_text_not_cached(self) -> None:
+        cache = Cache(Cache.MEMORY)
+        pipeline = _pipeline([("Patrick", "PERSON")], cache=cache)
+
+        await pipeline.anonymize("Bonjour Patrick")
+        result, _ = await pipeline.anonymize("Salut Patrick")
+        assert "<<PERSON_1>>" in result
+
+    async def test_no_cache_still_works(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")], cache=None)
+        result, _ = await pipeline.anonymize("Bonjour Patrick")
+        assert result == "Bonjour <<PERSON_1>>"
