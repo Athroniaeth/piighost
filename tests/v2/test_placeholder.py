@@ -98,7 +98,7 @@ class TestHashPlaceholderFactory:
 
 
 class TestRedactPlaceholderFactory:
-    """Generates <LABEL> tokens — no discrimination between entities."""
+    """Generates <LABEL> tokens no discrimination between entities."""
 
     def test_token_format(self) -> None:
         e = _entity("Patrick", "PERSON")

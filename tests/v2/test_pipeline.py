@@ -131,7 +131,7 @@ class TestCache:
         cache = Cache(Cache.MEMORY)
         pipeline = _pipeline([("Patrick", "PERSON")], cache=cache)
 
-        # First call — detector runs.
+        # First call detector runs.
         result1 = await pipeline.anonymize("Bonjour Patrick")
         assert result1 == "Bonjour <<PERSON_1>>"
 
@@ -146,7 +146,7 @@ class TestCache:
 
         pipeline._detector.detect = counting_detect  # type: ignore
 
-        # Second call — same text, should use cache.
+        # Second call same text, should use cache.
         result2 = await pipeline.anonymize("Bonjour Patrick")
         assert result2 == "Bonjour <<PERSON_1>>"
         assert call_count == 0

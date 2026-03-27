@@ -115,7 +115,7 @@ class AnonymizationPipeline:
     def reset(self) -> None:
         """Reset session state (factory cache + registry).
 
-        The async ``PlaceholderStore`` is **not** cleared — only the
+        The async ``PlaceholderStore`` is **not** cleared only the
         in-memory session state is reset.  Call this between
         conversations or when the anonymizer configuration changes.
         """

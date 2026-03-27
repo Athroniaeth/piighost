@@ -13,10 +13,10 @@ class PlaceholderFactory(ABC):
 
     A factory has **two roles**:
 
-    1. **Naming strategy** — ``create`` generates a fresh ``Placeholder``
+    1. **Naming strategy** ``create`` generates a fresh ``Placeholder``
        for a given ``(original, label)`` pair.  Override this in
        subclasses.
-    2. **Self-caching convenience** — ``get_or_create`` wraps ``create``
+    2. **Self-caching convenience** ``get_or_create`` wraps ``create``
        with an internal ``(original, label) → Placeholder`` cache so
        the same pair always receives the same tag.
 
@@ -28,8 +28,8 @@ class PlaceholderFactory(ABC):
     Use one of the two intermediate bases instead of subclassing
     this directly:
 
-    * ``ReversiblePlaceholderFactory`` — unique tags, deanonymization OK.
-    * ``IrreversiblePlaceholderFactory`` — opaque tags, no deanonymization.
+    * ``ReversiblePlaceholderFactory`` unique tags, deanonymization OK.
+    * ``IrreversiblePlaceholderFactory`` opaque tags, no deanonymization.
     """
 
     def __init__(self) -> None:
@@ -109,11 +109,11 @@ class ReversiblePlaceholderFactory(PlaceholderFactory, ABC):
 
     @property
     def reversible(self) -> Literal[True]:
-        """Always ``True`` — reversible factories support deanonymization."""
+        """Always ``True`` reversible factories support deanonymization."""
         return True
 
     def check_reversible(self) -> None:
-        """No-op — reversible factories always pass this check."""
+        """No-op reversible factories always pass this check."""
 
 
 class IrreversiblePlaceholderFactory(PlaceholderFactory, ABC):
@@ -125,7 +125,7 @@ class IrreversiblePlaceholderFactory(PlaceholderFactory, ABC):
 
     @property
     def reversible(self) -> Literal[False]:
-        """Always ``False`` — irreversible factories cannot deanonymize."""
+        """Always ``False`` irreversible factories cannot deanonymize."""
         return False
 
     def check_reversible(self) -> NoReturn:
@@ -253,7 +253,7 @@ class RedactPlaceholderFactory(IrreversiblePlaceholderFactory):
 
     Every entity is mapped to the *same* replacement string regardless
     of its label or original text.  This makes deanonymization
-    impossible — no information leaks about whether two occurrences
+    impossible no information leaks about whether two occurrences
     refer to the same entity.
 
     This factory does **not** implement ``ReversiblePlaceholderFactory``.

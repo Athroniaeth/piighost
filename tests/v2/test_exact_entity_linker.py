@@ -13,7 +13,7 @@ def _det(
 
 
 # ---------------------------------------------------------------------------
-# Expansion — finding missed occurrences
+# Expansion finding missed occurrences
 # ---------------------------------------------------------------------------
 
 
@@ -58,7 +58,7 @@ class TestExpansion:
 
 
 # ---------------------------------------------------------------------------
-# Grouping — detections of the same PII become one Entity
+# Grouping detections of the same PII become one Entity
 # ---------------------------------------------------------------------------
 
 
