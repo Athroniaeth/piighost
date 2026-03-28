@@ -4,6 +4,7 @@ from piighost.models import Detection, Entity, Span
 from piighost.placeholder import (
     CounterPlaceholderFactory,
     HashPlaceholderFactory,
+    MaskPlaceholderFactory,
     RedactPlaceholderFactory,
 )
 
@@ -118,3 +119,74 @@ class TestRedactPlaceholderFactory:
 
     def test_empty_list(self) -> None:
         assert RedactPlaceholderFactory().create([]) == {}
+
+
+# ---------------------------------------------------------------------------
+# MaskPlaceholderFactory
+# ---------------------------------------------------------------------------
+
+
+class TestMaskPlaceholderFactory:
+    """Generates partially masked tokens preserving some original characters."""
+
+    # -- Email masking --
+
+    def test_email_masks_local_part(self) -> None:
+        e = _entity("patrick@email.com", "EMAIL")
+        assert MaskPlaceholderFactory().create([e])[e] == "p******@email.com"
+
+    def test_email_single_char_local(self) -> None:
+        e = _entity("j@example.org", "EMAIL")
+        assert MaskPlaceholderFactory().create([e])[e] == "j@example.org"
+
+    def test_email_label_case_insensitive(self) -> None:
+        e = _entity("alice@test.io", "email")
+        assert MaskPlaceholderFactory().create([e])[e] == "a****@test.io"
+
+    # -- Numeric masking --
+
+    def test_credit_card_keeps_last_four(self) -> None:
+        e = _entity("4111-1111-1111-1234", "CREDIT_CARD")
+        assert MaskPlaceholderFactory().create([e])[e] == "************1234"
+
+    def test_phone_keeps_last_four(self) -> None:
+        e = _entity("+33 6 12 34 56 78", "PHONE_INTERNATIONAL")
+        assert MaskPlaceholderFactory().create([e])[e] == "*******5678"
+
+    def test_ssn_keeps_last_four(self) -> None:
+        e = _entity("123-45-6789", "US_SSN")
+        assert MaskPlaceholderFactory().create([e])[e] == "*****6789"
+
+    def test_numeric_short_value_unchanged(self) -> None:
+        e = _entity("1234", "CREDIT_CARD")
+        assert MaskPlaceholderFactory().create([e])[e] == "1234"
+
+    def test_numeric_custom_visible_chars(self) -> None:
+        e = _entity("4111-1111-1111-1234", "CREDIT_CARD")
+        result = MaskPlaceholderFactory(visible_chars=6).create([e])[e]
+        assert result == "**********111234"
+
+    # -- Default masking (names, locations, etc.) --
+
+    def test_person_keeps_first_char(self) -> None:
+        e = _entity("Patrick", "PERSON")
+        assert MaskPlaceholderFactory().create([e])[e] == "P******"
+
+    def test_location_keeps_first_char(self) -> None:
+        e = _entity("Paris", "LOCATION")
+        assert MaskPlaceholderFactory().create([e])[e] == "P****"
+
+    def test_single_char_unchanged(self) -> None:
+        e = _entity("X", "PERSON")
+        assert MaskPlaceholderFactory().create([e])[e] == "X"
+
+    # -- Custom mask char --
+
+    def test_custom_mask_char(self) -> None:
+        e = _entity("Patrick", "PERSON")
+        assert MaskPlaceholderFactory(mask_char="#").create([e])[e] == "P######"
+
+    # -- Empty --
+
+    def test_empty_list(self) -> None:
+        assert MaskPlaceholderFactory().create([]) == {}
