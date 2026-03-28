@@ -17,7 +17,7 @@ Fonctionnalités manquantes identifiées par analyse comparative avec [PIICloak]
   - [ ] ~~Permis de conduire~~
 
 - [ ] **Stratégies d'anonymisation supplémentaires** Nouveaux `PlaceholderFactory` :
-  - [ ] Masquage partiel (`MaskPlaceholderFactory`) ex: `****4567`, `j***@email.com`
+  - [x] Masquage partiel (`MaskPlaceholderFactory`) ex: `****4567`, `j***@email.com`
   - [x] Suppression pure (`RedactPlaceholderFactory`) ex: `[REDACTED]`
   - [ ] Génération de fausses données (`FakerPlaceholderFactory`) utiliser Faker (déjà en dépendance) pour générer des noms, adresses, emails réalistes
 

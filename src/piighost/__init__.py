@@ -5,6 +5,7 @@ from piighost.placeholder import (
     AnyPlaceholderFactory,
     CounterPlaceholderFactory,
     HashPlaceholderFactory,
+    MaskPlaceholderFactory,
     RedactPlaceholderFactory,
 )
 
@@ -17,6 +18,7 @@ __all__ = [
     "Detection",
     "Entity",
     "HashPlaceholderFactory",
+    "MaskPlaceholderFactory",
     "PIIGhostException",
     "RedactPlaceholderFactory",
     "Span",
