@@ -1,6 +1,7 @@
 import hashlib
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Protocol
 
 from piighost.models import Entity
@@ -39,6 +40,8 @@ class CounterPlaceholderFactory:
         >>> factory.create([e])[e]
         '<<PERSON_1>>'
     """
+    def __init__(self):
+        ...
 
     def create(self, entities: list[Entity]) -> dict[Entity, str]:
         """Create counter-based tokens for all entities.
@@ -120,6 +123,8 @@ class RedactPlaceholderFactory:
         >>> factory.create([e])[e]
         '<PERSON>'
     """
+    def __init__(self):
+        ...
 
     def create(self, entities: list[Entity]) -> dict[Entity, str]:
         """Create redact tokens for all entities.
@@ -133,26 +138,95 @@ class RedactPlaceholderFactory:
         return {entity: f"<{entity.label}>" for entity in entities}
 
 
+MaskFn = Callable[[str, str], str]
+"""Signature for masking functions: ``(text, mask_char) -> masked_text``."""
+
+NUMERIC_LABELS: frozenset[str] = frozenset(
+    {
+        "credit_card",
+        "phone",
+        "phone_international",
+        "us_phone",
+        "fr_phone",
+        "de_phone",
+        "ssn",
+        "us_ssn",
+        "fr_ssn",
+        "iban",
+        "eu_iban",
+        "uk_nhs",
+        "us_ein",
+        "us_bank_routing",
+        "ip_address",
+    }
+)
+
+
+def mask_email(text: str, mask_char: str = "*") -> str:
+    """``j***@email.com`` — keep first char of local part + domain."""
+    match = re.match(r"^(.)(.*?)(@.+)$", text)
+    if not match:
+        return mask_default(text, mask_char)
+    first, middle, domain = match.groups()
+    return first + mask_char * len(middle) + domain
+
+
+def mask_numeric(text: str, mask_char: str = "*", visible_chars: int = 4) -> str:
+    """``****4567`` — keep last ``visible_chars`` digits."""
+    digits = re.sub(r"\D", "", text)
+    if len(digits) <= visible_chars:
+        return text
+    visible = digits[-visible_chars:]
+    masked_count = len(digits) - visible_chars
+    return mask_char * masked_count + visible
+
+
+def mask_default(text: str, mask_char: str = "*") -> str:
+    """``P******`` — keep first character, mask the rest."""
+    if len(text) <= 1:
+        return text
+    return text[0] + mask_char * (len(text) - 1)
+
+
+def _build_default_strategies(
+    mask_char: str, visible_chars: int
+) -> dict[str, MaskFn]:
+    """Build the default label → mask function mapping.
+
+    * Labels containing ``"email"`` → :func:`mask_email`
+    * Labels in :data:`NUMERIC_LABELS` → :func:`mask_numeric`
+    """
+    strategies: dict[str, MaskFn] = {"email": mask_email}
+
+    for label in NUMERIC_LABELS:
+        strategies[label] = lambda t, mc=mask_char, vc=visible_chars: mask_numeric(
+            t, mc, vc
+        )
+
+    return strategies
+
+
 class MaskPlaceholderFactory:
     """Factory that generates partially masked tokens preserving some original characters.
 
-    Applies label-aware masking strategies:
+    Uses a configurable ``strategies`` mapping from label (lowercase) to
+    a masking function ``(text, mask_char) -> str``.  Labels not present
+    in the mapping fall back to :func:`mask_default`.  Labels containing
+    ``"email"`` are automatically routed to :func:`mask_email` unless
+    overridden.
 
-    * **Email** labels: keeps the first character and domain
-      (``j***@email.com``).
-    * **Numeric** labels (credit card, phone, SSN, IBAN, …): keeps the
-      last ``visible_chars`` digits (``****4567``).
-    * **Default** (names, locations, …): keeps the first character and
-      masks the rest (``P******``).
+    Built-in defaults:
 
-    Labels are matched case-insensitively.  A label is considered
-    *email* if it contains ``"email"`` and *numeric* if it matches
-    any entry in ``NUMERIC_LABELS``.
+    * **Email** labels: :func:`mask_email` → ``j***@email.com``
+    * **Numeric** labels: :func:`mask_numeric` → ``****4567``
+    * **Everything else**: :func:`mask_default` → ``P******``
 
     Args:
         mask_char: Character used for masking.  Defaults to ``"*"``.
-        visible_chars: Number of characters to keep visible for numeric
-            masking.  Defaults to 4.
+        visible_chars: Number of characters to keep visible for the
+            default numeric strategy.  Defaults to 4.
+        strategies: Optional dict mapping lowercase labels to masking
+            functions.  Merged on top of the built-in defaults.
 
     Example:
         >>> from piighost.models import Detection, Entity, Span
@@ -162,32 +236,22 @@ class MaskPlaceholderFactory:
         'p***@email.com'
     """
 
-    NUMERIC_LABELS: frozenset[str] = frozenset(
-        {
-            "credit_card",
-            "phone",
-            "phone_international",
-            "us_phone",
-            "fr_phone",
-            "de_phone",
-            "ssn",
-            "us_ssn",
-            "fr_ssn",
-            "iban",
-            "eu_iban",
-            "uk_nhs",
-            "us_ein",
-            "us_bank_routing",
-            "ip_address",
-        }
-    )
-
     _mask_char: str
-    _visible_chars: int
+    _strategies: dict[str, MaskFn]
 
-    def __init__(self, mask_char: str = "*", visible_chars: int = 4) -> None:
+    def __init__(
+        self,
+        mask_char: str = "*",
+        visible_chars: int = 4,
+        strategies: dict[str, MaskFn] | None = None,
+    ) -> None:
+        if strategies is None:
+            strategies = _build_default_strategies(mask_char, visible_chars)
+        else:
+            strategies = {k.lower(): v for k, v in strategies.items()}
+
         self._mask_char = mask_char
-        self._visible_chars = visible_chars
+        self._strategies = strategies
 
     def create(self, entities: list[Entity]) -> dict[Entity, str]:
         """Create partially masked tokens for all entities.
@@ -204,33 +268,8 @@ class MaskPlaceholderFactory:
         text = entity.detections[0].text
         label_lower = entity.label.lower()
 
-        if "email" in label_lower:
-            return self._mask_email(text)
+        # Explicit strategy match takes priority.
+        if label_lower in self._strategies:
+            return self._strategies[label_lower](text, self._mask_char)
 
-        if label_lower in self.NUMERIC_LABELS:
-            return self._mask_numeric(text)
-
-        return self._mask_default(text)
-
-    def _mask_email(self, text: str) -> str:
-        """``j***@email.com`` — keep first char of local part + domain."""
-        match = re.match(r"^(.)(.*?)(@.+)$", text)
-        if not match:
-            return self._mask_default(text)
-        first, middle, domain = match.groups()
-        return first + self._mask_char * len(middle) + domain
-
-    def _mask_numeric(self, text: str) -> str:
-        """``****4567`` — keep last ``visible_chars`` digits."""
-        digits = re.sub(r"\D", "", text)
-        if len(digits) <= self._visible_chars:
-            return text
-        visible = digits[-self._visible_chars :]
-        masked_count = len(digits) - self._visible_chars
-        return self._mask_char * masked_count + visible
-
-    def _mask_default(self, text: str) -> str:
-        """``P******`` — keep first character, mask the rest."""
-        if len(text) <= 1:
-            return text
-        return text[0] + self._mask_char * (len(text) - 1)
+        return mask_default(text, self._mask_char)

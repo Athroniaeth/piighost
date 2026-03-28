@@ -186,6 +186,29 @@ class TestMaskPlaceholderFactory:
         e = _entity("Patrick", "PERSON")
         assert MaskPlaceholderFactory(mask_char="#").create([e])[e] == "P######"
 
+    # -- Custom strategies --
+
+    def test_custom_strategies_replace_defaults(self) -> None:
+        """User-provided strategies fully replace the built-in defaults."""
+        reverse_mask = lambda text, _mc: text[::-1]
+        factory = MaskPlaceholderFactory(strategies={"PERSON": reverse_mask})
+        e = _entity("Patrick", "PERSON")
+        assert factory.create([e])[e] == "kcirtaP"
+
+    def test_custom_strategy_label_case_insensitive(self) -> None:
+        """Labels in strategies are normalized to lowercase."""
+        upper_mask = lambda text, _mc: text.upper()
+        factory = MaskPlaceholderFactory(strategies={"CUSTOM_LABEL": upper_mask})
+        e = _entity("secret", "CUSTOM_LABEL")
+        assert factory.create([e])[e] == "SECRET"
+
+    def test_custom_strategy_unknown_label_falls_back(self) -> None:
+        """Labels not in custom strategies fall back to mask_default."""
+        noop = lambda text, _mc: "NOOP"
+        factory = MaskPlaceholderFactory(strategies={"PERSON": noop})
+        e = _entity("Paris", "LOCATION")
+        assert factory.create([e])[e] == "P****"
+
     # -- Empty --
 
     def test_empty_list(self) -> None:
