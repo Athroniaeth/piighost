@@ -149,6 +149,9 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
         1
     """
 
+    _similarity_fn: AnySimilarityFn
+    _threshold: float
+
     def __init__(
         self,
         similarity_fn: AnySimilarityFn = jaro_winkler_similarity,

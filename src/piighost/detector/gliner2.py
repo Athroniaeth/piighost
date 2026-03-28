@@ -29,6 +29,11 @@ class Gliner2Detector:
         >>> detections = await detector.detect("Je m'appelle Patrick")
     """
 
+    model: GLiNER2
+    labels: list[str]
+    threshold: float
+    flat_ner: bool
+
     def __init__(
         self,
         model: GLiNER2,

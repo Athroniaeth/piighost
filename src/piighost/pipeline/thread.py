@@ -131,7 +131,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
             anonymizer,
         )
 
-        self.memory = memory or ConversationMemory()
+        self.memory: AnyConversationMemory = memory or ConversationMemory()
 
     @property
     def resolved_entities(self) -> list[Entity]:

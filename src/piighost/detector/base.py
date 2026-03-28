@@ -51,6 +51,9 @@ class ExactMatchDetector:
         [('PERSON', 0, 7), ('LOCATION', 17, 22)]
     """
 
+    bag_of_words: list[tuple[str, str]]
+    _flags: re.RegexFlag
+
     def __init__(
         self,
         bag_of_words: list[tuple[str, str]],

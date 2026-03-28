@@ -59,6 +59,8 @@ class Anonymizer:
         '<<PERSON_1>> est gentil'
     """
 
+    ph_factory: AnyPlaceholderFactory
+
     def __init__(self, ph_factory: AnyPlaceholderFactory) -> None:
         self.ph_factory = ph_factory
 

@@ -50,6 +50,8 @@ class ExactEntityLinker:
         2
     """
 
+    _flags: re.RegexFlag
+
     def __init__(self, flags: re.RegexFlag = re.IGNORECASE) -> None:
         self._flags = flags
 

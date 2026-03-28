@@ -42,6 +42,13 @@ class AnonymizationPipeline:
             is performed and deanonymize will raise KeyError.
     """
 
+    _detector: AnyDetector
+    _span_resolver: AnySpanConflictResolver
+    _entity_linker: AnyEntityLinker
+    _entity_resolver: AnyEntityConflictResolver
+    _anonymizer: AnyAnonymizer
+    _cache: BaseCache
+
     def __init__(
         self,
         detector: AnyDetector,

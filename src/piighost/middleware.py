@@ -56,6 +56,8 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         ... )
     """
 
+    _pipeline: ThreadAnonymizationPipeline
+
     def __init__(self, pipeline: ThreadAnonymizationPipeline) -> None:
         super().__init__()
         self._pipeline = pipeline
