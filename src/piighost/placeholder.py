@@ -78,6 +78,8 @@ class HashPlaceholderFactory:
         True
     """
 
+    _hash_length: int
+
     def __init__(self, hash_length: int = 8) -> None:
         self._hash_length = hash_length
 
