@@ -248,4 +248,3 @@ class GlinerDetector:
             for entity_type, list_entity in raw_entities.items()
             for entity in list_entity
         ]
-
