@@ -7,7 +7,10 @@ from piighost.conversation_memory import ConversationMemory
 from piighost.conversation_pipeline import ConversationAnonymizationPipeline
 from piighost.detector import ExactMatchDetector
 from piighost.entity_linker import ExactEntityLinker
-from piighost.entity_resolver import FuzzyEntityConflictResolver, MergeEntityConflictResolver
+from piighost.entity_resolver import (
+    FuzzyEntityConflictResolver,
+    MergeEntityConflictResolver,
+)
 from piighost.placeholder import CounterPlaceholderFactory, AnyPlaceholderFactory
 from piighost.span_resolver import ConfidenceSpanConflictResolver
 
@@ -76,7 +79,9 @@ class TestDeanonymizeWithEnt:
         pipeline = _pipeline([("Patrick", "PERSON"), ("Paris", "LOCATION")])
         await pipeline.anonymize("Patrick habite à Paris")
 
-        result = await pipeline.deanonymize_with_ent("<<PERSON_1>> est à <<LOCATION_1>>")
+        result = await pipeline.deanonymize_with_ent(
+            "<<PERSON_1>> est à <<LOCATION_1>>"
+        )
         assert result == "Patrick est à Paris"
 
 
