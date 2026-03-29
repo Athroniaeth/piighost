@@ -1391,13 +1391,13 @@ wheels = [
 name = "piighost"
 version = "0.2.0"
 source = { editable = "." }
-dependencies = [
-    { name = "faker" },
-]
 
 [package.optional-dependencies]
 cache = [
     { name = "aiocache" },
+]
+faker = [
+    { name = "faker" },
 ]
 gliner = [
     { name = "gliner2" },
@@ -1416,6 +1416,9 @@ dev = [
     { name = "ruff" },
     { name = "zensical" },
 ]
+faker = [
+    { name = "faker" },
+]
 gliner2 = [
     { name = "gliner2" },
 ]
@@ -1429,11 +1432,11 @@ pipeline = [
 [package.metadata]
 requires-dist = [
     { name = "aiocache", marker = "extra == 'cache'", specifier = ">=0.12" },
-    { name = "faker", specifier = ">=40.8.0" },
+    { name = "faker", marker = "extra == 'faker'", specifier = ">=40.11" },
     { name = "gliner2", marker = "extra == 'gliner'", specifier = ">=1.2" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2" },
 ]
-provides-extras = ["gliner", "langchain", "cache"]
+provides-extras = ["gliner", "langchain", "faker", "cache"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1445,6 +1448,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15.5" },
     { name = "zensical", specifier = ">=0.0.27" },
 ]
+faker = [{ name = "faker", specifier = ">=40.11.0" }]
 gliner2 = [{ name = "gliner2", specifier = ">=1.2.4" }]
 langchain = [{ name = "langchain", specifier = ">=1.2.13" }]
 pipeline = [{ name = "aiocache", specifier = ">=0.12.3" }]
