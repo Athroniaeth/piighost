@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.0 (2026-03-29)
+
+### Feat
+
+- add cross-message entity linking via linker.link_entities
+- add faker placeholder factory with configurable label-to-provider strategies
+- add mask placeholder factory with configurable label-to-function masking strategies
+- add mask placeholder factory for partial masking anonymization strategy
+
+### Refactor
+
+- extract _deanonymize helper and clean up middleware
+- convert lambda assignments to def functions in tests
+- reorganize tests directory to mirror src package structure
+- create own module for each step of pipeline
+
 ## 0.2.0 (2026-03-28)
 
 ### Feat
