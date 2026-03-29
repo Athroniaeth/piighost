@@ -1,5 +1,7 @@
 """Tests for ``ThreadAnonymizationPipeline``."""
 
+import re
+
 import pytest
 
 from piighost.anonymizer import Anonymizer
@@ -10,14 +12,12 @@ from piighost.pipeline.thread import (
 from piighost.detector import ExactMatchDetector
 from piighost.linker.entity import ExactEntityLinker
 from piighost.resolver.entity import (
+    AnyEntityConflictResolver,
     FuzzyEntityConflictResolver,
     MergeEntityConflictResolver,
 )
 from piighost.placeholder import CounterPlaceholderFactory, AnyPlaceholderFactory
 from piighost.resolver.span import ConfidenceSpanConflictResolver
-
-
-from piighost.resolver.entity import AnyEntityConflictResolver
 
 pytestmark = pytest.mark.asyncio
 
@@ -224,3 +224,144 @@ class TestFuzzyEntityResolution:
         assert "patric" not in result
         assert "Patrick" not in result
         assert "<<PERSON_1>>" in result
+
+
+# ---------------------------------------------------------------------------
+# Cross-message entity linking
+# ---------------------------------------------------------------------------
+
+
+class TestCrossMessageEntityLinking:
+    """Entities from previous messages are found in new messages via memory."""
+
+    async def test_case_variant_across_messages(self) -> None:
+        """'france' in msg2 gets the same token as 'France' in msg1."""
+        pipeline = _pipeline([("France", "LOCATION")])
+        r1, _ = await pipeline.anonymize("J'habite en France")
+        r2, _ = await pipeline.anonymize("donne moi la meteo en france")
+
+        assert "<<LOCATION_1>>" in r1
+        assert "<<LOCATION_1>>" in r2
+        assert "france" not in r2
+
+    async def test_uppercase_variant_across_messages(self) -> None:
+        """'FRANCE' in msg2 gets the same token as 'France' in msg1."""
+        pipeline = _pipeline([("France", "LOCATION")])
+        await pipeline.anonymize("J'habite en France")
+        r2, _ = await pipeline.anonymize("je pars en FRANCE demain")
+
+        assert "FRANCE" not in r2
+        assert "<<LOCATION_1>>" in r2
+
+    async def test_anonymize_with_ent_uses_variants(self) -> None:
+        """anonymize_with_ent replaces case variants accumulated in memory."""
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        await pipeline.anonymize("Bonjour Patrick")
+        await pipeline.anonymize("bonjour patrick")
+
+        result = pipeline.anonymize_with_ent("patrick est revenu")
+        assert "patrick" not in result
+        assert "<<PERSON_1>>" in result
+
+    async def test_cross_message_respects_word_boundaries(self) -> None:
+        """Memory-based expansion does not create partial matches."""
+        pipeline = _pipeline([("France", "LOCATION")])
+        await pipeline.anonymize("J'habite en France")
+        r2, _ = await pipeline.anonymize("la francette est jolie")
+
+        assert "francette" in r2
+
+    async def test_memory_accumulates_variants(self) -> None:
+        """Memory entity gains new text variants across messages."""
+        memory = ConversationMemory()
+        pipeline = _pipeline([("France", "LOCATION")], memory=memory)
+        await pipeline.anonymize("J'habite en France")
+        await pipeline.anonymize("donne moi la meteo en france")
+
+        entities = memory.all_entities
+        assert len(entities) == 1
+        texts = {d.text for d in entities[0].detections}
+        assert "France" in texts
+        assert "france" in texts
+
+    async def test_person_case_variant_linked_not_new_placeholder(self) -> None:
+        """'patrick' in msg2 is linked to 'Patrick' from msg1, not a new entity."""
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        r1, _ = await pipeline.anonymize("Bonjour je m'appelle Patrick")
+        r2, _ = await pipeline.anonymize("Quel est la premiere lettre de patrick")
+
+        assert "<<PERSON_1>>" in r1
+        assert "<<PERSON_1>>" in r2
+        assert "<<PERSON_2>>" not in r2
+
+    async def test_gliner_detects_lowercase_variant(self) -> None:
+        """GLiNER detects both 'Patrick' and 'patrick' → same PERSON_1."""
+        pipeline = _pipeline([("Patrick", "PERSON"), ("patrick", "PERSON")])
+        r1, _ = await pipeline.anonymize("Bonjour je m'appelle Patrick")
+        r2, _ = await pipeline.anonymize("Quel est la premiere lettre de patrick")
+
+        assert "<<PERSON_1>>" in r1
+        assert "<<PERSON_1>>" in r2
+        assert "<<PERSON_2>>" not in r2
+
+    async def test_gliner_misses_lowercase_variant(self) -> None:
+        """GLiNER only detects 'Patrick', not 'patrick' → not anonymized.
+
+        When the detector misses a variant entirely, link_entities
+        has nothing to link.  The str.replace fallback in
+        anonymize_with_ent still catches it because memory has the
+        known text form.
+        """
+        pipeline = ThreadAnonymizationPipeline(
+            detector=ExactMatchDetector([("Patrick", "PERSON")], flags=re.RegexFlag(0)),
+            span_resolver=ConfidenceSpanConflictResolver(),
+            entity_linker=ExactEntityLinker(),
+            entity_resolver=MergeEntityConflictResolver(),
+            anonymizer=Anonymizer(CounterPlaceholderFactory()),
+        )
+        r1, _ = await pipeline.anonymize("Bonjour je m'appelle Patrick")
+        r2, _ = await pipeline.anonymize("Quel est la premiere lettre de patrick")
+
+        assert "<<PERSON_1>>" in r1
+        # Detector missed "patrick" → link_entities gets [] → no linking
+        # anonymize_with_ent only has "Patrick" variant → str.replace misses
+        assert "patrick" in r2
+
+    async def test_middleware_reprocessing_keeps_stable_tokens(self) -> None:
+        """Simulates abefore_model re-anonymizing all messages each turn.
+
+        The middleware deanonymizes after the LLM responds, then
+        re-anonymizes everything on the next turn.  Tokens must stay
+        stable across reprocessing cycles.
+        """
+        pipeline = _pipeline([("Patrick", "PERSON"), ("France", "LOCATION")])
+
+        # --- Turn 1: abefore_model anonymizes msg1 ---
+        r1, _ = await pipeline.anonymize(
+            "Bonjour, je m'appelle Patrick, j'habite en France"
+        )
+        assert "<<PERSON_1>>" in r1
+        assert "<<LOCATION_1>>" in r1
+
+        # aafter_model deanonymizes → state has original text again
+        # LLM produces a response containing the original names
+
+        # --- Turn 2: abefore_model re-anonymizes ALL messages ---
+        # Re-anonymize msg1 (same text, already in memory)
+        r1_again, _ = await pipeline.anonymize(
+            "Bonjour, je m'appelle Patrick, j'habite en France"
+        )
+        assert "<<PERSON_1>>" in r1_again
+        assert "<<LOCATION_1>>" in r1_again
+
+        # Anonymize AI response (contains deanonymized names)
+        ai_anon, _ = await pipeline.anonymize(
+            "Bonjour Patrick ! Vous habitez en France, tres bien."
+        )
+        assert "<<PERSON_1>>" in ai_anon
+        assert "<<LOCATION_1>>" in ai_anon
+
+        # Anonymize new user message with lowercase variant
+        r3, _ = await pipeline.anonymize("Quel est la premiere lettre de patrick")
+        assert "<<PERSON_1>>" in r3
+        assert "<<PERSON_2>>" not in r3

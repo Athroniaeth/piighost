@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Protocol
 
 from piighost.models import Detection, Entity, Span
+from piighost.utils import find_all_word_boundary
 
 
 class AnyEntityLinker(Protocol):
@@ -11,10 +12,14 @@ class AnyEntityLinker(Protocol):
     An entity linker takes a text and a list of pre-existing detections,
     expands them by finding missed occurrences, and groups all detections
     that refer to the same PII into ``Entity`` objects.
+
+    It can also link entities across different texts via
+    ``link_entities``, so that the same PII detected in separate
+    messages shares a single placeholder.
     """
 
     def link(self, text: str, detections: list[Detection]) -> list[Entity]:
-        """Link detections to entities.
+        """Link detections to entities within a single text.
 
         Args:
             text: The original source text.
@@ -23,6 +28,26 @@ class AnyEntityLinker(Protocol):
         Returns:
             A list of ``Entity`` objects, each grouping detections
             that refer to the same PII.
+        """
+        ...
+
+    def link_entities(
+        self,
+        entities: list[Entity],
+        known_entities: list[Entity],
+    ) -> list[Entity]:
+        """Link entities from the current text with known entities.
+
+        For each current entity whose canonical text and label match
+        a known entity, merge them so they share the same placeholder.
+
+        Args:
+            entities: Entities detected in the current text.
+            known_entities: Entities accumulated from previous texts.
+
+        Returns:
+            A list of entities where matched ones are merged with
+            their known counterpart (known detections first).
         """
         ...
 
@@ -68,43 +93,113 @@ class ExactEntityLinker:
         """
         if not detections:
             return []
+        return self._group(self._expand(text, detections))
 
-        # Track positions already covered by existing detections
-        # so we don't create duplicate detections at the same span.
+    def link_entities(
+        self,
+        entities: list[Entity],
+        known_entities: list[Entity],
+    ) -> list[Entity]:
+        """Link current entities with known entities from previous messages.
+
+        For each current entity, if a known entity shares the same
+        canonical text (case-insensitive) and label, merge them into
+        a single entity with known detections first.  This ensures
+        that ``CounterPlaceholderFactory`` assigns the same token.
+
+        Args:
+            entities: Entities detected in the current text.
+            known_entities: Entities accumulated from previous texts.
+
+        Returns:
+            Entities where matched ones are merged with their known
+            counterpart.  Unmatched entities are returned as-is.
+        """
+        if not entities or not known_entities:
+            return entities
+        current_detections = [d for e in entities for d in e.detections]
+        return self._group(current_detections, seed_entities=known_entities)
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _expand(self, text: str, detections: list[Detection]) -> list[Detection]:
+        """Find missed occurrences of each detection in the full text.
+
+        For each detection, searches the text for all word-boundary
+        matches and creates new detections for positions not already
+        covered.
+
+        Args:
+            text: The source text to search.
+            detections: Detections to expand.
+
+        Returns:
+            The original detections plus any newly discovered ones
+            (with ``confidence=1.0``).
+        """
         occupied: set[Span] = {d.position for d in detections}
+        expanded = list(detections)
 
-        all_detections = list(detections)
-
-        # Step 1: Expansion for each known detection, search the full text
-        # for other occurrences the detector may have missed.
-        # Example: NER found "Patrick" at pos 0 but missed "Patrick" at pos 30.
         for detection in detections:
             for start, end in self._find_all(text, detection.text):
                 position = Span(start_pos=start, end_pos=end)
-
                 if position not in occupied:
                     occupied.add(position)
-                    all_detections.append(
+                    expanded.append(
                         Detection(
                             text=text[start:end],
                             label=detection.label,
                             position=position,
-                            # 1.0 because this is an exact text match,
-                            # not a probabilistic NER prediction.
                             confidence=1.0,
                         ),
                     )
 
-        # Step 2: Grouping detections with the same normalized text
-        # and label refer to the same PII, so they become one Entity.
-        # We use .lower() so "Patrick" and "PATRICK" are grouped together.
+        return expanded
+
+    def _group(
+        self,
+        detections: list[Detection],
+        seed_entities: list[Entity] | None = None,
+    ) -> list[Entity]:
+        """Group detections by canonical key ``(text.lower(), label)``.
+
+        When *seed_entities* is provided, their detections are placed
+        first in each matching group so the canonical identity (first
+        detection) is preserved.  Only groups that received at least
+        one detection from *detections* are included in the result.
+
+        Args:
+            detections: Detections to group.
+            seed_entities: Optional known entities whose detections
+                seed the groups before current detections are added.
+
+        Returns:
+            A list of ``Entity`` objects sorted by earliest position.
+        """
         groups: dict[tuple[str, str], list[Detection]] = defaultdict(list)
-        for d in all_detections:
+
+        if seed_entities:
+            for entity in seed_entities:
+                key = (entity.detections[0].text.lower(), entity.label)
+                if key not in groups:
+                    groups[key] = list(entity.detections)
+
+        active_keys: set[tuple[str, str]] = set()
+        for d in detections:
             key = (d.text.lower(), d.label)
+            active_keys.add(key)
             groups[key].append(d)
 
-        entities = [Entity(detections=tuple(dets)) for dets in groups.values()]
-        entities.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
+        entities = [
+            Entity(detections=tuple(dets))
+            for key, dets in groups.items()
+            if key in active_keys
+        ]
+        entities.sort(
+            key=lambda e: min(d.position.start_pos for d in e.detections),
+        )
         return entities
 
     def _find_all(self, text: str, fragment: str) -> list[tuple[int, int]]:
@@ -117,18 +212,4 @@ class ExactEntityLinker:
         Returns:
             A list of ``(start, end)`` tuples for every match.
         """
-        # Escape special regex characters so "M. Dupont" doesn't treat "." as wildcard.
-        escaped = re.escape(fragment)
-
-        # Word boundaries (\b) prevent partial matches inside longer words:
-        # searching "Patrick" won't match "APatrick".
-        # But \b only works when the character at the boundary is alphanumeric
-        # or underscore. For fragments starting/ending with special chars
-        # (e.g. "+33..."), we use lookarounds instead: (?<!\w) and (?!\w).
-        prefix = (
-            r"\b" if fragment[0:1].isalnum() or fragment[0:1] == "_" else r"(?<!\w)"
-        )
-        suffix = r"\b" if fragment[-1:].isalnum() or fragment[-1:] == "_" else r"(?!\w)"
-
-        pattern = re.compile(f"{prefix}{escaped}{suffix}", self._flags)
-        return [(m.start(), m.end()) for m in pattern.finditer(text)]
+        return find_all_word_boundary(text, fragment, self._flags)

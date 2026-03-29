@@ -59,11 +59,21 @@ class ConversationMemory:
     def record(self, text_hash: str, entities: list[Entity]) -> None:
         """Record entities for a message, deduplicating against known ones.
 
+        Known entities are not duplicated but their new text variants
+        (e.g. ``"france"`` when ``"France"`` already exists) are merged
+        into the existing entity so that ``anonymize_with_ent`` can
+        replace all surface forms.
+
         Args:
             text_hash: SHA-256 hash of the original text.
             entities: Entities detected in that message.
         """
-        new_entities = [e for e in entities if not self._is_known(e)]
+        new_entities: list[Entity] = []
+        for entity in entities:
+            if self._is_known(entity):
+                self._add_variant(entity)
+            else:
+                new_entities.append(entity)
         if text_hash in self.entities_by_hash:
             self.entities_by_hash[text_hash].extend(new_entities)
         else:
@@ -91,6 +101,33 @@ class ConversationMemory:
             for entities in self.entities_by_hash.values()
             for e in entities
         )
+
+    def _add_variant(self, entity: Entity) -> None:
+        """Merge new text variants into the matching existing entity.
+
+        When the same entity appears with a different surface form
+        (e.g. ``"france"`` vs ``"France"``), the new text is appended
+        to the existing ``Entity`` so that ``anonymize_with_ent`` can
+        replace all forms via ``str.replace``.
+        """
+        canonical = entity.detections[0].text.lower()
+        label = entity.label
+
+        for entity_list in self.entities_by_hash.values():
+            for i, existing in enumerate(entity_list):
+                if (
+                    existing.detections[0].text.lower() == canonical
+                    and existing.label == label
+                ):
+                    existing_texts = {d.text for d in existing.detections}
+                    new_dets = tuple(
+                        d for d in entity.detections if d.text not in existing_texts
+                    )
+                    if new_dets:
+                        entity_list[i] = Entity(
+                            detections=existing.detections + new_dets
+                        )
+                    return
 
 
 class ThreadAnonymizationPipeline(AnonymizationPipeline):
@@ -138,6 +175,35 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
         """All entities from memory, merged by the pipeline's entity resolver."""
         return self._entity_resolver.resolve(self.memory.all_entities)
 
+    async def deanonymize(self, anonymized_text: str) -> tuple[str, list[Entity]]:
+        """Return the cached original text directly.
+
+        The base pipeline reconstructs the original via span-based
+        replacement, but in a conversation context entity detections
+        carry positions from *different* messages.  Using the cached
+        original avoids mismatches.
+
+        Args:
+            anonymized_text: The anonymized text to restore.
+
+        Returns:
+            The original text and the entities used for anonymization.
+
+        Raises:
+            CacheMissError: If *anonymized_text* was never produced
+                by this pipeline.
+        """
+        from piighost.exceptions import CacheMissError
+
+        key = f"anon:anonymized:{hash_sha256(anonymized_text)}"
+        cached = await self._cache_get(key)
+
+        if cached is None:
+            raise CacheMissError(f"No anonymization mapping cached for hash {key!r}")
+
+        entities = self._deserialize_entities(cached["entities"])
+        return cached["original"], entities
+
     async def anonymize(self, text: str) -> tuple[str, list[Entity]]:
         """Run detection, record entities in memory, then anonymize.
 
@@ -151,6 +217,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
             A tuple of (anonymized text, entities used for anonymization).
         """
         entities = await self.detect_entities(text)
+        entities = self._entity_linker.link_entities(
+            entities,
+            self.memory.all_entities,
+        )
         self.memory.record(hash_sha256(text), entities)
         result = self.anonymize_with_ent(text)
 

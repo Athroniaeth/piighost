@@ -86,6 +86,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         changed = False
         messages = state["messages"]
 
+        pipeline = self._pipeline
         for idx, message in enumerate(messages):
             content = message.content
 
@@ -95,7 +96,16 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
 
             if isinstance(message, (HumanMessage, AIMessage, ToolMessage)):
                 # Full NER detection for user input and tool can return new sensitive data..
-                result, _ = await self._pipeline.anonymize(content)
+                result, ents = await pipeline.anonymize(content)
+
+                logger.debug(
+                    "[PII] msg %d (%s) content=%r → result=%r entities=%s",
+                    idx,
+                    type(message).__name__,
+                    content[:80],
+                    result[:80],
+                    [(e.detections[0].text, e.label, len(e.detections)) for e in ents],
+                )
             else:
                 raise ValueError("This code only takes Langchain messages into account")
 
@@ -103,8 +113,6 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
                 continue
 
             messages[idx].content = result
-
-            logging.debug(f"Anonymised message {idx} : {result}")
             changed = True
 
         return {"messages": messages} if changed else None

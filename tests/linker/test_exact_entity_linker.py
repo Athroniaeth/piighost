@@ -1,7 +1,7 @@
 """Tests for ``ExactEntityLinker``."""
 
 from piighost.linker.entity import ExactEntityLinker
-from piighost.models import Detection, Span
+from piighost.models import Detection, Entity, Span
 
 
 def _det(
@@ -138,3 +138,84 @@ class TestEdgeCases:
         assert len(entities) == 2
         for entity in entities:
             assert len(entity.detections) == 2
+
+
+# ---------------------------------------------------------------------------
+# link_entities — cross-message entity linking
+# ---------------------------------------------------------------------------
+
+
+def _entity(text: str, label: str, start: int = 0) -> Entity:
+    """Build a single-detection entity for testing."""
+    return Entity(
+        detections=(Detection(text, label, Span(start, start + len(text)), 1.0),)
+    )
+
+
+class TestLinkEntities:
+    """link_entities merges current entities with known ones by canonical key."""
+
+    def test_links_same_canonical_text_and_label(self) -> None:
+        known = [_entity("Patrick", "PERSON")]
+        current = [_entity("patrick", "PERSON", start=10)]
+        result = ExactEntityLinker().link_entities(current, known)
+
+        assert len(result) == 1
+        # Known detection comes first (preserves canonical)
+        assert result[0].detections[0].text == "Patrick"
+
+    def test_no_link_different_label(self) -> None:
+        known = [_entity("Patrick", "LOCATION")]
+        current = [_entity("Patrick", "PERSON", start=10)]
+        result = ExactEntityLinker().link_entities(current, known)
+
+        assert len(result) == 1
+        assert result[0].label == "PERSON"
+        # Not merged — only the current detection
+        assert len(result[0].detections) == 1
+
+    def test_no_link_when_no_known(self) -> None:
+        current = [_entity("Patrick", "PERSON")]
+        result = ExactEntityLinker().link_entities(current, [])
+
+        assert result is current
+
+    def test_no_link_when_no_current(self) -> None:
+        known = [_entity("Patrick", "PERSON")]
+        result = ExactEntityLinker().link_entities([], known)
+
+        assert result == []
+
+    def test_preserves_known_detections_first(self) -> None:
+        """The merged entity has known detections before current ones."""
+        known = [_entity("Patrick", "PERSON", start=0)]
+        current = [_entity("patrick", "PERSON", start=20)]
+        result = ExactEntityLinker().link_entities(current, known)
+
+        texts = [d.text for d in result[0].detections]
+        assert texts[0] == "Patrick"  # known first
+        assert "patrick" in texts
+
+    def test_no_duplicate_variant(self) -> None:
+        """If the known entity already has 'Patrick', don't add it again."""
+        known = [_entity("Patrick", "PERSON")]
+        current = [_entity("Patrick", "PERSON", start=20)]
+        result = ExactEntityLinker().link_entities(current, known)
+
+        assert len(result) == 1
+        # Known "Patrick" + current "Patrick" (same text, dedup by _add_variant later)
+        texts = [d.text for d in result[0].detections]
+        assert "Patrick" in texts
+
+    def test_unmatched_entities_kept(self) -> None:
+        """Entities not matching any known entity are returned as-is."""
+        known = [_entity("Patrick", "PERSON")]
+        current = [
+            _entity("patrick", "PERSON", start=10),
+            _entity("Paris", "LOCATION", start=30),
+        ]
+        result = ExactEntityLinker().link_entities(current, known)
+
+        assert len(result) == 2
+        labels = {e.label for e in result}
+        assert labels == {"PERSON", "LOCATION"}
