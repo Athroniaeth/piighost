@@ -11,6 +11,8 @@ Example::
         original, _ = await client.deanonymize(text)
 """
 
+from __future__ import annotations
+
 import importlib.util
 
 if importlib.util.find_spec("httpx") is None:
@@ -18,8 +20,6 @@ if importlib.util.find_spec("httpx") is None:
         "You must install httpx to use PIIGhostClient, "
         "please install piighost[client] for use client"
     )
-
-from __future__ import annotations
 
 from typing import Any, Self
 
