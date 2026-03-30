@@ -1396,10 +1396,13 @@ source = { editable = "." }
 cache = [
     { name = "aiocache" },
 ]
+client = [
+    { name = "httpx" },
+]
 faker = [
     { name = "faker" },
 ]
-gliner = [
+gliner2 = [
     { name = "gliner2" },
 ]
 langchain = [
@@ -1433,10 +1436,11 @@ pipeline = [
 requires-dist = [
     { name = "aiocache", marker = "extra == 'cache'", specifier = ">=0.12" },
     { name = "faker", marker = "extra == 'faker'", specifier = ">=40.11" },
-    { name = "gliner2", marker = "extra == 'gliner'", specifier = ">=1.2" },
+    { name = "gliner2", marker = "extra == 'gliner2'", specifier = ">=1.2" },
+    { name = "httpx", marker = "extra == 'client'", specifier = ">=0.28" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2" },
 ]
-provides-extras = ["gliner", "langchain", "faker", "cache"]
+provides-extras = ["gliner2", "langchain", "faker", "cache", "client"]
 
 [package.metadata.requires-dev]
 dev = [

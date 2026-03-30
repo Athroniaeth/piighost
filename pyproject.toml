@@ -43,7 +43,7 @@ Issues = "https://github.com/Athroniaeth/piighost/issues"
 Changelog = "https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
-gliner = [
+gliner2 = [
     "gliner2>=1.2",
 ]
 langchain = [
@@ -54,6 +54,9 @@ faker = [
 ]
 cache = [
     "aiocache>=0.12",
+]
+client = [
+    "httpx>=0.28",
 ]
 
 [build-system]
