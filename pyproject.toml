@@ -65,8 +65,12 @@ client = [
 spacy = [
     "spacy>=3.7",
 ]
+transformers = [
+    "transformers>=4.40",
+    "torch>=2.0",
+]
 all = [
-    "piighost[gliner2,langchain,faker,cache,client,spacy]",
+    "piighost[gliner2,langchain,faker,cache,client,spacy,transformers]",
 ]
 
 [build-system]
@@ -97,6 +101,10 @@ langchain = [
 ]
 spacy = [
     "spacy>=3.7",
+]
+transformers = [
+    "transformers>=4.40",
+    "torch>=2.0",
 ]
 pipeline = [
     "aiocache>=0.12.3",

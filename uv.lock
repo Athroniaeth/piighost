@@ -1608,6 +1608,8 @@ all = [
     { name = "httpx" },
     { name = "langchain" },
     { name = "spacy" },
+    { name = "torch" },
+    { name = "transformers" },
 ]
 cache = [
     { name = "aiocache" },
@@ -1630,6 +1632,10 @@ middleware = [
 ]
 spacy = [
     { name = "spacy" },
+]
+transformers = [
+    { name = "torch" },
+    { name = "transformers" },
 ]
 
 [package.dev-dependencies]
@@ -1657,6 +1663,10 @@ pipeline = [
 spacy = [
     { name = "spacy" },
 ]
+transformers = [
+    { name = "torch" },
+    { name = "transformers" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1667,10 +1677,12 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'client'", specifier = ">=0.28" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2" },
     { name = "langchain", marker = "extra == 'middleware'", specifier = ">=1.2" },
-    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "client", "spacy"], marker = "extra == 'all'" },
+    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "client", "spacy", "transformers"], marker = "extra == 'all'" },
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
+    { name = "torch", marker = "extra == 'transformers'", specifier = ">=2.0" },
+    { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.40" },
 ]
-provides-extras = ["gliner2", "langchain", "faker", "cache", "middleware", "client", "spacy", "all"]
+provides-extras = ["gliner2", "langchain", "faker", "cache", "middleware", "client", "spacy", "transformers", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1687,6 +1699,10 @@ gliner2 = [{ name = "gliner2", specifier = ">=1.2.4" }]
 langchain = [{ name = "langchain", specifier = ">=1.2.13" }]
 pipeline = [{ name = "aiocache", specifier = ">=0.12.3" }]
 spacy = [{ name = "spacy", specifier = ">=3.7" }]
+transformers = [
+    { name = "torch", specifier = ">=2.0" },
+    { name = "transformers", specifier = ">=4.40" },
+]
 
 [[package]]
 name = "pluggy"
