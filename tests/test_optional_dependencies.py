@@ -22,6 +22,7 @@ EXTRA_TO_MODULES: dict[str, list[str]] = {
     "cache": ["aiocache"],
     "client": ["httpx"],
     "spacy": ["spacy"],
+    "transformers": ["transformers"],
 }
 
 

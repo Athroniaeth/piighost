@@ -173,3 +173,6 @@ cython_debug/
 .DS_Store
 Thumbs.db
 
+# Local sandbox scripts
+sandbox/
+
