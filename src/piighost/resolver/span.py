@@ -24,7 +24,33 @@ class AnySpanConflictResolver(Protocol):
         ...
 
 
-class ConfidenceSpanConflictResolver:
+class BaseSpanConflictResolver:
+    """Base class providing confidence threshold pre-filtering.
+
+    Detections below ``confidence_threshold`` are removed entirely
+    before overlap resolution.  This allows subclasses to focus on
+    the overlap strategy without re-implementing threshold filtering.
+
+    Args:
+        confidence_threshold: Minimum confidence score to keep a
+            detection.  Detections strictly below this value are
+            discarded before overlap resolution.
+            Defaults to ``0.0`` (keep everything, backward-compatible).
+    """
+
+    _confidence_threshold: float
+
+    def __init__(self, confidence_threshold: float = 0.0) -> None:
+        self._confidence_threshold = confidence_threshold
+
+    def _pre_filter(self, detections: list[Detection]) -> list[Detection]:
+        """Remove detections below the confidence threshold."""
+        if self._confidence_threshold <= 0.0:
+            return detections
+        return [d for d in detections if d.confidence >= self._confidence_threshold]
+
+
+class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
     """Resolver that keeps the detection with the highest confidence on overlap.
 
     When two or more detections have overlapping spans, only the one with
@@ -34,6 +60,10 @@ class ConfidenceSpanConflictResolver:
     The algorithm sorts detections by descending confidence, then greedily
     accepts each detection only if it does not overlap with any already
     accepted detection.
+
+    Args:
+        confidence_threshold: Minimum confidence score to keep a
+            detection.  Inherited from ``BaseSpanConflictResolver``.
 
     Example:
         >>> from piighost.models import Detection, Span
@@ -48,6 +78,9 @@ class ConfidenceSpanConflictResolver:
         [('PERSON', 0.91), ('LOCATION', 1.0)]
     """
 
+    def __init__(self, confidence_threshold: float = 0.0) -> None:
+        super().__init__(confidence_threshold=confidence_threshold)
+
     def resolve(self, detections: list[Detection]) -> list[Detection]:
         """Keep the highest-confidence detection when spans overlap.
 
@@ -58,6 +91,8 @@ class ConfidenceSpanConflictResolver:
             A filtered list of detections with no overlapping spans,
             sorted by position (ascending ``start_pos``).
         """
+        detections = self._pre_filter(detections)
+
         accepted: list[Detection] = []
         ranked = sorted(detections, key=lambda d: d.confidence, reverse=True)
 

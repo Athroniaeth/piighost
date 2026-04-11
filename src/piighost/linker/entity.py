@@ -52,7 +52,32 @@ class AnyEntityLinker(Protocol):
         ...
 
 
-class ExactEntityLinker:
+class BaseEntityLinker:
+    """Base class providing common filtering for entity linkers.
+
+    Subclasses inherit ``min_text_length`` filtering, which controls
+    which detections are eligible for expansion (finding additional
+    occurrences in the text).  Detections shorter than the threshold
+    are kept as-is but not expanded.
+
+    Args:
+        min_text_length: Minimum character length for a detection to
+            be expanded.  Detections shorter than this are preserved
+            but the linker will not search for additional occurrences.
+            Defaults to ``1`` (expand everything, backward-compatible).
+    """
+
+    _min_text_length: int
+
+    def __init__(self, min_text_length: int = 1) -> None:
+        self._min_text_length = min_text_length
+
+    def _is_expandable(self, detection: Detection) -> bool:
+        """Whether this detection should be expanded to other occurrences."""
+        return len(detection.text) >= self._min_text_length
+
+
+class ExactEntityLinker(BaseEntityLinker):
     """Entity linker that expands and groups detections by exact text match.
 
     For each detection, finds all exact occurrences of its surface text
@@ -63,6 +88,8 @@ class ExactEntityLinker:
     Args:
         flags: Regex flags for occurrence matching. Defaults to
             ``re.IGNORECASE`` for case-insensitive matching.
+        min_text_length: Minimum character length for a detection to
+            be expanded.  Inherited from ``BaseEntityLinker``.
 
     Example:
         >>> from piighost.models import Detection, Span
@@ -77,7 +104,12 @@ class ExactEntityLinker:
 
     _flags: re.RegexFlag
 
-    def __init__(self, flags: re.RegexFlag = re.IGNORECASE) -> None:
+    def __init__(
+        self,
+        flags: re.RegexFlag = re.IGNORECASE,
+        min_text_length: int = 1,
+    ) -> None:
+        super().__init__(min_text_length=min_text_length)
         self._flags = flags
 
     def link(self, text: str, detections: list[Detection]) -> list[Entity]:
@@ -143,6 +175,9 @@ class ExactEntityLinker:
         expanded = list(detections)
 
         for detection in detections:
+            if not self._is_expandable(detection):
+                continue
+
             for start, end in self._find_all(text, detection.text):
                 position = Span(start_pos=start, end_pos=end)
                 if position not in occupied:

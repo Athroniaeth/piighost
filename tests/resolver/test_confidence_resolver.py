@@ -128,3 +128,55 @@ class TestOutputOrdering:
         result = ConfidenceSpanConflictResolver().resolve(detections)
         positions = [d.position.start_pos for d in result]
         assert positions == sorted(positions)
+
+
+# ---------------------------------------------------------------------------
+# confidence_threshold — absolute threshold pre-filtering
+# ---------------------------------------------------------------------------
+
+
+class TestConfidenceThreshold:
+    """confidence_threshold removes low-confidence detections before resolution."""
+
+    def test_filters_low_confidence(self) -> None:
+        detections = [
+            _make("PERSON", 0, 7, 0.3),
+            _make("LOCATION", 20, 26, 0.8),
+        ]
+        result = ConfidenceSpanConflictResolver(confidence_threshold=0.5).resolve(
+            detections
+        )
+        assert len(result) == 1
+        assert result[0].label == "LOCATION"
+
+    def test_keeps_high_confidence(self) -> None:
+        detections = [
+            _make("PERSON", 0, 7, 0.9),
+            _make("LOCATION", 20, 26, 0.8),
+        ]
+        result = ConfidenceSpanConflictResolver(confidence_threshold=0.5).resolve(
+            detections
+        )
+        assert len(result) == 2
+
+    def test_default_keeps_all(self) -> None:
+        """Default confidence_threshold=0.0 keeps everything (backward-compatible)."""
+        detections = [
+            _make("PERSON", 0, 7, 0.1),
+            _make("LOCATION", 20, 26, 0.01),
+        ]
+        result = ConfidenceSpanConflictResolver().resolve(detections)
+        assert len(result) == 2
+
+    def test_threshold_then_overlap(self) -> None:
+        """Threshold is applied first, then overlap resolution."""
+        detections = [
+            _make("PERSON", 0, 10, 0.3),  # filtered by threshold
+            _make("LOCATION", 5, 15, 0.9),  # kept
+            _make("ORG", 12, 20, 0.7),  # overlaps with LOCATION → discarded
+        ]
+        result = ConfidenceSpanConflictResolver(confidence_threshold=0.5).resolve(
+            detections
+        )
+        assert len(result) == 1
+        assert result[0].label == "LOCATION"
