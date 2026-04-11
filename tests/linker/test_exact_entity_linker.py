@@ -219,3 +219,42 @@ class TestLinkEntities:
         assert len(result) == 2
         labels = {e.label for e in result}
         assert labels == {"PERSON", "LOCATION"}
+
+
+# ---------------------------------------------------------------------------
+# min_text_length — filtering short fragments from expansion
+# ---------------------------------------------------------------------------
+
+
+class TestMinTextLength:
+    """min_text_length prevents short detections from being expanded."""
+
+    def test_skips_short_expansion(self) -> None:
+        """A 1-char detection with min_text_length=2 is kept but not expanded."""
+        text = "n est un n parmi n"
+        detections = [_det("n", "PERSON", 0, 1)]
+        linker = ExactEntityLinker(min_text_length=2)
+        entities = linker.link(text, detections)
+
+        assert len(entities) == 1
+        assert len(entities[0].detections) == 1  # not expanded
+
+    def test_allows_long_expansion(self) -> None:
+        """A 7-char detection with min_text_length=2 is expanded normally."""
+        text = "Patrick est gentil. Patrick habite ici."
+        detections = [_det("Patrick", "PERSON", 0, 7)]
+        linker = ExactEntityLinker(min_text_length=2)
+        entities = linker.link(text, detections)
+
+        assert len(entities) == 1
+        assert len(entities[0].detections) == 2  # expanded
+
+    def test_default_expands_all(self) -> None:
+        """Default min_text_length=1 expands everything (backward-compatible)."""
+        text = "n est un n parmi n"
+        detections = [_det("n", "PERSON", 0, 1)]
+        linker = ExactEntityLinker()
+        entities = linker.link(text, detections)
+
+        assert len(entities) == 1
+        assert len(entities[0].detections) > 1  # expanded
