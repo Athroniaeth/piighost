@@ -2,14 +2,14 @@
 icon: lucide/rocket
 ---
 
-# Demarrage rapide
+# Démarrage rapide
 
 ## Installation
 
-### Prerequis
+### Prérequis
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (recommande) ou pip
+- [uv](https://docs.astral.sh/uv/) (recommandé) ou pip
 
 ### Installation basique
 
@@ -25,7 +25,7 @@ icon: lucide/rocket
     pip install piighost
     ```
 
-### Installation pour le developpement
+### Installation pour le développement
 
 ```bash
 git clone https://github.com/Athroniaeth/piighost.git
@@ -35,9 +35,9 @@ uv sync
 
 ---
 
-## Usage 1 Pipeline standalone
+## Usage 1 : Pipeline standalone
 
-L'usage le plus simple : creer un `AnonymizationPipeline` et l'appeler directement.
+L'usage le plus simple : créer un `AnonymizationPipeline` et l'appeler directement.
 
 ```python
 import asyncio
@@ -52,7 +52,7 @@ from piighost.pipeline import AnonymizationPipeline
 from piighost.placeholder import CounterPlaceholderFactory
 from piighost.span_resolver import ConfidenceSpanConflictResolver
 
-# 1. Charger le modele NER
+# 1. Charger le modèle NER
 model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
 # 2. Construire le pipeline
@@ -68,28 +68,28 @@ pipeline = AnonymizationPipeline(
 async def main():
     # 3. Anonymiser
     anonymized, entities = await pipeline.anonymize(
-        "Patrick habite a Paris. Patrick aime Paris.",
+        "Patrick habite à Paris. Patrick aime Paris.",
     )
     print(anonymized)
-    # <<PERSON_1>> habite a <<LOCATION_1>>. <<PERSON_1>> aime <<LOCATION_1>>.
+    # <<PERSON_1>> habite à <<LOCATION_1>>. <<PERSON_1>> aime <<LOCATION_1>>.
 
-    # 4. Desanonymiser
+    # 4. Désanonymiser
     original, _ = await pipeline.deanonymize(anonymized)
     print(original)
-    # Patrick habite a Paris. Patrick aime Paris.
+    # Patrick habite à Paris. Patrick aime Paris.
 
 
 asyncio.run(main())
 ```
 
 !!! info "Labels disponibles"
-    Les labels supportes dependent du modele GLiNER2 utilise. Les labels courants incluent `"PERSON"`, `"LOCATION"`, `"ORGANIZATION"`, `"EMAIL"`, `"PHONE"`.
+    Les labels supportés dépendent du modèle GLiNER2 utilisé. Les labels courants incluent `"PERSON"`, `"LOCATION"`, `"ORGANIZATION"`, `"EMAIL"`, `"PHONE"`.
 
 ---
 
-## Usage 2 Pipeline conversationnel avec memoire
+## Usage 2 : Pipeline conversationnel avec mémoire
 
-`ConversationAnonymizationPipeline` encapsule le pipeline de base avec une `ConversationMemory` pour accumuler les entites entre les messages et fournir desanonymisation/reanonymisation par remplacement de chaine.
+`ThreadAnonymizationPipeline` encapsule le pipeline de base avec une `ConversationMemory` pour accumuler les entités entre les messages et fournir désanonymisation/réanonymisation par remplacement de chaîne.
 
 ```python
 import asyncio
@@ -126,39 +126,39 @@ pipeline = ThreadAnonymizationPipeline(
 
 
 async def conversation():
-    # Premier message : detection NER + enregistrement des entites
-    # la pipeline garde en mémoire que l'entrée et la sortie sont liées, 
+    # Premier message : détection NER + enregistrement des entités
+    # la pipeline garde en mémoire que l'entrée et la sortie sont liées,
     # et que <<PERSON_1>> correspond à "Patrick" et <<LOCATION_1>> à "Paris"
-    anonymized, _ = await pipeline.anonymize("Patrick habite a Paris.")
+    anonymized, _ = await pipeline.anonymize("Patrick habite à Paris.")
     print(anonymized)
-    # <<PERSON_1>> habite a <<LOCATION_1>>.
-    
-    # Désanonymisation fonctionnant via la correspondance stockée dans le cache de la pipeline
+    # <<PERSON_1>> habite à <<LOCATION_1>>.
+
+    # Désanonymisation via la correspondance stockée dans le cache de la pipeline
     restored = await pipeline.deanonymize("Bonjour <<PERSON_1>> !")
     print(restored)
-    
-    # Désanonymisation par remplacement de texte, utilisant les anciennes détéctions stockées en mémoire
+
+    # Désanonymisation par remplacement de texte, utilisant les anciennes détections stockées en mémoire
     restored = await pipeline.deanonymize_with_ent("Bonjour <<PERSON_1>> !")
     print(restored)
     # Bonjour Patrick !
 
-    # Reanonymisation par remplacement de texte, utilisant les anciennes détéctions stockées en mémoire
-    reanon = pipeline.anonymize_with_ent("Resultat pour Patrick a Paris")
+    # Réanonymisation par remplacement de texte, utilisant les anciennes détections stockées en mémoire
+    reanon = pipeline.anonymize_with_ent("Résultat pour Patrick à Paris")
     print(reanon)
-    # Resultat pour <<PERSON_1>> a <<LOCATION_1>>
+    # Résultat pour <<PERSON_1>> à <<LOCATION_1>>
 
 
 asyncio.run(conversation())
 ```
 
 ??? info "Cache SHA-256"
-    Le pipeline utilise aiocache avec des cles SHA-256. Si le meme texte est soumis plusieurs fois, le resultat mis en cache est retourne sans appel au modele NER.
+    Le pipeline utilise aiocache avec des clés SHA-256. Si le même texte est soumis plusieurs fois, le résultat mis en cache est retourné sans appel au modèle NER.
 
 ---
 
-## Usage 3 Middleware LangChain
+## Usage 3 : Middleware LangChain
 
-Pour integrer l'anonymisation dans un agent LangGraph, utilisez `PIIAnonymizationMiddleware` :
+Pour intégrer l'anonymisation dans un agent LangGraph, utilisez `PIIAnonymizationMiddleware` :
 
 ```python
 from langchain.agents import create_agent
@@ -178,8 +178,8 @@ from gliner2 import GLiNER2
 
 @tool
 def send_email(to: str, subject: str, body: str) -> str:
-    """Envoie un email a l'adresse donnee."""
-    return f"Email envoyé a {to}."
+    """Envoie un email à l'adresse donnée."""
+    return f"Email envoyé à {to}."
 
 
 # Construire le pipeline conversationnel
@@ -225,7 +225,7 @@ agent = create_agent(
 )
 ```
 
-Le middleware intercepte automatiquement chaque tour de l'agent le LLM ne voit que du texte anonymise, les outils recoivent les vraies valeurs, et les messages affiches a l'utilisateur sont desanonymises.
+Le middleware intercepte automatiquement chaque tour de l'agent : le LLM ne voit que du texte anonymisé, les outils reçoivent les vraies valeurs, et les messages affichés à l'utilisateur sont désanonymisés.
 
 ---
 
