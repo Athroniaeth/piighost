@@ -209,13 +209,13 @@ Tous les composants sont independants et peuvent etre combines librement :
 
 ```python
 from piighost.anonymizer import Anonymizer
-from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.linker.entity import ExactEntityLinker
 from piighost.entity_resolver import FuzzyEntityConflictResolver
 from piighost.middleware import PIIAnonymizationMiddleware
 from piighost.span_resolver import ConfidenceSpanConflictResolver
 
-pipeline = ConversationAnonymizationPipeline(
+pipeline = ThreadAnonymizationPipeline(
     detector=SpacyDetector("fr_core_news_sm"),  # Votre detecteur
     span_resolver=ConfidenceSpanConflictResolver(),  # Ou votre resolver
     entity_linker=ExactEntityLinker(),  # Ou votre linker
@@ -228,35 +228,4 @@ middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 
 ---
 
-## Ecrire des tests pour ses composants
-
-Les protocoles facilitent les tests unitaires. Utilisez `ExactMatchDetector` pour des tests deterministes :
-
-```python
-import pytest
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.entity_resolver import MergeEntityConflictResolver
-from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import CounterPlaceholderFactory
-from piighost.span_resolver import ConfidenceSpanConflictResolver
-
-
-@pytest.mark.asyncio
-async def test_my_pipeline():
-    pipeline = AnonymizationPipeline(
-        detector=ExactMatchDetector([("Alice", "PERSON")]),
-        span_resolver=ConfidenceSpanConflictResolver(),
-        entity_linker=ExactEntityLinker(),
-        entity_resolver=MergeEntityConflictResolver(),
-        anonymizer=Anonymizer(CounterPlaceholderFactory()),
-    )
-
-    anonymized, entities = await pipeline.anonymize("Alice habite a Lyon.")
-    assert "<<PERSON_1>>" in anonymized
-    assert "Alice" not in anonymized
-```
-
-!!! tip "ExactMatchDetector en CI"
-    Utilisez toujours `ExactMatchDetector` (ou equivalent) en CI pour eviter de charger le modele GLiNER2 (~500 Mo) lors des tests automatises.
+Pour tester unitairement vos composants personnalisés avec `ExactMatchDetector` et pytest, voir [Tester les pipelines sans GLiNER2](examples/testing.md).

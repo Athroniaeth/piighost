@@ -206,7 +206,7 @@ from piighost.pipeline import AnonymizationPipeline
 from piighost.placeholder import CounterPlaceholderFactory
 from gliner2 import GLiNER2
 
-model = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
+model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
 entity_linker = ExactEntityLinker()
 entity_resolver = MergeEntityConflictResolver()

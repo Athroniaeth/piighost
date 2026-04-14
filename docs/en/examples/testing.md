@@ -1,0 +1,71 @@
+---
+icon: lucide/test-tube
+---
+
+# Testing pipelines without GLiNER2
+
+How to unit-test PIIGhost pipelines and custom components without downloading the ~500 MB GLiNER2 model. `ExactMatchDetector` provides deterministic detection suitable for CI.
+
+---
+
+## Deterministic detection with `ExactMatchDetector`
+
+`ExactMatchDetector` takes a list of `(text, label)` pairs and finds their word-boundary occurrences. No model, no network, fully predictable output.
+
+```python
+from piighost.anonymizer import Anonymizer
+from piighost.detector import ExactMatchDetector
+from piighost.linker.entity import ExactEntityLinker
+from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
+from piighost.pipeline import AnonymizationPipeline
+from piighost.placeholder import CounterPlaceholderFactory
+
+pipeline = AnonymizationPipeline(
+    detector=ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")]),
+    span_resolver=ConfidenceSpanConflictResolver(),
+    entity_linker=ExactEntityLinker(),
+    entity_resolver=MergeEntityConflictResolver(),
+    anonymizer=Anonymizer(CounterPlaceholderFactory()),
+)
+
+anonymized, entities = await pipeline.anonymize("Patrick lives in Paris.")
+assert anonymized == "<<PERSON_1>> lives in <<LOCATION_1>>."
+```
+
+---
+
+## Pytest pattern
+
+```python
+import pytest
+from piighost.anonymizer import Anonymizer
+from piighost.detector import ExactMatchDetector
+from piighost.linker.entity import ExactEntityLinker
+from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
+from piighost.pipeline import AnonymizationPipeline
+from piighost.placeholder import CounterPlaceholderFactory
+
+
+@pytest.mark.asyncio
+async def test_my_pipeline():
+    pipeline = AnonymizationPipeline(
+        detector=ExactMatchDetector([("Alice", "PERSON")]),
+        span_resolver=ConfidenceSpanConflictResolver(),
+        entity_linker=ExactEntityLinker(),
+        entity_resolver=MergeEntityConflictResolver(),
+        anonymizer=Anonymizer(CounterPlaceholderFactory()),
+    )
+
+    anonymized, entities = await pipeline.anonymize("Alice lives in Lyon.")
+    assert "<<PERSON_1>>" in anonymized
+    assert "Alice" not in anonymized
+```
+
+!!! tip "ExactMatchDetector in CI"
+    Always use `ExactMatchDetector` (or equivalent) in CI to avoid loading the GLiNER2 model (~500 MB) during automated tests.
+
+---
+
+## Testing custom components
+
+Every pipeline stage is a protocol, which makes each component swappable in isolation for tests. See [Extending PIIGhost](../extending.md) for protocol definitions, then inject your custom component alongside `ExactMatchDetector` above.

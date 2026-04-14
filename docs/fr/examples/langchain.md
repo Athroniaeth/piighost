@@ -34,7 +34,7 @@ Pour utiliser le middleware LangChain, installez les dependances supplementaires
 ```
 GLiNER2 model
     └── GlinerDetector
-            └── ConversationAnonymizationPipeline
+            └── ThreadAnonymizationPipeline
                     ├── AnonymizationPipeline (base)
                     ├── ConversationMemory
                     └── PIIAnonymizationMiddleware
@@ -52,7 +52,7 @@ from langchain.agents import create_agent
 from langchain_core.tools import tool
 
 from piighost.anonymizer import Anonymizer
-from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.detector import Gliner2Detector
 from piighost.linker.entity import ExactEntityLinker
 from piighost.entity_resolver import MergeEntityConflictResolver
@@ -121,7 +121,7 @@ informations personnelles."
 # Charger le modele GLiNER2 (telechargement HuggingFace ~500 Mo a la premiere execution)
 extractor = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
-pipeline = ConversationAnonymizationPipeline(
+pipeline = ThreadAnonymizationPipeline(
     detector=Gliner2Detector(model=extractor, labels=["PERSON", "LOCATION"], threshold=0.5),
     span_resolver=ConfidenceSpanConflictResolver(),
     entity_linker=ExactEntityLinker(),

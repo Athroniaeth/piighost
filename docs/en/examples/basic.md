@@ -23,7 +23,7 @@ from piighost.pipeline import AnonymizationPipeline
 from piighost.placeholder import CounterPlaceholderFactory
 
 # Load the GLiNER2 model
-model = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
+model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
 entity_linker = ExactEntityLinker()
 entity_resolver = MergeEntityConflictResolver()
@@ -174,38 +174,6 @@ pipeline_redact = AnonymizationPipeline(
 
 ---
 
-## Testing without loading GLiNER2
+For unit testing pipelines without loading GLiNER2, see [Testing pipelines without GLiNER2](testing.md).
 
-In tests, use `ExactMatchDetector` to avoid downloading the model:
-
-```python
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import CounterPlaceholderFactory
-
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = CounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-detector = ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")])
-
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
-)
-
-# Deterministic detection without an NER model
-anonymized, entities = await pipeline.anonymize("Patrick lives in Paris.")
-assert anonymized == "<<PERSON_1>> lives in <<LOCATION_1>>."
-```
-
-See also [Extending PIIGhost](../extending.md) for creating other custom components.
+See also [Extending PIIGhost](../extending.md) for creating custom components.

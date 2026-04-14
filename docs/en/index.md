@@ -147,11 +147,16 @@ For installation and the first full example, see [Getting started](getting-start
 
 ## Navigation
 
-| Section                                                 | Description                                      |
-|---------------------------------------------------------|--------------------------------------------------|
-| [Getting started](getting-started.md)                   | Installation and first steps                     |
-| [Architecture](architecture.md)                         | Pipeline and flow diagrams                       |
-| [Examples](examples/basic.md)                           | Basic usage and LangChain integration            |
-| [Pre-built detectors](examples/detectors.md)            | Ready-to-use regex patterns for common PII (US & Europe) |
-| [Extending PIIGhost](extending.md)                      | Build your own modules                           |
-| [API Reference](reference/anonymizer.md)                | Full API documentation                           |
+Each page follows a specific role from the [Diátaxis framework](https://diataxis.fr/): tutorial to learn, how-to to solve a task, reference to look up the API, explanation to understand design choices.
+
+| Section                                                 | Role and content                                               |
+|---------------------------------------------------------|----------------------------------------------------------------|
+| [Getting started](getting-started.md)                   | **Tutorial**: installation and first steps                     |
+| [Architecture](architecture.md)                         | **Explanation**: pipeline and flow diagrams                    |
+| [Basic usage](examples/basic.md)                        | **Tutorial**: standalone usage of the library                  |
+| [LangChain integration](examples/langchain.md)          | **Advanced tutorial**: full agent with middleware              |
+| [Pre-built detectors usage](examples/detectors.md)      | **How-to**: recipes for composing regex patterns               |
+| [Testing without GLiNER2](examples/testing.md)          | **How-to**: test pipelines with `ExactMatchDetector`           |
+| [Reference Pre-built detectors](reference/detectors.md) | **Reference**: catalog of patterns (Common, US, Europe)        |
+| [Extending PIIGhost](extending.md)                      | **How-to**: build your own modules                             |
+| [API Reference](reference/anonymizer.md)                | **Reference**: full API documentation                          |
