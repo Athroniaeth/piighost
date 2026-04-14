@@ -117,7 +117,7 @@ as the data has been anonymized to protect your personal information."
 # ---------------------------------------------------------------------------
 
 # Load the GLiNER2 model (HuggingFace download ~500 MB on first run)
-extractor = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
+extractor = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
 entity_linker = ExactEntityLinker()
 entity_resolver = MergeEntityConflictResolver()

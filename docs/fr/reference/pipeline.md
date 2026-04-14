@@ -57,16 +57,14 @@ Desanonymise en utilisant le texte anonymise comme cle de recherche dans le cach
 
 ---
 
-## `ConversationAnonymizationPipeline`
+## `ThreadAnonymizationPipeline`
 
-Module : `piighost.conversation_pipeline`
-
-Etend `AnonymizationPipeline` avec une memoire de conversation pour le suivi coherent des entites entre les messages.
+Étend `AnonymizationPipeline` avec une mémoire de conversation scopée par `thread_id`, pour le suivi cohérent des entités entre les messages d'un même thread.
 
 ### Constructeur
 
 ```python
-ConversationAnonymizationPipeline(
+ThreadAnonymizationPipeline(
     detector: AnyDetector,
     span_resolver: AnySpanConflictResolver,
     entity_linker: AnyEntityLinker,

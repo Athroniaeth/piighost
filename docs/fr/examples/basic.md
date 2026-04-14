@@ -78,20 +78,20 @@ asyncio.run(main())
 
 ## Pipeline conversationnel avec memoire
 
-Pour les scenarios multi-messages (conversation), `ConversationAnonymizationPipeline` accumule les entites entre les messages et fournit desanonymisation/reanonymisation par remplacement de chaine.
+Pour les scénarios multi-messages (conversation), `ThreadAnonymizationPipeline` accumule les entités entre les messages et fournit désanonymisation/réanonymisation par remplacement de chaîne.
 
 ```python
 import asyncio
 
 from piighost.anonymizer import Anonymizer
-from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.detector import Gliner2Detector
 from piighost.linker.entity import ExactEntityLinker
 from piighost.entity_resolver import MergeEntityConflictResolver
 from piighost.placeholder import CounterPlaceholderFactory
 from piighost.span_resolver import ConfidenceSpanConflictResolver
 
-conv_pipeline = ConversationAnonymizationPipeline(
+conv_pipeline = ThreadAnonymizationPipeline(
     detector=Gliner2Detector(model=model, labels=["PERSON", "LOCATION"], threshold=0.5),
     span_resolver=ConfidenceSpanConflictResolver(),
     entity_linker=ExactEntityLinker(),
@@ -151,30 +151,6 @@ pipeline_redact = AnonymizationPipeline(
 
 ---
 
-## Tester sans charger GLiNER2
+Pour tester unitairement les pipelines sans charger GLiNER2, voir [Tester les pipelines sans GLiNER2](testing.md).
 
-En test, utilisez `ExactMatchDetector` pour eviter de telecharger le modele :
-
-```python
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.entity_resolver import MergeEntityConflictResolver
-from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import CounterPlaceholderFactory
-from piighost.span_resolver import ConfidenceSpanConflictResolver
-
-pipeline = AnonymizationPipeline(
-    detector=ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")]),
-    span_resolver=ConfidenceSpanConflictResolver(),
-    entity_linker=ExactEntityLinker(),
-    entity_resolver=MergeEntityConflictResolver(),
-    anonymizer=Anonymizer(CounterPlaceholderFactory()),
-)
-
-# Detection deterministe sans modele NER
-anonymized, entities = await pipeline.anonymize("Patrick habite a Paris.")
-assert anonymized == "<<PERSON_1>> habite a <<LOCATION_1>>."
-```
-
-Voir aussi la [page Etendre PIIGhost](../extending.md) pour creer d'autres composants personnalises.
+Voir aussi la [page Étendre PIIGhost](../extending.md) pour créer des composants personnalisés.

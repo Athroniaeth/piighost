@@ -23,18 +23,18 @@ Etend `AgentMiddleware` de LangChain et intercepte le cycle de l'agent en **3 po
 ### Constructeur
 
 ```python
-PIIAnonymizationMiddleware(pipeline: ConversationAnonymizationPipeline)
+PIIAnonymizationMiddleware(pipeline: ThreadAnonymizationPipeline)
 ```
 
 | Parametre | Type | Description |
 |-----------|------|-------------|
-| `pipeline` | `ConversationAnonymizationPipeline` | Pipeline conversationnel configure avec memoire |
+| `pipeline` | `ThreadAnonymizationPipeline` | Pipeline conversationnel configuré avec mémoire |
 
 ### Utilisation
 
 ```python
 from piighost.middleware import PIIAnonymizationMiddleware
-from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+from piighost.pipeline import ThreadAnonymizationPipeline
 from langchain.agents import create_agent
 
 middleware = PIIAnonymizationMiddleware(pipeline=conv_pipeline)
@@ -116,7 +116,7 @@ from langchain.agents import create_agent
 from langchain_core.tools import tool
 
 from piighost.anonymizer import Anonymizer
-from piighost.conversation_pipeline import ConversationAnonymizationPipeline
+from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.detector import Gliner2Detector
 from piighost.linker.entity import ExactEntityLinker
 from piighost.entity_resolver import MergeEntityConflictResolver
@@ -133,7 +133,7 @@ def get_info(person: str) -> str:
 
 model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
-pipeline = ConversationAnonymizationPipeline(
+pipeline = ThreadAnonymizationPipeline(
     detector=Gliner2Detector(model=model, labels=["PERSON", "LOCATION"], threshold=0.5),
     span_resolver=ConfidenceSpanConflictResolver(),
     entity_linker=ExactEntityLinker(),

@@ -158,74 +158,24 @@ asyncio.run(conversation())
 
 ## Usage 3 : Middleware LangChain
 
-Pour intégrer l'anonymisation dans un agent LangGraph, utilisez `PIIAnonymizationMiddleware` :
+En reprenant le `pipeline` construit ci-dessus (Usage 2), il suffit de l'enrober dans `PIIAnonymizationMiddleware` et de le passer à `create_agent` :
 
 ```python
 from langchain.agents import create_agent
-from langchain_core.tools import tool
-
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
-from piighost.placeholder import CounterPlaceholderFactory
 from piighost.middleware import PIIAnonymizationMiddleware
 
-from gliner2 import GLiNER2
-
-
-
-@tool
-def send_email(to: str, subject: str, body: str) -> str:
-    """Envoie un email à l'adresse donnée."""
-    return f"Email envoyé à {to}."
-
-
-# Construire le pipeline conversationnel
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = CounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-detector = Gliner2Detector(
-    model=model,
-    threshold=0.5,
-    labels=["PERSON", "LOCATION"],
-)
-pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
-)
 middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 
-system_prompt = """\
-You are a helpful assistant. Some inputs may contain anonymized placeholders that replace real values for privacy reasons.
-
-Rules:
-1. Treat every placeholder as if it were the real value, never comment on its format, never say it is a token, never ask the user to reveal it.
-2. Placeholders can be passed directly to tools use them as-is as input arguments. This preserves the user's privacy while \
-still allowing tools to operate.
-3. If the user asks for a specific detail about a token (e.g. "what is the first letter?"), reply briefly: "I cannot answer that question as the data has been anonymized to protect your personal information." \
-Another example is if the user asks "Dans quel pays ce trouve la ville de {city} ?", you can answer "Je suis désolé, mais je ne peux pas répondre à cette question car les données ont été anonymisées pour protéger vos informations personnelles."
-"""
-
-# Créer l'agent avec le middleware
 agent = create_agent(
     model="openai:gpt-5.4",
-    system_prompt=system_prompt,
-    tools=[send_email],
+    tools=[...],
     middleware=[middleware],
 )
 ```
 
-Le middleware intercepte automatiquement chaque tour de l'agent : le LLM ne voit que du texte anonymisé, les outils reçoivent les vraies valeurs, et les messages affichés à l'utilisateur sont désanonymisés.
+Le middleware intercepte automatiquement chaque tour : le LLM ne voit que du texte anonymisé, les outils reçoivent les vraies valeurs, et les messages affichés à l'utilisateur sont désanonymisés.
+
+Pour un exemple complet (outils, system prompt, observabilité Langfuse, déploiement Aegra), voir [Intégration LangChain](examples/langchain.md).
 
 ---
 

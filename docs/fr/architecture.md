@@ -17,7 +17,7 @@ PIIGhost est organise en couches distinctes : un **anonymiseur stateless** au co
 └────────────────────────┬────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────┐
-│            ConversationAnonymizationPipeline             │  ← Memoire & ops string
+│              ThreadAnonymizationPipeline                 │  ← Mémoire & ops string
 │  ConversationMemory · deanonymize_with_ent              │
 │  · anonymize_with_ent                                   │
 └────────────────────────┬────────────────────────────────┘
@@ -163,9 +163,9 @@ Enveloppe chaque appel d'outil :
 
 ---
 
-## Couche conversation `ConversationAnonymizationPipeline`
+## Couche conversation `ThreadAnonymizationPipeline`
 
-`ConversationAnonymizationPipeline` etend `AnonymizationPipeline` avec :
+`ThreadAnonymizationPipeline` étend `AnonymizationPipeline` avec :
 
 | Mecanisme | Description |
 |-----------|-------------|

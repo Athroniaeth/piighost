@@ -52,7 +52,7 @@ from piighost.pipeline import AnonymizationPipeline
 from piighost.placeholder import CounterPlaceholderFactory
 
 # 1. Load the NER model
-model = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
+model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 
 # 2. Build the pipeline
 entity_linker = ExactEntityLinker()
@@ -122,7 +122,7 @@ span_resolver = ConfidenceSpanConflictResolver()
 ph_factory = CounterPlaceholderFactory()
 anonymizer = Anonymizer(ph_factory=ph_factory)
 
-model = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
+model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 detector = Gliner2Detector(
     model=model,
     threshold=0.5,
@@ -168,76 +168,26 @@ asyncio.run(conversation())
 
 ---
 
-## Usage 3 LangChain middleware
+## Usage 3: LangChain middleware
 
-To integrate anonymization into a LangGraph agent, use `PIIAnonymizationMiddleware`:
+Reusing the `pipeline` built above (Usage 2), just wrap it in `PIIAnonymizationMiddleware` and pass it to `create_agent`:
 
 ```python
 from langchain.agents import create_agent
-from langchain_core.tools import tool
-
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
-from piighost.placeholder import CounterPlaceholderFactory
 from piighost.middleware import PIIAnonymizationMiddleware
 
-from gliner2 import GLiNER2
-
-
-
-@tool
-def send_email(to: str, subject: str, body: str) -> str:
-    """Send an email to the given address."""
-    return f"Email sent to {to}."
-
-
-# Build the conversation pipeline
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = CounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-model = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
-detector = Gliner2Detector(
-    model=model,
-    threshold=0.5,
-    labels=["PERSON", "LOCATION"],
-)
-pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
-)
 middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 
-system_prompt = """\
-You are a helpful assistant. Some inputs may contain anonymized placeholders that replace real values for privacy reasons.
-
-Rules:
-1. Treat every placeholder as if it were the real value, never comment on its format, never say it is a token, never ask the user to reveal it.
-2. Placeholders can be passed directly to tools use them as-is as input arguments. This preserves the user's privacy while \
-still allowing tools to operate.
-3. If the user asks for a specific detail about a token (e.g. "what is the first letter?"), reply briefly: "I cannot answer that question \
-as the data has been anonymized to protect your personal information."
-"""
-
-# Create the agent with the middleware
 agent = create_agent(
     model="openai:gpt-5.4",
-    system_prompt=system_prompt,
-    tools=[send_email],
+    tools=[...],
     middleware=[middleware],
 )
 ```
 
-The middleware automatically intercepts every agent turn the LLM only sees anonymized text, tools receive real values, and user-facing messages are deanonymized.
+The middleware automatically intercepts every agent turn: the LLM only sees anonymized text, tools receive real values, and user-facing messages are deanonymized.
+
+For a complete example (tools, system prompt, Langfuse observability, Aegra deployment), see [LangChain integration](examples/langchain.md).
 
 ---
 

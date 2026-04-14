@@ -119,7 +119,7 @@ GlinerDetector(
 from gliner2 import GLiNER2
 from piighost.detector.gliner2 import Gliner2Detector
 
-model = GLiNER2.from_pretrained("urchade/gliner_multi-v2.1")
+model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 detector = Gliner2Detector(model=model, labels=["PERSON", "LOCATION"], threshold=0.5)
 
 detections = await detector.detect("Patrick lives in Paris")
