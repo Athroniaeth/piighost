@@ -95,6 +95,44 @@ pipeline = AnonymizationPipeline(
 
 ---
 
+## NER label mapping
+
+The built-in NER detectors (`SpacyDetector`, `Gliner2Detector`, `TransformersDetector`) all inherit from `BaseNERDetector`, which supports **label mapping**: decoupling the label a model produces internally from the label that appears in `Detection.label` (and therefore in placeholders, datasets, etc.).
+
+Pass a `{external: internal}` dict instead of a list to enable mapping:
+
+```python
+from piighost.detector.spacy import SpacyDetector
+
+# Without mapping (identity): Detection.label will be "PER" / "LOC"
+detector = SpacyDetector(model=nlp, labels=["PER", "LOC"])
+
+# With mapping: Detection.label will be "PERSON" / "LOCATION"
+detector = SpacyDetector(
+    model=nlp,
+    labels={"PERSON": "PER", "LOCATION": "LOC"},
+)
+```
+
+For GLiNER2, this is especially useful because some query strings perform better than others:
+
+```python
+from piighost.detector.gliner2 import Gliner2Detector
+
+# Query GLiNER2 with "person" and "company" (better detection)
+# but produce clean "PERSON" / "COMPANY" labels in Detection objects.
+detector = Gliner2Detector(
+    model=model,
+    labels={"PERSON": "person", "COMPANY": "company"},
+)
+```
+
+This lets you swap the underlying model without changing downstream code (placeholder factories, entity resolvers, test assertions). It is also the foundation for building stable NER training datasets from user input.
+
+You can inspect the resulting labels with `detector.external_labels` and `detector.internal_labels`.
+
+---
+
 ## Custom `AnySpanConflictResolver`
 
 **When to use**: different strategy for handling overlapping detections (e.g., prefer longer spans).

@@ -356,7 +356,7 @@ class TestToolCallNoDoubleEncoding:
 
         # awrap_tool_call only
         await clean_pipeline.deanonymize_with_ent("<<LOCATION_1>>")
-        tool_result_clean, _ = await clean_pipeline.anonymize(f"Il fait beau en France")
+        tool_result_clean, _ = await clean_pipeline.anonymize("Il fait beau en France")
 
         # Do NOT re-anonymize the ToolMessage (middleware fix)
         # Directly deanonymize the LLM response

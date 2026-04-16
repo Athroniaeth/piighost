@@ -1,5 +1,6 @@
 from piighost.detector.base import (
     AnyDetector,
+    BaseNERDetector,
     CompositeDetector,
     ExactMatchDetector,
     RegexDetector,
@@ -7,6 +8,7 @@ from piighost.detector.base import (
 
 __all__ = [
     "AnyDetector",
+    "BaseNERDetector",
     "CompositeDetector",
     "ExactMatchDetector",
     "RegexDetector",

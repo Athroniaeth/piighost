@@ -160,6 +160,58 @@ class TestLabelFiltering:
         assert len(detections) == 2
 
 
+class TestLabelMapping:
+    @pytest.mark.asyncio
+    async def test_dict_remaps_labels(self, _patch_spacy):
+        SpacyDetector = _get_detector_class()
+        model = FakeLanguage(
+            [
+                FakeSpan("Patrick", "PER", 0, 7),
+                FakeSpan("Paris", "LOC", 18, 23),
+            ]
+        )
+        detector = SpacyDetector(
+            model=model,
+            labels={"PERSON": "PER", "LOCATION": "LOC"},
+        )
+
+        detections = await detector.detect("Patrick habite à Paris")
+        assert len(detections) == 2
+        assert detections[0].label == "PERSON"
+        assert detections[1].label == "LOCATION"
+
+    @pytest.mark.asyncio
+    async def test_dict_filters_unmapped(self, _patch_spacy):
+        SpacyDetector = _get_detector_class()
+        model = FakeLanguage(
+            [
+                FakeSpan("Patrick", "PER", 0, 7),
+                FakeSpan("Paris", "LOC", 18, 23),
+                FakeSpan("Acme", "ORG", 30, 34),
+            ]
+        )
+        detector = SpacyDetector(
+            model=model,
+            labels={"PERSON": "PER"},
+        )
+
+        detections = await detector.detect("Patrick habite à Paris. Acme.")
+        assert len(detections) == 1
+        assert detections[0].label == "PERSON"
+
+    @pytest.mark.asyncio
+    async def test_introspection_properties(self, _patch_spacy):
+        SpacyDetector = _get_detector_class()
+        model = FakeLanguage([])
+        detector = SpacyDetector(
+            model=model,
+            labels={"PERSON": "PER", "LOCATION": "LOC"},
+        )
+
+        assert detector.external_labels == ["PERSON", "LOCATION"]
+        assert detector.internal_labels == ["PER", "LOC"]
+
+
 class TestDetectionAttributes:
     @pytest.mark.asyncio
     async def test_confidence_is_one(self, _patch_spacy):

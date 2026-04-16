@@ -95,6 +95,44 @@ pipeline = AnonymizationPipeline(
 
 ---
 
+## Mapping de labels NER
+
+Les détecteurs NER fournis (`SpacyDetector`, `Gliner2Detector`, `TransformersDetector`) héritent tous de `BaseNERDetector`, qui supporte le **mapping de labels** : découpler le label produit en interne par le modèle du label qui apparaît dans `Detection.label` (et donc dans les placeholders, datasets, etc.).
+
+Passez un dict `{externe: interne}` au lieu d'une liste pour activer le mapping :
+
+```python
+from piighost.detector.spacy import SpacyDetector
+
+# Sans mapping (identité) : Detection.label sera "PER" / "LOC"
+detector = SpacyDetector(model=nlp, labels=["PER", "LOC"])
+
+# Avec mapping : Detection.label sera "PERSON" / "LOCATION"
+detector = SpacyDetector(
+    model=nlp,
+    labels={"PERSON": "PER", "LOCATION": "LOC"},
+)
+```
+
+Pour GLiNER2, c'est particulièrement utile car certaines chaînes de requête fonctionnent mieux que d'autres :
+
+```python
+from piighost.detector.gliner2 import Gliner2Detector
+
+# Interroger GLiNER2 avec "person" et "company" (meilleure détection)
+# mais produire des labels propres "PERSON" / "COMPANY" dans les Detection.
+detector = Gliner2Detector(
+    model=model,
+    labels={"PERSON": "person", "COMPANY": "company"},
+)
+```
+
+Cela permet de changer le modèle sous-jacent sans modifier le code en aval (placeholder factories, entity resolvers, assertions de tests). C'est aussi le prérequis pour construire des datasets NER stables à partir des saisies utilisateur.
+
+Vous pouvez inspecter les labels résultants avec `detector.external_labels` et `detector.internal_labels`.
+
+---
+
 ## Creer un `AnySpanConflictResolver` personnalise
 
 **Quand l'utiliser** : strategie differente pour gerer les detections qui se chevauchent (ex: preferer les spans les plus longs).

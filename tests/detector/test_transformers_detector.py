@@ -217,6 +217,104 @@ class TestLabelFiltering:
         assert len(detections) == 2
 
 
+class TestLabelMapping:
+    @pytest.mark.asyncio
+    async def test_dict_remaps_labels(self, _patch_transformers):
+        TransformersDetector = _get_detector_class()
+        pipe = FakePipeline(
+            [
+                {
+                    "entity_group": "PER",
+                    "score": 0.99,
+                    "word": "Patrick",
+                    "start": 0,
+                    "end": 7,
+                },
+                {
+                    "entity_group": "LOC",
+                    "score": 0.95,
+                    "word": "Paris",
+                    "start": 17,
+                    "end": 22,
+                },
+            ]
+        )
+        detector = TransformersDetector(
+            pipeline=pipe,
+            labels={"PERSON": "PER", "LOCATION": "LOC"},
+        )
+
+        detections = await detector.detect(TEXT)
+        assert len(detections) == 2
+        assert detections[0].label == "PERSON"
+        assert detections[1].label == "LOCATION"
+
+    @pytest.mark.asyncio
+    async def test_dict_filters_unmapped(self, _patch_transformers):
+        TransformersDetector = _get_detector_class()
+        pipe = FakePipeline(
+            [
+                {
+                    "entity_group": "PER",
+                    "score": 0.99,
+                    "word": "Patrick",
+                    "start": 0,
+                    "end": 7,
+                },
+                {
+                    "entity_group": "ORG",
+                    "score": 0.85,
+                    "word": "Acme",
+                    "start": 17,
+                    "end": 21,
+                },
+            ]
+        )
+        detector = TransformersDetector(
+            pipeline=pipe,
+            labels={"PERSON": "PER"},
+        )
+
+        detections = await detector.detect(TEXT)
+        assert len(detections) == 1
+        assert detections[0].label == "PERSON"
+
+    @pytest.mark.asyncio
+    async def test_entity_key_fallback_with_mapping(self, _patch_transformers):
+        """When ``entity_group`` is absent, fall back to ``entity`` and still remap."""
+        TransformersDetector = _get_detector_class()
+        pipe = FakePipeline(
+            [
+                {
+                    "entity": "B-PER",
+                    "score": 0.90,
+                    "word": "Patrick",
+                    "start": 0,
+                    "end": 7,
+                },
+            ]
+        )
+        detector = TransformersDetector(
+            pipeline=pipe,
+            labels={"PERSON": "B-PER"},
+        )
+
+        detections = await detector.detect(TEXT)
+        assert detections[0].label == "PERSON"
+
+    @pytest.mark.asyncio
+    async def test_introspection_properties(self, _patch_transformers):
+        TransformersDetector = _get_detector_class()
+        pipe = FakePipeline([])
+        detector = TransformersDetector(
+            pipeline=pipe,
+            labels={"PERSON": "PER", "LOCATION": "LOC"},
+        )
+
+        assert detector.external_labels == ["PERSON", "LOCATION"]
+        assert detector.internal_labels == ["PER", "LOC"]
+
+
 class TestDetectionAttributes:
     @pytest.mark.asyncio
     async def test_confidence_from_score(self, _patch_transformers):
