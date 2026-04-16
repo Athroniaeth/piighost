@@ -1,4 +1,5 @@
 import re
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -22,6 +23,98 @@ class AnyDetector(Protocol):
             A list of ``Detection`` objects representing each entity found.
         """
         ...
+
+
+class BaseNERDetector(ABC):
+    """Abstract base for detectors relying on a NER model.
+
+    Normalizes the ``labels`` argument into an ``{external: internal}``
+    mapping, builds the reverse lookup used during detection, and forces
+    subclasses to implement :meth:`detect`.
+
+    The distinction between *external* and *internal* labels lets callers
+    decouple the label that appears in :class:`Detection.label` (and
+    therefore in downstream placeholders, datasets, etc.) from the label
+    a specific model prefers at query/output time. For instance, GLiNER2
+    may find more entities when queried with ``"company"`` (lowercase) yet
+    the caller wants a clean ``"COMPANY"`` label in the output.
+
+    Args:
+        labels: Either ``None`` / ``[]`` (no mapping, subclass decides
+            identity behaviour), a list of labels (identity mapping
+            ``{x: x}``), or a ``{external: internal}`` dict.
+
+    Raises:
+        ValueError: If two external labels map to the same internal label
+            (the reverse lookup would be ambiguous).
+
+    Example:
+        >>> class MyDetector(BaseNERDetector):
+        ...     async def detect(self, text: str) -> list[Detection]:
+        ...         ...
+        >>> detector = MyDetector(labels={"PERSON": "PER", "COMPANY": "ORG"})
+        >>> detector.internal_labels
+        ['PER', 'ORG']
+        >>> detector._map_label("PER")
+        'PERSON'
+    """
+
+    def __init__(self, labels: list[str] | dict[str, str] | None) -> None:
+        self._label_map: dict[str, str] = self._normalize(labels)
+        self._reverse_map: dict[str, str] = self._build_reverse(self._label_map)
+
+    @abstractmethod
+    async def detect(self, text: str) -> list[Detection]:
+        """Detect entities in ``text``.
+
+        Implementations must return :class:`Detection` objects whose
+        ``label`` has already been remapped to the external label.
+        """
+        ...
+
+    @staticmethod
+    def _normalize(
+        labels: list[str] | dict[str, str] | None,
+    ) -> dict[str, str]:
+        """Normalize the ``labels`` argument into an ``{external: internal}`` dict."""
+        if labels is None:
+            return {}
+        if isinstance(labels, list):
+            return {label: label for label in labels}
+        return dict(labels)
+
+    @staticmethod
+    def _build_reverse(label_map: dict[str, str]) -> dict[str, str]:
+        """Build the ``{internal: external}`` reverse lookup.
+
+        Raises:
+            ValueError: If an internal label is used by more than one
+                external label.
+        """
+        reverse: dict[str, str] = {}
+        for external, internal in label_map.items():
+            if internal in reverse:
+                raise ValueError(
+                    f"Label mapping conflict: internal label '{internal}' is "
+                    f"used by multiple external labels "
+                    f"('{reverse[internal]}' and '{external}')."
+                )
+            reverse[internal] = external
+        return reverse
+
+    @property
+    def internal_labels(self) -> list[str]:
+        """Labels passed to the underlying model (mapping values)."""
+        return list(self._label_map.values())
+
+    @property
+    def external_labels(self) -> list[str]:
+        """Labels emitted in :class:`Detection.label` (mapping keys)."""
+        return list(self._label_map.keys())
+
+    def _map_label(self, internal: str) -> str | None:
+        """Return the external label for an internal one, or ``None`` if unmapped."""
+        return self._reverse_map.get(internal)
 
 
 class ExactMatchDetector:
