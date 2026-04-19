@@ -16,6 +16,7 @@ nav = [
     { "Tester sans GLiNER2" = "examples/testing.md" },
   ]},
   { "Étendre PIIGhost" = "extending.md" },
+  { "Déploiement" = "deployment.md" },
   { "Référence API" = [
     { "Anonymizer" = "reference/anonymizer.md" },
     { "Pipeline" = "reference/pipeline.md" },
