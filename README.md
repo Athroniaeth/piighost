@@ -52,6 +52,15 @@ Concrete scenarios where `piighost` fits naturally:
 - **Placeholder Factory**: Create custom placeholders for anonymization, with flexible naming strategies (counters, UUID, etc.) to fit your specific needs
 - **Middleware**: Easily integrate `piighost` into your LangChain agents for transparent anonymization before and after model calls, without modifying your existing agent code
 
+## Weaknesses
+
+There is no perfect PII anonymization pipeline. There are only pipelines tuned for a given situation, and every mechanism in `piighost` trades one class of error for another. Knowing which trade-offs are in effect for your use case is part of the integration work.
+
+- **Entity linking amplifies NER mistakes.** After NER detects a name, `ExactEntityLinker` scans the rest of the text (and of the conversation) to catch missed occurrences. If the initial detection was wrong, the linker spreads that wrong detection across every match. Example: `Rose` is correctly detected as a first name in one message; later, the word `rose` as in the flower is captured by the same entity and anonymized as a person. The linker has no global context. Mitigation: use `ExactMatchDetector` or a narrower `RegexDetector` when you need deterministic control, or disable cross-message linking by instantiating a fresh thread per message.
+- **Fuzzy resolution can over-merge.** `FuzzyEntityConflictResolver` uses Jaro-Winkler similarity to link misspellings (`Patric` to `Patrick`). On short or similar names (`Marin` vs `Martin`, `Lee` vs `Leo`), the same mechanism merges distinct people into one placeholder. Mitigation: raise the similarity threshold, or fall back to `MergeEntityConflictResolver` (exact-match only).
+
+Before deploying, review which stage of the pipeline you actually need: every detector, linker, or resolver you remove reduces one class of error at the cost of another. See [Architecture](docs/en/architecture.md) and [Extending PIIGhost](docs/en/extending.md) for the extension points.
+
 ## Installation
 
 ### Basic installation
