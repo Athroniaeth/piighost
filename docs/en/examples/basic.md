@@ -174,6 +174,6 @@ pipeline_redact = AnonymizationPipeline(
 
 ---
 
-For unit testing pipelines without loading GLiNER2, see [Testing pipelines without GLiNER2](testing.md).
+For unit testing pipelines without loading GLiNER2, see the [Testing](testing.md) guide.
 
 See also [Extending PIIGhost](../extending.md) for creating custom components.

@@ -266,4 +266,4 @@ middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 
 ---
 
-Pour tester unitairement vos composants personnalisés avec `ExactMatchDetector` et pytest, voir [Tester les pipelines sans GLiNER2](examples/testing.md).
+Pour tester unitairement vos composants personnalisés avec `ExactMatchDetector` et pytest, voir le guide [Tests](examples/testing.md).
