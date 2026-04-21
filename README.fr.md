@@ -33,6 +33,16 @@ Les solutions existantes (Presidio, extensions spaCy, regex) couvrent la détect
 
 `piighost` crée une surcouche pour améliorer les NER et prendre en charge l'intégralité de ce cycle via un **middleware LangChain bidirectionnel** et une **mémoire de conversation par thread**.
 
+## Cas d'usage
+
+Scénarios concrets où `piighost` trouve naturellement sa place :
+
+- **Chatbot de support client** qui envoie le contenu des tickets à un LLM tiers sans laisser fuir noms, emails ou numéros de compte
+- **RAG interne RH** sur des documents contenant des noms de collaborateurs, des salaires ou des notes d'évaluation
+- **Assistant juridique** traitant des contrats avec noms de clients et de contreparties
+- **Pipelines batch de résumés d'emails** qui ne doivent pas transmettre l'identité de l'expéditeur ou du destinataire
+- **Agents outillés** avec accès CRM ou capacité d'envoi d'emails, où le LLM ne voit que des placeholders et où les outils reçoivent les vraies valeurs
+
 ## Fonctionnalités
 
 - **Détection** : Détecte les PII avec des modèles NER, des algorithmes, et permet de construire une configuration
@@ -62,6 +72,23 @@ uv add piighost
 uv pip install piighost
 ```
 
+Le paquet principal n'a aucune dépendance obligatoire. Installez les extras selon les fonctionnalités voulues :
+
+```bash
+uv add 'piighost[cache]'        # AnonymizationPipeline (aiocache)
+uv add 'piighost[gliner2]'      # Gliner2Detector
+uv add 'piighost[middleware]'   # PIIAnonymizationMiddleware (langchain + aiocache)
+uv add 'piighost[all]'          # Tout
+```
+
+### Compatibilité
+
+| Python | LangChain (extra `langchain`) | aiocache (extra `cache`) | GLiNER2 (extra `gliner2`) |
+|--------|-------------------------------|--------------------------|---------------------------|
+| >=3.10 | >=1.2                         | >=0.12                   | >=1.2                     |
+
+Les versions sont déclarées dans [`pyproject.toml`](pyproject.toml). `piighost` est testé sur Python 3.10 à 3.14.
+
 ### Installation en mode développement
 
 Clonez le dépôt et installez avec les dépendances de développement :
@@ -84,7 +111,31 @@ Cette commande exécute Ruff (formatage + lint) et PyReFly (vérification de typ
 
 ## Démarrage rapide
 
-### Pipeline autonome
+### Exemple minimal
+
+Aucun téléchargement de modèle, aucune inférence, juste un dictionnaire fixe apparié par regex aux frontières de mots. Idéal pour essayer `piighost` en moins d'une minute.
+
+```python
+import asyncio
+
+from piighost import Anonymizer, ExactMatchDetector
+from piighost.pipeline import AnonymizationPipeline
+
+detector = ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")])
+pipeline = AnonymizationPipeline(detector=detector, anonymizer=Anonymizer())
+
+
+async def main():
+    anonymized, _ = await pipeline.anonymize("Patrick lives in Paris.")
+    print(anonymized)  # <<PERSON_1>> lives in <<LOCATION_1>>.
+
+
+asyncio.run(main())
+```
+
+### Pipeline autonome avec GLiNER2
+
+Vraie détection NER. Télécharge le modèle GLiNER2 depuis HuggingFace lors de la première utilisation.
 
 ```python
 import asyncio
@@ -115,6 +166,8 @@ asyncio.run(main())
 ```
 
 ### Avec le middleware LangChain
+
+Un middleware LangChain est un point d'extension qui s'exécute avant et après chaque appel au LLM et chaque appel d'outil. `piighost` s'y branche pour intercepter et transformer les messages, ce qui applique l'anonymisation des PII sans modifier le code de votre agent.
 
 ```python
 from langchain.agents import create_agent
@@ -251,6 +304,18 @@ sequenceDiagram
     M->>U: "C'est fait ! Email envoyé à Patrick."
 ```
 
+## Limites
+
+`piighost` n'est pas une solution miracle. Limites connues à garder en tête avant de déployer :
+
+- **La couverture linguistique** dépend du modèle GLiNER2 chargé. Vérifiez la fiche du modèle avant de supposer qu'une langue est supportée.
+- **Les faux négatifs NER** sont inhérents. Pour les entités critiques (emails, numéros de téléphone, identifiants), combinez `GlinerDetector` avec un détecteur regex via `CompositeDetector`.
+- **Les PII générées par le LLM dans ses réponses** (entités jamais vues en entrée) ne sont pas couvertes par la liaison d'entités. Gérez-les avec une étape de validation post-réponse au niveau applicatif.
+- **Le cache est local** (en mémoire via `aiocache`). Les déploiements multi-instances nécessitent un backend externe (Redis, Memcached) à configurer explicitement.
+- **La latence ajoutée n'est pas encore mesurée.** Prévoyez une campagne de mesure sur votre propre charge avant de dimensionner le trafic de production.
+
+Voir [docs/fr/architecture.md](docs/fr/architecture.md) et [docs/fr/extending.md](docs/fr/extending.md) pour les stratégies de mitigation.
+
 ## Développement
 
 ```bash
@@ -266,7 +331,7 @@ uv run pytest tests/ -k "test_name"  # Lancer un test précis
 - **Vérification de types** : PyReFly (pas mypy)
 - **Formatage/lint** : Ruff
 - **Gestionnaire de paquets** : uv (pas pip)
-- **Python** : 3.12+
+- **Python** : 3.10+
 
 ## Écosystème
 
@@ -283,3 +348,4 @@ uv run pytest tests/ -k "test_name"  # Lancer un test précis
 - Le modèle GLiNER2 est téléchargé depuis HuggingFace lors de la première utilisation (~500 Mo)
 - Tous les modèles de données sont des dataclasses gelées, sûres à partager entre threads
 - Les tests utilisent `ExactMatchDetector` pour éviter de charger le vrai modèle GLiNER2 en CI
+- Pour le modèle de menaces, ce que `piighost` protège et ce qu'il ne protège pas, ainsi que les considérations de stockage du cache, voir [SECURITY.md](SECURITY.md)
