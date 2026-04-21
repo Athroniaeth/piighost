@@ -15,7 +15,7 @@ nav = [
     { "Basic usage" = "examples/basic.md" },
     { "LangChain integration" = "examples/langchain.md" },
     { "Pre-built detectors usage" = "examples/detectors.md" },
-    { "Testing without GLiNER2" = "examples/testing.md" },
+    { "Testing" = "examples/testing.md" },
   ]},
   { "Extending PIIGhost" = "extending.md" },
   { "Deployment" = "deployment.md" },

@@ -2,9 +2,9 @@
 icon: lucide/test-tube
 ---
 
-# Tester les pipelines sans GLiNER2
+# Tests
 
-Comment tester unitairement les pipelines PIIGhost et les composants personnalisés sans télécharger le modèle GLiNER2 (~500 Mo). `ExactMatchDetector` fournit une détection déterministe adaptée à la CI.
+Comment tester unitairement les pipelines PIIGhost et les composants personnalisés. L'approche recommandée utilise `ExactMatchDetector` pour éviter de télécharger le modèle GLiNER2 (~500 Mo) en CI, mais les patterns présentés s'appliquent à n'importe quel détecteur.
 
 ---
 

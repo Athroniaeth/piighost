@@ -161,7 +161,7 @@ Each page follows a specific role from the [Diátaxis framework](https://diataxi
 | [Basic usage](examples/basic.md)                        | **Tutorial**: standalone usage of the library                  |
 | [LangChain integration](examples/langchain.md)          | **Advanced tutorial**: full agent with middleware              |
 | [Pre-built detectors usage](examples/detectors.md)      | **How-to**: recipes for composing regex patterns               |
-| [Testing without GLiNER2](examples/testing.md)          | **How-to**: test pipelines with `ExactMatchDetector`           |
+| [Testing](examples/testing.md)                          | **How-to**: unit-test pipelines and custom components          |
 | [Reference Pre-built detectors](reference/detectors.md) | **Reference**: catalog of patterns (Common, US, Europe)        |
 | [Extending PIIGhost](extending.md)                      | **How-to**: build your own modules                             |
 | [API Reference](reference/anonymizer.md)                | **Reference**: full API documentation                          |
