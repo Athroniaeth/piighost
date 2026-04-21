@@ -33,6 +33,13 @@ dépôt avec un modèle de menaces : ce contre quoi `piighost` protège, et ce c
 - **Accès amont aux journaux** : `piighost` ne journalise pas les PII brutes, mais votre application peut le
   faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
 
+!!! todo "Durcir les dataclasses qui portent des PII"
+    Les dataclasses `Entity`, `Detection` et `Span` exposent aujourd'hui des champs `str` qui contiennent les PII
+    brutes en clair. Envelopper ces champs avec le type [`SecretStr`](https://docs.pydantic.dev/latest/api/types/#pydantic.types.SecretStr)
+    de Pydantic (ou un wrapper équivalent) masquerait leur valeur dans `repr()`, les tracebacks et les formateurs
+    de logs tiers, ce qui rendrait une fuite accidentelle via `print(entity)` ou une exception non rattrapée bien
+    moins probable. À prévoir dans un futur travail de durcissement.
+
 ## Décisions de conception qui soutiennent le modèle de menaces
 
 - **L'anonymisation est locale** : les PII sont remplacées avant que la requête HTTP n'atteigne le fournisseur du

@@ -29,6 +29,13 @@ root with a threat model: what `piighost` protects against, and what it does not
 - **Upstream access to logs**: `piighost` does not log raw PII, but your app might. Audit your own logging, tracing,
   and error reporting before claiming compliance.
 
+!!! todo "Harden PII-bearing dataclasses"
+    The `Entity`, `Detection`, and `Span` dataclasses currently expose `str` fields that hold raw PII in clear.
+    Wrapping these fields with Pydantic's [`SecretStr`](https://docs.pydantic.dev/latest/api/types/#pydantic.types.SecretStr)
+    (or an equivalent wrapper) would mask their value in `repr()`, tracebacks, and third-party log formatters, making
+    accidental leakage via `print(entity)` or an uncaught exception much less likely. Tracked as a future hardening
+    task.
+
 ## Design decisions that back the threat model
 
 - **Anonymization happens locally**: PII is replaced before the HTTP request hits the LLM provider.
