@@ -10,28 +10,68 @@ PIIGhost is organized in distinct layers: a **stateless anonymizer** at the core
 
 ## Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  PIIAnonymizationMiddleware              │  ← LangChain layer
-│  abefore_model · aafter_model · awrap_tool_call         │
-└────────────────────────┬────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│            ThreadAnonymizationPipeline             │  ← Memory & string ops
-│  ConversationMemory · deanonymize_with_ent              │
-│  · anonymize_with_ent                                   │
-└────────────────────────┬────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│                   AnonymizationPipeline                  │  ← Cache & orchestration
-│  aiocache · detect_entities · anonymize · deanonymize   │
-└────────────────────────┬────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│               Component protocols                        │  ← 5-stage pipeline
-│  Detect → Resolve Spans → Link → Resolve Entities       │
-│  → Anonymize                                            │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+---
+title: "piighost layered architecture"
+---
+flowchart TB
+    classDef hook fill:#BBDEFB,stroke:#1565C0,color:#000
+    classDef layer fill:#90CAF9,stroke:#1565C0,color:#000
+    classDef core fill:#A5D6A7,stroke:#2E7D32,color:#000
+    classDef protocol fill:#FFF9C4,stroke:#F9A825,color:#000
+    classDef ext fill:#E1BEE7,stroke:#6A1B9A,color:#000
+
+    subgraph MW ["PIIAnonymizationMiddleware : LangChain layer"]
+        direction LR
+        HBEF["abefore_model"]:::hook
+        HAFT["aafter_model"]:::hook
+        HTOOL["awrap_tool_call"]:::hook
+    end
+
+    subgraph THREAD ["ThreadAnonymizationPipeline : memory & string ops"]
+        direction LR
+        MEM["ConversationMemory"]:::layer
+        DEANO_ENT["deanonymize_with_ent"]:::layer
+        ANON_ENT["anonymize_with_ent"]:::layer
+    end
+
+    subgraph PIPE ["AnonymizationPipeline : cache & orchestration"]
+        direction LR
+        DETECT_API["detect_entities"]:::core
+        ANON_API["anonymize"]:::core
+        DEANON_API["deanonymize"]:::core
+    end
+
+    subgraph PROTO ["Component protocols : 5-stage pipeline"]
+        direction LR
+        P_DETECT["AnyDetector"]:::protocol
+        P_SPANS["AnySpanConflictResolver"]:::protocol
+        P_LINK["AnyEntityLinker"]:::protocol
+        P_ENT["AnyEntityConflictResolver"]:::protocol
+        P_ANON["AnyAnonymizer"]:::protocol
+        P_DETECT --> P_SPANS --> P_LINK --> P_ENT --> P_ANON
+    end
+
+    CACHE[("aiocache")]:::ext
+    LLM(["LLM provider"]):::ext
+    TOOLS(["Agent tools"]):::ext
+
+    HBEF --> MEM
+    HAFT --> DEANO_ENT
+    HTOOL --> ANON_ENT
+    HTOOL --> DEANO_ENT
+
+    MEM --> ANON_API
+    DEANO_ENT --> DEANON_API
+    ANON_ENT --> ANON_API
+
+    ANON_API --> P_DETECT
+    DETECT_API --> P_DETECT
+    ANON_API <--> CACHE
+    DEANON_API <--> CACHE
+
+    MW <--> LLM
+    MW <--> TOOLS
 ```
 
 ---
