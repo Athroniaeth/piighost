@@ -16,10 +16,10 @@ nav = [
     { "Usage basique" = "examples/basic.md" },
     { "Intégration LangChain" = "examples/langchain.md" },
     { "Utiliser les détecteurs prêts à l'emploi" = "examples/detectors.md" },
-    { "Tests" = "examples/testing.md" },
   ]},
   { "Étendre PIIGhost" = "extending.md" },
   { "Déploiement" = "deployment.md" },
+  { "Tests" = "examples/testing.md" },
   { "Référence API" = [
     { "Anonymizer" = "reference/anonymizer.md" },
     { "Pipeline" = "reference/pipeline.md" },
