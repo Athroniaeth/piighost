@@ -177,8 +177,8 @@ flowchart LR
     _détection NER via_
     _pipeline.anonymize()_`"]:::mw
     L["`**Le LLM voit**
-    _'Envoie un email à <<PERSON_1>>_
-    _à <<LOCATION_1>>'_`"]:::llm
+    _'Envoie un email à &lt;&lt;PERSON_1&gt;&gt;_
+    _à &lt;&lt;LOCATION_1&gt;&gt;'_`"]:::llm
 
     U --> M --> L
 ```
@@ -192,7 +192,7 @@ flowchart TB
     classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
 
     L1["`**Le LLM appelle**
-    _send_email(to='<<PERSON_1>>', ...)_`"]:::llm
+    _send_email(to='&lt;&lt;PERSON_1&gt;&gt;', ...)_`"]:::llm
     M1["`**Middleware**
     _désanonymise les arguments_`"]:::mw
     T1["`**L'outil reçoit**
@@ -202,7 +202,7 @@ flowchart TB
     M2["`**Middleware**
     _réanonymise la réponse_`"]:::mw
     L2["`**Le LLM voit**
-    _'Email envoyé à <<PERSON_1>>.'_`"]:::llm
+    _'Email envoyé à &lt;&lt;PERSON_1&gt;&gt;.'_`"]:::llm
 
     L1 --> M1 --> T1 --> T2 --> M2 --> L2
 ```
@@ -216,7 +216,7 @@ flowchart LR
     classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
 
     L["`**Le LLM répond**
-    _'C'est fait ! Email envoyé à <<PERSON_1>>.'_`"]:::llm
+    _'C'est fait ! Email envoyé à &lt;&lt;PERSON_1&gt;&gt;.'_`"]:::llm
     M["`**Middleware**
     _désanonymise tous les messages_`"]:::mw
     U["`**L'utilisateur voit**

@@ -187,8 +187,8 @@ flowchart LR
     _NER detection via_
     _pipeline.anonymize()_`"]:::mw
     L["`**LLM sees**
-    _'Send an email to <<PERSON_1>>_
-    _in <<LOCATION_1>>'_`"]:::llm
+    _'Send an email to &lt;&lt;PERSON_1&gt;&gt;_
+    _in &lt;&lt;LOCATION_1&gt;&gt;'_`"]:::llm
 
     U --> M --> L
 ```
@@ -202,7 +202,7 @@ flowchart TB
     classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
 
     L1["`**LLM calls**
-    _send_email(to='<<PERSON_1>>', ...)_`"]:::llm
+    _send_email(to='&lt;&lt;PERSON_1&gt;&gt;', ...)_`"]:::llm
     M1["`**Middleware**
     _deanonymize args_`"]:::mw
     T1["`**Tool receives**
@@ -212,7 +212,7 @@ flowchart TB
     M2["`**Middleware**
     _reanonymize response_`"]:::mw
     L2["`**LLM sees**
-    _'Email successfully sent to <<PERSON_1>>.'_`"]:::llm
+    _'Email successfully sent to &lt;&lt;PERSON_1&gt;&gt;.'_`"]:::llm
 
     L1 --> M1 --> T1 --> T2 --> M2 --> L2
 ```
@@ -226,7 +226,7 @@ flowchart LR
     classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
 
     L["`**LLM replies**
-    _'Done! Email sent to <<PERSON_1>>.'_`"]:::llm
+    _'Done! Email sent to &lt;&lt;PERSON_1&gt;&gt;.'_`"]:::llm
     M["`**Middleware**
     _deanonymize all messages_`"]:::mw
     U["`**User sees**
