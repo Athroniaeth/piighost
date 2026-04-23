@@ -1,6 +1,5 @@
 ---
 icon: lucide/list
-status: new
 tags:
   - Détecteur
   - Regex
