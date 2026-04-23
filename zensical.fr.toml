@@ -128,10 +128,6 @@ provider = "mike"
 alias = true
 default = "latest"
 
-[project.extra.status]
-new = "Ajoutée récemment"
-deprecated = "Dépréciée"
-
 [project.extra.tags]
 LangChain = "langchain"
 Middleware = "middleware"
