@@ -3,6 +3,9 @@ site_name = "PIIGhost"
 site_url = "https://athroniaeth.github.io/piighost/fr/"
 site_description = "Couche d'anonymisation PII pour agents LLM, basée sur GLiNER2"
 site_author = "PIIGhost"
+copyright = "Copyright &copy; 2026 contributeurs PIIGhost"
+repo_url = "https://github.com/Athroniaeth/piighost"
+repo_name = "Athroniaeth/piighost"
 docs_dir = "docs/fr"
 site_dir = "site/fr"
 
@@ -70,3 +73,13 @@ lang = "en"
 name = "Français"
 link = "/piighost/fr/"
 lang = "fr"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/Athroniaeth/piighost"
+name = "PIIGhost sur GitHub"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/python"
+link = "https://pypi.org/project/piighost/"
+name = "PIIGhost sur PyPI"
