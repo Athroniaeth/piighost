@@ -142,7 +142,7 @@ Le différenciateur de `piighost` : **la liaison persistante inter-messages** et
 
 Entrée :
 
-> Patrick habite à Paris. Patrick adore Paris.
+> `Patrick`{ .pii } habite à `Paris`{ .pii }. `Patrick`{ .pii } adore `Paris`{ .pii }.
 
 Sortie :
 
