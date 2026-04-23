@@ -251,3 +251,8 @@ make lint  # Format (ruff) + lint (ruff) + type-check (pyrefly)
 uv run pytest  # Lancer tous les tests
 uv run pytest tests/ -k "test_name"  # Lancer un test spécifique
 ```
+
+*[PII]: Personally Identifiable Information — toute donnée permettant d'identifier une personne
+*[LLM]: Large Language Model — modèle de langage génératif (GPT, Claude, Gemini…)
+*[NER]: Named Entity Recognition — détection d'entités nommées
+*[API]: Application Programming Interface
