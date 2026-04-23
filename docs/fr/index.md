@@ -103,24 +103,6 @@ Voir [Architecture](architecture.md) pour les détails de chaque étape.
 
 ---
 
-## Fonctionnalités
-
-- **Détection** : détectez les PII avec un modèle NER (GLiNER2), des regex, ou une composition des deux via
-  `CompositeDetector`.
-- **Résolution de spans** : résout les conflits de spans détectés (chevauchement, imbrication) pour garantir des
-  entités propres et non redondantes, surtout avec plusieurs détecteurs.
-- **Liaison d'entités** : lie les différentes détections, avec tolérance aux fautes d'orthographe et capture des
-  mentions qu'un modèle NER pourrait manquer.
-- **Résolution d'entités** : résout les conflits d'entités liées (par exemple un détecteur détecte `A` et `B`
-  comme une même entité, un autre lie `B` et `C`) pour garantir des entités finales cohérentes.
-- **Anonymisation réversible** : remplace les entités détectées par des placeholders personnalisables
-  (`<<PERSON_1>>`, `<<LOCATION_1>>`) et conserve le mapping dans un cache pour pouvoir désanonymiser.
-- **Placeholder Factory** : point d'extension pour la stratégie de nommage (compteurs, UUID, schémas personnalisés).
-- **Middleware LangChain** : intégrez `piighost` dans vos agents LangGraph pour une anonymisation transparente
-  avant et après chaque appel modèle, sans modifier votre code d'agent.
-
----
-
 ## Pourquoi pas une solution existante ?
 
 D'autres librairies couvrent une partie du périmètre :
