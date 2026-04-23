@@ -35,11 +35,11 @@ anonymizer = Anonymizer(CounterPlaceholderFactory())
 
 # Assembler le pipeline
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector=detector,  # (1)!
+    span_resolver=span_resolver,  # (2)!
+    entity_linker=entity_linker,  # (3)!
+    entity_resolver=entity_resolver,  # (4)!
+    anonymizer=anonymizer,  # (5)!
 )
 
 
@@ -59,6 +59,12 @@ async def main():
 
 asyncio.run(main())
 ```
+
+1. **Détecter** : trouve les PII candidates dans le texte via le modèle NER (GLiNER2 ici).
+2. **Résoudre les spans** : arbitre les chevauchements lorsque plusieurs détecteurs rapportent des positions qui se recouvrent.
+3. **Lier les entités** : regroupe les occurrences d'une même PII (variantes de casse, typos, mentions partielles).
+4. **Résoudre les entités** : fusionne les groupes qui partagent une mention entre détecteurs.
+5. **Anonymiser** : remplace chaque entité par un placeholder produit par la factory (ici `<<PERSON_1>>`, `<<LOCATION_1>>`…).
 
 ---
 
