@@ -1,3 +1,4 @@
+from piighost import labels
 from piighost.anonymizer import AnyAnonymizer, Anonymizer
 from piighost.detector.base import ExactMatchDetector
 from piighost.exceptions import CacheMissError, PIIGhostException
@@ -24,4 +25,5 @@ __all__ = [
     "PIIGhostException",
     "RedactPlaceholderFactory",
     "Span",
+    "labels",
 ]
