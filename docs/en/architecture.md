@@ -74,9 +74,15 @@ flowchart TB
     MW <--> TOOLS
 ```
 
+*Layered architecture: from protocol to LangChain middleware.*
+{ .figure-caption }
+
 ---
 
 ## 5-stage pipeline
+
+!!! tip "Everything is swappable"
+    Each stage lives behind a protocol. See [Extending PIIGhost](extending.md) to plug your own detector, linker, resolver or factory.
 
 The core of PIIGhost is `AnonymizationPipeline`, which orchestrates 5 stages each implemented by a swappable protocol.
 
@@ -223,6 +229,46 @@ anonymized_2, _ = await conv_pipeline.anonymize("Tell me about Patrick.")
 await conv_pipeline.deanonymize_with_ent("Hello <<PERSON_1>>")
 # → "Hello Patrick"
 ```
+
+### PII lifecycle
+
+From a single PII's point of view, here are the states it flows through between initial detection and the user-facing display, and the transitions available (first pass, cache hit, deanonymization).
+
+<figure markdown="1">
+
+```mermaid
+flowchart TB
+    classDef state fill:#90CAF9,stroke:#1565C0,color:#000
+    classDef cache fill:#FFF9C4,stroke:#F9A825,color:#000
+    classDef terminal fill:#E1BEE7,stroke:#6A1B9A,color:#000
+
+    START([Raw text]):::terminal
+    DET[Detected]:::state
+    VAL[Validated]:::state
+    LINK[Grouped into Entity]:::state
+    MERGE[Consolidated]:::state
+    ANON[Anonymized]:::state
+    CACHE[("Cached
+    _thread_id scope_")]:::cache
+    REST[Restored]:::state
+    END([Restored text]):::terminal
+
+    START -->|AnyDetector NER / regex| DET
+    DET -->|Resolve Spans| VAL
+    VAL -->|Link Entities| LINK
+    LINK -->|Resolve Entities| MERGE
+    MERGE -->|placeholder factory| ANON
+    ANON -->|store SHA-256 key| CACHE
+    CACHE -.->|cache hit, same thread| ANON
+    ANON -->|deanonymize| REST
+    REST --> END
+```
+
+<figcaption>PII lifecycle across the pipeline and the conversation cache.</figcaption>
+
+</figure>
+
+`ConversationMemory` shares the mapping of an entity across the whole conversation identified by a `thread_id`. A second message containing the same PII jumps straight to `Anonymized` via the cache, without going through the NER detector again.
 
 ---
 

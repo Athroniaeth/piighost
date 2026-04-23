@@ -14,6 +14,9 @@ Orchestrates the full anonymization pipeline: detect → resolve spans → link 
 
 ### Constructor
 
+!!! note "Every argument is a protocol"
+    `AnyDetector`, `AnySpanConflictResolver`, `AnyEntityLinker`, `AnyEntityConflictResolver`, `AnyAnonymizer`. Swap any one of them, see [Extending PIIGhost](../extending.md).
+
 ```python
 AnonymizationPipeline(
     detector: AnyDetector,

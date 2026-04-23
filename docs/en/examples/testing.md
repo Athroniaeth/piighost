@@ -1,10 +1,12 @@
 ---
 icon: lucide/test-tube
+tags:
+  - Testing
 ---
 
 # Testing
 
-How to unit-test PIIGhost pipelines and custom components. The recommended approach uses `ExactMatchDetector` to avoid downloading the ~500 MB GLiNER2 model in CI, but the patterns here apply to any detector.
+How to unit-test PIIGhost pipelines and custom components. The recommended approach uses `ExactMatchDetector` to avoid downloading an NER model in CI, but the patterns here apply to any detector.
 
 ---
 
@@ -74,7 +76,7 @@ async def test_my_pipeline():
 ```
 
 !!! tip "ExactMatchDetector in CI"
-    Always use `ExactMatchDetector` (or equivalent) in CI to avoid loading the GLiNER2 model (~500 MB) during automated tests.
+    Always use `ExactMatchDetector` (or equivalent) in CI to avoid loading an NER model during automated tests.
 
 ---
 

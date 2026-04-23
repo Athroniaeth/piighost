@@ -10,7 +10,7 @@ This page covers the fundamental usages of the library without any LangChain int
 
 ## Simple anonymization with the pipeline
 
-```python
+```python title="pipeline.py" linenums="1" hl_lines="28-35"
 import asyncio
 
 from gliner2 import GLiNER2
@@ -40,11 +40,11 @@ detector = Gliner2Detector(
 
 # Build the pipeline
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector=detector,  # (1)!
+    span_resolver=span_resolver,  # (2)!
+    entity_linker=entity_linker,  # (3)!
+    entity_resolver=entity_resolver,  # (4)!
+    anonymizer=anonymizer,  # (5)!
 )
 
 
@@ -64,6 +64,12 @@ async def main():
 
 asyncio.run(main())
 ```
+
+1. **Detect**: finds PII candidates in the text via the NER model (here GLiNER2, interchangeable with spaCy or Transformers).
+2. **Resolve Spans**: arbitrates overlaps when several detectors report overlapping positions.
+3. **Link Entities**: groups occurrences of the same PII (case variants, typos, partial mentions).
+4. **Resolve Entities**: merges groups that share a mention across detectors.
+5. **Anonymize**: replaces each entity with a placeholder produced by the factory (here `<<PERSON_1>>`{ .placeholder }, `<<LOCATION_1>>`{ .placeholder }…).
 
 ---
 
@@ -174,6 +180,6 @@ pipeline_redact = AnonymizationPipeline(
 
 ---
 
-For unit testing pipelines without loading GLiNER2, see the [Testing](testing.md) guide.
+For unit testing pipelines without loading an NER model, see the [Testing](testing.md) guide.
 
 See also [Extending PIIGhost](../extending.md) for creating custom components.
