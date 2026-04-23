@@ -1,5 +1,8 @@
 ---
 icon: lucide/scan-search
+tags:
+  - Detector
+  - Regex
 ---
 
 # Pre-built detectors usage
@@ -95,7 +98,7 @@ detector = RegexDetector(patterns=my_patterns)
 
 ---
 
-## Combine with GLiNER2 (NER + regex)
+## Combine with an NER (NER + regex)
 
 ```python
 from gliner2 import GLiNER2

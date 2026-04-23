@@ -1,5 +1,8 @@
 ---
 icon: lucide/link
+tags:
+  - LangChain
+  - Middleware
 ---
 
 # LangChain integration
@@ -60,7 +63,7 @@ flowchart TB
 
 ## Full example
 
-```python
+```python title="agent.py" linenums="1" hl_lines="91 101"
 from dotenv import load_dotenv
 from gliner2 import GLiNER2
 from langchain.agents import create_agent
@@ -239,7 +242,7 @@ flowchart LR
 
 ## Using the agent
 
-```python
+```python title="main.py"
 import asyncio
 
 async def main():

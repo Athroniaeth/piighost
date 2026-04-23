@@ -46,7 +46,7 @@ independent placeholder spaces).
 ## Latency overhead is not yet benchmarked
 
 There is no official benchmark of the latency added by the pipeline on typical workloads. The overhead depends on
-the detector (GLiNER2 inference), the text length, and whether cache hits occur.
+the detector (NER inference), the text length, and whether cache hits occur.
 
 **Mitigation**: measure on your own workload before sizing production traffic. Keep detectors on GPU when possible
 for NER-heavy paths.

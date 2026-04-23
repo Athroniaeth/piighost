@@ -15,7 +15,7 @@ The runtime channel is convenient for prototyping but pulls hundreds of MB of wh
 
 ## Caching optional packages
 
-### Strategy 1 — Cache the `uv` download directory (recommended quick win)
+### Strategy 1: Cache the `uv` download directory (recommended quick win)
 
 Add a named volume on `/root/.cache/uv`. `uv` keeps every wheel it has ever downloaded there; on the next start, it skips the network and only re-links the files into the container's venv. Typical cold-start time drops from several minutes to a handful of seconds, without touching the image.
 
@@ -38,7 +38,7 @@ volumes:
 !!! note
     The `huggingface-cache` volume caches downloaded model weights (GLiNER2, transformers models). It is independent from the wheel cache and should be kept.
 
-### Strategy 2 — Bake the extras into a custom image (zero runtime install)
+### Strategy 2: Bake the extras into a custom image (zero runtime install)
 
 For environments where startup time matters (CI, production, serverless), build your own image on top of `piighost-api`. The `uv sync` runs once at `docker build`, the extras are baked into an image layer, and every subsequent container start is instant.
 
@@ -61,7 +61,7 @@ services:
 
 This is the most reproducible option: the image is self-contained, Docker's layer cache handles rebuilds, and there is no runtime dependency on PyPI availability.
 
-### Strategy 3 — Mount the whole venv (fastest startup, more fragile)
+### Strategy 3: Mount the whole venv (fastest startup, more fragile)
 
 Mount a named volume on the image's venv path so the installed files themselves persist across runs. Startup is effectively instantaneous after the first boot, at the cost of a cache that can silently desync if the upstream image changes Python version or venv layout.
 
@@ -79,7 +79,7 @@ volumes:
 ```
 
 !!! warning
-    If you upgrade `ghcr.io/athroniaeth/piighost-api:latest`, purge the venv volume (`docker compose down -v`) before the next start — otherwise the old venv shadows the new one and you will debug mysterious version mismatches.
+    If you upgrade `ghcr.io/athroniaeth/piighost-api:latest`, purge the venv volume (`docker compose down -v`) before the next start. Otherwise the old venv shadows the new one and you will debug mysterious version mismatches.
 
 ---
 

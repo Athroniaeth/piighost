@@ -9,25 +9,28 @@ root with a threat model: what `piighost` protects against, and what it does not
 
 ## What `piighost` protects against
 
-- **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON_1>>`, etc.), not the real
-  PII. Even if the provider logs the request, no sensitive data is leaked.
-- **Tool-call leakage**: the middleware deanonymizes tool arguments just before execution and re-anonymizes results
-  before they go back to the LLM, so the real values never flow through the LLM's visible context.
-- **Cross-message drift**: the cache links variants (`Patrick` / `patrick`) so the same entity keeps the same
-  placeholder across the whole conversation, preventing the LLM from seeing the same PII under different masks.
+!!! success "Within the protection scope"
+    - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON_1>>`{ .placeholder },
+      etc.), not the real PII. Even if the provider logs the request, no sensitive data is leaked.
+    - **Tool-call leakage**: the middleware deanonymizes tool arguments just before execution and re-anonymizes
+      results before they go back to the LLM, so the real values never flow through the LLM's visible context.
+    - **Cross-message drift**: the cache links variants (`Patrick`{ .pii } / `patrick`{ .pii }) so the same entity
+      keeps the same placeholder across the whole conversation, preventing the LLM from seeing the same PII
+      under different masks.
 
 ## What `piighost` does not protect against
 
-- **Local memory compromise**: the cache holds the mapping `placeholder -> real value` in memory (or in whatever
-  backend you configured). An attacker with process memory access recovers the mapping in cleartext.
-- **Disk theft of an unencrypted cache backend**: if you point `aiocache` at a Redis instance without disk
-  encryption, and someone walks off with the disk, they walk off with the mapping. Encrypt backend storage.
-- **LLM hallucinations**: if the LLM invents a PII that was never in the input, `piighost` cannot link it because
-  it was never cached. See [Limitations](limitations.md) for mitigation.
-- **Side-channel inference**: placeholders preserve the structure of the text. A determined adversary with partial
-  knowledge could attempt to re-identify entities from context (rare, but not impossible).
-- **Upstream access to logs**: `piighost` does not log raw PII, but your app might. Audit your own logging, tracing,
-  and error reporting before claiming compliance.
+!!! danger "Outside the protection scope"
+    - **Local memory compromise**: the cache holds the mapping `placeholder -> real value` in memory (or in
+      whatever backend you configured). An attacker with process memory access recovers the mapping in cleartext.
+    - **Disk theft of an unencrypted cache backend**: if you point `aiocache` at a Redis instance without disk
+      encryption, and someone walks off with the disk, they walk off with the mapping. Encrypt backend storage.
+    - **LLM hallucinations**: if the LLM invents a PII that was never in the input, `piighost` cannot link it
+      because it was never cached. See [Limitations](limitations.md) for mitigation.
+    - **Side-channel inference**: placeholders preserve the structure of the text. A determined adversary with
+      partial knowledge could attempt to re-identify entities from context (rare, but not impossible).
+    - **Upstream access to logs**: `piighost` does not log raw PII, but your app might. Audit your own logging,
+      tracing, and error reporting before claiming compliance.
 
 ## Masked `repr()` on PII-bearing dataclasses
 

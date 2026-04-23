@@ -4,6 +4,20 @@ icon: lucide/shield
 
 # PIIGhost
 
+`piighost` is a Python library that automatically detects, anonymizes and deanonymizes sensitive entities (names, locations, account numbers…) in AI agent conversations. Its LangChain middleware plugs into LangGraph without changing your existing code: the LLM only sees placeholders, tools receive the real values, the user sees the deanonymized response.
+
+## Use cases
+
+Concrete scenarios where `piighost` fits naturally:
+
+- **Customer support chatbot** sending ticket content to a third-party LLM without leaking customer names, emails, or account numbers.
+- **Internal HR RAG** over documents containing employee names, salaries, or evaluation notes.
+- **Legal assistant** processing contracts with client and counterparty names.
+- **Batch email summarization** pipelines that should not transmit the sender or recipient identity.
+- **Tool-enabled agents** with CRM access or email-send capability, where the LLM only sees placeholders and tools receive the real values.
+
+---
+
 ## Problem statement
 
 Today, with the rise of LLMs, protecting sensitive data takes on a new dimension. Companies hosting these models
@@ -38,12 +52,12 @@ Each approach has its own shortcomings, and NER models add a few more:
 
 Even if these issues were fixed, several deeper problems remain:
 
-- **Placeholder consistency**: every occurrence of a given PII must be anonymized identically (e.g. `<<PERSON_1>>`
-  for "Patrick" throughout the text), in order to preserve the information that all occurrences refer to the same
-  entity while still protecting privacy.
+- **Placeholder consistency**: every occurrence of a given PII must be anonymized identically (e.g.
+  `<<PERSON_1>>`{ .placeholder } for `Patrick`{ .pii } throughout the text), in order to preserve the information
+  that all occurrences refer to the same entity while still protecting privacy.
 - **Fuzzy linking**: detections that are not strictly identical must still be linked together, for instance
-  "Patrick" and "patrick" (case difference), "Patric" (typo), or full vs partial mentions ("Patrick Dupont" and
-  "Patrick").
+  `Patrick`{ .pii } and `patrick`{ .pii } (case difference), `Patric`{ .pii } (typo), or full vs partial mentions
+  (`Patrick Dupont`{ .pii } and `Patrick`{ .pii }).
 
 ### The conversational case (AI agents)
 
@@ -64,8 +78,8 @@ Using anonymization inside AI agents introduces several additional constraints:
 `piighost` combines existing building blocks to offer PII detection and anonymization that is at once accurate,
 consistent, and easy to integrate:
 
-- **Hybrid detection**: compose NER models (GLiNER2) and regex via `CompositeDetector` to get the best of both
-  worlds.
+- **Hybrid detection**: compose one or more NER models (GLiNER2, spaCy, Transformers…) and regex via
+  `CompositeDetector` to get the best of both worlds.
 - **Entity linking**: automatically groups variants (case, typos, partial mentions) to guarantee consistent
   placeholders.
 - **Bidirectional anonymization**: every anonymization is cached and can be reversed on the fly, including on
@@ -99,23 +113,6 @@ See [Architecture](architecture.md) for the details of each stage.
 
 ---
 
-## Features
-
-- **Detection**: detect PII with an NER model (GLiNER2), regex, or a composition of both via `CompositeDetector`.
-- **Span resolution**: resolves detected span conflicts (overlap, nesting) to guarantee clean, non-redundant
-  entities, especially when using multiple detectors.
-- **Entity linking**: links different detections together, with typo tolerance and the ability to catch mentions
-  that an NER model might miss.
-- **Entity resolution**: resolves conflicts between linked entities (e.g. one detector links `A` and `B` as the
-  same entity while another links `B` and `C`) to guarantee coherent final entities.
-- **Reversible anonymization**: replaces detected entities with customizable placeholders (`<<PERSON_1>>`,
-  `<<LOCATION_1>>`) and keeps the mapping in a cache so the operation can be reversed.
-- **Placeholder Factory**: extension point for naming strategies (counters, UUIDs, custom schemes).
-- **LangChain middleware**: integrate `piighost` into your LangGraph agents for transparent anonymization before
-  and after every model call, without modifying your agent code.
-
----
-
 ## Why not an existing solution?
 
 Other libraries cover part of the scope:
@@ -137,16 +134,16 @@ Other libraries cover part of the scope:
 
 Input:
 
-> Patrick lives in Paris. Patrick loves Paris.
+> `Patrick`{ .pii } lives in `Paris`{ .pii }. `Patrick`{ .pii } loves `Paris`{ .pii }.
 
 Output:
 
-> `<<PERSON_1>>` lives in `<<LOCATION_1>>`. `<<PERSON_1>>` loves `<<LOCATION_1>>`.
+> `<<PERSON_1>>`{ .placeholder } lives in `<<LOCATION_1>>`{ .placeholder }. `<<PERSON_1>>`{ .placeholder } loves `<<LOCATION_1>>`{ .placeholder }.
 
-Both occurrences of "Patrick" are linked, same for "Paris". In a conversation, subsequent messages reuse the same
-placeholders, and deanonymization is automatic for the end user.
+Both occurrences of `Patrick`{ .pii } are linked, same for `Paris`{ .pii }. In a conversation, subsequent messages
+reuse the same placeholders, and deanonymization is automatic for the end user.
 
-For installation and the first full example, see [Getting started](getting-started.md).
+For installation and the first full example, see [Installation](getting-started/installation.md) then [First pipeline](getting-started/first-pipeline.md).
 
 ---
 
@@ -154,14 +151,64 @@ For installation and the first full example, see [Getting started](getting-start
 
 Each page follows a specific role from the [Diátaxis framework](https://diataxis.fr/): tutorial to learn, how-to to solve a task, reference to look up the API, explanation to understand design choices.
 
-| Section                                                 | Role and content                                               |
-|---------------------------------------------------------|----------------------------------------------------------------|
-| [Getting started](getting-started.md)                   | **Tutorial**: installation and first steps                     |
-| [Architecture](architecture.md)                         | **Explanation**: pipeline and flow diagrams                    |
-| [Basic usage](examples/basic.md)                        | **Tutorial**: standalone usage of the library                  |
-| [LangChain integration](examples/langchain.md)          | **Advanced tutorial**: full agent with middleware              |
-| [Pre-built detectors usage](examples/detectors.md)      | **How-to**: recipes for composing regex patterns               |
-| [Testing](examples/testing.md)                          | **How-to**: unit-test pipelines and custom components          |
-| [Reference Pre-built detectors](reference/detectors.md) | **Reference**: catalog of patterns (Common, US, Europe)        |
-| [Extending PIIGhost](extending.md)                      | **How-to**: build your own modules                             |
-| [API Reference](reference/anonymizer.md)                | **Reference**: full API documentation                          |
+<div class="grid cards" markdown>
+
+-   :lucide-rocket: __Get started__
+
+    ---
+
+    Install and take piighost for a spin.
+
+    - [Installation](getting-started/installation.md)
+    - [First pipeline](getting-started/first-pipeline.md)
+    - [Conversational pipeline](getting-started/conversation.md)
+    - [LangChain middleware](getting-started/langchain.md)
+    - [Remote client](getting-started/api-client.md)
+    - [Basic usage](examples/basic.md)
+
+-   :lucide-wrench: __Usage__
+
+    ---
+
+    Recipes for specific use cases.
+
+    - [LangChain integration](examples/langchain.md)
+    - [Pre-built detectors](examples/detectors.md)
+    - [Extending PIIGhost](extending.md)
+    - [Testing](examples/testing.md)
+    - [Deployment](deployment.md)
+
+-   :lucide-book-open: __Reference__
+
+    ---
+
+    The full API documentation.
+
+    - [Anonymizer](reference/anonymizer.md)
+    - [Pipeline](reference/pipeline.md)
+    - [Middleware](reference/middleware.md)
+    - [Detectors](reference/detectors.md)
+
+-   :lucide-layers: __Concepts__
+
+    ---
+
+    Understand the design choices.
+
+    - [Architecture](architecture.md)
+    - [Glossary](glossary.md)
+    - [Limitations](limitations.md)
+    - [Security](security.md)
+
+-   :lucide-users: __Community__
+
+    ---
+
+    Participate, report, discuss.
+
+    - [Contributing](community/contributing.md)
+    - [Code of conduct](community/code-of-conduct.md)
+    - [Bug reports](community/bug-reports.md)
+    - [FAQ](community/faq.md)
+
+</div>

@@ -1,5 +1,5 @@
 ---
-icon: lucide/shield-check
+icon: lucide/blend
 ---
 
 # Reference Middleware

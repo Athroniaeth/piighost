@@ -1,12 +1,15 @@
 ---
 icon: lucide/list
+tags:
+  - Detector
+  - Regex
 ---
 
 # Reference Pre-built detectors
 
 Catalog of the `RegexDetector` pattern sets shipped in `examples/detectors/`. Each file exposes a `PATTERNS` dictionary and a `create_detector()` helper.
 
-For recipes (how to compose, combine with GLiNER2, add your own), see [Pre-built detectors usage](../examples/detectors.md).
+For recipes (how to compose, combine with an NER, add your own), see [Pre-built detectors usage](../examples/detectors.md).
 
 ---
 
