@@ -1611,12 +1611,14 @@ all = [
     { name = "spacy" },
     { name = "torch" },
     { name = "transformers" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 cache = [
     { name = "aiocache" },
 ]
 client = [
     { name = "httpx" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 faker = [
     { name = "faker" },
@@ -1689,6 +1691,7 @@ requires-dist = [
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
     { name = "torch", marker = "extra == 'transformers'", specifier = ">=2.0" },
     { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.40" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'client'", specifier = ">=4.4" },
 ]
 provides-extras = ["gliner2", "langchain", "faker", "cache", "middleware", "client", "spacy", "transformers", "llm", "all"]
 

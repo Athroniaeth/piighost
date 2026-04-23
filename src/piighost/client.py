@@ -21,7 +21,13 @@ if importlib.util.find_spec("httpx") is None:
         "please install piighost[client] for use client"
     )
 
-from typing import Any, Self
+import sys
+from typing import Any
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 import httpx
 
