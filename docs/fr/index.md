@@ -157,17 +157,52 @@ Pour l'installation et le premier exemple complet, voir [Démarrage rapide](gett
 
 Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/) : tutoriel pour apprendre, how-to pour résoudre une tâche, référence pour consulter l'API, explication pour comprendre les choix de design.
 
-| Section                                                 | Rôle et contenu                                                |
-|---------------------------------------------------------|----------------------------------------------------------------|
-| [Démarrage rapide](getting-started.md)                  | **Tutoriel** : installation et premiers pas                    |
-| [Architecture](architecture.md)                         | **Explication** : pipeline et diagrammes de flux               |
-| [Usage basique](examples/basic.md)                      | **Tutoriel** : usages standalone de la bibliothèque            |
-| [Intégration LangChain](examples/langchain.md)          | **Tutoriel avancé** : agent complet avec middleware            |
-| [Utiliser les détecteurs prêts à l'emploi](examples/detectors.md) | **How-to** : recettes de composition des patterns regex      |
-| [Tests](examples/testing.md)                            | **How-to** : tester unitairement pipelines et composants       |
-| [Référence Détecteurs](reference/detectors.md)          | **Référence** : catalogue des patterns (Communs, US, Europe)   |
-| [Étendre PIIGhost](extending.md)                        | **How-to** : créer ses propres modules                         |
-| [Référence API](reference/anonymizer.md)                | **Référence** : documentation complète de l'API                |
+<div class="grid cards" markdown>
+
+-   :lucide-rocket: __Tutoriels__
+
+    ---
+
+    Installer et utiliser piighost pas à pas.
+
+    - [Démarrage rapide](getting-started.md)
+    - [Usage basique](examples/basic.md)
+    - [Intégration LangChain](examples/langchain.md)
+
+-   :lucide-wrench: __Guides pratiques__
+
+    ---
+
+    Recettes ciblées pour un cas d'usage.
+
+    - [Détecteurs prêts à l'emploi](examples/detectors.md)
+    - [Étendre PIIGhost](extending.md)
+    - [Tests](examples/testing.md)
+    - [Déploiement](deployment.md)
+
+-   :lucide-book-open: __Référence__
+
+    ---
+
+    La documentation d'API complète.
+
+    - [Anonymizer](reference/anonymizer.md)
+    - [Pipeline](reference/pipeline.md)
+    - [Middleware](reference/middleware.md)
+    - [Détecteurs](reference/detectors.md)
+
+-   :lucide-layers: __Explication__
+
+    ---
+
+    Comprendre les choix de design.
+
+    - [Architecture](architecture.md)
+    - [Glossaire](glossary.md)
+    - [Limites](limitations.md)
+    - [Sécurité](security.md)
+
+</div>
 
 *[PII]: Personally Identifiable Information — toute donnée permettant d'identifier une personne
 *[LLM]: Large Language Model — modèle de langage génératif (GPT, Claude, Gemini…)
