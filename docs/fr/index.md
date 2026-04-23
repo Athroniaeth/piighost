@@ -145,22 +145,22 @@ Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/)
 
 <div class="grid cards" markdown>
 
--   :lucide-rocket: __Tutoriels__
+-   :lucide-rocket: __Démarrer__
 
     ---
 
-    Installer et utiliser piighost pas à pas.
+    Installer et prendre piighost en main.
 
     - [Démarrage rapide](getting-started.md)
     - [Usage basique](examples/basic.md)
-    - [Intégration LangChain](examples/langchain.md)
 
--   :lucide-wrench: __Guides pratiques__
+-   :lucide-wrench: __Usage__
 
     ---
 
     Recettes ciblées pour un cas d'usage.
 
+    - [Intégration LangChain](examples/langchain.md)
     - [Détecteurs prêts à l'emploi](examples/detectors.md)
     - [Étendre PIIGhost](extending.md)
     - [Tests](examples/testing.md)
@@ -177,7 +177,7 @@ Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/)
     - [Middleware](reference/middleware.md)
     - [Détecteurs](reference/detectors.md)
 
--   :lucide-layers: __Explication__
+-   :lucide-layers: __Concepts__
 
     ---
 
