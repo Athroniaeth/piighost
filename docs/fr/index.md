@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield
+hide:
+  - toc
 ---
 
 # PIIGhost
