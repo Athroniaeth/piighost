@@ -20,7 +20,11 @@ from piighost.anonymizer import AnyAnonymizer
 from piighost.detector import AnyDetector
 from piighost.linker.entity import AnyEntityLinker
 from piighost.models import Detection, Entity
-from piighost.pipeline.base import AnonymizationPipeline
+from piighost.pipeline.base import (
+    CACHE_KEY_ANONYMIZATION,
+    CACHE_KEY_DETECTION,
+    AnonymizationPipeline,
+)
 from piighost.placeholder import MaskPlaceholderFactory, RedactPlaceholderFactory
 from piighost.resolver.entity import AnyEntityConflictResolver
 from piighost.resolver.span import AnySpanConflictResolver
@@ -222,7 +226,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
             raise RuntimeError("Cannot override detections without a cache backend")
 
         self._thread_id = thread_id
-        cache_key = self._thread_key(f"detect:{hash_sha256(text)}")
+        cache_key = self._thread_key(f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}")
         value = self._serialize_detections(detections)
         await self._cache.set(cache_key, value)
 
@@ -231,7 +235,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
         if self._cache is None:
             return await self._detector.detect(text)
 
-        cache_key = self._thread_key(f"detect:{hash_sha256(text)}")
+        cache_key = self._thread_key(f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}")
         cached = await self._cache.get(cache_key)
 
         if cached is not None:
@@ -253,7 +257,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
             return
 
         serialized_entities = self._serialize_entities(entities)
-        key = self._thread_key(f"anon:anonymized:{hash_sha256(anonymized)}")
+        key = self._thread_key(f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized)}")
 
         await self._cache.set(
             key,
@@ -293,7 +297,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
         from piighost.exceptions import CacheMissError
 
         self._thread_id = thread_id
-        key = self._thread_key(f"anon:anonymized:{hash_sha256(anonymized_text)}")
+        key = self._thread_key(
+            f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized_text)}"
+        )
         cached = await self._cache_get(key)
 
         if cached is None:
