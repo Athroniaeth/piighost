@@ -122,6 +122,11 @@ scheme = "slate"
 toggle.icon = "lucide/moon"
 toggle.name = "Passer en mode clair"
 
+[project.extra.version]
+provider = "mike"
+alias = true
+default = "latest"
+
 [project.extra.status]
 new = "Ajoutée récemment"
 deprecated = "Dépréciée"
