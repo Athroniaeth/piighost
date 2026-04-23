@@ -7,9 +7,9 @@ tags:
 
 # Pre-built detectors usage
 
-How to compose, combine, and extend the pre-built regex pattern sets shipped in `examples/detectors/`.
+`piighost` ships ready-to-use regex pattern sets for the most common PII: emails, IPs, URLs, API keys, phone numbers, SSNs, IBANs... You can use them as-is, combine them together, or extend them with your own patterns.
 
-For the full catalog of available labels (Common, US, Europe), see [Reference Pre-built detectors](../reference/detectors.md).
+This page walks through the usage recipes. For the full catalog of available labels (Common, US, Europe), see [Reference Pre-built detectors](../reference/detectors.md).
 
 ---
 
