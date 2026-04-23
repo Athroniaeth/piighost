@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.0 (2026-04-24)
+
+### Feat
+
+- **models**: mask raw PII text in Detection repr
+- **detector**: add regex packs by region and checksum validators
+- expose ExactMatchDetector publicly
+
+### Fix
+
+- **client**: use typing_extensions.Self on Python 3.10
+- **test**: restrict pytest to tests/ to skip scripts/ demos
+
+### Refactor
+
+- **test**: drop the unused first setup in roundtrip length test
+
+### Perf
+
+- **test**: disable unused pytest plugins (anyio, faker, langsmith)
+- **test**: exclude heavy-dep tests by default and enable asyncio auto mode
+
 ## 0.7.0 (2026-04-16)
 
 ### Feat
