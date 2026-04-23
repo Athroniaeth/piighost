@@ -95,3 +95,39 @@ class TestAllEntities:
         all_ent = memory.all_entities
         assert all_ent[0] == e1
         assert all_ent[1] == e2
+
+
+class TestCanonicalIndex:
+    """The canonical index keeps lookups O(1) and stays consistent on merges."""
+
+    def test_index_points_to_slot(self) -> None:
+        memory = ConversationMemory()
+        e1 = _entity("Patrick", "PERSON")
+        memory.record("hash1", [e1])
+        assert memory._canonical_index[("patrick", "PERSON")] == ("hash1", 0)
+
+    def test_case_variant_merges_into_existing_slot(self) -> None:
+        memory = ConversationMemory()
+        memory.record("h1", [_entity("Patrick", "PERSON")])
+        memory.record("h2", [_entity("patrick", "PERSON")])
+        # The variant must land in the *original* slot, not spawn a new entity.
+        assert memory._canonical_index[("patrick", "PERSON")] == ("h1", 0)
+        stored = memory.entities_by_hash["h1"][0]
+        texts = {d.text for d in stored.detections}
+        assert texts == {"Patrick", "patrick"}
+
+    def test_variant_with_same_text_does_not_duplicate_detection(self) -> None:
+        memory = ConversationMemory()
+        memory.record("h1", [_entity("Patrick", "PERSON")])
+        memory.record("h2", [_entity("Patrick", "PERSON")])
+        stored = memory.entities_by_hash["h1"][0]
+        assert len(stored.detections) == 1
+
+    def test_index_keys_are_canonical_pairs(self) -> None:
+        memory = ConversationMemory()
+        memory.record("h1", [_entity("Patrick", "PERSON")])
+        memory.record("h1", [_entity("Paris", "LOCATION")])
+        assert set(memory._canonical_index) == {
+            ("patrick", "PERSON"),
+            ("paris", "LOCATION"),
+        }
