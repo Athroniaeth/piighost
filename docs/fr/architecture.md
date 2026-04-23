@@ -159,7 +159,7 @@ Les implementations fournies incluent `GlinerDetector` (GLiNER2), `ExactMatchDet
 
 ### Etape 5 Anonymize
 
-`AnyAnonymizer` utilise un `AnyPlaceholderFactory` pour generer les tokens (`<<PERSON_1>>`, `<<LOCATION_1>>`) et effectue le remplacement par spans de droite a gauche.
+`AnyAnonymizer` utilise un `AnyPlaceholderFactory` pour generer les tokens (`<<PERSON_1>>`{ .placeholder }, `<<LOCATION_1>>`{ .placeholder }) et effectue le remplacement par spans de droite a gauche.
 
 ---
 

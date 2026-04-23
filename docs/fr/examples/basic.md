@@ -64,7 +64,7 @@ asyncio.run(main())
 2. **Résoudre les spans** : arbitre les chevauchements lorsque plusieurs détecteurs rapportent des positions qui se recouvrent.
 3. **Lier les entités** : regroupe les occurrences d'une même PII (variantes de casse, typos, mentions partielles).
 4. **Résoudre les entités** : fusionne les groupes qui partagent une mention entre détecteurs.
-5. **Anonymiser** : remplace chaque entité par un placeholder produit par la factory (ici `<<PERSON_1>>`, `<<LOCATION_1>>`…).
+5. **Anonymiser** : remplace chaque entité par un placeholder produit par la factory (ici `<<PERSON_1>>`{ .placeholder }, `<<LOCATION_1>>`{ .placeholder }…).
 
 ---
 
