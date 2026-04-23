@@ -1,5 +1,8 @@
 ---
 icon: lucide/puzzle
+tags:
+  - Avancé
+  - Détecteur
 ---
 
 # Etendre PIIGhost
