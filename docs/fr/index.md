@@ -200,4 +200,15 @@ Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/)
     - [Limites](limitations.md)
     - [Sécurité](security.md)
 
+-   :lucide-users: __Communauté__
+
+    ---
+
+    Participer, signaler, échanger.
+
+    - [Contribuer](community/contributing.md)
+    - [Code de conduite](community/code-of-conduct.md)
+    - [Signaler un bug](community/bug-reports.md)
+    - [FAQ](community/faq.md)
+
 </div>
