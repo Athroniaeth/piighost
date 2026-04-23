@@ -7,9 +7,9 @@ tags:
 
 # Utiliser les détecteurs prêts à l'emploi
 
-Comment composer, combiner et étendre les ensembles de patterns regex fournis dans `examples/detectors/`.
+`piighost` fournit des ensembles de patterns regex prêts à l'emploi pour les PII les plus courants : emails, IPs, URLs, clés d'API, numéros de téléphone, SSN, IBAN... Vous pouvez les utiliser tels quels, les combiner entre eux ou les étendre avec vos propres patterns.
 
-Pour le catalogue complet des labels disponibles (Communs, US, Europe), voir [Référence Détecteurs prêts à l'emploi](../reference/detectors.md).
+Cette page en détaille les recettes d'usage. Pour le catalogue complet des labels disponibles (Communs, US, Europe), voir [Référence Détecteurs prêts à l'emploi](../reference/detectors.md).
 
 ---
 
