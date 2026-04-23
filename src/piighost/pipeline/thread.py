@@ -13,6 +13,7 @@ by message hash and deduplicated by ``(text.lower(), label)``.  The
 pipeline to recreate consistent placeholder tokens across messages.
 """
 
+from collections import OrderedDict
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -157,6 +158,11 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
             ``SimpleMemoryCache``.
         cache_ttl: Time-to-live in seconds for every cache entry the
             pipeline writes.  ``None`` keeps entries forever.
+        max_threads: Maximum number of conversation memories kept in
+            RAM.  When a new thread is created past the cap, the least
+            recently used memory is evicted.  ``None`` (default)
+            disables the cap; use it with caution on long-running
+            servers that juggle many conversations.
     """
 
     def __init__(
@@ -168,7 +174,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
         span_resolver: AnySpanConflictResolver | None = None,
         cache: BaseCache | None = None,
         cache_ttl: int | None = None,
+        max_threads: int | None = None,
     ) -> None:
+        if max_threads is not None and max_threads <= 0:
+            raise ValueError(f"max_threads must be positive or None, got {max_threads}")
         factory = anonymizer.ph_factory
         if isinstance(factory, (RedactPlaceholderFactory, MaskPlaceholderFactory)):
             raise ValueError(
@@ -188,13 +197,38 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
             cache_ttl=cache_ttl,
         )
 
-        self._memories: dict[str, ConversationMemory] = {}
+        self._memories: OrderedDict[str, ConversationMemory] = OrderedDict()
+        self._max_threads = max_threads
 
     def get_memory(self, thread_id: str = "default") -> ConversationMemory:
-        """Return the memory for *thread_id* (created on first access)."""
-        if thread_id not in self._memories:
-            self._memories[thread_id] = ConversationMemory()
-        return self._memories[thread_id]
+        """Return the memory for *thread_id* (created on first access).
+
+        If ``max_threads`` is set, accessing a thread refreshes its LRU
+        position and creating a new one evicts the least recently used
+        memory.
+        """
+        memory = self._memories.get(thread_id)
+        if memory is not None:
+            self._memories.move_to_end(thread_id)
+            return memory
+
+        memory = ConversationMemory()
+        self._memories[thread_id] = memory
+        if self._max_threads is not None and len(self._memories) > self._max_threads:
+            self._memories.popitem(last=False)
+        return memory
+
+    def clear_memory(self, thread_id: str) -> None:
+        """Drop the memory for *thread_id* (no-op if unknown).
+
+        Callers should invoke this when a conversation ends so the
+        pipeline does not retain its entities indefinitely.
+        """
+        self._memories.pop(thread_id, None)
+
+    def clear_all_memories(self) -> None:
+        """Drop every conversation memory tracked by the pipeline."""
+        self._memories.clear()
 
     def get_resolved_entities(self, thread_id: str = "default") -> list[Entity]:
         """All entities from the thread's memory, merged by the entity resolver."""
