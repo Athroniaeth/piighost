@@ -52,6 +52,11 @@ class ConversationMemory:
     identity ``(text.lower(), label)``.  The ``all_entities`` property
     flattens all stored entities in insertion order, skipping duplicates.
 
+    An internal canonical index makes ``record()`` lookups O(1) instead
+    of scanning every previously-seen entity.  The index points at the
+    current slot of each canonical entity inside ``entities_by_hash``
+    so that merging a new surface-form variant stays O(1) too.
+
     Example:
         >>> from piighost.models import Detection, Entity, Span
         >>> memory = ConversationMemory()
@@ -62,6 +67,9 @@ class ConversationMemory:
     """
 
     entities_by_hash: dict[str, list[Entity]] = field(default_factory=dict)
+    _canonical_index: dict[tuple[str, str], tuple[str, int]] = field(
+        default_factory=dict, repr=False, compare=False
+    )
 
     def record(self, text_hash: str, entities: list[Entity]) -> None:
         """Record entities for a message, deduplicating against known ones.
@@ -75,66 +83,44 @@ class ConversationMemory:
             text_hash: SHA-256 hash of the original text.
             entities: Entities detected in that message.
         """
-        new_entities: list[Entity] = []
+        bucket = self.entities_by_hash.setdefault(text_hash, [])
+
         for entity in entities:
-            if self._is_known(entity):
-                self._add_variant(entity)
+            key = self._key(entity)
+            slot = self._canonical_index.get(key)
+            if slot is None:
+                bucket.append(entity)
+                self._canonical_index[key] = (text_hash, len(bucket) - 1)
             else:
-                new_entities.append(entity)
-        if text_hash in self.entities_by_hash:
-            self.entities_by_hash[text_hash].extend(new_entities)
-        else:
-            self.entities_by_hash[text_hash] = new_entities
+                self._merge_variant(slot, entity)
 
     @property
     def all_entities(self) -> list[Entity]:
         """Flat deduplicated list of all entities, in insertion order."""
-        seen: set[tuple[str, str]] = set()
-        result: list[Entity] = []
-        for entities in self.entities_by_hash.values():
-            for entity in entities:
-                key = (entity.detections[0].text.lower(), entity.label)
-                if key not in seen:
-                    seen.add(key)
-                    result.append(entity)
-        return result
+        return [
+            self.entities_by_hash[text_hash][index]
+            for text_hash, index in self._canonical_index.values()
+        ]
 
-    def _is_known(self, entity: Entity) -> bool:
-        """Check if a canonically identical entity already exists."""
-        canonical = entity.detections[0].text.lower()
-        label = entity.label
-        return any(
-            e.detections[0].text.lower() == canonical and e.label == label
-            for entities in self.entities_by_hash.values()
-            for e in entities
-        )
+    @staticmethod
+    def _key(entity: Entity) -> tuple[str, str]:
+        """Canonical identity used for deduplication."""
+        return entity.detections[0].text.lower(), entity.label
 
-    def _add_variant(self, entity: Entity) -> None:
-        """Merge new text variants into the matching existing entity.
+    def _merge_variant(self, slot: tuple[str, int], entity: Entity) -> None:
+        """Merge a new surface-form variant into the entity at *slot*.
 
-        When the same entity appears with a different surface form
-        (e.g. ``"france"`` vs ``"France"``), the new text is appended
-        to the existing ``Entity`` so that ``anonymize_with_ent`` can
-        replace all forms via ``str.replace``.
+        Detections whose exact ``text`` already belongs to the stored
+        entity are skipped; anything new is appended so that
+        ``anonymize_with_ent`` can replace every observed spelling.
         """
-        canonical = entity.detections[0].text.lower()
-        label = entity.label
-
-        for entity_list in self.entities_by_hash.values():
-            for i, existing in enumerate(entity_list):
-                if (
-                    existing.detections[0].text.lower() == canonical
-                    and existing.label == label
-                ):
-                    existing_texts = {d.text for d in existing.detections}
-                    new_dets = tuple(
-                        d for d in entity.detections if d.text not in existing_texts
-                    )
-                    if new_dets:
-                        entity_list[i] = Entity(
-                            detections=existing.detections + new_dets
-                        )
-                    return
+        text_hash, index = slot
+        bucket = self.entities_by_hash[text_hash]
+        existing = bucket[index]
+        existing_texts = {d.text for d in existing.detections}
+        new_dets = tuple(d for d in entity.detections if d.text not in existing_texts)
+        if new_dets:
+            bucket[index] = Entity(detections=existing.detections + new_dets)
 
 
 class ThreadAnonymizationPipeline(AnonymizationPipeline):
