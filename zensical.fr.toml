@@ -14,7 +14,11 @@ extra_css = ["stylesheets/extra.css"]
 nav = [
   { "Accueil" = "index.md" },
   { "Démarrer" = [
-    { "Démarrage rapide" = "getting-started.md" },
+    { "Installation" = "getting-started/installation.md" },
+    { "Premier pipeline" = "getting-started/first-pipeline.md" },
+    { "Pipeline conversationnel" = "getting-started/conversation.md" },
+    { "Middleware LangChain" = "getting-started/langchain.md" },
+    { "Client distant" = "getting-started/api-client.md" },
     { "Usage basique" = "examples/basic.md" },
   ]},
   { "Usage" = [

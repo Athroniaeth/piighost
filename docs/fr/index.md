@@ -145,7 +145,7 @@ Sortie :
 Les deux occurrences de `Patrick`{ .pii } sont reliées, idem pour `Paris`{ .pii }. Dans une conversation, les
 messages suivants réutilisent les mêmes placeholders, et la désanonymisation est automatique pour l'utilisateur final.
 
-Pour l'installation et le premier exemple complet, voir [Démarrage rapide](getting-started.md).
+Pour l'installation et le premier exemple complet, voir [Installation](getting-started/installation.md) puis [Premier pipeline](getting-started/first-pipeline.md).
 
 ---
 
@@ -161,7 +161,11 @@ Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/)
 
     Installer et prendre piighost en main.
 
-    - [Démarrage rapide](getting-started.md)
+    - [Installation](getting-started/installation.md)
+    - [Premier pipeline](getting-started/first-pipeline.md)
+    - [Pipeline conversationnel](getting-started/conversation.md)
+    - [Middleware LangChain](getting-started/langchain.md)
+    - [Client distant](getting-started/api-client.md)
     - [Usage basique](examples/basic.md)
 
 -   :lucide-wrench: __Usage__
