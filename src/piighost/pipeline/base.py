@@ -24,6 +24,12 @@ from piighost.resolver.span import (
 )
 from piighost.utils import hash_sha256
 
+CACHE_KEY_DETECTION = "detect"
+"""Prefix for detector-result cache entries."""
+
+CACHE_KEY_ANONYMIZATION = "anon:anonymized"
+"""Prefix for anonymized-text → (original, entities) cache entries."""
+
 
 class AnonymizationPipeline:
     """Orchestrates the full anonymization pipeline.
@@ -124,7 +130,7 @@ class AnonymizationPipeline:
         Raises:
             KeyError: If the anonymized text was never produced by this pipeline.
         """
-        key = f"anon:anonymized:{hash_sha256(anonymized_text)}"
+        key = f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized_text)}"
         cached = await self._cache_get(key)
 
         if cached is None:
@@ -149,7 +155,7 @@ class AnonymizationPipeline:
             return
 
         serialized_entities = self._serialize_entities(entities)
-        key = f"anon:anonymized:{hash_sha256(anonymized)}"
+        key = f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized)}"
 
         await self._cache.set(
             key,
@@ -164,7 +170,7 @@ class AnonymizationPipeline:
         if self._cache is None:
             return await self._detector.detect(text)
 
-        cache_key = f"detect:{hash_sha256(text)}"
+        cache_key = f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
         cached = await self._cache.get(cache_key)
 
         if cached is not None:
