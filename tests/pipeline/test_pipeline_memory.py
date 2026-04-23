@@ -414,3 +414,58 @@ class TestThreadIsolation:
 
         original_b, _ = await pipeline.deanonymize(rb, thread_id="thread-b")
         assert original_b == "Bonjour Marie"
+
+
+class TestMemoryEviction:
+    """max_threads bounds the number of conversation memories in RAM."""
+
+    async def test_max_threads_evicts_least_recently_used(self) -> None:
+        pipeline = ThreadAnonymizationPipeline(
+            detector=ExactMatchDetector([("Patrick", "PERSON")]),
+            anonymizer=Anonymizer(CounterPlaceholderFactory()),
+            max_threads=2,
+        )
+        await pipeline.anonymize("Bonjour Patrick", thread_id="a")
+        await pipeline.anonymize("Bonjour Patrick", thread_id="b")
+        await pipeline.anonymize("Bonjour Patrick", thread_id="c")
+        assert set(pipeline._memories) == {"b", "c"}
+
+    async def test_access_refreshes_lru_order(self) -> None:
+        pipeline = ThreadAnonymizationPipeline(
+            detector=ExactMatchDetector([("Patrick", "PERSON")]),
+            anonymizer=Anonymizer(CounterPlaceholderFactory()),
+            max_threads=2,
+        )
+        await pipeline.anonymize("Bonjour Patrick", thread_id="a")
+        await pipeline.anonymize("Bonjour Patrick", thread_id="b")
+        # Touch "a" so "b" is now the least recently used.
+        pipeline.get_memory("a")
+        await pipeline.anonymize("Bonjour Patrick", thread_id="c")
+        assert set(pipeline._memories) == {"a", "c"}
+
+    async def test_invalid_max_threads_rejected(self) -> None:
+        with pytest.raises(ValueError, match="max_threads must be positive"):
+            ThreadAnonymizationPipeline(
+                detector=ExactMatchDetector([]),
+                anonymizer=Anonymizer(CounterPlaceholderFactory()),
+                max_threads=0,
+            )
+
+    async def test_clear_memory_drops_single_thread(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        await pipeline.anonymize("Bonjour Patrick", thread_id="a")
+        await pipeline.anonymize("Bonjour Patrick", thread_id="b")
+        pipeline.clear_memory("a")
+        assert "a" not in pipeline._memories
+        assert "b" in pipeline._memories
+
+    async def test_clear_memory_unknown_thread_is_noop(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        pipeline.clear_memory("never-created")  # no error
+
+    async def test_clear_all_memories(self) -> None:
+        pipeline = _pipeline([("Patrick", "PERSON")])
+        await pipeline.anonymize("Bonjour Patrick", thread_id="a")
+        await pipeline.anonymize("Bonjour Patrick", thread_id="b")
+        pipeline.clear_all_memories()
+        assert pipeline._memories == {}
