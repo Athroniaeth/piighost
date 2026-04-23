@@ -31,56 +31,56 @@ class AnyDetector(Protocol):
     async def detect(self, text: str) -> list[Detection]: ...
 ```
 
-### Exemple Detecteur spaCy
+???+ example "Détecteur spaCy"
 
-```python
-import spacy
-from piighost.models import Detection, Span
+    ```python
+    import spacy
+    from piighost.models import Detection, Span
 
-class SpacyDetector:
-    """Detecteur NER base sur spaCy."""
+    class SpacyDetector:
+        """Detecteur NER base sur spaCy."""
 
-    def __init__(self, model_name: str = "fr_core_news_sm"):
-        self._nlp = spacy.load(model_name)
+        def __init__(self, model_name: str = "fr_core_news_sm"):
+            self._nlp = spacy.load(model_name)
 
-    async def detect(self, text: str) -> list[Detection]:
-        doc = self._nlp(text)
-        return [
-            Detection(
-                text=ent.text,
-                label=ent.label_,
-                position=Span(start_pos=ent.start_char, end_pos=ent.end_char),
-                confidence=1.0,
-            )
-            for ent in doc.ents
-        ]
-```
-
-### Exemple Detecteur par liste blanche
-
-```python
-import re
-from piighost.models import Detection, Span
-
-class AllowlistDetector:
-    """Detecte les entites d'une liste fixe (utile pour les tests ou les donnees structurees)."""
-
-    def __init__(self, allowlist: dict[str, str]):
-        # {"Patrick Dupont": "PERSON", "Paris": "LOCATION"}
-        self._allowlist = allowlist
-
-    async def detect(self, text: str) -> list[Detection]:
-        detections = []
-        for fragment, label in self._allowlist.items():
-            for match in re.finditer(re.escape(fragment), text):
-                detections.append(Detection(
-                    text=match.group(),
-                    label=label,
-                    position=Span(start_pos=match.start(), end_pos=match.end()),
+        async def detect(self, text: str) -> list[Detection]:
+            doc = self._nlp(text)
+            return [
+                Detection(
+                    text=ent.text,
+                    label=ent.label_,
+                    position=Span(start_pos=ent.start_char, end_pos=ent.end_char),
                     confidence=1.0,
-                ))
-        return detections
-```
+                )
+                for ent in doc.ents
+            ]
+    ```
+
+??? example "Détecteur par liste blanche"
+
+    ```python
+    import re
+    from piighost.models import Detection, Span
+
+    class AllowlistDetector:
+        """Detecte les entites d'une liste fixe (utile pour les tests ou les donnees structurees)."""
+
+        def __init__(self, allowlist: dict[str, str]):
+            # {"Patrick Dupont": "PERSON", "Paris": "LOCATION"}
+            self._allowlist = allowlist
+
+        async def detect(self, text: str) -> list[Detection]:
+            detections = []
+            for fragment, label in self._allowlist.items():
+                for match in re.finditer(re.escape(fragment), text):
+                    detections.append(Detection(
+                        text=match.group(),
+                        label=label,
+                        position=Span(start_pos=match.start(), end_pos=match.end()),
+                        confidence=1.0,
+                    ))
+            return detections
+    ```
 
 ### Utilisation
 
@@ -256,48 +256,48 @@ class AnyPlaceholderFactory(Protocol):
     def create(self, entities: list[Entity]) -> dict[Entity, str]: ...
 ```
 
-### Exemple Tags UUID
+???+ example "Factory Tags UUID"
 
-```python
-import uuid
-from piighost.models import Entity
+    ```python
+    import uuid
+    from piighost.models import Entity
 
-class UUIDPlaceholderFactory:
-    """Genere des tags UUID opaques, ex: <<a3f2-1b4c>>."""
+    class UUIDPlaceholderFactory:
+        """Genere des tags UUID opaques, ex: <<a3f2-1b4c>>."""
 
-    def create(self, entities: list[Entity]) -> dict[Entity, str]:
-        result: dict[Entity, str] = {}
-        seen: dict[str, str] = {}
+        def create(self, entities: list[Entity]) -> dict[Entity, str]:
+            result: dict[Entity, str] = {}
+            seen: dict[str, str] = {}
 
-        for entity in entities:
-            canonical = entity.detections[0].text.lower()
-            if canonical not in seen:
-                seen[canonical] = f"<<{uuid.uuid4().hex[:8]}>>"
-            result[entity] = seen[canonical]
+            for entity in entities:
+                canonical = entity.detections[0].text.lower()
+                if canonical not in seen:
+                    seen[canonical] = f"<<{uuid.uuid4().hex[:8]}>>"
+                result[entity] = seen[canonical]
 
-        return result
-```
+            return result
+    ```
 
-### Exemple Format personnalise
+??? example "Factory Format personnalisé"
 
-```python
-from collections import defaultdict
-from piighost.models import Entity
+    ```python
+    from collections import defaultdict
+    from piighost.models import Entity
 
-class BracketPlaceholderFactory:
-    """Genere des tags au format [PERSON:1], [LOCATION:2], etc."""
+    class BracketPlaceholderFactory:
+        """Genere des tags au format [PERSON:1], [LOCATION:2], etc."""
 
-    def create(self, entities: list[Entity]) -> dict[Entity, str]:
-        result: dict[Entity, str] = {}
-        counters: dict[str, int] = defaultdict(int)
+        def create(self, entities: list[Entity]) -> dict[Entity, str]:
+            result: dict[Entity, str] = {}
+            counters: dict[str, int] = defaultdict(int)
 
-        for entity in entities:
-            label = entity.label
-            counters[label] += 1
-            result[entity] = f"[{label}:{counters[label]}]"
+            for entity in entities:
+                label = entity.label
+                counters[label] += 1
+                result[entity] = f"[{label}:{counters[label]}]"
 
-        return result
-```
+            return result
+    ```
 
 ### Utilisation
 
