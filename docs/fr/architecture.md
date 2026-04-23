@@ -74,6 +74,9 @@ flowchart TB
     MW <--> TOOLS
 ```
 
+*Figure 1 — Architecture en couches : du protocole au middleware LangChain.*
+{ .figure-caption }
+
 ---
 
 ## Pipeline 5 etapes
@@ -220,6 +223,8 @@ Enveloppe chaque appel d'outil :
 
 Du point de vue d'une PII donnée, voici les états qu'elle traverse entre sa détection initiale et son affichage à l'utilisateur final, et les transitions possibles (premier passage, cache hit, désanonymisation).
 
+<figure markdown="1">
+
 ```mermaid
 flowchart TB
     classDef state fill:#90CAF9,stroke:#1565C0,color:#000
@@ -247,6 +252,10 @@ flowchart TB
     ANON -->|deanonymize| REST
     REST --> END
 ```
+
+<figcaption>Figure 2 — Cycle de vie d'une PII au fil du pipeline et du cache de conversation.</figcaption>
+
+</figure>
 
 La mémoire (`ConversationMemory`) partage le mapping d'une entité sur toute la conversation identifiée par un `thread_id`. Un second message contenant la même PII saute directement à l'état `Anonymisée` via le cache, sans repasser par le détecteur NER.
 
