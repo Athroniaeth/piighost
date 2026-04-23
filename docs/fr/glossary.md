@@ -33,7 +33,7 @@ Span
     par le résolveur de spans.
 
 Détection
-:   Sortie d'un détecteur : un tuple `(texte, label, span, confiance)`. Par exemple, détecter `"Patrick"` comme
+:   Sortie d'un détecteur : un tuple `(texte, label, span, confiance)`. Par exemple, détecter `Patrick`{ .pii } comme
     `PERSON` en position `(0, 7)` avec une confiance de `0.95` produit une `Detection`.
 
 Entité
@@ -42,12 +42,12 @@ Entité
     `Detection` qui est une occurrence repérée.
 
 Liaison d'entités (entity linking)
-:   Étape qui regroupe les détections référant à la même PII réelle. Par exemple, lier `"Patrick"` en position
-    `(0, 7)` et `"patrick"` en position `(34, 41)` dans une seule `Entity`, afin que les deux occurrences partagent
+:   Étape qui regroupe les détections référant à la même PII réelle. Par exemple, lier `Patrick`{ .pii } en position
+    `(0, 7)` et `patrick`{ .pii } en position `(34, 41)` dans une seule `Entity`, afin que les deux occurrences partagent
     le même placeholder.
 
 Placeholder
-:   Jeton qui remplace une PII dans le texte anonymisé. Par défaut du type `<<PERSON_1>>`, `<<LOCATION_1>>`. La
+:   Jeton qui remplace une PII dans le texte anonymisé. Par défaut du type `<<PERSON_1>>`{ .placeholder }, `<<LOCATION_1>>`{ .placeholder }. La
     stratégie de nommage est contrôlée par une `PlaceholderFactory` (compteur, UUID, hash, masqué, caviardé).
 
 Pipeline
