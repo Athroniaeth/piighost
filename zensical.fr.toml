@@ -31,7 +31,7 @@ nav = [
 
 [project.theme]
 language = "fr"
-icon.logo = "lucide/shield"
+icon.logo = "lucide/ghost"
 features = [
   "announce.dismiss",
   "content.code.annotate",
