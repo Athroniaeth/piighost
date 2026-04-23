@@ -12,7 +12,7 @@ from piighost.anonymizer import AnyAnonymizer
 from piighost.detector import AnyDetector
 from piighost.exceptions import CacheMissError
 from piighost.linker.entity import AnyEntityLinker, ExactEntityLinker
-from piighost.models import Detection, Entity, Span
+from piighost.models import Detection, Entity
 from piighost.placeholder import AnyPlaceholderFactory
 from piighost.resolver.entity import (
     AnyEntityConflictResolver,
@@ -203,60 +203,21 @@ class AnonymizationPipeline:
 
     @staticmethod
     def _serialize_detections(detections: list[Detection]) -> list[dict]:
-        return [
-            {
-                "text": d.text,
-                "label": d.label,
-                "start": d.position.start_pos,
-                "end": d.position.end_pos,
-                "confidence": d.confidence,
-            }
-            for d in detections
-        ]
+        return [d.to_dict() for d in detections]
 
     @staticmethod
     def _deserialize_detections(data: list[dict]) -> list[Detection]:
-        return [
-            Detection(
-                text=d["text"],
-                label=d["label"],
-                position=Span(start_pos=d["start"], end_pos=d["end"]),
-                confidence=d["confidence"],
-            )
-            for d in data
-        ]
+        return [Detection.from_dict(d) for d in data]
 
     @staticmethod
     def _serialize_entities(entities: list[Entity]) -> list[list[dict]]:
         """Serialize entities as a list of detection lists."""
-        return [
-            [
-                {
-                    "text": d.text,
-                    "label": d.label,
-                    "start": d.position.start_pos,
-                    "end": d.position.end_pos,
-                    "confidence": d.confidence,
-                }
-                for d in entity.detections
-            ]
-            for entity in entities
-        ]
+        return [[d.to_dict() for d in entity.detections] for entity in entities]
 
     @staticmethod
     def _deserialize_entities(data: list[list[dict]]) -> list[Entity]:
         """Deserialize entities from a list of detection lists."""
         return [
-            Entity(
-                detections=tuple(
-                    Detection(
-                        text=d["text"],
-                        label=d["label"],
-                        position=Span(start_pos=d["start"], end_pos=d["end"]),
-                        confidence=d["confidence"],
-                    )
-                    for d in detections
-                )
-            )
+            Entity(detections=tuple(Detection.from_dict(d) for d in detections))
             for detections in data
         ]
