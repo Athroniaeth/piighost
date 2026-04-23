@@ -78,6 +78,9 @@ flowchart TB
 
 ## Pipeline 5 etapes
 
+!!! tip "Tout est remplaçable"
+    Chaque étape se trouve derrière un protocole. Voir [Étendre PIIGhost](extending.md) pour brancher votre propre détecteur, linker, résolveur ou factory.
+
 Le coeur de PIIGhost est `AnonymizationPipeline` qui orchestre 5 etapes, chacune implementee par un protocole swappable.
 
 ```mermaid
