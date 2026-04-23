@@ -10,7 +10,7 @@ Cette page presente les usages fondamentaux de la bibliotheque sans integration 
 
 ## Anonymisation simple avec le pipeline
 
-```python
+```python title="pipeline.py" linenums="1" hl_lines="23-30"
 import asyncio
 
 from gliner2 import GLiNER2
