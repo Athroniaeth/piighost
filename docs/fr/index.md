@@ -44,11 +44,11 @@ Chaque approche a ses failles propres, et les modèles NER en ajoutent quelques-
 Même en corrigeant ces défauts, il reste plusieurs problèmes de fond :
 
 - **Cohérence des placeholders** : toutes les occurrences d'un même PII doivent être anonymisées de la même manière
-  (ex. `<<PERSON_1>>` pour « Patrick » dans tout le texte), afin de préserver l'information qu'il s'agit de la même
-  entité tout en protégeant la confidentialité.
+  (ex. `<<PERSON_1>>`{ .placeholder } pour `Patrick`{ .pii } dans tout le texte), afin de préserver l'information
+  qu'il s'agit de la même entité tout en protégeant la confidentialité.
 - **Liaison floue** : il faut pouvoir lier des détections qui ne sont pas strictement identiques, par exemple
-  « Patrick » et « patrick » (différence de casse), « Patric » (faute d'orthographe), ou encore mention complète
-  vs partielle (« Patrick Dupont » et « Patrick »).
+  `Patrick`{ .pii } et `patrick`{ .pii } (différence de casse), `Patric`{ .pii } (faute d'orthographe), ou encore
+  mention complète vs partielle (`Patrick Dupont`{ .pii } et `Patrick`{ .pii }).
 
 ### Le cas conversationnel (agents IA)
 
@@ -132,8 +132,8 @@ Sortie :
 
 > `<<PERSON_1>>`{ .placeholder } habite à `<<LOCATION_1>>`{ .placeholder }. `<<PERSON_1>>`{ .placeholder } adore `<<LOCATION_1>>`{ .placeholder }.
 
-Les deux occurrences de « Patrick » sont reliées, idem pour « Paris ». Dans une conversation, les messages suivants
-réutilisent les mêmes placeholders, et la désanonymisation est automatique pour l'utilisateur final.
+Les deux occurrences de `Patrick`{ .pii } sont reliées, idem pour `Paris`{ .pii }. Dans une conversation, les
+messages suivants réutilisent les mêmes placeholders, et la désanonymisation est automatique pour l'utilisateur final.
 
 Pour l'installation et le premier exemple complet, voir [Démarrage rapide](getting-started.md).
 
