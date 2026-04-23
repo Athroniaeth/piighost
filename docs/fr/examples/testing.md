@@ -1,5 +1,7 @@
 ---
 icon: lucide/test-tube
+tags:
+  - Tests
 ---
 
 # Tests

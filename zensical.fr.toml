@@ -71,6 +71,23 @@ toggle.name = "Passer en mode clair"
 new = "Ajoutée récemment"
 deprecated = "Dépréciée"
 
+[project.extra.tags]
+LangChain = "langchain"
+Middleware = "middleware"
+"Détecteur" = "detecteur"
+Regex = "regex"
+"Avancé" = "avance"
+Tests = "tests"
+
+[project.theme.icon.tag]
+default = "lucide/hash"
+langchain = "lucide/link"
+middleware = "lucide/blend"
+detecteur = "lucide/scan-search"
+regex = "lucide/regex"
+avance = "lucide/rocket"
+tests = "lucide/flask-conical"
+
 [[project.extra.alternate]]
 name = "English"
 link = "/piighost/"

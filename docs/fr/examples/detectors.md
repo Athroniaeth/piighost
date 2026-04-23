@@ -1,6 +1,9 @@
 ---
 icon: lucide/scan-search
 status: new
+tags:
+  - Détecteur
+  - Regex
 ---
 
 # Utiliser les détecteurs prêts à l'emploi

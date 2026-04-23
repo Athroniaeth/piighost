@@ -1,5 +1,8 @@
 ---
 icon: lucide/link
+tags:
+  - LangChain
+  - Middleware
 ---
 
 # Integration LangChain
