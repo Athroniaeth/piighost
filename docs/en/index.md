@@ -8,13 +8,27 @@ icon: lucide/shield
 
 ## Use cases
 
-Concrete scenarios where `piighost` fits naturally:
+Five families of scenarios where `piighost` fits naturally, from the most defensive (protecting the user) to the most integrated (tool-enabled agents).
 
-- **Customer support chatbot** sending ticket content to a third-party LLM without leaking customer names, emails, or account numbers.
-- **Internal HR RAG** over documents containing employee names, salaries, or evaluation notes.
-- **Legal assistant** processing contracts with client and counterparty names.
-- **Batch email summarization** pipelines that should not transmit the sender or recipient identity.
-- **Tool-enabled agents** with CRM access or email-send capability, where the LLM only sees placeholders and tools receive the real values.
+**1. Protecting users from third-party LLM providers.** Cloud APIs can store, cross-reference, and exploit PII: commercial profiling, legal requisitions, training on conversations, targeting of journalists, whistleblowers, or politicians.
+
+*Example: a consumer medical assistant whose conversations should never leave your infrastructure with the patient's name attached.*
+
+**2. Structured extraction without JSON leakage.** When an LLM extracts fields into a schema, PII reappear as-is in the output. With `piighost`, the model only manipulates placeholders; deanonymization restores the real values client-side.
+
+*Example: extracting a notarial deed into a JSON (parties, assets, amounts) without the LLM ever accessing the real identities.*
+
+**3. Document redaction.** Produce a shareable version of a confidential document while protecting natural persons, keeping the text readable and usable.
+
+*Example: anonymizing a judgment before open-access publication.*
+
+**4. Enterprise RAG over private documents.** A classic RAG pipeline on a cloud LLM effectively limits you to already-public documents: the moment you feed an internal contract, an HR file, or a strategic note into it, the provider ingests it. By anonymizing retrieved chunks before sending them to the model, you can index genuinely private documents while keeping a hosted LLM.
+
+*Example: an internal legal knowledge base (contracts, annotated case law) queried through a cloud LLM without client names, amounts, or sensitive clauses leaving your infrastructure.*
+
+**5. Agents with internal tools.** The LLM reasons on placeholders; the tools (CRM, email, DB) receive the real values at call time. The model never sees the PII, and the tools work normally.
+
+*Example: a sales agent that queries the CRM and sends emails without the LLM ever having read the client names.*
 
 ---
 
