@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,29 @@ class Detection:
         """
         return f"{self.text}:{self.label}:{self.position.start_pos}:{self.position.end_pos}:{self.confidence}"
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-friendly mapping of this detection."""
+        return {
+            "text": self.text,
+            "label": self.label,
+            "start_pos": self.position.start_pos,
+            "end_pos": self.position.end_pos,
+            "confidence": self.confidence,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Detection":
+        """Build a Detection from the mapping produced by :meth:`to_dict`."""
+        return cls(
+            text=data["text"],
+            label=data["label"],
+            position=Span(
+                start_pos=data["start_pos"],
+                end_pos=data["end_pos"],
+            ),
+            confidence=data["confidence"],
+        )
+
 
 @dataclass(frozen=True)
 class Entity:
@@ -104,3 +128,12 @@ class Entity:
             The label string (e.g. ``"PERSON"``).
         """
         return self.detections[0].label
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-friendly mapping of this entity."""
+        return {"detections": [d.to_dict() for d in self.detections]}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Entity":
+        """Build an Entity from the mapping produced by :meth:`to_dict`."""
+        return cls(detections=tuple(Detection.from_dict(d) for d in data["detections"]))
