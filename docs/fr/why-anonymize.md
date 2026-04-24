@@ -40,7 +40,7 @@ Cela ne suffit pas, parce qu'un engagement contractuel peut tomber pour trois ra
 
 Aucune politique ne protège contre une erreur d'ingénierie ou une intrusion réussie. Deux cas suffisent à l'illustrer.
 
-En **mars 2023**, un bug dans la bibliothèque Redis utilisée par OpenAI a exposé pendant quelques heures les titres de conversations ChatGPT à d'autres utilisateurs. Pour environ 1,2 % des abonnés ChatGPT Plus actifs dans la fenêtre concernée, des informations de paiement partielles (nom, e-mail, quatre derniers chiffres de la carte bancaire, date d'expiration) ont également été visibles à des comptes tiers. OpenAI a publié un post-mortem public reconnaissant l'incident.
+Le **20 mars 2023**, un bug dans la bibliothèque Redis utilisée par OpenAI a exposé pendant environ neuf heures les titres de conversations ChatGPT à d'autres utilisateurs. Pour environ 1,2 % des abonnés ChatGPT Plus actifs dans la fenêtre concernée, des informations de paiement partielles (nom, e-mail, quatre derniers chiffres de la carte bancaire, date d'expiration) ont également été visibles à des comptes tiers. OpenAI a publié un post-mortem public reconnaissant l'incident.
 
 En **janvier 2025**, les chercheurs de `Wiz Research` ont découvert qu'une base ClickHouse de DeepSeek était accessible sur Internet, sans authentification. Plus d'un million de lignes de logs y étaient exposées, incluant des historiques de conversations, des clés d'API et des métadonnées internes de l'infrastructure.
 
@@ -60,9 +60,11 @@ Les offres payantes (API, ChatGPT Enterprise, Claude Team, etc.) excluent géné
 
 Même quand le provider *veut* supprimer vos données, un tribunal peut l'en empêcher.
 
-En **2025**, dans le cadre de son procès contre OpenAI, le `New York Times` a obtenu d'un juge fédéral américain une **ordonnance de préservation** : OpenAI doit désormais conserver **indéfiniment** toutes les conversations ChatGPT et les appels API de ses clients, y compris celles que l'entreprise aurait normalement supprimées selon sa propre politique. OpenAI s'y est opposée publiquement en déposant une motion de reconsidération, en vain : le juge a maintenu l'ordre.
+En **mai 2025**, dans le cadre de son procès contre OpenAI, le `New York Times` a obtenu de la juge fédérale Ona T. Wang une **ordonnance de préservation** : OpenAI devait conserver toutes les conversations ChatGPT et les appels API de ses clients, y compris celles que l'entreprise aurait normalement supprimées selon sa propre politique. OpenAI s'y est opposée publiquement en déposant une motion de reconsidération, refusée dans un premier temps. L'ordonnance a finalement été levée le **26 septembre 2025** (terminaison formelle le 9 octobre), les utilisateurs de l'EEE, de Suisse et du Royaume-Uni ayant par ailleurs été exemptés de la mesure.
 
-Cet épisode a deux conséquences pratiques. D'abord, la politique de confidentialité d'un provider n'est **jamais définitive** : une décision de justice à laquelle vous n'êtes pas partie peut la réécrire. Ensuite, le temps d'exposition de vos données à une future fuite ou attaque augmente mécaniquement, et la probabilité qu'une autorité publique (américaine ou, via une commission rogatoire internationale, étrangère) y accède grandit avec lui.
+L'affaire ne s'arrête pas là. En **novembre 2025**, la même juge a ordonné à OpenAI de livrer au `New York Times` **20 millions de logs ChatGPT désidentifiés** à des fins de preuve. OpenAI a demandé une reconsidération, qui a été refusée.
+
+Cet épisode a deux conséquences pratiques. D'abord, la politique de confidentialité d'un provider n'est **jamais définitive** : une décision de justice à laquelle vous n'êtes pas partie peut la réécrire, imposer la conservation ou forcer la livraison massive de conversations à un tiers. Ensuite, le temps d'exposition de vos données à une future fuite ou attaque augmente mécaniquement, et la probabilité qu'une autorité publique (américaine ou, via une commission rogatoire internationale, étrangère) y accède grandit avec lui.
 
 ---
 
@@ -91,7 +93,7 @@ Plus de 5 300 entreprises s'appuyaient sur le `Privacy Shield` pour leurs transf
 
 ### Microsoft Ireland : la juridiction prime la géographie
 
-Entre 2013 et 2018, les autorités américaines ont exigé de Microsoft qu'elle livre des données d'un client stockées sur ses serveurs en Irlande. Microsoft a résisté jusqu'à la Cour Suprême. La procédure n'a jamais été tranchée sur le fond, parce que le Congrès a voté le `CLOUD Act` en mars 2018 pour clarifier la réponse : oui, les entreprises américaines doivent livrer les données, où qu'elles soient stockées. L'affaire a été déclarée sans objet.
+Entre 2013 et 2018, les autorités américaines ont exigé de Microsoft, via un mandat émis sous le `Stored Communications Act`, qu'elle livre des données d'un client stockées sur ses serveurs en Irlande. Microsoft a résisté jusqu'à la Cour Suprême. La procédure n'a jamais été tranchée sur le fond, parce que le Congrès a voté le `CLOUD Act` en mars 2018 pour clarifier la réponse : oui, les entreprises américaines doivent livrer les données, où qu'elles soient stockées. L'affaire a été déclarée sans objet.
 
 Conséquence directe : **l'hébergement européen par un provider américain n'offre pas d'étanchéité juridique face aux États-Unis**. Le marketing "vos données restent en Europe" masque cette asymétrie.
 
@@ -102,7 +104,7 @@ Conséquence directe : **l'hébergement européen par un provider américain n'o
 
 Le RGPD reste un outil solide sur le papier, mais sa mise en œuvre sur les LLM est balbutiante. L'affaire la plus emblématique le montre.
 
-La `Garante`, autorité italienne de protection des données (équivalent de la `CNIL`), ouvre une enquête contre OpenAI dès **mars 2023**. En **décembre 2024**, elle inflige une amende de **15 millions d'euros** à OpenAI pour traitement sans base légale, manquements à la transparence et absence de mécanisme de vérification d'âge. Mais en **mars 2026**, le tribunal administratif de Rome annule cette décision sur des motifs procéduraux. À ce jour, aucune autorité européenne n'a fait confirmer en dernier ressort une sanction contre un grand LLM pour violation du RGPD sur la phase de collecte d'entraînement.
+La `Garante`, autorité italienne de protection des données (équivalent de la `CNIL`), ouvre une enquête contre OpenAI dès **mars 2023**. En **décembre 2024**, elle inflige une amende de **15 millions d'euros** à OpenAI pour traitement sans base légale, manquements à la transparence et absence de mécanisme de vérification d'âge. Mais en **mars 2026**, le tribunal de Rome annule cette décision dans son intégralité ; les motifs détaillés n'ont pas encore été rendus publics au moment de la rédaction de cette page. À ce jour, aucune autorité européenne n'a fait confirmer en dernier ressort une sanction contre un grand LLM pour violation du RGPD sur la phase de collecte d'entraînement.
 
 Le RGPD reste puissant, mais compter uniquement sur lui pour protéger des données sensibles envoyées à un LLM, c'est parier sur un rempart qui n'a pas encore démontré sa capacité à tenir en appel.
 
@@ -114,7 +116,7 @@ Les sections précédentes expliquent comment les données sortent de votre pér
 
 ### Surveillance de masse
 
-Une conversation LLM ressemble techniquement à un e-mail ou un chat : du texte daté, rattaché à un compte identifiable. Elle tombe dans le même périmètre de collecte que les autres communications électroniques couvertes par `FISA 702`, renouvelé pour deux ans en avril 2024. Les rapports déclassifiés du `PCLOB` documentent plusieurs centaines de milliers de **sélecteurs** (identifiants de cibles) actifs chaque année, et la collecte "à propos" des cibles (suspendue en 2017, réautorisée ensuite) élargit mécaniquement le périmètre à des communications qui ne sont ni envoyées à la cible ni par la cible, mais qui la mentionnent.
+Une conversation LLM ressemble techniquement à un e-mail ou un chat : du texte daté, rattaché à un compte identifiable. Elle tombe dans le même périmètre de collecte que les autres communications électroniques couvertes par `FISA 702`, renouvelé pour deux ans en avril 2024 par le `RISAA`, et dont le renouvellement est à nouveau en débat au Congrès en avril 2026. Les rapports déclassifiés du `PCLOB` documentent plusieurs centaines de milliers de **sélecteurs** (identifiants de cibles) actifs chaque année, et la collecte "à propos" des cibles (suspendue en 2017, réautorisée ensuite) élargit mécaniquement le périmètre à des communications qui ne sont ni envoyées à la cible ni par la cible, mais qui la mentionnent.
 
 Que cette capacité soit aujourd'hui appliquée aux conversations LLM ou non, le cadre juridique et l'architecture technique sont en place.
 
@@ -122,9 +124,9 @@ Que cette capacité soit aujourd'hui appliquée aux conversations LLM ou non, le
 
 L'inquiétude n'est pas spéculative, elle s'appuie sur des cas documentés de surveillance ciblée dans d'autres couches de l'Internet.
 
-- **Angela Merkel, 2013** : les révélations Snowden confirment que la NSA surveille son téléphone portable depuis au moins 2002. Le gouvernement allemand le reconnaît officiellement la même année.
+- **Angela Merkel, octobre 2013** : les révélations Snowden documentent la surveillance par la NSA du téléphone portable de la chancelière allemande. Les sources allemandes (Süddeutsche Zeitung, NDR) indiquent qu'en réalité, la cible NSA était liée au poste de chancelier plus qu'à la personne (Gerhard Schröder en fut visé avant Merkel, qui n'a accédé à la fonction qu'en novembre 2005). Obama a confirmé implicitement en promettant par téléphone que la surveillance était terminée ; le gouvernement allemand a publiquement protesté.
 - **Associated Press, 2013** : le `Department of Justice` saisit secrètement les relevés téléphoniques de vingt lignes AP pendant deux mois, dans le cadre d'une enquête sur une fuite. L'agence l'apprend *après coup*.
-- **Pegasus / NSO, 2021** : la coalition `Forbidden Stories` documente l'usage du spyware Pegasus contre plus de 200 journalistes et activistes dans plusieurs pays, dont la France, avec l'assistance de plusieurs États clients.
+- **Pegasus / NSO, 2021** : la coalition `Forbidden Stories` documente l'usage du spyware Pegasus contre environ 180 journalistes ciblés, ainsi que des activistes, avocats, diplomates et chefs d'État dans plus de 20 pays, dont la France, avec l'assistance de plusieurs États clients.
 
 Aucun de ces cas ne concerne spécifiquement un LLM. Mais ils établissent trois faits : les États surveillent régulièrement les communications de journalistes, d'avocats et de personnalités politiques ; les outils juridiques et techniques pour le faire existent déjà ; un LLM qui voit passer les conversations d'un cabinet d'avocats, d'une rédaction d'investigation ou d'un mouvement militant devient, par construction, un point de concentration d'informations à haute valeur.
 
@@ -233,12 +235,12 @@ Sources citées et lectures utiles :
 - **CJUE, arrêt `Schrems II`** (C-311/18, 16 juillet 2020) : [curia.europa.eu](https://curia.europa.eu/)
 - **CLOUD Act** (H.R. 4943, 2018) : texte officiel sur [congress.gov](https://www.congress.gov/)
 - **Rapports PCLOB sur FISA 702** (Privacy and Civil Liberties Oversight Board) : [pclob.gov](https://www.pclob.gov/)
-- **Garante italienne, décision contre OpenAI** (décembre 2024, annulée par le tribunal administratif de Rome en mars 2026) : [garanteprivacy.it](https://www.garanteprivacy.it/)
-- **NYT vs OpenAI, ordonnance de préservation** (US District Court SDNY, 2025)
+- **Garante italienne, décision contre OpenAI** (décembre 2024, annulée par le tribunal de Rome en mars 2026) : [garanteprivacy.it](https://www.garanteprivacy.it/)
+- **NYT vs OpenAI, ordonnance de préservation et livraison de logs** (US District Court SDNY, mai à novembre 2025)
 - **OpenAI, post-mortem de l'incident Redis** (20 mars 2023) : [openai.com/blog](https://openai.com/)
 - **Wiz Research, exposition DeepSeek** (janvier 2025) : [wiz.io](https://www.wiz.io/)
 - **Samsung, politique interne sur les LLM** (mai 2023, couverture `Bloomberg`)
-- **Surveillance du téléphone d'Angela Merkel par la NSA** (révélations Snowden, octobre 2013, couverture `Der Spiegel`)
+- **Surveillance du téléphone d'Angela Merkel par la NSA** (révélations Snowden, octobre 2013, couverture `Der Spiegel`, `Süddeutsche Zeitung`, `NDR`)
 - **Saisie des relevés AP par le DOJ** (mai 2013, communiqué public d'Associated Press)
 - **Pegasus Project / Forbidden Stories** (juillet 2021) : [forbiddenstories.org](https://forbiddenstories.org/)
 - **ODNI, `Report on Commercially Available Information`** (janvier 2022, déclassifié juin 2023) : [dni.gov](https://www.dni.gov/)
