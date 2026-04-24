@@ -1,13 +1,11 @@
 """Chunked detector for texts that exceed NER model context windows."""
 
 import asyncio
-from dataclasses import dataclass
 
 from piighost.detector.base import AnyDetector
 from piighost.models import Detection, Span
 
 
-@dataclass
 class ChunkedDetector:
     """Wrapper that splits long texts into overlapping chunks before detection.
 
@@ -31,19 +29,23 @@ class ChunkedDetector:
         >>> detections = await chunked.detect("long text " * 20)
     """
 
-    detector: AnyDetector
-    chunk_size: int = 512
-    overlap: int = 128
-
-    def __post_init__(self) -> None:
-        if self.chunk_size <= 0:
-            raise ValueError(f"chunk_size must be positive, got {self.chunk_size}")
-        if self.overlap < 0:
-            raise ValueError(f"overlap must be non-negative, got {self.overlap}")
-        if self.overlap >= self.chunk_size:
+    def __init__(
+        self,
+        detector: AnyDetector,
+        chunk_size: int = 512,
+        overlap: int = 128,
+    ) -> None:
+        if chunk_size <= 0:
+            raise ValueError(f"chunk_size must be positive, got {chunk_size}")
+        if overlap < 0:
+            raise ValueError(f"overlap must be non-negative, got {overlap}")
+        if overlap >= chunk_size:
             raise ValueError(
-                f"overlap ({self.overlap}) must be less than chunk_size ({self.chunk_size})"
+                f"overlap ({overlap}) must be less than chunk_size ({chunk_size})"
             )
+        self.detector = detector
+        self.chunk_size = chunk_size
+        self.overlap = overlap
 
     async def detect(self, text: str) -> list[Detection]:
         """Detect entities, splitting into chunks if text exceeds chunk_size.

@@ -16,7 +16,6 @@ pipeline to recreate consistent placeholder tokens across messages.
 import re
 from collections import OrderedDict
 from contextvars import ContextVar
-from dataclasses import dataclass, field
 from typing import Protocol
 
 from aiocache import BaseCache
@@ -78,7 +77,6 @@ class AnyConversationMemory(Protocol):
     def record(self, text_hash: str, entities: list[Entity]) -> None: ...
 
 
-@dataclass
 class ConversationMemory:
     """In-memory conversation memory that accumulates entities across messages.
 
@@ -100,10 +98,14 @@ class ConversationMemory:
         [Entity(detections=(Detection(text='Patrick', label='PERSON', position=Span(start_pos=0, end_pos=7), confidence=0.9),))]
     """
 
-    entities_by_hash: dict[str, list[Entity]] = field(default_factory=dict)
-    _canonical_index: dict[tuple[str, str], tuple[str, int]] = field(
-        default_factory=dict, repr=False, compare=False
-    )
+    def __init__(
+        self,
+        entities_by_hash: dict[str, list[Entity]] | None = None,
+    ) -> None:
+        self.entities_by_hash: dict[str, list[Entity]] = (
+            entities_by_hash if entities_by_hash is not None else {}
+        )
+        self._canonical_index: dict[tuple[str, str], tuple[str, int]] = {}
 
     def record(self, text_hash: str, entities: list[Entity]) -> None:
         """Record entities for a message, deduplicating against known ones.
