@@ -27,6 +27,7 @@ from piighost.placeholder import (
     MaskPlaceholderFactory,
     RedactPlaceholderFactory,
 )
+from piighost.placeholder_tags import PreservesIdentity
 from piighost.resolver.span import ConfidenceSpanConflictResolver
 
 # ---------------------------------------------------------------------------
@@ -62,7 +63,7 @@ def get_weather(country_or_city: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _build_pipeline() -> ThreadAnonymizationPipeline:
+def _build_pipeline() -> ThreadAnonymizationPipeline[PreservesIdentity]:
     return ThreadAnonymizationPipeline(
         detector=ExactMatchDetector([("Patrick", "PERSON"), ("France", "LOCATION")]),
         span_resolver=ConfidenceSpanConflictResolver(),

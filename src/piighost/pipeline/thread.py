@@ -18,6 +18,8 @@ from collections import OrderedDict
 from contextvars import ContextVar
 from typing import Protocol
 
+from typing_extensions import TypeVar
+
 from aiocache import BaseCache
 
 from piighost.anonymizer import AnyAnonymizer
@@ -29,10 +31,20 @@ from piighost.pipeline.base import (
     CACHE_KEY_DETECTION,
     AnonymizationPipeline,
 )
-from piighost.placeholder import MaskPlaceholderFactory, RedactPlaceholderFactory
+from piighost.placeholder_tags import (
+    PlaceholderPreservation,
+    PreservesIdentity,
+    get_preservation_tag,
+)
 from piighost.resolver.entity import AnyEntityConflictResolver
 from piighost.resolver.span import AnySpanConflictResolver
 from piighost.utils import hash_sha256
+
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
 
 _current_thread_id: ContextVar[str] = ContextVar(
     "piighost_current_thread_id", default="default"
@@ -159,7 +171,7 @@ class ConversationMemory:
             bucket[index] = Entity(detections=existing.detections + new_dets)
 
 
-class ThreadAnonymizationPipeline(AnonymizationPipeline):
+class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     """Adds conversation memory on top of ``AnonymizationPipeline``.
 
     Delegates detection, resolution, and span-based anonymization to the
@@ -192,7 +204,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
     def __init__(
         self,
         detector: AnyDetector,
-        anonymizer: AnyAnonymizer,
+        anonymizer: AnyAnonymizer[PreservationT],
         entity_linker: AnyEntityLinker | None = None,
         entity_resolver: AnyEntityConflictResolver | None = None,
         span_resolver: AnySpanConflictResolver | None = None,
@@ -202,14 +214,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
     ) -> None:
         if max_threads is not None and max_threads <= 0:
             raise ValueError(f"max_threads must be positive or None, got {max_threads}")
-        factory = anonymizer.ph_factory
-        if isinstance(factory, (RedactPlaceholderFactory, MaskPlaceholderFactory)):
-            raise ValueError(
-                f"{type(factory).__name__} cannot be used with "
-                f"ThreadAnonymizationPipeline because it produces "
-                f"non-unique tokens that cannot be deanonymized. "
-                f"Use CounterPlaceholderFactory or HashPlaceholderFactory instead."
-            )
+        self._reject_non_identity_factory(anonymizer.ph_factory)
 
         super().__init__(
             detector,
@@ -223,6 +228,31 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline):
 
         self._memories: OrderedDict[str, ConversationMemory] = OrderedDict()
         self._max_threads = max_threads
+
+    @staticmethod
+    def _reject_non_identity_factory(factory: object) -> None:
+        """Raise if the factory does not advertise ``PreservesIdentity``.
+
+        Mirrors the static-typing constraint: the middleware and
+        conversation-memory logic both assume each entity maps to a
+        unique, reversible token, so factories tagged with a weaker
+        preservation level are rejected upfront.
+        """
+        tag = get_preservation_tag(factory)
+        if tag is None:
+            # Untyped factory: accept but trust the caller. Preserves
+            # backwards-compat with user-defined factories that haven't
+            # adopted the phantom-tag system yet.
+            return
+        if not issubclass(tag, PreservesIdentity):
+            raise ValueError(
+                f"{type(factory).__name__} is tagged "
+                f"'{tag.__name__}' and cannot be used with "
+                f"ThreadAnonymizationPipeline, which requires a factory "
+                f"tagged 'PreservesIdentity' so tokens can be "
+                f"deanonymised per-entity. "
+                f"Use CounterPlaceholderFactory or HashPlaceholderFactory instead."
+            )
 
     def get_memory(self, thread_id: str = "default") -> ConversationMemory:
         """Return the memory for *thread_id* (created on first access).

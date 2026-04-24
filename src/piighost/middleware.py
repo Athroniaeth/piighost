@@ -38,6 +38,7 @@ from langgraph.typing import ContextT
 
 from piighost.exceptions import CacheMissError
 from piighost.pipeline.thread import ThreadAnonymizationPipeline
+from piighost.placeholder_tags import PreservesIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +116,12 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         ... )
     """
 
-    _pipeline: ThreadAnonymizationPipeline
+    _pipeline: ThreadAnonymizationPipeline[PreservesIdentity]
     tool_strategy: ToolCallStrategy
 
     def __init__(
         self,
-        pipeline: ThreadAnonymizationPipeline,
+        pipeline: ThreadAnonymizationPipeline[PreservesIdentity],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
     ) -> None:
         super().__init__()

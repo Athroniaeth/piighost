@@ -4,14 +4,41 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Protocol
 
+from typing_extensions import TypeVar
+
 from piighost.models import Entity
+from piighost.placeholder_tags import (
+    PlaceholderPreservation,
+    PreservesIdentity,
+    PreservesLabel,
+    PreservesShape,
+)
+
+PreservationT_co = TypeVar(
+    "PreservationT_co",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+    covariant=True,
+)
+"""Phantom tag describing how much information a factory preserves.
+
+Defaults to :class:`PlaceholderPreservation` so that the legacy
+unparameterised ``AnyPlaceholderFactory`` annotation stays usable.
+Consumers that care about the level (anonymiser, pipeline,
+middleware) specialise the parameter.
+"""
 
 
-class AnyPlaceholderFactory(Protocol):
+class AnyPlaceholderFactory(Protocol[PreservationT_co]):
     """Protocol defining the interface for placeholder factories.
 
     A placeholder factory takes a list of entities and returns
     a mapping from each entity to its replacement token.
+
+    The generic parameter ``PreservationT_co`` is a phantom tag
+    declaring the information-preservation level of the tokens (see
+    :mod:`piighost.placeholder_tags`).  It lets downstream components
+    reject incompatible factories at type-check time.
     """
 
     def create(self, entities: list[Entity]) -> dict[Entity, str]:
@@ -26,7 +53,7 @@ class AnyPlaceholderFactory(Protocol):
         ...
 
 
-class CounterPlaceholderFactory:
+class CounterPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
     """Factory that generates tokens like ``<<PERSON_1>>``, ``<<PERSON_2>>``.
 
     Each entity gets a unique counter per label. Two different PERSON
@@ -63,7 +90,7 @@ class CounterPlaceholderFactory:
         return result
 
 
-class HashPlaceholderFactory:
+class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
     """Factory that generates tokens like ``<PERSON:a1b2c3d4>``.
 
     Uses SHA-256 of the canonical text + label to produce a deterministic,
@@ -108,7 +135,7 @@ class HashPlaceholderFactory:
         return result
 
 
-class RedactPlaceholderFactory:
+class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
     """Factory that generates tokens like ``<PERSON>``.
 
     All entities with the same label share the same token there is
@@ -204,7 +231,7 @@ def _build_default_strategies(mask_char: str, visible_chars: int) -> dict[str, M
     return strategies
 
 
-class MaskPlaceholderFactory:
+class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]):
     """Factory that generates partially masked tokens preserving some original characters.
 
     Uses a configurable ``strategies`` mapping from label (lowercase) to

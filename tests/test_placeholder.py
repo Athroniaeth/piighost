@@ -222,3 +222,41 @@ class TestMaskPlaceholderFactory:
 
     def test_empty_list(self) -> None:
         assert MaskPlaceholderFactory().create([]) == {}
+
+
+class TestGetPreservationTag:
+    """Runtime tag recovery used by the pipeline's factory check."""
+
+    def test_counter_is_preserves_identity(self) -> None:
+        from piighost.placeholder import CounterPlaceholderFactory
+        from piighost.placeholder_tags import PreservesIdentity, get_preservation_tag
+
+        assert get_preservation_tag(CounterPlaceholderFactory()) is PreservesIdentity
+
+    def test_hash_is_preserves_identity(self) -> None:
+        from piighost.placeholder import HashPlaceholderFactory
+        from piighost.placeholder_tags import PreservesIdentity, get_preservation_tag
+
+        assert get_preservation_tag(HashPlaceholderFactory()) is PreservesIdentity
+
+    def test_redact_is_preserves_label(self) -> None:
+        from piighost.placeholder import RedactPlaceholderFactory
+        from piighost.placeholder_tags import PreservesLabel, get_preservation_tag
+
+        assert get_preservation_tag(RedactPlaceholderFactory()) is PreservesLabel
+
+    def test_mask_is_preserves_shape(self) -> None:
+        from piighost.placeholder import MaskPlaceholderFactory
+        from piighost.placeholder_tags import PreservesShape, get_preservation_tag
+
+        assert get_preservation_tag(MaskPlaceholderFactory()) is PreservesShape
+
+    def test_untagged_factory_returns_none(self) -> None:
+        """A duck-typed factory that doesn't subclass the generic protocol is untagged."""
+        from piighost.placeholder_tags import get_preservation_tag
+
+        class DuckFactory:
+            def create(self, entities):  # noqa: ARG002
+                return {}
+
+        assert get_preservation_tag(DuckFactory()) is None
