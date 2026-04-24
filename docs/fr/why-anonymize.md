@@ -229,15 +229,6 @@ L'anonymisation est une couche dans une défense en profondeur, pas une solution
 - Elle dépend de la qualité des détecteurs. Une PII non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel.
 - Elle ne remplace pas les autres bonnes pratiques : chiffrement au repos, journalisation auditée, gestion des accès, formation des équipes.
 
-### Le cas particulier des PII hallucinées dans la réponse
-
-Un LLM peut **inventer** une donnée à forme de PII (un numéro de téléphone plausible, un nom associé à une entreprise, une adresse cohérente) qui ne figurait dans aucun message d'entrée. Ces valeurs ne sont pas une fuite au sens strict, puisqu'elles ne proviennent pas de votre périmètre, mais elles posent deux problèmes pratiques :
-
-- si la réponse est affichée telle quelle à un utilisateur ou stockée dans un système aval, la valeur hallucinée peut être prise pour vraie et désigner réellement quelqu'un par collision fortuite ;
-- une couche d'anonymisation qui travaille uniquement à partir des détections de l'entrée ne peut pas reconnaître ces valeurs comme sensibles, puisqu'elles n'ont pas d'antécédent dans la conversation.
-
-La parade est une **seconde passe de détection appliquée à la sortie du LLM**, indépendante de la passe d'entrée. Elle permet au minimum de flagger la présence d'une PII plausible, et selon le contexte de la masquer ou de refuser d'afficher la réponse. Ce mécanisme reste complémentaire de l'anonymisation en amont, pas un substitut.
-
 ---
 
 ## Pour aller plus loin
