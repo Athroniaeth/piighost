@@ -116,7 +116,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     """
 
     _pipeline: ThreadAnonymizationPipeline
-    _tool_strategy: ToolCallStrategy
+    tool_strategy: ToolCallStrategy
 
     def __init__(
         self,
@@ -125,7 +125,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
-        self._tool_strategy = tool_strategy
+        self.tool_strategy = tool_strategy
 
     async def abefore_model(
         self,
@@ -152,7 +152,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         thread_id = _get_thread_id()
 
         allowed_types: tuple[type, ...] = (HumanMessage, AIMessage)
-        if self._tool_strategy is ToolCallStrategy.INBOUND_ONLY:
+        if self.tool_strategy is ToolCallStrategy.INBOUND_ONLY:
             # awrap_tool_call left the ToolMessage raw; catch it here so
             # the LLM never sees real PII on the next pass.
             allowed_types = (HumanMessage, AIMessage, ToolMessage)
@@ -252,7 +252,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             A ``ToolMessage`` (or ``Command``) processed according to
             the active strategy.
         """
-        if self._tool_strategy is ToolCallStrategy.PASSTHROUGH:
+        if self.tool_strategy is ToolCallStrategy.PASSTHROUGH:
             return await handler(request)
 
         thread_id = _get_thread_id()
@@ -269,7 +269,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         call["args"] = patched_args
         response = await handler(request)
 
-        if self._tool_strategy is ToolCallStrategy.FULL and (
+        if self.tool_strategy is ToolCallStrategy.FULL and (
             isinstance(response, ToolMessage) and isinstance(response.content, str)
         ):
             anonymized_content, _ = await self._pipeline.anonymize(

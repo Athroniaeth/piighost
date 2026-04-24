@@ -534,4 +534,4 @@ class TestToolCallStrategies:
         """Backward compatibility: omitting tool_strategy yields FULL."""
         pipeline = _build_pipeline()
         middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
-        assert middleware._tool_strategy is ToolCallStrategy.FULL
+        assert middleware.tool_strategy is ToolCallStrategy.FULL
