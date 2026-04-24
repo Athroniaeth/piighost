@@ -176,3 +176,6 @@ Thumbs.db
 # Local sandbox scripts
 sandbox/
 
+# Claude Code local state (worktrees, session data)
+.claude/
+

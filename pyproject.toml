@@ -129,6 +129,26 @@ markers = [
 [tool.coverage.report]
 show_missing = true
 
+[tool.pyrefly]
+# Examples in examples/graph/ and examples/llm/ live in their own environments
+# (uv sub-project and PEP 723 inline metadata respectively), so their deps are
+# not installed in the main venv and would otherwise show spurious
+# missing-import errors. Scratch scripts under scripts/ have bit-rotted and
+# reference removed APIs.
+project-excludes = [
+    "examples/graph/**",
+    "examples/llm/**",
+    ".claude/**",
+    "scripts/**",
+    "benchmarks/**",
+    "dist/**",
+    "site/**",
+]
+# Extra search paths for pyrefly:
+#  - ``examples`` lets the detector example package resolve ``from .common``.
+#  - the project root lets test files do ``from tests.conftest import ...``.
+search-path = ["examples", "."]
+
 [tool.bandit]
 exclude_dirs = [
     "tests",
