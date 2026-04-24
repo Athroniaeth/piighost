@@ -18,6 +18,9 @@ if importlib.util.find_spec("faker") is None:
 
 from faker import Faker
 
+from piighost.placeholder import AnyPlaceholderFactory
+from piighost.placeholder_tags import PreservesIdentity
+
 FakerFn = Callable[[Faker], str]
 """Signature for faker functions: ``(faker_instance) -> fake_value``."""
 
@@ -88,7 +91,7 @@ DEFAULT_STRATEGIES: dict[str, FakerFn] = {
 }
 
 
-class FakerPlaceholderFactory:
+class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
     """Factory that generates realistic fake data as replacement tokens.
 
     Uses a configurable ``strategies`` mapping from label (lowercase) to

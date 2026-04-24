@@ -1,18 +1,32 @@
-from typing import Protocol
+from typing import Generic, Protocol
+
+from typing_extensions import TypeVar
 
 from piighost.exceptions import DeanonymizationError
 from piighost.models import Entity, Span
 from piighost.placeholder import AnyPlaceholderFactory, CounterPlaceholderFactory
+from piighost.placeholder_tags import PlaceholderPreservation
+
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
+"""Tag carried by the factory the anonymiser wraps."""
 
 
-class AnyAnonymizer(Protocol):
+class AnyAnonymizer(Protocol[PreservationT]):
     """Protocol defining the interface for all anonymizers.
 
     Any class implementing this protocol must provide methods for both
     anonymization and deanonymization of text based on entities.
+
+    The generic parameter propagates the preservation tag of the
+    underlying :class:`AnyPlaceholderFactory` so downstream consumers
+    (pipeline, middleware) can constrain what they accept.
     """
 
-    ph_factory: AnyPlaceholderFactory
+    ph_factory: AnyPlaceholderFactory[PreservationT]
 
     def anonymize(self, text: str, entities: list[Entity]) -> str:
         """Replace entity detections in the text with tokens.
@@ -40,7 +54,7 @@ class AnyAnonymizer(Protocol):
         ...
 
 
-class Anonymizer:
+class Anonymizer(Generic[PreservationT]):
     """Orchestrates anonymization and deanonymization of text.
 
     Uses a ``PlaceholderFactory`` to generate replacement tokens for
@@ -60,10 +74,13 @@ class Anonymizer:
         '<<PERSON_1>> est gentil'
     """
 
-    ph_factory: AnyPlaceholderFactory
+    ph_factory: AnyPlaceholderFactory[PreservationT]
 
-    def __init__(self, ph_factory: AnyPlaceholderFactory | None = None) -> None:
-        self.ph_factory = ph_factory or CounterPlaceholderFactory()
+    def __init__(
+        self,
+        ph_factory: AnyPlaceholderFactory[PreservationT] | None = None,
+    ) -> None:
+        self.ph_factory = ph_factory or CounterPlaceholderFactory()  # type: ignore[assignment]
 
     def anonymize(self, text: str, entities: list[Entity]) -> str:
         """Replace each detection in the text with its entity's token.

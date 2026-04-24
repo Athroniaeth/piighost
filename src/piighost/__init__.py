@@ -11,6 +11,13 @@ from piighost.placeholder import (
     MaskPlaceholderFactory,
     RedactPlaceholderFactory,
 )
+from piighost.placeholder_tags import (
+    PlaceholderPreservation,
+    PreservesIdentity,
+    PreservesLabel,
+    PreservesNothing,
+    PreservesShape,
+)
 from piighost.resolver.entity import AnyEntityConflictResolver
 from piighost.resolver.span import AnySpanConflictResolver
 
@@ -30,6 +37,11 @@ __all__ = [
     "HashPlaceholderFactory",
     "MaskPlaceholderFactory",
     "PIIGhostException",
+    "PlaceholderPreservation",
+    "PreservesIdentity",
+    "PreservesLabel",
+    "PreservesNothing",
+    "PreservesShape",
     "RedactPlaceholderFactory",
     "Span",
     "labels",

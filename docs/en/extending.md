@@ -274,17 +274,34 @@ The built-in implementations:
 ### Protocol
 
 ```python
-class AnyPlaceholderFactory(Protocol):
+class AnyPlaceholderFactory(Protocol[PreservationT_co]):
     def create(self, entities: list[Entity]) -> dict[Entity, str]: ...
 ```
 
-???+ example "UUID tags factory"
+### Preservation tag
+
+Every factory is tagged with a **phantom type** describing how much information its tokens keep. The type-checker uses this tag to gate consumers that need a specific level of reversibility, in particular `PIIAnonymizationMiddleware` which requires `PreservesIdentity`.
+
+| Tag | Meaning | Example | Safe for middleware? |
+|---|---|---|---|
+| `PreservesIdentity` | one unique, reversible token per entity | `<<PERSON_1>>`, `<PERSON:a1b2c3d4>` | Yes, for all `ToolCallStrategy` variants |
+| `PreservesLabel` | label only, different entities collide | `<PERSON>` | Only with `ToolCallStrategy.PASSTHROUGH` |
+| `PreservesShape` | partial value leak, collisions possible | `p***@mail.com` | Only with `ToolCallStrategy.PASSTHROUGH` |
+| `PreservesNothing` | constant marker, all entities collapse | `[REDACT]` | Only with `ToolCallStrategy.PASSTHROUGH` |
+
+`ThreadAnonymizationPipeline` inspects the tag at construction time and rejects any factory whose tag is weaker than `PreservesIdentity`, because the conversation-memory logic assumes each entity maps back to a unique placeholder. Picking the right tag both documents intent and gets you a static error from `pyrefly`/`mypy` the moment you wire a weak factory into a context that needs stronger guarantees.
+
+See [Tool-call strategies](community/faq.md) and [Limitations](limitations.md) for the middleware interactions.
+
+???+ example "UUID tags factory — `PreservesIdentity`"
 
     ```python
     import uuid
     from piighost.models import Entity
+    from piighost.placeholder import AnyPlaceholderFactory
+    from piighost.placeholder_tags import PreservesIdentity
 
-    class UUIDPlaceholderFactory:
+    class UUIDPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
         """Generates opaque UUID tags, e.g. <<a3f2-1b4c>>."""
 
         def create(self, entities: list[Entity]) -> dict[Entity, str]:
@@ -300,13 +317,15 @@ class AnyPlaceholderFactory(Protocol):
             return result
     ```
 
-??? example "Custom format factory"
+??? example "Custom format factory — `PreservesIdentity`"
 
     ```python
     from collections import defaultdict
     from piighost.models import Entity
+    from piighost.placeholder import AnyPlaceholderFactory
+    from piighost.placeholder_tags import PreservesIdentity
 
-    class BracketPlaceholderFactory:
+    class BracketPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
         """Generates tags in the format [PERSON:1], [LOCATION:2], etc."""
 
         def create(self, entities: list[Entity]) -> dict[Entity, str]:

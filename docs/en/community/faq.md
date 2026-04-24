@@ -22,6 +22,8 @@ icon: lucide/message-circle-question
 
     The choice of `PlaceholderFactory` matters: `HashPlaceholderFactory` is the safest (deterministic, near-zero collisions), `CounterPlaceholderFactory` works well within a thread, and `FakerPlaceholderFactory` can collide with real values. `RedactPlaceholderFactory` and `MaskPlaceholderFactory` are rejected at construction time by `ThreadAnonymizationPipeline`.
 
+    The rule is expressed in the **preservation tag** each factory carries (`PreservesIdentity`, `PreservesLabel`, `PreservesShape`, `PreservesNothing`). `PIIAnonymizationMiddleware` only accepts a `ThreadAnonymizationPipeline[PreservesIdentity]`, so mixing it with a weaker factory is flagged by your type checker before you even run the code. See [Extending PIIGhost](../extending.md) for details.
+
 ??? question "What happens if the LLM hallucinates a PII that was not in the input?"
     It is **not** anonymized by `piighost`: entity linking works on detections coming from the input, not on invented values. To cover that case, add a post-response detection pass at the application layer. See [Limitations](../limitations.md).
 

@@ -1,5 +1,7 @@
 import importlib.util
-from typing import Tuple
+from typing import Generic, Tuple
+
+from typing_extensions import TypeVar
 
 if importlib.util.find_spec("aiocache") is None:
     raise ImportError(
@@ -14,6 +16,7 @@ from piighost.exceptions import CacheMissError
 from piighost.linker.entity import AnyEntityLinker, ExactEntityLinker
 from piighost.models import Detection, Entity
 from piighost.placeholder import AnyPlaceholderFactory
+from piighost.placeholder_tags import PlaceholderPreservation
 from piighost.resolver.entity import (
     AnyEntityConflictResolver,
     MergeEntityConflictResolver,
@@ -24,6 +27,13 @@ from piighost.resolver.span import (
 )
 from piighost.utils import hash_sha256
 
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
+"""Preservation tag carried by the pipeline's anonymiser factory."""
+
 CACHE_KEY_DETECTION = "detect"
 """Prefix for detector-result cache entries."""
 
@@ -31,7 +41,7 @@ CACHE_KEY_ANONYMIZATION = "anon:anonymized"
 """Prefix for anonymized-text → (original, entities) cache entries."""
 
 
-class AnonymizationPipeline:
+class AnonymizationPipeline(Generic[PreservationT]):
     """Orchestrates the full anonymization pipeline.
 
     Chains all components together: detect → resolve spans → link entities
@@ -62,14 +72,14 @@ class AnonymizationPipeline:
     _span_resolver: AnySpanConflictResolver
     _entity_linker: AnyEntityLinker
     _entity_resolver: AnyEntityConflictResolver
-    _anonymizer: AnyAnonymizer
+    _anonymizer: AnyAnonymizer[PreservationT]
     _cache: BaseCache
     _cache_ttl: int | None
 
     def __init__(
         self,
         detector: AnyDetector,
-        anonymizer: AnyAnonymizer,
+        anonymizer: AnyAnonymizer[PreservationT],
         span_resolver: AnySpanConflictResolver | None = None,
         entity_linker: AnyEntityLinker | None = None,
         entity_resolver: AnyEntityConflictResolver | None = None,
@@ -89,7 +99,7 @@ class AnonymizationPipeline:
         self._cache_ttl = cache_ttl
 
     @property
-    def ph_factory(self) -> "AnyPlaceholderFactory":
+    def ph_factory(self) -> AnyPlaceholderFactory[PreservationT]:
         """The placeholder factory used by the anonymizer."""
         return self._anonymizer.ph_factory
 
