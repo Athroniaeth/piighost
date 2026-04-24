@@ -36,6 +36,21 @@ hallucinée n'est pas dans le cache et n'est donc pas anonymisée lorsque la ré
 **Mitigation** : exécutez une étape de validation post-réponse au niveau applicatif. Redétectez les PII sur la
 sortie du LLM et décidez s'il faut les supprimer, les signaler ou les réanonymiser avant affichage à l'utilisateur.
 
+## Le choix de la stratégie outil dépend du placeholder factory
+
+`PIIAnonymizationMiddleware` expose trois stratégies d'appel outil (`FULL`, `INBOUND_ONLY`, `PASSTHROUGH`) via le
+paramètre `tool_strategy`. Leur fiabilité dépend du placeholder factory utilisé par le pipeline :
+
+- `HashPlaceholderFactory` est le plus sûr : tokens déterministes et résistants aux collisions.
+- `CounterPlaceholderFactory` est sûr au sein d'un thread mais produit des placeholders différents entre threads.
+- `FakerPlaceholderFactory` peut générer des valeurs factices qui collisionnent avec de vraies valeurs présentes
+  dans la réponse d'un outil ; à combiner avec prudence, surtout avec `INBOUND_ONLY` et `FULL`.
+- `RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetés à la construction par
+  `ThreadAnonymizationPipeline` car ils produisent des tokens non uniques impossibles à inverser de façon fiable.
+
+**Mitigation** : préférez `HashPlaceholderFactory` dès que des outils sont en jeu ; choisissez `PASSTHROUGH` si les
+outils ne doivent jamais voir les vraies PII.
+
 ## Le cache est en mémoire par défaut
 
 La pipeline d'anonymisation (`AnonymizationPipeline`) utilise `aiocache` avec un backend en mémoire par défaut.
