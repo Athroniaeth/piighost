@@ -1,7 +1,6 @@
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from typing import Protocol
 
 from piighost.models import Detection, Span
@@ -199,7 +198,6 @@ class ExactMatchDetector:
         return detections
 
 
-@dataclass
 class RegexDetector:
     """Detect entities using regular expressions, one pattern per label.
 
@@ -224,14 +222,18 @@ class RegexDetector:
         ... )
     """
 
-    patterns: dict[str, str] = field(default_factory=dict)
-    validators: dict[str, Callable[[str], bool]] = field(default_factory=dict)
-    _compiled: dict[str, re.Pattern[str]] = field(
-        init=False, repr=False, compare=False, default_factory=dict
-    )
-
-    def __post_init__(self) -> None:
-        self._compiled = {label: re.compile(p) for label, p in self.patterns.items()}
+    def __init__(
+        self,
+        patterns: dict[str, str] | None = None,
+        validators: dict[str, Callable[[str], bool]] | None = None,
+    ) -> None:
+        self.patterns: dict[str, str] = patterns if patterns is not None else {}
+        self.validators: dict[str, Callable[[str], bool]] = (
+            validators if validators is not None else {}
+        )
+        self._compiled: dict[str, re.Pattern[str]] = {
+            label: re.compile(p) for label, p in self.patterns.items()
+        }
 
     async def detect(self, text: str) -> list[Detection]:
         """Find all regex matches for the configured patterns.
@@ -270,7 +272,6 @@ class RegexDetector:
         return detections
 
 
-@dataclass
 class CompositeDetector:
     """Run multiple detectors and merge their results.
 
@@ -288,7 +289,8 @@ class CompositeDetector:
         ... ])
     """
 
-    detectors: list[AnyDetector] = field(default_factory=list)
+    def __init__(self, detectors: list[AnyDetector] | None = None) -> None:
+        self.detectors: list[AnyDetector] = detectors if detectors is not None else []
 
     async def detect(self, text: str) -> list[Detection]:
         """Collect detections from every child detector.
