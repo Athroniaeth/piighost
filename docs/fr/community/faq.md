@@ -13,6 +13,15 @@ icon: lucide/message-circle-question
 ??? question "Le LLM voit-il les vraies PII quand il appelle un outil ?"
     Non. Le middleware désanonymise les arguments juste avant l'exécution de l'outil, puis réanonymise la réponse avant qu'elle ne retourne au LLM. L'outil voit les vraies valeurs, le LLM ne voit que les placeholders. Voir le diagramme dans [Architecture](../architecture.md).
 
+??? question "Comment contrôler ce que voit un outil : placeholder ou vraie valeur ?"
+    Le paramètre `tool_strategy` de `PIIAnonymizationMiddleware` expose trois modes via l'enum `ToolCallStrategy` :
+
+    - `FULL` (défaut) : l'outil reçoit les vraies valeurs, sa réponse est ré-anonymisée immédiatement via le pipeline complet. À utiliser pour les outils dont la sortie peut contenir de nouvelles PII (bases de données, CRM, recherche web).
+    - `INBOUND_ONLY` : l'outil reçoit les vraies valeurs, sa réponse passe brute et est ré-anonymisée paresseusement au prochain `abefore_model`. Moins coûteux quand la sortie n'introduit pas de nouvelles PII.
+    - `PASSTHROUGH` : l'outil reçoit les placeholders tels quels. À utiliser quand aucune PII ne doit jamais sortir du middleware, ou quand les outils de l'agent n'en ont pas besoin.
+
+    Le choix du `PlaceholderFactory` importe : `HashPlaceholderFactory` est le plus sûr (tokens déterministes et quasi-sans collision), `CounterPlaceholderFactory` fonctionne bien dans un thread, et `FakerPlaceholderFactory` peut produire des collisions avec de vraies valeurs. `RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetés à la construction par `ThreadAnonymizationPipeline`.
+
 ??? question "Que se passe-t-il si le LLM hallucine une PII qui n'était pas dans l'entrée ?"
     Elle n'est **pas** anonymisée par `piighost` : l'entity linking travaille sur les détections issues de l'entrée, pas sur des valeurs inventées. Pour couvrir ce cas, ajoutez une passe de détection sur la sortie du LLM au niveau applicatif. Voir [Limites](../limitations.md).
 

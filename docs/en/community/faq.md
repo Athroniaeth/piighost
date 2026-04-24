@@ -13,6 +13,15 @@ icon: lucide/message-circle-question
 ??? question "Does the LLM see raw PII when it calls a tool?"
     No. The middleware deanonymizes arguments right before the tool executes, then re-anonymizes the tool response before it flows back to the LLM. The tool sees real values; the LLM only sees placeholders. See the sequence diagram in [Architecture](../architecture.md).
 
+??? question "How do I control what a tool sees: placeholder or real value?"
+    The `tool_strategy` parameter of `PIIAnonymizationMiddleware` exposes three modes via the `ToolCallStrategy` enum:
+
+    - `FULL` (default): the tool receives real values and its response is re-anonymized immediately through the full pipeline. Use for tools whose output may contain new PII (databases, CRMs, web search).
+    - `INBOUND_ONLY`: the tool receives real values; its response flows through raw and is re-anonymized lazily on the next `abefore_model` pass. Cheaper when the output does not introduce new PII.
+    - `PASSTHROUGH`: the tool receives placeholders verbatim. Use when no PII must ever leave the middleware, or when the agent's tools simply don't need it.
+
+    The choice of `PlaceholderFactory` matters: `HashPlaceholderFactory` is the safest (deterministic, near-zero collisions), `CounterPlaceholderFactory` works well within a thread, and `FakerPlaceholderFactory` can collide with real values. `RedactPlaceholderFactory` and `MaskPlaceholderFactory` are rejected at construction time by `ThreadAnonymizationPipeline`.
+
 ??? question "What happens if the LLM hallucinates a PII that was not in the input?"
     It is **not** anonymized by `piighost`: entity linking works on detections coming from the input, not on invented values. To cover that case, add a post-response detection pass at the application layer. See [Limitations](../limitations.md).
 

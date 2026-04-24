@@ -21,7 +21,7 @@ from piighost.pipeline.thread import ThreadAnonymizationPipeline
 from piighost.detector import ExactMatchDetector
 from piighost.linker.entity import ExactEntityLinker
 from piighost.resolver.entity import MergeEntityConflictResolver
-from piighost.middleware import PIIAnonymizationMiddleware
+from piighost.middleware import PIIAnonymizationMiddleware, ToolCallStrategy
 from piighost.placeholder import (
     CounterPlaceholderFactory,
     MaskPlaceholderFactory,
@@ -385,3 +385,153 @@ class TestNonReversibleFactoryRejected:
             detector=ExactMatchDetector([("x", "PERSON")]),
             anonymizer=Anonymizer(CounterPlaceholderFactory()),
         )
+
+
+class TestToolCallStrategies:
+    """Per-strategy behaviour of ``awrap_tool_call``."""
+
+    async def test_full_reanonymizes_tool_response(self) -> None:
+        """FULL: tool receives real value and its response is re-anonymised."""
+        _llm_received.clear()
+        _tool_calls_log.clear()
+
+        responses = iter(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "get_weather",
+                            "args": {"country_or_city": "<<LOCATION_1>>"},
+                            "id": "call_1",
+                        }
+                    ],
+                ),
+                AIMessage(content="Meteo transmise."),
+            ]
+        )
+
+        pipeline = _build_pipeline()
+        middleware = PIIAnonymizationMiddleware(
+            pipeline=pipeline,
+            tool_strategy=ToolCallStrategy.FULL,
+        )
+
+        agent = create_agent(
+            model=SpyFakeChatModel(messages=responses),
+            tools=[get_weather],
+            middleware=[middleware],
+            checkpointer=InMemorySaver(),
+        )
+        config = {"configurable": {"thread_id": "test-strategy-full"}}
+
+        result = await agent.ainvoke(
+            {"messages": [HumanMessage(content="Donne la meteo en France")]},
+            config,
+        )
+
+        assert _tool_calls_log[0]["country_or_city"] == "France"
+        # The ToolMessage seen by the LLM must be anonymised.
+        tool_messages = [
+            m for m in result["messages"] if type(m).__name__ == "ToolMessage"
+        ]
+        assert tool_messages, "expected at least one ToolMessage"
+        assert "France" not in tool_messages[-1].content
+        assert "<<LOCATION_1>>" in tool_messages[-1].content
+
+    async def test_inbound_only_leaves_tool_response_raw(self) -> None:
+        """INBOUND_ONLY: tool sees real value; response keeps real value until next abefore_model."""
+        _llm_received.clear()
+        _tool_calls_log.clear()
+
+        responses = iter(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "get_weather",
+                            "args": {"country_or_city": "<<LOCATION_1>>"},
+                            "id": "call_1",
+                        }
+                    ],
+                ),
+                AIMessage(content="Meteo transmise."),
+            ]
+        )
+
+        pipeline = _build_pipeline()
+        middleware = PIIAnonymizationMiddleware(
+            pipeline=pipeline,
+            tool_strategy=ToolCallStrategy.INBOUND_ONLY,
+        )
+
+        agent = create_agent(
+            model=SpyFakeChatModel(messages=responses),
+            tools=[get_weather],
+            middleware=[middleware],
+            checkpointer=InMemorySaver(),
+        )
+        config = {"configurable": {"thread_id": "test-strategy-inbound"}}
+
+        await agent.ainvoke(
+            {"messages": [HumanMessage(content="Donne la meteo en France")]},
+            config,
+        )
+
+        assert _tool_calls_log[0]["country_or_city"] == "France"
+        # The next abefore_model pass must still hide "France" from the LLM.
+        for idx, call_messages in enumerate(_llm_received):
+            for content in call_messages:
+                assert "France" not in content, (
+                    f"LLM call {idx} saw real PII 'France' in: {content}"
+                )
+
+    async def test_passthrough_never_touches_tool_call(self) -> None:
+        """PASSTHROUGH: tool receives the raw placeholder, response flows through unchanged."""
+        _llm_received.clear()
+        _tool_calls_log.clear()
+
+        responses = iter(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "get_weather",
+                            "args": {"country_or_city": "<<LOCATION_1>>"},
+                            "id": "call_1",
+                        }
+                    ],
+                ),
+                AIMessage(content="Meteo transmise."),
+            ]
+        )
+
+        pipeline = _build_pipeline()
+        middleware = PIIAnonymizationMiddleware(
+            pipeline=pipeline,
+            tool_strategy=ToolCallStrategy.PASSTHROUGH,
+        )
+
+        agent = create_agent(
+            model=SpyFakeChatModel(messages=responses),
+            tools=[get_weather],
+            middleware=[middleware],
+            checkpointer=InMemorySaver(),
+        )
+        config = {"configurable": {"thread_id": "test-strategy-passthrough"}}
+
+        await agent.ainvoke(
+            {"messages": [HumanMessage(content="Donne la meteo en France")]},
+            config,
+        )
+
+        # Tool saw the placeholder, not the real value.
+        assert _tool_calls_log[0]["country_or_city"] == "<<LOCATION_1>>"
+
+    def test_default_strategy_is_full(self) -> None:
+        """Backward compatibility: omitting tool_strategy yields FULL."""
+        pipeline = _build_pipeline()
+        middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
+        assert middleware._tool_strategy is ToolCallStrategy.FULL

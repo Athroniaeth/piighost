@@ -34,6 +34,21 @@ therefore not anonymized when the response is sent back through the middleware.
 **Mitigation**: run a post-response validation step at the application layer. Re-detect PII on the LLM output and
 decide whether to strip, flag, or re-anonymize them before displaying to the user.
 
+## Tool-call strategy depends on the placeholder factory
+
+`PIIAnonymizationMiddleware` offers three tool-call strategies (`FULL`, `INBOUND_ONLY`, `PASSTHROUGH`) via the
+`tool_strategy` parameter. Their reliability depends on the placeholder factory used by the pipeline:
+
+- `HashPlaceholderFactory` is the safest because tokens are deterministic and collision-resistant.
+- `CounterPlaceholderFactory` is safe within a thread but produces different placeholders across threads.
+- `FakerPlaceholderFactory` can generate fake values that happen to collide with real ones in tool responses;
+  combine with caution, especially for `INBOUND_ONLY` and `FULL`.
+- `RedactPlaceholderFactory` and `MaskPlaceholderFactory` are rejected at construction time by
+  `ThreadAnonymizationPipeline` because they produce non-unique tokens that cannot be reliably reversed.
+
+**Mitigation**: prefer `HashPlaceholderFactory` when tools are in play; pick `PASSTHROUGH` when tools should never
+see real PII at all.
+
 ## Cache is in-memory by default
 
 The anonymization pipeline (`AnonymizationPipeline`) uses `aiocache` with an in-memory backend by default. This is

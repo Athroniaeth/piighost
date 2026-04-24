@@ -25,6 +25,7 @@ if importlib.util.find_spec("langchain") is None:
     )
 
 import logging
+from enum import Enum
 from typing import Any, Awaitable, Callable
 
 from langchain.agents.middleware import AgentMiddleware, AgentState
@@ -39,6 +40,45 @@ from piighost.exceptions import CacheMissError
 from piighost.pipeline.thread import ThreadAnonymizationPipeline
 
 logger = logging.getLogger(__name__)
+
+
+class ToolCallStrategy(Enum):
+    """How the middleware handles tool-call inputs and outputs.
+
+    Pick the strategy based on what the tool does with PII. The default
+    ``FULL`` matches the middleware's historical behaviour.
+
+    * ``FULL`` — deanonymise tool arguments before the tool runs and
+      run the full pipeline on the tool response to re-anonymise any
+      new PII it may contain. Use for tools that fetch or return
+      potentially sensitive data (databases, search APIs, CRMs).
+
+    * ``INBOUND_ONLY`` — deanonymise arguments, but pass the tool
+      response through unchanged. The next ``abefore_model`` pass will
+      anonymise it on its way back to the LLM. Cheaper when the tool
+      response is known to be PII-free or when re-detection would be
+      wasteful.
+
+    * ``PASSTHROUGH`` — never touch tool calls. Tools receive the
+      placeholder tokens verbatim and return whatever they produce.
+      Use for agents whose tools must never see real PII (strict
+      privacy boundary) or agents with no PII-sensitive tools.
+
+    Notes:
+        The choice of :class:`AnyPlaceholderFactory` interacts with
+        this setting. ``HashPlaceholderFactory`` is the safest because
+        placeholders are deterministic and collision-resistant.
+        ``CounterPlaceholderFactory`` is safe within a thread.
+        ``RedactPlaceholderFactory`` and ``MaskPlaceholderFactory`` are
+        rejected upstream by ``ThreadAnonymizationPipeline`` because
+        they produce non-unique tokens. A ``FakerPlaceholderFactory``
+        can in theory collide with real values present in tool
+        responses; prefer hash-based placeholders if that matters.
+    """
+
+    FULL = "full"
+    INBOUND_ONLY = "inbound_only"
+    PASSTHROUGH = "passthrough"
 
 
 def _get_thread_id() -> str:
@@ -59,6 +99,10 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     Args:
         pipeline: A configured ``ThreadAnonymizationPipeline``
             (wraps the base pipeline with conversation memory).
+        tool_strategy: How to handle tool calls. Defaults to
+            :attr:`ToolCallStrategy.FULL` (current historical
+            behaviour). See :class:`ToolCallStrategy` for the full
+            trade-offs.
 
     Example:
         >>> from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -72,10 +116,16 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     """
 
     _pipeline: ThreadAnonymizationPipeline
+    _tool_strategy: ToolCallStrategy
 
-    def __init__(self, pipeline: ThreadAnonymizationPipeline) -> None:
+    def __init__(
+        self,
+        pipeline: ThreadAnonymizationPipeline,
+        tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
+    ) -> None:
         super().__init__()
         self._pipeline = pipeline
+        self._tool_strategy = tool_strategy
 
     async def abefore_model(
         self,
@@ -84,8 +134,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     ) -> dict[str, Any] | None:
         """Anonymise ``HumanMessage`` and ``AIMessage`` content.
 
-        ``ToolMessage`` is skipped — tools already operate on anonymised
-        tokens, so their responses already contain placeholders.
+        ``ToolMessage`` is skipped in ``FULL`` and ``PASSTHROUGH`` modes
+        because the content is already anonymised (FULL) or the user
+        opted out of tool protection (PASSTHROUGH). In ``INBOUND_ONLY``,
+        the ``ToolMessage`` is processed here so the LLM never sees
+        raw PII that a tool may have returned.
 
         Args:
             state: The current agent state (contains ``messages``).
@@ -98,11 +151,17 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         pipeline = self._pipeline
         thread_id = _get_thread_id()
 
+        allowed_types: tuple[type, ...] = (HumanMessage, AIMessage)
+        if self._tool_strategy is ToolCallStrategy.INBOUND_ONLY:
+            # awrap_tool_call left the ToolMessage raw; catch it here so
+            # the LLM never sees real PII on the next pass.
+            allowed_types = (HumanMessage, AIMessage, ToolMessage)
+
         changed = False
         messages = state["messages"]
 
         for idx, message in enumerate(messages):
-            if not isinstance(message, (HumanMessage, AIMessage)):
+            if not isinstance(message, allowed_types):
                 continue
 
             content = message.content
@@ -180,7 +239,9 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         request: ToolCallRequest,
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
     ) -> ToolMessage | Command[Any]:
-        """Deanonymise tool arguments, execute, and re-anonymise the result.
+        """Route the tool call according to the configured strategy.
+
+        See :class:`ToolCallStrategy` for the semantics of each variant.
 
         Args:
             request: A ``ToolCallRequest`` carrying ``call``, ``tool``,
@@ -188,8 +249,12 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             handler: Async callable that actually runs the tool.
 
         Returns:
-            A ``ToolMessage`` (or ``Command``) with re-anonymised content.
+            A ``ToolMessage`` (or ``Command``) processed according to
+            the active strategy.
         """
+        if self._tool_strategy is ToolCallStrategy.PASSTHROUGH:
+            return await handler(request)
+
         thread_id = _get_thread_id()
 
         call = request.tool_call
@@ -204,7 +269,9 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         call["args"] = patched_args
         response = await handler(request)
 
-        if isinstance(response, ToolMessage) and isinstance(response.content, str):
+        if self._tool_strategy is ToolCallStrategy.FULL and (
+            isinstance(response, ToolMessage) and isinstance(response.content, str)
+        ):
             anonymized_content, _ = await self._pipeline.anonymize(
                 response.content, thread_id=thread_id
             )
