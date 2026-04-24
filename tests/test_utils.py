@@ -1,7 +1,5 @@
 """Tests for piighost.utils helpers."""
 
-import re
-
 from piighost.utils import _word_boundary_pattern, find_all_word_boundary, hash_sha256
 
 
@@ -48,7 +46,7 @@ class TestFindAllWordBoundary:
 
     def test_case_sensitive_flag(self):
         matches = find_all_word_boundary(
-            "Patrick and patrick", "patrick", flags=re.NOFLAG
+            "Patrick and patrick", "patrick", flags=0
         )
         assert matches == [(12, 19)]
 
