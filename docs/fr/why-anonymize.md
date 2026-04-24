@@ -132,11 +132,15 @@ Aucun de ces cas ne concerne spécifiquement un LLM. Mais ils établissent trois
 
 ### Ciblage commercial et data brokers
 
-Le risque est différent des deux précédents : il ne nécessite ni juge, ni mandat. Il repose sur l'écosystème commercial qui entoure les providers.
+Le risque est différent des deux précédents : il ne nécessite ni juge, ni mandat. Il repose sur l'écosystème commercial qui entoure les providers, et se construit en trois temps.
 
-Plusieurs grands acteurs du LLM ont des intérêts adjacents à la publicité ciblée : Google en fait son cœur de métier, Microsoft (actionnaire majeur d'OpenAI) opère `Bing Ads`, Meta pousse son propre écosystème d'IA générative dans un groupe dont la quasi-totalité des revenus provient du ciblage publicitaire. Rien ne prouve aujourd'hui qu'un provider ait revendu des conversations LLM à des data brokers. Mais la structure de revenus crée une **incitation** que les politiques de confidentialité, seules, ne neutralisent pas.
+**D'abord, une structure d'incitation.** Plusieurs grands acteurs du LLM ont des intérêts adjacents à la publicité ciblée : Google en fait son cœur de métier, Microsoft (actionnaire majeur d'OpenAI) opère `Bing Ads`, Meta pousse son propre écosystème d'IA générative dans un groupe dont la quasi-totalité des revenus provient du ciblage publicitaire. Les politiques de confidentialité, seules, ne neutralisent pas cette incitation ; elles peuvent évoluer quand la pression économique monte.
 
-Par ailleurs, un rapport de l'`Office of the Director of National Intelligence` daté de **janvier 2022 et déclassifié en juin 2023** reconnaît que les agences de renseignement américaines **achètent régulièrement des données commerciales auprès de data brokers**, notamment des données de localisation et de navigation. La frontière entre écosystème publicitaire et surveillance étatique est, en pratique, poreuse : ce qui est collecté pour vendre de la publicité peut être racheté pour surveiller.
+**Ensuite, l'état actuel des preuves.** Rien ne prouve aujourd'hui qu'un provider ait revendu des conversations LLM à des data brokers. L'argument ne repose donc pas sur une pratique avérée, mais sur un risque structurel : une donnée qui entre dans un système, chez un acteur qui a économiquement intérêt à l'exploiter, peut en ressortir plus tard par des canaux qui ne sont pas ceux annoncés initialement.
+
+**Enfin, la porosité documentée entre écosystème publicitaire et surveillance.** Un rapport de l'`Office of the Director of National Intelligence` daté de **janvier 2022 et déclassifié en juin 2023** reconnaît que les agences de renseignement américaines **achètent régulièrement des données commerciales auprès de data brokers**, notamment des données de localisation et de navigation. Ce qui est collecté pour vendre de la publicité peut donc être racheté pour surveiller, sans mandat ni notification.
+
+Dans ce contexte, la question n'est pas "est-ce que les conversations LLM seront un jour monétisées ou revendues" mais "que reste-t-il de ce risque si les données qui quittent votre périmètre ne contiennent plus de PII identifiantes ?". L'anonymisation en amont coupe l'utilité commerciale et stratégique de ces données avant même qu'elles n'entrent dans l'écosystème du provider.
 
 ### Pourquoi l'anonymisation casse ce graphe
 
@@ -148,12 +152,12 @@ Une PII envoyée en clair devient un nœud dans un graphe potentiel : elle peut 
 
 Le choix n'est pas binaire entre "cloud américain" et "rien". Il existe un continuum, du plus exposé au plus isolé, et chaque palier modifie à la fois le risque juridique et la responsabilité qui vous incombe.
 
-| Option                        | CLOUD Act / FISA 702            | RGPD                                       | Accès technique du provider     | Exemples                                        |
-|-------------------------------|---------------------------------|--------------------------------------------|---------------------------------|-------------------------------------------------|
-| Provider US, serveurs US      | Oui, directement                | Indirect (via DPF, fragile)                | Oui                             | OpenAI, Anthropic, Google                       |
-| Provider US, serveurs UE      | Oui (cf. Microsoft Ireland)     | S'applique, mais primé par l'injonction US | Oui                             | Azure OpenAI EU, AWS Bedrock EU                 |
-| Provider UE                   | Non (sauf filiale US contrôlée) | S'applique pleinement                      | Oui                             | Mistral, OVHcloud AI, Scaleway                  |
-| Modèle en local (self-hosted) | Non                             | Vous êtes responsable du traitement        | **Non : vous êtes le provider** | `llama.cpp`, `Ollama`, `vLLM` sur infra privée  |
+| Option                        | CLOUD Act / FISA 702            | RGPD                                       | Accès technique du provider     | Entraînement sur vos données           | Exemples                                        |
+|-------------------------------|---------------------------------|--------------------------------------------|---------------------------------|----------------------------------------|-------------------------------------------------|
+| Provider US, serveurs US      | Oui, directement                | Indirect (via DPF, fragile)                | Oui                             | Variable (gratuit : souvent opt-out enfoui ; payant : exclu par défaut) | OpenAI, Anthropic, Google                       |
+| Provider US, serveurs UE      | Oui (cf. Microsoft Ireland)     | S'applique, mais primé par l'injonction US | Oui                             | Exclu par défaut sur les offres entreprise | Azure OpenAI EU, AWS Bedrock EU                 |
+| Provider UE                   | Non (sauf filiale US contrôlée) | S'applique pleinement                      | Oui                             | Exclu par défaut sur les offres payantes | Mistral, OVHcloud AI, Scaleway                  |
+| Modèle en local (self-hosted) | Non                             | Vous êtes responsable du traitement        | **Non : vous êtes le provider** | **Non : vous contrôlez**                | `llama.cpp`, `Ollama`, `vLLM` sur infra privée  |
 
 Au départ du spectre, le **provider américain hébergé aux États-Unis** cumule les trois risques vus plus haut : CLOUD Act, FISA 702 et Executive Order 12333 s'appliquent sans filtre, les transferts de données depuis l'UE reposent sur le `Data Privacy Framework` contesté, et une injonction d'un juge américain peut forcer la conservation indéfinie des conversations. C'est le scénario le plus exposé.
 
@@ -222,9 +226,17 @@ C'est la différence entre **"on vous promet de ne pas regarder"** et **"on est 
 L'anonymisation est une couche dans une défense en profondeur, pas une solution miracle.
 
 - Elle ne rend pas un LLM conforme à tous les régimes réglementaires. Certaines données (santé nominativement reliable, secret-défense) ne doivent pas sortir de l'infrastructure, même sous forme anonymisée.
-- Elle ne protège pas contre un LLM qui **hallucinerait** une PII dans sa réponse. Il faut alors une seconde passe de détection sur la sortie.
 - Elle dépend de la qualité des détecteurs. Une PII non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel.
 - Elle ne remplace pas les autres bonnes pratiques : chiffrement au repos, journalisation auditée, gestion des accès, formation des équipes.
+
+### Le cas particulier des PII hallucinées dans la réponse
+
+Un LLM peut **inventer** une donnée à forme de PII (un numéro de téléphone plausible, un nom associé à une entreprise, une adresse cohérente) qui ne figurait dans aucun message d'entrée. Ces valeurs ne sont pas une fuite au sens strict, puisqu'elles ne proviennent pas de votre périmètre, mais elles posent deux problèmes pratiques :
+
+- si la réponse est affichée telle quelle à un utilisateur ou stockée dans un système aval, la valeur hallucinée peut être prise pour vraie et désigner réellement quelqu'un par collision fortuite ;
+- une couche d'anonymisation qui travaille uniquement à partir des détections de l'entrée ne peut pas reconnaître ces valeurs comme sensibles, puisqu'elles n'ont pas d'antécédent dans la conversation.
+
+La parade est une **seconde passe de détection appliquée à la sortie du LLM**, indépendante de la passe d'entrée. Elle permet au minimum de flagger la présence d'une PII plausible, et selon le contexte de la masquer ou de refuser d'afficher la réponse. Ce mécanisme reste complémentaire de l'anonymisation en amont, pas un substitut.
 
 ---
 
@@ -236,12 +248,12 @@ Sources citées et lectures utiles :
 - **CLOUD Act** (H.R. 4943, 2018) : texte officiel sur [congress.gov](https://www.congress.gov/)
 - **Rapports PCLOB sur FISA 702** (Privacy and Civil Liberties Oversight Board) : [pclob.gov](https://www.pclob.gov/)
 - **Garante italienne, décision contre OpenAI** (décembre 2024, annulée par le tribunal de Rome en mars 2026) : [garanteprivacy.it](https://www.garanteprivacy.it/)
-- **NYT vs OpenAI, ordonnance de préservation et livraison de logs** (US District Court SDNY, mai à novembre 2025)
+- **NYT vs OpenAI, ordonnance de préservation et livraison de 20 millions de logs** (US District Court SDNY, de mai 2025 à janvier 2026 avec l'affirmation du District Judge Stein)
 - **OpenAI, post-mortem de l'incident Redis** (20 mars 2023) : [openai.com/blog](https://openai.com/)
 - **Wiz Research, exposition DeepSeek** (janvier 2025) : [wiz.io](https://www.wiz.io/)
 - **Samsung, politique interne sur les LLM** (mai 2023, couverture `Bloomberg`)
 - **Surveillance du téléphone d'Angela Merkel par la NSA** (révélations Snowden, octobre 2013, couverture `Der Spiegel`, `Süddeutsche Zeitung`, `NDR`)
-- **Saisie des relevés AP par le DOJ** (mai 2013, communiqué public d'Associated Press)
+- **Saisie des relevés AP par le DOJ** (saisie avril-mai 2012, divulguée en mai 2013, communiqué public d'Associated Press)
 - **Pegasus Project / Forbidden Stories** (juillet 2021) : [forbiddenstories.org](https://forbiddenstories.org/)
 - **ODNI, `Report on Commercially Available Information`** (janvier 2022, déclassifié juin 2023) : [dni.gov](https://www.dni.gov/)
 - **SecNumCloud** (ANSSI) : [cyber.gouv.fr](https://cyber.gouv.fr/)
