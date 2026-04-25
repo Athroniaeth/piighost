@@ -227,29 +227,34 @@ class TestMaskPlaceholderFactory:
 class TestGetPreservationTag:
     """Runtime tag recovery used by the pipeline's factory check."""
 
-    def test_counter_is_preserves_identity_opaque(self) -> None:
+    def test_counter_is_labeled_identity_opaque(self) -> None:
         from piighost.placeholder import CounterPlaceholderFactory
         from piighost.placeholder_tags import (
             PreservesIdentity,
-            PreservesIdentityOpaque,
+            PreservesLabel,
+            PreservesLabeledIdentityOpaque,
             get_preservation_tag,
         )
 
         tag = get_preservation_tag(CounterPlaceholderFactory())
-        assert tag is PreservesIdentityOpaque
-        assert issubclass(tag, PreservesIdentity)  # hierarchy holds
+        assert tag is PreservesLabeledIdentityOpaque
+        # multi-inheritance: opaque labeled-identity is both a label tag and an identity tag
+        assert issubclass(tag, PreservesIdentity)
+        assert issubclass(tag, PreservesLabel)
 
-    def test_hash_is_preserves_identity_opaque(self) -> None:
+    def test_hash_is_labeled_identity_opaque(self) -> None:
         from piighost.placeholder import HashPlaceholderFactory
         from piighost.placeholder_tags import (
             PreservesIdentity,
-            PreservesIdentityOpaque,
+            PreservesLabel,
+            PreservesLabeledIdentityOpaque,
             get_preservation_tag,
         )
 
         tag = get_preservation_tag(HashPlaceholderFactory())
-        assert tag is PreservesIdentityOpaque
+        assert tag is PreservesLabeledIdentityOpaque
         assert issubclass(tag, PreservesIdentity)
+        assert issubclass(tag, PreservesLabel)
 
     def test_redact_is_preserves_label(self) -> None:
         from piighost.placeholder import RedactPlaceholderFactory

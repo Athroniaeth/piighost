@@ -9,8 +9,8 @@ from typing_extensions import TypeVar
 from piighost.models import Entity
 from piighost.placeholder_tags import (
     PlaceholderPreservation,
-    PreservesIdentityOpaque,
     PreservesLabel,
+    PreservesLabeledIdentityOpaque,
     PreservesShape,
 )
 
@@ -53,7 +53,7 @@ class AnyPlaceholderFactory(Protocol[PreservationT_co]):
         ...
 
 
-class CounterPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOpaque]):
+class CounterPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]):
     """Factory that generates tokens like ``<<PERSON_1>>``, ``<<PERSON_2>>``.
 
     Each entity gets a unique counter per label. Two different PERSON
@@ -90,7 +90,7 @@ class CounterPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOpaque]):
         return result
 
 
-class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOpaque]):
+class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]):
     """Factory that generates tokens like ``<PERSON:a1b2c3d4>``.
 
     Uses SHA-256 of the canonical text + label to produce a deterministic,
