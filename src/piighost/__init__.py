@@ -8,9 +8,9 @@ from piighost.ph_factory.realistic import RealisticHashPlaceholderFactory
 from piighost.placeholder import (
     AnonymousHashPlaceholderFactory,
     AnyPlaceholderFactory,
-    ConstantPlaceholderFactory,
     CounterPlaceholderFactory,
     LabeledHashPlaceholderFactory,
+    LabelPlaceholderFactory,
     MaskPlaceholderFactory,
     RedactPlaceholderFactory,
 )
@@ -43,7 +43,6 @@ __all__ = [
     "AnySpanConflictResolver",
     "Anonymizer",
     "CacheMissError",
-    "ConstantPlaceholderFactory",
     "CounterPlaceholderFactory",
     "Detection",
     "DisabledEntityConflictResolver",
@@ -51,6 +50,7 @@ __all__ = [
     "DisabledSpanConflictResolver",
     "Entity",
     "ExactMatchDetector",
+    "LabelPlaceholderFactory",
     "LabeledHashPlaceholderFactory",
     "MaskPlaceholderFactory",
     "PIIGhostException",

@@ -55,7 +55,7 @@ class AnyPlaceholderFactory(Protocol[PreservationT_co]):
         ...
 
 
-class ConstantPlaceholderFactory(AnyPlaceholderFactory[PreservesNothing]):
+class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesNothing]):
     """Factory that emits the same constant token for every entity.
 
     The token is wrapped in ``<<...>>`` so it stays visually distinct
@@ -69,7 +69,7 @@ class ConstantPlaceholderFactory(AnyPlaceholderFactory[PreservesNothing]):
 
     Example:
         >>> from piighost.models import Detection, Entity, Span
-        >>> factory = ConstantPlaceholderFactory()
+        >>> factory = RedactPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> factory.create([e])[e]
         '<<REDACT>>'
@@ -236,7 +236,7 @@ class AnonymousHashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnl
         return result
 
 
-class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
+class LabelPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
     """Factory that generates tokens like ``<<PERSON>>``.
 
     All entities with the same label share the same token there is
@@ -246,7 +246,7 @@ class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
 
     Example:
         >>> from piighost.models import Detection, Entity, Span
-        >>> factory = RedactPlaceholderFactory()
+        >>> factory = LabelPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> factory.create([e])[e]
         '<<PERSON>>'

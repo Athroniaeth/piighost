@@ -10,7 +10,7 @@ from piighost.linker.entity import ExactEntityLinker
 from piighost.pipeline.base import AnonymizationPipeline
 from piighost.placeholder import (
     CounterPlaceholderFactory,
-    RedactPlaceholderFactory,
+    LabelPlaceholderFactory,
     AnyPlaceholderFactory,
 )
 from piighost.resolver.entity import MergeEntityConflictResolver
@@ -69,7 +69,7 @@ class TestAnonymize:
     async def test_with_redact_factory(self) -> None:
         pipeline = _pipeline(
             [("Patrick", "PERSON"), ("Henri", "PERSON")],
-            factory=RedactPlaceholderFactory(),
+            factory=LabelPlaceholderFactory(),
         )
         result, _ = await pipeline.anonymize("Patrick et Henri")
         assert result == "<<PERSON>> et <<PERSON>>"

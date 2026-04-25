@@ -25,7 +25,7 @@ from piighost.middleware import PIIAnonymizationMiddleware, ToolCallStrategy
 from piighost.placeholder import (
     CounterPlaceholderFactory,
     MaskPlaceholderFactory,
-    RedactPlaceholderFactory,
+    LabelPlaceholderFactory,
 )
 from piighost.placeholder_tags import PreservesIdentity
 from piighost.resolver.span import ConfidenceSpanConflictResolver
@@ -367,11 +367,11 @@ class TestToolCallNoDoubleEncoding:
 class TestNonReversibleFactoryRejected:
     """ThreadAnonymizationPipeline must reject non-reversible placeholder factories."""
 
-    def test_redact_factory_raises(self) -> None:
-        with pytest.raises(ValueError, match="RedactPlaceholderFactory"):
+    def test_label_factory_raises(self) -> None:
+        with pytest.raises(ValueError, match="LabelPlaceholderFactory"):
             ThreadAnonymizationPipeline(
                 detector=ExactMatchDetector([("x", "PERSON")]),
-                anonymizer=Anonymizer(RedactPlaceholderFactory()),
+                anonymizer=Anonymizer(LabelPlaceholderFactory()),
             )
 
     def test_mask_factory_raises(self) -> None:
