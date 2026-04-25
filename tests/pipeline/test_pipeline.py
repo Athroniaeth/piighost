@@ -72,7 +72,7 @@ class TestAnonymize:
             factory=RedactPlaceholderFactory(),
         )
         result, _ = await pipeline.anonymize("Patrick et Henri")
-        assert result == "<PERSON> et <PERSON>"
+        assert result == "<<PERSON>> et <<PERSON>>"
 
 
 # ---------------------------------------------------------------------------

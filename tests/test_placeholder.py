@@ -57,13 +57,13 @@ class TestCounterPlaceholderFactory:
 
 
 class TestHashPlaceholderFactory:
-    """Generates <LABEL:hash> tokens using SHA-256."""
+    """Generates <<LABEL:hash>> tokens using SHA-256."""
 
     def test_token_format(self) -> None:
         e = _entity("Patrick", "PERSON")
         token = HashPlaceholderFactory().create([e])[e]
-        assert token.startswith("<PERSON:")
-        assert token.endswith(">")
+        assert token.startswith("<<PERSON:")
+        assert token.endswith(">>")
 
     def test_deterministic(self) -> None:
         e = _entity("Patrick", "PERSON")
@@ -89,6 +89,11 @@ class TestHashPlaceholderFactory:
         hash_part = token.split(":")[1].rstrip(">")
         assert len(hash_part) == 4
 
+    def test_double_angle_brackets(self) -> None:
+        e = _entity("Patrick", "PERSON")
+        token = HashPlaceholderFactory().create([e])[e]
+        assert token.startswith("<<") and token.endswith(">>")
+
     def test_empty_list(self) -> None:
         assert HashPlaceholderFactory().create([]) == {}
 
@@ -99,17 +104,17 @@ class TestHashPlaceholderFactory:
 
 
 class TestRedactPlaceholderFactory:
-    """Generates <LABEL> tokens no discrimination between entities."""
+    """Generates <<LABEL>> tokens no discrimination between entities."""
 
     def test_token_format(self) -> None:
         e = _entity("Patrick", "PERSON")
-        assert RedactPlaceholderFactory().create([e])[e] == "<PERSON>"
+        assert RedactPlaceholderFactory().create([e])[e] == "<<PERSON>>"
 
     def test_same_label_same_token(self) -> None:
         e1 = _entity("Patrick", "PERSON")
         e2 = _entity("Henri", "PERSON", start=20)
         result = RedactPlaceholderFactory().create([e1, e2])
-        assert result[e1] == result[e2] == "<PERSON>"
+        assert result[e1] == result[e2] == "<<PERSON>>"
 
     def test_different_labels_different_tokens(self) -> None:
         e1 = _entity("Patrick", "PERSON")
