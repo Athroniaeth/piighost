@@ -17,32 +17,59 @@ a :class:`~piighost.placeholder.RedactPlaceholderFactory`-based
 pipeline to the middleware) becomes a static error instead of a
 runtime surprise.
 
-The taxonomy is **hierarchical** so the type-checker can apply
-Liskov substitution: every ``PreservesIdentity`` token also preserves
-the label, every ``PreservesIdentityOpaque`` token also preserves the
-identity, and so on.  A consumer asking for a weaker tag accepts any
-stronger one via covariance on
-:class:`~piighost.placeholder.AnyPlaceholderFactory`.
+Two **independent axes** organise the taxonomy:
 
-Hierarchy, from weakest to strongest::
+* **Label** — does the placeholder reveal the entity type?
+  ``<PERSON>`` reveals it; ``[REDACT]`` does not.
+* **Identity** — does the placeholder uniquely identify the entity?
+  ``<<PERSON_1>>`` is unique per entity; ``<PERSON>`` collapses every
+  person.
+
+The four base combinations correspond to four base tags:
+
+* :class:`PreservesNothing`           — neither axis (e.g. ``[REDACT]``)
+* :class:`PreservesLabel`             — label only (e.g. ``<PERSON>``)
+* :class:`PreservesIdentity`          — identity only (e.g. ``[a1b2c3d4]``)
+* :class:`PreservesLabeledIdentity`   — both (e.g. ``<<PERSON_1>>``)
+
+``PreservesLabeledIdentity`` multi-inherits from both
+``PreservesLabel`` and ``PreservesIdentity``; via covariance on
+:class:`~piighost.placeholder.AnyPlaceholderFactory`, a consumer typed
+against ``PreservesLabel`` accepts a labeled-identity factory, and a
+consumer typed against ``PreservesIdentity`` accepts both
+identity-only and labeled-identity factories.  This is the
+"A is a B but not every B is an A" relation the user sees as the
+hierarchy: every ``PreservesLabeledIdentity`` is a
+``PreservesLabel`` and a ``PreservesIdentity``, but not the reverse.
+
+A *realism* sub-axis refines ``PreservesLabeledIdentity``:
+
+* :class:`PreservesLabeledIdentityOpaque`     — clearly synthetic token
+  (``<<PERSON_1>>``, ``<PERSON:a1b2c3d4>``).
+* :class:`PreservesLabeledIdentityRealistic`  — looks like real data.
+* :class:`PreservesLabeledIdentityHashed`     — realistic format with
+  hashed content (``a1b2c3d4@anonymized.local``).
+* :class:`PreservesLabeledIdentityFaker`      — Faker output, may
+  collide with real-world values (``john.doe@example.com``).
+
+:class:`PreservesShape` is a special label-extending case: the token
+keeps a partial fragment of the original (``j***@mail.com``).  It
+implies the label via its format but does *not* guarantee uniqueness,
+so it is a sibling of identity in the hierarchy.
+
+The full inheritance graph::
 
     PlaceholderPreservation
-    └── PreservesNothing                 -- ``[REDACT]`` (constant)
-        └── PreservesLabel               -- ``<PERSON>``
-            ├── PreservesShape           -- ``j***@mail.com``
-            └── PreservesIdentity        -- unique reversible id
-                ├── PreservesIdentityOpaque       -- ``<<PERSON_1>>``
-                └── PreservesIdentityRealistic    -- looks like real data
-                    ├── PreservesIdentityHashed   -- ``a1b2c3d4@anon.local``
-                    └── PreservesIdentityFaker    -- ``john.doe@example.com``
-
-A factory picks the **most specific** tag that matches its guarantees.
-``CounterPlaceholderFactory`` and ``HashPlaceholderFactory`` declare
-``PreservesIdentityOpaque``; ``FakerPlaceholderFactory`` declares
-``PreservesIdentityFaker``.  A consumer typed against
-``PreservesIdentity`` accepts all four sub-tags via covariance, while
-a consumer typed against ``PreservesIdentityOpaque`` rejects the
-realistic ones at type-check time.
+    └── PreservesNothing
+        ├── PreservesLabel
+        │   └── PreservesShape
+        ├── PreservesIdentity
+        │   └── PreservesIdentityOnly
+        └── PreservesLabeledIdentity (PreservesLabel, PreservesIdentity)
+            ├── PreservesLabeledIdentityOpaque
+            └── PreservesLabeledIdentityRealistic
+                ├── PreservesLabeledIdentityHashed
+                └── PreservesLabeledIdentityFaker
 """
 
 
@@ -76,6 +103,32 @@ class PreservesLabel(PreservesNothing):
     """
 
 
+class PreservesIdentity(PreservesNothing):
+    """The placeholder uniquely identifies each entity.
+
+    Two distinct entities always get distinct tokens, and the same
+    entity seen twice gets the same token.  This is the abstract
+    base for any identity-preserving tag, regardless of whether the
+    label is also revealed.
+
+    The middleware narrows on this base: every concrete sub-tag
+    (``PreservesIdentityOnly``, ``PreservesLabeledIdentity*``) is
+    accepted via covariance.
+    """
+
+
+class PreservesIdentityOnly(PreservesIdentity):
+    """Unique reversible id without revealing the entity type.
+
+    Tokens like ``[a1b2c3d4]`` or ``<a1b2c3d4>`` carry a per-entity
+    hash but no label, so the LLM can tell two entities apart while
+    learning nothing about whether they are persons, emails, or
+    credit cards.  No built-in factory ships this scheme; it is the
+    recommended tag for a user factory that hashes without a label
+    prefix.
+    """
+
+
 class PreservesShape(PreservesLabel):
     """The placeholder preserves part of the original value.
 
@@ -87,21 +140,19 @@ class PreservesShape(PreservesLabel):
     """
 
 
-class PreservesIdentity(PreservesLabel):
-    """The placeholder uniquely identifies each entity.
+class PreservesLabeledIdentity(PreservesLabel, PreservesIdentity):
+    """The placeholder reveals both the label and a unique identity.
 
-    Two distinct entities always get distinct tokens, and the same
-    entity seen twice gets the same token.  This is the only level
-    safe with :class:`~piighost.middleware.ToolCallStrategy.FULL` and
-    :class:`~piighost.middleware.ToolCallStrategy.INBOUND_ONLY`.
-
-    Sub-tags refine the *realism* axis: opaque tokens are clearly not
-    real data, while realistic tokens look like the original format.
+    Multi-inherits :class:`PreservesLabel` and :class:`PreservesIdentity`
+    so a consumer typed against either base accepts a labeled-identity
+    factory.  Refined further on the *realism* axis by
+    :class:`PreservesLabeledIdentityOpaque` and
+    :class:`PreservesLabeledIdentityRealistic`.
     """
 
 
-class PreservesIdentityOpaque(PreservesIdentity):
-    """The placeholder is unique and clearly synthetic.
+class PreservesLabeledIdentityOpaque(PreservesLabeledIdentity):
+    """Labeled, unique, and clearly synthetic.
 
     Tokens like ``<<PERSON_1>>`` or ``<PERSON:a1b2c3d4>`` cannot be
     confused with real data, are easy to scan in logs, and never
@@ -109,18 +160,19 @@ class PreservesIdentityOpaque(PreservesIdentity):
     """
 
 
-class PreservesIdentityRealistic(PreservesIdentity):
-    """The placeholder is unique but looks like real data.
+class PreservesLabeledIdentityRealistic(PreservesLabeledIdentity):
+    """Labeled, unique, and visually plausible.
 
     Realistic tokens pass downstream format validation (email regex,
     name patterns, etc.) at the cost of looking indistinguishable
-    from genuine values.  Refined by :class:`PreservesIdentityHashed`
-    (collision-proof) and :class:`PreservesIdentityFaker` (collision
-    possible with real-world values).
+    from genuine values.  Refined by
+    :class:`PreservesLabeledIdentityHashed` (collision-proof) and
+    :class:`PreservesLabeledIdentityFaker` (collision possible with
+    real-world values).
     """
 
 
-class PreservesIdentityHashed(PreservesIdentityRealistic):
+class PreservesLabeledIdentityHashed(PreservesLabeledIdentityRealistic):
     """Realistic-format placeholder whose content is a hash.
 
     The token mimics the original format (e.g.
@@ -130,7 +182,7 @@ class PreservesIdentityHashed(PreservesIdentityRealistic):
     """
 
 
-class PreservesIdentityFaker(PreservesIdentityRealistic):
+class PreservesLabeledIdentityFaker(PreservesLabeledIdentityRealistic):
     """Plausible-realistic placeholder produced by Faker.
 
     Tokens like ``john.doe@example.com`` or ``Jean Dupont`` are
@@ -176,11 +228,13 @@ def get_preservation_tag(factory: object) -> type[PlaceholderPreservation] | Non
 __all__ = [
     "PlaceholderPreservation",
     "PreservesIdentity",
-    "PreservesIdentityFaker",
-    "PreservesIdentityHashed",
-    "PreservesIdentityOpaque",
-    "PreservesIdentityRealistic",
+    "PreservesIdentityOnly",
     "PreservesLabel",
+    "PreservesLabeledIdentity",
+    "PreservesLabeledIdentityFaker",
+    "PreservesLabeledIdentityHashed",
+    "PreservesLabeledIdentityOpaque",
+    "PreservesLabeledIdentityRealistic",
     "PreservesNothing",
     "PreservesShape",
     "get_preservation_tag",
