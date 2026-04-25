@@ -25,7 +25,7 @@ Les deux directions retombent donc sur du **remplacement de chaîne brut** :
 - *Arguments d'outil (LLM → outil)* : on parcourt les arguments à la recherche des placeholders connus, et on remplace chacun par la valeur originale de son entité.
 - *Réponse de l'outil (outil → LLM)* : on parcourt la réponse à la recherche des valeurs PII connues, et on remplace chacune par le placeholder correspondant.
 
-Le remplacement brut n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le placeholder `<PERSON>`{ .placeholder }, impossible de savoir laquelle restaurer dans les arguments. Si deux entités se confondent dans le même jeton masqué dans la réponse, la mémoire de conversation devient lacunaire. C'est la raison structurelle pour laquelle le middleware n'accepte que des factories taguées `PreservesIdentity`. Voir [Placeholder factories](placeholder-factories.md).
+Le remplacement brut n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le placeholder `<<PERSON>>`{ .placeholder }, impossible de savoir laquelle restaurer dans les arguments. Si deux entités se confondent dans le même jeton masqué dans la réponse, la mémoire de conversation devient lacunaire. C'est la raison structurelle pour laquelle le middleware n'accepte que des factories taguées `PreservesIdentity`. Voir [Placeholder factories](placeholder-factories.md).
 
 ---
 

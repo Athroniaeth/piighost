@@ -168,14 +168,14 @@ pipeline_hash = AnonymizationPipeline(
     ...,
     anonymizer=Anonymizer(HashPlaceholderFactory()),
 )
-# Produces: <PERSON:a1b2c3d4>
+# Produces: <<PERSON:a1b2c3d4>>
 
-# Redact: all entities get <LABEL> (no counter)
+# Redact: all entities get <<LABEL>> (no counter)
 pipeline_redact = AnonymizationPipeline(
     ...,
     anonymizer=Anonymizer(RedactPlaceholderFactory()),
 )
-# Produces: <PERSON>
+# Produces: <<PERSON>>
 ```
 
 ---

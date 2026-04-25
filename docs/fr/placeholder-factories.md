@@ -12,15 +12,15 @@ Un **placeholder** est le jeton synthétique qui remplace une PII détectée dan
 
 Une **placeholder factory** est le composant qui décide à quoi ressemblent ces jetons et combien d'information ils transportent. Deux questions structurent le choix :
 
-1. *Les jetons sont-ils uniques par entité ?* `Patrick`{ .pii } et `Marie`{ .pii } ne doivent pas se ramener au même placeholder générique `<PERSON>`{ .placeholder }, sinon le LLM ne peut pas faire la distinction entre les deux. Un jeton unique par entité permet au LLM de raisonner sur les relations entre les entités : *"le manager est-il la même personne que `Patrick`{ .pii } ?"* devient *"`<<PERSON_1>>`{ .placeholder } est-il la même que `<<PERSON_2>>`{ .placeholder } ?"* et a une réponse claire.
-2. *Les jetons sont-ils réversibles ?* À partir d'un jeton, peut-on récupérer la valeur originale sans connaître le mapping de cache ? C'est la condition nécessaire pour que le middleware puisse faire du remplacement de chaîne dans les arguments d'outil par exemple. Si deux placeholders différents se confondent dans le même jeton `<PERSON>`{ .placeholder }, il est impossible de savoir quelle valeur originale restaurer.
+1. *Les jetons sont-ils uniques par entité ?* `Patrick`{ .pii } et `Marie`{ .pii } ne doivent pas se ramener au même placeholder générique `<<PERSON>>`{ .placeholder }, sinon le LLM ne peut pas faire la distinction entre les deux. Un jeton unique par entité permet au LLM de raisonner sur les relations entre les entités : *"le manager est-il la même personne que `Patrick`{ .pii } ?"* devient *"`<<PERSON_1>>`{ .placeholder } est-il la même que `<<PERSON_2>>`{ .placeholder } ?"* et a une réponse claire.
+2. *Les jetons sont-ils réversibles ?* À partir d'un jeton, peut-on récupérer la valeur originale sans connaître le mapping de cache ? C'est la condition nécessaire pour que le middleware puisse faire du remplacement de chaîne dans les arguments d'outil par exemple. Si deux placeholders différents se confondent dans le même jeton `<<PERSON>>`{ .placeholder }, il est impossible de savoir quelle valeur originale restaurer.
 
 Sept grandes familles de factories se positionnent à des points différents de ce spectre, et le choix a des conséquences directes sur les `ToolCallStrategy` utilisables sans risque. Voir [Stratégies d'appel outil](tool-call-strategies.md) pour le côté runtime.
 
-- **Aucune information** (`[REDACT]`{ .placeholder }) : un jeton constant qui ne révèle rien au LLM. Stratégie de caviardage classique. Aucun raisonnement possible sur les entités (un LLM ne peut pas voir que c'est le nom d'une ville et donc utiliser l'outil `get_weather`).
-- **Id seul** (`[a1b2c3d4]`{ .placeholder }, `<a1b2c3d4>`{ .placeholder }) : un hash unique par entité, sans révéler le type. Le LLM voit qu'il y a deux entités distinctes mais ne sait pas si ce sont des personnes, des emails ou des cartes. Garde la réversibilité côté outil sans donner d'indice sémantique au modèle.
-- **Type seul** (`<PERSON>`{ .placeholder }, `<EMAIL>`{ .placeholder }) : le type est révélé mais pas l'identité. Plusieurs personnes dans la même conversation se confondent dans le même jeton `<PERSON>`{ .placeholder }, donc les références croisées deviennent impossibles.
-- **Type + id (opaque)** (`<<PERSON_1>>`{ .placeholder }, `<PERSON:a1b2c3d4>`{ .placeholder }) : type révélé, identité stable, jeton clairement synthétique. Le LLM sait que `<<PERSON_1>>`{ .placeholder } et `<<PERSON_2>>`{ .placeholder } sont des personnes différentes. Unique, donc réversible par remplacement de chaîne.
+- **Aucune information** (`<<REDACT>>`{ .placeholder }) : un jeton constant qui ne révèle rien au LLM. Stratégie de caviardage classique. Aucun raisonnement possible sur les entités (un LLM ne peut pas voir que c'est le nom d'une ville et donc utiliser l'outil `get_weather`).
+- **Id seul** (`<<a1b2c3d4>>`{ .placeholder }) : un hash unique par entité, sans révéler le type. Le LLM voit qu'il y a deux entités distinctes mais ne sait pas si ce sont des personnes, des emails ou des cartes. Garde la réversibilité côté outil sans donner d'indice sémantique au modèle.
+- **Type seul** (`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }) : le type est révélé mais pas l'identité. Plusieurs personnes dans la même conversation se confondent dans le même jeton `<<PERSON>>`{ .placeholder }, donc les références croisées deviennent impossibles.
+- **Type + id (opaque)** (`<<PERSON_1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }) : type révélé, identité stable, jeton clairement synthétique. Le LLM sait que `<<PERSON_1>>`{ .placeholder } et `<<PERSON_2>>`{ .placeholder } sont des personnes différentes. Unique, donc réversible par remplacement de chaîne.
 - **Type + valeur partielle** (`p***@mail.com`{ .placeholder }) : le format est préservé mais le contenu réel partiellement visible. Le LLM voit que c'est un email, devine peut-être le domaine, mais pas l'adresse complète. Plus risqué côté sécurité (fragments réels) et côté réversibilité (collisions possibles).
 - **Type + id (Faker)** (`john.doe@gmail.com`{ .placeholder }) : valeur factice entièrement plausible. Texte de sortie fluide et naturel, mais risque de collision avec une vraie valeur du monde.
 - **Type + id (réaliste hashé)** (`a1b2c3d4@anonymized.local`{ .placeholder }) : valeur factice réaliste avec un hash garantissant l'unicité. Combine le réalisme du format avec la garantie de non-collision.
@@ -31,27 +31,27 @@ Sept grandes familles de factories se positionnent à des points différents de 
 
 ### Aucune information : destruction totale
 
-Le jeton est un marqueur fixe (par exemple `[REDACT]`{ .placeholder }). Le LLM apprend *qu'une* information a été retirée mais rien sur son type, son nombre, ni ses relations. La conversation perd toutes ses références internes : un agent qui doit traiter *"envoyer la facture au client"* ne peut pas savoir si le client est celui mentionné plus tôt ou un nouveau. Utile pour la rédaction d'archive, inutile dès qu'un agent a besoin de raisonner.
+Le jeton est un marqueur fixe (par exemple `<<REDACT>>`{ .placeholder }). Le LLM apprend *qu'une* information a été retirée mais rien sur son type, son nombre, ni ses relations. La conversation perd toutes ses références internes : un agent qui doit traiter *"envoyer la facture au client"* ne peut pas savoir si le client est celui mentionné plus tôt ou un nouveau. Utile pour la rédaction d'archive, inutile dès qu'un agent a besoin de raisonner.
 
 Aucune factory built-in ne porte ce niveau. Il existe dans la taxonomie pour qu'une factory utilisateur puisse le déclarer explicitement (tag `PreservesNothing`).
 
 ### Id seul : identité sans type
 
-`[a1b2c3d4]`{ .placeholder }, `<a1b2c3d4>`{ .placeholder }. Compromis original : le jeton ressemble à un Redact (mêmes crochets, pas de label) mais contient un hash unique par entité. Le LLM ne sait pas si l'entité est une personne, un email ou une carte bancaire, mais voit que `[a1b2c3d4]`{ .placeholder } et `[ef98abcd]`{ .placeholder } sont deux entités différentes. C'est l'un des points les plus protecteurs tout en restant utilisable côté outil (le hash est unique, donc le remplacement de chaîne fonctionne).
+`<<a1b2c3d4>>`{ .placeholder }. Compromis original : le jeton garde la forme synthétique `<<...>>` mais ne révèle pas le label ; en revanche il contient un hash unique par entité. Le LLM ne sait pas si l'entité est une personne, un email ou une carte bancaire, mais voit que `<<a1b2c3d4>>`{ .placeholder } et `<<ef98abcd>>`{ .placeholder } sont deux entités différentes. C'est l'un des points les plus protecteurs tout en restant utilisable côté outil (le hash est unique, donc le remplacement de chaîne fonctionne).
 
 Aucune factory built-in ne propose ce schéma. Tag dédié : `PreservesIdentityOnly` (sous `PreservesIdentity`). Le middleware accepte cette factory comme n'importe quelle autre factory identité-préservante via la covariance.
 
 ### Type seul : type connu, identités confondues
 
-`<PERSON>`{ .placeholder }, `<EMAIL>`{ .placeholder }. Le LLM sait qu'il s'agit d'une personne, d'un email, d'une carte bancaire, et peut répondre aux questions qui dépendent uniquement du type. Mais deux personnes différentes dans la même conversation se confondent dans le même jeton. Le mode d'échec classique est la référence croisée : *"`Patrick`{ .pii } est-il la même personne que le manager mentionné plus tôt ?"* devient *"`<PERSON>`{ .placeholder } est-il le même que `<PERSON>`{ .placeholder } ?"*, ce qui est sans réponse.
+`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }. Le LLM sait qu'il s'agit d'une personne, d'un email, d'une carte bancaire, et peut répondre aux questions qui dépendent uniquement du type. Mais deux personnes différentes dans la même conversation se confondent dans le même jeton. Le mode d'échec classique est la référence croisée : *"`Patrick`{ .pii } est-il la même personne que le manager mentionné plus tôt ?"* devient *"`<<PERSON>>`{ .placeholder } est-il le même que `<<PERSON>>`{ .placeholder } ?"*, ce qui est sans réponse.
 
-Built-in : `RedactPlaceholderFactory` (sortie : `<PERSON>`{ .placeholder }). Tag `PreservesLabel`.
+Built-in : `RedactPlaceholderFactory` (sortie : `<<PERSON>>`{ .placeholder }). Tag `PreservesLabel`.
 
 ### Type + id (opaque)
 
-`<<PERSON_1>>`{ .placeholder }, `<PERSON:a1b2c3d4>`{ .placeholder }. La chaîne n'est manifestement *pas* une personne, un email ou un numéro de carte, c'est un placeholder. Le LLM ne peut pas la confondre avec une donnée réelle, les logs d'audit sont faciles à parcourir, et il y a **zéro chance** de collision avec une vraie valeur. Compromis : un prompt ou un outil aval strict qui valide "l'argument doit ressembler à un email" rejettera ces jetons.
+`<<PERSON_1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. La chaîne n'est manifestement *pas* une personne, un email ou un numéro de carte, c'est un placeholder. Le LLM ne peut pas la confondre avec une donnée réelle, les logs d'audit sont faciles à parcourir, et il y a **zéro chance** de collision avec une vraie valeur. Compromis : un prompt ou un outil aval strict qui valide "l'argument doit ressembler à un email" rejettera ces jetons.
 
-Built-in : `CounterPlaceholderFactory` (`<<PERSON_1>>`{ .placeholder }), `HashPlaceholderFactory` (`<PERSON:a1b2c3d4>`{ .placeholder }). Tag `PreservesLabeledIdentityOpaque`.
+Built-in : `CounterPlaceholderFactory` (`<<PERSON_1>>`{ .placeholder }), `HashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }). Tag `PreservesLabeledIdentityOpaque`.
 
 ### Type + id (réaliste hashé)
 
@@ -87,10 +87,10 @@ Chaque factory porte un **type fantôme** qui résume le niveau de préservation
 
 | Famille | Exemple | Tag |
 |---|---|---|
-| Aucune information | `[REDACT]`{ .placeholder } | `PreservesNothing` |
-| Id seul | `[a1b2c3d4]`{ .placeholder }, `<a1b2c3d4>`{ .placeholder } | `PreservesIdentityOnly` |
-| Type seul | `<PERSON>`{ .placeholder } | `PreservesLabel` |
-| Type + id (opaque) | `<<PERSON_1>>`{ .placeholder }, `<PERSON:a1b2c3d4>`{ .placeholder } | `PreservesLabeledIdentityOpaque` |
+| Aucune information | `<<REDACT>>`{ .placeholder } | `PreservesNothing` |
+| Id seul | `<<a1b2c3d4>>`{ .placeholder } | `PreservesIdentityOnly` |
+| Type seul | `<<PERSON>>`{ .placeholder } | `PreservesLabel` |
+| Type + id (opaque) | `<<PERSON_1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder } | `PreservesLabeledIdentityOpaque` |
 | Type + id (réaliste hashé) | `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder } | `PreservesLabeledIdentityHashed` |
 | Type + id (Faker) | `john.doe@example.com`{ .placeholder }, `Jean Dupont`{ .placeholder } | `PreservesLabeledIdentityFaker` |
 | Type + valeur partielle | `j***@mail.com`{ .placeholder }, `****4567`{ .placeholder } | `PreservesShape` |
@@ -149,10 +149,10 @@ classDiagram
         racine
     }
     class PreservesNothing {
-        [REDACT]
+        <<REDACT>>
     }
     class PreservesLabel {
-        &lt;PERSON&gt;
+        &lt;&lt;PERSON&gt;&gt;
     }
     class PreservesShape {
         j***@mail.com
@@ -161,14 +161,14 @@ classDiagram
         abstraction
     }
     class PreservesIdentityOnly {
-        [a1b2c3d4]
+        <<a1b2c3d4>>
     }
     class PreservesLabeledIdentity {
         abstraction
     }
     class PreservesLabeledIdentityOpaque {
         &lt;&lt;PERSON_1&gt;&gt;
-        &lt;PERSON:a1b2c3d4&gt;
+        &lt;&lt;PERSON:a1b2c3d4&gt;&gt;
     }
     class PreservesLabeledIdentityRealistic {
         abstraction
@@ -206,7 +206,7 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
 class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]): ...
 class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]): ...
 # Pas de built-in pour la branche id-only : à implémenter avec
-# PreservesIdentityOnly pour un Redact hashé du type [a1b2c3d4].
+# PreservesIdentityOnly pour un Redact hashé du type <<a1b2c3d4>>.
 ```
 
 ---
@@ -216,9 +216,9 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]): ...
 | Factory | Exemple de sortie | Tag | Unique par entité ? | Réversible ? |
 |---|---|---|---|---|
 | `CounterPlaceholderFactory` (défaut) | `<<PERSON_1>>`{ .placeholder } | `PreservesLabeledIdentityOpaque` | oui (par thread) | oui |
-| `HashPlaceholderFactory` | `<PERSON:a1b2c3d4>`{ .placeholder } | `PreservesLabeledIdentityOpaque` | oui (déterministe) | oui |
+| `HashPlaceholderFactory` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | `PreservesLabeledIdentityOpaque` | oui (déterministe) | oui |
 | `FakerPlaceholderFactory` | valeur plausible aléatoire | `PreservesLabeledIdentityFaker` | oui (mais peut collisionner avec une vraie valeur) | oui |
-| `RedactPlaceholderFactory` | `<PERSON>`{ .placeholder } | `PreservesLabel` | non (label seul) | non |
+| `RedactPlaceholderFactory` | `<<PERSON>>`{ .placeholder } | `PreservesLabel` | non (label seul) | non |
 | `MaskPlaceholderFactory` | `p***@mail.com`{ .placeholder } | `PreservesShape` | partielle | oui (avec risque de collision) |
 
 `CounterPlaceholderFactory` et `HashPlaceholderFactory` sont les valeurs sûres par défaut. `FakerPlaceholderFactory` est réversible mais ses jetons peuvent collisionner avec de vraies valeurs dans les réponses d'outils. `RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont des outils de redaction one-shot, non réversibles.
@@ -235,10 +235,10 @@ Le but est de produire une version assainie d'un document : caviardage d'un juge
 
 | Besoin | Famille recommandée | Pourquoi |
 |---|---|---|
-| Effacer toute trace, sans réversibilité | **Aucune information** (`[REDACT]`{ .placeholder }) | Le plus protecteur, aucune fuite sémantique. Le document devient lisible mais le LLM ne peut rien en inférer. |
-| Garder un texte lisible (le lecteur humain voit "[email]" plutôt que "[REDACT]") | **Type seul** (`<PERSON>`{ .placeholder }, `<EMAIL>`{ .placeholder }) | Le type aide la lecture humaine sans rien fuiter de la valeur. Built-in : `RedactPlaceholderFactory`. |
+| Effacer toute trace, sans réversibilité | **Aucune information** (`<<REDACT>>`{ .placeholder }) | Le plus protecteur, aucune fuite sémantique. Le document devient lisible mais le LLM ne peut rien en inférer. |
+| Garder un texte lisible (le lecteur humain voit "[email]" plutôt que "<<REDACT>>") | **Type seul** (`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }) | Le type aide la lecture humaine sans rien fuiter de la valeur. Built-in : `RedactPlaceholderFactory`. |
 | Permettre une désanonymisation côté serveur (cache local) | **Type + id (opaque)** (`<<PERSON_1>>`{ .placeholder }) | Réversible via le cache, audit trivial, aucune collision. Built-in : `CounterPlaceholderFactory` ou `HashPlaceholderFactory`. |
-| Suivre "qui est qui" sans révéler le type (sensible : médical, RH) | **Id seul** (`[a1b2c3d4]`{ .placeholder }) | Distingue les entités sans aucun indice sémantique. À implémenter (pas de built-in). |
+| Suivre "qui est qui" sans révéler le type (sensible : médical, RH) | **Id seul** (`<<a1b2c3d4>>`{ .placeholder }) | Distingue les entités sans aucun indice sémantique. À implémenter (pas de built-in). |
 
 ### Cas 2 : anonymisation pour LLM / agent avec outils
 
@@ -248,11 +248,11 @@ Conséquence directe : seules les familles avec identité préservée (`Id seul`
 
 | Besoin | Famille recommandée | Pourquoi |
 |---|---|---|
-| **Cas par défaut** | **Type + id (opaque)** (`<<PERSON_1>>`{ .placeholder }, `<PERSON:a1b2c3d4>`{ .placeholder }) | Réversible, opaque, zéro collision. La valeur sûre. Built-in : `CounterPlaceholderFactory` (par thread) ou `HashPlaceholderFactory` (déterministe). |
+| **Cas par défaut** | **Type + id (opaque)** (`<<PERSON_1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }) | Réversible, opaque, zéro collision. La valeur sûre. Built-in : `CounterPlaceholderFactory` (par thread) ou `HashPlaceholderFactory` (déterministe). |
 | L'outil aval valide un format (regex email, longueur de carte) | **Type + id (réaliste hashé)** (`a1b2c3d4@anonymized.local`{ .placeholder }) | Le placeholder passe la validation tout en gardant unicité et zéro collision. À implémenter (pas de built-in). |
 | Sortie utilisateur doit paraître naturelle (brouillons, démos) | **Type + id (Faker)** (`john.doe@example.com`{ .placeholder }) | Texte fluide, aucun `<<PERSON_1>>`{ .placeholder } visible côté utilisateur. **Risque** : collision avec une vraie valeur dans une réponse d'outil. À éviter en `ToolCallStrategy.FULL`. Built-in : `FakerPlaceholderFactory`. |
-| Réduction des biais (CV, candidature) | **Id seul** (`[a1b2c3d4]`{ .placeholder }) | Le LLM ne voit pas le type, donc pas le genre/origine inférables d'un prénom. Distingue les candidats sans biaiser le raisonnement. |
-| Type sensible (catégorie médicale, niveau d'habilitation) | **Id seul** (`[a1b2c3d4]`{ .placeholder }) | Même raison : le type lui-même est une PII et ne doit pas atteindre le LLM. |
+| Réduction des biais (CV, candidature) | **Id seul** (`<<a1b2c3d4>>`{ .placeholder }) | Le LLM ne voit pas le type, donc pas le genre/origine inférables d'un prénom. Distingue les candidats sans biaiser le raisonnement. |
+| Type sensible (catégorie médicale, niveau d'habilitation) | **Id seul** (`<<a1b2c3d4>>`{ .placeholder }) | Même raison : le type lui-même est une PII et ne doit pas atteindre le LLM. |
 
 À éviter dans un agent :
 
@@ -271,7 +271,7 @@ Le middleware travaille sur trois frontières : les **messages d'entrée** (LLM 
 
 **Appels d'outil.** Le LLM produit les arguments d'outil en *combinant* et *paraphrasant* les placeholders qu'il vient de voir. Ce texte précis n'a jamais été produit par le pipeline, il n'est donc **pas dans le cache**. La seule façon de le déanonymiser est le **remplacement de chaîne** : on parcourt les arguments à la recherche des placeholders connus et on substitue la valeur originale de chaque entité. La logique est symétrique pour la réponse de l'outil, qu'on ré-anonymise en remplaçant les valeurs PII connues par leur jeton.
 
-Cette substitution n'est non ambiguë **que si chaque entité a un placeholder unique**. Si deux entités se confondent dans `<PERSON>`{ .placeholder }, il est impossible de décider quelle valeur originale restaurer. Le middleware restreint donc son type accepté à `ThreadAnonymizationPipeline[PreservesIdentity]`, ce qui via la covariance englobe à la fois `PreservesIdentityOnly` (Redact hashé sans label) et tous les `PreservesLabeledIdentity*` (avec label). Brancher une factory `PreservesLabel` / `PreservesShape` / `PreservesNothing` sur le middleware est rejeté par `pyrefly` / `mypy` *avant* même que le programme ne tourne.
+Cette substitution n'est non ambiguë **que si chaque entité a un placeholder unique**. Si deux entités se confondent dans `<<PERSON>>`{ .placeholder }, il est impossible de décider quelle valeur originale restaurer. Le middleware restreint donc son type accepté à `ThreadAnonymizationPipeline[PreservesIdentity]`, ce qui via la covariance englobe à la fois `PreservesIdentityOnly` (Redact hashé sans label) et tous les `PreservesLabeledIdentity*` (avec label). Brancher une factory `PreservesLabel` / `PreservesShape` / `PreservesNothing` sur le middleware est rejeté par `pyrefly` / `mypy` *avant* même que le programme ne tourne.
 
 `ThreadAnonymizationPipeline` reproduit la contrainte au runtime via `get_preservation_tag()`, ce qui rejette aussi les factories non typées ou construites dynamiquement qui contourneraient le type-checker.
 

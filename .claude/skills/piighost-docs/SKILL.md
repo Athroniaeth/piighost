@@ -89,6 +89,17 @@ Use `---` between major sections sparingly. Once between blocks is fine, two in 
 - Same language, subdir: `[FAQ](community/faq.md)`
 - **Never link across languages.** Each site is self-contained.
 
+## Placeholder format conventions
+
+The project normalises placeholder examples along a single rule:
+
+- **Synthetic placeholders that do not replicate a PII** (Redact, Type, Type+id, Id-only) wrap the content in `<<` / `>>` so the LLM sees an unambiguous token.
+  Examples: `<<REDACT>>`, `<<PERSON>>`, `<<EMAIL>>`, `<<PERSON_1>>`, `<<PERSON:a1b2c3d4>>`, `<<a1b2c3d4>>`.
+- **Realistic placeholders that replicate a PII format** (Realistic-hashed, Faker, masked) keep no delimiters — the whole point is to look like a real value.
+  Examples: `Patient_a1b2c3d4`, `a1b2c3d4@anonymized.local`, `john.doe@example.com`, `Jean Dupont`, `j***@mail.com`, `****4567`.
+
+The built-in factories follow this rule: `RedactPlaceholderFactory` emits `<<PERSON>>`, `HashPlaceholderFactory` emits `<<PERSON:a1b2c3d4>>`, `CounterPlaceholderFactory` emits `<<PERSON_1>>`, `MaskPlaceholderFactory` emits `j***@mail.com`, `FakerPlaceholderFactory` emits `john.doe@example.com`. Apply the same convention in any new doc example or new factory.
+
 ## Highlighting PII and placeholders inline
 
 Two CSS classes defined in `stylesheets/extra.css`:
@@ -106,7 +117,8 @@ When to tag:
 
 | Inline code | Tag |
 |---|---|
-| Synthetic placeholder example: `<<PERSON_1>>`, `<PERSON:a1b2c3d4>`, `<PERSON>`, `<EMAIL>`, `[REDACT]`, `[a1b2c3d4]`, `j***@mail.com`, `john.doe@example.com`, `Jean Dupont`, `+33 6 12 34 56 78`, `a1b2c3d4@anonymized.local`, `Patient_a1b2c3d4` | `{ .placeholder }` |
+| Synthetic placeholder that does **not** replicate a real PII (use `<<...>>` delimiters): `<<PERSON_1>>`, `<<PERSON:a1b2c3d4>>`, `<<PERSON>>`, `<<EMAIL>>`, `<<REDACT>>`, `<<a1b2c3d4>>` | `{ .placeholder }` |
+| Placeholder that **replicates** a real PII format (no delimiters): `j***@mail.com`, `john.doe@example.com`, `Jean Dupont`, `+33 6 12 34 56 78`, `a1b2c3d4@anonymized.local`, `Patient_a1b2c3d4` | `{ .placeholder }` |
 | Raw PII example: `Patrick`, `Marie`, `Paris` (when used as a value to anonymise) | `{ .pii }` |
 | Class / tag / method / parameter name: `HashPlaceholderFactory`, `PreservesIdentity`, `abefore_model`, `tool_strategy` | none — plain inline code |
 
@@ -132,10 +144,10 @@ For class diagrams (`classDiagram`), embed examples directly inside the class bo
 ```mermaid
 classDiagram
     class PreservesNothing {
-        [REDACT]
+        &lt;&lt;REDACT&gt;&gt;
     }
     class PreservesLabel {
-        &lt;PERSON&gt;
+        &lt;&lt;PERSON&gt;&gt;
     }
     class PreservesIdentity {
         abstraction
