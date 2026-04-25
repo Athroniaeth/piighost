@@ -50,6 +50,30 @@ class BaseSpanConflictResolver:
         return [d for d in detections if d.confidence >= self._confidence_threshold]
 
 
+class DisabledSpanConflictResolver:
+    """Passthrough resolver that disables span conflict resolution.
+
+    Returns the input list of detections unchanged. Useful when the
+    detector already guarantees non-overlapping spans, or when the
+    user explicitly wants overlapping detections to flow into entity
+    linking (e.g. a PERSON and a LOCATION spanning the same characters
+    that the linker should merge or treat as siblings).
+
+    Example:
+        >>> from piighost.models import Detection, Span
+        >>> detections = [
+        ...     Detection(label="PERSON", position=Span(17, 24), confidence=0.91),
+        ...     Detection(label="PERSON", position=Span(17, 22), confidence=0.51),
+        ... ]
+        >>> resolver = DisabledSpanConflictResolver()
+        >>> resolver.resolve(detections) == detections
+        True
+    """
+
+    def resolve(self, detections: list[Detection]) -> list[Detection]:
+        return list(detections)
+
+
 class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
     """Resolver that keeps the detection with the highest confidence on overlap.
 

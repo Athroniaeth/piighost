@@ -77,6 +77,38 @@ class BaseEntityLinker:
         return len(detection.text) >= self._min_text_length
 
 
+class DisabledEntityLinker:
+    """Passthrough linker that disables entity expansion and grouping.
+
+    Each detection becomes its own ``Entity`` (one detection per entity,
+    no expansion, no cross-message linking). Useful when the detector
+    already produces clean, deduplicated detections, or when the user
+    explicitly wants every detection to remain a separate placeholder
+    even if surface texts collide.
+
+    Example:
+        >>> from piighost.models import Detection, Span
+        >>> detections = [
+        ...     Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),
+        ...     Detection(text="Patrick", label="PERSON", position=Span(20, 27), confidence=0.9),
+        ... ]
+        >>> linker = DisabledEntityLinker()
+        >>> entities = linker.link("Patrick et Patrick", detections)
+        >>> len(entities)
+        2
+    """
+
+    def link(self, text: str, detections: list[Detection]) -> list[Entity]:
+        return [Entity(detections=(d,)) for d in detections]
+
+    def link_entities(
+        self,
+        entities: list[Entity],
+        known_entities: list[Entity],
+    ) -> list[Entity]:
+        return list(entities)
+
+
 class ExactEntityLinker(BaseEntityLinker):
     """Entity linker that expands and groups detections by exact text match.
 

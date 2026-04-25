@@ -2,7 +2,7 @@ from piighost import labels
 from piighost.anonymizer import AnyAnonymizer, Anonymizer
 from piighost.detector.base import AnyDetector, ExactMatchDetector
 from piighost.exceptions import CacheMissError, PIIGhostException
-from piighost.linker.entity import AnyEntityLinker
+from piighost.linker.entity import AnyEntityLinker, DisabledEntityLinker
 from piighost.models import Detection, Entity, Span
 from piighost.placeholder import (
     AnyPlaceholderFactory,
@@ -24,8 +24,11 @@ from piighost.placeholder_tags import (
     PreservesNothing,
     PreservesShape,
 )
-from piighost.resolver.entity import AnyEntityConflictResolver
-from piighost.resolver.span import AnySpanConflictResolver
+from piighost.resolver.entity import (
+    AnyEntityConflictResolver,
+    DisabledEntityConflictResolver,
+)
+from piighost.resolver.span import AnySpanConflictResolver, DisabledSpanConflictResolver
 
 __all__ = [
     "AnyAnonymizer",
@@ -38,6 +41,9 @@ __all__ = [
     "CacheMissError",
     "CounterPlaceholderFactory",
     "Detection",
+    "DisabledEntityConflictResolver",
+    "DisabledEntityLinker",
+    "DisabledSpanConflictResolver",
     "Entity",
     "ExactMatchDetector",
     "HashPlaceholderFactory",

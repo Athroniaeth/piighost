@@ -36,6 +36,32 @@ class AnyEntityConflictResolver(Protocol):
         ...
 
 
+class DisabledEntityConflictResolver:
+    """Passthrough resolver that disables entity conflict resolution.
+
+    Returns the input list of entities unchanged. Useful when entities
+    are already known to be disjoint, or when the user explicitly wants
+    to keep duplicates produced by separate linkers without merging them.
+
+    ``have_conflict`` always returns ``False`` so any caller that walks
+    the entities pairwise will treat them as conflict-free.
+
+    Example:
+        >>> from piighost.models import Detection, Entity, Span
+        >>> e1 = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
+        >>> e2 = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.5),))
+        >>> resolver = DisabledEntityConflictResolver()
+        >>> resolver.resolve([e1, e2]) == [e1, e2]
+        True
+    """
+
+    def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
+        return False
+
+    def resolve(self, entities: list[Entity]) -> list[Entity]:
+        return list(entities)
+
+
 class MergeEntityConflictResolver:
     """Resolver that merges entities sharing common detections.
 

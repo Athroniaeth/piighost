@@ -234,6 +234,22 @@ class LongestSpanResolver:
         return kept
 ```
 
+### Disabling
+
+Pass `DisabledSpanConflictResolver()` to keep every detection untouched. Useful when the detector already guarantees non-overlapping spans, or when the user wants overlapping detections to flow into the linker.
+
+```python
+from piighost import DisabledSpanConflictResolver
+
+pipeline = AnonymizationPipeline(
+    detector=detector,
+    span_resolver=DisabledSpanConflictResolver(),  # ← passthrough
+    entity_linker=...,
+    entity_resolver=...,
+    anonymizer=...,
+)
+```
+
 ---
 
 ## Custom `AnyEntityLinker`
@@ -245,6 +261,22 @@ class LongestSpanResolver:
 ```python
 class AnyEntityLinker(Protocol):
     def link(self, text: str, detections: list[Detection]) -> list[Entity]: ...
+```
+
+### Disabling
+
+Pass `DisabledEntityLinker()` to map each detection 1:1 to an `Entity`. No expansion (no search for missed occurrences), no grouping, no cross-message linking. Useful when the detector already produces clean, deduplicated detections.
+
+```python
+from piighost import DisabledEntityLinker
+
+pipeline = AnonymizationPipeline(
+    detector=detector,
+    span_resolver=...,
+    entity_linker=DisabledEntityLinker(),  # ← passthrough
+    entity_resolver=...,
+    anonymizer=...,
+)
 ```
 
 ---
@@ -264,6 +296,7 @@ The built-in implementations:
 
 - `MergeEntityConflictResolver` union-find algorithm merging entities with shared detections
 - `FuzzyEntityConflictResolver` merges entities with similar canonical text using Jaro-Winkler similarity
+- `DisabledEntityConflictResolver` passthrough that returns entities unchanged (use to opt out of merging entirely)
 
 ---
 
