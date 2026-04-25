@@ -39,17 +39,14 @@ sortie du LLM et décidez s'il faut les supprimer, les signaler ou les réanonym
 ## Le choix de la stratégie outil dépend du placeholder factory
 
 `PIIAnonymizationMiddleware` expose trois stratégies d'appel outil (`FULL`, `INBOUND_ONLY`, `PASSTHROUGH`) via le
-paramètre `tool_strategy`. Leur fiabilité dépend du placeholder factory utilisé par le pipeline :
+paramètre `tool_strategy`. La frontière outil ne peut pas s'appuyer sur le cache, uniquement sur du remplacement de
+chaîne, donc elle exige des placeholders uniques pour rester réversible. `HashPlaceholderFactory` est le défaut le
+plus sûr ; `FakerPlaceholderFactory` peut collisionner avec de vraies valeurs dans les réponses d'outils ;
+`RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetés à la construction par
+`ThreadAnonymizationPipeline`.
 
-- `HashPlaceholderFactory` est le plus sûr : tokens déterministes et résistants aux collisions.
-- `CounterPlaceholderFactory` est sûr au sein d'un thread mais produit des placeholders différents entre threads.
-- `FakerPlaceholderFactory` peut générer des valeurs factices qui collisionnent avec de vraies valeurs présentes
-  dans la réponse d'un outil ; à combiner avec prudence, surtout avec `INBOUND_ONLY` et `FULL`.
-- `RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetés à la construction par
-  `ThreadAnonymizationPipeline` car ils produisent des tokens non uniques impossibles à inverser de façon fiable.
-
-**Mitigation** : préférez `HashPlaceholderFactory` dès que des outils sont en jeu ; choisissez `PASSTHROUGH` si les
-outils ne doivent jamais voir les vraies PII.
+**Mitigation** : voir [Placeholder factories](placeholder-factories.md) pour la taxonomie et
+[Stratégies d'appel outil](tool-call-strategies.md) pour choisir un mode.
 
 ## Le cache est en mémoire par défaut
 

@@ -37,17 +37,13 @@ decide whether to strip, flag, or re-anonymize them before displaying to the use
 ## Tool-call strategy depends on the placeholder factory
 
 `PIIAnonymizationMiddleware` offers three tool-call strategies (`FULL`, `INBOUND_ONLY`, `PASSTHROUGH`) via the
-`tool_strategy` parameter. Their reliability depends on the placeholder factory used by the pipeline:
+`tool_strategy` parameter. The tool-call boundary cannot rely on the cache, only on string replacement, so it
+needs unique placeholders to be reversible. `HashPlaceholderFactory` is the safest default; `FakerPlaceholderFactory`
+can collide with real values in tool responses; `RedactPlaceholderFactory` and `MaskPlaceholderFactory` are rejected
+at construction by `ThreadAnonymizationPipeline`.
 
-- `HashPlaceholderFactory` is the safest because tokens are deterministic and collision-resistant.
-- `CounterPlaceholderFactory` is safe within a thread but produces different placeholders across threads.
-- `FakerPlaceholderFactory` can generate fake values that happen to collide with real ones in tool responses;
-  combine with caution, especially for `INBOUND_ONLY` and `FULL`.
-- `RedactPlaceholderFactory` and `MaskPlaceholderFactory` are rejected at construction time by
-  `ThreadAnonymizationPipeline` because they produce non-unique tokens that cannot be reliably reversed.
-
-**Mitigation**: prefer `HashPlaceholderFactory` when tools are in play; pick `PASSTHROUGH` when tools should never
-see real PII at all.
+**Mitigation**: see [Placeholder factories](placeholder-factories.md) for the taxonomy and
+[Tool-call strategies](tool-call-strategies.md) for picking a mode.
 
 ## Cache is in-memory by default
 

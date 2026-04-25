@@ -278,67 +278,7 @@ class AnyPlaceholderFactory(Protocol[PreservationT_co]):
     def create(self, entities: list[Entity]) -> dict[Entity, str]: ...
 ```
 
-### Preservation tag
-
-Every factory is tagged with a **phantom type** describing how much information its tokens keep. The type-checker uses this tag to gate consumers that need a specific level of reversibility, in particular `PIIAnonymizationMiddleware` which requires `PreservesIdentity`.
-
-| Tag | Meaning | Example | Safe for middleware? |
-|---|---|---|---|
-| `PreservesIdentity` | one unique, reversible token per entity | `<<PERSON_1>>`, `<PERSON:a1b2c3d4>` | Yes, for all `ToolCallStrategy` variants |
-| `PreservesLabel` | label only, different entities collide | `<PERSON>` | Only with `ToolCallStrategy.PASSTHROUGH` |
-| `PreservesShape` | partial value leak, collisions possible | `p***@mail.com` | Only with `ToolCallStrategy.PASSTHROUGH` |
-| `PreservesNothing` | constant marker, all entities collapse | `[REDACT]` | Only with `ToolCallStrategy.PASSTHROUGH` |
-
-`ThreadAnonymizationPipeline` inspects the tag at construction time and rejects any factory whose tag is weaker than `PreservesIdentity`, because the conversation-memory logic assumes each entity maps back to a unique placeholder. Picking the right tag both documents intent and gets you a static error from `pyrefly`/`mypy` the moment you wire a weak factory into a context that needs stronger guarantees.
-
-See [Tool-call strategies](community/faq.md) and [Limitations](limitations.md) for the middleware interactions.
-
-???+ example "UUID tags factory — `PreservesIdentity`"
-
-    ```python
-    import uuid
-    from piighost.models import Entity
-    from piighost.placeholder import AnyPlaceholderFactory
-    from piighost.placeholder_tags import PreservesIdentity
-
-    class UUIDPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
-        """Generates opaque UUID tags, e.g. <<a3f2-1b4c>>."""
-
-        def create(self, entities: list[Entity]) -> dict[Entity, str]:
-            result: dict[Entity, str] = {}
-            seen: dict[str, str] = {}  # canonical → token
-
-            for entity in entities:
-                canonical = entity.detections[0].text.lower()
-                if canonical not in seen:
-                    seen[canonical] = f"<<{uuid.uuid4().hex[:8]}>>"
-                result[entity] = seen[canonical]
-
-            return result
-    ```
-
-??? example "Custom format factory — `PreservesIdentity`"
-
-    ```python
-    from collections import defaultdict
-    from piighost.models import Entity
-    from piighost.placeholder import AnyPlaceholderFactory
-    from piighost.placeholder_tags import PreservesIdentity
-
-    class BracketPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentity]):
-        """Generates tags in the format [PERSON:1], [LOCATION:2], etc."""
-
-        def create(self, entities: list[Entity]) -> dict[Entity, str]:
-            result: dict[Entity, str] = {}
-            counters: dict[str, int] = defaultdict(int)
-
-            for entity in entities:
-                label = entity.label
-                counters[label] += 1
-                result[entity] = f"[{label}:{counters[label]}]"
-
-            return result
-    ```
+Every factory carries a phantom **preservation tag** (`PreservesIdentity`, `PreservesLabel`, `PreservesShape`, `PreservesNothing`) that the type-checker uses to gate consumers like `PIIAnonymizationMiddleware`. See [Placeholder factories](placeholder-factories.md) for the full taxonomy, the worked examples (`UUIDPlaceholderFactory`, `BracketPlaceholderFactory`), and the reasoning behind the constraint.
 
 ### Usage
 
