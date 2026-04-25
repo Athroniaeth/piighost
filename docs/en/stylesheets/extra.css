@@ -48,3 +48,61 @@ code.pii,
   color: var(--md-default-fg-color--light);
   margin-top: -0.5em;
 }
+
+/* Compact reference tables: keep the default horizontal scroll inside
+   the article column but tighten cells so dense rows fit better.
+   Wrap markdown table in <div class="wide-table" markdown="1">...</div>. */
+.md-typeset .wide-table > table {
+  font-size: 0.82em;
+}
+
+.md-typeset .wide-table > table th,
+.md-typeset .wide-table > table td {
+  padding: 0.45em 0.6em;
+  vertical-align: top;
+}
+
+/* Security-graded reference table.
+   Rows colour-coded from sec-6 (strongest privacy) to sec-1 (weakest). */
+.md-typeset .security-table {
+  display: block;
+  overflow-x: auto;
+  font-size: 0.85em;
+}
+.md-typeset .security-table th,
+.md-typeset .security-table td {
+  padding: 0.5em 0.7em;
+  border: 0.05rem solid var(--md-typeset-table-color, rgba(0, 0, 0, 0.07));
+  vertical-align: top;
+}
+.md-typeset .security-table thead th {
+  background-color: var(--md-default-bg-color);
+  font-weight: 600;
+}
+.md-typeset .security-table td.c-blue   { background-color: rgba(59, 130, 246, 0.20); }
+.md-typeset .security-table td.c-green  { background-color: rgba(34, 197, 94, 0.20); }
+.md-typeset .security-table td.c-yellow { background-color: rgba(234, 179, 8, 0.22); }
+.md-typeset .security-table td.c-red    { background-color: rgba(239, 68, 68, 0.22); }
+
+[data-md-color-scheme="slate"] .md-typeset .security-table td.c-blue   { background-color: rgba(59, 130, 246, 0.30); }
+[data-md-color-scheme="slate"] .md-typeset .security-table td.c-green  { background-color: rgba(34, 197, 94, 0.30); }
+[data-md-color-scheme="slate"] .md-typeset .security-table td.c-yellow { background-color: rgba(234, 179, 8, 0.32); }
+[data-md-color-scheme="slate"] .md-typeset .security-table td.c-red    { background-color: rgba(239, 68, 68, 0.32); }
+
+/* Inline legend chips next to the security table. */
+.md-typeset .sec-legend {
+  display: inline-block;
+  padding: 0.1em 0.5em;
+  margin: 0 0.15em;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+.md-typeset .sec-legend.c-blue   { background-color: rgba(59, 130, 246, 0.30); color: #1d4ed8; }
+.md-typeset .sec-legend.c-green  { background-color: rgba(34, 197, 94, 0.30); color: #15803d; }
+.md-typeset .sec-legend.c-yellow { background-color: rgba(234, 179, 8, 0.32); color: #a16207; }
+.md-typeset .sec-legend.c-red    { background-color: rgba(239, 68, 68, 0.32); color: #b91c1c; }
+[data-md-color-scheme="slate"] .md-typeset .sec-legend.c-blue   { color: #93c5fd; }
+[data-md-color-scheme="slate"] .md-typeset .sec-legend.c-green  { color: #86efac; }
+[data-md-color-scheme="slate"] .md-typeset .sec-legend.c-yellow { color: #fcd34d; }
+[data-md-color-scheme="slate"] .md-typeset .sec-legend.c-red    { color: #fca5a5; }
