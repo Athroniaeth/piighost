@@ -177,5 +177,6 @@ Thumbs.db
 sandbox/
 
 # Claude Code local state (worktrees, session data)
-.claude/
+.claude/*
+!.claude/skills/
 
