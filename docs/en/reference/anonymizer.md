@@ -210,7 +210,7 @@ from piighost.placeholder import HashPlaceholderFactory
 
 factory = HashPlaceholderFactory(hash_length=8)
 tokens = factory.create([person])
-# {person: '<PERSON:a1b2c3d4>'}
+# {person: '<<PERSON:a1b2c3d4>>'}
 ```
 
 | Parameter | Default | Description |
@@ -219,14 +219,14 @@ tokens = factory.create([person])
 
 ### `RedactPlaceholderFactory`
 
-All entities with the same label share the same `<LABEL>` token. No counter, no distinction between entities.
+All entities with the same label share the same `<<LABEL>>` token. No counter, no distinction between entities.
 
 ```python
 from piighost.placeholder import RedactPlaceholderFactory
 
 factory = RedactPlaceholderFactory()
 tokens = factory.create([person, location])
-# {person: '<PERSON>', location: '<LOCATION>'}
+# {person: '<<PERSON>>', location: '<<LOCATION>>'}
 ```
 
 !!! warning "Deanonymization with RedactPlaceholderFactory"

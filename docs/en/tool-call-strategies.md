@@ -25,7 +25,7 @@ Both directions therefore fall back on **plain string replacement**:
 - *Tool args (LLM → tool)*: scan the args for known placeholders, replace each with the original value of its entity.
 - *Tool response (tool → LLM)*: scan the response for known PII values, replace each with the corresponding placeholder.
 
-Plain replacement only works when the mapping is **unambiguous**. If two entities share the placeholder `<PERSON>`{ .placeholder }, there is no way to decide which original to restore in the args. If two entities collapse onto the same masked token in the response, the conversation memory becomes lossy. This is the structural reason the middleware accepts only factories tagged `PreservesIdentity`. See [Placeholder factories](placeholder-factories.md).
+Plain replacement only works when the mapping is **unambiguous**. If two entities share the placeholder `<<PERSON>>`{ .placeholder }, there is no way to decide which original to restore in the args. If two entities collapse onto the same masked token in the response, the conversation memory becomes lossy. This is the structural reason the middleware accepts only factories tagged `PreservesIdentity`. See [Placeholder factories](placeholder-factories.md).
 
 ---
 
