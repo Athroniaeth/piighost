@@ -215,6 +215,22 @@ class AnySpanConflictResolver(Protocol):
     def resolve(self, detections: list[Detection]) -> list[Detection]: ...
 ```
 
+### Désactiver le composant
+
+Passer `DisabledSpanConflictResolver()` pour conserver toutes les détections telles quelles. Utile quand le détecteur garantit déjà des spans non chevauchants, ou quand on veut que les chevauchements remontent jusqu'au linker.
+
+```python
+from piighost import DisabledSpanConflictResolver
+
+pipeline = AnonymizationPipeline(
+    detector=detector,
+    span_resolver=DisabledSpanConflictResolver(),  # ← passe-plat
+    entity_linker=...,
+    entity_resolver=...,
+    anonymizer=...,
+)
+```
+
 ---
 
 ## Creer un `AnyEntityLinker` personnalise
@@ -226,6 +242,22 @@ class AnySpanConflictResolver(Protocol):
 ```python
 class AnyEntityLinker(Protocol):
     def link(self, text: str, detections: list[Detection]) -> list[Entity]: ...
+```
+
+### Désactiver le composant
+
+Passer `DisabledEntityLinker()` pour mapper chaque détection 1:1 à une `Entity`. Pas d'expansion (pas de recherche d'occurrences manquées), pas de regroupement, pas de liaison entre messages. Utile quand le détecteur produit déjà des détections propres et déduplicquées.
+
+```python
+from piighost import DisabledEntityLinker
+
+pipeline = AnonymizationPipeline(
+    detector=detector,
+    span_resolver=...,
+    entity_linker=DisabledEntityLinker(),  # ← passe-plat
+    entity_resolver=...,
+    anonymizer=...,
+)
 ```
 
 ---
@@ -245,6 +277,7 @@ Implementations fournies :
 
 - `MergeEntityConflictResolver` algorithme union-find fusionnant les entites avec des detections communes
 - `FuzzyEntityConflictResolver` fusionne les entites avec un texte canonique similaire via similarite Jaro-Winkler
+- `DisabledEntityConflictResolver` passe-plat qui retourne les entités telles quelles (pour désactiver entièrement la fusion)
 
 ---
 
