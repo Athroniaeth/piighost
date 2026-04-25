@@ -30,6 +30,10 @@ Five families of scenarios where `piighost` fits naturally, from the most defens
 
 *Example: a sales agent that queries the CRM and sends emails without the LLM ever having read the client names.*
 
+**6. Bias reduction.** LLMs inherit biases from their training data (gender, ethnicity, age). Anonymising a first name, last name, or location before sending a text to the model prevents those biases from influencing a decision: the LLM judges only the content.
+
+*Example: CV screening where first names, last names, and addresses are replaced with placeholders to neutralise discriminatory bias on the candidate's profile.*
+
 ---
 
 ## Problem statement

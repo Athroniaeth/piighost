@@ -30,6 +30,10 @@ Cinq familles de scénarios où `piighost` trouve naturellement sa place, du plu
 
 *Exemple : agent commercial qui consulte le CRM et envoie un email sans que le LLM ait lu les noms des clients.*
 
+**6. Réduction des biais.** Les LLM héritent des biais présents dans leurs données d'entraînement (genre, origine, âge). Anonymiser un prénom, un nom ou un lieu avant d'envoyer un texte au modèle évite que ces biais n'influencent une décision : le LLM ne juge plus que le contenu.
+
+*Exemple : tri de CV où prénoms, noms et adresses sont remplacés par des placeholders pour neutraliser les biais discriminatoires sur le profil du candidat.*
+
 ---
 
 ## Problématiques
