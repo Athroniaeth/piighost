@@ -73,7 +73,7 @@ class TestAnonymize:
             "Patrick est gentil",
             entities,
         )
-        assert result.startswith("<PERSON:")
+        assert result.startswith("<<PERSON:")
         assert "Patrick" not in result
 
     def test_with_redact_factory(self) -> None:
@@ -85,7 +85,7 @@ class TestAnonymize:
             "Patrick et Henri sont amis",
             entities,
         )
-        assert result == "<PERSON> et <PERSON> sont amis"
+        assert result == "<<PERSON>> et <<PERSON>> sont amis"
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ class TestDeanonymize:
         anon = Anonymizer(ph_factory=ph_factory)
 
         anonymized = anon.anonymize(text, entities)
-        assert anonymized == "<PERSON> est gentil"
+        assert anonymized == "<<PERSON>> est gentil"
 
         restored = anon.deanonymize(anonymized, entities)
         assert restored == text

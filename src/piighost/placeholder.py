@@ -91,10 +91,12 @@ class CounterPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOp
 
 
 class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]):
-    """Factory that generates tokens like ``<PERSON:a1b2c3d4>``.
+    """Factory that generates tokens like ``<<PERSON:a1b2c3d4>>``.
 
     Uses SHA-256 of the canonical text + label to produce a deterministic,
-    opaque token. Same entity always produces the same hash.
+    opaque token. Same entity always produces the same hash. The double
+    angle brackets keep the token visually distinct from real text and
+    from any HTML/XML the LLM might generate.
 
     Args:
         hash_length: Number of hex characters to use from the hash.
@@ -105,7 +107,7 @@ class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaqu
         >>> factory = HashPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> token = factory.create([e])[e]
-        >>> token.startswith('<PERSON:') and token.endswith('>')
+        >>> token.startswith('<<PERSON:') and token.endswith('>>')
         True
     """
 
@@ -121,7 +123,7 @@ class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaqu
             entities: The entities to create tokens for.
 
         Returns:
-            A dict mapping each entity to a token like ``"<PERSON:a1b2c3d4>"``.
+            A dict mapping each entity to a token like ``"<<PERSON:a1b2c3d4>>"``.
         """
         result: dict[Entity, str] = {}
 
@@ -130,13 +132,13 @@ class HashPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaqu
             label = entity.label
             raw = f"{canonical_text}:{label}"
             digest = hashlib.sha256(raw.encode()).hexdigest()[: self._hash_length]
-            result[entity] = f"<{label}:{digest}>"
+            result[entity] = f"<<{label}:{digest}>>"
 
         return result
 
 
 class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
-    """Factory that generates tokens like ``<PERSON>``.
+    """Factory that generates tokens like ``<<PERSON>>``.
 
     All entities with the same label share the same token there is
     no discrimination between different PIIs of the same type.
@@ -148,7 +150,7 @@ class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
         >>> factory = RedactPlaceholderFactory()
         >>> e = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
         >>> factory.create([e])[e]
-        '<PERSON>'
+        '<<PERSON>>'
     """
 
     def __init__(self): ...
@@ -160,9 +162,9 @@ class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
             entities: The entities to create tokens for.
 
         Returns:
-            A dict mapping each entity to a token like ``"<PERSON>"``.
+            A dict mapping each entity to a token like ``"<<PERSON>>"``.
         """
-        return {entity: f"<{entity.label}>" for entity in entities}
+        return {entity: f"<<{entity.label}>>" for entity in entities}
 
 
 MaskFn = Callable[[str, str], str]
