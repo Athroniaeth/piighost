@@ -13,7 +13,7 @@ arguments can be deanonymised reliably.
 The tags declared here are **phantom** types: they exist only for the
 type checker.  They attach a "preservation level" to a factory class
 via a generic parameter, so an incompatible combination (e.g. passing
-a :class:`~piighost.placeholder.RedactPlaceholderFactory`-based
+a :class:`~piighost.placeholder.LabelPlaceholderFactory`-based
 pipeline to the middleware) becomes a static error instead of a
 runtime surprise.
 

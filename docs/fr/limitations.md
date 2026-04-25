@@ -42,7 +42,7 @@ sortie du LLM et décidez s'il faut les supprimer, les signaler ou les réanonym
 paramètre `tool_strategy`. La frontière outil ne peut pas s'appuyer sur le cache, uniquement sur du remplacement de
 chaîne, donc elle exige des placeholders uniques pour rester réversible. `LabeledHashPlaceholderFactory` est le défaut le
 plus sûr ; `FakerPlaceholderFactory` peut collisionner avec de vraies valeurs dans les réponses d'outils ;
-`RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetés à la construction par
+`LabelPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetés à la construction par
 `ThreadAnonymizationPipeline`.
 
 **Mitigation** : voir [Placeholder factories](placeholder-factories.md) pour la taxonomie et

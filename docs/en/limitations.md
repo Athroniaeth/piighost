@@ -39,7 +39,7 @@ decide whether to strip, flag, or re-anonymize them before displaying to the use
 `PIIAnonymizationMiddleware` offers three tool-call strategies (`FULL`, `INBOUND_ONLY`, `PASSTHROUGH`) via the
 `tool_strategy` parameter. The tool-call boundary cannot rely on the cache, only on string replacement, so it
 needs unique placeholders to be reversible. `LabeledHashPlaceholderFactory` is the safest default; `FakerPlaceholderFactory`
-can collide with real values in tool responses; `RedactPlaceholderFactory` and `MaskPlaceholderFactory` are rejected
+can collide with real values in tool responses; `LabelPlaceholderFactory` and `MaskPlaceholderFactory` are rejected
 at construction by `ThreadAnonymizationPipeline`.
 
 **Mitigation**: see [Placeholder factories](placeholder-factories.md) for the taxonomy and

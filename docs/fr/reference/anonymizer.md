@@ -147,12 +147,12 @@ tokens = factory.create([person])
 # {person: '<<PERSON:a1b2c3d4>>'}
 ```
 
-### `RedactPlaceholderFactory`
+### `LabelPlaceholderFactory`
 
 Toutes les entites du meme label partagent le meme token `<<LABEL>>`.
 
 ```python
-factory = RedactPlaceholderFactory()
+factory = LabelPlaceholderFactory()
 tokens = factory.create([person, location])
 # {person: '<<PERSON>>', location: '<<LOCATION>>'}
 ```

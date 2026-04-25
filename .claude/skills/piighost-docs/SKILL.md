@@ -98,7 +98,7 @@ The project normalises placeholder examples along a single rule:
 - **Realistic placeholders that replicate a PII format** (Realistic-hashed, Faker, masked) keep no delimiters — the whole point is to look like a real value.
   Examples: `Patient_a1b2c3d4`, `a1b2c3d4@anonymized.local`, `john.doe@example.com`, `Jean Dupont`, `j***@mail.com`, `****4567`.
 
-The built-in factories follow this rule: `RedactPlaceholderFactory` emits `<<PERSON>>`, `LabeledHashPlaceholderFactory` emits `<<PERSON:a1b2c3d4>>`, `CounterPlaceholderFactory` emits `<<PERSON_1>>`, `MaskPlaceholderFactory` emits `j***@mail.com`, `FakerPlaceholderFactory` emits `john.doe@example.com`. Apply the same convention in any new doc example or new factory.
+The built-in factories follow this rule: `LabelPlaceholderFactory` emits `<<PERSON>>`, `LabeledHashPlaceholderFactory` emits `<<PERSON:a1b2c3d4>>`, `CounterPlaceholderFactory` emits `<<PERSON_1>>`, `MaskPlaceholderFactory` emits `j***@mail.com`, `FakerPlaceholderFactory` emits `john.doe@example.com`. Apply the same convention in any new doc example or new factory.
 
 ## Highlighting PII and placeholders inline
 

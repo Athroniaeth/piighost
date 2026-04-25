@@ -3,11 +3,11 @@
 from piighost.models import Detection, Entity, Span
 from piighost.placeholder import (
     AnonymousHashPlaceholderFactory,
-    ConstantPlaceholderFactory,
+    RedactPlaceholderFactory,
     CounterPlaceholderFactory,
     LabeledHashPlaceholderFactory,
     MaskPlaceholderFactory,
-    RedactPlaceholderFactory,
+    LabelPlaceholderFactory,
 )
 
 
@@ -101,31 +101,31 @@ class TestLabeledHashPlaceholderFactory:
 
 
 # ---------------------------------------------------------------------------
-# RedactPlaceholderFactory
+# LabelPlaceholderFactory
 # ---------------------------------------------------------------------------
 
 
-class TestRedactPlaceholderFactory:
+class TestLabelPlaceholderFactory:
     """Generates <<LABEL>> tokens no discrimination between entities."""
 
     def test_token_format(self) -> None:
         e = _entity("Patrick", "PERSON")
-        assert RedactPlaceholderFactory().create([e])[e] == "<<PERSON>>"
+        assert LabelPlaceholderFactory().create([e])[e] == "<<PERSON>>"
 
     def test_same_label_same_token(self) -> None:
         e1 = _entity("Patrick", "PERSON")
         e2 = _entity("Henri", "PERSON", start=20)
-        result = RedactPlaceholderFactory().create([e1, e2])
+        result = LabelPlaceholderFactory().create([e1, e2])
         assert result[e1] == result[e2] == "<<PERSON>>"
 
     def test_different_labels_different_tokens(self) -> None:
         e1 = _entity("Patrick", "PERSON")
         e2 = _entity("Paris", "LOCATION")
-        result = RedactPlaceholderFactory().create([e1, e2])
+        result = LabelPlaceholderFactory().create([e1, e2])
         assert result[e1] != result[e2]
 
     def test_empty_list(self) -> None:
-        assert RedactPlaceholderFactory().create([]) == {}
+        assert LabelPlaceholderFactory().create([]) == {}
 
 
 # ---------------------------------------------------------------------------
@@ -264,10 +264,10 @@ class TestGetPreservationTag:
         assert issubclass(tag, PreservesLabel)
 
     def test_redact_is_preserves_label(self) -> None:
-        from piighost.placeholder import RedactPlaceholderFactory
+        from piighost.placeholder import LabelPlaceholderFactory
         from piighost.placeholder_tags import PreservesLabel, get_preservation_tag
 
-        assert get_preservation_tag(RedactPlaceholderFactory()) is PreservesLabel
+        assert get_preservation_tag(LabelPlaceholderFactory()) is PreservesLabel
 
     def test_mask_is_preserves_shape(self) -> None:
         from piighost.placeholder import MaskPlaceholderFactory
@@ -287,27 +287,27 @@ class TestGetPreservationTag:
 
 
 # ---------------------------------------------------------------------------
-# ConstantPlaceholderFactory
+# RedactPlaceholderFactory
 # ---------------------------------------------------------------------------
 
 
-class TestConstantPlaceholderFactory:
+class TestRedactPlaceholderFactory:
     """Generates the same constant token for every entity."""
 
     def test_default_token(self) -> None:
         e1 = _entity("Patrick", "PERSON")
         e2 = _entity("Paris", "LOCATION", start=20)
-        result = ConstantPlaceholderFactory().create([e1, e2])
+        result = RedactPlaceholderFactory().create([e1, e2])
         assert result[e1] == "<<REDACT>>"
         assert result[e2] == "<<REDACT>>"
 
     def test_custom_value(self) -> None:
         e = _entity("Patrick", "PERSON")
-        token = ConstantPlaceholderFactory(value="HIDDEN").create([e])[e]
+        token = RedactPlaceholderFactory(value="HIDDEN").create([e])[e]
         assert token == "<<HIDDEN>>"
 
     def test_empty_list(self) -> None:
-        assert ConstantPlaceholderFactory().create([]) == {}
+        assert RedactPlaceholderFactory().create([]) == {}
 
     def test_preservation_tag(self) -> None:
         from piighost.placeholder_tags import (
@@ -315,7 +315,7 @@ class TestConstantPlaceholderFactory:
             get_preservation_tag,
         )
 
-        assert get_preservation_tag(ConstantPlaceholderFactory()) is PreservesNothing
+        assert get_preservation_tag(RedactPlaceholderFactory()) is PreservesNothing
 
 
 # ---------------------------------------------------------------------------

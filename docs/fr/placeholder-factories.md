@@ -42,7 +42,7 @@ Sept grandes familles de factories se positionnent à des points différents de 
 
 Le placeholder est un marqueur fixe (par exemple `<<REDACT>>`{ .placeholder }). Le LLM apprend *qu'une* information a été retirée mais rien sur son type, son nombre, ni ses relations. La conversation perd toutes ses références internes : un agent qui doit traiter *"envoyer la facture au client"* ne peut pas savoir si le client est celui mentionné plus tôt ou un nouveau. Utile pour la rédaction d'archive, inutile dès qu'un agent a besoin de raisonner.
 
-Built-in : `ConstantPlaceholderFactory` (sortie : `<<REDACT>>`{ .placeholder } par défaut, paramétrable via l'argument `value`). Tag `PreservesNothing`.
+Built-in : `RedactPlaceholderFactory` (sortie : `<<REDACT>>`{ .placeholder } par défaut, paramétrable via l'argument `value`). Tag `PreservesNothing`.
 
 ### Id seul : identité sans type
 
@@ -54,7 +54,7 @@ Built-in : `AnonymousHashPlaceholderFactory` (sortie : `<<REDACT:a1b2c3d4>>`{ .p
 
 `<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }. Le LLM sait qu'il s'agit d'une personne, d'un email, d'une carte bancaire, et peut répondre aux questions qui dépendent uniquement du type. Mais deux personnes différentes dans la même conversation se confondent dans le même placeholder. Le mode d'échec classique est la référence croisée : *"`Patrick`{ .pii } est-il la même personne que le manager mentionné plus tôt ?"* devient *"`<<PERSON>>`{ .placeholder } est-il le même que `<<PERSON>>`{ .placeholder } ?"*, ce qui est sans réponse.
 
-Built-in : `RedactPlaceholderFactory` (sortie : `<<PERSON>>`{ .placeholder }). Tag `PreservesLabel`.
+Built-in : `LabelPlaceholderFactory` (sortie : `<<PERSON>>`{ .placeholder }). Tag `PreservesLabel`.
 
 ### Type + id (opaque)
 
@@ -212,7 +212,7 @@ Une factory déclare le tag **le plus spécifique** qui matche ses garanties :
 class CounterPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]): ...
 class LabeledHashPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]): ...
 class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFaker]): ...
-class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]): ...
+class LabelPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]): ...
 class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]): ...
 # Pas de built-in pour la branche id-only : à implémenter avec
 # PreservesIdentityOnly pour un Redact hashé du type <<REDACT:a1b2c3d4>>.
@@ -224,8 +224,8 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]): ...
 
 | Factory | Exemple de sortie | Tag | Unique par entité ? | Réversible ? |
 |---|---|---|---|---|
-| `ConstantPlaceholderFactory` | `<<REDACT>>`{ .placeholder } | `PreservesNothing` | non (constant) | non |
-| `RedactPlaceholderFactory` | `<<PERSON>>`{ .placeholder } | `PreservesLabel` | non (label seul) | non |
+| `RedactPlaceholderFactory` | `<<REDACT>>`{ .placeholder } | `PreservesNothing` | non (constant) | non |
+| `LabelPlaceholderFactory` | `<<PERSON>>`{ .placeholder } | `PreservesLabel` | non (label seul) | non |
 | `AnonymousHashPlaceholderFactory` | `<<REDACT:a1b2c3d4>>`{ .placeholder } | `PreservesIdentityOnly` | oui (déterministe) | oui |
 | `CounterPlaceholderFactory` (défaut) | `<<PERSON_1>>`{ .placeholder } | `PreservesLabeledIdentityOpaque` | oui (par thread) | oui |
 | `LabeledHashPlaceholderFactory` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | `PreservesLabeledIdentityOpaque` | oui (déterministe) | oui |
@@ -233,7 +233,7 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]): ...
 | `FakerPlaceholderFactory` | valeur plausible aléatoire | `PreservesLabeledIdentityFaker` | oui (mais peut collisionner avec une vraie valeur) | oui |
 | `MaskPlaceholderFactory` | `p***@mail.com`{ .placeholder } | `PreservesShape` | partielle | oui (avec risque de collision) |
 
-`CounterPlaceholderFactory` et `LabeledHashPlaceholderFactory` sont les valeurs sûres par défaut. `AnonymousHashPlaceholderFactory` ajoute la même unicité sans révéler le label (utile pour la réduction des biais). `RealisticHashPlaceholderFactory` produit un format réaliste avec un hash : il faut **fournir explicitement une stratégie pour chaque label** que votre détecteur émet (pas de fallback). `FakerPlaceholderFactory` est réversible mais ses placeholders peuvent collisionner avec de vraies valeurs dans les réponses d'outils. `ConstantPlaceholderFactory`, `RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont des outils de caviardage non réversibles (rejetés par le middleware).
+`CounterPlaceholderFactory` et `LabeledHashPlaceholderFactory` sont les valeurs sûres par défaut. `AnonymousHashPlaceholderFactory` ajoute la même unicité sans révéler le label (utile pour la réduction des biais). `RealisticHashPlaceholderFactory` produit un format réaliste avec un hash : il faut **fournir explicitement une stratégie pour chaque label** que votre détecteur émet (pas de fallback). `FakerPlaceholderFactory` est réversible mais ses placeholders peuvent collisionner avec de vraies valeurs dans les réponses d'outils. `RedactPlaceholderFactory`, `LabelPlaceholderFactory` et `MaskPlaceholderFactory` sont des outils de caviardage non réversibles (rejetés par le middleware).
 
 ---
 
@@ -248,7 +248,7 @@ Le but est de produire une version assainie d'un document : caviardage d'un juge
 | Besoin | Famille recommandée | Pourquoi |
 |---|---|---|
 | Effacer toute trace, sans réversibilité | **Aucune information** (`<<REDACT>>`{ .placeholder }) | Le plus protecteur, aucune fuite sémantique. Le document devient lisible mais le LLM ne peut rien en inférer. |
-| Garder un texte lisible (le lecteur humain voit "[email]" plutôt que "<<REDACT>>") | **Type seul** (`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }) | Le type aide la lecture humaine sans rien fuiter de la valeur. Built-in : `RedactPlaceholderFactory`. |
+| Garder un texte lisible (le lecteur humain voit "[email]" plutôt que "<<REDACT>>") | **Type seul** (`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }) | Le type aide la lecture humaine sans rien fuiter de la valeur. Built-in : `LabelPlaceholderFactory`. |
 | Permettre une désanonymisation côté serveur (cache local) | **Type + id (opaque)** (`<<PERSON_1>>`{ .placeholder }) | Réversible via le cache, audit trivial, aucune collision. Built-in : `CounterPlaceholderFactory` ou `LabeledHashPlaceholderFactory`. |
 | Suivre "qui est qui" sans révéler le type (sensible : médical, RH) | **Id seul** (`<<REDACT:a1b2c3d4>>`{ .placeholder }) | Distingue les entités sans aucun indice sémantique. À implémenter (pas de built-in). |
 
@@ -268,7 +268,7 @@ Conséquence directe : seules les familles avec identité préservée (`Id seul`
 
 À éviter dans un agent :
 
-- `RedactPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetées par le middleware (pas d'unicité garantie). Utilisables hors middleware uniquement, ou en mode `ToolCallStrategy.PASSTHROUGH` (l'agent ne reçoit jamais les vraies valeurs).
+- `LabelPlaceholderFactory` et `MaskPlaceholderFactory` sont rejetées par le middleware (pas d'unicité garantie). Utilisables hors middleware uniquement, ou en mode `ToolCallStrategy.PASSTHROUGH` (l'agent ne reçoit jamais les vraies valeurs).
 - `FakerPlaceholderFactory` quand le pipeline est en `FULL` ou `INBOUND_ONLY` *et* que les outils peuvent renvoyer de vrais emails ou noms : risque de collision externe non détectable.
 
 Le tag de préservation existe pour que ce choix soit visible par le type-checker, pas enseveli dans des détails de format de placeholder. Une factory taguée `PreservesShape` ne peut pas être branchée sur le middleware *par accident* : l'erreur tombe à la vérification de types, pas sur le premier appel d'outil en production.

@@ -217,19 +217,19 @@ tokens = factory.create([person])
 |-----------|---------|-------------|
 | `hash_length` | `8` | Number of hex characters from the SHA-256 digest |
 
-### `RedactPlaceholderFactory`
+### `LabelPlaceholderFactory`
 
 All entities with the same label share the same `<<LABEL>>` token. No counter, no distinction between entities.
 
 ```python
-from piighost.placeholder import RedactPlaceholderFactory
+from piighost.placeholder import LabelPlaceholderFactory
 
-factory = RedactPlaceholderFactory()
+factory = LabelPlaceholderFactory()
 tokens = factory.create([person, location])
 # {person: '<<PERSON>>', location: '<<LOCATION>>'}
 ```
 
-!!! warning "Deanonymization with RedactPlaceholderFactory"
+!!! warning "Deanonymization with LabelPlaceholderFactory"
     Since multiple entities share the same token, deanonymization relies on original position order. This works correctly with the `Anonymizer.deanonymize()` method.
 
 ---

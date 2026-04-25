@@ -8,7 +8,7 @@ from piighost.models import Detection, Entity, Span
 from piighost.placeholder import (
     CounterPlaceholderFactory,
     LabeledHashPlaceholderFactory,
-    RedactPlaceholderFactory,
+    LabelPlaceholderFactory,
 )
 
 
@@ -81,7 +81,7 @@ class TestAnonymize:
             Entity(detections=(_det("Patrick", "PERSON", 0, 7),)),
             Entity(detections=(_det("Henri", "PERSON", 11, 16),)),
         ]
-        result = Anonymizer(RedactPlaceholderFactory()).anonymize(
+        result = Anonymizer(LabelPlaceholderFactory()).anonymize(
             "Patrick et Henri sont amis",
             entities,
         )
@@ -156,7 +156,7 @@ class TestDeanonymize:
     def test_roundtrip_with_redact(self) -> None:
         entities = [Entity(detections=(_det("Patrick", "PERSON", 0, 7),))]
         text = "Patrick est gentil"
-        ph_factory = RedactPlaceholderFactory()
+        ph_factory = LabelPlaceholderFactory()
         anon = Anonymizer(ph_factory=ph_factory)
 
         anonymized = anon.anonymize(text, entities)
@@ -171,7 +171,7 @@ class TestDeanonymize:
             Entity(detections=(_det("Henri", "PERSON", 11, 16),)),
         ]
         text = "Patrick et Henri sont amis"
-        ph_factory = RedactPlaceholderFactory()
+        ph_factory = LabelPlaceholderFactory()
         anon = Anonymizer(ph_factory=ph_factory)
         anonymized = anon.anonymize(text, entities)
         restored = anon.deanonymize(anonymized, entities)
