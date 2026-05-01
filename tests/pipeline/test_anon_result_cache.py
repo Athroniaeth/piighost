@@ -314,6 +314,42 @@ class TestAnonResultCacheThread:
         assert update["input"]["detections"][0]["text"] != "Patrick"
         assert update["output"]["detections"][0]["text"] != "Patrick"
 
+    async def test_override_detections_emits_span_with_empty_before(self) -> None:
+        cache = SimpleMemoryCache()
+        observation = RecordingObservation()
+        detector = CountingDetector([("Patrick", "PERSON")])
+        pipeline = ThreadAnonymizationPipeline(
+            detector=detector,
+            anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+            cache=cache,
+            observation=observation,
+        )
+
+        corrected = [
+            Detection(
+                text="Patrick",
+                label="PERSON",
+                position=Span(start_pos=8, end_pos=15),
+                confidence=1.0,
+            )
+        ]
+        # No anonymize / detect call before override → cache empty.
+        await pipeline.override_detections(
+            "Bonjour Patrick", corrected, thread_id="t1"
+        )
+
+        hitl = [
+            (kw, span)
+            for kw, span in observation.spans
+            if kw.get("name") == "piighost.hitl_correction"
+        ]
+        assert len(hitl) == 1
+        kw, span = hitl[0]
+        update = span.updates[0]
+        assert update["input"]["detections"] == []
+        assert len(update["output"]["detections"]) == 1
+        assert update["output"]["detections"][0]["label"] == "PERSON"
+
 
 # ---------------------------------------------------------------------------
 # Base.deanonymize CacheMissError unchanged
