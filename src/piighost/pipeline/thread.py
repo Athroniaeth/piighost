@@ -13,12 +13,15 @@ by message hash and deduplicated by ``(text.lower(), label)``.  The
 pipeline to recreate consistent placeholder tokens across messages.
 """
 
+import logging
 import re
 import time
 import warnings
 from collections import OrderedDict
 from contextvars import ContextVar
 from typing import Any, Mapping, Protocol
+
+logger = logging.getLogger(__name__)
 
 from typing_extensions import TypeVar
 
@@ -366,6 +369,12 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         call actually re-runs the pipeline (and emits an observation
         trace) instead of returning the stale pre-correction result.
 
+        Emits a flat ``piighost.hitl_correction`` root span (when an
+        observation backend is configured) carrying the model detections
+        as ``input`` and the human-corrected detections as ``output``,
+        both redacted via the observation placeholder factory. The span
+        is best-effort: a failing backend never breaks the cache update.
+
         Args:
             text: The original text whose detections should be overridden.
             detections: The corrected list of detections.
@@ -383,6 +392,43 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         anon_result_key = self._thread_key(
             thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
         )
+
+        # Read the prior model detections so the HITL trace can carry the
+        # before/after pair. Empty list when nothing was cached before.
+        prior = await self._cache.get(detect_key)
+        before: list[Detection] = (
+            self._deserialize_detections(prior) if prior is not None else []
+        )
+
+        try:
+            with self._observation.start_as_current_span(
+                name="piighost.hitl_correction",
+                session_id=thread_id if thread_id != "default" else None,
+                tags=["hitl"],
+            ) as span:
+                before_tokens = self._obs_tokens_for_detections(before)
+                after_tokens = self._obs_tokens_for_detections(detections)
+                span.update(
+                    input={
+                        "detections": [
+                            _detection_to_dict(d, token=before_tokens[d])
+                            for d in before
+                        ]
+                    },
+                    output={
+                        "detections": [
+                            _detection_to_dict(d, token=after_tokens[d])
+                            for d in detections
+                        ]
+                    },
+                )
+        except Exception:
+            logger.warning(
+                "HITL observation failed during override_detections; "
+                "continuing with cache update.",
+                exc_info=True,
+            )
+
         value = self._serialize_detections(detections)
         await self._cache.set(detect_key, value, ttl=self._cache_ttl)
         await self._cache.delete(anon_result_key)
