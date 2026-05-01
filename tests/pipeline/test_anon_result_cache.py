@@ -30,6 +30,7 @@ from piighost.pipeline.base import (
 )
 from piighost.pipeline.thread import ThreadAnonymizationPipeline
 from piighost.placeholder import LabelCounterPlaceholderFactory
+from piighost.placeholder_tags import PreservesIdentity
 from piighost.utils import hash_sha256
 
 
@@ -182,7 +183,7 @@ class TestAnonResultCacheThread:
     def _build(
         self,
     ) -> tuple[
-        ThreadAnonymizationPipeline,
+        ThreadAnonymizationPipeline[PreservesIdentity],
         CountingDetector,
         CountingObservation,
         SimpleMemoryCache,
@@ -190,11 +191,13 @@ class TestAnonResultCacheThread:
         cache = SimpleMemoryCache()
         observation = CountingObservation()
         detector = CountingDetector([("Patrick", "PERSON")])
-        pipeline = ThreadAnonymizationPipeline(
-            detector=detector,
-            anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
-            cache=cache,
-            observation=observation,
+        pipeline: ThreadAnonymizationPipeline[PreservesIdentity] = (
+            ThreadAnonymizationPipeline(
+                detector=detector,
+                anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+                cache=cache,
+                observation=observation,
+            )
         )
         return pipeline, detector, observation, cache
 
