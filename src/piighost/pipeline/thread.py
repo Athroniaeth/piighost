@@ -32,6 +32,7 @@ from piighost.linker.entity import AnyEntityLinker
 from piighost.models import Detection, Entity
 from piighost.observation.base import AbstractObservationService, AbstractSpan
 from piighost.pipeline.base import (
+    CACHE_KEY_ANON_RESULT,
     CACHE_KEY_ANONYMIZATION,
     CACHE_KEY_DETECTION,
     AnonymizationPipeline,
@@ -360,7 +361,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
         Overwrites the detection cache entry for the given text so that
         subsequent calls to ``anonymize()`` use the corrected detections
-        instead of re-running the detector.
+        instead of re-running the detector. Also invalidates any cached
+        anonymize result for the same text so the next ``anonymize``
+        call actually re-runs the pipeline (and emits an observation
+        trace) instead of returning the stale pre-correction result.
 
         Args:
             text: The original text whose detections should be overridden.
@@ -373,11 +377,15 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         if self._cache is None:
             raise RuntimeError("Cannot override detections without a cache backend")
 
-        cache_key = self._thread_key(
+        detect_key = self._thread_key(
             thread_id, f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
         )
+        anon_result_key = self._thread_key(
+            thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
+        )
         value = self._serialize_detections(detections)
-        await self._cache.set(cache_key, value, ttl=self._cache_ttl)
+        await self._cache.set(detect_key, value, ttl=self._cache_ttl)
+        await self._cache.delete(anon_result_key)
 
     async def _cached_detect(self, text: str) -> list[Detection]:
         """Detect entities, using thread-scoped cache if available."""
@@ -419,6 +427,38 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             {
                 "original": original,
                 "entities": serialized_entities,
+            },
+            ttl=self._cache_ttl,
+        )
+
+    async def _cache_get_anon_result(self, text: str) -> dict | None:
+        """Look up the cached anonymize result under a thread-scoped key."""
+        if self._cache is None:
+            return None
+        thread_id = _current_thread_id.get()
+        key = self._thread_key(
+            thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
+        )
+        return await self._cache.get(key)
+
+    async def _store_anon_result(
+        self,
+        original: str,
+        anonymized: str,
+        entities: list[Entity],
+    ) -> None:
+        """Store ``original → (anonymized, entities)`` under a thread-scoped key."""
+        if self._cache is None:
+            return
+        thread_id = _current_thread_id.get()
+        key = self._thread_key(
+            thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"
+        )
+        await self._cache.set(
+            key,
+            {
+                "anonymized": anonymized,
+                "entities": self._serialize_entities(entities),
             },
             ttl=self._cache_ttl,
         )
@@ -494,6 +534,23 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                 thread_id=thread_id,
                 metadata=metadata,
             )
+
+        # Skip the pipeline run and the observation span when the
+        # mapping is already cached for this (text, thread_id). The
+        # entry is populated either by a previous ``anonymize`` for the
+        # same text or by ``deanonymize_with_ent`` (which knows both
+        # forms). Memory is updated so cross-message linking still has
+        # the entities available even though the link stage is skipped.
+        cv_token = _current_thread_id.set(thread_id)
+        try:
+            cached = await self._cache_get_anon_result(text)
+        finally:
+            _current_thread_id.reset(cv_token)
+
+        if cached is not None:
+            entities = self._deserialize_entities(cached["entities"])
+            self.get_memory(thread_id).record(hash_sha256(text), entities)
+            return cached["anonymized"], entities
 
         # Root span input is filled in retroactively from
         # ``_anonymize_with_span`` once detections are available, so the
@@ -616,6 +673,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             )
 
             await self._store_mapping(text, result, entities)
+            await self._store_anon_result(text, result, entities)
             return result, entities
         finally:
             _current_thread_id.reset(token)
@@ -655,6 +713,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         cv_token = _current_thread_id.set(thread_id)
         try:
             await self._store_mapping(restored, anonymized, resolved)
+            await self._store_anon_result(restored, anonymized, resolved)
         finally:
             _current_thread_id.reset(cv_token)
         return restored

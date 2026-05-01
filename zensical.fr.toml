@@ -41,6 +41,7 @@ nav = [
         { "Architecture" = "architecture.md" },
         { "Placeholder factories" = "placeholder-factories.md" },
         { "Stratégies d'appel outil" = "tool-call-strategies.md" },
+        { "Observation et cache" = "observation.md" },
         { "Pourquoi anonymiser ?" = "why-anonymize.md" },
         { "Sécurité" = "security.md" },
         { "Limites" = "limitations.md" },
