@@ -25,6 +25,7 @@ from piighost.observation.base import (
 )
 from piighost.pipeline.base import (
     CACHE_KEY_ANON_RESULT,
+    CACHE_KEY_DETECTION,
     AnonymizationPipeline,
 )
 from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -349,6 +350,42 @@ class TestAnonResultCacheThread:
         assert update["input"]["detections"] == []
         assert len(update["output"]["detections"]) == 1
         assert update["output"]["detections"][0]["label"] == "PERSON"
+
+    async def test_override_detections_swallows_observation_errors(self) -> None:
+        class RaisingObservation(AbstractObservationService):
+            @contextmanager
+            def start_as_current_span(self, **kwargs: Any):
+                raise RuntimeError("backend exploded")
+                yield NoOpSpan()  # pragma: no cover - unreachable
+
+        cache = SimpleMemoryCache()
+        pipeline = ThreadAnonymizationPipeline(
+            detector=ExactMatchDetector([("Patrick", "PERSON")]),
+            anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+            cache=cache,
+            observation=RaisingObservation(),
+        )
+
+        corrected = [
+            Detection(
+                text="Patrick",
+                label="ORG",
+                position=Span(start_pos=8, end_pos=15),
+                confidence=1.0,
+            )
+        ]
+
+        # Must not raise even though the observation backend explodes.
+        await pipeline.override_detections(
+            "Bonjour Patrick", corrected, thread_id="t1"
+        )
+
+        # Cache was still overwritten with the corrected detections.
+        detect_key = f"t1:{CACHE_KEY_DETECTION}:{hash_sha256('Bonjour Patrick')}"
+        cached = await cache.get(detect_key)
+        assert cached is not None
+        # Decoded value should reflect the corrected ORG label.
+        assert any(item["label"] == "ORG" for item in cached)
 
 
 # ---------------------------------------------------------------------------
