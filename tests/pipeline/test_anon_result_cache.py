@@ -335,9 +335,7 @@ class TestAnonResultCacheThread:
             )
         ]
         # No anonymize / detect call before override → cache empty.
-        await pipeline.override_detections(
-            "Bonjour Patrick", corrected, thread_id="t1"
-        )
+        await pipeline.override_detections("Bonjour Patrick", corrected, thread_id="t1")
 
         hitl = [
             (kw, span)
@@ -376,9 +374,7 @@ class TestAnonResultCacheThread:
         ]
 
         # Must not raise even though the observation backend explodes.
-        await pipeline.override_detections(
-            "Bonjour Patrick", corrected, thread_id="t1"
-        )
+        await pipeline.override_detections("Bonjour Patrick", corrected, thread_id="t1")
 
         # Cache was still overwritten with the corrected detections.
         detect_key = f"t1:{CACHE_KEY_DETECTION}:{hash_sha256('Bonjour Patrick')}"
@@ -406,9 +402,7 @@ class TestAnonResultCacheThread:
                 confidence=1.0,
             )
         ]
-        await pipeline.override_detections(
-            "Bonjour Patrick", corrected, thread_id="t1"
-        )
+        await pipeline.override_detections("Bonjour Patrick", corrected, thread_id="t1")
 
         detect_key = f"t1:{CACHE_KEY_DETECTION}:{hash_sha256('Bonjour Patrick')}"
         cached = await cache.get(detect_key)
