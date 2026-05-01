@@ -320,9 +320,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
             root_span.update(input={"text": obs_text_pre_link})
             span.update(
                 input={"text": obs_text_pre_link},
-                output={
-                    "detections": self._obs_detections_to_dicts(detections)
-                },
+                output={"detections": self._obs_detections_to_dicts(detections)},
             )
             detections = self._span_resolver.resolve(detections)
             time.sleep(0.001)
@@ -340,14 +338,10 @@ class AnonymizationPipeline(Generic[PreservationT]):
                 else {}
             )
             span.update(
-                input={
-                    "detections": self._obs_detections_to_dicts(detections)
-                },
+                input={"detections": self._obs_detections_to_dicts(detections)},
                 output={
                     "entities": [
-                        _entity_to_dict(
-                            e, token=ent_tokens[e] if ent_tokens else None
-                        )
+                        _entity_to_dict(e, token=ent_tokens[e] if ent_tokens else None)
                         for e in entities
                     ]
                 },
