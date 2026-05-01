@@ -1,5 +1,6 @@
 import importlib.util
 import time
+import warnings
 from typing import Any, Generic, Mapping, Tuple
 
 from typing_extensions import TypeVar
@@ -13,7 +14,7 @@ from aiocache import BaseCache, SimpleMemoryCache
 
 from piighost.anonymizer import Anonymizer, AnyAnonymizer
 from piighost.detector import AnyDetector
-from piighost.exceptions import CacheMissError, PIIRemainingError
+from piighost.exceptions import CacheMissError, PIIGhostConfigWarning, PIIRemainingError
 from piighost.guard import AnyGuardRail, DisabledGuardRail
 from piighost.linker.entity import AnyEntityLinker, ExactEntityLinker
 from piighost.models import Detection, Entity
@@ -136,8 +137,8 @@ class AnonymizationPipeline(Generic[PreservationT]):
     _cache: BaseCache
     _cache_ttl: int | None
     _observation: AbstractObservationService
-    _obs_ph_factory: AnyPlaceholderFactory
-    _obs_anonymizer: Anonymizer
+    _obs_ph_factory: AnyPlaceholderFactory | None
+    _obs_anonymizer: Anonymizer | None
 
     def __init__(
         self,
@@ -156,7 +157,6 @@ class AnonymizationPipeline(Generic[PreservationT]):
         entity_linker = entity_linker or ExactEntityLinker()
         entity_resolver = entity_resolver or MergeEntityConflictResolver()
         guard_rail = guard_rail or DisabledGuardRail()
-        obs_ph_factory = observation_ph_factory or RedactPlaceholderFactory()
 
         self._detector = detector
         self._span_resolver = span_resolver
@@ -167,8 +167,32 @@ class AnonymizationPipeline(Generic[PreservationT]):
         self._cache = cache or SimpleMemoryCache()
         self._cache_ttl = cache_ttl
         self._observation = observation or NoOpObservationService()
-        self._obs_ph_factory = obs_ph_factory
-        self._obs_anonymizer = Anonymizer(ph_factory=obs_ph_factory)
+
+        # Observation redaction is opt-in. None (the default) keeps raw
+        # text in observation traces, which is required for downstream
+        # HITL dataset extraction. An explicit factory restores the
+        # historical redact behaviour but breaks dataset extraction;
+        # warn the operator so the trade-off is conscious.
+        if observation_ph_factory is not None:
+            warnings.warn(
+                "observation_ph_factory is set, so observation traces "
+                "will be redacted via this factory. With redaction, "
+                "the raw user text is no longer recoverable from the "
+                "observation backend, which makes traces unsuitable as "
+                "input for HITL dataset extraction or NER evaluation. "
+                "Pass observation_ph_factory=None (the default) to keep "
+                "raw text in traces, or accept the redaction trade-off "
+                "if PII must not transit the observation backend.",
+                PIIGhostConfigWarning,
+                stacklevel=2,
+            )
+            self._obs_ph_factory: AnyPlaceholderFactory | None = observation_ph_factory
+            self._obs_anonymizer: Anonymizer | None = Anonymizer(
+                ph_factory=observation_ph_factory
+            )
+        else:
+            self._obs_ph_factory = None
+            self._obs_anonymizer = None
 
     @property
     def ph_factory(self) -> AnyPlaceholderFactory[PreservationT]:
@@ -183,10 +207,32 @@ class AnonymizationPipeline(Generic[PreservationT]):
         Each detection is wrapped in a one-detection ``Entity`` so the
         observation factory can produce a token, then the result is
         flipped back to a ``Detection -> token`` mapping.
+
+        Returns an empty dict when no obs factory is configured.
         """
+        if self._obs_ph_factory is None:
+            return {}
         fake_entities = [Entity(detections=(d,)) for d in detections]
         ent_tokens = self._obs_ph_factory.create(fake_entities)
         return {ent.detections[0]: token for ent, token in ent_tokens.items()}
+
+    def _obs_text(self, text: str, entities: list[Entity]) -> str:
+        """Return *text* either raw (no obs factory) or redacted via the obs factory.
+
+        Used to populate the ``input.text`` / ``output.text`` of root and
+        child observation spans without leaking raw PII when the operator
+        opted into redaction.
+        """
+        if self._obs_anonymizer is None:
+            return text
+        return self._obs_anonymizer.anonymize(text, entities)
+
+    def _obs_detection_to_dict(self, d: Detection) -> dict[str, Any]:
+        """Render a detection for observation, redacted or raw per config."""
+        if self._obs_anonymizer is None:
+            return _detection_to_dict(d)
+        token_map = self._obs_tokens_for_detections([d])
+        return _detection_to_dict(d, token=token_map[d])
 
     async def detect_entities(self, text: str) -> list[Entity]:
         """Run the detection pipeline: detect → resolve → link → resolve.
