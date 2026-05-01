@@ -78,11 +78,14 @@ Each detection in `input` and `output` is rendered as:
 {
   "text": "<<PERSON:1>>",
   "label": "PERSON",
-  "start_pos": 8,
-  "end_pos": 15,
+  "position": [8, 15],
   "confidence": 0.91
 }
 ```
+
+The shape mirrors `_detection_to_dict` in `pipeline/base.py`, which is
+the existing primitive used by every other piighost trace stage so the
+HITL trace's wire format stays consistent across the codebase.
 
 `text` is the redacted form, produced by reusing the existing
 `_obs_anonymizer` / `_obs_tokens_for_detections` helper on
