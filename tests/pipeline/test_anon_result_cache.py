@@ -274,7 +274,7 @@ class TestAnonResultCacheThread:
         await pipeline.anonymize(original, thread_id="t1")
         assert observation.span_count == 1
 
-    async def test_override_detections_emits_hitl_span_with_redacted_diff(self) -> None:
+    async def test_override_detections_emits_hitl_span_with_diff(self) -> None:
         cache = SimpleMemoryCache()
         observation = RecordingObservation()
         detector = CountingDetector([("Patrick", "PERSON")])
@@ -313,10 +313,11 @@ class TestAnonResultCacheThread:
         # Model said PERSON, human said ORG.
         assert update["input"]["detections"][0]["label"] == "PERSON"
         assert update["output"]["detections"][0]["label"] == "ORG"
-        # Text is redacted by the default observation factory (RedactPlaceholderFactory),
-        # independent of the user-facing LabelCounterPlaceholderFactory configured above.
-        assert update["input"]["detections"][0]["text"] != "Patrick"
-        assert update["output"]["detections"][0]["text"] != "Patrick"
+        # observation_ph_factory defaults to None now, so detection text
+        # is the raw user input. The user-facing LabelCounterPlaceholderFactory
+        # is unrelated to observation redaction.
+        assert update["input"]["detections"][0]["text"] == "Patrick"
+        assert update["output"]["detections"][0]["text"] == "Patrick"
         # Raw input text and the detector's label vocabulary land in
         # input.* so the trace doubles as a NER training record. The
         # ExactMatchDetector here exposes no `.labels`, so the field is
@@ -442,6 +443,51 @@ class TestAnonResultCacheThread:
         raw_inputs = [u for u in span.updates if "input" in u]
         assert raw_inputs, "expected at least one input update on the root span"
         assert raw_inputs[0]["input"]["text"] == "Bonjour Patrick"
+
+    async def test_override_detections_with_obs_factory_redacts(self) -> None:
+        import warnings
+
+        from piighost.exceptions import PIIGhostConfigWarning
+        from piighost.placeholder import RedactPlaceholderFactory
+
+        cache = SimpleMemoryCache()
+        observation = RecordingObservation()
+        detector = CountingDetector([("Patrick", "PERSON")])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PIIGhostConfigWarning)
+            pipeline = ThreadAnonymizationPipeline(
+                detector=detector,
+                anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+                cache=cache,
+                observation=observation,
+                observation_ph_factory=RedactPlaceholderFactory(),
+            )
+
+        await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+        corrected = [
+            Detection(
+                text="Patrick",
+                label="ORG",
+                position=Span(start_pos=8, end_pos=15),
+                confidence=1.0,
+            )
+        ]
+        await pipeline.override_detections("Bonjour Patrick", corrected, thread_id="t1")
+
+        hitl = [
+            (kw, span)
+            for kw, span in observation.spans
+            if kw.get("name") == "piighost.hitl_correction"
+        ]
+        assert len(hitl) == 1
+        _, span = hitl[0]
+        update = span.updates[0]
+        # input.text stays raw (same as before): the HITL trace always
+        # carries the raw text so the dataset stays extractable. But
+        # detection.text is redacted because the explicit factory is set.
+        assert update["input"]["text"] == "Bonjour Patrick"
+        assert update["input"]["detections"][0]["text"] != "Patrick"
+        assert update["output"]["detections"][0]["text"] != "Patrick"
 
     async def test_override_detections_no_op_observation_keeps_contract(
         self,

@@ -419,23 +419,15 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                 session_id=thread_id if thread_id != "default" else None,
                 tags=["hitl"],
             ) as span:
-                before_tokens = self._obs_tokens_for_detections(before)
-                after_tokens = self._obs_tokens_for_detections(detections)
                 detector_labels = getattr(self._detector, "labels", None)
                 span.update(
                     input={
                         "text": text,
                         "labels": list(detector_labels) if detector_labels else [],
-                        "detections": [
-                            _detection_to_dict(d, token=before_tokens[d])
-                            for d in before
-                        ],
+                        "detections": self._obs_detections_to_dicts(before),
                     },
                     output={
-                        "detections": [
-                            _detection_to_dict(d, token=after_tokens[d])
-                            for d in detections
-                        ]
+                        "detections": self._obs_detections_to_dicts(detections)
                     },
                 )
         except Exception:
@@ -657,19 +649,13 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                 as_type="tool",
             ) as span:
                 detections = await self._cached_detect(text)
-                det_token_map = self._obs_tokens_for_detections(detections)
-                obs_text_pre_link = self._obs_anonymizer.anonymize(
+                obs_text_pre_link = self._obs_text(
                     text, [Entity(detections=(d,)) for d in detections]
                 )
                 root_span.update(input={"text": obs_text_pre_link})
                 span.update(
                     input={"text": obs_text_pre_link},
-                    output={
-                        "detections": [
-                            _detection_to_dict(d, token=det_token_map[d])
-                            for d in detections
-                        ]
-                    },
+                    output={"detections": self._obs_detections_to_dicts(detections)},
                 )
                 detections = self._span_resolver.resolve(detections)
                 time.sleep(0.001)
@@ -685,17 +671,17 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                     entities,
                     memory.all_entities,
                 )
-                ent_tokens = self._obs_ph_factory.create(entities)
+                ent_tokens = (
+                    self._obs_ph_factory.create(entities)
+                    if self._obs_ph_factory is not None
+                    else {}
+                )
                 span.update(
-                    input={
-                        "detections": [
-                            _detection_to_dict(d, token=det_token_map[d])
-                            for d in detections
-                        ]
-                    },
+                    input={"detections": self._obs_detections_to_dicts(detections)},
                     output={
                         "entities": [
-                            _entity_to_dict(e, token=ent_tokens[e]) for e in entities
+                            _entity_to_dict(e, token=ent_tokens[e] if ent_tokens else None)
+                            for e in entities
                         ]
                     },
                 )
@@ -709,7 +695,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                 as_type="tool",
             ) as span:
                 result = self.anonymize_with_ent(text, thread_id=thread_id)
-                obs_text = self._obs_anonymizer.anonymize(text, entities)
+                obs_text = self._obs_text(text, entities)
                 span.update(
                     input={"text": obs_text, "entity_count": len(entities)},
                     output={"text": result},
