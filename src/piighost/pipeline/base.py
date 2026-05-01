@@ -47,6 +47,16 @@ CACHE_KEY_DETECTION = "detect"
 CACHE_KEY_ANONYMIZATION = "anon:anonymized"
 """Prefix for anonymized-text → (original, entities) cache entries."""
 
+CACHE_KEY_ANON_RESULT = "anon:result"
+"""Prefix for original-text → (anonymized, entities) cache entries.
+
+Populated on every successful ``anonymize`` and on every ``deanonymize``
+(both directions of the mapping become known at deanonymize time). Lets
+``anonymize`` short-circuit pipeline execution and observation when the
+mapping for *text* is already known, which is the common case for the
+LangChain middleware which re-anonymises the full message history at
+every conversation turn."""
+
 
 def _detection_to_dict(d: Detection, *, token: str | None = None) -> dict[str, Any]:
     """Serialize a Detection to a JSON-friendly dict for observation output.
@@ -218,6 +228,15 @@ class AnonymizationPipeline(Generic[PreservationT]):
         if root_span is not None:
             return await self._anonymize_with_span(text, root_span, metadata=metadata)
 
+        # Skip both the pipeline run and the observation span when the
+        # mapping for *text* is already cached. The mapping was either
+        # produced by a previous ``anonymize`` call for the same text or
+        # populated by ``deanonymize`` (which knows both forms).
+        cached = await self._cache_get_anon_result(text)
+        if cached is not None:
+            entities = self._deserialize_entities(cached["entities"])
+            return cached["anonymized"], entities
+
         # The root span's input is filled in retroactively from inside
         # ``_anonymize_with_span`` once detections are available, so the
         # observation factory can render the obs-redacted form rather
@@ -314,6 +333,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
         )
 
         await self._store_mapping(text, anonymized, entities)
+        await self._store_anon_result(text, anonymized, entities)
         return anonymized, entities
 
     async def deanonymize(self, anonymized_text: str) -> Tuple[str, list[Entity]]:
@@ -336,6 +356,10 @@ class AnonymizationPipeline(Generic[PreservationT]):
 
         entities = self._deserialize_entities(cached["entities"])
         result = self._anonymizer.deanonymize(anonymized_text, entities)
+        # Both forms of the mapping are now known. Populate the inverse
+        # cache so a subsequent ``anonymize(result)`` is a no-op (skips
+        # pipeline + observation).
+        await self._store_anon_result(result, anonymized_text, entities)
         return result, entities
 
     # ------------------------------------------------------------------
@@ -360,6 +384,39 @@ class AnonymizationPipeline(Generic[PreservationT]):
             {
                 "original": original,
                 "entities": serialized_entities,
+            },
+            ttl=self._cache_ttl,
+        )
+
+    async def _cache_get_anon_result(self, text: str) -> dict | None:
+        """Return the cached anonymize result for *text*, or ``None``."""
+        if self._cache is None:
+            return None
+        key = f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
+        return await self._cache.get(key)
+
+    async def _store_anon_result(
+        self,
+        original: str,
+        anonymized: str,
+        entities: list[Entity],
+    ) -> None:
+        """Store ``original → (anonymized, entities)`` in cache.
+
+        Symmetric to ``_store_mapping``: where the latter keys on the
+        anonymized text (so ``deanonymize`` can find it), this one keys
+        on the original text so ``anonymize`` can short-circuit on a
+        repeat call. Called from both ``anonymize`` (after a fresh run)
+        and ``deanonymize`` (which produces both forms).
+        """
+        if self._cache is None:
+            return
+        key = f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"
+        await self._cache.set(
+            key,
+            {
+                "anonymized": anonymized,
+                "entities": self._serialize_entities(entities),
             },
             ttl=self._cache_ttl,
         )
