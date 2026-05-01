@@ -292,9 +292,7 @@ class TestAnonResultCacheThread:
                 confidence=1.0,
             )
         ]
-        await pipeline.override_detections(
-            "Bonjour Patrick", corrected, thread_id="t1"
-        )
+        await pipeline.override_detections("Bonjour Patrick", corrected, thread_id="t1")
 
         hitl = [
             (kw, span)
@@ -311,7 +309,8 @@ class TestAnonResultCacheThread:
         # Model said PERSON, human said ORG.
         assert update["input"]["detections"][0]["label"] == "PERSON"
         assert update["output"]["detections"][0]["label"] == "ORG"
-        # Text is redacted (RedactPlaceholderFactory is the default obs factory).
+        # Text is redacted by the default observation factory (RedactPlaceholderFactory),
+        # independent of the user-facing LabelCounterPlaceholderFactory configured above.
         assert update["input"]["detections"][0]["text"] != "Patrick"
         assert update["output"]["detections"][0]["text"] != "Patrick"
 

@@ -21,8 +21,6 @@ from collections import OrderedDict
 from contextvars import ContextVar
 from typing import Any, Mapping, Protocol
 
-logger = logging.getLogger(__name__)
-
 from typing_extensions import TypeVar
 
 from aiocache import BaseCache, SimpleMemoryCache
@@ -51,6 +49,8 @@ from piighost.placeholder_tags import (
 from piighost.resolver.entity import AnyEntityConflictResolver
 from piighost.resolver.span import AnySpanConflictResolver
 from piighost.utils import hash_sha256
+
+logger = logging.getLogger(__name__)
 
 PreservationT = TypeVar(
     "PreservationT",
