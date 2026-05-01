@@ -314,18 +314,14 @@ class AnonymizationPipeline(Generic[PreservationT]):
             as_type="tool",
         ) as span:
             detections = await self._cached_detect(text)
-            det_token_map = self._obs_tokens_for_detections(detections)
-            obs_text_pre_link = self._obs_anonymizer.anonymize(
+            obs_text_pre_link = self._obs_text(
                 text, [Entity(detections=(d,)) for d in detections]
             )
             root_span.update(input={"text": obs_text_pre_link})
             span.update(
                 input={"text": obs_text_pre_link},
                 output={
-                    "detections": [
-                        _detection_to_dict(d, token=det_token_map[d])
-                        for d in detections
-                    ]
+                    "detections": self._obs_detections_to_dicts(detections)
                 },
             )
             detections = self._span_resolver.resolve(detections)
@@ -338,17 +334,21 @@ class AnonymizationPipeline(Generic[PreservationT]):
         ) as span:
             entities = self._entity_linker.link(text, detections)
             entities = self._entity_resolver.resolve(entities)
-            ent_tokens = self._obs_ph_factory.create(entities)
+            ent_tokens = (
+                self._obs_ph_factory.create(entities)
+                if self._obs_ph_factory is not None
+                else {}
+            )
             span.update(
                 input={
-                    "detections": [
-                        _detection_to_dict(d, token=det_token_map[d])
-                        for d in detections
-                    ]
+                    "detections": self._obs_detections_to_dicts(detections)
                 },
                 output={
                     "entities": [
-                        _entity_to_dict(e, token=ent_tokens[e]) for e in entities
+                        _entity_to_dict(
+                            e, token=ent_tokens[e] if ent_tokens else None
+                        )
+                        for e in entities
                     ]
                 },
             )
@@ -360,7 +360,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
             as_type="tool",
         ) as span:
             anonymized = self._anonymizer.anonymize(text, entities)
-            obs_text = self._obs_anonymizer.anonymize(text, entities)
+            obs_text = self._obs_text(text, entities)
             span.update(
                 input={"text": obs_text, "entity_count": len(entities)},
                 output={"text": anonymized},
