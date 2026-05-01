@@ -8,8 +8,12 @@ from collections.abc import AsyncIterator
 import pytest
 import pytest_asyncio
 
-pytest.importorskip("sqlalchemy", reason="install piighost[sqlalchemy] to run these tests")
-pytest.importorskip("aiosqlite", reason="install piighost[sqlalchemy] to run these tests")
+pytest.importorskip(
+    "sqlalchemy", reason="install piighost[sqlalchemy] to run these tests"
+)
+pytest.importorskip(
+    "aiosqlite", reason="install piighost[sqlalchemy] to run these tests"
+)
 
 from piighost.cache.sqlalchemy import SQLAlchemyCache  # noqa: E402
 
