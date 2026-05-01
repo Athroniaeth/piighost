@@ -23,7 +23,7 @@ from piighost.observation.base import (
     AbstractSpan,
     NoOpObservationService,
 )
-from piighost.placeholder import AnyPlaceholderFactory, RedactPlaceholderFactory
+from piighost.placeholder import AnyPlaceholderFactory
 from piighost.placeholder_tags import PlaceholderPreservation
 from piighost.resolver.entity import (
     AnyEntityConflictResolver,
@@ -119,13 +119,12 @@ class AnonymizationPipeline(Generic[PreservationT]):
             trace tree.  Defaults to ``NoOpObservationService`` (silent,
             zero-overhead).
         observation_ph_factory: Placeholder factory used to render PII
-            in observation payloads.  The default
-            ``RedactPlaceholderFactory()`` collapses every entity to
-            ``<<REDACT>>`` so raw PII never reaches the observation
-            backend even on partial failures.  Pass any other
-            ``AnyPlaceholderFactory`` (for example
-            ``LabelCounterPlaceholderFactory``) to surface more
-            structure on the trace.
+            in observation payloads. Defaults to ``None`` (raw text, no
+            redaction), which keeps observation traces extractable for
+            HITL dataset workflows. When set to an ``AnyPlaceholderFactory``,
+            observation payloads are redacted and a ``PIIGhostConfigWarning``
+            fires once at init describing the trade-off (raw PII safety vs.
+            dataset extraction loss).
     """
 
     _detector: AnyDetector
@@ -227,12 +226,20 @@ class AnonymizationPipeline(Generic[PreservationT]):
             return text
         return self._obs_anonymizer.anonymize(text, entities)
 
-    def _obs_detection_to_dict(self, d: Detection) -> dict[str, Any]:
-        """Render a detection for observation, redacted or raw per config."""
+    def _obs_detections_to_dicts(
+        self, detections: list[Detection]
+    ) -> list[dict[str, Any]]:
+        """Render a list of detections for observation, redacted or raw per config.
+
+        When the obs factory is set, this preserves cross-detection
+        numbering (e.g. counter-based factories will emit <<PERSON:1>>,
+        <<PERSON:2>>, ...) by tokenising the whole list in one pass
+        instead of once per detection.
+        """
         if self._obs_anonymizer is None:
-            return _detection_to_dict(d)
-        token_map = self._obs_tokens_for_detections([d])
-        return _detection_to_dict(d, token=token_map[d])
+            return [_detection_to_dict(d) for d in detections]
+        token_map = self._obs_tokens_for_detections(detections)
+        return [_detection_to_dict(d, token=token_map[d]) for d in detections]
 
     async def detect_entities(self, text: str) -> list[Entity]:
         """Run the detection pipeline: detect → resolve → link → resolve.
