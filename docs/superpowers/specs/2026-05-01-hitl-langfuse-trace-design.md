@@ -64,9 +64,16 @@ No new public method. No breaking change to the existing call signature.
 | `as_type` | `span` (root) |
 | `session_id` | `thread_id` (omitted when `"default"`, mirroring `anonymize`) |
 | `tags` | `["hitl"]` |
-| `input` | `{"detections": [<serialised model detections>]}` |
-| `output` | `{"detections": [<serialised human detections>]}` |
-| `metadata` | `{}` (reserved; nothing populated in v1) |
+| `input.text` | the raw user text, **not redacted** (so a downstream extractor can recover entities by slicing this with the recorded positions) |
+| `input.labels` | the detector's label vocabulary when the detector exposes a `labels` attribute, empty list otherwise |
+| `input.detections` | serialised model detections (positions, labels, confidence, redacted text) |
+| `output.detections` | serialised human-corrected detections in the same shape |
+| `metadata` | unused in v1 (no fields posted) |
+
+The trace deliberately exposes the raw `input.text` so HITL traces can be
+exported as a NER training dataset by tooling that queries Langfuse with
+`tags=hitl`. PII therefore transits the observation backend; configure
+the backend (self-hosted, contractually compliant) accordingly.
 
 The trace is flat. No child spans.
 
