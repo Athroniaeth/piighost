@@ -18,6 +18,7 @@ from aiocache import SimpleMemoryCache
 from piighost.anonymizer import Anonymizer
 from piighost.detector import ExactMatchDetector
 from piighost.exceptions import CacheMissError
+from piighost.models import Detection, Span
 from piighost.observation.base import (
     AbstractObservationService,
     NoOpSpan,
@@ -58,6 +59,42 @@ class CountingDetector(ExactMatchDetector):
     async def detect(self, text: str):
         self.call_count += 1
         return await super().detect(text)
+
+
+class RecordingSpan(NoOpSpan):
+    """Span whose ``update()`` calls are captured for assertions."""
+
+    def __init__(self) -> None:
+        self.updates: list[dict[str, Any]] = []
+
+    def update(
+        self,
+        *,
+        input: Any = None,
+        output: Any = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        kwargs: dict[str, Any] = {}
+        if input is not None:
+            kwargs["input"] = input
+        if output is not None:
+            kwargs["output"] = output
+        if metadata is not None:
+            kwargs["metadata"] = metadata
+        self.updates.append(kwargs)
+
+
+class RecordingObservation(AbstractObservationService):
+    """Observation service that records spans and their update history."""
+
+    def __init__(self) -> None:
+        self.spans: list[tuple[dict[str, Any], RecordingSpan]] = []
+
+    @contextmanager
+    def start_as_current_span(self, **kwargs: Any):
+        span = RecordingSpan()
+        self.spans.append((kwargs, span))
+        yield span
 
 
 # ---------------------------------------------------------------------------
@@ -188,14 +225,16 @@ class TestAnonResultCacheThread:
         assert "<<PERSON:1>>" in result1
         assert observation.span_count == 1
 
-        # User corrects detections via HITL: declares no PII at all.
-        # If the anon-result cache is NOT invalidated, the next anonymize
-        # would return the stale pre-correction result.
+        # User corrects detections via HITL: declares no PII at all. This
+        # opens its own observation span (piighost.hitl_correction) and
+        # invalidates the anon-result cache.
         await pipeline.override_detections("Bonjour Patrick", [], thread_id="t1")
+        assert observation.span_count == 2
 
         result2, ents = await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
-        # Span count went up → pipeline re-ran → cache was invalidated.
-        assert observation.span_count == 2
+        # Third span: the anonymize re-ran because the anon-result cache
+        # was invalidated by the override.
+        assert observation.span_count == 3
 
     async def test_deanonymize_with_ent_populates_anon_result(self) -> None:
         pipeline, _, observation, _ = self._build()
@@ -230,6 +269,51 @@ class TestAnonResultCacheThread:
         # Re-anonymizing the original must not emit a new span.
         await pipeline.anonymize(original, thread_id="t1")
         assert observation.span_count == 1
+
+    async def test_override_detections_emits_hitl_span_with_redacted_diff(self) -> None:
+        cache = SimpleMemoryCache()
+        observation = RecordingObservation()
+        detector = CountingDetector([("Patrick", "PERSON")])
+        pipeline = ThreadAnonymizationPipeline(
+            detector=detector,
+            anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+            cache=cache,
+            observation=observation,
+        )
+
+        # Populate the detection cache under thread t1 with the model output.
+        await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+
+        corrected = [
+            Detection(
+                text="Patrick",
+                label="ORG",
+                position=Span(start_pos=8, end_pos=15),
+                confidence=1.0,
+            )
+        ]
+        await pipeline.override_detections(
+            "Bonjour Patrick", corrected, thread_id="t1"
+        )
+
+        hitl = [
+            (kw, span)
+            for kw, span in observation.spans
+            if kw.get("name") == "piighost.hitl_correction"
+        ]
+        assert len(hitl) == 1
+        kw, span = hitl[0]
+        assert kw.get("tags") == ["hitl"]
+        assert kw.get("session_id") == "t1"
+        assert len(span.updates) == 1
+        update = span.updates[0]
+        assert "input" in update and "output" in update
+        # Model said PERSON, human said ORG.
+        assert update["input"]["detections"][0]["label"] == "PERSON"
+        assert update["output"]["detections"][0]["label"] == "ORG"
+        # Text is redacted (RedactPlaceholderFactory is the default obs factory).
+        assert update["input"]["detections"][0]["text"] != "Patrick"
+        assert update["output"]["detections"][0]["text"] != "Patrick"
 
 
 # ---------------------------------------------------------------------------
