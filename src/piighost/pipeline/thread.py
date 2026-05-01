@@ -37,7 +37,6 @@ from piighost.pipeline.base import (
     CACHE_KEY_ANONYMIZATION,
     CACHE_KEY_DETECTION,
     AnonymizationPipeline,
-    _detection_to_dict,
     _entity_to_dict,
 )
 from piighost.placeholder import AnyPlaceholderFactory
@@ -426,9 +425,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                         "labels": list(detector_labels) if detector_labels else [],
                         "detections": self._obs_detections_to_dicts(before),
                     },
-                    output={
-                        "detections": self._obs_detections_to_dicts(detections)
-                    },
+                    output={"detections": self._obs_detections_to_dicts(detections)},
                 )
         except Exception:
             logger.warning(
@@ -680,7 +677,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                     input={"detections": self._obs_detections_to_dicts(detections)},
                     output={
                         "entities": [
-                            _entity_to_dict(e, token=ent_tokens[e] if ent_tokens else None)
+                            _entity_to_dict(
+                                e, token=ent_tokens[e] if ent_tokens else None
+                            )
                             for e in entities
                         ]
                     },
