@@ -392,6 +392,57 @@ class TestAnonResultCacheThread:
         # Decoded value should reflect the corrected ORG label.
         assert any(item["label"] == "ORG" for item in cached)
 
+    async def test_explicit_obs_factory_emits_config_warning(self) -> None:
+        import warnings
+
+        from piighost.exceptions import PIIGhostConfigWarning
+        from piighost.placeholder import RedactPlaceholderFactory
+
+        cache = SimpleMemoryCache()
+        detector = ExactMatchDetector([("Patrick", "PERSON")])
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", PIIGhostConfigWarning)
+            ThreadAnonymizationPipeline(
+                detector=detector,
+                anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+                cache=cache,
+                observation_ph_factory=RedactPlaceholderFactory(),
+            )
+        relevant = [
+            w
+            for w in caught
+            if issubclass(w.category, PIIGhostConfigWarning)
+            and "observation_ph_factory" in str(w.message)
+        ]
+        assert len(relevant) == 1
+        assert "observation_ph_factory" in str(relevant[0].message)
+        assert "redacted" in str(relevant[0].message).lower()
+
+    async def test_default_observation_keeps_raw_text(self) -> None:
+        cache = SimpleMemoryCache()
+        observation = RecordingObservation()
+        detector = CountingDetector([("Patrick", "PERSON")])
+        pipeline = ThreadAnonymizationPipeline(
+            detector=detector,
+            anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+            cache=cache,
+            observation=observation,
+            # observation_ph_factory omitted -> default None -> raw text
+        )
+
+        await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+
+        anon = [
+            (kw, span)
+            for kw, span in observation.spans
+            if kw.get("name") == "piighost.anonymize_pipeline"
+        ]
+        assert len(anon) == 1
+        _, span = anon[0]
+        raw_inputs = [u for u in span.updates if "input" in u]
+        assert raw_inputs, "expected at least one input update on the root span"
+        assert raw_inputs[0]["input"]["text"] == "Bonjour Patrick"
+
     async def test_override_detections_no_op_observation_keeps_contract(
         self,
     ) -> None:
