@@ -387,6 +387,34 @@ class TestAnonResultCacheThread:
         # Decoded value should reflect the corrected ORG label.
         assert any(item["label"] == "ORG" for item in cached)
 
+    async def test_override_detections_no_op_observation_keeps_contract(
+        self,
+    ) -> None:
+        cache = SimpleMemoryCache()
+        pipeline = ThreadAnonymizationPipeline(
+            detector=ExactMatchDetector([("Patrick", "PERSON")]),
+            anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+            cache=cache,
+            # observation omitted → NoOpObservationService default
+        )
+
+        corrected = [
+            Detection(
+                text="Patrick",
+                label="PERSON",
+                position=Span(start_pos=8, end_pos=15),
+                confidence=1.0,
+            )
+        ]
+        await pipeline.override_detections(
+            "Bonjour Patrick", corrected, thread_id="t1"
+        )
+
+        detect_key = f"t1:{CACHE_KEY_DETECTION}:{hash_sha256('Bonjour Patrick')}"
+        cached = await cache.get(detect_key)
+        assert cached is not None
+        assert any(item["label"] == "PERSON" for item in cached)
+
 
 # ---------------------------------------------------------------------------
 # Base.deanonymize CacheMissError unchanged
