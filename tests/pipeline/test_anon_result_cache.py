@@ -317,6 +317,12 @@ class TestAnonResultCacheThread:
         # independent of the user-facing LabelCounterPlaceholderFactory configured above.
         assert update["input"]["detections"][0]["text"] != "Patrick"
         assert update["output"]["detections"][0]["text"] != "Patrick"
+        # Raw input text and the detector's label vocabulary land in
+        # input.* so the trace doubles as a NER training record. The
+        # ExactMatchDetector here exposes no `.labels`, so the field is
+        # an empty list rather than ``None``.
+        assert update["input"]["text"] == "Bonjour Patrick"
+        assert update["input"]["labels"] == []
 
     async def test_override_detections_emits_span_with_empty_before(self) -> None:
         cache = SimpleMemoryCache()

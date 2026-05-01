@@ -370,9 +370,22 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         trace) instead of returning the stale pre-correction result.
 
         Emits a flat ``piighost.hitl_correction`` root span (when an
-        observation backend is configured) carrying the model detections
-        as ``input`` and the human-corrected detections as ``output``,
-        both redacted via the observation placeholder factory. The span
+        observation backend is configured). The span carries:
+
+        * ``input.text``: the original user text, **not redacted**, so a
+          downstream dataset extractor can recover entities by slicing
+          this text with the recorded positions.
+        * ``input.labels``: the label vocabulary advertised by the
+          underlying detector when it exposes a ``labels`` attribute,
+          empty list otherwise.
+        * ``input.detections``: the model detections (positions + labels +
+          confidence + redacted text) read from the prior cache.
+        * ``output.detections``: the human-corrected detections in the
+          same shape.
+
+        The trace deliberately includes the raw input text so HITL traces
+        can be exported as a NER training dataset. Configure observation
+        accordingly (PII may transit your observation backend). The span
         is best-effort: a failing backend never breaks the cache update.
 
         Args:
@@ -408,12 +421,15 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             ) as span:
                 before_tokens = self._obs_tokens_for_detections(before)
                 after_tokens = self._obs_tokens_for_detections(detections)
+                detector_labels = getattr(self._detector, "labels", None)
                 span.update(
                     input={
+                        "text": text,
+                        "labels": list(detector_labels) if detector_labels else [],
                         "detections": [
                             _detection_to_dict(d, token=before_tokens[d])
                             for d in before
-                        ]
+                        ],
                     },
                     output={
                         "detections": [
