@@ -133,19 +133,11 @@ class LangfuseObservationService(AbstractObservationService):
         if tags is not None:
             prop_kwargs["tags"] = tags
 
-        # propagate_attributes must wrap start_as_current_observation, not
-        # the other way around. Langfuse fixes trace-level attributes when
-        # the trace is *opened*, so a session_id / tags / metadata pushed
-        # inside an already-active observation only attaches to subsequent
-        # child observations. Traces with no children (e.g.
-        # piighost.hitl_correction, which only emits span.update) would
-        # otherwise lose the session_id and tags entirely.
-        if prop_kwargs:
-            with propagate_attributes(**prop_kwargs):
-                with self._client.start_as_current_observation(**obs_kwargs) as obs:
+        with self._client.start_as_current_observation(**obs_kwargs) as obs:
+            if prop_kwargs:
+                with propagate_attributes(**prop_kwargs):
                     yield LangfuseSpan(obs)
-        else:
-            with self._client.start_as_current_observation(**obs_kwargs) as obs:
+            else:
                 yield LangfuseSpan(obs)
 
     def flush(self) -> None:
