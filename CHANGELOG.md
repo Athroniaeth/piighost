@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.11.0 (2026-05-04)
+
+### BREAKING CHANGE
+
+- observation traces emitted by AnonymizationPipeline
+are no longer redacted by default. Pass
+observation_ph_factory=RedactPlaceholderFactory() to restore the
+prior behaviour.
+
+### Feat
+
+- **observation**: wire helpers into ThreadAnonymizationPipeline
+- **observation**: wire _obs_text and _obs_detections_to_dicts into base pipeline
+- **observation**: default observation_ph_factory to None (raw text)
+- **observation**: script to compute HITL precision/recall/F1 per label
+- **observation**: script to export HITL traces as a NER dataset
+- **observation**: include raw text and label vocabulary in HITL input
+- **observation**: emit HITL trace from override_detections
+- **cache**: short-circuit anonymize and observation on cached mapping
+
+### Fix
+
+- **observation**: propagate trace attributes around root observation
+
 ## 0.10.0 (2026-04-30)
 
 ### BREAKING CHANGE
