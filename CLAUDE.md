@@ -60,3 +60,16 @@ All pipeline stages use **protocols** (structural subtyping) for dependency inje
 ## Example Application
 
 An example LangGraph agent with PII middleware is available in `examples/graph/`. It includes Aegra deployment, FastAPI HTTP server, PostgreSQL, and Langfuse observability. See `examples/graph/README.md` for details.
+
+## Working with downstream consumers
+
+`piighost-api` and `piighost-chat` both depend on this lib. When you change something here and want to test it end-to-end against either consumer **before** publishing a new release, do **not** bump-and-publish. Use the consumer's local-dev workflow:
+
+- **piighost-api** (`~/PycharmProjects/piighost-api`):
+  - Default `make install` resolves piighost from PyPI.
+  - `make dev-local` layers an editable install of `../piighost` on top, so changes here propagate live to the running API. Re-run after any `uv sync` (which would otherwise reset piighost back to PyPI).
+- **piighost-chat** (`~/PycharmProjects/piighost-chat`):
+  - The backend's pyproject still has `[tool.uv.sources] piighost = { path = "../../piighost", editable = true }` as the default; `make install` (the chat repo's Makefile) already gives you the editable lib without an extra step.
+  - Docker stack: `make docker-up-local` mounts this repo into the piighost-api container via `compose.dev.yml`, so the full chat pipeline runs against the local lib.
+
+Net: an agent iterating on this lib should not feel pressure to release just to validate. Bumping (via `cz bump`) and publishing is reserved for consumer pin updates and external users.
