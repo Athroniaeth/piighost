@@ -48,6 +48,7 @@ from typing import Literal, TypedDict
 
 import instructor
 from dotenv import load_dotenv
+from langchain_mistralai import ChatMistralAI
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
@@ -64,6 +65,7 @@ from piighost.detector.patterns import (
     FR_PATTERNS,
     GENERIC_PATTERNS,
 )
+from piighost.guard_llm import LLMGuardRail
 from piighost.pipeline.base import AnonymizationPipeline
 from piighost.placeholder import LabelCounterPlaceholderFactory
 
@@ -197,6 +199,26 @@ async def extract(anonymized_text: str) -> str:
     return deed.model_dump_json()
 
 
+async def guardrail(extracted_json: str) -> None:
+    """Final defence-in-depth pass. The LLM may have hallucinated PII
+    into a free-text field (for instance dropping a real notary name
+    into ``notary_office`` despite the placeholder prompt); the guard
+    re-runs detection on the JSON dump and raises
+    ``PIIRemainingError`` if anything looks like clear-text PII.
+
+    In production, prefer a smaller/cheaper Mistral model here (e.g.
+    ``mistral-small``) since this is a binary detection task.
+    """
+    guard = LLMGuardRail(
+        model=ChatMistralAI(
+            model=os.getenv("MISTRAL_MODEL", "mistral-large-2512"),
+            api_key=os.environ["MISTRAL_API_KEY"],
+        ),
+        labels=["PERSON", "LOCATION", "ORGANIZATION", "EMAIL", "PHONE", "IBAN"],
+    )
+    await guard.check(extracted_json)
+
+
 class ExtractionState(TypedDict):
     raw_text: str
     anonymized_text: str
@@ -224,6 +246,9 @@ async def main() -> None:
         f"[anonymized JSON]\n"
         f"{json.dumps(json.loads(extracted_json), indent=2, ensure_ascii=False)}\n"
     )
+
+    await guardrail(extracted_json)
+    print("[guardrail] PASS\n")
 
 
 if __name__ == "__main__":
