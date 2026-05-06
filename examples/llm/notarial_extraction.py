@@ -42,7 +42,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import date
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -97,7 +96,12 @@ Fait à Paris, le 06 mai 2026.
 
 class Party(BaseModel):
     full_name: str
-    birth_date: date | None
+    # Stored as a free-form string: while anonymized, the field carries
+    # a ``<<DATE:N>>`` placeholder; after deanonymize it carries the
+    # original locale-specific phrasing (e.g. ``"15 mars 1968"``). A
+    # ``date`` typing would force the model to either drop the
+    # placeholder or hallucinate a numeric date.
+    birth_date: str | None
     address: str
 
 
@@ -117,26 +121,32 @@ class SaleDeed(BaseModel):
     buyer: Party
     property: Property
     price: Price
-    sale_date: date
+    sale_date: str
     notary_office: str
     case_number: str | None
 
 
 SYSTEM_PROMPT = (
-    "You extract structured notarial sale deeds from anonymized French "
-    "text into the provided JSON schema.\n"
+    "You extract structured notarial sale deeds from partially "
+    "anonymized French text into the provided JSON schema.\n"
     "\n"
-    "The input has been anonymized: real names, locations, dates, "
-    "organizations, and identifiers are replaced with placeholders of "
-    "the form <<LABEL:N>>, e.g. <<PERSON:1>>, <<LOCATION:2>>, "
-    "<<DATE:1>>, <<IBAN:1>>. Treat each placeholder as the real value "
-    "it replaces. You MUST copy each placeholder verbatim (with the "
-    "surrounding double angle brackets, the colon, and the trailing "
-    "number) into the corresponding field of the output JSON. Never "
-    "strip the brackets, never invent a name, address, date, or "
-    "identifier, never describe the placeholder format. For numeric "
-    "fields like ``surface_m2`` and ``price.amount_eur``, extract the "
-    "integer value present in the text; these are not anonymized."
+    "Some values in the input have been anonymized: they appear as "
+    "placeholders of the form <<LABEL:N>>, e.g. <<PERSON:1>>, "
+    "<<ADDRESS:2>>, <<DATE:1>>, <<IBAN:1>>. Treat each placeholder as "
+    "the real value it replaces and copy it verbatim into the output "
+    "JSON, with the surrounding double angle brackets, the colon, and "
+    "the trailing number intact.\n"
+    "\n"
+    "Strict rule: only use a placeholder token if you see that exact "
+    "token (same label, same number) in the input text. Never invent a "
+    "placeholder, never increment its number, never substitute a "
+    "different label. If a value is NOT anonymized in the input (you "
+    "see it in clear, like ``15 mars 1968`` or ``Lyon``), copy it "
+    "verbatim from the source text, do not replace it with a fabricated "
+    "placeholder.\n"
+    "\n"
+    "Numeric fields such as ``surface_m2`` and ``price.amount_eur`` are "
+    "never anonymized; extract the integer value present in the text."
 )
 
 
@@ -147,16 +157,30 @@ def build_pipeline() -> AnonymizationPipeline:
     ``ConfidenceSpanConflictResolver`` (highest confidence wins)."""
     gliner = Gliner2Detector(
         model=GLiNER2.from_pretrained("fastino/gliner2-multi-v1"),
-        labels=["PERSON", "LOCATION", "ORGANIZATION", "DATE"],
+        labels=["PERSON", "LOCATION", "ADDRESS", "ORGANIZATION", "DATE"],
         threshold=0.5,
         flat_ner=True,
     )
+    # Defence-in-depth regex on top of GLiNER2:
+    # - GENERIC/EU/FR packs cover IBAN, SIREN, NIR, etc.
+    # - CADASTRAL_REF is notarial-specific (e.g. ``AB 1234``).
+    # - DATE_FR catches French long-form dates that GLiNER2 misses on
+    #   short documents (e.g. ``15 mars 1968``).
+    # - CASE_NUMBER catches the office-internal dossier reference
+    #   (e.g. ``2026/AV/01287``).
     regex = RegexDetector(
         patterns={
             **GENERIC_PATTERNS,
             **EU_PATTERNS,
             **FR_PATTERNS,
             "CADASTRAL_REF": r"\b[A-Z]{1,2}\s\d{1,4}\b",
+            "DATE_FR": (
+                r"\b\d{1,2}\s+"
+                r"(?:janvier|f[ée]vrier|mars|avril|mai|juin|juillet|"
+                r"ao[ûu]t|septembre|octobre|novembre|d[ée]cembre)\s+"
+                r"\d{4}\b"
+            ),
+            "CASE_NUMBER": r"\b\d{4}/[A-Z]{1,4}/\d{4,}\b",
         }
     )
     detector = CompositeDetector([gliner, regex])
@@ -242,7 +266,11 @@ async def deanonymize(
     )
     text = extracted_json
     for token, original in replacements:
-        text = text.replace(token, original)
+        # JSON-escape the replacement: multi-line PII (street + city
+        # split by a real newline in the source text) and any embedded
+        # quotes would otherwise produce invalid JSON. ``json.dumps``
+        # wraps the value in quotes, so slice them off.
+        text = text.replace(token, json.dumps(original, ensure_ascii=False)[1:-1])
     return SaleDeed.model_validate_json(text)
 
 
