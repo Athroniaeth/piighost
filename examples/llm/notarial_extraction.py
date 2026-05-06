@@ -269,9 +269,7 @@ def build_graph(pipeline: AnonymizationPipeline) -> "object":
         return {}
 
     async def deanonymize_node(state: ExtractionState) -> dict:
-        deed = await deanonymize(
-            pipeline, state["extracted_json"], state["entities"]
-        )
+        deed = await deanonymize(pipeline, state["extracted_json"], state["entities"])
         return {"deanonymized": deed}
 
     graph = StateGraph(ExtractionState)
