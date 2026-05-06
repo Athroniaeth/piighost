@@ -224,12 +224,38 @@ def build_pipeline() -> AnonymizationPipeline:
     # standalone city mentions intentionally left in clear above.
     # Including ADDRESS catches the case where a future edit to the
     # deed introduces a street that the detectors miss.
+    #
+    # ``temperature=0`` is essential: the default sampling makes the
+    # guard wildly non-deterministic, occasionally flagging civility
+    # titles, units, or prices as PII. The custom prompt below makes
+    # the model's job explicit so the binary check is as boring and
+    # reliable as possible.
+    guard_prompt = (
+        "You audit text that has already been anonymized. Find PII "
+        "still in clear form, matching these labels:\n"
+        "{labels}\n\n"
+        "Strict rules:\n"
+        "- Tokens like <<PERSON:1>>, <<DATE:2>>, <<ADDRESS:3>>, "
+        "<<IBAN:1>> are PLACEHOLDERS. Never flag them.\n"
+        "- Civility titles (Maître, Monsieur, Madame, Me, Mr, Mrs, "
+        "M., Mme, Dr, Doctor) are NOT PII.\n"
+        "- Quantities, units, surfaces (145 m², 50 kg, 100 L) are "
+        "NOT PII.\n"
+        "- Prices and currency amounts (487 000 EUR, $100) are NOT "
+        "PII.\n"
+        "- Generic role words (vendor, buyer, parties, seller, "
+        "VENDEUR, ACHETEUR) are NOT PII.\n"
+        "- Only flag concrete identifying real-world values.\n"
+        "- If no clear-form PII remains, return an empty list."
+    )
     guard = LLMGuardRail(
         model=ChatMistralAI(
             model=os.getenv("MISTRAL_MODEL", "mistral-large-2512"),
             api_key=os.environ["MISTRAL_API_KEY"],
+            temperature=0,
         ),
         labels=["PERSON", "ADDRESS", "ORGANIZATION", "EMAIL", "PHONE", "IBAN"],
+        prompt=guard_prompt,
     )
     return AnonymizationPipeline(
         detector=detector,
