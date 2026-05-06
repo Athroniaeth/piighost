@@ -16,15 +16,16 @@
 # ///
 """Structured extraction of a French notarial sale deed.
 
-Pipeline (four async steps, chained linearly in ``main``):
-    1. Anonymize the deed text with a piighost CompositeDetector
-       (GLiNER2 + regex packs + custom cadastral pattern).
+Pipeline:
+    1. ``pipeline.anonymize`` runs a CompositeDetector (GLiNER2 +
+       regex packs + custom cadastral / date_fr / case_number) and
+       then an LLMGuardRail final check that raises
+       ``PIIRemainingError`` if the detectors missed any clear-text
+       PII. Nothing leaked reaches the LLM.
     2. Send the anonymized text to Mistral via ``instructor`` to fill
        the ``SaleDeed`` Pydantic schema; the model echoes placeholders
        verbatim into nested fields.
-    3. Run an LLMGuardRail over the JSON dump to catch any PII the
-       model might have hallucinated into free-text fields.
-    4. Round-trip the JSON through the captured entities to restore
+    3. Round-trip the JSON through the captured entities to restore
        the real values, validate back into ``SaleDeed``.
 
 Run with:
@@ -70,10 +71,10 @@ SCP Lambert & Associés, sis 14 rue de Verdun, 75008 Paris,
 
 ONT COMPARU:
 
-Monsieur Patrick Durand, né le 15 mars 1968 à Lyon, demeurant 27 avenue
+Monsieur Patrick Durand, né le 15 mars 1968, demeurant 27 avenue
 des Tilleuls, 69003 Lyon, ci-après dénommé LE VENDEUR,
 
-Madame Claire Moreau, née le 02 juillet 1985 à Bordeaux, demeurant 8
+Madame Claire Moreau, née le 02 juillet 1985, demeurant 8
 boulevard Haussmann, 75009 Paris, ci-après dénommée L'ACHETEUR.
 
 Le VENDEUR vend à L'ACHETEUR, qui accepte, le bien suivant: maison
@@ -83,7 +84,7 @@ AB 1234, d'une surface habitable de 145 m².
 Prix convenu: 487 000 EUR, payable par virement sur le compte
 FR76 3000 1000 0123 4567 8901 234 ouvert au nom du vendeur.
 
-Fait à Paris, le 06 mai 2026.
+Fait le 06 mai 2026.
 """
 
 
@@ -159,6 +160,17 @@ def build_pipeline() -> AnonymizationPipeline:
     # covers the full street + postal + city instead of just the city.
     # Threshold 0.4 caught everything we test for; 0.5 missed full
     # addresses, 0.3+ flooded with substrings.
+    # No LOCATION label: GLiNER2 with both LOCATION and ADDRESS in its
+    # vocabulary picks LOCATION over ADDRESS for short addresses (e.g.
+    # ``12 rue des Acacias, 33000 Bordeaux`` becomes ``12 rue des
+    # Acacias, 33000 <<LOCATION>>`` instead of a single ADDRESS span),
+    # so the LLM ends up seeing a partial street + zip in clear. The
+    # SAMPLE_DEED above is therefore written so that every city only
+    # appears as the trailing component of a full street address; if
+    # you want to anonymize standalone city mentions in your own
+    # deeds, you must either (a) preprocess the source text to inline
+    # them into addresses, or (b) accept reduced ADDRESS coverage and
+    # add LOCATION here plus to the guardrail labels.
     gliner = Gliner2Detector(
         model=GLiNER2.from_pretrained("fastino/gliner2-multi-v1"),
         labels={
@@ -201,9 +213,28 @@ def build_pipeline() -> AnonymizationPipeline:
         }
     )
     detector = CompositeDetector([gliner, regex])
+    # LLMGuardRail re-validates the anonymized output to catch any
+    # PII the detectors missed. The check happens inside
+    # ``pipeline.anonymize`` and raises ``PIIRemainingError`` before
+    # the leaked text ever reaches the LLM. In production, prefer a
+    # cheaper model (e.g. ``mistral-small``) for this binary detection
+    # pass.
+    # Guardrail label set mirrors what the upstream detectors are
+    # configured to find. Including LOCATION here would trip on the
+    # standalone city mentions intentionally left in clear above.
+    # Including ADDRESS catches the case where a future edit to the
+    # deed introduces a street that the detectors miss.
+    guard = LLMGuardRail(
+        model=ChatMistralAI(
+            model=os.getenv("MISTRAL_MODEL", "mistral-large-2512"),
+            api_key=os.environ["MISTRAL_API_KEY"],
+        ),
+        labels=["PERSON", "ADDRESS", "ORGANIZATION", "EMAIL", "PHONE", "IBAN"],
+    )
     return AnonymizationPipeline(
         detector=detector,
         anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+        guard_rail=guard,
     )
 
 
@@ -238,26 +269,6 @@ async def extract(anonymized_text: str) -> str:
         ],
     )
     return deed.model_dump_json()
-
-
-async def guardrail(extracted_json: str) -> None:
-    """Final defence-in-depth pass. The LLM may have hallucinated PII
-    into a free-text field (for instance dropping a real notary name
-    into ``notary_office`` despite the placeholder prompt); the guard
-    re-runs detection on the JSON dump and raises
-    ``PIIRemainingError`` if anything looks like clear-text PII.
-
-    In production, prefer a smaller/cheaper Mistral model here (e.g.
-    ``mistral-small``) since this is a binary detection task.
-    """
-    guard = LLMGuardRail(
-        model=ChatMistralAI(
-            model=os.getenv("MISTRAL_MODEL", "mistral-large-2512"),
-            api_key=os.environ["MISTRAL_API_KEY"],
-        ),
-        labels=["PERSON", "LOCATION", "ORGANIZATION", "EMAIL", "PHONE", "IBAN"],
-    )
-    await guard.check(extracted_json)
 
 
 async def deanonymize(
@@ -301,24 +312,25 @@ async def main() -> None:
 
     pipeline = build_pipeline()
 
-    anonymized_text, entities = await anonymize(pipeline, SAMPLE_DEED)
+    # ``pipeline.anonymize`` runs the LLMGuardRail at the end and
+    # raises ``PIIRemainingError`` if the detectors missed anything.
+    # Catching here means the LLM call below never sees leaked PII.
+    try:
+        anonymized_text, entities = await anonymize(pipeline, SAMPLE_DEED)
+    except PIIRemainingError as exc:
+        print("[guardrail] FAIL: residual PII detected in the anonymized deed")
+        for detection in exc.detections:
+            print(f"  - {detection.label}: {detection.text!r} at {detection.position}")
+        raise SystemExit(1) from exc
     print(f"[anonymized deed]\n{anonymized_text}\n")
-    print(f"[entities captured] {len(entities)} entities\n")
+    print(f"[entities captured] {len(entities)} entities")
+    print("[guardrail] PASS\n")
 
     extracted_json = await extract(anonymized_text)
     print(
         f"[anonymized JSON]\n"
         f"{json.dumps(json.loads(extracted_json), indent=2, ensure_ascii=False)}\n"
     )
-
-    try:
-        await guardrail(extracted_json)
-    except PIIRemainingError as exc:
-        print("[guardrail] FAIL: residual PII detected in the extracted JSON")
-        for detection in exc.detections:
-            print(f"  - {detection.label}: {detection.text!r} at {detection.position}")
-        raise SystemExit(1) from exc
-    print("[guardrail] PASS\n")
 
     deed = await deanonymize(pipeline, extracted_json, entities)
     print(f"[deanonymized SaleDeed]\n{deed.model_dump_json(indent=2)}")
