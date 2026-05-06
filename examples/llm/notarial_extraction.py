@@ -219,6 +219,33 @@ async def guardrail(extracted_json: str) -> None:
     await guard.check(extracted_json)
 
 
+async def deanonymize(
+    pipeline: AnonymizationPipeline,
+    extracted_json: str,
+    entities: list[Entity],
+) -> SaleDeed:
+    """Restore the original PII values in the extracted JSON.
+
+    The pipeline's own ``deanonymize()`` is keyed on the exact
+    anonymized text it produced; the JSON dump is a different string
+    the cache has never seen. Instead we rebuild the placeholder map
+    from the captured entities via ``ph_factory.create(entities)``,
+    then string-replace each token with its source value. The longest
+    placeholder is replaced first to avoid prefix collisions
+    (``<<PERSON:11>>`` before ``<<PERSON:1>>``).
+    """
+    tokens = pipeline.ph_factory.create(entities)
+    replacements = sorted(
+        ((token, entity.detections[0].text) for entity, token in tokens.items()),
+        key=lambda pair: len(pair[0]),
+        reverse=True,
+    )
+    text = extracted_json
+    for token, original in replacements:
+        text = text.replace(token, original)
+    return SaleDeed.model_validate_json(text)
+
+
 class ExtractionState(TypedDict):
     raw_text: str
     anonymized_text: str
@@ -249,6 +276,9 @@ async def main() -> None:
 
     await guardrail(extracted_json)
     print("[guardrail] PASS\n")
+
+    deed = await deanonymize(pipeline, extracted_json, entities)
+    print(f"[deanonymized SaleDeed]\n{deed.model_dump_json(indent=2)}")
 
 
 if __name__ == "__main__":
