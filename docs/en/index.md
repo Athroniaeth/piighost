@@ -4,7 +4,42 @@ icon: lucide/shield
 
 # PIIGhost
 
-`piighost` is a Python library that automatically detects, anonymizes and deanonymizes sensitive entities (names, locations, account numbers…) in AI agent conversations. Its LangChain middleware plugs into LangGraph without changing your existing code: the LLM only sees placeholders, tools receive the real values, the user sees the deanonymized response.
+`piighost` is a **composable PII anonymization pipeline** for LLM agents. It sits as a layer on top of any regex, NER, or LLM you plug in, so you can use a hosted LLM (GPT, Claude, Gemini) without ever sending it the raw data of your users. `piighost` spots PII like names, emails, addresses, anything the model does not need to see, swaps them for placeholders (for example `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }, `patrick@acme.com`{ .pii } becomes `<<EMAIL:2>>`{ .placeholder }, `Paris`{ .pii } becomes `<<LOCATION:1>>`{ .placeholder }) the LLM can still reason about, and restores the real values for your tools and your end users. The same PII keeps the same placeholder across an entire conversation, even when it spans multiple messages or tool calls, and your agent code does not change.
+
+On top of the core pipeline, `piighost` ships extra layers to harden each step, like composable detectors with confidence arbitration for **detection**, a tolerant linker for **correction** of typos and case variants, and output guardrails (regex or LLM-based) for **safety** when the LLM accidentally generates fresh PII in its response.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant M as piighost
+    participant L as LLM
+    participant T as Tool
+
+    U->>M: "Email Patrick at patrick@acme.com"
+    M->>L: "Email <<PERSON:1>> at <<EMAIL:1>>"
+    L->>M: tool_call(send_email, to=<<EMAIL:1>>)
+    M->>T: send_email(to="patrick@acme.com")
+    T-->>M: "Sent."
+    M-->>L: "Sent."
+    L-->>M: "Done, your email to <<PERSON:1>> has been sent."
+    M-->>U: "Done, your email to Patrick has been sent."
+```
+
+*Full agent loop. The user and the tool see the real values; the LLM only ever sees placeholders.*
+{ .figure-caption }
+
+## Why piighost?
+
+When you put an LLM feature into production, you typically pick from three families of providers, each with its own trade-off.
+
+- **Hosted cloud outside the EU** (OpenAI, Anthropic, Google), the best models, but every byte of context, raw user PII included, leaves your jurisdiction.
+- **EU-sovereign cloud** (Mistral AI, OVHcloud, Scaleway), legal guarantees on data residency, but you give up part of the state of the art.
+- **Self-hosting open weights**, full control, but infrastructure to maintain and one notch behind the SOTA.
+
+The only clean way to decouple the LLM from content sensitivity is to **anonymize upstream**. Once PII never reach the model, picking a provider stops being a privacy decision and goes back to being a question of quality, cost, and latency. That is exactly the slot `piighost` fills.
+
+The legal detail (CLOUD Act, FISA 702, Schrems II) and the full provider-spectrum table live in [Why anonymize?](why-anonymize.md).
 
 ## Use cases
 
@@ -54,33 +89,21 @@ data.
 !!! tip "New to these terms?"
     See the [Glossary](glossary.md) for definitions of NER, span, entity linking, middleware, placeholder, and more.
 
-Two families of solutions currently exist to detect PII, regex and NER (Named Entity Recognition) models:
+On paper, anonymizing PII is straightforward: pick a detector (regex for emails, NER model for names), swap matches for placeholders, send the result to the LLM. In practice, four problems show up almost immediately.
 
-- **Regex**: fast and predictable, but limited to structured formats (emails, phone numbers) and incapable of
-  capturing arbitrary names or locations.
-- **NER models**: extended detection (persons, locations, organizations, etc.), but slower and prone to
-  inaccuracies depending on the model.
+**Placeholder consistency.** The goal is to replace `Patrick`{ .pii } with a placeholder like `<<PERSON:1>>`{ .placeholder }, which tells the LLM two things: a person was hidden here, and every occurrence of `<<PERSON:1>>`{ .placeholder } refers to the same person. If `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder } at the start and `<<PERSON:3>>`{ .placeholder } at the end, the LLM can no longer reason about the fact that it is the same individual.
 
-Each approach has its own shortcomings, and NER models add a few more:
+**Variants missed by the detector.** The NER picks up `Patrick Dupont`{ .pii } at the top of the text but misses a bare `Patrick`{ .pii } two sentences later. Or it catches `Patrick`{ .pii } but not lowercase `patrick`{ .pii }. Or not `Patriick`{ .pii } with a typo.
 
-- **False positives**: a word is flagged as PII when it isn't one.
-- **False negatives**: an actual PII is missed.
-- **Inconsistent detection**: the model detects one occurrence of a PII but misses other occurrences of the same
-  PII in the text, which breaks anonymization consistency.
+**Overlap between detectors.** Two NERs chained for higher recall can claim the same span with different labels (one says `PERSON`, the other says `ORG` because it mistook it for a company name). Without arbitration, the final replacement hits the same position twice and corrupts the text.
 
-Even if these issues were fixed, several deeper problems remain:
+**Cross-message persistence.** Once the LLM has seen `<<PERSON:1>>`{ .placeholder } in message 1, message 2 must reuse the same placeholder. Without shared memory, `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder } then `<<PERSON:7>>`{ .placeholder } depending on the turn, and the LLM loses track.
 
-- **Placeholder consistency**: every occurrence of a given PII must be anonymized identically (e.g.
-  `<<PERSON:1>>`{ .placeholder } for `Patrick`{ .pii } throughout the text), in order to preserve the information
-  that all occurrences refer to the same entity while still protecting privacy.
-- **Fuzzy linking**: detections that are not strictly identical must still be linked together, for instance
-  `Patrick`{ .pii } and `patrick`{ .pii } (case difference), `Patric`{ .pii } (typo), or full vs partial mentions
-  (`Patrick Dupont`{ .pii } and `Patrick`{ .pii }).
-
-`piighost` addresses each of these issues with three pipeline components (span conflict resolution, entity
-linking, entity merging). Each component has a **trade-off**: span resolution may discard a legitimate
-detection on a false conflict, fuzzy linking may group two distinct entities by mistake, and so on. If your
-detections are already clean (or if you prefer to handle these cases yourself), each component can be
+`piighost` addresses the first three with three pipeline components (span resolution, entity
+linking, entity merging), and the fourth with the conversational layer (`ThreadAnonymizationPipeline`).
+Each component has a **trade-off**: span resolution may discard a legitimate
+detection on a false conflict, fuzzy linking may group two distinct entities by mistake, and so on.
+If your detections are already clean (or if you prefer to handle these cases yourself), each component can be
 **disabled individually** via a `Disabled*` instance that turns it into a passthrough. See
 [Extending PIIGhost](extending.md) for the per-section details.
 
@@ -152,6 +175,24 @@ Other libraries cover part of the scope:
 
 `piighost`'s differentiator: **persistent cross-message linking** and a **bidirectional middleware**
 (text → placeholders → LLM → text → tools → placeholders → user) that works out of the box in LangGraph.
+
+At a glance, feature parity vs alternatives:
+
+<div class="wide-table" markdown="1">
+
+|                                                  | **piighost** | LangChain                  | Microsoft Presidio             | Regex    |
+|--------------------------------------------------|--------------|----------------------------|--------------------------------|----------|
+| Interchangeable detectors (NER, regex, LLM…)     | ✅           | ⚠️ regex / Presidio only   | ⚠️ tied to spaCy / recognizers | ❌       |
+| Composing multiple detectors                     | ✅           | ❌ one strategy per instance | ⚠️ partial                   | ❌       |
+| Cross-message entity linking                     | ✅           | ❌                         | ❌                             | ❌       |
+| Case / typo tolerance                            | ✅           | ❌                         | ❌                             | ❌       |
+| Reversible anonymization (deanonymize)           | ✅           | ❌ block / mask only       | ⚠️ separate API                | ❌       |
+| LangChain / LangGraph middleware                 | ✅           | ✅                         | ❌                             | ❌       |
+| Deanonymizes / re-anonymizes tool calls          | ✅           | ❌                         | ❌                             | ❌       |
+| Async-first API                                  | ✅           | ⚠️                         | ⚠️                             | ❌       |
+| Customizable placeholder format                  | ✅           | ⚠️ template only           | ⚠️ template only               | depends  |
+
+</div>
 
 ---
 

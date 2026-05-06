@@ -4,7 +4,42 @@ icon: lucide/shield
 
 # PIIGhost
 
-`piighost` est une bibliothèque Python qui détecte, anonymise et désanonymise automatiquement les entités sensibles (noms, lieux, numéros de compte…) dans les conversations d'agents IA. Son middleware LangChain s'intègre dans LangGraph sans modifier votre code existant : le LLM ne voit que des placeholders, les outils reçoivent les vraies valeurs, l'utilisateur voit la réponse désanonymisée.
+`piighost` est un **pipeline d'anonymisation de PII composable** pour les agents LLM. C'est une surcouche aux regex, NER ou LLM que vous branchez, ce qui vous permet d'utiliser un LLM hébergé (GPT, Claude, Gemini) sans jamais lui envoyer les données brutes de vos utilisateurs. `piighost` repère les PII comme les noms, emails, adresses, tout ce que le modèle n'a pas à voir, les remplace par des placeholders (par exemple `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder }, `patrick@acme.com`{ .pii } devient `<<EMAIL:2>>`{ .placeholder }, `Paris`{ .pii } devient `<<LOCATION:1>>`{ .placeholder }) sur lesquels le LLM peut continuer à raisonner, et restitue les vraies valeurs à vos outils et vos utilisateurs finaux. La même PII garde le même placeholder tout au long d'une conversation, même quand elle s'étale sur plusieurs messages ou appels d'outils, et votre code agent ne change pas.
+
+Au-dessus du pipeline de base, `piighost` embarque des couches supplémentaires pour renforcer chaque étape, comme des détecteurs composables avec arbitrage par confiance pour la **détection**, un linker tolérant aux fautes de frappe et variantes de casse pour la **correction**, et des guardrails de sortie (regex ou LLM) pour la **sécurité** quand le LLM génère accidentellement une PII nouvelle dans sa réponse.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Utilisateur
+    participant M as piighost
+    participant L as LLM
+    participant T as Outil
+
+    U->>M: "Email Patrick à patrick@acme.com"
+    M->>L: "Email <<PERSON:1>> à <<EMAIL:1>>"
+    L->>M: tool_call(send_email, to=<<EMAIL:1>>)
+    M->>T: send_email(to="patrick@acme.com")
+    T-->>M: "Envoyé."
+    M-->>L: "Envoyé."
+    L-->>M: "C'est fait, votre email à <<PERSON:1>> est parti."
+    M-->>U: "C'est fait, votre email à Patrick est parti."
+```
+
+*Tour complet d'un agent. L'utilisateur et l'outil voient les vraies valeurs, le LLM ne voit que des placeholders.*
+{ .figure-caption }
+
+## Pourquoi piighost ?
+
+Quand vous mettez en production une feature LLM, vous choisissez en général parmi trois familles de fournisseurs, et chacune impose un compromis.
+
+- **Cloud hébergé hors UE** (OpenAI, Anthropic, Google), les meilleurs modèles, mais chaque octet de contexte, PII brutes des utilisateurs incluses, quitte votre juridiction.
+- **Cloud souverain UE** (Mistral AI, OVHcloud, Scaleway), garanties juridiques sur la résidence des données, mais vous renoncez à une partie de l'état de l'art.
+- **Auto-hébergement open weights**, contrôle total, mais infrastructure à porter et un cran en arrière du SOTA.
+
+La seule façon propre de découpler le LLM de la sensibilité du contenu, c'est d'**anonymiser en amont**. Quand les PII n'atteignent jamais le modèle, le choix du fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence. C'est exactement la place que prend `piighost`.
+
+Le détail juridique (CLOUD Act, FISA 702, Schrems II) et le tableau complet du spectre des fournisseurs sont dans [Pourquoi anonymiser ?](why-anonymize.md).
 
 ## Cas d'usage
 
@@ -141,6 +176,24 @@ D'autres librairies couvrent une partie du périmètre :
 
 Le différenciateur de `piighost` : **la liaison persistante inter-messages** et un **middleware bidirectionnel**
 (texte → placeholders → LLM → texte → outils → placeholders → utilisateur) qui fonctionne tel quel dans LangGraph.
+
+Vue synthétique des fonctionnalités face aux alternatives :
+
+<div class="wide-table" markdown="1">
+
+|                                                  | **piighost** | LangChain                      | Microsoft Presidio           | Regex   |
+|--------------------------------------------------|--------------|--------------------------------|------------------------------|---------|
+| Détecteurs interchangeables (NER, regex, LLM…)   | ✅           | ⚠️ regex / Presidio uniquement | ⚠️ lié à spaCy / recognizers | ❌      |
+| Composer plusieurs détecteurs                    | ✅           | ❌ une stratégie par instance  | ⚠️ partiel                   | ❌      |
+| Liaison d'entités inter-messages                 | ✅           | ❌                             | ❌                           | ❌      |
+| Tolérance casse / fautes de frappe               | ✅           | ❌                             | ❌                           | ❌      |
+| Anonymisation réversible (deanonymize)           | ✅           | ❌ block / mask uniquement     | ⚠️ API séparée               | ❌      |
+| Middleware LangChain / LangGraph                 | ✅           | ✅                             | ❌                           | ❌      |
+| Désanonymise / réanonymise à l'appel d'outil     | ✅           | ❌                             | ❌                           | ❌      |
+| API async-first                                  | ✅           | ⚠️                             | ⚠️                           | ❌      |
+| Format de placeholder personnalisable            | ✅           | ⚠️ template seulement          | ⚠️ template seulement        | dépend  |
+
+</div>
 
 ---
 
