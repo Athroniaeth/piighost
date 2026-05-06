@@ -53,9 +53,6 @@ from langgraph.graph import END, START, StateGraph
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
-# piighost types used in the State annotation; runtime imports come later
-from piighost.models import Entity
-
 from gliner2 import GLiNER2
 
 from piighost.anonymizer import Anonymizer
@@ -66,7 +63,9 @@ from piighost.detector.patterns import (
     FR_PATTERNS,
     GENERIC_PATTERNS,
 )
+from piighost.exceptions import PIIRemainingError
 from piighost.guard_llm import LLMGuardRail
+from piighost.models import Entity
 from piighost.pipeline.base import AnonymizationPipeline
 from piighost.placeholder import LabelCounterPlaceholderFactory
 
@@ -247,6 +246,14 @@ async def deanonymize(
     return SaleDeed.model_validate_json(text)
 
 
+class ExtractionState(TypedDict):
+    raw_text: str
+    anonymized_text: str
+    entities: list[Entity]
+    extracted_json: str
+    deanonymized: SaleDeed
+
+
 def build_graph(pipeline: AnonymizationPipeline) -> "object":
     """Wire the four async steps into a LangGraph state machine.
 
@@ -285,14 +292,6 @@ def build_graph(pipeline: AnonymizationPipeline) -> "object":
     return graph.compile()
 
 
-class ExtractionState(TypedDict):
-    raw_text: str
-    anonymized_text: str
-    entities: list[Entity]
-    extracted_json: str
-    deanonymized: SaleDeed
-
-
 async def main() -> None:
     load_dotenv(Path(__file__).with_name(".env"))
     if not os.getenv("MISTRAL_API_KEY"):
@@ -304,7 +303,13 @@ async def main() -> None:
     pipeline = build_pipeline()
     graph = build_graph(pipeline)
 
-    final_state: ExtractionState = await graph.ainvoke({"raw_text": SAMPLE_DEED})
+    try:
+        final_state: ExtractionState = await graph.ainvoke({"raw_text": SAMPLE_DEED})
+    except PIIRemainingError as exc:
+        print("[guardrail] FAIL: residual PII detected in the extracted JSON")
+        for detection in exc.detections:
+            print(f"  - {detection.label}: {detection.text!r} at {detection.position}")
+        raise SystemExit(1) from exc
 
     print(f"[anonymized deed]\n{final_state['anonymized_text']}\n")
     print(f"[entities captured] {len(final_state['entities'])} entities\n")
