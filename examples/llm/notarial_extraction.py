@@ -49,6 +49,7 @@ from typing import Literal, TypedDict
 import instructor
 from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
+from langgraph.graph import END, START, StateGraph
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
@@ -246,6 +247,46 @@ async def deanonymize(
     return SaleDeed.model_validate_json(text)
 
 
+def build_graph(pipeline: AnonymizationPipeline) -> "object":
+    """Wire the four async steps into a LangGraph state machine.
+
+    The flow is linear (anonymize -> extract -> guardrail ->
+    deanonymize), which makes LangGraph mostly ceremonial here. Kept
+    as a reference for adding a conditional edge later, e.g. routing
+    back to extract on a recoverable guardrail trip.
+    """
+
+    async def anonymize_node(state: ExtractionState) -> dict:
+        anonymized_text, entities = await anonymize(pipeline, state["raw_text"])
+        return {"anonymized_text": anonymized_text, "entities": entities}
+
+    async def extract_node(state: ExtractionState) -> dict:
+        extracted_json = await extract(state["anonymized_text"])
+        return {"extracted_json": extracted_json}
+
+    async def guardrail_node(state: ExtractionState) -> dict:
+        await guardrail(state["extracted_json"])
+        return {}
+
+    async def deanonymize_node(state: ExtractionState) -> dict:
+        deed = await deanonymize(
+            pipeline, state["extracted_json"], state["entities"]
+        )
+        return {"deanonymized": deed}
+
+    graph = StateGraph(ExtractionState)
+    graph.add_node("anonymize", anonymize_node)
+    graph.add_node("extract", extract_node)
+    graph.add_node("guardrail", guardrail_node)
+    graph.add_node("deanonymize", deanonymize_node)
+    graph.add_edge(START, "anonymize")
+    graph.add_edge("anonymize", "extract")
+    graph.add_edge("extract", "guardrail")
+    graph.add_edge("guardrail", "deanonymize")
+    graph.add_edge("deanonymize", END)
+    return graph.compile()
+
+
 class ExtractionState(TypedDict):
     raw_text: str
     anonymized_text: str
@@ -263,22 +304,21 @@ async def main() -> None:
         )
 
     pipeline = build_pipeline()
+    graph = build_graph(pipeline)
 
-    anonymized_text, entities = await anonymize(pipeline, SAMPLE_DEED)
-    print(f"[anonymized deed]\n{anonymized_text}\n")
-    print(f"[entities captured] {len(entities)} entities\n")
+    final_state: ExtractionState = await graph.ainvoke({"raw_text": SAMPLE_DEED})
 
-    extracted_json = await extract(anonymized_text)
+    print(f"[anonymized deed]\n{final_state['anonymized_text']}\n")
+    print(f"[entities captured] {len(final_state['entities'])} entities\n")
     print(
         f"[anonymized JSON]\n"
-        f"{json.dumps(json.loads(extracted_json), indent=2, ensure_ascii=False)}\n"
+        f"{json.dumps(json.loads(final_state['extracted_json']), indent=2, ensure_ascii=False)}\n"
     )
-
-    await guardrail(extracted_json)
     print("[guardrail] PASS\n")
-
-    deed = await deanonymize(pipeline, extracted_json, entities)
-    print(f"[deanonymized SaleDeed]\n{deed.model_dump_json(indent=2)}")
+    print(
+        f"[deanonymized SaleDeed]\n"
+        f"{final_state['deanonymized'].model_dump_json(indent=2)}"
+    )
 
 
 if __name__ == "__main__":
