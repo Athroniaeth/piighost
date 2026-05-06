@@ -40,8 +40,6 @@ Run with:
 from __future__ import annotations
 
 import asyncio
-import json
-import os
 from datetime import date
 from pathlib import Path
 from typing import Literal, TypedDict
@@ -56,7 +54,7 @@ from piighost.models import Entity
 SAMPLE_DEED = """\
 ACTE DE VENTE IMMOBILIÈRE — DOSSIER N° 2026/AV/01287
 
-Par devant Maître Sophie Lambert, notaire associé de l'office notarial
+Par devant Maître Sophie Lambert, notaire associée de l'office notarial
 SCP Lambert & Associés, sis 14 rue de Verdun, 75008 Paris,
 
 ONT COMPARU:
