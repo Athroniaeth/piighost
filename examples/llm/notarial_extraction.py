@@ -40,11 +40,15 @@ Run with:
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 from datetime import date
 from pathlib import Path
 from typing import Literal, TypedDict
 
+import instructor
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 # piighost types used in the State annotation; runtime imports come later
@@ -169,6 +173,30 @@ async def anonymize(
     return anonymized_text, entities
 
 
+async def extract(anonymized_text: str) -> str:
+    """Call Mistral through the OpenAI-compatible endpoint, with
+    ``instructor`` enforcing the SaleDeed schema. Returns the JSON
+    dump of the Pydantic instance. Placeholders like
+    ``<<PERSON:1>>`` are kept verbatim in the JSON so the
+    deanonymize step can substitute them later."""
+    client = instructor.from_openai(
+        AsyncOpenAI(
+            base_url=os.getenv("MISTRAL_BASE_URL", "https://api.mistral.ai/v1"),
+            api_key=os.environ["MISTRAL_API_KEY"],
+        )
+    )
+    deed = await client.chat.completions.create(
+        model=os.getenv("MISTRAL_MODEL", "mistral-large-2512"),
+        response_model=SaleDeed,
+        max_retries=2,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": anonymized_text},
+        ],
+    )
+    return deed.model_dump_json()
+
+
 class ExtractionState(TypedDict):
     raw_text: str
     anonymized_text: str
@@ -179,11 +207,23 @@ class ExtractionState(TypedDict):
 
 async def main() -> None:
     load_dotenv(Path(__file__).with_name(".env"))
+    if not os.getenv("MISTRAL_API_KEY"):
+        raise SystemExit(
+            "MISTRAL_API_KEY is not set. Copy examples/llm/.env.example "
+            "to examples/llm/.env and fill it in."
+        )
+
     pipeline = build_pipeline()
 
     anonymized_text, entities = await anonymize(pipeline, SAMPLE_DEED)
     print(f"[anonymized deed]\n{anonymized_text}\n")
-    print(f"[entities captured] {len(entities)} entities")
+    print(f"[entities captured] {len(entities)} entities\n")
+
+    extracted_json = await extract(anonymized_text)
+    print(
+        f"[anonymized JSON]\n"
+        f"{json.dumps(json.loads(extracted_json), indent=2, ensure_ascii=False)}\n"
+    )
 
 
 if __name__ == "__main__":
