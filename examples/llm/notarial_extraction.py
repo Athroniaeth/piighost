@@ -50,6 +50,19 @@ from pydantic import BaseModel
 # piighost types used in the State annotation; runtime imports come later
 from piighost.models import Entity
 
+from gliner2 import GLiNER2
+
+from piighost.anonymizer import Anonymizer
+from piighost.detector import CompositeDetector, RegexDetector
+from piighost.detector.gliner2 import Gliner2Detector
+from piighost.detector.patterns import (
+    EU_PATTERNS,
+    FR_PATTERNS,
+    GENERIC_PATTERNS,
+)
+from piighost.pipeline.base import AnonymizationPipeline
+from piighost.placeholder import LabelCounterPlaceholderFactory
+
 
 SAMPLE_DEED = """\
 ACTE DE VENTE IMMOBILIÈRE — DOSSIER N° 2026/AV/01287
@@ -121,6 +134,41 @@ SYSTEM_PROMPT = (
 )
 
 
+def build_pipeline() -> AnonymizationPipeline:
+    """Compose GLiNER2 (open NER) with regex packs (FR / EU / generic)
+    plus a custom French cadastral reference pattern (e.g. ``AB 1234``).
+    Span conflicts are resolved by the default
+    ``ConfidenceSpanConflictResolver`` (highest confidence wins)."""
+    gliner = Gliner2Detector(
+        model=GLiNER2.from_pretrained("fastino/gliner2-multi-v1"),
+        labels=["PERSON", "LOCATION", "ORGANIZATION", "DATE"],
+        threshold=0.5,
+        flat_ner=True,
+    )
+    regex = RegexDetector(
+        patterns={
+            **GENERIC_PATTERNS,
+            **EU_PATTERNS,
+            **FR_PATTERNS,
+            "CADASTRAL_REF": r"\b[A-Z]{1,2}\s\d{1,4}\b",
+        }
+    )
+    detector = CompositeDetector([gliner, regex])
+    return AnonymizationPipeline(
+        detector=detector,
+        anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+    )
+
+
+async def anonymize(
+    pipeline: AnonymizationPipeline, text: str
+) -> tuple[str, list[Entity]]:
+    """Run piighost on the deed and return the anonymized text plus
+    the entities captured for the later deanonymize step."""
+    anonymized_text, entities = await pipeline.anonymize(text)
+    return anonymized_text, entities
+
+
 class ExtractionState(TypedDict):
     raw_text: str
     anonymized_text: str
@@ -131,7 +179,11 @@ class ExtractionState(TypedDict):
 
 async def main() -> None:
     load_dotenv(Path(__file__).with_name(".env"))
-    print(f"[input deed]\n{SAMPLE_DEED}\n")
+    pipeline = build_pipeline()
+
+    anonymized_text, entities = await anonymize(pipeline, SAMPLE_DEED)
+    print(f"[anonymized deed]\n{anonymized_text}\n")
+    print(f"[entities captured] {len(entities)} entities")
 
 
 if __name__ == "__main__":
