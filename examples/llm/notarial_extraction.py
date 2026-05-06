@@ -155,22 +155,46 @@ def build_pipeline() -> AnonymizationPipeline:
     plus a custom French cadastral reference pattern (e.g. ``AB 1234``).
     Span conflicts are resolved by the default
     ``ConfidenceSpanConflictResolver`` (highest confidence wins)."""
+    # GLiNER2 labels are passed as a ``{external: internal}`` mapping:
+    # the *internal* phrasing (right side) is what the model sees as
+    # the entity-type prompt; the *external* label (left side) is what
+    # piighost emits in placeholders. Plain words like ``PERSON`` /
+    # ``ADDRESS`` work, but a short natural-language phrase (e.g.
+    # ``person name without civility title``) significantly tightens
+    # what GLiNER2 captures: titles like "Madame" no longer get
+    # absorbed into the PERSON span, and the address span actually
+    # covers the full street + postal + city instead of just the city.
+    # Threshold 0.4 caught everything we test for; 0.5 missed full
+    # addresses, 0.3+ flooded with substrings.
     gliner = Gliner2Detector(
         model=GLiNER2.from_pretrained("fastino/gliner2-multi-v1"),
-        labels=["PERSON", "LOCATION", "ADDRESS", "ORGANIZATION", "DATE"],
-        threshold=0.5,
+        labels={
+            "PERSON": "person name without civility title",
+            "ADDRESS": "complete street address",
+            "ORGANIZATION": "company or organization",
+            "DATE": "date of birth or sale date",
+        },
+        threshold=0.4,
         flat_ner=True,
     )
     # Defence-in-depth regex on top of GLiNER2:
-    # - GENERIC/EU/FR packs cover IBAN, SIREN, NIR, etc.
+    # - EU/FR packs cover IBAN, SIREN, NIR, etc.; GENERIC covers email,
+    #   phone, IPV4. CREDIT_CARD is dropped from GENERIC because its
+    #   12-18 digit pattern otherwise steals an IBAN substring under
+    #   the highest-confidence-first resolver (regex matches all hit
+    #   confidence 1.0, ties go to the first emitter, GENERIC was
+    #   merged before EU).
     # - CADASTRAL_REF is notarial-specific (e.g. ``AB 1234``).
     # - DATE_FR catches French long-form dates that GLiNER2 misses on
     #   short documents (e.g. ``15 mars 1968``).
     # - CASE_NUMBER catches the office-internal dossier reference
     #   (e.g. ``2026/AV/01287``).
+    generic_minus_credit_card = {
+        k: v for k, v in GENERIC_PATTERNS.items() if k != "CREDIT_CARD"
+    }
     regex = RegexDetector(
         patterns={
-            **GENERIC_PATTERNS,
+            **generic_minus_credit_card,
             **EU_PATTERNS,
             **FR_PATTERNS,
             "CADASTRAL_REF": r"\b[A-Z]{1,2}\s\d{1,4}\b",
