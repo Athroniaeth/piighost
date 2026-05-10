@@ -23,6 +23,39 @@ Detection only: no anonymization, no resolver, no linker. Run via
 from __future__ import annotations
 
 import streamlit as st
+from gliner2 import GLiNER2
+
+MODEL_PRESETS: list[str] = [
+    "fastino/gliner2-multi-v1",
+    "urchade/gliner_multi-v2.1",
+    "urchade/gliner_multi_pii-v1",
+    "knowledgator/gliner-multitask-v1.0",
+]
+CUSTOM_MODEL_SENTINEL = "Custom..."
+
+
+@st.cache_resource(show_spinner="Loading GLiNER model…")
+def load_gliner(model_id: str) -> GLiNER2:
+    """Load (and cache) a GLiNER2 model by its HuggingFace id."""
+    return GLiNER2.from_pretrained(model_id)
+
+
+def _model_selector() -> str | None:
+    """Render the model selector and return the resolved model id, or None on error."""
+    choice = st.selectbox(
+        "Model",
+        options=[*MODEL_PRESETS, CUSTOM_MODEL_SENTINEL],
+        index=0,
+        help="GLiNER2 model id on HuggingFace.",
+    )
+    if choice == CUSTOM_MODEL_SENTINEL:
+        custom = st.text_input(
+            "Custom model id",
+            value="",
+            placeholder="e.g. urchade/gliner_small-v2.1",
+        ).strip()
+        return custom or None
+    return choice
 
 
 def main() -> None:
@@ -33,6 +66,16 @@ def main() -> None:
     )
     st.title("piighost — GLiNER detection playground")
     st.caption("Tune GLiNER on the fly against text or .txt documents.")
+
+    with st.sidebar:
+        st.header("Configuration")
+        model_id = _model_selector()
+
+    if not model_id:
+        st.info("Pick a model in the sidebar to get started.")
+        return
+
+    st.write(f"**Selected model:** `{model_id}`")
 
 
 if __name__ == "__main__":
