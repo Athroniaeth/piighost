@@ -7,21 +7,24 @@ spans and a sortable dataframe.
 
 ## Run it
 
-After `uv sync --group dev` at the repo root:
+`streamlit run` imports the script from the active environment (PEP 723
+metadata is only honoured when `uv run` executes the script directly,
+which `streamlit run` does not). So both `streamlit` and `gliner2` need
+to be importable.
 
 ```bash
+uv sync --group dev --group gliner2
 uv run streamlit run examples/streamlit/playground.py
 ```
 
-Or, in a fresh checkout without dev deps installed:
+Or, in a fresh checkout without syncing:
 
 ```bash
-uv run --with streamlit streamlit run examples/streamlit/playground.py
+uv run --with gliner2 --with streamlit streamlit run examples/streamlit/playground.py
 ```
 
-The PEP 723 header in `playground.py` resolves piighost in editable mode
-plus `gliner2` in an ephemeral venv. The first run downloads the default
-model (`fastino/gliner2-multi-v1`, ~500 MB) from HuggingFace.
+The first run downloads the default model
+(`fastino/gliner2-multi-v1`, ~500 MB) from HuggingFace.
 
 ## Samples
 
