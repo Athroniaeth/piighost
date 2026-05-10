@@ -106,6 +106,7 @@ dev = [
     "commitizen>=4.13.9",
     "pytest-asyncio>=0.25",
     "bandit>=1.9.4",
+    "streamlit>=1.46",
 ]
 faker = [
     "faker>=40.11.0",
