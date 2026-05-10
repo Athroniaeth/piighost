@@ -107,6 +107,26 @@ def _labels_widget() -> list[str]:
     )
 
 
+def _detection_params() -> tuple[float, bool, tuple[int, int] | None]:
+    """Render threshold + flat_ner + chunk toggle. Return (threshold, flat_ner, chunk_params).
+
+    ``chunk_params`` is ``None`` when chunking is OFF, otherwise
+    ``(chunk_size, overlap)``.
+    """
+    threshold = st.slider("Threshold", 0.0, 1.0, 0.5, step=0.05)
+    flat_ner = st.checkbox("flat_ner (no nested entities)", value=True)
+
+    with st.expander("Chunking", expanded=False):
+        chunk_on = st.checkbox("Chunk long inputs", value=False)
+        if chunk_on:
+            chunk_size = st.slider("chunk_size (chars)", 200, 4000, 1500, step=100)
+            overlap = st.slider("overlap (chars)", 0, 500, 100, step=50)
+            chunk_params: tuple[int, int] | None = (chunk_size, overlap)
+        else:
+            chunk_params = None
+    return threshold, flat_ner, chunk_params
+
+
 def main() -> None:
     st.set_page_config(
         page_title="piighost — GLiNER playground",
@@ -121,6 +141,8 @@ def main() -> None:
         model_id = _model_selector()
         st.divider()
         labels = _labels_widget()
+        st.divider()
+        threshold, flat_ner, chunk_params = _detection_params()
 
     if not model_id:
         st.info("Pick a model in the sidebar to get started.")
@@ -131,6 +153,16 @@ def main() -> None:
 
     st.write(f"**Selected model:** `{model_id}`")
     st.write(f"**Labels ({len(labels)}):** {', '.join(labels)}")
+    chunk_label = (
+        f"chunked({chunk_params[0]}/{chunk_params[1]})"
+        if chunk_params
+        else "no chunking"
+    )
+    st.write(
+        f"**Threshold:** {threshold:.2f} — "
+        f"**flat_ner:** {flat_ner} — "
+        f"**{chunk_label}**"
+    )
 
 
 if __name__ == "__main__":
