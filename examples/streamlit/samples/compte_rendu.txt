@@ -1,0 +1,20 @@
+Compte-rendu — Comité projet "Phoenix"
+Date : jeudi 7 mai 2026, 14h00 — Salle Albatros, Bordeaux
+
+Présents :
+  - Olivier Dubreuil (DRH, Borealis Logistique)
+  - Léa Mercier (Chargée de planification)
+  - Camille Lefèvre (Atlantis Conseil, prestataire externe)
+  - Hugo Tanaka (DSI)
+
+Décisions :
+  1. Le pilote est lancé le 1er juin 2026 sur le périmètre Aquitaine.
+  2. Atlantis Conseil cadre les ateliers utilisateurs avant le 22 mai.
+  3. Hugo Tanaka livre la maquette technique avant le prochain comité.
+
+Actions :
+  - Léa Mercier : préparer la liste des sites pilotes (échéance 14 mai)
+  - Camille Lefèvre : envoyer la grille d'entretien aux managers
+  - Olivier Dubreuil : valider la communication interne RH
+
+Prochain comité : jeudi 28 mai 2026, 14h00.

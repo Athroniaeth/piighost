@@ -1,0 +1,20 @@
+Ticket #INC-2026-00917
+Statut : ouvert — Priorité : normale
+Ouvert le : 22 avril 2026, 11:18
+
+Client :
+  Nom        : Jean-Marc Rousseau
+  Email      : jm.rousseau@example.fr
+  Téléphone  : 07 62 19 84 53
+  Commande   : CMD-208374
+  Livraison  : 4 rue de la Bergerie, 14000 Caen
+
+Message du client :
+  Bonjour, je n'ai toujours pas reçu ma commande passée le 9 avril.
+  Le suivi du transporteur indique qu'elle est en attente depuis
+  une semaine au centre de tri de Rouen. Pouvez-vous me dire ce qu'il
+  en est et me proposer un nouveau créneau de livraison ?
+
+Réponse interne (brouillon) :
+  Vérifier auprès de Borealis Logistique l'état du colis et confirmer
+  la nouvelle date avec Monsieur Rousseau avant 17h.
