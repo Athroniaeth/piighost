@@ -208,6 +208,86 @@ def _run_detection(
     return detections, (perf_counter() - t0) * 1000.0
 
 
+def _label_color(label: str) -> str:
+    """Stable pastel color per label for the current Streamlit process."""
+    hue = abs(hash(label)) % 360
+    return f"hsl({hue}, 60%, 80%)"
+
+
+def _render_highlighted(text: str, detections: list[Detection]) -> str:
+    """Return an HTML string of ``text`` with each detection wrapped in <mark>.
+
+    Detections are sorted by start position; overlapping spans are
+    skipped (the ConfidenceSpanConflictResolver normally runs before
+    this, but we keep a guard for raw GLiNER output).
+    """
+    sorted_dets = sorted(detections, key=lambda d: d.position.start_pos)
+    out: list[str] = []
+    cursor = 0
+    for det in sorted_dets:
+        start, end = det.position.start_pos, det.position.end_pos
+        if start < cursor:
+            continue  # overlap, drop
+        out.append(_html_escape(text[cursor:start]))
+        color = _label_color(det.label)
+        out.append(
+            f'<mark style="background:{color};padding:0.1em 0.2em;'
+            f'border-radius:0.2em">'
+            f"{_html_escape(text[start:end])}"
+            f'<sub style="font-size:0.6em;color:#555;margin-left:0.2em">'
+            f"{_html_escape(det.label)}</sub>"
+            f"</mark>"
+        )
+        cursor = end
+    out.append(_html_escape(text[cursor:]))
+    return "<div style='white-space:pre-wrap;font-family:monospace'>" + "".join(out) + "</div>"
+
+
+def _html_escape(s: str) -> str:
+    return (
+        s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def _render_results() -> None:
+    last = st.session_state.get("last_run")
+    if not last:
+        return
+    text: str = last["text"]
+    detections: list[Detection] = last["detections"]
+    elapsed_ms: float = last["elapsed_ms"]
+
+    col_n, col_t = st.columns(2)
+    col_n.metric("Detections", len(detections))
+    col_t.metric("Latency", f"{elapsed_ms:.0f} ms")
+
+    st.subheader("Highlighted text")
+    with st.container(border=True):
+        st.markdown(_render_highlighted(text, detections), unsafe_allow_html=True)
+
+    st.subheader("Detections")
+    if detections:
+        st.dataframe(
+            [
+                {
+                    "text": d.text,
+                    "label": d.label,
+                    "start": d.position.start_pos,
+                    "end": d.position.end_pos,
+                    "score": round(d.confidence, 3),
+                }
+                for d in detections
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No detection at the current settings.")
+
+
 def main() -> None:
     st.set_page_config(
         page_title="piighost — GLiNER playground",
@@ -274,6 +354,7 @@ def main() -> None:
         "detections": detections,
         "elapsed_ms": elapsed_ms,
     }
+    _render_results()
 
 
 if __name__ == "__main__":
