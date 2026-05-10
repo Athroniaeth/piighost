@@ -22,6 +22,8 @@ Detection only: no anonymization, no resolver, no linker. Run via
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 from gliner2 import GLiNER2
 
@@ -127,6 +129,46 @@ def _detection_params() -> tuple[float, bool, tuple[int, int] | None]:
     return threshold, flat_ner, chunk_params
 
 
+SAMPLES_DIR = Path(__file__).parent / "samples"
+
+
+def _list_samples() -> list[Path]:
+    return sorted(SAMPLES_DIR.glob("*.txt"))
+
+
+def _input_widget() -> str:
+    """Render the input-mode radio + the matching widget. Return the resolved text."""
+    mode = st.radio(
+        "Input source",
+        options=["Sample", "Paste", "Upload"],
+        index=0,
+        horizontal=True,
+    )
+    if mode == "Sample":
+        samples = _list_samples()
+        if not samples:
+            st.warning(f"No samples found in {SAMPLES_DIR}.")
+            return ""
+        choice = st.selectbox(
+            "Sample file",
+            options=samples,
+            format_func=lambda p: p.name,
+        )
+        text = choice.read_text(encoding="utf-8")
+        st.text_area("Preview", value=text, height=240, disabled=True)
+        return text
+    if mode == "Paste":
+        return st.text_area("Text to scan", value="", height=300)
+    upload = st.file_uploader("Upload .txt", type=["txt"])
+    if upload is None:
+        return ""
+    raw = upload.read()
+    text = raw.decode("utf-8", errors="replace")
+    if "�" in text:
+        st.warning("Non-UTF-8 bytes were replaced with U+FFFD.")
+    return text
+
+
 def main() -> None:
     st.set_page_config(
         page_title="piighost — GLiNER playground",
@@ -163,6 +205,10 @@ def main() -> None:
         f"**flat_ner:** {flat_ner} — "
         f"**{chunk_label}**"
     )
+
+    st.divider()
+    text = _input_widget()
+    st.caption(f"Text length: {len(text)} chars")
 
 
 if __name__ == "__main__":
