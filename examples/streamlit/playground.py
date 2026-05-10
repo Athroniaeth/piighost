@@ -22,10 +22,16 @@ Detection only: no anonymization, no resolver, no linker. Run via
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
+from time import perf_counter
 
 import streamlit as st
 from gliner2 import GLiNER2
+
+from piighost.detector import ChunkedDetector
+from piighost.detector.gliner2 import Gliner2Detector
+from piighost.models import Detection
 
 MODEL_PRESETS: list[str] = [
     "fastino/gliner2-multi-v1",
@@ -169,6 +175,39 @@ def _input_widget() -> str:
     return text
 
 
+def _run_detection(
+    *,
+    model_id: str,
+    text: str,
+    labels: list[str],
+    threshold: float,
+    flat_ner: bool,
+    chunk_params: tuple[int, int] | None,
+) -> tuple[list[Detection], float]:
+    """Build the detector, run it, return (detections, latency_ms).
+
+    Raises whatever ``GLiNER2.from_pretrained`` or ``detector.detect``
+    raise; the caller surfaces the error via ``st.error``.
+    """
+    model = load_gliner(model_id)
+    detector = Gliner2Detector(
+        model=model,
+        labels=labels,
+        threshold=threshold,
+        flat_ner=flat_ner,
+    )
+    if chunk_params is not None:
+        chunk_size, overlap = chunk_params
+        detector = ChunkedDetector(
+            detector=detector,
+            chunk_size=chunk_size,
+            overlap=overlap,
+        )
+    t0 = perf_counter()
+    detections = asyncio.run(detector.detect(text))
+    return detections, (perf_counter() - t0) * 1000.0
+
+
 def main() -> None:
     st.set_page_config(
         page_title="piighost — GLiNER playground",
@@ -209,6 +248,32 @@ def main() -> None:
     st.divider()
     text = _input_widget()
     st.caption(f"Text length: {len(text)} chars")
+
+    if not st.button("Run detection", type="primary"):
+        return
+
+    if not text.strip():
+        st.warning("Provide some text first.")
+        return
+
+    try:
+        detections, elapsed_ms = _run_detection(
+            model_id=model_id,
+            text=text,
+            labels=labels,
+            threshold=threshold,
+            flat_ner=flat_ner,
+            chunk_params=chunk_params,
+        )
+    except Exception as exc:  # noqa: BLE001 — surface any model/detector error
+        st.error(f"Detection failed: {exc}")
+        return
+
+    st.session_state["last_run"] = {
+        "text": text,
+        "detections": detections,
+        "elapsed_ms": elapsed_ms,
+    }
 
 
 if __name__ == "__main__":
