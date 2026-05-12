@@ -65,17 +65,17 @@ When you ship an LLM feature, you usually pick one of three families of provider
 
 The only clean way to decouple the LLM from the sensitivity of the content is to **anonymize upstream**. Once PII never reaches the model, the choice of provider stops being a privacy decision and goes back to being a quality / cost / latency one. That's the slot `piighost` fills.
 
-|                                           | **piighost**                                | LangChain                            | Microsoft Presidio | Regex              |
-|-------------------------------------------|---------------------------------------------|--------------------------------------|--------------------|--------------------|
-| Pluggable detectors (NER, regex, LLM, …)  | ✅ via `AnyDetector` protocol               | ⚠️ regex / Presidio only             | ⚠️ tied to spaCy/recognizers | ❌                |
-| Compose multiple detectors                | ✅ `CompositeDetector` + span resolver      | ❌ one strategy per instance         | ⚠️ partial         | ❌                |
-| Cross-message entity linking              | ✅ `ThreadAnonymizationPipeline` + memory   | ❌                                   | ❌                 | ❌                |
-| Tolerates case / typo variants            | ✅ `ExactEntityLinker` + `FuzzyEntityResolver` | ❌                                | ❌                 | ❌                |
-| Reversible anonymization (deanonymize)    | ✅ cache-backed                             | ❌ block / mask only                 | ⚠️ separate API    | ❌                |
-| LangChain / LangGraph middleware          | ✅ `PIIAnonymizationMiddleware`             | ✅ `PIIMiddleware`                   | ❌                 | ❌                |
-| Per-tool deanonymize / re-anonymize       | ✅ `awrap_tool_call`                        | ❌                                   | ❌                 | ❌                |
-| Async-first API                           | ✅                                          | ⚠️                                   | ⚠️                 | ❌                |
-| Bring-your-own placeholder format         | ✅ `AnyPlaceholderFactory`                  | ⚠️ template-only                     | ⚠️ template-only   | depends           |
+|                                           | **piighost**                  | LangChain                       | Microsoft Presidio              |
+|-------------------------------------------|-------------------------------|---------------------------------|---------------------------------|
+| Pluggable detectors (NER, regex, LLM, …)  | ✅ via shared protocol        | ⚠️ regex / Presidio only         | ⚠️ tied to spaCy / recognizers   |
+| Compose multiple detectors                | ✅                            | ❌ one strategy per instance     | ⚠️ partial                       |
+| Cross-message entity linking              | ✅                            | ❌                               | ❌                               |
+| Tolerates case / typo variants            | ⚠️ approximate matching       | ❌                               | ❌                               |
+| Reversible anonymization (deanonymize)    | ✅ cache-backed               | ❌ block / mask only             | ⚠️ separate API                  |
+| LangChain / LangGraph middleware          | ✅                            | ✅                              | ❌                               |
+| Per-tool deanonymize / re-anonymize       | ✅                            | ❌                               | ❌                               |
+| Async-first API                           | ✅                            | ⚠️                               | ⚠️                               |
+| Bring-your-own placeholder format         | ✅ free format                | ⚠️ template-only                 | ⚠️ template-only                 |
 
 LangChain's built-in [`PIIMiddleware`](https://docs.langchain.com/oss/python/langchain/middleware#pii-middleware) is the closest neighbour: it wires anonymization into the agent loop, but it is one-shot (block / redact / mask / hash) and can't deanonymize for end users or pass real values to tools. `piighost` keeps the same hook point and adds the round trip, the cross-message memory, and the swappable detection stack, so the LLM sees placeholders while the rest of the system keeps working with real data.
 
