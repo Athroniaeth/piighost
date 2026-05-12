@@ -180,17 +180,17 @@ At a glance, feature parity vs alternatives:
 
 <div class="wide-table" markdown="1">
 
-|                                                  | **piighost** | LangChain                  | Microsoft Presidio             | Regex    |
-|--------------------------------------------------|--------------|----------------------------|--------------------------------|----------|
-| Interchangeable detectors (NER, regex, LLM…)     | ✅           | ⚠️ regex / Presidio only   | ⚠️ tied to spaCy / recognizers | ❌       |
-| Composing multiple detectors                     | ✅           | ❌ one strategy per instance | ⚠️ partial                   | ❌       |
-| Cross-message entity linking                     | ✅           | ❌                         | ❌                             | ❌       |
-| Case / typo tolerance                            | ✅           | ❌                         | ❌                             | ❌       |
-| Reversible anonymization (deanonymize)           | ✅           | ❌ block / mask only       | ⚠️ separate API                | ❌       |
-| LangChain / LangGraph middleware                 | ✅           | ✅                         | ❌                             | ❌       |
-| Deanonymizes / re-anonymizes tool calls          | ✅           | ❌                         | ❌                             | ❌       |
-| Async-first API                                  | ✅           | ⚠️                         | ⚠️                             | ❌       |
-| Customizable placeholder format                  | ✅           | ⚠️ template only           | ⚠️ template only               | depends  |
+|                                                  | **piighost**            | LangChain                    | Microsoft Presidio             |
+|--------------------------------------------------|-------------------------|------------------------------|--------------------------------|
+| Interchangeable detectors (NER, regex, LLM…)     | ✅                      | ⚠️ regex / Presidio only     | ⚠️ tied to spaCy / recognizers |
+| Composing multiple detectors                     | ✅                      | ❌ one strategy per instance | ⚠️ partial                     |
+| Cross-message entity linking                     | ✅                      | ❌                           | ❌                             |
+| Case / typo tolerance                            | ⚠️ approximate matching | ❌                           | ❌                             |
+| Reversible anonymization (deanonymize)           | ✅                      | ❌ block / mask only         | ⚠️ separate API                |
+| LangChain / LangGraph middleware                 | ✅                      | ✅                           | ❌                             |
+| Deanonymizes / re-anonymizes tool calls          | ✅                      | ❌                           | ❌                             |
+| Async-first API                                  | ✅                      | ⚠️                           | ⚠️                             |
+| Customizable placeholder format                  | ✅                      | ⚠️ template only             | ⚠️ template only               |
 
 </div>
 

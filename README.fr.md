@@ -65,17 +65,17 @@ Quand vous mettez en production une feature LLM, vous choisissez en général pa
 
 La seule façon propre de découpler le LLM de la sensibilité du contenu, c'est d'**anonymiser en amont**. Quand les PII n'atteignent jamais le modèle, le choix du fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité / coût / latence. C'est exactement la place que prend `piighost`.
 
-|                                                  | **piighost**                                | LangChain                             | Microsoft Presidio | Regex              |
-|--------------------------------------------------|---------------------------------------------|--------------------------------------|--------------------|--------------------|
-| Détecteurs interchangeables (NER, regex, LLM…)   | ✅ via le protocole `AnyDetector`           | ⚠️ regex / Presidio uniquement        | ⚠️ lié à spaCy / recognizers | ❌                |
-| Composer plusieurs détecteurs                    | ✅ `CompositeDetector` + résolveur de spans | ❌ une stratégie par instance         | ⚠️ partiel         | ❌                |
-| Liaison d'entités inter-messages                 | ✅ `ThreadAnonymizationPipeline` + mémoire  | ❌                                    | ❌                 | ❌                |
-| Tolérance casse / fautes de frappe               | ✅ `ExactEntityLinker` + `FuzzyEntityResolver` | ❌                                 | ❌                 | ❌                |
-| Anonymisation réversible (deanonymize)           | ✅ avec cache                               | ❌ block / mask uniquement            | ⚠️ API séparée     | ❌                |
-| Middleware LangChain / LangGraph                 | ✅ `PIIAnonymizationMiddleware`             | ✅ `PIIMiddleware`                    | ❌                 | ❌                |
-| Désanonymise / réanonymise à l'appel d'outil     | ✅ `awrap_tool_call`                        | ❌                                    | ❌                 | ❌                |
-| API async-first                                  | ✅                                          | ⚠️                                    | ⚠️                 | ❌                |
-| Format de placeholder personnalisable            | ✅ `AnyPlaceholderFactory`                  | ⚠️ template seulement                 | ⚠️ template seulement | dépend          |
+|                                                  | **piighost**                       | LangChain                       | Microsoft Presidio              |
+|--------------------------------------------------|------------------------------------|---------------------------------|---------------------------------|
+| Détecteurs interchangeables (NER, regex, LLM…)   | ✅ via protocole commun            | ⚠️ regex / Presidio uniquement   | ⚠️ lié à spaCy / recognizers     |
+| Composer plusieurs détecteurs                    | ✅                                 | ❌ une stratégie par instance    | ⚠️ partiel                       |
+| Liaison d'entités inter-messages                 | ✅                                 | ❌                               | ❌                               |
+| Tolérance casse / fautes de frappe               | ⚠️ matching approximatif           | ❌                               | ❌                               |
+| Anonymisation réversible (deanonymize)           | ✅ avec cache                      | ❌ block / mask uniquement       | ⚠️ API séparée                   |
+| Middleware LangChain / LangGraph                 | ✅                                 | ✅                              | ❌                               |
+| Désanonymise / réanonymise à l'appel d'outil     | ✅                                 | ❌                               | ❌                               |
+| API async-first                                  | ✅                                 | ⚠️                               | ⚠️                               |
+| Format de placeholder personnalisable            | ✅ format libre                    | ⚠️ template seulement            | ⚠️ template seulement            |
 
 Le voisin le plus proche, c'est le [`PIIMiddleware`](https://docs.langchain.com/oss/python/langchain/middleware#pii-middleware) intégré à LangChain : il branche l'anonymisation dans la boucle d'agent, mais il fonctionne en sens unique (block / redact / mask / hash) et ne sait ni désanonymiser pour l'utilisateur final, ni passer les vraies valeurs aux outils. `piighost` reprend le même point d'accroche et y ajoute le voyage retour, la mémoire inter-messages et la pile de détection interchangeable, le LLM voit des placeholders pendant que le reste du système continue à travailler avec les vraies données.
 
