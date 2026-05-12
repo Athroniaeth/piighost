@@ -181,17 +181,17 @@ Vue synthétique des fonctionnalités face aux alternatives :
 
 <div class="wide-table" markdown="1">
 
-|                                                  | **piighost** | LangChain                      | Microsoft Presidio           | Regex   |
-|--------------------------------------------------|--------------|--------------------------------|------------------------------|---------|
-| Détecteurs interchangeables (NER, regex, LLM…)   | ✅           | ⚠️ regex / Presidio uniquement | ⚠️ lié à spaCy / recognizers | ❌      |
-| Composer plusieurs détecteurs                    | ✅           | ❌ une stratégie par instance  | ⚠️ partiel                   | ❌      |
-| Liaison d'entités inter-messages                 | ✅           | ❌                             | ❌                           | ❌      |
-| Tolérance casse / fautes de frappe               | ✅           | ❌                             | ❌                           | ❌      |
-| Anonymisation réversible (deanonymize)           | ✅           | ❌ block / mask uniquement     | ⚠️ API séparée               | ❌      |
-| Middleware LangChain / LangGraph                 | ✅           | ✅                             | ❌                           | ❌      |
-| Désanonymise / réanonymise à l'appel d'outil     | ✅           | ❌                             | ❌                           | ❌      |
-| API async-first                                  | ✅           | ⚠️                             | ⚠️                           | ❌      |
-| Format de placeholder personnalisable            | ✅           | ⚠️ template seulement          | ⚠️ template seulement        | dépend  |
+|                                                  | **piighost**            | LangChain                      | Microsoft Presidio           |
+|--------------------------------------------------|-------------------------|--------------------------------|------------------------------|
+| Détecteurs interchangeables (NER, regex, LLM…)   | ✅                      | ⚠️ regex / Presidio uniquement | ⚠️ lié à spaCy / recognizers |
+| Composer plusieurs détecteurs                    | ✅                      | ❌ une stratégie par instance  | ⚠️ partiel                   |
+| Liaison d'entités inter-messages                 | ✅                      | ❌                             | ❌                           |
+| Tolérance casse / fautes de frappe               | ⚠️ matching approximatif | ❌                             | ❌                           |
+| Anonymisation réversible (deanonymize)           | ✅                      | ❌ block / mask uniquement     | ⚠️ API séparée               |
+| Middleware LangChain / LangGraph                 | ✅                      | ✅                             | ❌                           |
+| Désanonymise / réanonymise à l'appel d'outil     | ✅                      | ❌                             | ❌                           |
+| API async-first                                  | ✅                      | ⚠️                             | ⚠️                           |
+| Format de placeholder personnalisable            | ✅                      | ⚠️ template seulement          | ⚠️ template seulement        |
 
 </div>
 
