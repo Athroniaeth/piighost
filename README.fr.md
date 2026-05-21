@@ -54,7 +54,6 @@ sequenceDiagram
     - [Pipeline](#pipeline)
     - [Middleware](#intégration-du-middleware)
 - [Installation](#installation)
-- [Composants du pipeline](#composants-du-pipeline)
 - [FAQ](#faq)
 - [Limites](#limites)
 - [Développement et contribution](#développement)
