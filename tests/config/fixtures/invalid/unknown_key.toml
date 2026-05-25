@@ -1,0 +1,4 @@
+[[detectors]]
+type = "regex"
+patterns = { EMAIL = "[a-z]+@[a-z]+" }
+rogue_key = "should_be_rejected"
