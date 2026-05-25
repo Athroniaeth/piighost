@@ -1,7 +1,14 @@
-from typing import Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from piighost.models import Detection, Entity
 from piighost.similarity import AnySimilarityFn, jaro_winkler_similarity
+
+if TYPE_CHECKING:
+    from piighost.config.models.entity_resolver import (
+        DisabledEntityResolverConfig,
+        FuzzyEntityResolverConfig,
+        MergeEntityResolverConfig,
+    )
 
 
 class AnyEntityConflictResolver(Protocol):
@@ -55,6 +62,13 @@ class DisabledEntityConflictResolver:
         True
     """
 
+    Config: ClassVar[type["DisabledEntityResolverConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "DisabledEntityResolverConfig") -> "DisabledEntityConflictResolver":
+        """Build a ``DisabledEntityConflictResolver`` from its validated configuration."""
+        return cls()
+
     def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
         return False
 
@@ -84,6 +98,13 @@ class MergeEntityConflictResolver:
         >>> len(result[0].detections)
         3
     """
+
+    Config: ClassVar[type["MergeEntityResolverConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "MergeEntityResolverConfig") -> "MergeEntityConflictResolver":
+        """Build a ``MergeEntityConflictResolver`` from its validated configuration."""
+        return cls()
 
     def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
         """Check whether two entities share at least one common detection.
@@ -178,6 +199,18 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
     _similarity_fn: AnySimilarityFn
     _threshold: float
 
+    Config: ClassVar[type["FuzzyEntityResolverConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "FuzzyEntityResolverConfig") -> "FuzzyEntityConflictResolver":
+        """Build a ``FuzzyEntityConflictResolver`` from its validated configuration."""
+        return cls(threshold=cfg.threshold)
+
+    @property
+    def threshold(self) -> float:
+        """The minimum similarity score to consider two entities as the same."""
+        return self._threshold
+
     def __init__(
         self,
         similarity_fn: AnySimilarityFn = jaro_winkler_similarity,
@@ -202,3 +235,14 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
         text_a = entity_a.detections[0].text.lower()
         text_b = entity_b.detections[0].text.lower()
         return self._similarity_fn(text_a, text_b) >= self._threshold
+
+
+from piighost.config.models.entity_resolver import (  # noqa: E402
+    DisabledEntityResolverConfig,
+    FuzzyEntityResolverConfig,
+    MergeEntityResolverConfig,
+)
+
+DisabledEntityConflictResolver.Config = DisabledEntityResolverConfig
+MergeEntityConflictResolver.Config = MergeEntityResolverConfig
+FuzzyEntityConflictResolver.Config = FuzzyEntityResolverConfig

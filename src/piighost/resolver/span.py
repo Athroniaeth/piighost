@@ -1,6 +1,12 @@
-from typing import Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from piighost.models import Detection
+
+if TYPE_CHECKING:
+    from piighost.config.models.span_resolver import (
+        ConfidenceSpanResolverConfig,
+        DisabledSpanResolverConfig,
+    )
 
 
 class AnySpanConflictResolver(Protocol):
@@ -70,6 +76,13 @@ class DisabledSpanConflictResolver:
         True
     """
 
+    Config: ClassVar[type["DisabledSpanResolverConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "DisabledSpanResolverConfig") -> "DisabledSpanConflictResolver":
+        """Build a ``DisabledSpanConflictResolver`` from its validated configuration."""
+        return cls()
+
     def resolve(self, detections: list[Detection]) -> list[Detection]:
         return list(detections)
 
@@ -102,6 +115,13 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
         [('PERSON', 0.91), ('LOCATION', 1.0)]
     """
 
+    Config: ClassVar[type["ConfidenceSpanResolverConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "ConfidenceSpanResolverConfig") -> "ConfidenceSpanConflictResolver":
+        """Build a ``ConfidenceSpanConflictResolver`` from its validated configuration."""
+        return cls()
+
     def __init__(self, confidence_threshold: float = 0.0) -> None:
         super().__init__(confidence_threshold=confidence_threshold)
 
@@ -127,3 +147,12 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
 
         accepted.sort(key=lambda d: d.position.start_pos)
         return accepted
+
+
+from piighost.config.models.span_resolver import (  # noqa: E402
+    ConfidenceSpanResolverConfig,
+    DisabledSpanResolverConfig,
+)
+
+ConfidenceSpanConflictResolver.Config = ConfidenceSpanResolverConfig
+DisabledSpanConflictResolver.Config = DisabledSpanResolverConfig
