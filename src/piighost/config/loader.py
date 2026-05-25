@@ -4,8 +4,12 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from piighost.pipeline.thread import ThreadAnonymizationPipeline
 
 from piighost.anonymizer import Anonymizer
 from piighost.config.builders import (
@@ -13,7 +17,6 @@ from piighost.config.builders import (
     build_detector,
     build_entity_linker,
     build_entity_resolver,
-    build_placeholder_factory,
     build_span_resolver,
 )
 from piighost.config.errors import ConfigError
@@ -106,7 +109,7 @@ def build_pipeline(
         detector,
         anonymizer,
         span_resolver=span_resolver,
-        entity_linker=entity_linker,
+        entity_linker=entity_linker,  # pyrefly: ignore[bad-argument-type]
         entity_resolver=entity_resolver,
     )
 

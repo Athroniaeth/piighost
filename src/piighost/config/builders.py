@@ -92,18 +92,23 @@ def _resolve_lazy_detector(key: str) -> type:
     """Lazy-import optional-dep detectors so ``piighost.config`` stays light."""
     if key == "lazy:gliner2":
         from piighost.detector.gliner2 import Gliner2Detector
+
         return Gliner2Detector
     if key == "lazy:spacy":
         from piighost.detector.spacy import SpacyDetector
+
         return SpacyDetector
     if key == "lazy:transformers":
         from piighost.detector.transformers import TransformersDetector
+
         return TransformersDetector
     if key == "lazy:llm":
         from piighost.detector.llm import LLMDetector
+
         return LLMDetector
     if key == "lazy:chunked":
         from piighost.detector.chunked import ChunkedDetector
+
         return ChunkedDetector
     raise KeyError(key)
 
@@ -111,7 +116,7 @@ def _resolve_lazy_detector(key: str) -> type:
 def build_detector(cfg: BaseModel) -> "AnyDetector":
     builder = _DETECTOR_BUILDERS[type(cfg)]
     cls = builder if not isinstance(builder, str) else _resolve_lazy_detector(builder)
-    return cls.from_config(cfg)
+    return cls.from_config(cfg)  # pyrefly: ignore[missing-attribute]
 
 
 _SPAN_RESOLVER_BUILDERS: dict[type[BaseModel], type] = {
@@ -163,20 +168,25 @@ def _resolve_lazy_placeholder(key: str) -> type:
     """Lazy-import Faker-based factories so ``piighost.config`` stays importable without faker."""
     if key == "lazy:faker":
         from piighost.ph_factory.faker import FakerPlaceholderFactory
+
         return FakerPlaceholderFactory
     if key == "lazy:faker_counter":
         from piighost.ph_factory.faker_hash import FakerCounterPlaceholderFactory
+
         return FakerCounterPlaceholderFactory
     if key == "lazy:faker_hash":
         from piighost.ph_factory.faker_hash import FakerHashPlaceholderFactory
+
         return FakerHashPlaceholderFactory
     raise KeyError(key)
 
 
 def build_placeholder_factory(cfg: BaseModel) -> "AnyPlaceholderFactory":
     builder = _PLACEHOLDER_BUILDERS[type(cfg)]
-    cls = builder if not isinstance(builder, str) else _resolve_lazy_placeholder(builder)
-    return cls.from_config(cfg)
+    cls = (
+        builder if not isinstance(builder, str) else _resolve_lazy_placeholder(builder)
+    )
+    return cls.from_config(cfg)  # pyrefly: ignore[missing-attribute]
 
 
 def build_anonymizer(cfg: DefaultAnonymizerConfig) -> Anonymizer:
