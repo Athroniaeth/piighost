@@ -181,7 +181,9 @@ class LabelCounterPlaceholderFactory(
     Config: ClassVar[type["LabelCounterPlaceholderConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "LabelCounterPlaceholderConfig") -> "LabelCounterPlaceholderFactory":
+    def from_config(
+        cls, cfg: "LabelCounterPlaceholderConfig"
+    ) -> "LabelCounterPlaceholderFactory":
         """Build a ``LabelCounterPlaceholderFactory`` from its validated configuration."""
         return cls()
 
@@ -247,7 +249,9 @@ class LabelHashPlaceholderFactory(
     Config: ClassVar[type["LabelHashPlaceholderConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "LabelHashPlaceholderConfig") -> "LabelHashPlaceholderFactory":
+    def from_config(
+        cls, cfg: "LabelHashPlaceholderConfig"
+    ) -> "LabelHashPlaceholderFactory":
         """Build a ``LabelHashPlaceholderFactory`` from its validated configuration."""
         return cls(hash_length=cfg.hash_length)
 
@@ -314,7 +318,9 @@ class RedactCounterPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnl
     Config: ClassVar[type["RedactCounterPlaceholderConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "RedactCounterPlaceholderConfig") -> "RedactCounterPlaceholderFactory":
+    def from_config(
+        cls, cfg: "RedactCounterPlaceholderConfig"
+    ) -> "RedactCounterPlaceholderFactory":
         """Build a ``RedactCounterPlaceholderFactory`` from its validated configuration."""
         return cls()
 
@@ -378,7 +384,9 @@ class RedactHashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnly])
     Config: ClassVar[type["RedactHashPlaceholderConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "RedactHashPlaceholderConfig") -> "RedactHashPlaceholderFactory":
+    def from_config(
+        cls, cfg: "RedactHashPlaceholderConfig"
+    ) -> "RedactHashPlaceholderFactory":
         """Build a ``RedactHashPlaceholderFactory`` from its validated configuration."""
         return cls(hash_length=cfg.hash_length)
 

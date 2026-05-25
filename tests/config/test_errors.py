@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 from pydantic import BaseModel, ValidationError
 
 from piighost.config.errors import ConfigError
