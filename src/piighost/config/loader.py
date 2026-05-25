@@ -23,7 +23,6 @@ from piighost.detector.base import (
     CompositeDetector,
     RegexDetector,
 )
-from piighost.pipeline.thread import ThreadAnonymizationPipeline
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -80,8 +79,9 @@ def load_config(path: str | Path) -> PipelineConfig:
 
 def build_pipeline(
     cfg: PipelineConfig,
-) -> tuple[ThreadAnonymizationPipeline, PipelineManifest]:
+) -> "tuple[ThreadAnonymizationPipeline, PipelineManifest]":
     """Instantiate components and return the pipeline + manifest."""
+    from piighost.pipeline.thread import ThreadAnonymizationPipeline
 
     detectors_instances: list[AnyDetector] = []
     for idx, d_cfg in enumerate(cfg.detectors):
@@ -128,7 +128,7 @@ def build_pipeline(
 
 def load_pipeline(
     path: str | Path,
-) -> tuple[ThreadAnonymizationPipeline, PipelineManifest]:
+) -> "tuple[ThreadAnonymizationPipeline, PipelineManifest]":
     """Convenience: :func:`load_config` then :func:`build_pipeline`."""
     return build_pipeline(load_config(path))
 
