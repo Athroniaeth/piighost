@@ -11,6 +11,8 @@ from piighost.config.models.entity_resolver import (
     MergeEntityResolverConfig,
 )
 from piighost.config.models.placeholder import (
+    FakerCounterPlaceholderConfig,
+    FakerHashPlaceholderConfig,
     LabelCounterPlaceholderConfig,
     MaskPlaceholderConfig,
 )
@@ -20,6 +22,10 @@ from piighost.config.models.span_resolver import (
 )
 from piighost.anonymizer import Anonymizer
 from piighost.linker.entity import ExactEntityLinker, DisabledEntityLinker
+from piighost.ph_factory.faker_hash import (
+    FakerCounterPlaceholderFactory,
+    FakerHashPlaceholderFactory,
+)
 from piighost.placeholder import (
     LabelCounterPlaceholderFactory,
     MaskPlaceholderFactory,
@@ -88,6 +94,33 @@ def test_placeholder_factory_from_config_mask():
         MaskPlaceholderConfig(type="mask", mask_char="#")
     )
     assert isinstance(f, MaskPlaceholderFactory)
+
+
+def test_faker_counter_from_config_default_locale():
+    cfg = FakerCounterPlaceholderConfig(type="faker_counter")
+    f = FakerCounterPlaceholderFactory.from_config(cfg)
+    assert isinstance(f, FakerCounterPlaceholderFactory)
+    # Default locale is en_US — factory must be constructible.
+    assert f._locale == "en_US"
+
+
+def test_faker_counter_from_config_respects_locale():
+    cfg = FakerCounterPlaceholderConfig(type="faker_counter", locale="fr_FR")
+    f = FakerCounterPlaceholderFactory.from_config(cfg)
+    assert f._locale == "fr_FR"
+
+
+def test_faker_hash_from_config_default_locale():
+    cfg = FakerHashPlaceholderConfig(type="faker_hash")
+    f = FakerHashPlaceholderFactory.from_config(cfg)
+    assert isinstance(f, FakerHashPlaceholderFactory)
+    assert f._locale == "en_US"
+
+
+def test_faker_hash_from_config_respects_locale():
+    cfg = FakerHashPlaceholderConfig(type="faker_hash", locale="fr_FR")
+    f = FakerHashPlaceholderFactory.from_config(cfg)
+    assert f._locale == "fr_FR"
 
 
 @pytest.mark.skip(reason="depends on builders module, see Task 12")
