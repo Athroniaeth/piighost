@@ -1,9 +1,15 @@
 import re
 from collections import defaultdict
-from typing import Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from piighost.models import Detection, Entity, Span
 from piighost.utils import find_all_word_boundary
+
+if TYPE_CHECKING:
+    from piighost.config.models.entity_linker import (
+        DisabledEntityLinkerConfig,
+        ExactEntityLinkerConfig,
+    )
 
 
 class AnyEntityLinker(Protocol):
@@ -98,6 +104,13 @@ class DisabledEntityLinker:
         2
     """
 
+    Config: ClassVar[type["DisabledEntityLinkerConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "DisabledEntityLinkerConfig") -> "DisabledEntityLinker":
+        """Build a ``DisabledEntityLinker`` from its validated configuration."""
+        return cls()
+
     def link(self, text: str, detections: list[Detection]) -> list[Entity]:
         return [Entity(detections=(d,)) for d in detections]
 
@@ -135,6 +148,13 @@ class ExactEntityLinker(BaseEntityLinker):
     """
 
     _flags: re.RegexFlag
+
+    Config: ClassVar[type["ExactEntityLinkerConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "ExactEntityLinkerConfig") -> "ExactEntityLinker":
+        """Build an ``ExactEntityLinker`` from its validated configuration."""
+        return cls()
 
     def __init__(
         self,
@@ -280,3 +300,12 @@ class ExactEntityLinker(BaseEntityLinker):
             A list of ``(start, end)`` tuples for every match.
         """
         return find_all_word_boundary(text, fragment, self._flags)
+
+
+from piighost.config.models.entity_linker import (  # noqa: E402
+    DisabledEntityLinkerConfig,
+    ExactEntityLinkerConfig,
+)
+
+DisabledEntityLinker.Config = DisabledEntityLinkerConfig
+ExactEntityLinker.Config = ExactEntityLinkerConfig

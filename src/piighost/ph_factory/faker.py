@@ -7,8 +7,12 @@ is mapped to a Faker provider method via a configurable strategies dict.
 
 import importlib.util
 from collections.abc import Callable
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.models import Entity
+
+if TYPE_CHECKING:
+    from piighost.config.models.placeholder import FakerPlaceholderConfig
 
 if importlib.util.find_spec("faker") is None:
     raise ImportError(
@@ -120,6 +124,13 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
     _faker: Faker
     _strategies: dict[str, FakerFn]
 
+    Config: ClassVar[type["FakerPlaceholderConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "FakerPlaceholderConfig") -> "FakerPlaceholderFactory":
+        """Build a ``FakerPlaceholderFactory`` from its validated configuration."""
+        return cls(faker=Faker(cfg.locale))
+
     def __init__(
         self,
         faker: Faker | None = None,
@@ -167,3 +178,8 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
         if label_lower in self._strategies:
             return self._strategies[label_lower](self._faker)
         return f"<{label_lower.upper()}>"
+
+
+from piighost.config.models.placeholder import FakerPlaceholderConfig  # noqa: E402
+
+FakerPlaceholderFactory.Config = FakerPlaceholderConfig
