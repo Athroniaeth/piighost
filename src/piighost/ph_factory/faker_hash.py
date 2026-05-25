@@ -37,8 +37,15 @@ garbage tokens.
 
 import importlib.util
 from collections.abc import Callable
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.models import Entity
+
+if TYPE_CHECKING:
+    from piighost.config.models.placeholder import (
+        FakerCounterPlaceholderConfig,
+        FakerHashPlaceholderConfig,
+    )
 from piighost.placeholder import (
     AnyPlaceholderFactory,
     _resolve_pepper,
@@ -66,12 +73,16 @@ def _require_faker():
         )
 
 
-def fake_with_seed(method: str) -> StrategyFn:
+def fake_with_seed(method: str, locale: str = "en_US") -> StrategyFn:
     """Build a hash-seeded Faker strategy from a Faker method name.
 
     The returned callable takes a hex hash string, seeds a fresh
     ``Faker`` instance with the int value of that hash, and calls
     ``method`` on it. Output is deterministic per hash.
+
+    Args:
+        method: Faker provider method name (e.g. ``"ipv4"``).
+        locale: Faker locale string (e.g. ``"fr_FR"``). Defaults to ``"en_US"``.
 
     Example:
         >>> ip_strategy = fake_with_seed("ipv4")
@@ -82,7 +93,7 @@ def fake_with_seed(method: str) -> StrategyFn:
     from faker import Faker
 
     def strategy(token: str) -> str:
-        faker = Faker()
+        faker = Faker(locale)
         # Seed deterministically from the token (hex hash or counter str).
         # int() handles both hex and decimal strings.
         try:
@@ -95,39 +106,39 @@ def fake_with_seed(method: str) -> StrategyFn:
     return strategy
 
 
-def fake_ip() -> StrategyFn:
+def fake_ip(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker IPv4 from the hash."""
-    return fake_with_seed("ipv4")
+    return fake_with_seed("ipv4", locale)
 
 
-def fake_phone() -> StrategyFn:
+def fake_phone(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker phone number from the hash."""
-    return fake_with_seed("phone_number")
+    return fake_with_seed("phone_number", locale)
 
 
-def fake_ssn() -> StrategyFn:
+def fake_ssn(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker SSN from the hash."""
-    return fake_with_seed("ssn")
+    return fake_with_seed("ssn", locale)
 
 
-def fake_iban() -> StrategyFn:
+def fake_iban(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker IBAN from the hash."""
-    return fake_with_seed("iban")
+    return fake_with_seed("iban", locale)
 
 
-def fake_credit_card() -> StrategyFn:
+def fake_credit_card(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker credit-card number from the hash."""
-    return fake_with_seed("credit_card_number")
+    return fake_with_seed("credit_card_number", locale)
 
 
-def fake_url() -> StrategyFn:
+def fake_url(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker URL from the hash."""
-    return fake_with_seed("url")
+    return fake_with_seed("url", locale)
 
 
-def fake_address() -> StrategyFn:
+def fake_address(locale: str = "en_US") -> StrategyFn:
     """Strategy that emits a deterministic Faker address from the hash."""
-    return fake_with_seed("address")
+    return fake_with_seed("address", locale)
 
 
 # ---------------------------------------------------------------------------
@@ -135,11 +146,15 @@ def fake_address() -> StrategyFn:
 # ---------------------------------------------------------------------------
 
 
-def _default_strategies() -> dict[str, StrategyValue]:
+def _default_strategies(locale: str = "en_US") -> dict[str, StrategyValue]:
     """Recommended defaults covering the most common labels.
 
     Helpers needing Faker are wrapped lazily so importing this module
     does not require Faker to be installed.
+
+    Args:
+        locale: Faker locale string used for callable strategies (e.g. ``"fr_FR"``).
+            Defaults to ``"en_US"``.
     """
     strategies: dict[str, StrategyValue] = {
         # Base mode: looks natural, suffix added by the factory.
@@ -156,12 +171,12 @@ def _default_strategies() -> dict[str, StrategyValue]:
     if importlib.util.find_spec("faker") is not None:
         strategies.update(
             {
-                "phone": fake_phone(),
-                "phone_international": fake_phone(),
-                "ip_address": fake_ip(),
-                "ssn": fake_ssn(),
-                "iban": fake_iban(),
-                "credit_card": fake_credit_card(),
+                "phone": fake_phone(locale),
+                "phone_international": fake_phone(locale),
+                "ip_address": fake_ip(locale),
+                "ssn": fake_ssn(locale),
+                "iban": fake_iban(locale),
+                "credit_card": fake_credit_card(locale),
             }
         )
     return strategies
@@ -203,6 +218,11 @@ class FakerCounterPlaceholderFactory(
         strategies: Mapping from lower-cased label to a
             :data:`StrategyValue` (base str, template str with
             ``{counter}``, or callable). Must be non-empty.
+            When ``None``, :func:`_default_strategies` is used with
+            ``locale``.
+        locale: Faker locale string (e.g. ``"fr_FR"``) applied to the
+            default callable strategies.  Ignored when ``strategies``
+            is provided explicitly.  Defaults to ``"en_US"``.
 
     Raises:
         ValueError: If ``strategies`` is empty, or at ``create()`` time
@@ -219,10 +239,25 @@ class FakerCounterPlaceholderFactory(
     """
 
     _strategies: dict[str, StrategyValue]
+    _locale: str
 
-    def __init__(self, strategies: dict[str, StrategyValue] | None = None) -> None:
+    Config: ClassVar[type["FakerCounterPlaceholderConfig"]]
+
+    @classmethod
+    def from_config(
+        cls, cfg: "FakerCounterPlaceholderConfig"
+    ) -> "FakerCounterPlaceholderFactory":
+        """Build a ``FakerCounterPlaceholderFactory`` from its validated configuration."""
+        return cls(locale=cfg.locale)
+
+    def __init__(
+        self,
+        strategies: dict[str, StrategyValue] | None = None,
+        locale: str = "en_US",
+    ) -> None:
+        self._locale = locale
         if strategies is None:
-            strategies = _default_strategies()
+            strategies = _default_strategies(locale)
         if not strategies:
             raise ValueError(
                 "FakerCounterPlaceholderFactory requires at least one "
@@ -273,6 +308,11 @@ class FakerHashPlaceholderFactory(
         strategies: Mapping from lower-cased label to a
             :data:`StrategyValue` (base str, template str with
             ``{hash}``, or callable). Must be non-empty.
+            When ``None``, :func:`_default_strategies` is used with
+            ``locale``.
+        locale: Faker locale string (e.g. ``"fr_FR"``) applied to the
+            default callable strategies.  Ignored when ``strategies``
+            is provided explicitly.  Defaults to ``"en_US"``.
         hash_length: Number of hex characters from the SHA-256 digest.
             Defaults to ``8``.
         salt: Per-instance string mixed into the hash before truncation.
@@ -302,19 +342,31 @@ class FakerHashPlaceholderFactory(
     """
 
     _strategies: dict[str, StrategyValue]
+    _locale: str
     _hash_length: int
     _salt: str
     _pepper: str
 
+    Config: ClassVar[type["FakerHashPlaceholderConfig"]]
+
+    @classmethod
+    def from_config(
+        cls, cfg: "FakerHashPlaceholderConfig"
+    ) -> "FakerHashPlaceholderFactory":
+        """Build a ``FakerHashPlaceholderFactory`` from its validated configuration."""
+        return cls(hash_length=cfg.hash_length, locale=cfg.locale)
+
     def __init__(
         self,
         strategies: dict[str, StrategyValue] | None = None,
+        locale: str = "en_US",
         hash_length: int = 8,
         salt: str = "",
         pepper: str | None = None,
     ) -> None:
+        self._locale = locale
         if strategies is None:
-            strategies = _default_strategies()
+            strategies = _default_strategies(locale)
         if not strategies:
             raise ValueError(
                 "FakerHashPlaceholderFactory requires at least one "
@@ -376,3 +428,11 @@ __all__ = [
     "fake_url",
     "fake_with_seed",
 ]
+
+from piighost.config.models.placeholder import (  # noqa: E402
+    FakerCounterPlaceholderConfig,
+    FakerHashPlaceholderConfig,
+)
+
+FakerCounterPlaceholderFactory.Config = FakerCounterPlaceholderConfig
+FakerHashPlaceholderFactory.Config = FakerHashPlaceholderConfig

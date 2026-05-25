@@ -1,7 +1,11 @@
 import importlib.util
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
+
+if TYPE_CHECKING:
+    from piighost.config.models.detector import TransformersDetectorConfig
 
 if importlib.util.find_spec("transformers") is None:
     raise ImportError(
@@ -26,6 +30,8 @@ class TransformersDetector(BaseNERDetector):
             A ``{external: internal}`` dict filters by internal labels
             and rewrites :class:`Detection.label` to the corresponding
             external.
+        threshold: Minimum confidence score to keep a prediction.
+            Defaults to ``0.0`` (no filtering).
 
     Example:
         >>> from transformers import pipeline
@@ -39,13 +45,29 @@ class TransformersDetector(BaseNERDetector):
         >>> detections = await detector.detect("Patrick lives in Paris")
     """
 
+    Config: ClassVar[type["TransformersDetectorConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "TransformersDetectorConfig") -> "TransformersDetector":
+        """Build a ``TransformersDetector`` from its validated configuration.
+
+        Creates an HF token-classification pipeline with ``transformers.pipeline``.
+        Model weights are downloaded on first use if not already cached.
+        """
+        from transformers import pipeline as hf_pipeline
+
+        nlp = hf_pipeline("ner", model=cfg.model)
+        return cls(pipeline=nlp, labels=None, threshold=cfg.threshold)
+
     def __init__(
         self,
         pipeline: TokenClassificationPipeline,
         labels: list[str] | dict[str, str] | None = None,
+        threshold: float = 0.0,
     ) -> None:
         super().__init__(labels)
         self.pipeline = pipeline
+        self.threshold = threshold
 
     async def detect(self, text: str) -> list[Detection]:
         """Run HF token-classification and convert results to ``Detection`` objects.
@@ -64,6 +86,10 @@ class TransformersDetector(BaseNERDetector):
         detections: list[Detection] = []
 
         for ent in results:
+            score = float(ent["score"])
+            if score < self.threshold:
+                continue
+
             raw_label = ent.get("entity_group", ent.get("entity", "UNKNOWN"))
 
             if not self._label_map:
@@ -81,8 +107,13 @@ class TransformersDetector(BaseNERDetector):
                     text=text[start:end],
                     label=label,
                     position=Span(start_pos=start, end_pos=end),
-                    confidence=float(ent["score"]),
+                    confidence=score,
                 )
             )
 
         return detections
+
+
+from piighost.config.models.detector import TransformersDetectorConfig  # noqa: E402
+
+TransformersDetector.Config = TransformersDetectorConfig

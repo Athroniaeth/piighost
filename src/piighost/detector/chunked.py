@@ -1,9 +1,13 @@
 """Chunked detector for texts that exceed NER model context windows."""
 
 import asyncio
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.detector.base import AnyDetector
 from piighost.models import Detection, Span
+
+if TYPE_CHECKING:
+    from piighost.config.models.detector import ChunkedDetectorConfig
 
 
 class ChunkedDetector:
@@ -28,6 +32,21 @@ class ChunkedDetector:
         >>> chunked = ChunkedDetector(detector=inner, chunk_size=50, overlap=10)
         >>> detections = await chunked.detect("long text " * 20)
     """
+
+    Config: ClassVar[type["ChunkedDetectorConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "ChunkedDetectorConfig") -> "ChunkedDetector":
+        """Build a ``ChunkedDetector`` from its validated configuration.
+
+        The inner detector is constructed lazily via
+        ``piighost.config.builders.build_detector``, which maps the inner
+        config's ``type`` discriminator to the appropriate detector class.
+        """
+        from piighost.config.builders import build_detector
+
+        inner = build_detector(cfg.inner)
+        return cls(detector=inner, chunk_size=cfg.chunk_size, overlap=cfg.overlap)
 
     def __init__(
         self,
@@ -150,3 +169,8 @@ class ChunkedDetector:
                 best[key] = d
 
         return sorted(best.values(), key=lambda d: d.position.start_pos)
+
+
+from piighost.config.models.detector import ChunkedDetectorConfig  # noqa: E402
+
+ChunkedDetector.Config = ChunkedDetectorConfig
