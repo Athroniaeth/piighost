@@ -192,3 +192,39 @@ def test_anonymizer_default_includes_placeholder_factory():
 def test_anonymizer_placeholder_defaults_to_label_counter():
     cfg = DefaultAnonymizerConfig.model_validate({"type": "default"})
     assert isinstance(cfg.placeholder_factory, LabelCounterPlaceholderConfig)
+
+
+from piighost.config.models.pipeline import PipelineConfig, PipelineMeta
+
+
+def test_pipeline_config_requires_at_least_one_detector():
+    with pytest.raises(ValidationError):
+        PipelineConfig.model_validate({"detectors": []})
+
+
+def test_pipeline_config_applies_defaults():
+    cfg = PipelineConfig.model_validate(
+        {
+            "detectors": [
+                {"type": "regex", "patterns": {"EMAIL": r"\S+@\S+"}},
+            ],
+        }
+    )
+    assert isinstance(cfg.span_resolver, ConfidenceSpanResolverConfig)
+    assert isinstance(cfg.entity_linker, ExactEntityLinkerConfig)
+    assert isinstance(cfg.entity_resolver, MergeEntityResolverConfig)
+    assert isinstance(cfg.anonymizer, DefaultAnonymizerConfig)
+    assert isinstance(cfg.pipeline, PipelineMeta)
+    assert cfg.pipeline.schema_version == 1
+
+
+def test_pipeline_meta_optional_name():
+    cfg = PipelineConfig.model_validate(
+        {
+            "pipeline": {"name": "demo"},
+            "detectors": [
+                {"type": "regex", "patterns": {"EMAIL": r"\S+@\S+"}},
+            ],
+        }
+    )
+    assert cfg.pipeline.name == "demo"
