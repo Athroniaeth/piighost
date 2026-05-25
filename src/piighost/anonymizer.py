@@ -1,6 +1,9 @@
-from typing import Generic, Protocol
+from typing import TYPE_CHECKING, ClassVar, Generic, Protocol
 
 from typing_extensions import TypeVar
+
+if TYPE_CHECKING:
+    from piighost.config.models.anonymizer import DefaultAnonymizerConfig
 
 from piighost.exceptions import DeanonymizationError
 from piighost.models import Entity, Span
@@ -75,6 +78,16 @@ class Anonymizer(Generic[PreservationT]):
     """
 
     ph_factory: AnyPlaceholderFactory[PreservationT]
+
+    Config: ClassVar[type["DefaultAnonymizerConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "DefaultAnonymizerConfig") -> "Anonymizer":
+        """Build an ``Anonymizer`` from its validated configuration."""
+        from piighost.config.builders import build_placeholder_factory
+
+        ph_factory = build_placeholder_factory(cfg.placeholder_factory)
+        return cls(ph_factory=ph_factory)
 
     def __init__(
         self,
@@ -175,3 +188,8 @@ class Anonymizer(Generic[PreservationT]):
             search_from = token_pos + len(original_text)
 
         return result
+
+
+from piighost.config.models.anonymizer import DefaultAnonymizerConfig  # noqa: E402
+
+Anonymizer.Config = DefaultAnonymizerConfig

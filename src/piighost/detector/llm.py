@@ -1,7 +1,10 @@
 """LLM-based entity detector using structured output."""
 
 import importlib.util
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
+
+if TYPE_CHECKING:
+    from piighost.config.models.detector import LLMDetectorConfig
 
 from piighost.models import Detection, Span
 from piighost.utils import find_all_word_boundary
@@ -106,6 +109,20 @@ class LLMDetector:
         >>> detections = await detector.detect("Patrick habite à Paris")
     """
 
+    Config: ClassVar[type["LLMDetectorConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "LLMDetectorConfig") -> "LLMDetector":
+        """Build an ``LLMDetector`` from its validated configuration.
+
+        Initialises the chat model via LangChain's ``init_chat_model``
+        helper, which resolves the provider and model name at runtime.
+        """
+        from langchain_core.language_models import init_chat_model
+
+        llm = init_chat_model(cfg.model, model_provider=cfg.provider)
+        return cls(model=llm, labels=list(cfg.labels))
+
     def __init__(
         self,
         model: BaseChatModel,
@@ -161,3 +178,8 @@ class LLMDetector:
                 )
 
         return detections
+
+
+from piighost.config.models.detector import LLMDetectorConfig  # noqa: E402
+
+LLMDetector.Config = LLMDetectorConfig

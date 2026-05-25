@@ -44,6 +44,9 @@ Documentation = "https://github.com/Athroniaeth/piighost#readme"
 Issues = "https://github.com/Athroniaeth/piighost/issues"
 Changelog = "https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"
 
+[project.scripts]
+piighost = "piighost.cli:main"
+
 [project.optional-dependencies]
 gliner2 = [
     "gliner2>=1.2",
@@ -85,8 +88,13 @@ langfuse = [
 opik = [
     "opik>=2.0",
 ]
+config = [
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "tomli>=2.0; python_version < '3.11'",
+]
 all = [
-    "piighost[gliner2,langchain,faker,cache,client,spacy,transformers,llm,sqlalchemy,langfuse,opik]",
+    "piighost[gliner2,langchain,faker,cache,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config]",
 ]
 
 [build-system]
@@ -107,6 +115,9 @@ dev = [
     "pytest-asyncio>=0.25",
     "bandit>=1.9.4",
     "streamlit>=1.46",
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 faker = [
     "faker>=40.11.0",
@@ -133,6 +144,11 @@ llm = [
 sqlalchemy = [
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
+]
+config = [
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [tool.pytest.ini_options]
