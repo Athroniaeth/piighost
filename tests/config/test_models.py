@@ -143,3 +143,52 @@ def test_entity_resolver_fuzzy_threshold_bounds():
 def test_entity_resolver_merge_default():
     cfg = _ENTITY_ADAPTER.validate_python({"type": "merge"})
     assert isinstance(cfg, MergeEntityResolverConfig)
+
+
+from piighost.config.models.anonymizer import (
+    AnonymizerConfig,
+    DefaultAnonymizerConfig,
+)
+from piighost.config.models.placeholder import (
+    FakerCounterPlaceholderConfig,
+    LabelCounterPlaceholderConfig,
+    MaskPlaceholderConfig,
+    PlaceholderFactoryConfig,
+)
+
+
+_PLACEHOLDER_ADAPTER = TypeAdapter(PlaceholderFactoryConfig)
+
+
+def test_label_counter_placeholder_default():
+    cfg = _PLACEHOLDER_ADAPTER.validate_python({"type": "label_counter"})
+    assert isinstance(cfg, LabelCounterPlaceholderConfig)
+
+
+def test_mask_placeholder_with_char():
+    cfg = _PLACEHOLDER_ADAPTER.validate_python({"type": "mask", "mask_char": "*"})
+    assert isinstance(cfg, MaskPlaceholderConfig)
+    assert cfg.mask_char == "*"
+
+
+def test_faker_counter_placeholder_locale():
+    cfg = _PLACEHOLDER_ADAPTER.validate_python(
+        {"type": "faker_counter", "locale": "fr_FR"}
+    )
+    assert isinstance(cfg, FakerCounterPlaceholderConfig)
+    assert cfg.locale == "fr_FR"
+
+
+def test_anonymizer_default_includes_placeholder_factory():
+    cfg = DefaultAnonymizerConfig.model_validate(
+        {
+            "type": "default",
+            "placeholder_factory": {"type": "label_counter"},
+        }
+    )
+    assert isinstance(cfg.placeholder_factory, LabelCounterPlaceholderConfig)
+
+
+def test_anonymizer_placeholder_defaults_to_label_counter():
+    cfg = DefaultAnonymizerConfig.model_validate({"type": "default"})
+    assert isinstance(cfg.placeholder_factory, LabelCounterPlaceholderConfig)
