@@ -1,7 +1,11 @@
 import importlib.util
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
+
+if TYPE_CHECKING:
+    from piighost.config.models.detector import SpacyDetectorConfig
 
 if importlib.util.find_spec("spacy") is None:
     raise ImportError(
@@ -36,6 +40,18 @@ class SpacyDetector(BaseNERDetector):
         ... )
         >>> detections = await detector.detect("Patrick habite à Paris")
     """
+
+    Config: ClassVar[type["SpacyDetectorConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "SpacyDetectorConfig") -> "SpacyDetector":
+        """Build a ``SpacyDetector`` from its validated configuration.
+
+        Loads the spaCy model with ``spacy.load``. The model must be
+        installed in the current environment.
+        """
+        nlp = spacy.load(cfg.model)
+        return cls(model=nlp, labels=list(cfg.labels))
 
     def __init__(
         self,
@@ -80,3 +96,8 @@ class SpacyDetector(BaseNERDetector):
             )
 
         return detections
+
+
+from piighost.config.models.detector import SpacyDetectorConfig  # noqa: E402
+
+SpacyDetector.Config = SpacyDetectorConfig
