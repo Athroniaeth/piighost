@@ -149,3 +149,11 @@ def _detector_labels(d: AnyDetector) -> list[str]:
     if labels is None:
         return []
     return sorted(labels)
+
+
+def export_schema() -> dict:
+    """Return the JSON Schema of :class:`PipelineConfig`.
+
+    Used by ``piighost schema`` and by future configuration UIs.
+    """
+    return PipelineConfig.model_json_schema()
