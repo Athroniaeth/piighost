@@ -1,5 +1,6 @@
 """TOML loader for piighost pipelines."""
 
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -82,9 +83,14 @@ def build_pipeline(
 ) -> tuple[ThreadAnonymizationPipeline, PipelineManifest]:
     """Instantiate components and return the pipeline + manifest."""
 
-    detectors_instances: list[AnyDetector] = [
-        build_detector(d_cfg) for d_cfg in cfg.detectors
-    ]
+    detectors_instances: list[AnyDetector] = []
+    for idx, d_cfg in enumerate(cfg.detectors):
+        try:
+            detectors_instances.append(build_detector(d_cfg))
+        except re.error as exc:
+            raise ConfigError(
+                f"invalid regex in detectors[{idx}] ({d_cfg.name or d_cfg.type}): {exc}"
+            ) from exc
     detector: AnyDetector = (
         detectors_instances[0]
         if len(detectors_instances) == 1

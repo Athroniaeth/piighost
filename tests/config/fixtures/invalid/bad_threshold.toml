@@ -1,0 +1,5 @@
+[[detectors]]
+type = "gliner2"
+model = "fake/model"
+threshold = 1.5
+labels = ["person"]

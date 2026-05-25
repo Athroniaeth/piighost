@@ -52,3 +52,31 @@ def test_load_pipeline_combines_load_and_build():
     pipeline, manifest = load_pipeline(FIXTURES / "minimal.toml")
     assert isinstance(pipeline, ThreadAnonymizationPipeline)
     assert manifest.schema_version == 1
+
+
+INVALID = FIXTURES / "invalid"
+
+
+def test_unknown_key_is_rejected():
+    with pytest.raises(ConfigError) as exc:
+        load_config(INVALID / "unknown_key.toml")
+    assert "rogue_key" in str(exc.value)
+
+
+def test_bad_threshold_is_rejected():
+    with pytest.raises(ConfigError) as exc:
+        load_config(INVALID / "bad_threshold.toml")
+    assert "threshold" in str(exc.value)
+
+
+def test_empty_detectors_is_rejected():
+    with pytest.raises(ConfigError) as exc:
+        load_config(INVALID / "empty_detectors.toml")
+    assert "detectors" in str(exc.value)
+
+
+def test_bad_regex_pattern_raises_config_error_at_build():
+    cfg = load_config(INVALID / "bad_regex.toml")  # passes load_config
+    with pytest.raises(ConfigError) as exc:
+        build_pipeline(cfg)
+    assert "EMAIL" in str(exc.value) or "regex" in str(exc.value).lower()
