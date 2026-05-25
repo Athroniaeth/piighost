@@ -1,7 +1,11 @@
 import importlib.util
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
+
+if TYPE_CHECKING:
+    from piighost.config.models.detector import Gliner2DetectorConfig
 
 if importlib.util.find_spec("gliner2") is None:
     raise ImportError(
@@ -44,6 +48,23 @@ class Gliner2Detector(BaseNERDetector):
     model: GLiNER2
     threshold: float
     flat_ner: bool
+
+    Config: ClassVar[type["Gliner2DetectorConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "Gliner2DetectorConfig") -> "Gliner2Detector":
+        """Build a ``Gliner2Detector`` from its validated configuration.
+
+        Loads the model with ``GLiNER2.from_pretrained``. Network access
+        may be required the first time a given model name is loaded.
+        """
+        model = GLiNER2.from_pretrained(cfg.model)
+        return cls(
+            model=model,
+            labels=list(cfg.labels),
+            threshold=cfg.threshold,
+            flat_ner=cfg.flat_ner,
+        )
 
     def __init__(
         self,
@@ -94,3 +115,8 @@ class Gliner2Detector(BaseNERDetector):
                 )
 
         return detections
+
+
+from piighost.config.models.detector import Gliner2DetectorConfig  # noqa: E402
+
+Gliner2Detector.Config = Gliner2DetectorConfig

@@ -22,3 +22,11 @@ async def test_regex_detector_from_config_produces_working_instance():
 
 def test_regex_detector_config_classvar_points_to_config_model():
     assert RegexDetector.Config is RegexDetectorConfig
+
+
+@pytest.mark.integration
+def test_gliner2_detector_config_classvar():
+    from piighost.config.models.detector import Gliner2DetectorConfig
+    from piighost.detector.gliner2 import Gliner2Detector
+
+    assert Gliner2Detector.Config is Gliner2DetectorConfig
