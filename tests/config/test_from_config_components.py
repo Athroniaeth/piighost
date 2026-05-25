@@ -123,7 +123,6 @@ def test_faker_hash_from_config_respects_locale():
     assert f._locale == "fr_FR"
 
 
-@pytest.mark.skip(reason="depends on builders module, see Task 12")
 def test_anonymizer_from_config_default():
     cfg = DefaultAnonymizerConfig(
         type="default",

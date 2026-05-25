@@ -64,7 +64,6 @@ def test_chunked_detector_config_classvar():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="depends on builders module, see Task 12")
 async def test_chunked_detector_from_config_wraps_inner_regex():
     from piighost.config.models.detector import (
         ChunkedDetectorConfig,
