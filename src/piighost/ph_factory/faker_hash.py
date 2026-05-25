@@ -244,7 +244,9 @@ class FakerCounterPlaceholderFactory(
     Config: ClassVar[type["FakerCounterPlaceholderConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "FakerCounterPlaceholderConfig") -> "FakerCounterPlaceholderFactory":
+    def from_config(
+        cls, cfg: "FakerCounterPlaceholderConfig"
+    ) -> "FakerCounterPlaceholderFactory":
         """Build a ``FakerCounterPlaceholderFactory`` from its validated configuration."""
         return cls(locale=cfg.locale)
 
@@ -348,7 +350,9 @@ class FakerHashPlaceholderFactory(
     Config: ClassVar[type["FakerHashPlaceholderConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "FakerHashPlaceholderConfig") -> "FakerHashPlaceholderFactory":
+    def from_config(
+        cls, cfg: "FakerHashPlaceholderConfig"
+    ) -> "FakerHashPlaceholderFactory":
         """Build a ``FakerHashPlaceholderFactory`` from its validated configuration."""
         return cls(hash_length=cfg.hash_length, locale=cfg.locale)
 
