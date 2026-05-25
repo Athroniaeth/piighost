@@ -44,6 +44,9 @@ Documentation = "https://github.com/Athroniaeth/piighost#readme"
 Issues = "https://github.com/Athroniaeth/piighost/issues"
 Changelog = "https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"
 
+[project.scripts]
+piighost = "piighost.cli:main"
+
 [project.optional-dependencies]
 gliner2 = [
     "gliner2>=1.2",
