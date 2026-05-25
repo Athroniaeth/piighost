@@ -240,7 +240,11 @@ def _render_highlighted(text: str, detections: list[Detection]) -> str:
         )
         cursor = end
     out.append(_html_escape(text[cursor:]))
-    return "<div style='white-space:pre-wrap;font-family:monospace'>" + "".join(out) + "</div>"
+    return (
+        "<div style='white-space:pre-wrap;font-family:monospace'>"
+        + "".join(out)
+        + "</div>"
+    )
 
 
 def _html_escape(s: str) -> str:
@@ -320,9 +324,7 @@ def main() -> None:
         else "no chunking"
     )
     st.write(
-        f"**Threshold:** {threshold:.2f} — "
-        f"**flat_ner:** {flat_ner} — "
-        f"**{chunk_label}**"
+        f"**Threshold:** {threshold:.2f} — **flat_ner:** {flat_ner} — **{chunk_label}**"
     )
 
     st.divider()
