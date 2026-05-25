@@ -37,8 +37,15 @@ garbage tokens.
 
 import importlib.util
 from collections.abc import Callable
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.models import Entity
+
+if TYPE_CHECKING:
+    from piighost.config.models.placeholder import (
+        FakerCounterPlaceholderConfig,
+        FakerHashPlaceholderConfig,
+    )
 from piighost.placeholder import (
     AnyPlaceholderFactory,
     _resolve_pepper,
@@ -220,6 +227,13 @@ class FakerCounterPlaceholderFactory(
 
     _strategies: dict[str, StrategyValue]
 
+    Config: ClassVar[type["FakerCounterPlaceholderConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "FakerCounterPlaceholderConfig") -> "FakerCounterPlaceholderFactory":
+        """Build a ``FakerCounterPlaceholderFactory`` from its validated configuration."""
+        return cls()
+
     def __init__(self, strategies: dict[str, StrategyValue] | None = None) -> None:
         if strategies is None:
             strategies = _default_strategies()
@@ -306,6 +320,13 @@ class FakerHashPlaceholderFactory(
     _salt: str
     _pepper: str
 
+    Config: ClassVar[type["FakerHashPlaceholderConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "FakerHashPlaceholderConfig") -> "FakerHashPlaceholderFactory":
+        """Build a ``FakerHashPlaceholderFactory`` from its validated configuration."""
+        return cls(hash_length=cfg.hash_length)
+
     def __init__(
         self,
         strategies: dict[str, StrategyValue] | None = None,
@@ -376,3 +397,11 @@ __all__ = [
     "fake_url",
     "fake_with_seed",
 ]
+
+from piighost.config.models.placeholder import (  # noqa: E402
+    FakerCounterPlaceholderConfig,
+    FakerHashPlaceholderConfig,
+)
+
+FakerCounterPlaceholderFactory.Config = FakerCounterPlaceholderConfig
+FakerHashPlaceholderFactory.Config = FakerHashPlaceholderConfig
