@@ -1,7 +1,11 @@
 import importlib.util
+from typing import TYPE_CHECKING, ClassVar
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
+
+if TYPE_CHECKING:
+    from piighost.config.models.detector import TransformersDetectorConfig
 
 if importlib.util.find_spec("transformers") is None:
     raise ImportError(
@@ -38,6 +42,20 @@ class TransformersDetector(BaseNERDetector):
         ... )
         >>> detections = await detector.detect("Patrick lives in Paris")
     """
+
+    Config: ClassVar[type["TransformersDetectorConfig"]]
+
+    @classmethod
+    def from_config(cls, cfg: "TransformersDetectorConfig") -> "TransformersDetector":
+        """Build a ``TransformersDetector`` from its validated configuration.
+
+        Creates an HF token-classification pipeline with ``transformers.pipeline``.
+        Model weights are downloaded on first use if not already cached.
+        """
+        from transformers import pipeline as hf_pipeline
+
+        nlp = hf_pipeline("ner", model=cfg.model)
+        return cls(pipeline=nlp, labels=None)
 
     def __init__(
         self,
@@ -86,3 +104,8 @@ class TransformersDetector(BaseNERDetector):
             )
 
         return detections
+
+
+from piighost.config.models.detector import TransformersDetectorConfig  # noqa: E402
+
+TransformersDetector.Config = TransformersDetectorConfig

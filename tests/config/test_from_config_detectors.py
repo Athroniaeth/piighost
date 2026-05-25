@@ -30,3 +30,56 @@ def test_gliner2_detector_config_classvar():
     from piighost.detector.gliner2 import Gliner2Detector
 
     assert Gliner2Detector.Config is Gliner2DetectorConfig
+
+
+@pytest.mark.integration
+def test_spacy_detector_config_classvar():
+    from piighost.config.models.detector import SpacyDetectorConfig
+    from piighost.detector.spacy import SpacyDetector
+
+    assert SpacyDetector.Config is SpacyDetectorConfig
+
+
+@pytest.mark.integration
+def test_transformers_detector_config_classvar():
+    from piighost.config.models.detector import TransformersDetectorConfig
+    from piighost.detector.transformers import TransformersDetector
+
+    assert TransformersDetector.Config is TransformersDetectorConfig
+
+
+@pytest.mark.integration
+def test_llm_detector_config_classvar():
+    from piighost.config.models.detector import LLMDetectorConfig
+    from piighost.detector.llm import LLMDetector
+
+    assert LLMDetector.Config is LLMDetectorConfig
+
+
+def test_chunked_detector_config_classvar():
+    from piighost.config.models.detector import ChunkedDetectorConfig
+    from piighost.detector.chunked import ChunkedDetector
+
+    assert ChunkedDetector.Config is ChunkedDetectorConfig
+
+
+@pytest.mark.asyncio
+@pytest.mark.skip(reason="depends on builders module, see Task 12")
+async def test_chunked_detector_from_config_wraps_inner_regex():
+    from piighost.config.models.detector import (
+        ChunkedDetectorConfig,
+        RegexDetectorConfig,
+    )
+    from piighost.detector.chunked import ChunkedDetector
+
+    cfg = ChunkedDetectorConfig(
+        type="chunked",
+        chunk_size=1000,
+        inner=RegexDetectorConfig(
+            type="regex", patterns={"EMAIL": r"[a-z]+@[a-z]+\.[a-z]+"}
+        ),
+    )
+    detector = ChunkedDetector.from_config(cfg)
+    detections = await detector.detect("contact: alice@example.com")
+    assert len(detections) == 1
+    assert detections[0].label == "EMAIL"
