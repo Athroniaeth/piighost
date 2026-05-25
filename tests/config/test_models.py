@@ -92,3 +92,54 @@ def test_chunked_detector_nests_inner():
     )
     assert isinstance(cfg, ChunkedDetectorConfig)
     assert isinstance(cfg.inner, RegexDetectorConfig)
+
+
+from piighost.config.models.span_resolver import (
+    ConfidenceSpanResolverConfig,
+    DisabledSpanResolverConfig,
+    SpanResolverConfig,
+)
+from piighost.config.models.entity_linker import (
+    DisabledEntityLinkerConfig,
+    EntityLinkerConfig,
+    ExactEntityLinkerConfig,
+)
+from piighost.config.models.entity_resolver import (
+    DisabledEntityResolverConfig,
+    EntityResolverConfig,
+    FuzzyEntityResolverConfig,
+    MergeEntityResolverConfig,
+)
+
+
+_SPAN_ADAPTER = TypeAdapter(SpanResolverConfig)
+_LINKER_ADAPTER = TypeAdapter(EntityLinkerConfig)
+_ENTITY_ADAPTER = TypeAdapter(EntityResolverConfig)
+
+
+def test_span_resolver_confidence():
+    cfg = _SPAN_ADAPTER.validate_python({"type": "confidence"})
+    assert isinstance(cfg, ConfidenceSpanResolverConfig)
+
+
+def test_span_resolver_disabled():
+    cfg = _SPAN_ADAPTER.validate_python({"type": "disabled"})
+    assert isinstance(cfg, DisabledSpanResolverConfig)
+
+
+def test_entity_linker_exact():
+    cfg = _LINKER_ADAPTER.validate_python({"type": "exact"})
+    assert isinstance(cfg, ExactEntityLinkerConfig)
+
+
+def test_entity_resolver_fuzzy_threshold_bounds():
+    cfg = _ENTITY_ADAPTER.validate_python({"type": "fuzzy", "threshold": 0.85})
+    assert isinstance(cfg, FuzzyEntityResolverConfig)
+    assert cfg.threshold == 0.85
+    with pytest.raises(ValidationError):
+        _ENTITY_ADAPTER.validate_python({"type": "fuzzy", "threshold": 1.5})
+
+
+def test_entity_resolver_merge_default():
+    cfg = _ENTITY_ADAPTER.validate_python({"type": "merge"})
+    assert isinstance(cfg, MergeEntityResolverConfig)
