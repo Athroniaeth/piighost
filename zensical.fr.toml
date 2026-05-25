@@ -35,6 +35,9 @@ nav = [
         { "Pipeline" = "reference/pipeline.md" },
         { "Middleware" = "reference/middleware.md" },
         { "Détecteurs" = "reference/detectors.md" },
+        { "Configuration" = [
+            { "Référence TOML" = "configuration/toml.md" },
+        ]},
     ] },
     { "Concepts" = [
         { "Glossaire" = "glossary.md" },
