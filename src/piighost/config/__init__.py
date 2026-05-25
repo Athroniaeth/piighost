@@ -8,9 +8,17 @@ Public API:
   ``ThreadAnonymizationPipeline`` and a ``PipelineManifest`` describing
   what was built.
 * :func:`load_pipeline` is the ``load_config`` + ``build_pipeline`` convenience.
+* :func:`validate` is an alias of :func:`load_config`, exposed under a name
+  that matches the CLI subcommand.
 * :func:`export_schema` dumps the JSON Schema of ``PipelineConfig`` for
   tooling (CLI, future configuration UI).
 * :class:`ConfigError` is the single exception type raised by this module.
+
+Symbols other than ``ConfigError`` are lazy-imported via ``__getattr__``
+to break a circular import between ``piighost.anonymizer`` /
+``piighost.placeholder`` (which import ``piighost.config.models`` at
+module load time) and ``piighost.config.loader`` (which imports
+``piighost.anonymizer``).
 """
 
 from piighost.config.errors import ConfigError
@@ -24,36 +32,41 @@ __all__ = [
     "export_schema",
     "load_config",
     "load_pipeline",
+    "validate",
 ]
 
 
 def __getattr__(name: str):
-    """Lazy import to avoid circular dependencies."""
+    """Lazy import to avoid a circular import with ``piighost.anonymizer``."""
     if name == "DetectorManifest":
         from piighost.config.loader import DetectorManifest
 
         return DetectorManifest
-    elif name == "PipelineManifest":
+    if name == "PipelineManifest":
         from piighost.config.loader import PipelineManifest
 
         return PipelineManifest
-    elif name == "build_pipeline":
+    if name == "build_pipeline":
         from piighost.config.loader import build_pipeline
 
         return build_pipeline
-    elif name == "export_schema":
+    if name == "export_schema":
         from piighost.config.loader import export_schema
 
         return export_schema
-    elif name == "load_config":
+    if name == "load_config":
         from piighost.config.loader import load_config
 
         return load_config
-    elif name == "load_pipeline":
+    if name == "load_pipeline":
         from piighost.config.loader import load_pipeline
 
         return load_pipeline
-    elif name == "PipelineConfig":
+    if name == "validate":
+        from piighost.config.loader import load_config
+
+        return load_config
+    if name == "PipelineConfig":
         from piighost.config.models.pipeline import PipelineConfig
 
         return PipelineConfig
