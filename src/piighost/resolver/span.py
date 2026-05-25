@@ -79,7 +79,9 @@ class DisabledSpanConflictResolver:
     Config: ClassVar[type["DisabledSpanResolverConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "DisabledSpanResolverConfig") -> "DisabledSpanConflictResolver":
+    def from_config(
+        cls, cfg: "DisabledSpanResolverConfig"
+    ) -> "DisabledSpanConflictResolver":
         """Build a ``DisabledSpanConflictResolver`` from its validated configuration."""
         return cls()
 
@@ -118,7 +120,9 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
     Config: ClassVar[type["ConfidenceSpanResolverConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "ConfidenceSpanResolverConfig") -> "ConfidenceSpanConflictResolver":
+    def from_config(
+        cls, cfg: "ConfidenceSpanResolverConfig"
+    ) -> "ConfidenceSpanConflictResolver":
         """Build a ``ConfidenceSpanConflictResolver`` from its validated configuration."""
         return cls()
 

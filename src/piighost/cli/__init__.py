@@ -20,7 +20,9 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 @app.command()
 def validate(
-    path: Path = typer.Argument(..., exists=False, help="Path to a TOML pipeline config."),
+    path: Path = typer.Argument(
+        ..., exists=False, help="Path to a TOML pipeline config."
+    ),
 ) -> None:
     """Validate a piighost pipeline TOML configuration."""
     from piighost.config import ConfigError, load_config

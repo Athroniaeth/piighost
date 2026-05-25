@@ -6,10 +6,7 @@ from piighost.config.models.detector import (
     ChunkedDetectorConfig,
     DetectorConfig,
     Gliner2DetectorConfig,
-    LLMDetectorConfig,
     RegexDetectorConfig,
-    SpacyDetectorConfig,
-    TransformersDetectorConfig,
 )
 
 
@@ -100,12 +97,10 @@ from piighost.config.models.span_resolver import (
     SpanResolverConfig,
 )
 from piighost.config.models.entity_linker import (
-    DisabledEntityLinkerConfig,
     EntityLinkerConfig,
     ExactEntityLinkerConfig,
 )
 from piighost.config.models.entity_resolver import (
-    DisabledEntityResolverConfig,
     EntityResolverConfig,
     FuzzyEntityResolverConfig,
     MergeEntityResolverConfig,
@@ -146,7 +141,6 @@ def test_entity_resolver_merge_default():
 
 
 from piighost.config.models.anonymizer import (
-    AnonymizerConfig,
     DefaultAnonymizerConfig,
 )
 from piighost.config.models.placeholder import (

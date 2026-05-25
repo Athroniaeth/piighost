@@ -65,7 +65,9 @@ class DisabledEntityConflictResolver:
     Config: ClassVar[type["DisabledEntityResolverConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "DisabledEntityResolverConfig") -> "DisabledEntityConflictResolver":
+    def from_config(
+        cls, cfg: "DisabledEntityResolverConfig"
+    ) -> "DisabledEntityConflictResolver":
         """Build a ``DisabledEntityConflictResolver`` from its validated configuration."""
         return cls()
 
@@ -102,7 +104,9 @@ class MergeEntityConflictResolver:
     Config: ClassVar[type["MergeEntityResolverConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "MergeEntityResolverConfig") -> "MergeEntityConflictResolver":
+    def from_config(
+        cls, cfg: "MergeEntityResolverConfig"
+    ) -> "MergeEntityConflictResolver":
         """Build a ``MergeEntityConflictResolver`` from its validated configuration."""
         return cls()
 
@@ -202,7 +206,9 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
     Config: ClassVar[type["FuzzyEntityResolverConfig"]]
 
     @classmethod
-    def from_config(cls, cfg: "FuzzyEntityResolverConfig") -> "FuzzyEntityConflictResolver":
+    def from_config(
+        cls, cfg: "FuzzyEntityResolverConfig"
+    ) -> "FuzzyEntityConflictResolver":
         """Build a ``FuzzyEntityConflictResolver`` from its validated configuration."""
         return cls(threshold=cfg.threshold)
 
