@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.12.0 (2026-05-25)
+
+### Feat
+
+- **config**: add TOML pipeline configuration loader (#)
+- **cli**: add piighost validate and piighost schema commands
+- **config**: export JSON Schema of PipelineConfig
+- **config**: translate regex compilation errors into ConfigError
+- **config**: add TOML loader, build_pipeline, and PipelineManifest
+- **config**: add builder dispatch tables
+- add Config + from_config to resolvers, linkers, anonymizer, placeholder factories
+- **detector**: add Config + from_config to spacy/transformers/llm/chunked detectors
+- **detector**: add Config + from_config to Gliner2Detector
+- **detector**: add Config + from_config to RegexDetector
+- **config**: add top-level PipelineConfig and PipelineMeta
+- **config**: add anonymizer and placeholder factory configuration models
+- **config**: add span/linker/entity resolver configuration models
+- **config**: add detector configuration models (discriminated union)
+- **config**: add _ComponentConfig base model
+- **config**: add ConfigError and Pydantic translator
+- **examples**: render highlighted spans and detection table
+- **examples**: wire streamlit run button to gliner detection
+- **examples**: add streamlit input source switcher
+- **examples**: add streamlit threshold, flat_ner, chunking sidebar
+- **examples**: add streamlit labels widget with presets
+- **examples**: add streamlit model selector with cached loader
+- **examples**: scaffold streamlit playground entrypoint
+- **examples**: wire pipeline as a LangGraph state machine
+- **examples**: round-trip deanonymize the extracted JSON
+- **examples**: add LLMGuardRail check on extracted JSON
+- **examples**: structured extraction via instructor + Mistral
+- **examples**: wire piighost CompositeDetector for notarial deeds
+- **examples**: scaffold notarial extraction script
+
+### Fix
+
+- **config**: expose validate alias and wire transformers threshold
+- **config**: pass locale through to FakerCounter/FakerHash placeholder factories
+- **examples**: stabilize LLMGuardRail with temperature=0 + tight prompt
+- **examples**: make notarial extraction green end-to-end
+- **examples**: final review polish on notarial extraction
+- **examples**: drop anticipatory imports + correct gender in sample
+
+### Refactor
+
+- **examples**: move LLMGuardRail into the pipeline
+- **examples**: drop LangGraph wrapper from notarial extraction
+
 ## 0.11.0 (2026-05-04)
 
 ### BREAKING CHANGE
