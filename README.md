@@ -1,11 +1,11 @@
 # PIIGhost
 
-[![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/piighost.svg)](https://pypi.org/project/piighost/)
-[![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg?cacheSeconds=3600)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/piighost.svg?cacheSeconds=3600)](https://pypi.org/project/piighost/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/piighost.svg?cacheSeconds=3600)](https://pypi.org/project/piighost/)
+[![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg?cacheSeconds=3600)](https://pypi.org/project/piighost/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg?cacheSeconds=3600)](LICENSE)
+[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg?cacheSeconds=3600)](https://github.com/PyCQA/bandit)
 
 [README EN](README.md) - [README FR](README.fr.md) / [Documentation EN](https://athroniaeth.github.io/piighost/) - [Documentation FR](https://athroniaeth.github.io/piighost/fr/)
 
