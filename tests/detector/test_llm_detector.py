@@ -245,3 +245,31 @@ class TestCustomPrompt:
 
         assert len(detections) == 1
         assert detections[0].text == "Patrick"
+
+
+class TestLabelMapping:
+    @pytest.mark.asyncio
+    async def test_llm_detector_remaps_dict_labels(self, _patch_langchain_core):
+        """Fake LLM returns the INTERNAL label ("person"); detector must emit "PERSONNE"."""
+        LLMDetector = _get_detector_class()
+        model = _FakeChatModel(_extraction(_entity("Marie", "person")))
+        det = LLMDetector(model=model, labels={"PERSONNE": "person"})
+        dets = await det.detect("Marie est ici")
+        assert [d.label for d in dets] == ["PERSONNE"]
+
+    @pytest.mark.asyncio
+    async def test_llm_detector_list_labels_are_identity(self, _patch_langchain_core):
+        """List labels pass through unchanged (identity mapping)."""
+        LLMDetector = _get_detector_class()
+        model = _FakeChatModel(_extraction(_entity("Marie", "PERSON")))
+        det = LLMDetector(model=model, labels=["PERSON"])
+        dets = await det.detect("Marie est ici")
+        assert [d.label for d in dets] == ["PERSON"]
+
+    @pytest.mark.usefixtures("_patch_langchain_core")
+    def test_llm_detector_rejects_conflicting_label_map(self):
+        from piighost.detector.llm import LLMDetector
+
+        model = _FakeChatModel(_extraction())
+        with pytest.raises(ValueError):
+            LLMDetector(model=model, labels={"A": "person", "B": "person"})

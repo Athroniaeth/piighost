@@ -80,6 +80,13 @@ def _make_schema(labels: list[str]) -> type[BaseModel]:
     return _Extraction
 
 
+def _normalize_labels(labels: list[str] | dict[str, str]) -> dict[str, str]:
+    """Normalize labels into an ``{external: internal}`` mapping (list = identity)."""
+    if isinstance(labels, dict):
+        return dict(labels)
+    return {label: label for label in labels}
+
+
 class LLMDetector:
     """Detect entities using an LLM with structured output.
 
@@ -95,8 +102,13 @@ class LLMDetector:
 
     Args:
         model: A LangChain chat model supporting ``with_structured_output``.
-        labels: Entity types the LLM should extract
-            (e.g. ``["PERSON", "LOCATION"]``).
+        labels: Entity types the LLM should extract.  Either a plain list
+            (e.g. ``["PERSON", "LOCATION"]``) for an identity mapping, or a
+            ``{external: internal}`` dict that maps the label emitted in
+            ``Detection.label`` (the external, piighost-facing name) to the
+            label the LLM is prompted to return (the internal model name).
+            For example ``{"PERSONNE": "person"}`` prompts the LLM for
+            ``"person"`` and re-maps each result to ``"PERSONNE"``.
         prompt: Optional custom system prompt template.  Must contain a
             ``{labels}`` placeholder that will be replaced by the
             comma-separated label list.  When ``None``, a built-in PII
@@ -121,17 +133,26 @@ class LLMDetector:
         from langchain_core.language_models import init_chat_model
 
         llm = init_chat_model(cfg.model, model_provider=cfg.provider)
-        return cls(model=llm, labels=list(cfg.labels))
+        return cls(model=llm, labels=cfg.labels)
 
     def __init__(
         self,
         model: BaseChatModel,
-        labels: list[str],
+        labels: list[str] | dict[str, str],
         prompt: str | None = None,
     ) -> None:
-        self._labels = labels
+        self._label_map = _normalize_labels(labels)  # {external: internal}
+        self._reverse: dict[str, str] = {}
+        for external, internal in self._label_map.items():
+            if internal in self._reverse:
+                raise ValueError(
+                    f"Label mapping conflict: internal label '{internal}' is used by "
+                    f"multiple external labels ('{self._reverse[internal]}' and '{external}')."
+                )
+            self._reverse[internal] = external
+        self._internal = list(self._label_map.values())
         self._prompt = prompt or _DEFAULT_PROMPT
-        self._schema = _make_schema(labels)
+        self._schema = _make_schema(self._internal)
         self._chain = model.with_structured_output(self._schema)
 
     async def detect(self, text: str) -> list[Detection]:
@@ -152,7 +173,7 @@ class LLMDetector:
         if not text:
             return []
 
-        system_content = self._prompt.format(labels=", ".join(self._labels))
+        system_content = self._prompt.format(labels=", ".join(self._internal))
         messages = [
             SystemMessage(content=system_content),
             HumanMessage(content=text),
@@ -171,7 +192,7 @@ class LLMDetector:
                 detections.append(
                     Detection(
                         text=text[start:end],
-                        label=entity.label.value,
+                        label=self._reverse[entity.label.value],
                         position=Span(start_pos=start, end_pos=end),
                         confidence=1.0,
                     ),
