@@ -61,7 +61,7 @@ class Gliner2Detector(BaseNERDetector):
         model = GLiNER2.from_pretrained(cfg.model)
         return cls(
             model=model,
-            labels=list(cfg.labels),
+            labels=cfg.labels,
             threshold=cfg.threshold,
             flat_ner=cfg.flat_ner,
         )
