@@ -18,7 +18,7 @@ class Gliner2DetectorConfig(_ComponentConfig):
     name: str | None = None
     model: str
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
-    labels: list[str] = Field(min_length=1)
+    labels: list[str] | dict[str, str] = Field(min_length=1)
     flat_ner: bool = True
 
 
@@ -26,7 +26,7 @@ class SpacyDetectorConfig(_ComponentConfig):
     type: Literal["spacy"]
     name: str | None = None
     model: str
-    labels: list[str] = Field(min_length=1)
+    labels: list[str] | dict[str, str] = Field(min_length=1)
 
 
 class TransformersDetectorConfig(_ComponentConfig):
@@ -34,6 +34,7 @@ class TransformersDetectorConfig(_ComponentConfig):
     name: str | None = None
     model: str
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    labels: list[str] | dict[str, str] | None = None
 
 
 class LLMDetectorConfig(_ComponentConfig):
@@ -41,7 +42,7 @@ class LLMDetectorConfig(_ComponentConfig):
     name: str | None = None
     provider: str
     model: str
-    labels: list[str] = Field(min_length=1)
+    labels: list[str] | dict[str, str] = Field(min_length=1)
 
 
 class ChunkedDetectorConfig(_ComponentConfig):
