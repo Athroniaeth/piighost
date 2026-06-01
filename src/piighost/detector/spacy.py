@@ -51,7 +51,7 @@ class SpacyDetector(BaseNERDetector):
         installed in the current environment.
         """
         nlp = spacy.load(cfg.model)
-        return cls(model=nlp, labels=list(cfg.labels))
+        return cls(model=nlp, labels=cfg.labels)
 
     def __init__(
         self,

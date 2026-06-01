@@ -57,7 +57,7 @@ class TransformersDetector(BaseNERDetector):
         from transformers import pipeline as hf_pipeline
 
         nlp = hf_pipeline("ner", model=cfg.model)
-        return cls(pipeline=nlp, labels=None, threshold=cfg.threshold)
+        return cls(pipeline=nlp, labels=cfg.labels, threshold=cfg.threshold)
 
     def __init__(
         self,
