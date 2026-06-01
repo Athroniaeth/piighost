@@ -222,3 +222,33 @@ def test_pipeline_meta_optional_name():
         }
     )
     assert cfg.pipeline.name == "demo"
+
+
+def test_gliner2_labels_accepts_dict():
+    cfg = _DETECTOR_ADAPTER.validate_python(
+        {"type": "gliner2", "model": "m", "labels": {"PERSONNE": "person"}}
+    )
+    assert cfg.labels == {"PERSONNE": "person"}
+
+
+def test_gliner2_labels_still_accepts_list():
+    cfg = _DETECTOR_ADAPTER.validate_python(
+        {"type": "gliner2", "model": "m", "labels": ["person"]}
+    )
+    assert cfg.labels == ["person"]
+
+
+def test_transformers_labels_optional_and_accepts_dict():
+    bare = _DETECTOR_ADAPTER.validate_python({"type": "transformers", "model": "m"})
+    assert bare.labels is None
+    mapped = _DETECTOR_ADAPTER.validate_python(
+        {"type": "transformers", "model": "m", "labels": {"PERSONNE": "PER"}}
+    )
+    assert mapped.labels == {"PERSONNE": "PER"}
+
+
+def test_llm_labels_accepts_dict():
+    cfg = _DETECTOR_ADAPTER.validate_python(
+        {"type": "llm", "provider": "mistral", "model": "m", "labels": {"PERSONNE": "person"}}
+    )
+    assert cfg.labels == {"PERSONNE": "person"}
