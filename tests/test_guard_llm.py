@@ -153,3 +153,14 @@ class TestLLMGuardRail:
         guard = LLMGuardRail(model=model, labels=["PERSON"])
 
         await guard.check("Only <<PERSON:1>> is mentioned here.")
+
+    @pytest.mark.asyncio
+    async def test_ignores_known_tokens(self, _patch_langchain_core) -> None:
+        """Detections covering pipeline-emitted placeholder tokens are
+        exempt from the residual-PII check, mirroring the detector guard."""
+        LLMGuardRail = _get_guard_class()
+        # The model flags the fake name, but it IS the placeholder token.
+        model = _FakeChatModel(_extraction(_entity("Jean Dupont", "PERSON")))
+        guard = LLMGuardRail(model=model, labels=["PERSON"])
+
+        await guard.check("Bonjour Jean Dupont", tokens=["Jean Dupont"])
