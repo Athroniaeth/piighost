@@ -82,16 +82,7 @@ class ToolCallStrategy(Enum):
     PASSTHROUGH = "passthrough"
 
 
-def _get_thread_id() -> str:
-    """Extract the thread id from the LangGraph runtime config.
-
-    Falls back to ``"default"`` when called outside a runnable context
-    or on Python < 3.11 where ``get_config()`` is unavailable in async.
-    """
-    try:
-        return get_config().get("configurable", {}).get("thread_id", "default")
-    except RuntimeError:
-        return "default"
+_missing_thread_id_warned: bool = False
 
 
 class PIIAnonymizationMiddleware(AgentMiddleware):
@@ -104,6 +95,12 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             :attr:`ToolCallStrategy.FULL` (current historical
             behaviour). See :class:`ToolCallStrategy` for the full
             trade-offs.
+        require_thread_id: When *True*, ``_get_thread_id`` raises
+            instead of silently falling back to the shared ``"default"``
+            thread when the LangGraph config carries no thread id. Use
+            this to fail fast rather than risk cross-conversation
+            placeholder leakage. Defaults to *False* (warn once, then
+            fall back).
 
     Example:
         >>> from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -123,10 +120,41 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         self,
         pipeline: ThreadAnonymizationPipeline[PreservesIdentity],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
+        require_thread_id: bool = False,
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
         self.tool_strategy = tool_strategy
+        self._require_thread_id = require_thread_id
+
+    def _get_thread_id(self) -> str:
+        """Extract the thread id from the LangGraph runtime config.
+
+        Without a thread id every conversation shares the ``"default"``
+        thread (cross-conversation placeholder leakage). With
+        ``require_thread_id=True`` that fallback becomes an error.
+        """
+        global _missing_thread_id_warned
+        try:
+            thread_id = get_config().get("configurable", {}).get("thread_id")
+        except RuntimeError:
+            thread_id = None
+        if thread_id is not None:
+            return thread_id
+        if self._require_thread_id:
+            raise ValueError(
+                "No thread_id in the LangGraph config and require_thread_id=True; "
+                "set config={'configurable': {'thread_id': ...}} on the agent call."
+            )
+        if not _missing_thread_id_warned:
+            _missing_thread_id_warned = True
+            logger.warning(
+                "No thread_id in the LangGraph config; falling back to the shared "
+                "'default' thread. Distinct conversations will share placeholder "
+                "state. Pass config={'configurable': {'thread_id': ...}} or use "
+                "require_thread_id=True to fail fast."
+            )
+        return "default"
 
     async def abefore_model(
         self,
@@ -150,7 +178,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             nothing changed.
         """
         pipeline = self._pipeline
-        thread_id = _get_thread_id()
+        thread_id = self._get_thread_id()
 
         allowed_types: tuple[type, ...] = (HumanMessage, AIMessage)
         if self.tool_strategy is ToolCallStrategy.INBOUND_ONLY:
@@ -208,7 +236,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             An update dict replacing the ``messages`` key, or *None* if
             nothing changed.
         """
-        thread_id = _get_thread_id()
+        thread_id = self._get_thread_id()
 
         changed = False
         messages = state["messages"]
@@ -257,18 +285,10 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         if self.tool_strategy is ToolCallStrategy.PASSTHROUGH:
             return await handler(request)
 
-        thread_id = _get_thread_id()
+        thread_id = self._get_thread_id()
 
         call = request.tool_call
-        args = call["args"]
-        patched_args: dict[str, Any] = {}
-
-        for arg_name, arg_value in args.items():
-            if isinstance(arg_value, str):
-                arg_value = await self._deanonymize(arg_value, thread_id=thread_id)
-            patched_args[arg_name] = arg_value
-
-        call["args"] = patched_args
+        call["args"] = await self._deanonymize_value(dict(call["args"]), thread_id)
         response = await handler(request)
 
         if self.tool_strategy is ToolCallStrategy.FULL and (
@@ -284,6 +304,20 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     # -----------------------------------------------------------------
     # Private helpers
     # -----------------------------------------------------------------
+
+    async def _deanonymize_value(self, value: Any, thread_id: str) -> Any:
+        """Recursively deanonymize strings inside nested containers."""
+        if isinstance(value, str):
+            return await self._deanonymize(value, thread_id=thread_id)
+        if isinstance(value, dict):
+            return {
+                key: await self._deanonymize_value(item, thread_id)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            items = [await self._deanonymize_value(item, thread_id) for item in value]
+            return tuple(items) if isinstance(value, tuple) else items
+        return value
 
     async def _deanonymize(self, text: str, thread_id: str = "default") -> str:
         """Deanonymise text, falling back to entity-based replacement.

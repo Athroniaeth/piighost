@@ -9,12 +9,17 @@ Tests a 3-turn conversation to verify:
 - ToolMessages are not double-encoded by abefore_model
 """
 
+import logging
+
 import pytest
 from langchain.agents import create_agent
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.prebuilt.tool_node import ToolCallRequest
+
+import piighost.middleware
 
 from piighost.anonymizer import Anonymizer
 from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -536,3 +541,83 @@ class TestToolCallStrategies:
         pipeline = _build_pipeline()
         middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
         assert middleware.tool_strategy is ToolCallStrategy.FULL
+
+
+class TestRecursiveToolArgDeanonymization:
+    """awrap_tool_call must restore placeholders nested in containers."""
+
+    async def test_wrap_tool_call_deanonymizes_nested_args(self) -> None:
+        """Placeholders nested in dict / list / tuple args must be restored."""
+        pipeline = _build_pipeline()
+        # Seed the default thread so <<PERSON:1>> maps back to "Patrick".
+        anon, _ = await pipeline.anonymize("Bonjour Patrick")
+        assert "<<PERSON:1>>" in anon
+
+        middleware = PIIAnonymizationMiddleware(
+            pipeline=pipeline,
+            tool_strategy=ToolCallStrategy.FULL,
+        )
+
+        captured: dict = {}
+
+        async def handler(request: ToolCallRequest) -> ToolMessage:
+            captured.update(request.tool_call["args"])
+            return ToolMessage(content="ok", tool_call_id="call_1")
+
+        request = ToolCallRequest(
+            tool_call={
+                "name": "search",
+                "args": {
+                    "query": "<<PERSON:1>>",
+                    "filters": {"name": "<<PERSON:1>>", "depth": 2},
+                    "tags": ["<<PERSON:1>>", 42],
+                },
+                "id": "call_1",
+            },
+            tool=None,
+            state={},
+            runtime=None,
+        )
+
+        await middleware.awrap_tool_call(request, handler)
+
+        assert captured == {
+            "query": "Patrick",
+            "filters": {"name": "Patrick", "depth": 2},
+            "tags": ["Patrick", 42],
+        }
+
+
+class TestRequireThreadId:
+    """Strict-mode and warning behaviour of _get_thread_id."""
+
+    async def test_require_thread_id_raises_outside_runnable_context(self) -> None:
+        pipeline = _build_pipeline()
+        middleware = PIIAnonymizationMiddleware(
+            pipeline=pipeline,
+            require_thread_id=True,
+        )
+        with pytest.raises(ValueError, match="thread_id"):
+            middleware._get_thread_id()
+
+    async def test_missing_thread_id_warns_once(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        piighost.middleware._missing_thread_id_warned = False
+        pipeline = _build_pipeline()
+        middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
+
+        with caplog.at_level(logging.WARNING, logger="piighost.middleware"):
+            first = middleware._get_thread_id()
+            warnings_after_first = [
+                r for r in caplog.records if "thread_id" in r.getMessage()
+            ]
+            second = middleware._get_thread_id()
+            warnings_after_second = [
+                r for r in caplog.records if "thread_id" in r.getMessage()
+            ]
+
+        assert first == "default"
+        assert second == "default"
+        assert len(warnings_after_first) == 1
+        assert len(warnings_after_second) == 1
