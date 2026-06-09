@@ -576,7 +576,9 @@ class TestRecursiveToolArgDeanonymization:
             },
             tool=None,
             state={},
-            runtime=None,
+            # langgraph documents runtime as "None if outside graph" but
+            # annotates it non-optional.
+            runtime=None,  # pyrefly: ignore[bad-argument-type]
         )
 
         await middleware.awrap_tool_call(request, handler)

@@ -25,11 +25,18 @@ from piighost.config.models.span_resolver import (
 
 
 class PipelineMeta(_ComponentConfig):
-    """Free-text metadata for the pipeline. Exposed by ``/v1/labels``."""
+    """Pipeline-level settings and free-text metadata.
+
+    The metadata fields (``name``, ``description``, ``schema_version``)
+    are exposed by ``/v1/labels``.
+    """
 
     name: str | None = None
     description: str | None = None
     schema_version: Literal[1] = 1
+    cache_ttl: int = Field(default=3600, ge=0)
+    """Seconds before cached entries (detections, mappings, memory snapshots)
+    expire. ``0`` disables expiry (entries last until backend eviction)."""
 
 
 class PipelineConfig(_ComponentConfig):

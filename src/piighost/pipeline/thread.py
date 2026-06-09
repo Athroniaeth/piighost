@@ -310,9 +310,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         cache: BaseCache | None = None,
         cache_ttl: int | None = DEFAULT_CACHE_TTL,
         max_threads: int | None = None,
-        memory_factory: Callable[[], AnyConversationMemory] | None = None,
         observation: AbstractObservationService | None = None,
         observation_ph_factory: AnyPlaceholderFactory | None = None,
+        memory_factory: Callable[[], AnyConversationMemory] | None = None,
     ) -> None:
         if max_threads is not None and max_threads <= 0:
             raise ValueError(f"max_threads must be positive or None, got {max_threads}")
@@ -336,6 +336,13 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         )
         self._memories: OrderedDict[str, AnyConversationMemory] = OrderedDict()
         self._max_threads = max_threads
+        # One lock per thread id, serializing index read-modify-writes and
+        # ``forget_thread`` purges. Entries persist for the worker's
+        # lifetime: popping a lock while another coroutine holds it would
+        # mint a fresh lock for the same thread and reopen the race.
+        # Growth is bounded by the number of distinct thread ids, the same
+        # class as ``_memories`` without ``max_threads``; the full reset
+        # ``clear_all_memories()`` prunes them.
         self._index_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         # Index TTL: far longer than the data TTL so forget_thread still
         # finds expired-entry keys, yet bounded so deployments that never
@@ -441,8 +448,14 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         self._memories.pop(thread_id, None)
 
     def clear_all_memories(self) -> None:
-        """Drop every conversation memory tracked by the pipeline."""
+        """Drop every conversation memory tracked by the pipeline.
+
+        Also prunes the per-thread index locks: a full reset is the only
+        safe point to do so (dropping a lock that an in-flight coroutine
+        still holds would reopen the index race for that thread).
+        """
         self._memories.clear()
+        self._index_locks.clear()
 
     def get_resolved_entities(self, thread_id: str = "default") -> list[Entity]:
         """All entities from the thread's memory, merged then first-seen ordered.
@@ -524,19 +537,29 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         Intended for end-of-conversation cleanup and right-to-be-forgotten
         requests (used by piighost-api). Idempotent.
 
+        In-process callers are serialized against concurrent writes on the
+        same thread via the per-thread lock (``_cache_set_indexed`` takes
+        the same lock for its index update), so a purge cannot interleave
+        with an index read-modify-write. However, a request already past
+        the index read (e.g. mid-``anonymize`` about to re-persist memory)
+        can legitimately re-create entries after the purge; callers wanting
+        a hard guarantee must quiesce the thread first. The lock is
+        process-local, so concurrent writers on OTHER workers sharing the
+        cache backend are not covered either.
+
         Raises on backend failure; deletion order (data keys first, index
         last) makes a retry complete the purge.
         """
-        index_key = self._key_index_key(thread_id)
-        index: list[str] = await self._cache.get(index_key) or []
-        for key in index:
-            await self._cache.delete(key)
-        # The snapshot key is deterministic: delete it even when a lost
-        # index write left it unlisted, so no memory snapshot survives.
-        await self._cache.delete(self._memory_key(thread_id))
-        await self._cache.delete(index_key)
-        self._memories.pop(thread_id, None)
-        self._index_locks.pop(thread_id, None)
+        async with self._index_locks[thread_id]:
+            index_key = self._key_index_key(thread_id)
+            index: list[str] = await self._cache.get(index_key) or []
+            for key in index:
+                await self._cache.delete(key)
+            # The snapshot key is deterministic: delete it even when a lost
+            # index write left it unlisted, so no memory snapshot survives.
+            await self._cache.delete(self._memory_key(thread_id))
+            await self._cache.delete(index_key)
+            self._memories.pop(thread_id, None)
 
     async def _hydrate_memory(self, thread_id: str) -> None:
         """Merge the cached memory snapshot for *thread_id* into RAM.

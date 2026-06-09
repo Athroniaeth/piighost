@@ -111,6 +111,8 @@ def build_pipeline(
         span_resolver=span_resolver,
         entity_linker=entity_linker,  # pyrefly: ignore[bad-argument-type]
         entity_resolver=entity_resolver,
+        # TOML uses 0 for "no expiry"; the pipeline expects None for that.
+        cache_ttl=cfg.pipeline.cache_ttl or None,
     )
 
     manifest = PipelineManifest(
