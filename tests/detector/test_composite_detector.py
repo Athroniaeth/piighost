@@ -1,9 +1,11 @@
 """Tests for ``CompositeDetector``."""
 
+import asyncio
+
 import pytest
 
 from piighost.detector import CompositeDetector, ExactMatchDetector, RegexDetector
-from piighost.models import Detection
+from piighost.models import Detection, Span
 
 pytestmark = pytest.mark.asyncio
 
@@ -88,3 +90,57 @@ class TestBasicBehaviour:
         result = await detector.detect("alice@example.com et Patrick")
         assert result[0].label == "PERSON"
         assert result[1].label == "EMAIL"
+
+
+# ---------------------------------------------------------------------------
+# Concurrent execution
+# ---------------------------------------------------------------------------
+
+
+class _StubDetector:
+    """Async detector returning a fixed detection, optionally after a delay."""
+
+    def __init__(self, label: str, delay: float = 0.0) -> None:
+        self._label = label
+        self._delay = delay
+
+    async def detect(self, text: str) -> list[Detection]:
+        if self._delay:
+            await asyncio.sleep(self._delay)
+        return [
+            Detection(text="x", label=self._label, position=Span(0, 1), confidence=0.9)
+        ]
+
+
+class _FailingDetector:
+    """Async detector that always raises."""
+
+    async def detect(self, text: str) -> list[Detection]:
+        raise RuntimeError("boom")
+
+
+class TestConcurrentExecution:
+    """CompositeDetector runs children concurrently but keeps detector order."""
+
+    async def test_results_stay_in_detector_order_despite_completion_order(
+        self,
+    ) -> None:
+        """The slow first detector's results still come before the fast second's."""
+        detector = CompositeDetector(
+            detectors=[
+                _StubDetector("SLOW_FIRST", delay=0.05),
+                _StubDetector("FAST_SECOND"),
+            ]
+        )
+        result = await detector.detect("peu importe")
+        assert _labels(result) == ["SLOW_FIRST", "FAST_SECOND"]
+
+    async def test_child_exception_propagates(self) -> None:
+        detector = CompositeDetector(
+            detectors=[
+                _StubDetector("OK"),
+                _FailingDetector(),
+            ]
+        )
+        with pytest.raises(RuntimeError, match="boom"):
+            await detector.detect("peu importe")
