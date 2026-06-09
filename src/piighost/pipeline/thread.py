@@ -15,7 +15,6 @@ pipeline to recreate consistent placeholder tokens across messages.
 
 import logging
 import re
-import time
 import warnings
 from collections import OrderedDict
 from contextvars import ContextVar
@@ -27,7 +26,7 @@ from aiocache import BaseCache, SimpleMemoryCache
 
 from piighost.anonymizer import AnyAnonymizer
 from piighost.detector import AnyDetector
-from piighost.exceptions import PIIGhostConfigWarning, PIIRemainingError
+from piighost.exceptions import PIIGhostConfigWarning
 from piighost.guard import AnyGuardRail
 from piighost.linker.entity import AnyEntityLinker
 from piighost.models import Detection, Entity
@@ -37,7 +36,6 @@ from piighost.pipeline.base import (
     CACHE_KEY_ANONYMIZATION,
     CACHE_KEY_DETECTION,
     AnonymizationPipeline,
-    _entity_to_dict,
 )
 from piighost.placeholder import AnyPlaceholderFactory
 from piighost.placeholder_tags import (
@@ -593,152 +591,69 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         Returns:
             A tuple of (anonymized text, entities used for anonymization).
         """
-        if root_span is not None:
-            return await self._anonymize_with_span(
-                text,
-                root_span,
-                thread_id=thread_id,
-                metadata=metadata,
-            )
-
-        # Skip the pipeline run and the observation span when the
-        # mapping is already cached for this (text, thread_id). The
-        # entry is populated either by a previous ``anonymize`` for the
-        # same text or by ``deanonymize_with_ent`` (which knows both
-        # forms). Memory is updated so cross-message linking still has
-        # the entities available even though the link stage is skipped.
-        cv_token = _current_thread_id.set(thread_id)
-        try:
-            cached = await self._cache_get_anon_result(text)
-        finally:
-            _current_thread_id.reset(cv_token)
-
-        if cached is not None:
-            entities = self._deserialize_entities(cached["entities"])
-            self.get_memory(thread_id).record(hash_sha256(text), entities)
-            return cached["anonymized"], entities
-
-        # Root span input is filled in retroactively from
-        # ``_anonymize_with_span`` once detections are available, so the
-        # observation factory can render the obs-redacted form rather
-        # than swallowing the whole text under one sentinel.
-        with self._observation.start_as_current_span(
-            name="piighost.anonymize_pipeline",
-            session_id=thread_id if thread_id != "default" else None,
-            metadata=dict(metadata) if metadata else None,
-        ) as auto_root:
-            return await self._anonymize_with_span(
-                text,
-                auto_root,
-                thread_id=thread_id,
-                metadata=metadata,
-            )
-
-    async def _anonymize_with_span(
-        self,
-        text: str,
-        root_span: AbstractSpan,
-        *,
-        metadata: Mapping[str, Any] | None,
-        thread_id: str = "default",
-    ) -> tuple[str, list[Entity]]:
-        """Execute all conversation-aware pipeline stages, emitting child observations.
-
-        ``thread_id`` is keyword-only and defaults to ``"default"`` so
-        the override stays compatible with the base
-        ``_anonymize_with_span`` signature.  In practice, the override
-        is always reached through this class' own ``anonymize`` which
-        forwards the explicit thread id, so the default only matters
-        for callers that bypass that path.
-        """
         token = _current_thread_id.set(thread_id)
         try:
-            memory = self.get_memory(thread_id)
+            # Skip the pipeline run and the observation span when the
+            # mapping is already cached for this (text, thread_id). The
+            # entry is populated either by a previous ``anonymize`` for
+            # the same text or by ``deanonymize_with_ent`` (which knows
+            # both forms). Memory is updated so cross-message linking
+            # still has the entities available even though the link
+            # stage is skipped.
+            cached = await self._cache_get_anon_result(text)
+            if cached is not None:
+                entities = self._deserialize_entities(cached["entities"])
+                await self._record_entities(text, entities)
+                return cached["anonymized"], entities
 
-            # Detect
-            with root_span.start_as_current_observation(
-                name="piighost.detect",
-                as_type="tool",
-            ) as span:
-                detections = await self._cached_detect(text)
-                obs_text_pre_link = self._obs_text(
-                    text, [Entity(detections=(d,)) for d in detections]
-                )
-                root_span.update(input={"text": obs_text_pre_link})
-                span.update(
-                    input={"text": obs_text_pre_link},
-                    output={"detections": self._obs_detections_to_dicts(detections)},
-                )
-                detections = self._span_resolver.resolve(detections)
-                time.sleep(0.001)
+            if root_span is not None:
+                return await self._anonymize_with_span(text, root_span)
 
-            # Link
-            with root_span.start_as_current_observation(
-                name="piighost.link",
-                as_type="span",
-            ) as span:
-                entities = self._entity_linker.link(text, detections)
-                entities = self._entity_resolver.resolve(entities)
-                entities = self._entity_linker.link_entities(
-                    entities,
-                    memory.all_entities,
-                )
-                ent_tokens = (
-                    self._obs_ph_factory.create(entities)
-                    if self._obs_ph_factory is not None
-                    else {}
-                )
-                span.update(
-                    input={"detections": self._obs_detections_to_dicts(detections)},
-                    output={
-                        "entities": [
-                            _entity_to_dict(
-                                e, token=ent_tokens[e] if ent_tokens else None
-                            )
-                            for e in entities
-                        ]
-                    },
-                )
-                time.sleep(0.001)
-
-            memory.record(hash_sha256(text), entities)
-
-            # Placeholder
-            with root_span.start_as_current_observation(
-                name="piighost.placeholder",
-                as_type="tool",
-            ) as span:
-                result = self.anonymize_with_ent(text, thread_id=thread_id)
-                obs_text = self._obs_text(text, entities)
-                span.update(
-                    input={"text": obs_text, "entity_count": len(entities)},
-                    output={"text": result},
-                )
-                time.sleep(0.001)
-
-            # Guard
-            with root_span.start_as_current_observation(
-                name="piighost.guard",
-                as_type="guardrail",
-            ) as span:
-                span.update(input={"text": result})
-                try:
-                    await self._guard_rail.check(result)
-                except PIIRemainingError:
-                    span.update(output={"passed": False})
-                    raise
-                span.update(output={"passed": True})
-                time.sleep(0.001)
-
-            root_span.update(
-                output={"text": result, "entity_count": len(entities)},
-            )
-
-            await self._store_mapping(text, result, entities)
-            await self._store_anon_result(text, result, entities)
-            return result, entities
+            # Root span input is filled in retroactively from
+            # ``_anonymize_with_span`` once detections are available, so
+            # the observation factory can render the obs-redacted form
+            # rather than swallowing the whole text under one sentinel.
+            with self._observation.start_as_current_span(
+                name="piighost.anonymize_pipeline",
+                session_id=thread_id if thread_id != "default" else None,
+                metadata=dict(metadata) if metadata else None,
+            ) as auto_root:
+                return await self._anonymize_with_span(text, auto_root)
         finally:
             _current_thread_id.reset(token)
+
+    # ------------------------------------------------------------------
+    # Stage hooks (called by the base class template _anonymize_with_span)
+    # ------------------------------------------------------------------
+
+    def _link_stage(self, text: str, detections: list[Detection]) -> list[Entity]:
+        """Single-text linking plus cross-message linking against memory."""
+        thread_id = _current_thread_id.get()
+        entities = super()._link_stage(text, detections)
+        return self._entity_linker.link_entities(
+            entities,
+            self.get_memory(thread_id).all_entities,
+        )
+
+    async def _record_entities(self, text: str, entities: list[Entity]) -> None:
+        thread_id = _current_thread_id.get()
+        self.get_memory(thread_id).record(hash_sha256(text), entities)
+
+    def _render_stage(self, text: str, entities: list[Entity]) -> tuple[str, list[str]]:
+        """Render via the conversation-wide replacement pass.
+
+        Conversation entities carry detection positions from other
+        messages, so span-based replacement does not apply; the
+        longest-first word-boundary pass over all known surface forms
+        is used instead.
+        """
+        thread_id = _current_thread_id.get()
+        resolved = self.get_resolved_entities(thread_id)
+        token_map = self.ph_factory.create(resolved)
+        return (
+            self.anonymize_with_ent(text, thread_id=thread_id),
+            list(token_map.values()),
+        )
 
     async def deanonymize_with_ent(
         self,

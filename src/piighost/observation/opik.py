@@ -127,6 +127,8 @@ class OpikObservationService(AbstractObservationService):
     ``opik.configure``).
     """
 
+    needs_timestamp_spacing = True
+
     def __init__(self, client: Opik | None = None) -> None:
         if client is not None:
             opik.set_global_client(client)
