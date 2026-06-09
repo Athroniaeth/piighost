@@ -10,7 +10,8 @@ are deferred to inside ``build_detector`` to keep ``piighost.config``
 importable without their optional dependencies installed.
 """
 
-from typing import TYPE_CHECKING
+import os
+from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
 
@@ -208,11 +209,6 @@ def build_cache(cfg: BaseModel) -> "BaseCache":
     unset, so a misconfigured deployment fails at startup instead of
     silently degrading to a process-local cache.
     """
-    import os
-    from typing import cast
-
-    from aiocache.base import BaseCache
-
     from piighost.config.errors import ConfigError
 
     if isinstance(cfg, MemoryCacheConfig):
@@ -232,7 +228,14 @@ def build_cache(cfg: BaseModel) -> "BaseCache":
     if isinstance(cfg, RedisCacheConfig):
         from aiocache import Cache
 
-        return cast(BaseCache, Cache.from_url(url))
+        try:
+            return cast("BaseCache", Cache.from_url(url))
+        except Exception as exc:
+            raise ConfigError(
+                f"[cache] type='redis' could not build the backend from "
+                f"{cfg.url_env}={url!r}: {exc}. If the redis driver is "
+                f"missing, install the extra: piighost[redis]."
+            ) from exc
 
     from piighost.cache.sqlalchemy import SQLAlchemyCache
 
