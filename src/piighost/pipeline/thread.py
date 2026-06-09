@@ -482,6 +482,29 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         )
         return resolved
 
+    async def detect_entities(
+        self, text: str, thread_id: str = "default"
+    ) -> list[Entity]:
+        """Run the detection pipeline with thread-scoped caching.
+
+        Same stages as the base implementation; the ``thread_id`` scopes
+        the detection cache so ``override_detections`` corrections apply.
+        """
+        token = _current_thread_id.set(thread_id)
+        try:
+            return await super().detect_entities(text)
+        finally:
+            _current_thread_id.reset(token)
+
+    def get_resolved_tokens(self, thread_id: str = "default") -> dict[Entity, str]:
+        """Placeholder token per resolved entity for *thread_id*.
+
+        The same mapping the pipeline uses when rendering, exposed for
+        API consumers that serialize entities with their placeholders.
+        """
+        token_map, _ = self._resolved_token_pairs(thread_id)
+        return token_map
+
     # ------------------------------------------------------------------
     # Cache key helpers — prefix with thread_id for isolation
     # ------------------------------------------------------------------
