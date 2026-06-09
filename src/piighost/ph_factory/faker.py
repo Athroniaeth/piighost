@@ -105,6 +105,17 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
     The same entity always produces the same fake value within a single
     ``create()`` call (deterministic per entity via seeding).
 
+    Warning:
+        Single-worker / single-process only. Fake values come from this
+        instance's random Faker state, which is NOT part of the
+        conversation-memory snapshot persisted to the cache backend. On
+        another worker (or after a restart) the same entity gets a
+        different fake value, and tokens minted elsewhere cannot be
+        deanonymized. For multi-worker deployments use the deterministic
+        ``FakerHashPlaceholderFactory`` or
+        ``FakerCounterPlaceholderFactory`` instead, or route all traffic
+        through a single process.
+
     Args:
         faker: Optional pre-configured ``Faker`` instance.  Defaults to
             ``Faker()`` with no locale.
