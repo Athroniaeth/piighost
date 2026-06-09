@@ -55,3 +55,35 @@ async def test_threads_stay_isolated():
     # Separate threads each start their own numbering.
     assert a1 == "Bonjour <<PERSON:1>>"
     assert a2 == "<<PERSON:1>> est la"
+
+
+async def test_fuzzy_merge_does_not_shift_existing_counters():
+    """A late variant merging into an early entity must not shift other tokens.
+
+    patric (rank 0) holds <<PERSON:1>>, Bob <<PERSON:2>>, Carol <<PERSON:3>>.
+    When "patrick" arrives and fuzzy-merges into patric's entity, the merged
+    group keeps rank 0 (min over its detections) and Bob/Carol keep their
+    tokens.
+    """
+    from piighost.resolver.entity import FuzzyEntityConflictResolver
+
+    detector = ExactMatchDetector(
+        [
+            ("patric", "PERSON"),
+            ("Bob", "PERSON"),
+            ("Carol", "PERSON"),
+            ("patrick", "PERSON"),
+        ]
+    )
+    pipe = ThreadAnonymizationPipeline(
+        detector=detector,
+        anonymizer=Anonymizer(),
+        entity_resolver=FuzzyEntityConflictResolver(threshold=0.85),
+    )
+    await pipe.anonymize("patric est venu", thread_id="t")
+    await pipe.anonymize("Bob est venu", thread_id="t")
+    await pipe.anonymize("Carol est venue", thread_id="t")
+    a4, _ = await pipe.anonymize("patrick revient", thread_id="t")
+    assert a4 == "<<PERSON:1>> revient"
+    assert await pipe.deanonymize_with_ent("<<PERSON:2>>", thread_id="t") == "Bob"
+    assert await pipe.deanonymize_with_ent("<<PERSON:3>>", thread_id="t") == "Carol"
