@@ -82,6 +82,17 @@ def test_regex_validators_flow_from_config():
     assert detector.validators["CREDIT_CARD"] is validate_luhn
 
 
+def test_validator_registry_matches_config_literal():
+    from typing import get_args, get_type_hints
+
+    from piighost.config.models.detector import RegexDetectorConfig
+    from piighost.detector.base import _VALIDATOR_REGISTRY
+
+    hints = get_type_hints(RegexDetectorConfig)
+    literal = hints["validators"].__args__[1]  # dict[str, Literal[...]] value type
+    assert set(get_args(literal)) == set(_VALIDATOR_REGISTRY)
+
+
 def test_mask_user_strategies_merge_on_top_of_defaults():
     factory = MaskPlaceholderFactory(strategies={"CUSTOM": lambda t, mc: "X"})
     # The custom label works AND the email default is still present.

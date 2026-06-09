@@ -116,8 +116,9 @@ class AnonymizationPipeline(Generic[PreservationT]):
             Pass a ``DetectorGuardRail`` (or any ``AnyGuardRail``) to
             raise ``PIIRemainingError`` whenever residual PII is found
             in the output.
-        cache: Optional aiocache instance. If ``None``, no caching
-            is performed and deanonymize will raise KeyError.
+        cache: Optional aiocache instance. If ``None``, a process-local
+            ``SimpleMemoryCache`` is created; ``deanonymize`` requires the
+            mapping to be present in this cache.
         cache_ttl: Time-to-live in seconds applied to every cache entry
             the pipeline writes.  Defaults to one hour; pass ``None`` to
             keep entries until the backend evicts them.  Cache entries
@@ -455,7 +456,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
             The restored original text.
 
         Raises:
-            KeyError: If the anonymized text was never produced by this pipeline.
+            CacheMissError: If the anonymized text was never produced by this pipeline.
         """
         key = f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized_text)}"
         cached = await self._cache_get(key)
@@ -482,9 +483,6 @@ class AnonymizationPipeline(Generic[PreservationT]):
         entities: list[Entity],
     ) -> None:
         """Store the anonymization mapping in cache (both directions)."""
-        if self._cache is None:
-            return
-
         serialized_entities = self._serialize_entities(entities)
         key = f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized)}"
 
@@ -499,8 +497,6 @@ class AnonymizationPipeline(Generic[PreservationT]):
 
     async def _cache_get_anon_result(self, text: str) -> dict | None:
         """Return the cached anonymize result for *text*, or ``None``."""
-        if self._cache is None:
-            return None
         key = f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
         return await self._cache.get(key)
 
@@ -518,8 +514,6 @@ class AnonymizationPipeline(Generic[PreservationT]):
         repeat call. Called from both ``anonymize`` (after a fresh run)
         and ``deanonymize`` (which produces both forms).
         """
-        if self._cache is None:
-            return
         key = f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"
         await self._cache.set(
             key,
@@ -532,9 +526,6 @@ class AnonymizationPipeline(Generic[PreservationT]):
 
     async def _cached_detect(self, text: str) -> list[Detection]:
         """Detect entities, using cache if available."""
-        if self._cache is None:
-            return await self._detector.detect(text)
-
         cache_key = f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
         cached = await self._cache.get(cache_key)
 
@@ -547,9 +538,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
         return detections
 
     async def _cache_get(self, key: str) -> dict | None:
-        """Get a value from cache, or None if no cache or key missing."""
-        if self._cache is None:
-            return None
+        """Get a value from cache, or None if the key is missing."""
         result = await self._cache.get(key)
         return result
 

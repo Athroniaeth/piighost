@@ -31,7 +31,9 @@ Tests marked `integration` load heavy optional dependencies and are excluded by 
 3. **Link Entities**: `AnyEntityLinker` — `ExactEntityLinker` finds all occurrences via word-boundary regex and groups them; `link_entities()` links entities across messages.
 4. **Resolve Entities**: `AnyEntityConflictResolver` — `MergeEntityConflictResolver` (union-find) or `FuzzyEntityConflictResolver` (Jaro-Winkler, `similarity.py`).
 5. **Anonymize**: `AnyAnonymizer` — `Anonymizer` applies span-based replacement using an `AnyPlaceholderFactory`.
-6. **Guard rail** (optional): `AnyGuardRail` (`guard.py`) re-checks anonymized output for residual PII — `DetectorGuardRail` re-runs a detector, `LLMGuardRail` (`guard_llm.py`) uses an LLM prompted to ignore placeholders. Raises `PIIRemainingError`.
+6. **Guard rail** (optional): `AnyGuardRail` (`guard.py`) re-checks anonymized output for residual PII via `check(text, tokens=...)`, where `tokens` are the placeholders the pipeline just emitted so the guard can ignore them. `DetectorGuardRail` re-runs a detector, `LLMGuardRail` (`guard_llm.py`) uses an LLM prompted to ignore placeholders. Raises `PIIRemainingError`.
+
+All stages run through a single template method `_anonymize_with_span()` in `pipeline/base.py`, which calls hooks (`_link_stage`, `_record_entities`, `_render_stage`) in order; the thread pipeline overrides these hooks to add cross-message linking, conversation-memory recording, and memory-wide rendering.
 
 All stages use **protocols** (structural subtyping) for dependency injection. Tests use `ExactMatchDetector` to avoid loading real models. Data models (`Entity`, `Detection`, `Span` in `models.py`) are frozen dataclasses.
 
@@ -45,16 +47,17 @@ Factories in `placeholder.py`: `RedactPlaceholderFactory`, `LabelPlaceholderFact
 
 `ThreadAnonymizationPipeline` (`pipeline/thread.py`) extends the base pipeline with:
 - **Thread isolation**: memory and cache scoped per `thread_id` (propagated via a ContextVar, defaults to `"default"`)
-- `ConversationMemory` accumulates entities across messages per thread, deduplicated by `(text.lower(), label)`, tracking case variants so "patrick" in message 2 shares the placeholder of "Patrick" in message 1
+- `ConversationMemory` accumulates entities across messages per thread, deduplicated by `(text.lower(), label)`, tracking case variants so "patrick" in message 2 shares the placeholder of "Patrick" in message 1. Memory is cache-backed (write-through snapshots persisted to the cache backend, hydrated per call so multi-worker deployments see each other's entities) and injectable via `memory_factory`.
+- `forget_thread(thread_id)` purges a conversation from both RAM and the cache backend (via a per-thread key index, since aiocache has no portable prefix scan)
 - `deanonymize_with_ent()` / `anonymize_with_ent()` for string-based token replacement on any text
-- aiocache-backed caching of detector results and anonymization mappings (SHA-256 keyed, prefixed by thread_id). `cache/sqlalchemy.py` provides `SQLAlchemyCache`, an aiocache-compatible backend for SQLite/PostgreSQL persistence (required for multi-worker deployments).
+- aiocache-backed caching of detector results and anonymization mappings (SHA-256 keyed, prefixed by thread_id). `cache_ttl` defaults to 3600 s (one hour) on every entry the pipeline writes; pass `None` to keep entries until backend eviction. `cache/sqlalchemy.py` provides `SQLAlchemyCache`, an aiocache-compatible backend for SQLite/PostgreSQL persistence (required for multi-worker deployments).
 
 ### Middleware Integration
 
 `PIIAnonymizationMiddleware` (`middleware.py`) extends LangChain's `AgentMiddleware`:
-- Extracts `thread_id` from LangGraph config via `get_config()["configurable"]["thread_id"]`
+- Extracts `thread_id` from LangGraph config via `get_config()["configurable"]["thread_id"]`; `require_thread_id=True` raises instead of falling back to the shared `"default"` thread when no thread id is present
 - `abefore_model` anonymizes messages before the LLM sees them; `aafter_model` deanonymizes for user display (cache-based, `CacheMissError` falls back to entity-based)
-- `awrap_tool_call` behavior is controlled by `ToolCallStrategy`: `FULL` (deanonymize args, re-anonymize result), `INBOUND_ONLY`, or `PASSTHROUGH`
+- `awrap_tool_call` behavior is controlled by `ToolCallStrategy`: `FULL` (deanonymize args, re-anonymize result), `INBOUND_ONLY`, or `PASSTHROUGH`. Tool-call args are deanonymized recursively through nested dict/list/tuple containers (`_deanonymize_value`); other container types pass through unchanged
 
 ### TOML Configuration & CLI
 
@@ -69,6 +72,10 @@ Factories in `placeholder.py`: `RedactPlaceholderFactory`, `LabelPlaceholderFact
 ### Optional Dependencies
 
 Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `faker`, `middleware`, `client`, `sqlalchemy`, `config`, `langfuse`, `opik`, `all`. Imports of optional packages stay inside functions/modules that need them; `tests/test_optional_dependencies.py` enforces this. Keep new optional features behind the same pattern.
+
+### Design Patterns
+
+Config coupling is **one-way**: `config/builders.py` maps config types to component classes and dispatches to each component's `from_config()`, but core modules never import `piighost.config` at runtime (config-model type hints in core are guarded by `TYPE_CHECKING`). This is enforced by `tests/test_core_no_extras.py`. Adding a new component means a core class plus a config model plus a builder entry, never a core-to-config import.
 
 ## Conventions
 
