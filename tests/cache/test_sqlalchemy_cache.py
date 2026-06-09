@@ -67,6 +67,22 @@ class TestConstruction:
 # ---------------------------------------------------------------------------
 
 
+class TestLazySchema:
+    """The schema is created on first use without an explicit call."""
+
+    async def test_set_get_without_explicit_create_schema(self) -> None:
+        backend = SQLAlchemyCache(
+            url="sqlite+aiosqlite:///:memory:",
+            table_name=f"lazy_{id(asyncio.current_task())}",
+        )
+        try:
+            # No create_schema() call: the first operation must build it.
+            await backend.set("k", {"v": 1})
+            assert await backend.get("k") == {"v": 1}
+        finally:
+            await backend.close()
+
+
 class TestRoundTrip:
     """Set / get / delete behave like the in-memory backend."""
 
