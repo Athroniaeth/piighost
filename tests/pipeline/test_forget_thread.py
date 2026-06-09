@@ -20,6 +20,43 @@ def _pipeline(cache=None) -> ThreadAnonymizationPipeline:
     )
 
 
+class LatentCache(SimpleMemoryCache):
+    """SimpleMemoryCache whose get/set yield to the event loop, exposing RMW races."""
+
+    async def _get(self, key, encoding="utf-8", _conn=None):
+        await asyncio.sleep(0)
+        return await super()._get(key, encoding=encoding, _conn=_conn)
+
+    async def _set(self, key, value, ttl=None, _cas_token=None, _conn=None):
+        await asyncio.sleep(0)
+        return await super()._set(
+            key, value, ttl=ttl, _cas_token=_cas_token, _conn=_conn
+        )
+
+
+async def test_concurrent_writes_do_not_orphan_keys():
+    """Concurrent anonymize calls on one thread must leave no key unindexed."""
+    cache = LatentCache()
+    pipe = _pipeline(cache)
+    texts = [f"Bonjour Patrick numero {i}" for i in range(20)]
+    await asyncio.gather(*(pipe.anonymize(t, thread_id="t") for t in texts))
+    await pipe.forget_thread("t")
+    leftover = [k for k in cache._cache.keys() if str(k).startswith("t:")]
+    assert leftover == []
+
+
+async def test_snapshot_republished_after_expiry():
+    """A worker holding RAM memory must re-publish the snapshot if it expired."""
+    cache = SimpleMemoryCache()
+    pipe = _pipeline(cache)
+    await pipe.anonymize("Bonjour Patrick", thread_id="t")
+    # Simulate backend expiry of the snapshot only.
+    await cache.delete(pipe._memory_key("t"))
+    # Same text again: nothing new is recorded, but the snapshot must come back.
+    await pipe.anonymize("Bonjour Patrick", thread_id="t")
+    assert await cache.get(pipe._memory_key("t")) is not None
+
+
 def test_default_ttl_is_one_hour():
     assert DEFAULT_CACHE_TTL == 3600
     pipe = _pipeline()
