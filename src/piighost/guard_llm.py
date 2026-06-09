@@ -25,6 +25,7 @@ from langchain_core.language_models import BaseChatModel
 
 from piighost.detector.llm import LLMDetector
 from piighost.exceptions import PIIRemainingError
+from piighost.guard import filter_token_overlaps
 
 _DEFAULT_GUARD_PROMPT = (
     "You are auditing text that has already been anonymized. "
@@ -81,8 +82,6 @@ class LLMGuardRail:
         )
 
     async def check(self, anonymized_text: str, tokens: Sequence[str] = ()) -> None:
-        from piighost.guard import filter_token_overlaps
-
         residual = await self._detector.detect(anonymized_text)
         residual = filter_token_overlaps(residual, anonymized_text, tokens)
         if residual:
