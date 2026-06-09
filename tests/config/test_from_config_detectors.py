@@ -27,34 +27,41 @@ def test_build_detector_dispatches_regex():
     assert isinstance(detector, RegexDetector)
 
 
-def test_gliner2_detector_dispatch_mapping():
-    from piighost.config.models.detector import Gliner2DetectorConfig
+def test_every_detector_config_has_a_builder():
+    from piighost.config.models.detector import (
+        ChunkedDetectorConfig,
+        Gliner2DetectorConfig,
+        LLMDetectorConfig,
+        RegexDetectorConfig,
+        SpacyDetectorConfig,
+        TransformersDetectorConfig,
+    )
 
-    assert _DETECTOR_BUILDERS[Gliner2DetectorConfig] == "lazy:gliner2"
-
-
-def test_spacy_detector_dispatch_mapping():
-    from piighost.config.models.detector import SpacyDetectorConfig
-
-    assert _DETECTOR_BUILDERS[SpacyDetectorConfig] == "lazy:spacy"
-
-
-def test_transformers_detector_dispatch_mapping():
-    from piighost.config.models.detector import TransformersDetectorConfig
-
-    assert _DETECTOR_BUILDERS[TransformersDetectorConfig] == "lazy:transformers"
-
-
-def test_llm_detector_dispatch_mapping():
-    from piighost.config.models.detector import LLMDetectorConfig
-
-    assert _DETECTOR_BUILDERS[LLMDetectorConfig] == "lazy:llm"
+    expected = {
+        RegexDetectorConfig,
+        ChunkedDetectorConfig,
+        Gliner2DetectorConfig,
+        SpacyDetectorConfig,
+        TransformersDetectorConfig,
+        LLMDetectorConfig,
+    }
+    assert expected.issubset(set(_DETECTOR_BUILDERS.keys()))
 
 
-def test_chunked_detector_dispatch_mapping():
-    from piighost.config.models.detector import ChunkedDetectorConfig
+def test_every_lazy_builder_key_is_resolvable():
+    """Each lazy string in the dispatch dict must be known to the resolver.
 
-    assert _DETECTOR_BUILDERS[ChunkedDetectorConfig] == "lazy:chunked"
+    ImportError means the optional extra is not installed (acceptable);
+    KeyError would mean a typo in the dispatch dict (a real bug).
+    """
+    from piighost.config.builders import _resolve_lazy_detector
+
+    for builder in _DETECTOR_BUILDERS.values():
+        if isinstance(builder, str):
+            try:
+                _resolve_lazy_detector(builder)
+            except ImportError:
+                pass
 
 
 @pytest.mark.asyncio

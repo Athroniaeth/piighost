@@ -2,7 +2,7 @@
 
 Runs in a subprocess so the parent test session (which has pydantic
 installed and imported) cannot mask a hard dependency. A MetaPathFinder
-raises ImportError for the blocked package, simulating its absence.
+raises ModuleNotFoundError for the blocked package, simulating its absence.
 """
 
 import subprocess
@@ -14,13 +14,24 @@ CORE_MODULES = [
     "piighost.anonymizer",
     "piighost.placeholder",
     "piighost.placeholder_tags",
+    "piighost.detector",
     "piighost.detector.base",
+    "piighost.detector.chunked",
+    "piighost.linker",
     "piighost.linker.entity",
+    "piighost.resolver",
     "piighost.resolver.span",
     "piighost.resolver.entity",
     "piighost.guard",
     "piighost.models",
     "piighost.validators",
+    "piighost.similarity",
+    "piighost.utils",
+    "piighost.labels",
+    "piighost.exceptions",
+    "piighost.pipeline",
+    "piighost.pipeline.base",
+    "piighost.pipeline.thread",
 ]
 
 
@@ -31,8 +42,11 @@ def _import_with_blocked(package: str) -> subprocess.CompletedProcess:
 
         class Blocker(importlib.abc.MetaPathFinder):
             def find_spec(self, name, path=None, target=None):
+                # This blocker raises from find_spec rather than returning None,
+                # so it must not be used to simulate packages that core guards via
+                # importlib.util.find_spec (e.g. aiocache, faker).
                 if name == "{package}" or name.startswith("{package}."):
-                    raise ImportError(name + " blocked (simulating missing extra)")
+                    raise ModuleNotFoundError(name + " blocked (simulating missing extra)")
 
         sys.meta_path.insert(0, Blocker())
         import importlib
