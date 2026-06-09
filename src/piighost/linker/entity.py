@@ -269,7 +269,7 @@ class ExactEntityLinker(BaseEntityLinker):
 
         if seed_entities:
             for entity in seed_entities:
-                key = (entity.detections[0].text.lower(), entity.label)
+                key = entity.canonical_key
                 if key not in groups:
                     groups[key] = list(entity.detections)
 

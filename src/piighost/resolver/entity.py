@@ -238,8 +238,8 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
         """
         if entity_a.label != entity_b.label:
             return False
-        text_a = entity_a.detections[0].text.lower()
-        text_b = entity_b.detections[0].text.lower()
+        text_a = entity_a.canonical
+        text_b = entity_b.canonical
         return self._similarity_fn(text_a, text_b) >= self._threshold
 
 
