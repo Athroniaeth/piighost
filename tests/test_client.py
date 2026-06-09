@@ -345,6 +345,23 @@ async def test_forget_thread_sends_delete_and_returns_none() -> None:
 
 
 @pytest.mark.asyncio
+async def test_forget_thread_url_encodes_thread_id() -> None:
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "DELETE"
+        captured["raw_path"] = request.url.raw_path
+        return httpx.Response(204)
+
+    async with _make_client(handler) as client:
+        await client.forget_thread("a/b")
+
+    # The slash must be percent-encoded so the thread_id stays a single
+    # path segment and cannot escape the /v1/threads/ route.
+    assert b"a%2Fb" in captured["raw_path"]
+
+
+@pytest.mark.asyncio
 async def test_forget_thread_raises_on_http_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, json={"error": "boom"})

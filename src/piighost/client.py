@@ -23,6 +23,7 @@ if importlib.util.find_spec("httpx") is None:
 
 import sys
 from typing import Any
+from urllib.parse import quote
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -204,7 +205,7 @@ class PIIGhostClient:
         (right to be forgotten). Idempotent server-side; any non-2xx
         response raises.
         """
-        response = await self._client.delete(f"/v1/threads/{thread_id}")
+        response = await self._client.delete(f"/v1/threads/{quote(thread_id, safe='')}")
         response.raise_for_status()
 
     async def close(self) -> None:

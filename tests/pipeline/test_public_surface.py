@@ -35,8 +35,12 @@ async def test_get_resolved_tokens_matches_anonymized_output():
     assert entity.canonical == "patrick"
 
 
-def test_observation_property_is_settable():
-    pipe = _pipeline()
+def test_observation_property_is_real_and_settable():
+    from piighost.pipeline.base import AnonymizationPipeline
+
+    assert isinstance(AnonymizationPipeline.__dict__["observation"], property)
     svc = NoOpObservationService()
+    pipe = _pipeline()
     pipe.observation = svc
     assert pipe.observation is svc
+    assert pipe._observation is svc
