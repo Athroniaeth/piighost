@@ -14,6 +14,9 @@ def boundary_wrap(fragment: str) -> str:
     Uses ``\\b`` for alphanumeric/underscore edges and lookarounds
     ``(?<!\\w)`` / ``(?!\\w)`` for fragments starting or ending with
     special characters.
+
+    The fragment must be non-empty; an empty fragment would produce a
+    zero-width pattern matching everywhere.
     """
     prefix = r"\b" if fragment[0:1].isalnum() or fragment[0:1] == "_" else r"(?<!\w)"
     suffix = r"\b" if fragment[-1:].isalnum() or fragment[-1:] == "_" else r"(?!\w)"

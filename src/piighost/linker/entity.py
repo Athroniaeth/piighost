@@ -150,6 +150,7 @@ class ExactEntityLinker(BaseEntityLinker):
     @classmethod
     def from_config(cls, cfg: "ExactEntityLinkerConfig") -> "ExactEntityLinker":
         """Build an ``ExactEntityLinker`` from its validated configuration."""
+        # no flags (case-sensitive); re.NOFLAG needs Python >= 3.11
         flags = re.RegexFlag(0) if cfg.case_sensitive else re.IGNORECASE
         return cls(flags=flags, min_text_length=cfg.min_text_length)
 

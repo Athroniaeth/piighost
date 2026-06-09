@@ -8,7 +8,8 @@ containing known tokens or original values.
 Conversation-scoped memory for accumulating entities across messages.
 
 Stores all :class:`Entity` objects seen during a conversation, indexed
-by message hash and deduplicated by ``(text.lower(), label)``.  The
+by message hash and deduplicated by canonical identity
+(``Entity.canonical_key``, i.e. ``(text.lower(), label)``).  The
 ``all_entities`` property returns a flat, append-only list used by the
 pipeline to recreate consistent placeholder tokens across messages.
 """
@@ -113,9 +114,13 @@ def _replace_longest_first(
 
 
 class AnyConversationMemory(Protocol):
-    """Protocol for conversation memory implementations."""
+    """Protocol for conversation memory implementations.
 
-    entities_by_hash: dict[str, list[Entity]]
+    Serialization goes through ``to_dict`` / ``merge_snapshot``, so the
+    protocol does not constrain the internal storage shape; the concrete
+    ``ConversationMemory`` happens to expose an ``entities_by_hash`` dict
+    but custom memories are free to store entities however they like.
+    """
 
     @property
     def all_entities(self) -> list[Entity]: ...
@@ -131,8 +136,9 @@ class ConversationMemory:
     """In-memory conversation memory that accumulates entities across messages.
 
     Entities are stored per message hash and deduplicated by canonical
-    identity ``(text.lower(), label)``.  The ``all_entities`` property
-    flattens all stored entities in insertion order, skipping duplicates.
+    identity (``Entity.canonical_key``, i.e. ``(text.lower(), label)``).
+    The ``all_entities`` property flattens all stored entities in
+    insertion order, skipping duplicates.
 
     An internal canonical index makes ``record()`` lookups O(1) instead
     of scanning every previously-seen entity.  The index points at the
@@ -348,6 +354,15 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         sees inconsistent placeholders mid-conversation.  The warning
         focuses on correctness (cross-worker placeholder consistency),
         not performance.
+
+        Even with a shared backend, hydrate/record/persist is
+        last-write-wins across workers, so truly concurrent writes on the
+        SAME ``thread_id`` from two workers can transiently diverge while
+        alternating turns of a single conversation stay safe.  The
+        per-thread key index closes the in-process index race, but the
+        cross-worker index race is only TTL-bounded, so with
+        ``cache_ttl=None`` the right-to-be-forgotten guarantee requires a
+        single writer per thread.
         """
         global _multi_instance_warning_emitted
         if _multi_instance_warning_emitted:
@@ -582,13 +597,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             text: The original text whose detections should be overridden.
             detections: The corrected list of detections.
             thread_id: Thread identifier for cache isolation.
-
-        Raises:
-            RuntimeError: If no cache backend is configured.
         """
-        if self._cache is None:
-            raise RuntimeError("Cannot override detections without a cache backend")
-
         await self._hydrate_memory(thread_id)
 
         detect_key = self._thread_key(
@@ -633,9 +642,6 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
     async def _cached_detect(self, text: str) -> list[Detection]:
         """Detect entities, using thread-scoped cache if available."""
-        if self._cache is None:
-            return await self._detector.detect(text)
-
         thread_id = _current_thread_id.get()
         cache_key = self._thread_key(
             thread_id, f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
@@ -657,9 +663,6 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         entities: list[Entity],
     ) -> None:
         """Store anonymization mapping under a thread-scoped key."""
-        if self._cache is None:
-            return
-
         thread_id = _current_thread_id.get()
         serialized_entities = self._serialize_entities(entities)
         key = self._thread_key(
@@ -677,8 +680,6 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
     async def _cache_get_anon_result(self, text: str) -> dict | None:
         """Look up the cached anonymize result under a thread-scoped key."""
-        if self._cache is None:
-            return None
         thread_id = _current_thread_id.get()
         key = self._thread_key(
             thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
@@ -692,8 +693,6 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         entities: list[Entity],
     ) -> None:
         """Store ``original → (anonymized, entities)`` under a thread-scoped key."""
-        if self._cache is None:
-            return
         thread_id = _current_thread_id.get()
         key = self._thread_key(
             thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"

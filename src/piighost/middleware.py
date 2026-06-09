@@ -53,6 +53,11 @@ class ToolCallStrategy(Enum):
       run the full pipeline on the tool response to re-anonymise any
       new PII it may contain. Use for tools that fetch or return
       potentially sensitive data (databases, search APIs, CRMs).
+      Re-anonymisation only applies when ``response.content`` is a
+      ``str``; a ``ToolMessage`` whose content is a list of content
+      blocks passes through raw (the next ``abefore_model`` pass does
+      not anonymise ``ToolMessage`` content in ``FULL`` mode either, so
+      list-content tool responses are not re-anonymised).
 
     * ``INBOUND_ONLY`` — deanonymise arguments, but pass the tool
       response through unchanged. The next ``abefore_model`` pass will
@@ -288,7 +293,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         thread_id = self._get_thread_id()
 
         call = request.tool_call
-        call["args"] = await self._deanonymize_value(dict(call["args"]), thread_id)
+        call["args"] = await self._deanonymize_value(call["args"], thread_id)
         response = await handler(request)
 
         if self.tool_strategy is ToolCallStrategy.FULL and (
@@ -306,7 +311,12 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
     # -----------------------------------------------------------------
 
     async def _deanonymize_value(self, value: Any, thread_id: str) -> Any:
-        """Recursively deanonymize strings inside nested containers."""
+        """Recursively deanonymize strings inside nested containers.
+
+        Containers other than dict/list/tuple (e.g. sets, bytes) pass
+        through unchanged; tool args are JSON-derived so this covers all
+        reachable shapes.
+        """
         if isinstance(value, str):
             return await self._deanonymize(value, thread_id=thread_id)
         if isinstance(value, dict):
