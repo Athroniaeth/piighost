@@ -1,5 +1,6 @@
 import pytest
 
+from piighost.config.builders import _DETECTOR_BUILDERS, build_detector
 from piighost.config.models.detector import RegexDetectorConfig
 from piighost.detector.base import RegexDetector
 
@@ -20,47 +21,40 @@ async def test_regex_detector_from_config_produces_working_instance():
     assert detections[0].text == "alice@example.com"
 
 
-def test_regex_detector_config_classvar_points_to_config_model():
-    assert RegexDetector.Config is RegexDetectorConfig
+def test_build_detector_dispatches_regex():
+    cfg = RegexDetectorConfig(type="regex", patterns={"EMAIL": r"\S+@\S+"})
+    detector = build_detector(cfg)
+    assert isinstance(detector, RegexDetector)
 
 
-@pytest.mark.integration
-def test_gliner2_detector_config_classvar():
+def test_gliner2_detector_dispatch_mapping():
     from piighost.config.models.detector import Gliner2DetectorConfig
-    from piighost.detector.gliner2 import Gliner2Detector
 
-    assert Gliner2Detector.Config is Gliner2DetectorConfig
+    assert _DETECTOR_BUILDERS[Gliner2DetectorConfig] == "lazy:gliner2"
 
 
-@pytest.mark.integration
-def test_spacy_detector_config_classvar():
+def test_spacy_detector_dispatch_mapping():
     from piighost.config.models.detector import SpacyDetectorConfig
-    from piighost.detector.spacy import SpacyDetector
 
-    assert SpacyDetector.Config is SpacyDetectorConfig
+    assert _DETECTOR_BUILDERS[SpacyDetectorConfig] == "lazy:spacy"
 
 
-@pytest.mark.integration
-def test_transformers_detector_config_classvar():
+def test_transformers_detector_dispatch_mapping():
     from piighost.config.models.detector import TransformersDetectorConfig
-    from piighost.detector.transformers import TransformersDetector
 
-    assert TransformersDetector.Config is TransformersDetectorConfig
+    assert _DETECTOR_BUILDERS[TransformersDetectorConfig] == "lazy:transformers"
 
 
-@pytest.mark.integration
-def test_llm_detector_config_classvar():
+def test_llm_detector_dispatch_mapping():
     from piighost.config.models.detector import LLMDetectorConfig
-    from piighost.detector.llm import LLMDetector
 
-    assert LLMDetector.Config is LLMDetectorConfig
+    assert _DETECTOR_BUILDERS[LLMDetectorConfig] == "lazy:llm"
 
 
-def test_chunked_detector_config_classvar():
+def test_chunked_detector_dispatch_mapping():
     from piighost.config.models.detector import ChunkedDetectorConfig
-    from piighost.detector.chunked import ChunkedDetector
 
-    assert ChunkedDetector.Config is ChunkedDetectorConfig
+    assert _DETECTOR_BUILDERS[ChunkedDetectorConfig] == "lazy:chunked"
 
 
 @pytest.mark.asyncio

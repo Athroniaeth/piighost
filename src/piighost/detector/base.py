@@ -1,7 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from piighost.models import Detection, Span
 
@@ -225,8 +225,6 @@ class RegexDetector:
         ... )
     """
 
-    Config: ClassVar[type["RegexDetectorConfig"]]
-
     @classmethod
     def from_config(cls, cfg: "RegexDetectorConfig") -> "RegexDetector":
         """Build a ``RegexDetector`` from its validated configuration."""
@@ -317,8 +315,3 @@ class CompositeDetector:
             detections.extend(await detector.detect(text))
 
         return detections
-
-
-from piighost.config.models.detector import RegexDetectorConfig  # noqa: E402
-
-RegexDetector.Config = RegexDetectorConfig

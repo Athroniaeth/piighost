@@ -37,7 +37,7 @@ garbage tokens.
 
 import importlib.util
 from collections.abc import Callable
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from piighost.models import Entity
 
@@ -241,8 +241,6 @@ class FakerCounterPlaceholderFactory(
     _strategies: dict[str, StrategyValue]
     _locale: str
 
-    Config: ClassVar[type["FakerCounterPlaceholderConfig"]]
-
     @classmethod
     def from_config(
         cls, cfg: "FakerCounterPlaceholderConfig"
@@ -347,8 +345,6 @@ class FakerHashPlaceholderFactory(
     _salt: str
     _pepper: str
 
-    Config: ClassVar[type["FakerHashPlaceholderConfig"]]
-
     @classmethod
     def from_config(
         cls, cfg: "FakerHashPlaceholderConfig"
@@ -392,7 +388,7 @@ class FakerHashPlaceholderFactory(
             if label not in self._strategies:
                 _raise_unknown(entity.label, self._strategies)
             strategy = self._strategies[label]
-            canonical_text = entity.detections[0].text.lower()
+            canonical_text = entity.canonical
             digest = hash_canonical(
                 canonical_text,
                 entity.label,
@@ -428,11 +424,3 @@ __all__ = [
     "fake_url",
     "fake_with_seed",
 ]
-
-from piighost.config.models.placeholder import (  # noqa: E402
-    FakerCounterPlaceholderConfig,
-    FakerHashPlaceholderConfig,
-)
-
-FakerCounterPlaceholderFactory.Config = FakerCounterPlaceholderConfig
-FakerHashPlaceholderFactory.Config = FakerHashPlaceholderConfig

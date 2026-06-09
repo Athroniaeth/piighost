@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from piighost.models import Detection
 
@@ -76,8 +76,6 @@ class DisabledSpanConflictResolver:
         True
     """
 
-    Config: ClassVar[type["DisabledSpanResolverConfig"]]
-
     @classmethod
     def from_config(
         cls, cfg: "DisabledSpanResolverConfig"
@@ -117,8 +115,6 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
         [('PERSON', 0.91), ('LOCATION', 1.0)]
     """
 
-    Config: ClassVar[type["ConfidenceSpanResolverConfig"]]
-
     @classmethod
     def from_config(
         cls, cfg: "ConfidenceSpanResolverConfig"
@@ -151,12 +147,3 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
 
         accepted.sort(key=lambda d: d.position.start_pos)
         return accepted
-
-
-from piighost.config.models.span_resolver import (  # noqa: E402
-    ConfidenceSpanResolverConfig,
-    DisabledSpanResolverConfig,
-)
-
-ConfidenceSpanConflictResolver.Config = ConfidenceSpanResolverConfig
-DisabledSpanConflictResolver.Config = DisabledSpanResolverConfig

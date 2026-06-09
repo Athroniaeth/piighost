@@ -249,6 +249,11 @@ def test_transformers_labels_optional_and_accepts_dict():
 
 def test_llm_labels_accepts_dict():
     cfg = _DETECTOR_ADAPTER.validate_python(
-        {"type": "llm", "provider": "mistral", "model": "m", "labels": {"PERSONNE": "person"}}
+        {
+            "type": "llm",
+            "provider": "mistral",
+            "model": "m",
+            "labels": {"PERSONNE": "person"},
+        }
     )
     assert cfg.labels == {"PERSONNE": "person"}

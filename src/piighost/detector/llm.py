@@ -1,7 +1,7 @@
 """LLM-based entity detector using structured output."""
 
 import importlib.util
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from piighost.config.models.detector import LLMDetectorConfig
@@ -121,8 +121,6 @@ class LLMDetector:
         >>> detections = await detector.detect("Patrick habite à Paris")
     """
 
-    Config: ClassVar[type["LLMDetectorConfig"]]
-
     @classmethod
     def from_config(cls, cfg: "LLMDetectorConfig") -> "LLMDetector":
         """Build an ``LLMDetector`` from its validated configuration.
@@ -199,8 +197,3 @@ class LLMDetector:
                 )
 
         return detections
-
-
-from piighost.config.models.detector import LLMDetectorConfig  # noqa: E402
-
-LLMDetector.Config = LLMDetectorConfig

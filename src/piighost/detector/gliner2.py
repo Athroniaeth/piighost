@@ -1,5 +1,5 @@
 import importlib.util
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
@@ -48,8 +48,6 @@ class Gliner2Detector(BaseNERDetector):
     model: GLiNER2
     threshold: float
     flat_ner: bool
-
-    Config: ClassVar[type["Gliner2DetectorConfig"]]
 
     @classmethod
     def from_config(cls, cfg: "Gliner2DetectorConfig") -> "Gliner2Detector":
@@ -115,8 +113,3 @@ class Gliner2Detector(BaseNERDetector):
                 )
 
         return detections
-
-
-from piighost.config.models.detector import Gliner2DetectorConfig  # noqa: E402
-
-Gliner2Detector.Config = Gliner2DetectorConfig
