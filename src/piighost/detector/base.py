@@ -1,3 +1,4 @@
+import asyncio
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -301,17 +302,15 @@ class CompositeDetector:
         self.detectors: list[AnyDetector] = detectors if detectors is not None else []
 
     async def detect(self, text: str) -> list[Detection]:
-        """Collect detections from every child detector.
+        """Collect detections from every child detector, run concurrently.
 
         Args:
             text: The input text to search for entities.
 
         Returns:
-            Concatenated list of detections from all detectors.
+            Concatenated list of detections, in detector order.
         """
-        detections: list[Detection] = []
-
-        for detector in self.detectors:
-            detections.extend(await detector.detect(text))
-
-        return detections
+        if not self.detectors:
+            return []
+        results = await asyncio.gather(*(d.detect(text) for d in self.detectors))
+        return [detection for sublist in results for detection in sublist]
