@@ -12,12 +12,32 @@ graded view of remaining risk, see ``AnyRiskAssessor`` (roadmap).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from typing import Protocol
 
 from piighost.detector import AnyDetector
 from piighost.exceptions import PIIRemainingError
 from piighost.models import Detection
+from piighost.utils import boundary_wrap
+
+
+def _has_uncovered_word_chars(
+    start: int,
+    end: int,
+    text: str,
+    spans: list[tuple[int, int]],
+) -> bool:
+    """Whether ``[start, end)`` contains word characters outside *spans*."""
+    overlapping = sorted(
+        (max(s, start), min(e, end)) for s, e in spans if s < end and e > start
+    )
+    cursor = start
+    for s, e in overlapping:
+        if cursor < s and re.search(r"\w", text[cursor:s]):
+            return True
+        cursor = max(cursor, e)
+    return cursor < end and re.search(r"\w", text[cursor:end]) is not None
 
 
 def filter_token_overlaps(
@@ -25,29 +45,61 @@ def filter_token_overlaps(
     text: str,
     tokens: Sequence[str],
 ) -> list[Detection]:
-    """Drop detections that overlap an occurrence of a known placeholder token.
+    """Drop detections fully accounted for by known placeholder tokens.
 
     Guards re-run detectors on the anonymized output; with realistic
     factories (Faker) the placeholders themselves are detectable. The
-    pipeline therefore forwards the tokens it just emitted, and any
-    detection overlapping one of their occurrences is discarded.
+    pipeline therefore forwards the tokens it just emitted, and
+    detections covering only token occurrences are exempt from the
+    residual-PII check.
+
+    Token occurrences are located with word-boundary-anchored regex
+    matching (see ``boundary_wrap``), so a token that is a strict
+    substring of surrounding word characters does not count as an
+    occurrence. A detection is dropped only if the part of its span not
+    covered by token occurrences contains no word characters; trailing
+    punctuation or whitespace from NER boundary slop is tolerated, but
+    a detection spanning a token plus adjacent real PII is kept and the
+    guard raises.
+
+    Fail-closed consequences, both intended:
+
+    - a token glued to a word character (e.g. ``<<PERSON:1>>123``) is
+      not recognized as a token occurrence, so the overlapping
+      detection is kept and the guard may raise a false alarm;
+    - a detection containing no word characters at all (pure
+      punctuation) is dropped whenever any token occurs in the text.
+
+    Remaining accepted limitation: real PII whose text coincidentally
+    equals a token string at another word-boundary position in the text
+    is exempted; string-based matching cannot distinguish the two
+    occurrences (``placeholder_tags`` already documents the Faker
+    collision risk).
+
+    Raises:
+        TypeError: If *tokens* is a bare ``str``; a string would be
+            iterated character by character and silently neutralize
+            the residual-PII check.
     """
+    if isinstance(tokens, str):
+        raise TypeError(
+            "tokens must be a sequence of token strings, not a bare str "
+            "(a str would be iterated character by character and disable "
+            "the residual-PII check)"
+        )
     spans: list[tuple[int, int]] = []
     for token in tokens:
         if not token:
             continue
-        start = text.find(token)
-        while start != -1:
-            spans.append((start, start + len(token)))
-            start = text.find(token, start + 1)
+        for match in re.finditer(boundary_wrap(token), text):
+            spans.append((match.start(), match.end()))
     if not spans:
         return list(detections)
     return [
         d
         for d in detections
-        if not any(
-            d.position.start_pos < end and start < d.position.end_pos
-            for start, end in spans
+        if _has_uncovered_word_chars(
+            d.position.start_pos, d.position.end_pos, text, spans
         )
     ]
 

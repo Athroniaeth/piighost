@@ -12,8 +12,6 @@ from piighost.models import Detection, Span
 from piighost.pipeline import AnonymizationPipeline
 from piighost.placeholder import LabelCounterPlaceholderFactory
 
-pytestmark = pytest.mark.asyncio
-
 
 # ---------------------------------------------------------------------------
 # DisabledGuardRail
@@ -167,3 +165,48 @@ def test_filter_token_overlaps_drops_overlapping_detections():
     )
     kept = filter_token_overlaps([inside, outside], text, ["<<PERSON:1>>"])
     assert kept == [outside]
+
+
+async def test_detector_guard_keeps_detection_containing_token_plus_real_pii():
+    detector = ExactMatchDetector([("Jean Dupont Smith", "PERSON")])
+    guard = DetectorGuardRail(detector=detector)
+    # The detection spans the token plus adjacent real PII ("Smith"):
+    # the uncovered residue contains word characters, so the guard raises.
+    with pytest.raises(PIIRemainingError):
+        await guard.check("Jean Dupont Smith called", tokens=["Jean Dupont"])
+
+
+async def test_detector_guard_drops_detection_with_only_punctuation_residue():
+    detector = ExactMatchDetector([("Jean Dupont", "PERSON")])
+    guard = DetectorGuardRail(detector=detector)
+    # Detection spans "Jean Dupont" exactly; residue is empty: exempt.
+    await guard.check("Hello Jean Dupont.", tokens=["Jean Dupont"])
+
+
+def test_filter_token_overlaps_requires_token_sequence_not_str():
+    with pytest.raises(TypeError):
+        filter_token_overlaps([], "text", "Jean")
+
+
+def test_filter_token_overlaps_does_not_exempt_superstring_pii():
+    # "Jean Duponte" is real PII, not the token "Jean Dupont": the
+    # boundary-anchored match must not treat it as a token occurrence.
+    text = "Jean Duponte called"
+    d = Detection(
+        text="Jean Duponte", label="PERSON", position=Span(0, 12), confidence=1.0
+    )
+    kept = filter_token_overlaps([d], text, ["Jean Dupont"])
+    assert kept == [d]
+
+
+def test_filter_token_overlaps_handles_multiple_occurrences():
+    text = "<<PERSON:1>> met <<PERSON:1>>"
+    d1 = Detection(text="PERSON", label="PERSON", position=Span(2, 8), confidence=1.0)
+    d2 = Detection(text="PERSON", label="PERSON", position=Span(19, 25), confidence=1.0)
+    kept = filter_token_overlaps([d1, d2], text, ["<<PERSON:1>>"])
+    assert kept == []
+
+
+def test_filter_token_overlaps_empty_tokens_keeps_everything():
+    d = Detection(text="Alice", label="PERSON", position=Span(0, 5), confidence=1.0)
+    assert filter_token_overlaps([d], "Alice", []) == [d]
