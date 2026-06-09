@@ -16,6 +16,11 @@ from pydantic import BaseModel
 
 from piighost.anonymizer import Anonymizer
 from piighost.config.models.anonymizer import DefaultAnonymizerConfig
+from piighost.config.models.cache import (
+    MemoryCacheConfig,
+    RedisCacheConfig,
+    SqlAlchemyCacheConfig,
+)
 from piighost.config.models.detector import (
     ChunkedDetectorConfig,
     Gliner2DetectorConfig,
@@ -71,6 +76,8 @@ from piighost.resolver.span import (
 )
 
 if TYPE_CHECKING:
+    from aiocache.base import BaseCache
+
     from piighost.detector.base import AnyDetector
     from piighost.linker.entity import BaseEntityLinker
     from piighost.placeholder import AnyPlaceholderFactory
@@ -191,3 +198,42 @@ def build_placeholder_factory(cfg: BaseModel) -> "AnyPlaceholderFactory":
 
 def build_anonymizer(cfg: DefaultAnonymizerConfig) -> Anonymizer:
     return Anonymizer.from_config(cfg)
+
+
+def build_cache(cfg: BaseModel) -> "BaseCache":
+    """Build the cache backend from its validated configuration.
+
+    URL-bearing backends read their connection URL from the environment
+    variable named by ``url_env`` and raise ``ConfigError`` when it is
+    unset, so a misconfigured deployment fails at startup instead of
+    silently degrading to a process-local cache.
+    """
+    import os
+    from typing import cast
+
+    from aiocache.base import BaseCache
+
+    from piighost.config.errors import ConfigError
+
+    if isinstance(cfg, MemoryCacheConfig):
+        from aiocache import SimpleMemoryCache
+
+        return SimpleMemoryCache()
+
+    if not isinstance(cfg, (RedisCacheConfig, SqlAlchemyCacheConfig)):
+        raise ConfigError(f"unknown cache type: {type(cfg).__name__!r}")
+
+    url = os.environ.get(cfg.url_env)
+    if not url:
+        raise ConfigError(
+            f"[cache] type={cfg.type!r} requires the {cfg.url_env!r} "
+            f"environment variable to hold the connection URL"
+        )
+    if isinstance(cfg, RedisCacheConfig):
+        from aiocache import Cache
+
+        return cast(BaseCache, Cache.from_url(url))
+
+    from piighost.cache.sqlalchemy import SQLAlchemyCache
+
+    return SQLAlchemyCache(url=url, table_name=cfg.table_name)

@@ -60,6 +60,9 @@ faker = [
 cache = [
     "aiocache>=0.12",
 ]
+redis = [
+    "aiocache[redis]>=0.12",
+]
 middleware = [
     "langchain>=1.2",
     "aiocache>=0.12",
@@ -94,7 +97,7 @@ config = [
     "tomli>=2.0; python_version < '3.11'",
 ]
 all = [
-    "piighost[gliner2,langchain,faker,cache,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config]",
+    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config]",
 ]
 
 [build-system]
@@ -137,6 +140,9 @@ transformers = [
 ]
 pipeline = [
     "aiocache>=0.12.3",
+]
+redis = [
+    "aiocache[redis]>=0.12",
 ]
 llm = [
     "langchain-core>=0.3",
