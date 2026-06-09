@@ -5,9 +5,16 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol
 
 from piighost.models import Detection, Span
+from piighost.validators import validate_iban, validate_luhn, validate_nir
 
 if TYPE_CHECKING:
     from piighost.config.models.detector import RegexDetectorConfig
+
+_VALIDATOR_REGISTRY: dict[str, Callable[[str], bool]] = {
+    "luhn": validate_luhn,
+    "iban": validate_iban,
+    "nir": validate_nir,
+}
 
 
 class AnyDetector(Protocol):
@@ -229,7 +236,10 @@ class RegexDetector:
     @classmethod
     def from_config(cls, cfg: "RegexDetectorConfig") -> "RegexDetector":
         """Build a ``RegexDetector`` from its validated configuration."""
-        return cls(patterns=dict(cfg.patterns))
+        validators = {
+            label: _VALIDATOR_REGISTRY[name] for label, name in cfg.validators.items()
+        }
+        return cls(patterns=dict(cfg.patterns), validators=validators)
 
     def __init__(
         self,
