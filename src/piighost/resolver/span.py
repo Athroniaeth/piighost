@@ -120,7 +120,7 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
         cls, cfg: "ConfidenceSpanResolverConfig"
     ) -> "ConfidenceSpanConflictResolver":
         """Build a ``ConfidenceSpanConflictResolver`` from its validated configuration."""
-        return cls()
+        return cls(confidence_threshold=cfg.confidence_threshold)
 
     def __init__(self, confidence_threshold: float = 0.0) -> None:
         super().__init__(confidence_threshold=confidence_threshold)

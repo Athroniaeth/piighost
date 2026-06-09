@@ -14,6 +14,9 @@ class LabelCounterPlaceholderConfig(_ComponentConfig):
 class LabelHashPlaceholderConfig(_ComponentConfig):
     type: Literal["label_hash"]
     hash_length: int = Field(default=8, ge=4, le=64)
+    # The process-wide pepper stays out of TOML; it comes from the
+    # ``PIIGHOST_HASH_PEPPER`` env var. Only the per-instance salt is here.
+    salt: str = ""
 
 
 class LabelPlaceholderConfig(_ComponentConfig):
@@ -23,19 +26,26 @@ class LabelPlaceholderConfig(_ComponentConfig):
 class MaskPlaceholderConfig(_ComponentConfig):
     type: Literal["mask"]
     mask_char: str = Field(default="*", min_length=1, max_length=1)
+    visible_chars: int = Field(default=4, ge=0)
 
 
 class RedactCounterPlaceholderConfig(_ComponentConfig):
     type: Literal["redact_counter"]
+    prefix: str = "REDACT"
 
 
 class RedactHashPlaceholderConfig(_ComponentConfig):
     type: Literal["redact_hash"]
     hash_length: int = Field(default=8, ge=4, le=64)
+    prefix: str = "REDACT"
+    # The process-wide pepper stays out of TOML; it comes from the
+    # ``PIIGHOST_HASH_PEPPER`` env var. Only the per-instance salt is here.
+    salt: str = ""
 
 
 class RedactPlaceholderConfig(_ComponentConfig):
     type: Literal["redact"]
+    value: str = "REDACT"
 
 
 class FakerCounterPlaceholderConfig(_ComponentConfig):
