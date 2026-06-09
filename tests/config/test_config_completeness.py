@@ -2,6 +2,7 @@
 
 import re
 
+from piighost.config.loader import build_pipeline
 from piighost.config.models.detector import RegexDetectorConfig
 from piighost.config.models.entity_linker import ExactEntityLinkerConfig
 from piighost.config.models.placeholder import (
@@ -91,6 +92,38 @@ def test_validator_registry_matches_config_literal():
     hints = get_type_hints(RegexDetectorConfig)
     literal = hints["validators"].__args__[1]  # dict[str, Literal[...]] value type
     assert set(get_args(literal)) == set(_VALIDATOR_REGISTRY)
+
+
+def _pipeline_from_toml(toml_text: str):
+    import tomllib
+
+    from piighost.config.models.pipeline import PipelineConfig
+
+    cfg = PipelineConfig.model_validate(tomllib.loads(toml_text))
+    pipeline, _ = build_pipeline(cfg)
+    return pipeline
+
+
+_MINIMAL_DETECTOR = """
+[[detectors]]
+type = "regex"
+patterns = { EMAIL = "[a-z]+@[a-z]+\\\\.[a-z]+" }
+"""
+
+
+def test_cache_ttl_zero_disables_expiry():
+    pipeline = _pipeline_from_toml("[pipeline]\ncache_ttl = 0\n" + _MINIMAL_DETECTOR)
+    assert pipeline._cache_ttl is None
+
+
+def test_cache_ttl_flows_from_config():
+    pipeline = _pipeline_from_toml("[pipeline]\ncache_ttl = 120\n" + _MINIMAL_DETECTOR)
+    assert pipeline._cache_ttl == 120
+
+
+def test_cache_ttl_defaults_to_one_hour():
+    pipeline = _pipeline_from_toml(_MINIMAL_DETECTOR)
+    assert pipeline._cache_ttl == 3600
 
 
 def test_mask_user_strategies_merge_on_top_of_defaults():

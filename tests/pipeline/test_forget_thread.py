@@ -45,6 +45,39 @@ async def test_concurrent_writes_do_not_orphan_keys():
     assert leftover == []
 
 
+async def test_forget_thread_concurrent_with_anonymize_leaves_no_orphans():
+    """A purge racing in-flight anonymize calls must not orphan cache keys.
+
+    The anonymize calls may legitimately re-create entries after the purge
+    (they can be past the index read when forget_thread runs), but every
+    surviving key must stay INDEXED so a later quiescent forget_thread
+    finds and removes all of them.  Before forget_thread took the
+    per-thread lock (and stopped popping it, which minted a fresh lock for
+    in-flight writers and let two index RMWs interleave), specific
+    schedulings left ``t:detect:*`` keys behind for good.  Sweep the
+    forget offset to cover those interleavings.
+    """
+    for delay in range(30):
+        cache = LatentCache()
+        pipe = _pipeline(cache)
+
+        async def delayed_forget(ticks: int = delay) -> None:
+            for _ in range(ticks):
+                await asyncio.sleep(0)
+            await pipe.forget_thread("t")  # noqa: B023
+
+        await asyncio.gather(
+            pipe.anonymize("Bonjour Patrick", thread_id="t"),
+            pipe.anonymize("Salut Patrick", thread_id="t"),
+            delayed_forget(),
+        )
+        # Quiescent purge: everything the racing anonymize calls wrote
+        # must be discoverable through the index and erased.
+        await pipe.forget_thread("t")
+        leftover = [k for k in cache._cache.keys() if str(k).startswith("t:")]
+        assert leftover == [], f"orphaned keys at forget offset {delay}: {leftover}"
+
+
 async def test_snapshot_republished_after_expiry():
     """A worker holding RAM memory must re-publish the snapshot if it expired."""
     cache = SimpleMemoryCache()

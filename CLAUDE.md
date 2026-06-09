@@ -50,7 +50,7 @@ Factories in `placeholder.py`: `RedactPlaceholderFactory`, `LabelPlaceholderFact
 - `ConversationMemory` accumulates entities across messages per thread, deduplicated by `(text.lower(), label)`, tracking case variants so "patrick" in message 2 shares the placeholder of "Patrick" in message 1. Memory is cache-backed (write-through snapshots persisted to the cache backend, hydrated per call so multi-worker deployments see each other's entities) and injectable via `memory_factory`.
 - `forget_thread(thread_id)` purges a conversation from both RAM and the cache backend (via a per-thread key index, since aiocache has no portable prefix scan)
 - `deanonymize_with_ent()` / `anonymize_with_ent()` for string-based token replacement on any text
-- aiocache-backed caching of detector results and anonymization mappings (SHA-256 keyed, prefixed by thread_id). `cache_ttl` defaults to 3600 s (one hour) on every entry the pipeline writes; pass `None` to keep entries until backend eviction. `cache/sqlalchemy.py` provides `SQLAlchemyCache`, an aiocache-compatible backend for SQLite/PostgreSQL persistence (required for multi-worker deployments).
+- aiocache-backed caching of detector results and anonymization mappings (SHA-256 keyed, prefixed by thread_id). `cache_ttl` defaults to 3600 s (one hour) on every entry the pipeline writes; pass `None` to keep entries until backend eviction. In TOML configs the knob is `[pipeline] cache_ttl` (`0` disables expiry). `cache/sqlalchemy.py` provides `SQLAlchemyCache`, an aiocache-compatible backend for SQLite/PostgreSQL persistence (required for multi-worker deployments).
 
 ### Middleware Integration
 
