@@ -501,6 +501,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
         The same mapping the pipeline uses when rendering, exposed for
         API consumers that serialize entities with their placeholders.
+
+        Operates on the in-RAM memory of this worker; in multi-worker
+        deployments call an async entry point first so memory is hydrated
+        from the shared cache.
         """
         token_map, _ = self._resolved_token_pairs(thread_id)
         return token_map
