@@ -269,7 +269,10 @@ class AnonymizationPipeline(Generic[PreservationT]):
             metadata: Optional metadata forwarded to the observation trace.
             root_span: Caller-supplied root span. When provided the pipeline
                 nests its stage observations under it and does not create a
-                new root span from the configured observation service.
+                new root span from the configured observation service. When
+                the result is already cached, the pipeline returns it without
+                emitting any stage observations, including on a caller-supplied
+                root span.
 
         Returns:
             A tuple of (anonymized text, entities used for anonymization).
@@ -278,17 +281,19 @@ class AnonymizationPipeline(Generic[PreservationT]):
             PIIRemainingError: If a non-default guard rail detects
                 residual PII in the anonymized output.
         """
-        if root_span is not None:
-            return await self._anonymize_with_span(text, root_span)
-
         # Skip both the pipeline run and the observation span when the
         # mapping for *text* is already cached. The mapping was either
         # produced by a previous ``anonymize`` call for the same text or
-        # populated by ``deanonymize`` (which knows both forms).
+        # populated by ``deanonymize`` (which knows both forms). This is
+        # checked before the caller-supplied ``root_span`` branch so a
+        # cache hit never emits stage observations, even under a root span.
         cached = await self._cache_get_anon_result(text)
         if cached is not None:
             entities = self._deserialize_entities(cached["entities"])
             return cached["anonymized"], entities
+
+        if root_span is not None:
+            return await self._anonymize_with_span(text, root_span)
 
         # The root span's input is filled in retroactively from inside
         # ``_anonymize_with_span`` once detections are available, so the
@@ -314,12 +319,25 @@ class AnonymizationPipeline(Generic[PreservationT]):
         """Link detections into entities and resolve conflicts.
 
         Subclasses extend this to add cross-message linking.
+
+        The template ``_anonymize_with_span`` calls the hooks in this
+        order: detect -> ``_link_stage`` -> ``_record_entities`` ->
+        ``_render_stage`` -> guard. ``_render_stage`` MAY rely on state
+        recorded by ``_record_entities`` (the thread subclass renders from
+        conversation memory rather than from the ``entities`` argument).
         """
         entities = self._entity_linker.link(text, detections)
         return self._entity_resolver.resolve(entities)
 
     async def _record_entities(self, text: str, entities: list[Entity]) -> None:
-        """Hook called after linking; the base pipeline keeps no memory."""
+        """Hook called after linking; the base pipeline keeps no memory.
+
+        The template ``_anonymize_with_span`` calls the hooks in this
+        order: detect -> ``_link_stage`` -> ``_record_entities`` ->
+        ``_render_stage`` -> guard. ``_render_stage`` MAY rely on state
+        recorded here (the thread subclass renders from conversation memory
+        rather than from the ``entities`` argument).
+        """
         return None
 
     def _render_stage(self, text: str, entities: list[Entity]) -> tuple[str, list[str]]:
@@ -327,6 +345,12 @@ class AnonymizationPipeline(Generic[PreservationT]):
 
         Tokens are forwarded to the guard rail so it can ignore the
         placeholders the pipeline itself just emitted.
+
+        The template ``_anonymize_with_span`` calls the hooks in this
+        order: detect -> ``_link_stage`` -> ``_record_entities`` ->
+        ``_render_stage`` -> guard. This hook MAY rely on state recorded by
+        ``_record_entities`` (the thread subclass renders from conversation
+        memory rather than from the ``entities`` argument).
         """
         token_map = self.ph_factory.create(entities)
         return self._anonymizer.anonymize(text, entities), list(token_map.values())

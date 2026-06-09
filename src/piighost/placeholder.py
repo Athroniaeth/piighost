@@ -108,6 +108,14 @@ class AnyPlaceholderFactory(Protocol[PreservationT_co]):
     def create(self, entities: list[Entity]) -> dict[Entity, str]:
         """Create replacement tokens for all entities at once.
 
+        ``create`` MUST be deterministic. The same entity list must yield
+        the same tokens on every call, because the pipeline invokes it
+        multiple times per run: once to render the anonymized text inside
+        the anonymizer, and once to collect the token list forwarded to the
+        guard rail. A stateful factory that drifts between calls will
+        desynchronize the rendered text from the guard's exemption list,
+        making the guard flag tokens the pipeline itself emitted.
+
         Args:
             entities: The entities to create tokens for.
 

@@ -215,6 +215,11 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     shared Redis backend keeps conversations separate.  The default
     thread id is ``"default"``.
 
+    The stage hooks (``_link_stage``, ``_record_entities``,
+    ``_render_stage``) are only valid under a ``_current_thread_id`` set by
+    ``anonymize``; calling base methods like ``detect_entities()`` directly
+    on a thread pipeline routes caching to the ``"default"`` thread.
+
     Args:
         detector: The entity detector to use.
         span_resolver: The span conflict resolver to use.
@@ -586,7 +591,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             metadata: Optional metadata forwarded to the observation trace.
             root_span: Caller-supplied root span. When provided the pipeline
                 nests its stage observations under it and does not create a
-                new root span from the configured observation service.
+                new root span from the configured observation service. When
+                the result is already cached, the pipeline returns it without
+                emitting any stage observations, including on a caller-supplied
+                root span.
 
         Returns:
             A tuple of (anonymized text, entities used for anonymization).
@@ -646,6 +654,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         messages, so span-based replacement does not apply; the
         longest-first word-boundary pass over all known surface forms
         is used instead.
+
+        The ``entities`` parameter is intentionally unused: rendering uses
+        the full conversation memory recorded by ``_record_entities``, not
+        the per-message entities passed in.
         """
         thread_id = _current_thread_id.get()
         resolved = self.get_resolved_entities(thread_id)
