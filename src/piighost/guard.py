@@ -12,10 +12,44 @@ graded view of remaining risk, see ``AnyRiskAssessor`` (roadmap).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from piighost.detector import AnyDetector
 from piighost.exceptions import PIIRemainingError
+from piighost.models import Detection
+
+
+def filter_token_overlaps(
+    detections: list[Detection],
+    text: str,
+    tokens: Sequence[str],
+) -> list[Detection]:
+    """Drop detections that overlap an occurrence of a known placeholder token.
+
+    Guards re-run detectors on the anonymized output; with realistic
+    factories (Faker) the placeholders themselves are detectable. The
+    pipeline therefore forwards the tokens it just emitted, and any
+    detection overlapping one of their occurrences is discarded.
+    """
+    spans: list[tuple[int, int]] = []
+    for token in tokens:
+        if not token:
+            continue
+        start = text.find(token)
+        while start != -1:
+            spans.append((start, start + len(token)))
+            start = text.find(token, start + 1)
+    if not spans:
+        return list(detections)
+    return [
+        d
+        for d in detections
+        if not any(
+            d.position.start_pos < end and start < d.position.end_pos
+            for start, end in spans
+        )
+    ]
 
 
 class AnyGuardRail(Protocol):
@@ -26,11 +60,13 @@ class AnyGuardRail(Protocol):
     ``PIIRemainingError`` (or a subclass) on failure.
     """
 
-    async def check(self, anonymized_text: str) -> None:
+    async def check(self, anonymized_text: str, tokens: Sequence[str] = ()) -> None:
         """Validate that ``anonymized_text`` no longer contains PII.
 
         Args:
             anonymized_text: The text produced by ``Anonymizer``.
+            tokens: Placeholder tokens the pipeline emitted for this
+                text; occurrences are exempt from the residual-PII check.
 
         Raises:
             PIIRemainingError: If residual PII is detected.
@@ -46,7 +82,7 @@ class DisabledGuardRail:
     current behaviour: the anonymized text is returned as-is.
     """
 
-    async def check(self, anonymized_text: str) -> None:
+    async def check(self, anonymized_text: str, tokens: Sequence[str] = ()) -> None:
         return None
 
 
@@ -80,8 +116,9 @@ class DetectorGuardRail:
     def __init__(self, detector: AnyDetector) -> None:
         self._detector = detector
 
-    async def check(self, anonymized_text: str) -> None:
+    async def check(self, anonymized_text: str, tokens: Sequence[str] = ()) -> None:
         residual = await self._detector.detect(anonymized_text)
+        residual = filter_token_overlaps(residual, anonymized_text, tokens)
         if residual:
             raise PIIRemainingError(
                 f"{len(residual)} residual detection(s) found in anonymized text",
@@ -93,4 +130,5 @@ __all__ = [
     "AnyGuardRail",
     "DetectorGuardRail",
     "DisabledGuardRail",
+    "filter_token_overlaps",
 ]

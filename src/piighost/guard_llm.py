@@ -13,6 +13,7 @@ or ``<<LABEL:HEX>>`` so it focuses on residual clear-text PII only.
 from __future__ import annotations
 
 import importlib.util
+from collections.abc import Sequence
 
 if importlib.util.find_spec("langchain_core") is None:
     raise ImportError(
@@ -79,8 +80,11 @@ class LLMGuardRail:
             prompt=prompt or _DEFAULT_GUARD_PROMPT,
         )
 
-    async def check(self, anonymized_text: str) -> None:
+    async def check(self, anonymized_text: str, tokens: Sequence[str] = ()) -> None:
+        from piighost.guard import filter_token_overlaps
+
         residual = await self._detector.detect(anonymized_text)
+        residual = filter_token_overlaps(residual, anonymized_text, tokens)
         if residual:
             raise PIIRemainingError(
                 f"{len(residual)} residual detection(s) reported by LLM",
