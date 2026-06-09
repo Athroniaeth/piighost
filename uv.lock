@@ -20,6 +20,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/37/d7/15d67e05b235d1ed8c3ce61688fe4d84130e72af1657acadfaac3479f4cf/aiocache-0.12.3-py2.py3-none-any.whl", hash = "sha256:889086fc24710f431937b87ad3720a289f7fc31c4fd8b68e9f918b9bacd8270d", size = 28199, upload-time = "2024-09-25T13:20:22.688Z" },
 ]
 
+[package.optional-dependencies]
+redis = [
+    { name = "redis" },
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -2908,7 +2913,7 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "aiocache" },
+    { name = "aiocache", extra = ["redis"] },
     { name = "aiosqlite" },
     { name = "faker" },
     { name = "gliner2" },
@@ -2960,6 +2965,9 @@ middleware = [
 opik = [
     { name = "opik" },
 ]
+redis = [
+    { name = "aiocache", extra = ["redis"] },
+]
 spacy = [
     { name = "spacy" },
 ]
@@ -3007,6 +3015,9 @@ llm = [
 pipeline = [
     { name = "aiocache" },
 ]
+redis = [
+    { name = "aiocache", extra = ["redis"] },
+]
 spacy = [
     { name = "spacy" },
 ]
@@ -3023,6 +3034,7 @@ transformers = [
 requires-dist = [
     { name = "aiocache", marker = "extra == 'cache'", specifier = ">=0.12" },
     { name = "aiocache", marker = "extra == 'middleware'", specifier = ">=0.12" },
+    { name = "aiocache", extras = ["redis"], marker = "extra == 'redis'", specifier = ">=0.12" },
     { name = "aiosqlite", marker = "extra == 'sqlalchemy'", specifier = ">=0.20" },
     { name = "faker", marker = "extra == 'faker'", specifier = ">=40.11" },
     { name = "gliner2", marker = "extra == 'gliner2'", specifier = ">=1.2" },
@@ -3032,7 +3044,7 @@ requires-dist = [
     { name = "langchain-core", marker = "extra == 'llm'", specifier = ">=0.3" },
     { name = "langfuse", marker = "extra == 'langfuse'", specifier = ">=3.0" },
     { name = "opik", marker = "extra == 'opik'", specifier = ">=2.0" },
-    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "client", "spacy", "transformers", "llm", "sqlalchemy", "langfuse", "opik", "config"], marker = "extra == 'all'" },
+    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "redis", "client", "spacy", "transformers", "llm", "sqlalchemy", "langfuse", "opik", "config"], marker = "extra == 'all'" },
     { name = "pydantic", marker = "extra == 'config'", specifier = ">=2.6" },
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sqlalchemy'", specifier = ">=2.0" },
@@ -3043,7 +3055,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12" },
     { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'client'", specifier = ">=4.4" },
 ]
-provides-extras = ["gliner2", "langchain", "faker", "cache", "middleware", "client", "spacy", "transformers", "llm", "sqlalchemy", "langfuse", "opik", "config", "all"]
+provides-extras = ["gliner2", "langchain", "faker", "cache", "redis", "middleware", "client", "spacy", "transformers", "llm", "sqlalchemy", "langfuse", "opik", "config", "all"]
 
 [package.metadata.requires-dev]
 config = [
@@ -3070,6 +3082,7 @@ gliner2 = [{ name = "gliner2", specifier = ">=1.2.4" }]
 langchain = [{ name = "langchain", specifier = ">=1.2.13" }]
 llm = [{ name = "langchain-core", specifier = ">=0.3" }]
 pipeline = [{ name = "aiocache", specifier = ">=0.12.3" }]
+redis = [{ name = "aiocache", extras = ["redis"], specifier = ">=0.12" }]
 spacy = [{ name = "spacy", specifier = ">=3.7" }]
 sqlalchemy = [
     { name = "aiosqlite", specifier = ">=0.20" },
@@ -3892,6 +3905,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/9f/a3635cc4ec8fc6e14b46e7db1f7f8763d8c4bef33dcc124eea2e6cb2c8f3/rapidfuzz-3.14.5-pp311-pypy311_pp73-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8f4a8f5cc84c7ad6bffa0e9947b33eb343ad66e6b53e94fe54378a5508c5ed53", size = 1348524, upload-time = "2026-04-07T11:16:23.451Z" },
     { url = "https://files.pythonhosted.org/packages/cc/1b/2b229520f0b48464cfcd7aa758f74551d12c9bc4ab544022a60210aab064/rapidfuzz-3.14.5-pp311-pypy311_pp73-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:97c6d85283629646fa87acc22c66b30ea9d4de7f6fdf887daa2e30fa041829b5", size = 3099302, upload-time = "2026-04-07T11:16:25.858Z" },
     { url = "https://files.pythonhosted.org/packages/aa/b5/363906b1064fc6fe611783a61764927bbd91919aaaabe8cba82151ca93ef/rapidfuzz-3.14.5-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:dfef96543ced67d9513a422755db422ae1dc34dade0a1485e0b43e7342ed3ebf", size = 1509889, upload-time = "2026-04-07T11:16:28.487Z" },
+]
+
+[[package]]
+name = "redis"
+version = "8.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "async-timeout", marker = "python_full_version < '3.11.3'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/53/ae/ed461cca5780b5fc8b9fe8ca0ed98d89508645fb9d880c24cc42c087678f/redis-8.0.0.tar.gz", hash = "sha256:a00c5355432051ac14e593b8b197fc76c887ee12d55a0984f69328a1115fdc49", size = 5101591, upload-time = "2026-05-28T12:45:13.5Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/e3/b519734372d305bd547534a9f32e4ce9f98552af753dce72cf3483a0ff0b/redis-8.0.0-py3-none-any.whl", hash = "sha256:c938c18338585009f0bc310f4c7e4e4b4d37639356c4ac072cedf3af570c8dc7", size = 499870, upload-time = "2026-05-28T12:45:11.697Z" },
 ]
 
 [[package]]

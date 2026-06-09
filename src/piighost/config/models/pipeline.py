@@ -8,6 +8,7 @@ from piighost.config.models.anonymizer import (
     AnonymizerConfig,
     DefaultAnonymizerConfig,
 )
+from piighost.config.models.cache import CacheConfig, MemoryCacheConfig
 from piighost.config.models.common import _ComponentConfig
 from piighost.config.models.detector import DetectorConfig
 from piighost.config.models.entity_linker import (
@@ -52,3 +53,4 @@ class PipelineConfig(_ComponentConfig):
         default_factory=MergeEntityResolverConfig
     )
     anonymizer: AnonymizerConfig = Field(default_factory=DefaultAnonymizerConfig)
+    cache: CacheConfig = Field(default_factory=MemoryCacheConfig)
