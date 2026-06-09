@@ -17,6 +17,7 @@ import logging
 import re
 import warnings
 from collections import OrderedDict
+from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, Mapping, Protocol
 
@@ -119,6 +120,10 @@ class AnyConversationMemory(Protocol):
 
     def record(self, text_hash: str, entities: list[Entity]) -> None: ...
 
+    def to_dict(self) -> dict[str, Any]: ...
+
+    def merge_snapshot(self, data: dict[str, Any]) -> None: ...
+
 
 class ConversationMemory:
     """In-memory conversation memory that accumulates entities across messages.
@@ -181,6 +186,27 @@ class ConversationMemory:
             for text_hash, index in self._canonical_index.values()
         ]
 
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-friendly snapshot preserving insertion (first-seen) order."""
+        return {
+            "entities_by_hash": {
+                text_hash: [e.to_dict() for e in bucket]
+                for text_hash, bucket in self.entities_by_hash.items()
+            }
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ConversationMemory":
+        """Rebuild a memory by replaying the snapshot through ``record``."""
+        memory = cls()
+        memory.merge_snapshot(data)
+        return memory
+
+    def merge_snapshot(self, data: dict[str, Any]) -> None:
+        """Replay *data* into this memory; idempotent (record dedups)."""
+        for text_hash, bucket in data.get("entities_by_hash", {}).items():
+            self.record(text_hash, [Entity.from_dict(e) for e in bucket])
+
     @staticmethod
     def _key(entity: Entity) -> tuple[str, str]:
         """Canonical identity used for deduplication."""
@@ -235,6 +261,12 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             recently used memory is evicted.  ``None`` (default)
             disables the cap; use it with caution on long-running
             servers that juggle many conversations.
+        memory_factory: Callable returning a fresh
+            ``AnyConversationMemory`` for each new thread.  Defaults to
+            ``ConversationMemory``.  Inject a custom implementation to
+            change deduplication or storage semantics; it must support
+            ``to_dict`` / ``merge_snapshot`` so memory snapshots can
+            round-trip through the cache backend.
     """
 
     def __init__(
@@ -248,6 +280,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         cache: BaseCache | None = None,
         cache_ttl: int | None = None,
         max_threads: int | None = None,
+        memory_factory: Callable[[], AnyConversationMemory] | None = None,
         observation: AbstractObservationService | None = None,
         observation_ph_factory: AnyPlaceholderFactory | None = None,
     ) -> None:
@@ -268,7 +301,10 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             observation_ph_factory=observation_ph_factory,
         )
 
-        self._memories: OrderedDict[str, ConversationMemory] = OrderedDict()
+        self._memory_factory: Callable[[], AnyConversationMemory] = (
+            memory_factory or ConversationMemory
+        )
+        self._memories: OrderedDict[str, AnyConversationMemory] = OrderedDict()
         self._max_threads = max_threads
         self._maybe_warn_unshared_cache()
 
@@ -328,10 +364,11 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                 f"Use LabelCounterPlaceholderFactory or LabelHashPlaceholderFactory instead."
             )
 
-    def get_memory(self, thread_id: str = "default") -> ConversationMemory:
+    def get_memory(self, thread_id: str = "default") -> AnyConversationMemory:
         """Return the memory for *thread_id* (created on first access).
 
-        If ``max_threads`` is set, accessing a thread refreshes its LRU
+        New memories are built via the injected ``memory_factory``.  If
+        ``max_threads`` is set, accessing a thread refreshes its LRU
         position and creating a new one evicts the least recently used
         memory.
         """
@@ -340,7 +377,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             self._memories.move_to_end(thread_id)
             return memory
 
-        memory = ConversationMemory()
+        memory = self._memory_factory()
         self._memories[thread_id] = memory
         if self._max_threads is not None and len(self._memories) > self._max_threads:
             self._memories.popitem(last=False)
@@ -359,8 +396,27 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         self._memories.clear()
 
     def get_resolved_entities(self, thread_id: str = "default") -> list[Entity]:
-        """All entities from the thread's memory, merged by the entity resolver."""
-        return self._entity_resolver.resolve(self.get_memory(thread_id).all_entities)
+        """All entities from the thread's memory, merged then first-seen ordered.
+
+        The entity resolver may merge entities and sorts its output by
+        span position; positions come from different messages, so that
+        order is meaningless here and, worse, unstable (a new entity
+        early in its message would steal the counter of an older one).
+        Re-rank by first-seen order from memory so counter-based
+        factories assign stable tokens for the whole conversation.
+        """
+        all_entities = self.get_memory(thread_id).all_entities
+        if not all_entities:
+            return []
+        rank = {e.canonical_key: i for i, e in enumerate(all_entities)}
+        fallback = len(rank)
+        resolved = self._entity_resolver.resolve(all_entities)
+        resolved.sort(
+            key=lambda e: min(
+                rank.get((d.text.lower(), d.label), fallback) for d in e.detections
+            )
+        )
+        return resolved
 
     # ------------------------------------------------------------------
     # Cache key helpers — prefix with thread_id for isolation
@@ -370,6 +426,34 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     def _thread_key(thread_id: str, key: str) -> str:
         """Prefix a cache key with the given thread id."""
         return f"{thread_id}:{key}"
+
+    @staticmethod
+    def _memory_key(thread_id: str) -> str:
+        """Cache key holding the serialized conversation memory snapshot."""
+        return f"{thread_id}:piighost:memory"
+
+    async def _hydrate_memory(self, thread_id: str) -> None:
+        """Merge the cached memory snapshot for *thread_id* into RAM.
+
+        Called at the top of every async entry point so a worker that
+        did not process earlier messages still sees the entities (and
+        therefore the first-seen token ordering) recorded by another
+        worker through the shared cache backend.  Replay is idempotent;
+        concurrent writers are last-write-wins, which is acceptable for
+        alternating turns of a single conversation.
+        """
+        snapshot = await self._cache.get(self._memory_key(thread_id))
+        if snapshot is not None:
+            self.get_memory(thread_id).merge_snapshot(snapshot)
+
+    async def _persist_memory(self, thread_id: str) -> None:
+        """Write the thread's memory snapshot through to the cache backend."""
+        memory = self.get_memory(thread_id)
+        await self._cache.set(
+            self._memory_key(thread_id),
+            memory.to_dict(),
+            ttl=self._cache_ttl,
+        )
 
     async def override_detections(
         self,
@@ -415,6 +499,8 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         """
         if self._cache is None:
             raise RuntimeError("Cannot override detections without a cache backend")
+
+        await self._hydrate_memory(thread_id)
 
         detect_key = self._thread_key(
             thread_id, f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
@@ -601,6 +687,8 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         """
         token = _current_thread_id.set(thread_id)
         try:
+            await self._hydrate_memory(thread_id)
+
             # Skip the pipeline run and the observation span when the
             # mapping is already cached for this (text, thread_id). The
             # entry is populated either by a previous ``anonymize`` for
@@ -646,6 +734,27 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     async def _record_entities(self, text: str, entities: list[Entity]) -> None:
         thread_id = _current_thread_id.get()
         self.get_memory(thread_id).record(hash_sha256(text), entities)
+        await self._persist_memory(thread_id)
+
+    def _resolved_token_pairs(
+        self, thread_id: str
+    ) -> tuple[dict[Entity, str], list[tuple[str, str]]]:
+        """Token map for the thread's resolved entities plus replacement pairs.
+
+        Resolution and token creation are computed once here and shared
+        by ``_render_stage`` and ``anonymize_with_ent`` so a single
+        anonymize run does not resolve the conversation twice.
+        """
+        resolved = self.get_resolved_entities(thread_id)
+        if not resolved:
+            return {}, []
+        token_map = self.ph_factory.create(resolved)
+        pairs = [
+            (detection.text, token)
+            for entity, token in token_map.items()
+            for detection in entity.detections
+        ]
+        return token_map, pairs
 
     def _render_stage(self, text: str, entities: list[Entity]) -> tuple[str, list[str]]:
         """Render via the conversation-wide replacement pass.
@@ -660,10 +769,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         the per-message entities passed in.
         """
         thread_id = _current_thread_id.get()
-        resolved = self.get_resolved_entities(thread_id)
-        token_map = self.ph_factory.create(resolved)
+        token_map, pairs = self._resolved_token_pairs(thread_id)
         return (
-            self.anonymize_with_ent(text, thread_id=thread_id),
+            _replace_longest_first(text, pairs, word_boundary=True),
             list(token_map.values()),
         )
 
@@ -688,13 +796,17 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         Returns:
             Text with tokens replaced by original values.
         """
-        resolved = self.get_resolved_entities(thread_id)
+        await self._hydrate_memory(thread_id)
 
-        if not resolved:
+        token_map, _ = self._resolved_token_pairs(thread_id)
+
+        if not token_map:
             return text
 
-        tokens = self.ph_factory.create(resolved)
-        pairs = [(token, entity.detections[0].text) for entity, token in tokens.items()]
+        pairs = [
+            (token, entity.detections[0].text) for entity, token in token_map.items()
+        ]
+        resolved = list(token_map.keys())
 
         anonymized = text
         restored = _replace_longest_first(text, pairs)
@@ -725,16 +837,5 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         Returns:
             Text with original values replaced by tokens.
         """
-        resolved = self.get_resolved_entities(thread_id)
-
-        if not resolved:
-            return text
-
-        tokens = self.ph_factory.create(resolved)
-
-        pairs: list[tuple[str, str]] = []
-        for entity, token in tokens.items():
-            for detection in entity.detections:
-                pairs.append((detection.text, token))
-
+        _, pairs = self._resolved_token_pairs(thread_id)
         return _replace_longest_first(text, pairs, word_boundary=True)
