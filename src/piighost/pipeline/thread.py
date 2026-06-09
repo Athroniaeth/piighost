@@ -124,8 +124,8 @@ class ConversationMemory:
         >>> memory = ConversationMemory()
         >>> e = Entity(detections=(Detection("Patrick", "PERSON", Span(0, 7), 0.9),))
         >>> memory.record("abc123", [e])
-        >>> memory.all_entities
-        [Entity(detections=(Detection(text='Patrick', label='PERSON', position=Span(start_pos=0, end_pos=7), confidence=0.9),))]
+        >>> memory.all_entities[0].canonical
+        'patrick'
     """
 
     def __init__(
@@ -171,7 +171,7 @@ class ConversationMemory:
     @staticmethod
     def _key(entity: Entity) -> tuple[str, str]:
         """Canonical identity used for deduplication."""
-        return entity.detections[0].text.lower(), entity.label
+        return entity.canonical_key
 
     def _merge_variant(self, slot: tuple[str, int], entity: Entity) -> None:
         """Merge a new surface-form variant into the entity at *slot*.

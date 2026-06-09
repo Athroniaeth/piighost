@@ -277,7 +277,7 @@ class LabelHashPlaceholderFactory(
         result: dict[Entity, str] = {}
 
         for entity in entities:
-            canonical_text = entity.detections[0].text.lower()
+            canonical_text = entity.canonical
             label = entity.label
             digest = hash_canonical(
                 canonical_text,
@@ -417,7 +417,7 @@ class RedactHashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnly])
         for entity in entities:
             # Hash on (text + label) so two entities with the same
             # surface text but different labels still get distinct ids.
-            canonical_text = entity.detections[0].text.lower()
+            canonical_text = entity.canonical
             digest = hash_canonical(
                 canonical_text,
                 entity.label,

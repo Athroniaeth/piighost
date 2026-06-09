@@ -14,6 +14,13 @@ class Span:
     start_pos: int
     end_pos: int
 
+    def __post_init__(self) -> None:
+        if self.start_pos < 0 or self.end_pos < self.start_pos:
+            raise ValueError(
+                f"Invalid span bounds: start_pos={self.start_pos}, "
+                f"end_pos={self.end_pos} (need 0 <= start_pos <= end_pos)"
+            )
+
     def overlaps(self, other: "Span") -> bool:
         """Check whether this span overlaps with another.
 
@@ -32,8 +39,8 @@ class Detection:
 
     Attributes:
         text: The surface form found in the source string (e.g. ``"Patrick"``).
-            This field holds **raw PII**: it is rendered verbatim by the
-            dataclass-generated ``__repr__``. If you forward Detection
+            This field holds **raw PII**: it is masked in ``__repr__``; use
+            :meth:`to_dict` for the raw value. If you forward Detection
             instances to logs or external sinks, scrub them yourself
             (e.g. via :meth:`to_dict` filtered, or a structured logger
             with field-level redaction).
@@ -46,6 +53,13 @@ class Detection:
     label: str
     position: Span
     confidence: float
+
+    def __repr__(self) -> str:
+        masked = f"{self.text[:1]}***" if self.text else ""
+        return (
+            f"Detection(text={masked!r}, label={self.label!r}, "
+            f"position={self.position!r}, confidence={self.confidence!r})"
+        )
 
     @property
     def hash(self) -> str:
@@ -115,6 +129,16 @@ class Entity:
             The label string (e.g. ``"PERSON"``).
         """
         return self.detections[0].label
+
+    @property
+    def canonical(self) -> str:
+        """Lower-cased canonical surface text (first detection)."""
+        return self.detections[0].text.lower()
+
+    @property
+    def canonical_key(self) -> tuple[str, str]:
+        """Identity key ``(canonical, label)`` used for dedup and cross-message linking."""
+        return (self.canonical, self.label)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-friendly mapping of this entity."""
