@@ -42,6 +42,14 @@ PreservationT = TypeVar(
 )
 """Preservation tag carried by the pipeline's anonymiser factory."""
 
+DEFAULT_CACHE_TTL: int = 3600
+"""Default time-to-live (seconds) for every cache entry the pipeline writes.
+
+Cache entries hold raw PII (original texts and entity surface forms),
+so unbounded retention is not an acceptable default.  Pass
+``cache_ttl=None`` explicitly to keep entries until backend eviction.
+"""
+
 CACHE_KEY_DETECTION = "detect"
 """Prefix for detector-result cache entries."""
 
@@ -111,10 +119,10 @@ class AnonymizationPipeline(Generic[PreservationT]):
         cache: Optional aiocache instance. If ``None``, no caching
             is performed and deanonymize will raise KeyError.
         cache_ttl: Time-to-live in seconds applied to every cache entry
-            the pipeline writes.  ``None`` (default) keeps entries until
-            the backend evicts them, which is fine for in-memory caches
-            but can leak unbounded state when sharing a Redis backend
-            across threads.
+            the pipeline writes.  Defaults to one hour; pass ``None`` to
+            keep entries until the backend evicts them.  Cache entries
+            hold raw PII, so unbounded retention can leak state when
+            sharing a Redis backend across threads.
         observation: Observation backend used to emit the per-stage
             trace tree.  Defaults to ``NoOpObservationService`` (silent,
             zero-overhead).
@@ -148,7 +156,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
         entity_resolver: AnyEntityConflictResolver | None = None,
         guard_rail: AnyGuardRail | None = None,
         cache: BaseCache | None = None,
-        cache_ttl: int | None = None,
+        cache_ttl: int | None = DEFAULT_CACHE_TTL,
         observation: AbstractObservationService | None = None,
         observation_ph_factory: AnyPlaceholderFactory | None = None,
     ) -> None:
