@@ -324,6 +324,37 @@ async def test_deanonymize_with_ent_returns_plain_text() -> None:
 
 
 # ---------------------------------------------------------------------------
+# forget_thread
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_forget_thread_sends_delete_and_returns_none() -> None:
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "DELETE"
+        captured["path"] = request.url.path
+        return httpx.Response(204)
+
+    async with _make_client(handler) as client:
+        result = await client.forget_thread("t1")
+
+    assert result is None
+    assert captured["path"] == "/v1/threads/t1"
+
+
+@pytest.mark.asyncio
+async def test_forget_thread_raises_on_http_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"error": "boom"})
+
+    async with _make_client(handler) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.forget_thread("t1")
+
+
+# ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
 

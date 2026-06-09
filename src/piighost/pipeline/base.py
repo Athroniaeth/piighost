@@ -207,6 +207,15 @@ class AnonymizationPipeline(Generic[PreservationT]):
         """The placeholder factory used by the anonymizer."""
         return self._anonymizer.ph_factory
 
+    @property
+    def observation(self) -> AbstractObservationService:
+        """The observation backend emitting per-stage trace spans."""
+        return self._observation
+
+    @observation.setter
+    def observation(self, service: AbstractObservationService) -> None:
+        self._observation = service
+
     def _obs_tokens_for_detections(
         self, detections: list[Detection]
     ) -> dict[Detection, str]:
