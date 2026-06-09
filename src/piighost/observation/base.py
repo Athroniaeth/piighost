@@ -68,6 +68,16 @@ class AbstractObservationService(ABC):
     is called.
     """
 
+    needs_timestamp_spacing: bool = False
+    """Whether the pipeline should space consecutive stage observations
+    by ~1 ms.  Langfuse (and Opik) store observation timestamps with
+    millisecond precision and tie-break by random ID, so two stages
+    starting in the same millisecond render in arbitrary order in the
+    trace timeline.  The Python SDKs expose no public ``start_time``
+    parameter (only OTel internals do), so pacing the producer is the
+    only stable workaround.  Backends that do not need it (the NoOp
+    default) keep ``False`` and pay zero latency."""
+
     @abstractmethod
     def start_as_current_span(
         self,
