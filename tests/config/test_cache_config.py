@@ -72,6 +72,42 @@ def test_sqlalchemy_cache_reads_url_from_env(tmp_path, monkeypatch):
     assert type(cache).__name__ == "SQLAlchemyCache"
 
 
+def test_redis_invalid_url_raises_config_error(monkeypatch):
+    monkeypatch.setenv("MY_REDIS", "redis://localhost:notaport")
+    cfg = RedisCacheConfig(type="redis", url_env="MY_REDIS")
+    with pytest.raises(ConfigError, match="MY_REDIS"):
+        build_cache(cfg)
+
+
+def test_redis_cache_default_serializer_round_trips_pipeline_values(monkeypatch):
+    from aiocache.serializers import JsonSerializer
+
+    monkeypatch.setenv("MY_REDIS", "redis://localhost:6399/0")
+    cache = build_cache(RedisCacheConfig(type="redis", url_env="MY_REDIS"))
+    assert isinstance(cache.serializer, JsonSerializer)
+
+    samples = [
+        {
+            "anonymized": "Bonjour <<PERSON:1>>",
+            "entities": [
+                [
+                    {
+                        "text": "Patrick",
+                        "label": "PERSON",
+                        "start_pos": 8,
+                        "end_pos": 15,
+                        "confidence": 1.0,
+                    }
+                ]
+            ],
+        },
+        {"entities_by_hash": {"abc": [{"detections": []}]}},
+        ["t:detect:abc", "t:anon:result:def"],
+    ]
+    for value in samples:
+        assert cache.serializer.loads(cache.serializer.dumps(value)) == value
+
+
 def test_load_pipeline_wires_the_cache(tmp_path):
     from piighost.config import load_pipeline
 

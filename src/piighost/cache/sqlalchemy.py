@@ -24,6 +24,7 @@ Example:
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import time
 from typing import Any, Iterable, cast
@@ -96,10 +97,10 @@ class SQLAlchemyCache(BaseCache):
         table_name: Name of the cache table.  Defaults to
             ``"piighost_cache"``.  Pick a different name to share one
             database between several PIIGhost deployments.
-        serializer: aiocache serializer.  Defaults to ``PickleSerializer``
-            because the pipeline stores nested Python dicts that contain
-            tuples and dataclasses.  Pass ``JsonSerializer()`` if you
-            prefer JSON storage and your data is JSON-compatible.
+        serializer: aiocache serializer.  Defaults to ``PickleSerializer``,
+            which is a fine default for the JSON-friendly dicts of scalars
+            the pipeline stores.  Pass ``JsonSerializer()`` if you prefer
+            JSON storage on the wire; the stored values are JSON-compatible.
         **kwargs: Forwarded to ``aiocache.BaseCache.__init__`` (namespace,
             timeout, plugins…).
     """
@@ -110,6 +111,8 @@ class SQLAlchemyCache(BaseCache):
     _owns_engine: bool
     _session_factory: async_sessionmaker
     _table: Table
+    _schema_ready: bool
+    _schema_lock: asyncio.Lock
 
     def __init__(
         self,
@@ -135,6 +138,8 @@ class SQLAlchemyCache(BaseCache):
 
         self._session_factory = async_sessionmaker(self._engine, expire_on_commit=False)
         self._table = _build_table(table_name)
+        self._schema_ready = False
+        self._schema_lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
     # Schema & lifecycle
@@ -143,13 +148,25 @@ class SQLAlchemyCache(BaseCache):
     async def create_schema(self) -> None:
         """Create the cache table if it does not exist.
 
-        Idempotent.  Called once at application startup; subsequent
-        calls are no-ops.  Skip it if you manage migrations externally
-        (Alembic) — the column layout is documented in the module
-        docstring.
+        Idempotent.  May be called eagerly at application startup, but it
+        is no longer required: the backend creates the schema lazily on
+        first use via ``_ensure_schema``.  Skip both if you manage
+        migrations externally (Alembic); the column layout is documented
+        in the module docstring.
         """
         async with self._engine.begin() as conn:
             await conn.run_sync(self._table.metadata.create_all)
+        self._schema_ready = True
+
+    async def _ensure_schema(self) -> None:
+        """Create the cache table on first use (idempotent, once per instance)."""
+        if self._schema_ready:
+            return
+        async with self._schema_lock:
+            if self._schema_ready:
+                return
+            await self.create_schema()
+            self._schema_ready = True
 
     async def close(self) -> None:
         """Dispose the underlying engine if this instance owns it.
@@ -170,6 +187,7 @@ class SQLAlchemyCache(BaseCache):
     # rest of the aiocache ecosystem.
 
     async def _get(self, key, encoding="utf-8", _conn=None):  # type: ignore[bad-override]
+        await self._ensure_schema()
         async with self._session_factory() as session:
             row = await session.execute(
                 select(self._table.c.value, self._table.c.expires_at).where(
@@ -206,6 +224,7 @@ class SQLAlchemyCache(BaseCache):
     ):
         if not keys:
             return []
+        await self._ensure_schema()
         async with self._session_factory() as session:
             rows = await session.execute(
                 select(
@@ -237,6 +256,7 @@ class SQLAlchemyCache(BaseCache):
         _cas_token=None,
         _conn=None,
     ):
+        await self._ensure_schema()
         expires_at = (time.time() + ttl) if ttl else None
         async with self._session_factory() as session:
             if _cas_token is not None:
@@ -258,6 +278,7 @@ class SQLAlchemyCache(BaseCache):
     ):
         if not pairs:
             return True
+        await self._ensure_schema()
         expires_at = (time.time() + ttl) if ttl else None
         rows = [(k, v, expires_at) for k, v in pairs]
         async with self._session_factory() as session:
@@ -272,6 +293,7 @@ class SQLAlchemyCache(BaseCache):
         ttl=None,
         _conn=None,
     ):
+        await self._ensure_schema()
         async with self._session_factory() as session:
             existing = await session.execute(
                 select(self._table.c.key).where(self._table.c.key == key),
@@ -297,6 +319,7 @@ class SQLAlchemyCache(BaseCache):
         # only makes sense for an integer payload, which the pipeline
         # never writes, so we keep a minimal implementation that round-
         # trips through int() and stores the result as a UTF-8 string.
+        await self._ensure_schema()
         async with self._session_factory() as session:
             current = await session.execute(
                 select(self._table.c.value).where(self._table.c.key == key),
@@ -320,6 +343,7 @@ class SQLAlchemyCache(BaseCache):
         ttl,
         _conn=None,
     ):
+        await self._ensure_schema()
         async with self._session_factory() as session:
             existing = await session.execute(
                 select(self._table.c.key).where(self._table.c.key == key),
@@ -340,6 +364,7 @@ class SQLAlchemyCache(BaseCache):
         key,
         _conn=None,
     ):
+        await self._ensure_schema()
         async with self._session_factory() as session:
             result = await session.execute(
                 delete(self._table).where(self._table.c.key == key),
@@ -352,6 +377,7 @@ class SQLAlchemyCache(BaseCache):
         namespace=None,
         _conn=None,
     ):
+        await self._ensure_schema()
         async with self._session_factory() as session:
             if namespace:
                 await session.execute(
@@ -380,6 +406,7 @@ class SQLAlchemyCache(BaseCache):
         key,
         value,
     ):
+        await self._ensure_schema()
         async with self._session_factory() as session:
             current = await session.execute(
                 select(self._table.c.value).where(self._table.c.key == key),
