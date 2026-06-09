@@ -98,6 +98,8 @@ class LangfuseObservationService(AbstractObservationService):
     to ``client.start_as_current_observation(as_type="span", ...)``.
     """
 
+    needs_timestamp_spacing = True
+
     def __init__(self, client: Langfuse) -> None:
         self._client = client
 

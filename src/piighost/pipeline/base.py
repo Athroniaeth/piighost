@@ -1,5 +1,5 @@
+import asyncio
 import importlib.util
-import time
 import warnings
 from typing import Any, Generic, Mapping, Tuple
 
@@ -279,7 +279,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
                 residual PII in the anonymized output.
         """
         if root_span is not None:
-            return await self._anonymize_with_span(text, root_span, metadata=metadata)
+            return await self._anonymize_with_span(text, root_span)
 
         # Skip both the pipeline run and the observation span when the
         # mapping for *text* is already cached. The mapping was either
@@ -298,14 +298,43 @@ class AnonymizationPipeline(Generic[PreservationT]):
             name="piighost.anonymize_pipeline",
             metadata=dict(metadata) if metadata else None,
         ) as auto_root:
-            return await self._anonymize_with_span(text, auto_root, metadata=metadata)
+            return await self._anonymize_with_span(text, auto_root)
+
+    async def _obs_pause(self) -> None:
+        """Space consecutive stage observations by ~1 ms when the backend asks.
+
+        Non-blocking (``asyncio.sleep``), and skipped entirely for
+        backends that do not set ``needs_timestamp_spacing`` (NoOp).
+        See ``AbstractObservationService.needs_timestamp_spacing``.
+        """
+        if getattr(self._observation, "needs_timestamp_spacing", False):
+            await asyncio.sleep(0.001)
+
+    def _link_stage(self, text: str, detections: list[Detection]) -> list[Entity]:
+        """Link detections into entities and resolve conflicts.
+
+        Subclasses extend this to add cross-message linking.
+        """
+        entities = self._entity_linker.link(text, detections)
+        return self._entity_resolver.resolve(entities)
+
+    async def _record_entities(self, text: str, entities: list[Entity]) -> None:
+        """Hook called after linking; the base pipeline keeps no memory."""
+        return None
+
+    def _render_stage(self, text: str, entities: list[Entity]) -> tuple[str, list[str]]:
+        """Render the anonymized text; returns ``(anonymized, tokens)``.
+
+        Tokens are forwarded to the guard rail so it can ignore the
+        placeholders the pipeline itself just emitted.
+        """
+        token_map = self.ph_factory.create(entities)
+        return self._anonymizer.anonymize(text, entities), list(token_map.values())
 
     async def _anonymize_with_span(
         self,
         text: str,
         root_span: AbstractSpan,
-        *,
-        metadata: Mapping[str, Any] | None,
     ) -> Tuple[str, list[Entity]]:
         """Execute all pipeline stages, emitting child observations on *root_span*."""
         # Detect
@@ -323,15 +352,14 @@ class AnonymizationPipeline(Generic[PreservationT]):
                 output={"detections": self._obs_detections_to_dicts(detections)},
             )
             detections = self._span_resolver.resolve(detections)
-            time.sleep(0.001)
+            await self._obs_pause()
 
         # Link
         with root_span.start_as_current_observation(
             name="piighost.link",
             as_type="span",
         ) as span:
-            entities = self._entity_linker.link(text, detections)
-            entities = self._entity_resolver.resolve(entities)
+            entities = self._link_stage(text, detections)
             ent_tokens = (
                 self._obs_ph_factory.create(entities)
                 if self._obs_ph_factory is not None
@@ -346,20 +374,22 @@ class AnonymizationPipeline(Generic[PreservationT]):
                     ]
                 },
             )
-            time.sleep(0.001)
+            await self._obs_pause()
+
+        await self._record_entities(text, entities)
 
         # Placeholder
         with root_span.start_as_current_observation(
             name="piighost.placeholder",
             as_type="tool",
         ) as span:
-            anonymized = self._anonymizer.anonymize(text, entities)
+            anonymized, tokens = self._render_stage(text, entities)
             obs_text = self._obs_text(text, entities)
             span.update(
                 input={"text": obs_text, "entity_count": len(entities)},
                 output={"text": anonymized},
             )
-            time.sleep(0.001)
+            await self._obs_pause()
 
         # Guard
         with root_span.start_as_current_observation(
@@ -368,12 +398,12 @@ class AnonymizationPipeline(Generic[PreservationT]):
         ) as span:
             span.update(input={"text": anonymized})
             try:
-                await self._guard_rail.check(anonymized)
+                await self._guard_rail.check(anonymized, tokens=tokens)
             except PIIRemainingError:
                 span.update(output={"passed": False})
                 raise
             span.update(output={"passed": True})
-            time.sleep(0.001)
+            await self._obs_pause()
 
         root_span.update(
             output={"text": anonymized, "entity_count": len(entities)},
