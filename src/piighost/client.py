@@ -197,6 +197,16 @@ class PIIGhostClient:
         response.raise_for_status()
         return response.json()["text"]
 
+    async def forget_thread(self, thread_id: str) -> None:
+        """Erase every server-side trace of *thread_id* (memory + cache).
+
+        Maps to ``DELETE /v1/threads/{thread_id}`` on piighost-api
+        (right to be forgotten). Idempotent server-side; any non-2xx
+        response raises.
+        """
+        response = await self._client.delete(f"/v1/threads/{thread_id}")
+        response.raise_for_status()
+
     async def close(self) -> None:
         """Close the underlying HTTP client."""
         await self._client.aclose()
