@@ -187,11 +187,17 @@ class ConversationMemory:
         ]
 
     def to_dict(self) -> dict[str, Any]:
-        """JSON-friendly snapshot preserving insertion (first-seen) order."""
+        """JSON-friendly snapshot preserving insertion (first-seen) order.
+
+        Buckets without entities are skipped: replaying an empty bucket
+        is a no-op, and keeping them would grow the snapshot with every
+        PII-free message.
+        """
         return {
             "entities_by_hash": {
                 text_hash: [e.to_dict() for e in bucket]
                 for text_hash, bucket in self.entities_by_hash.items()
+                if bucket
             }
         }
 
@@ -412,6 +418,8 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         fallback = len(rank)
         resolved = self._entity_resolver.resolve(all_entities)
         resolved.sort(
+            # (d.text.lower(), d.label) is Entity.canonical_key, derived per
+            # detection; min keeps a merged group at its earliest-seen rank.
             key=lambda e: min(
                 rank.get((d.text.lower(), d.label), fallback) for d in e.detections
             )
@@ -829,6 +837,11 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         Replaces **all** spelling variants of each entity (not just the
         canonical form).  Values are replaced **longest-first** to avoid
         partial matches.
+
+        Operates on the in-RAM memory of this worker; in multi-worker
+        deployments call an async entry point (``anonymize`` /
+        ``deanonymize_with_ent``) first so memory is hydrated from the
+        shared cache.
 
         Args:
             text: Text potentially containing original PII values.
