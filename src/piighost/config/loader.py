@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 from piighost.anonymizer import Anonymizer
 from piighost.config.builders import (
     build_anonymizer,
+    build_cache,
     build_detector,
     build_entity_linker,
     build_entity_resolver,
@@ -104,6 +105,7 @@ def build_pipeline(
     entity_linker = build_entity_linker(cfg.entity_linker)
     entity_resolver = build_entity_resolver(cfg.entity_resolver)
     anonymizer: Anonymizer = build_anonymizer(cfg.anonymizer)
+    cache = build_cache(cfg.cache)
 
     pipeline = ThreadAnonymizationPipeline(
         detector,
@@ -111,6 +113,7 @@ def build_pipeline(
         span_resolver=span_resolver,
         entity_linker=entity_linker,  # pyrefly: ignore[bad-argument-type]
         entity_resolver=entity_resolver,
+        cache=cache,
         # TOML uses 0 for "no expiry"; the pipeline expects None for that.
         cache_ttl=cfg.pipeline.cache_ttl or None,
     )
