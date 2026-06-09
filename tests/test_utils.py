@@ -1,6 +1,13 @@
 """Tests for piighost.utils helpers."""
 
-from piighost.utils import _word_boundary_pattern, find_all_word_boundary, hash_sha256
+import re
+
+from piighost.utils import (
+    _word_boundary_pattern,
+    boundary_wrap,
+    find_all_word_boundary,
+    hash_sha256,
+)
 
 
 class TestHashSha256:
@@ -26,6 +33,31 @@ def hashlib_sha256_expected(text: str) -> str:
     import hashlib
 
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+class TestBoundaryWrap:
+    def test_alnum_fragment_gets_word_boundary_both_sides(self):
+        assert boundary_wrap("Patrick") == r"\bPatrick\b"
+
+    def test_special_prefix_gets_lookbehind(self):
+        # "+33..." starts with a non-word char, so the left edge uses a
+        # lookbehind instead of \b (which would never match before "+").
+        wrapped = boundary_wrap("+33")
+        assert wrapped.startswith(r"(?<!\w)")
+        assert re.escape("+33") in wrapped
+
+    def test_non_word_suffix_gets_lookahead(self):
+        # "x.com" ends on a word char, but "x." ends on a non-word char.
+        wrapped = boundary_wrap("x.")
+        assert wrapped.endswith(r"(?!\w)")
+
+    def test_wrapped_phone_matches_standalone_but_not_glued_digits(self):
+        phone = "+33 6 12 34 56 78"
+        pattern = re.compile(boundary_wrap(phone))
+        # Matches when the phone stands alone in the text.
+        assert pattern.search(f"Call me at {phone} tomorrow") is not None
+        # Does not match when digits continue right after the fragment.
+        assert pattern.search(f"Call me at {phone}90 tomorrow") is None
 
 
 class TestFindAllWordBoundary:
