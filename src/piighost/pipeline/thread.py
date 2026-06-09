@@ -47,7 +47,7 @@ from piighost.placeholder_tags import (
 )
 from piighost.resolver.entity import AnyEntityConflictResolver
 from piighost.resolver.span import AnySpanConflictResolver
-from piighost.utils import hash_sha256
+from piighost.utils import boundary_wrap, hash_sha256
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +75,24 @@ in this process already warned?", which is module state, not class state.
 """
 
 
-def _replace_longest_first(text: str, pairs: list[tuple[str, str]]) -> str:
+def _replace_longest_first(
+    text: str,
+    pairs: list[tuple[str, str]],
+    *,
+    word_boundary: bool = False,
+) -> str:
     """Replace every *source* with its *target* in one regex pass.
 
     Sources are emitted longest-first in the alternation so that a match
     on a longer source wins over any shorter prefix.  Duplicate sources
     are collapsed: the first mapping wins.  Returns *text* unchanged
     when ``pairs`` is empty.
+
+    When ``word_boundary`` is true, each source only matches at word
+    boundaries.  Use it when sources are raw PII surface forms (so
+    "Ali" does not match inside "Alibaba").  Leave it false when
+    sources are placeholder tokens: their ``<<...>>`` delimiters
+    already isolate them, and an LLM may glue a token to a word.
     """
     mapping: dict[str, str] = {}
     for source, target in pairs:
@@ -92,7 +103,11 @@ def _replace_longest_first(text: str, pairs: list[tuple[str, str]]) -> str:
         return text
 
     sources = sorted(mapping, key=len, reverse=True)
-    pattern = re.compile("|".join(re.escape(s) for s in sources))
+    if word_boundary:
+        alternation = "|".join(boundary_wrap(s) for s in sources)
+    else:
+        alternation = "|".join(re.escape(s) for s in sources)
+    pattern = re.compile(alternation)
     return pattern.sub(lambda m: mapping[m.group(0)], text)
 
 
@@ -795,4 +810,4 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             for detection in entity.detections:
                 pairs.append((detection.text, token))
 
-        return _replace_longest_first(text, pairs)
+        return _replace_longest_first(text, pairs, word_boundary=True)
