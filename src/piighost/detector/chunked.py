@@ -1,7 +1,7 @@
 """Chunked detector for texts that exceed NER model context windows."""
 
 import asyncio
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from piighost.detector.base import AnyDetector
 from piighost.models import Detection, Span
@@ -32,8 +32,6 @@ class ChunkedDetector:
         >>> chunked = ChunkedDetector(detector=inner, chunk_size=50, overlap=10)
         >>> detections = await chunked.detect("long text " * 20)
     """
-
-    Config: ClassVar[type["ChunkedDetectorConfig"]]
 
     @classmethod
     def from_config(cls, cfg: "ChunkedDetectorConfig") -> "ChunkedDetector":
@@ -169,8 +167,3 @@ class ChunkedDetector:
                 best[key] = d
 
         return sorted(best.values(), key=lambda d: d.position.start_pos)
-
-
-from piighost.config.models.detector import ChunkedDetectorConfig  # noqa: E402
-
-ChunkedDetector.Config = ChunkedDetectorConfig

@@ -1,4 +1,3 @@
-
 from piighost.anonymizer import Anonymizer
 from piighost.config.builders import (
     build_anonymizer,

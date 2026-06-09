@@ -1,5 +1,5 @@
 import importlib.util
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
@@ -40,8 +40,6 @@ class SpacyDetector(BaseNERDetector):
         ... )
         >>> detections = await detector.detect("Patrick habite à Paris")
     """
-
-    Config: ClassVar[type["SpacyDetectorConfig"]]
 
     @classmethod
     def from_config(cls, cfg: "SpacyDetectorConfig") -> "SpacyDetector":
@@ -96,8 +94,3 @@ class SpacyDetector(BaseNERDetector):
             )
 
         return detections
-
-
-from piighost.config.models.detector import SpacyDetectorConfig  # noqa: E402
-
-SpacyDetector.Config = SpacyDetectorConfig

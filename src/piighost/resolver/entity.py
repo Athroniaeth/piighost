@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from piighost.models import Detection, Entity
 from piighost.similarity import AnySimilarityFn, jaro_winkler_similarity
@@ -62,8 +62,6 @@ class DisabledEntityConflictResolver:
         True
     """
 
-    Config: ClassVar[type["DisabledEntityResolverConfig"]]
-
     @classmethod
     def from_config(
         cls, cfg: "DisabledEntityResolverConfig"
@@ -100,8 +98,6 @@ class MergeEntityConflictResolver:
         >>> len(result[0].detections)
         3
     """
-
-    Config: ClassVar[type["MergeEntityResolverConfig"]]
 
     @classmethod
     def from_config(
@@ -203,8 +199,6 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
     _similarity_fn: AnySimilarityFn
     _threshold: float
 
-    Config: ClassVar[type["FuzzyEntityResolverConfig"]]
-
     @classmethod
     def from_config(
         cls, cfg: "FuzzyEntityResolverConfig"
@@ -241,14 +235,3 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
         text_a = entity_a.canonical
         text_b = entity_b.canonical
         return self._similarity_fn(text_a, text_b) >= self._threshold
-
-
-from piighost.config.models.entity_resolver import (  # noqa: E402
-    DisabledEntityResolverConfig,
-    FuzzyEntityResolverConfig,
-    MergeEntityResolverConfig,
-)
-
-DisabledEntityConflictResolver.Config = DisabledEntityResolverConfig
-MergeEntityConflictResolver.Config = MergeEntityResolverConfig
-FuzzyEntityConflictResolver.Config = FuzzyEntityResolverConfig

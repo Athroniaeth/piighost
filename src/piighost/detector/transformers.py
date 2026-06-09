@@ -1,5 +1,5 @@
 import importlib.util
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from piighost.detector.base import BaseNERDetector
 from piighost.models import Detection, Span
@@ -44,8 +44,6 @@ class TransformersDetector(BaseNERDetector):
         ... )
         >>> detections = await detector.detect("Patrick lives in Paris")
     """
-
-    Config: ClassVar[type["TransformersDetectorConfig"]]
 
     @classmethod
     def from_config(cls, cfg: "TransformersDetectorConfig") -> "TransformersDetector":
@@ -112,8 +110,3 @@ class TransformersDetector(BaseNERDetector):
             )
 
         return detections
-
-
-from piighost.config.models.detector import TransformersDetectorConfig  # noqa: E402
-
-TransformersDetector.Config = TransformersDetectorConfig

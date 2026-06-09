@@ -7,7 +7,7 @@ is mapped to a Faker provider method via a configurable strategies dict.
 
 import importlib.util
 from collections.abc import Callable
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from piighost.models import Entity
 
@@ -124,8 +124,6 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
     _faker: Faker
     _strategies: dict[str, FakerFn]
 
-    Config: ClassVar[type["FakerPlaceholderConfig"]]
-
     @classmethod
     def from_config(cls, cfg: "FakerPlaceholderConfig") -> "FakerPlaceholderFactory":
         """Build a ``FakerPlaceholderFactory`` from its validated configuration."""
@@ -163,7 +161,7 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
         result: dict[Entity, str] = {}
 
         for entity in entities:
-            canonical = entity.detections[0].text.lower()
+            canonical = entity.canonical
             label_lower = entity.label.lower()
             key = (canonical, label_lower)
 
@@ -178,8 +176,3 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
         if label_lower in self._strategies:
             return self._strategies[label_lower](self._faker)
         return f"<{label_lower.upper()}>"
-
-
-from piighost.config.models.placeholder import FakerPlaceholderConfig  # noqa: E402
-
-FakerPlaceholderFactory.Config = FakerPlaceholderConfig

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, Generic, Protocol
+from typing import TYPE_CHECKING, Generic, Protocol
 
 from typing_extensions import TypeVar
 
@@ -78,8 +78,6 @@ class Anonymizer(Generic[PreservationT]):
     """
 
     ph_factory: AnyPlaceholderFactory[PreservationT]
-
-    Config: ClassVar[type["DefaultAnonymizerConfig"]]
 
     @classmethod
     def from_config(cls, cfg: "DefaultAnonymizerConfig") -> "Anonymizer":
@@ -188,8 +186,3 @@ class Anonymizer(Generic[PreservationT]):
             search_from = token_pos + len(original_text)
 
         return result
-
-
-from piighost.config.models.anonymizer import DefaultAnonymizerConfig  # noqa: E402
-
-Anonymizer.Config = DefaultAnonymizerConfig
