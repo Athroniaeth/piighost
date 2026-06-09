@@ -7,7 +7,8 @@ import pytest
 from piighost.anonymizer import Anonymizer
 from piighost.detector.base import ExactMatchDetector, RegexDetector
 from piighost.exceptions import PIIRemainingError
-from piighost.guard import DetectorGuardRail, DisabledGuardRail
+from piighost.guard import DetectorGuardRail, DisabledGuardRail, filter_token_overlaps
+from piighost.models import Detection, Span
 from piighost.pipeline import AnonymizationPipeline
 from piighost.placeholder import LabelCounterPlaceholderFactory
 
@@ -134,3 +135,35 @@ class TestPipelineIntegration:
         partial_anonymized = "<<PERSON:1>> lives here, contact user@example.com."
         with pytest.raises(CacheMissError):
             await pipeline.deanonymize(partial_anonymized)
+
+
+# ---------------------------------------------------------------------------
+# Token-aware guard rail
+# ---------------------------------------------------------------------------
+
+
+async def test_detector_guard_ignores_known_tokens():
+    # A NER-ish detector that would flag the fake name used as a token.
+    detector = ExactMatchDetector([("Jean Dupont", "PERSON")])
+    guard = DetectorGuardRail(detector=detector)
+    # The faker token IS the placeholder: must not raise.
+    await guard.check("Bonjour Jean Dupont", tokens=["Jean Dupont"])
+
+
+async def test_detector_guard_still_flags_real_residual_pii():
+    detector = ExactMatchDetector([("Jean Dupont", "PERSON"), ("Alice", "PERSON")])
+    guard = DetectorGuardRail(detector=detector)
+    with pytest.raises(PIIRemainingError):
+        await guard.check("Jean Dupont et Alice", tokens=["Jean Dupont"])
+
+
+def test_filter_token_overlaps_drops_overlapping_detections():
+    text = "Hello <<PERSON:1>> world"
+    inside = Detection(
+        text="PERSON", label="PERSON", position=Span(8, 14), confidence=1.0
+    )
+    outside = Detection(
+        text="world", label="PERSON", position=Span(19, 24), confidence=1.0
+    )
+    kept = filter_token_overlaps([inside, outside], text, ["<<PERSON:1>>"])
+    assert kept == [outside]
