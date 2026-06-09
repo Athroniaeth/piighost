@@ -13,10 +13,11 @@ by message hash and deduplicated by ``(text.lower(), label)``.  The
 pipeline to recreate consistent placeholder tokens across messages.
 """
 
+import asyncio
 import logging
 import re
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, Mapping, Protocol
@@ -143,6 +144,7 @@ class ConversationMemory:
         >>> memory = ConversationMemory()
         >>> e = Entity(detections=(Detection("Patrick", "PERSON", Span(0, 7), 0.9),))
         >>> memory.record("abc123", [e])
+        True
         >>> memory.all_entities[0].canonical
         'patrick'
     """
@@ -328,6 +330,14 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         )
         self._memories: OrderedDict[str, AnyConversationMemory] = OrderedDict()
         self._max_threads = max_threads
+        self._index_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        # Index TTL: far longer than the data TTL so forget_thread still
+        # finds expired-entry keys, yet bounded so deployments that never
+        # call forget_thread do not grow indexes forever.  With
+        # cache_ttl=None data never expires, so the index keeps ttl=None.
+        self._index_ttl: int | None = (
+            self._cache_ttl * 24 if self._cache_ttl is not None else None
+        )
         self._maybe_warn_unshared_cache()
 
     def _maybe_warn_unshared_cache(self) -> None:
@@ -468,30 +478,50 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
         The index is what makes ``forget_thread`` possible on backends
         without prefix deletion (aiocache has no portable scan). The
-        index itself carries no TTL so that ``forget_thread`` still
-        finds keys whose entries already expired; it is deleted by
-        ``forget_thread`` and bounded by the number of distinct texts
-        in the conversation.
+        index carries a long TTL (``cache_ttl * 24``), refreshed on every
+        index write: this bounds index growth for deployments that never
+        call ``forget_thread`` while staying far longer than the data TTL
+        so ``forget_thread`` still finds keys whose entries already
+        expired.  With ``cache_ttl=None`` the index keeps ``ttl=None``
+        because data never expires either.  The index is deleted by
+        ``forget_thread`` and bounded by the number of distinct texts in
+        the conversation.
+
+        The read-modify-write on the index is racy under concurrency; the
+        in-process race is closed by a per-thread ``asyncio.Lock``.  The
+        residual CROSS-WORKER index race cannot be closed without
+        backend-native sets and is TTL-bounded: orphaned entries expire
+        with ``cache_ttl``; with ``cache_ttl=None`` the guarantee
+        requires a single writer per thread.
         """
         await self._cache.set(key, value, ttl=self._cache_ttl)
         index_key = self._key_index_key(thread_id)
-        index: list[str] = await self._cache.get(index_key) or []
-        if key not in index:
-            index.append(key)
-            await self._cache.set(index_key, index, ttl=None)
+        async with self._index_locks[thread_id]:
+            index: list[str] = await self._cache.get(index_key) or []
+            if key not in index:
+                index.append(key)
+            # Refresh the index TTL even when the key was already listed.
+            await self._cache.set(index_key, index, ttl=self._index_ttl)
 
     async def forget_thread(self, thread_id: str) -> None:
         """Erase every trace of *thread_id*: RAM memory and cache entries.
 
         Intended for end-of-conversation cleanup and right-to-be-forgotten
         requests (used by piighost-api). Idempotent.
+
+        Raises on backend failure; deletion order (data keys first, index
+        last) makes a retry complete the purge.
         """
         index_key = self._key_index_key(thread_id)
         index: list[str] = await self._cache.get(index_key) or []
         for key in index:
             await self._cache.delete(key)
+        # The snapshot key is deterministic: delete it even when a lost
+        # index write left it unlisted, so no memory snapshot survives.
+        await self._cache.delete(self._memory_key(thread_id))
         await self._cache.delete(index_key)
         self._memories.pop(thread_id, None)
+        self._index_locks.pop(thread_id, None)
 
     async def _hydrate_memory(self, thread_id: str) -> None:
         """Merge the cached memory snapshot for *thread_id* into RAM.
@@ -792,11 +822,19 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
     async def _record_entities(self, text: str, entities: list[Entity]) -> None:
         thread_id = _current_thread_id.get()
-        changed = self.get_memory(thread_id).record(hash_sha256(text), entities)
-        # Persist only when memory actually changed: rewriting an
-        # unchanged snapshot on every message (including cache-hit
-        # short-circuits) is O(conversation) work for no benefit.
-        if changed:
+        memory = self.get_memory(thread_id)
+        changed = memory.record(hash_sha256(text), entities)
+        # Legacy memories typed against the old "-> None" record signature
+        # must keep the persist-always behaviour (None is not False).
+        if changed is not False:
+            await self._persist_memory(thread_id)
+            return
+        # Re-publish after backend expiry: the snapshot must exist whenever
+        # this worker holds entities, or a fresh worker would renumber the
+        # conversation and swap identities across workers.
+        if memory.all_entities and (
+            await self._cache.get(self._memory_key(thread_id)) is None
+        ):
             await self._persist_memory(thread_id)
 
     def _resolved_token_pairs(
