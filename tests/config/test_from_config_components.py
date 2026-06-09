@@ -1,4 +1,3 @@
-
 from piighost.config.models.anonymizer import DefaultAnonymizerConfig
 from piighost.config.models.entity_linker import (
     DisabledEntityLinkerConfig,
