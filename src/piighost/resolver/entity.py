@@ -126,6 +126,15 @@ class MergeEntityConflictResolver:
         every conflicting pair is unioned, then each root's detections
         are concatenated (deduplicated, input order preserved).
 
+        Note:
+            This computes the transitive closure of pairwise
+            ``have_conflict``.  That is only correct when the conflict
+            relation is union-stable (merging two entities never
+            removes a conflict they had individually), which holds for
+            shared detections.  Subclasses whose ``have_conflict`` is
+            not union-stable (e.g. text similarity) must override
+            ``resolve``, see ``FuzzyEntityConflictResolver``.
+
         Args:
             entities: The full list of entities.
 
@@ -170,7 +179,12 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
 
     Subclasses ``MergeEntityConflictResolver`` and overrides
     ``have_conflict`` to use string similarity instead of shared
-    detections.  The ``resolve`` loop is inherited as-is.
+    detections.  ``resolve`` is also overridden: similarity is not
+    transitive, so the base union-find (transitive closure over
+    pairwise conflicts) would let chains of pairwise-similar texts
+    over-merge distinct PIIs into a single placeholder.  Instead this
+    resolver uses greedy anchor clustering, where each entity is only
+    compared against the first entity of each existing group.
 
     Args:
         similarity_fn: A ``(str, str) -> float`` function returning
@@ -227,3 +241,44 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
         text_a = entity_a.canonical
         text_b = entity_b.canonical
         return self._similarity_fn(text_a, text_b) >= self._threshold
+
+    def resolve(self, entities: list[Entity]) -> list[Entity]:
+        """Group entities by greedy anchor clustering on canonical similarity.
+
+        Entities are scanned in input order.  Each entity joins the first
+        existing group whose *anchor* (the group's first entity) it is
+        similar to, otherwise it starts a new group.  Comparing against
+        the anchor only, not against every member, prevents chains of
+        pairwise-similar texts from collapsing distinct PIIs into one
+        placeholder (similarity is not transitive).  This preserves the
+        grouping behaviour of the pre-union-find implementation.
+
+        Args:
+            entities: The full list of entities.
+
+        Returns:
+            Grouped entities, sorted by earliest ``start_pos``.
+        """
+        if not entities:
+            return []
+
+        anchors: list[Entity] = []
+        buckets: list[list[Detection]] = []
+        seen: list[set[Detection]] = []
+
+        for entity in entities:
+            for idx, anchor in enumerate(anchors):
+                if self.have_conflict(anchor, entity):
+                    for d in entity.detections:
+                        if d not in seen[idx]:
+                            seen[idx].add(d)
+                            buckets[idx].append(d)
+                    break
+            else:
+                anchors.append(entity)
+                buckets.append(list(entity.detections))
+                seen.append(set(entity.detections))
+
+        result = [Entity(detections=tuple(dets)) for dets in buckets]
+        result.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
+        return result
