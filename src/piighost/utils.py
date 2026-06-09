@@ -8,13 +8,22 @@ def hash_sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def boundary_wrap(fragment: str) -> str:
+    """Escape *fragment* and wrap it in word-boundary assertions.
+
+    Uses ``\\b`` for alphanumeric/underscore edges and lookarounds
+    ``(?<!\\w)`` / ``(?!\\w)`` for fragments starting or ending with
+    special characters.
+    """
+    prefix = r"\b" if fragment[0:1].isalnum() or fragment[0:1] == "_" else r"(?<!\w)"
+    suffix = r"\b" if fragment[-1:].isalnum() or fragment[-1:] == "_" else r"(?!\w)"
+    return f"{prefix}{re.escape(fragment)}{suffix}"
+
+
 @lru_cache(maxsize=1024)
 def _word_boundary_pattern(fragment: str, flags: int) -> re.Pattern[str]:
     """Compile (and cache) the word-boundary pattern for *fragment*."""
-    escaped = re.escape(fragment)
-    prefix = r"\b" if fragment[0:1].isalnum() or fragment[0:1] == "_" else r"(?<!\w)"
-    suffix = r"\b" if fragment[-1:].isalnum() or fragment[-1:] == "_" else r"(?!\w)"
-    return re.compile(f"{prefix}{escaped}{suffix}", flags)
+    return re.compile(boundary_wrap(fragment), flags)
 
 
 def find_all_word_boundary(
