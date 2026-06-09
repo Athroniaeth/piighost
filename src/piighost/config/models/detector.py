@@ -11,6 +11,7 @@ class RegexDetectorConfig(_ComponentConfig):
     type: Literal["regex"]
     name: str | None = None
     patterns: dict[str, str] = Field(min_length=1)
+    validators: dict[str, Literal["luhn", "iban", "nir"]] = Field(default_factory=dict)
 
 
 class Gliner2DetectorConfig(_ComponentConfig):

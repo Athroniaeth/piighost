@@ -150,7 +150,7 @@ class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesNothing]):
     @classmethod
     def from_config(cls, cfg: "RedactPlaceholderConfig") -> "RedactPlaceholderFactory":
         """Build a ``RedactPlaceholderFactory`` from its validated configuration."""
-        return cls()
+        return cls(value=cfg.value)
 
     def __init__(self, value: str = "REDACT") -> None:
         self._token = f"<<{value}>>"
@@ -255,7 +255,7 @@ class LabelHashPlaceholderFactory(
         cls, cfg: "LabelHashPlaceholderConfig"
     ) -> "LabelHashPlaceholderFactory":
         """Build a ``LabelHashPlaceholderFactory`` from its validated configuration."""
-        return cls(hash_length=cfg.hash_length)
+        return cls(hash_length=cfg.hash_length, salt=cfg.salt)
 
     def __init__(
         self,
@@ -322,7 +322,7 @@ class RedactCounterPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnl
         cls, cfg: "RedactCounterPlaceholderConfig"
     ) -> "RedactCounterPlaceholderFactory":
         """Build a ``RedactCounterPlaceholderFactory`` from its validated configuration."""
-        return cls()
+        return cls(prefix=cfg.prefix)
 
     def __init__(self, prefix: str = "REDACT") -> None:
         self._prefix = prefix
@@ -386,7 +386,7 @@ class RedactHashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnly])
         cls, cfg: "RedactHashPlaceholderConfig"
     ) -> "RedactHashPlaceholderFactory":
         """Build a ``RedactHashPlaceholderFactory`` from its validated configuration."""
-        return cls(hash_length=cfg.hash_length)
+        return cls(prefix=cfg.prefix, hash_length=cfg.hash_length, salt=cfg.salt)
 
     def __init__(
         self,
@@ -565,7 +565,7 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]):
     @classmethod
     def from_config(cls, cfg: "MaskPlaceholderConfig") -> "MaskPlaceholderFactory":
         """Build a ``MaskPlaceholderFactory`` from its validated configuration."""
-        return cls(mask_char=cfg.mask_char)
+        return cls(mask_char=cfg.mask_char, visible_chars=cfg.visible_chars)
 
     def __init__(
         self,
@@ -573,13 +573,12 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]):
         visible_chars: int = 4,
         strategies: dict[str, MaskFn] | None = None,
     ) -> None:
-        if strategies is None:
-            strategies = _build_default_strategies(mask_char, visible_chars)
-        else:
-            strategies = {k.lower(): v for k, v in strategies.items()}
+        merged = _build_default_strategies(mask_char, visible_chars)
+        if strategies is not None:
+            merged.update({k.lower(): v for k, v in strategies.items()})
 
         self._mask_char = mask_char
-        self._strategies = strategies
+        self._strategies = merged
 
     def create(self, entities: list[Entity]) -> dict[Entity, str]:
         """Create partially masked tokens for all entities.
