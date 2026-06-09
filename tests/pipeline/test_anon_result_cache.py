@@ -156,6 +156,31 @@ class TestAnonResultCacheBase:
         await pipeline.anonymize(original)
         assert observation.span_count == before_count
 
+    async def test_base_anonymize_with_root_span_uses_cache(self) -> None:
+        """A cached result short-circuits even when a root_span is supplied."""
+        calls = 0
+
+        class CountingDetector:
+            async def detect(self, text: str):
+                nonlocal calls
+                calls += 1
+                return [
+                    Detection(
+                        text="Patrick",
+                        label="PERSON",
+                        position=Span(8, 15),
+                        confidence=1.0,
+                    )
+                ]
+
+        pipe = AnonymizationPipeline(
+            detector=CountingDetector(), anonymizer=Anonymizer()
+        )
+        first, _ = await pipe.anonymize("Bonjour Patrick")
+        second, _ = await pipe.anonymize("Bonjour Patrick", root_span=NoOpSpan())
+        assert first == second
+        assert calls == 1
+
     async def test_cache_uses_anon_result_prefix(self) -> None:
         cache = SimpleMemoryCache()
         pipeline = AnonymizationPipeline(
