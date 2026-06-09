@@ -36,6 +36,7 @@ from piighost.pipeline.base import (
     CACHE_KEY_ANON_RESULT,
     CACHE_KEY_ANONYMIZATION,
     CACHE_KEY_DETECTION,
+    DEFAULT_CACHE_TTL,
     AnonymizationPipeline,
 )
 from piighost.placeholder import AnyPlaceholderFactory
@@ -118,7 +119,7 @@ class AnyConversationMemory(Protocol):
     @property
     def all_entities(self) -> list[Entity]: ...
 
-    def record(self, text_hash: str, entities: list[Entity]) -> None: ...
+    def record(self, text_hash: str, entities: list[Entity]) -> bool: ...
 
     def to_dict(self) -> dict[str, Any]: ...
 
@@ -155,7 +156,7 @@ class ConversationMemory:
         )
         self._canonical_index: dict[tuple[str, str], tuple[str, int]] = {}
 
-    def record(self, text_hash: str, entities: list[Entity]) -> None:
+    def record(self, text_hash: str, entities: list[Entity]) -> bool:
         """Record entities for a message, deduplicating against known ones.
 
         Known entities are not duplicated but their new text variants
@@ -166,17 +167,26 @@ class ConversationMemory:
         Args:
             text_hash: SHA-256 hash of the original text.
             entities: Entities detected in that message.
+
+        Returns:
+            ``True`` when this call changed the memory (a new entity was
+            appended or a new surface-form variant was merged), ``False``
+            when everything recorded was already known.  Callers use this
+            to skip persisting an unchanged snapshot.
         """
         bucket = self.entities_by_hash.setdefault(text_hash, [])
 
+        changed = False
         for entity in entities:
             key = self._key(entity)
             slot = self._canonical_index.get(key)
             if slot is None:
                 bucket.append(entity)
                 self._canonical_index[key] = (text_hash, len(bucket) - 1)
-            else:
-                self._merge_variant(slot, entity)
+                changed = True
+            elif self._merge_variant(slot, entity):
+                changed = True
+        return changed
 
     @property
     def all_entities(self) -> list[Entity]:
@@ -218,12 +228,15 @@ class ConversationMemory:
         """Canonical identity used for deduplication."""
         return entity.canonical_key
 
-    def _merge_variant(self, slot: tuple[str, int], entity: Entity) -> None:
+    def _merge_variant(self, slot: tuple[str, int], entity: Entity) -> bool:
         """Merge a new surface-form variant into the entity at *slot*.
 
         Detections whose exact ``text`` already belongs to the stored
         entity are skipped; anything new is appended so that
         ``anonymize_with_ent`` can replace every observed spelling.
+
+        Returns ``True`` when a new variant was merged, ``False`` when
+        every detection was already known.
         """
         text_hash, index = slot
         bucket = self.entities_by_hash[text_hash]
@@ -232,6 +245,8 @@ class ConversationMemory:
         new_dets = tuple(d for d in entity.detections if d.text not in existing_texts)
         if new_dets:
             bucket[index] = Entity(detections=existing.detections + new_dets)
+            return True
+        return False
 
 
 class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
@@ -261,7 +276,8 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         cache: Optional aiocache backend.  Defaults to a fresh
             ``SimpleMemoryCache``.
         cache_ttl: Time-to-live in seconds for every cache entry the
-            pipeline writes.  ``None`` keeps entries forever.
+            pipeline writes.  Defaults to one hour; pass ``None`` to keep
+            entries until the backend evicts them.
         max_threads: Maximum number of conversation memories kept in
             RAM.  When a new thread is created past the cap, the least
             recently used memory is evicted.  ``None`` (default)
@@ -284,7 +300,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         span_resolver: AnySpanConflictResolver | None = None,
         guard_rail: AnyGuardRail | None = None,
         cache: BaseCache | None = None,
-        cache_ttl: int | None = None,
+        cache_ttl: int | None = DEFAULT_CACHE_TTL,
         max_threads: int | None = None,
         memory_factory: Callable[[], AnyConversationMemory] | None = None,
         observation: AbstractObservationService | None = None,
@@ -393,7 +409,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         """Drop the memory for *thread_id* (no-op if unknown).
 
         Callers should invoke this when a conversation ends so the
-        pipeline does not retain its entities indefinitely.
+        pipeline does not retain its entities indefinitely.  Only drops
+        the in-RAM memory; use ``forget_thread`` to also purge the cache
+        backend.
         """
         self._memories.pop(thread_id, None)
 
@@ -440,6 +458,41 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         """Cache key holding the serialized conversation memory snapshot."""
         return f"{thread_id}:piighost:memory"
 
+    @staticmethod
+    def _key_index_key(thread_id: str) -> str:
+        """Cache key listing every thread-scoped key the pipeline wrote."""
+        return f"{thread_id}:piighost:keys"
+
+    async def _cache_set_indexed(self, thread_id: str, key: str, value: Any) -> None:
+        """Write *key* and register it in the thread's key index.
+
+        The index is what makes ``forget_thread`` possible on backends
+        without prefix deletion (aiocache has no portable scan). The
+        index itself carries no TTL so that ``forget_thread`` still
+        finds keys whose entries already expired; it is deleted by
+        ``forget_thread`` and bounded by the number of distinct texts
+        in the conversation.
+        """
+        await self._cache.set(key, value, ttl=self._cache_ttl)
+        index_key = self._key_index_key(thread_id)
+        index: list[str] = await self._cache.get(index_key) or []
+        if key not in index:
+            index.append(key)
+            await self._cache.set(index_key, index, ttl=None)
+
+    async def forget_thread(self, thread_id: str) -> None:
+        """Erase every trace of *thread_id*: RAM memory and cache entries.
+
+        Intended for end-of-conversation cleanup and right-to-be-forgotten
+        requests (used by piighost-api). Idempotent.
+        """
+        index_key = self._key_index_key(thread_id)
+        index: list[str] = await self._cache.get(index_key) or []
+        for key in index:
+            await self._cache.delete(key)
+        await self._cache.delete(index_key)
+        self._memories.pop(thread_id, None)
+
     async def _hydrate_memory(self, thread_id: str) -> None:
         """Merge the cached memory snapshot for *thread_id* into RAM.
 
@@ -457,10 +510,8 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     async def _persist_memory(self, thread_id: str) -> None:
         """Write the thread's memory snapshot through to the cache backend."""
         memory = self.get_memory(thread_id)
-        await self._cache.set(
-            self._memory_key(thread_id),
-            memory.to_dict(),
-            ttl=self._cache_ttl,
+        await self._cache_set_indexed(
+            thread_id, self._memory_key(thread_id), memory.to_dict()
         )
 
     async def override_detections(
@@ -547,7 +598,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             )
 
         value = self._serialize_detections(detections)
-        await self._cache.set(detect_key, value, ttl=self._cache_ttl)
+        await self._cache_set_indexed(thread_id, detect_key, value)
         await self._cache.delete(anon_result_key)
 
     async def _cached_detect(self, text: str) -> list[Detection]:
@@ -566,7 +617,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
         detections = await self._detector.detect(text)
         value = self._serialize_detections(detections)
-        await self._cache.set(cache_key, value, ttl=self._cache_ttl)
+        await self._cache_set_indexed(thread_id, cache_key, value)
         return detections
 
     async def _store_mapping(
@@ -585,13 +636,13 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             thread_id, f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized)}"
         )
 
-        await self._cache.set(
+        await self._cache_set_indexed(
+            thread_id,
             key,
             {
                 "original": original,
                 "entities": serialized_entities,
             },
-            ttl=self._cache_ttl,
         )
 
     async def _cache_get_anon_result(self, text: str) -> dict | None:
@@ -617,13 +668,13 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         key = self._thread_key(
             thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"
         )
-        await self._cache.set(
+        await self._cache_set_indexed(
+            thread_id,
             key,
             {
                 "anonymized": anonymized,
                 "entities": self._serialize_entities(entities),
             },
-            ttl=self._cache_ttl,
         )
 
     # ------------------------------------------------------------------
@@ -741,8 +792,12 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
     async def _record_entities(self, text: str, entities: list[Entity]) -> None:
         thread_id = _current_thread_id.get()
-        self.get_memory(thread_id).record(hash_sha256(text), entities)
-        await self._persist_memory(thread_id)
+        changed = self.get_memory(thread_id).record(hash_sha256(text), entities)
+        # Persist only when memory actually changed: rewriting an
+        # unchanged snapshot on every message (including cache-hit
+        # short-circuits) is O(conversation) work for no benefit.
+        if changed:
+            await self._persist_memory(thread_id)
 
     def _resolved_token_pairs(
         self, thread_id: str

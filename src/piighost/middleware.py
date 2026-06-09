@@ -173,12 +173,13 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             result, ents = await pipeline.anonymize(content, thread_id=thread_id)
 
             logger.debug(
-                "[PII] msg %d (%s) content=%r → result=%r entities=%s",
+                "[PII] msg %d (%s): %d chars -> %d chars, %d entities (%s)",
                 idx,
                 type(message).__name__,
-                content[:80],
-                result[:80],
-                [(e.detections[0].text, e.label, len(e.detections)) for e in ents],
+                len(content),
+                len(result),
+                len(ents),
+                [e.label for e in ents],
             )
 
             if result == content:
