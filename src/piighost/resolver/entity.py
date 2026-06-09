@@ -120,10 +120,11 @@ class MergeEntityConflictResolver:
         return any(d in detections_a for d in entity_b.detections)
 
     def resolve(self, entities: list[Entity]) -> list[Entity]:
-        """Merge all entities that share common detections transitively.
+        """Merge all entities that share common detections, transitively.
 
-        Uses a Union-Find algorithm to efficiently group entities that
-        are connected through shared detections.
+        Uses union-find with path compression over entity indices:
+        every conflicting pair is unioned, then each root's detections
+        are concatenated (deduplicated, input order preserved).
 
         Args:
             entities: The full list of entities.
@@ -135,40 +136,31 @@ class MergeEntityConflictResolver:
         if not entities:
             return []
 
-        # Start with a copy so we don't mutate the input.
-        result: list[Entity] = list(entities)
+        parent = list(range(len(entities)))
 
-        # Keep merging until no more conflicts are found.
-        # On each pass, we look for two entities that share a detection
-        # and merge them into one. We repeat until a full pass finds
-        # no conflicts (meaning all remaining entities are independent).
-        changed = True
-        while changed:
-            changed = False
+        def find(i: int) -> int:
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
 
-            for i in range(len(result)):
-                for j in range(i + 1, len(result)):
-                    if self.have_conflict(result[i], result[j]):
-                        # Merge entity j into entity i (deduplicate detections).
-                        seen: set[Detection] = set(result[i].detections)
-                        merged_detections = list(result[i].detections)
-                        for d in result[j].detections:
-                            if d not in seen:
-                                seen.add(d)
-                                merged_detections.append(d)
+        for i in range(len(entities)):
+            for j in range(i + 1, len(entities)):
+                if find(i) != find(j) and self.have_conflict(entities[i], entities[j]):
+                    parent[find(j)] = find(i)
 
-                        # Replace i with the merged entity, remove j.
-                        result[i] = Entity(detections=tuple(merged_detections))
-                        result.pop(j)
+        merged: dict[int, list[Detection]] = {}
+        seen: dict[int, set[Detection]] = {}
+        for i, entity in enumerate(entities):
+            root = find(i)
+            bucket = merged.setdefault(root, [])
+            known = seen.setdefault(root, set())
+            for d in entity.detections:
+                if d not in known:
+                    known.add(d)
+                    bucket.append(d)
 
-                        # Restart the scan indices have shifted after pop.
-                        changed = True
-                        break
-
-                # Break the outer for-loop too so we restart the while.
-                if changed:
-                    break
-
+        result = [Entity(detections=tuple(dets)) for dets in merged.values()]
         result.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
         return result
 
