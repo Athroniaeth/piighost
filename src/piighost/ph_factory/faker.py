@@ -6,6 +6,7 @@ is mapped to a Faker provider method via a configurable strategies dict.
 """
 
 import importlib.util
+import zlib
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -105,23 +106,26 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
     The same entity always produces the same fake value within a single
     ``create()`` call (deterministic per entity via seeding).
 
-    Warning:
-        Single-worker / single-process only. Fake values come from this
-        instance's random Faker state, which is NOT part of the
-        conversation-memory snapshot persisted to the cache backend. On
-        another worker (or after a restart) the same entity gets a
-        different fake value, and tokens minted elsewhere cannot be
-        deanonymized. For multi-worker deployments use the deterministic
-        ``FakerHashPlaceholderFactory`` or
-        ``FakerCounterPlaceholderFactory`` instead, or route all traffic
-        through a single process.
+    Each entity's fake value is derived deterministically by seeding the
+    Faker instance from the entity's ``(canonical text, label)`` before
+    generating, so the same entity always maps to the same value across
+    calls, workers, and restarts (independent of RNG state). This is what
+    makes the factory usable in a conversation: tokens stay reversible.
+
+    Note:
+        Faker values can still coincidentally collide with a real-world
+        value (a generated name matching a real person), which the
+        middleware cannot detect during string replacement. Prefer
+        ``FakerHashPlaceholderFactory`` when collision-resistance matters.
 
     Args:
         faker: Optional pre-configured ``Faker`` instance.  Defaults to
             ``Faker()`` with no locale.
         strategies: Optional dict mapping lowercase labels to faker
             functions.  Replaces the built-in defaults when provided.
-        seed: Optional seed for reproducible output.
+        seed: Optional value folded into the per-entity seed so two
+            factories configured with different seeds produce different
+            (but each internally deterministic) values.
 
     Example:
         >>> from piighost.models import Detection, Entity, Span
@@ -147,9 +151,7 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
         seed: int | None = None,
     ) -> None:
         self._faker = faker or Faker()
-
-        if seed is not None:
-            self._faker.seed_instance(seed)
+        self._seed = seed
 
         if strategies is None:
             self._strategies = dict(DEFAULT_STRATEGIES)
@@ -177,13 +179,30 @@ class FakerPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityFake
             key = (canonical, label_lower)
 
             if key not in cache:
-                cache[key] = self._fake(label_lower)
+                cache[key] = self._fake(canonical, label_lower)
 
             result[entity] = cache[key]
 
         return result
 
-    def _fake(self, label_lower: str) -> str:
-        if label_lower in self._strategies:
-            return self._strategies[label_lower](self._faker)
-        return f"<{label_lower.upper()}>"
+    def _seed_for(self, canonical: str, label_lower: str) -> int:
+        """Derive a stable 64-bit seed from the entity identity.
+
+        Folds the optional instance ``seed`` so two factories with
+        different seeds diverge while each stays deterministic.
+        """
+        raw = f"{canonical}:{label_lower}"
+        if self._seed is not None:
+            raw = f"{raw}:{self._seed}"
+        # crc32 is a deterministic (cross-process) 32-bit int, unlike the
+        # PYTHONHASHSEED-salted builtin hash(). Good enough to spread seeds.
+        return zlib.crc32(raw.encode())
+
+    def _fake(self, canonical: str, label_lower: str) -> str:
+        strategy = self._strategies.get(label_lower)
+        if strategy is None:
+            return f"<{label_lower.upper()}>"
+        # Seed per entity so the same (text, label) always yields the same
+        # value, independent of call order or RNG state.
+        self._faker.seed_instance(self._seed_for(canonical, label_lower))
+        return strategy(self._faker)

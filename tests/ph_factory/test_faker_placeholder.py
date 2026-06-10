@@ -109,3 +109,22 @@ class TestFakerPlaceholderFactory:
         # multi-inheritance: also a label tag and an identity tag
         assert issubclass(tag, PreservesLabel)
         assert issubclass(tag, PreservesIdentity)
+
+
+class TestDeterminismAcrossCalls:
+    def test_same_entity_same_value_across_separate_calls(self) -> None:
+        """Regression H3: RNG state must not drift between create() calls."""
+        e = _entity("Patrick", "PERSON")
+        f = FakerPlaceholderFactory(seed=42)
+        first = f.create([e])[e]
+        # An intervening call on other entities must not change the value.
+        f.create([_entity("Henri", "PERSON"), _entity("Paris", "LOCATION")])
+        second = f.create([e])[e]
+        assert first == second
+
+    def test_deterministic_across_instances_without_seed(self) -> None:
+        """No seed: value is still stable across fresh instances/processes."""
+        e = _entity("Patrick", "PERSON")
+        a = FakerPlaceholderFactory().create([e])[e]
+        b = FakerPlaceholderFactory().create([e])[e]
+        assert a == b
