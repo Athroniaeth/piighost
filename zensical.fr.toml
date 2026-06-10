@@ -42,6 +42,7 @@ nav = [
     { "Concepts" = [
         { "Glossaire" = "glossary.md" },
         { "Architecture" = "architecture.md" },
+        { "Conception du pipeline" = "conception.md" },
         { "Placeholder factories" = "placeholder-factories.md" },
         { "Stratégies d'appel outil" = "tool-call-strategies.md" },
         { "Observation et cache" = "observation.md" },
