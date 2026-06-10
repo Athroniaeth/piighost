@@ -273,3 +273,27 @@ class TestLabelMapping:
         model = _FakeChatModel(_extraction())
         with pytest.raises(ValueError):
             LLMDetector(model=model, labels={"A": "person", "B": "person"})
+
+
+class TestMalformedOutput:
+    @pytest.mark.asyncio
+    async def test_none_result_returns_empty(self, _patch_langchain_core):
+        """A None structured output must not crash (P3c)."""
+        LLMDetector = _get_detector_class()
+        model = _FakeChatModel(None)
+        detector = LLMDetector(model=model, labels=["PERSON"])
+
+        detections = await detector.detect("Patrick habite à Paris")
+
+        assert detections == []
+
+    @pytest.mark.asyncio
+    async def test_result_without_entities_returns_empty(self, _patch_langchain_core):
+        """A result object lacking ``entities`` must not crash either."""
+        LLMDetector = _get_detector_class()
+        model = _FakeChatModel(SimpleNamespace())  # no .entities attribute
+        detector = LLMDetector(model=model, labels=["PERSON"])
+
+        detections = await detector.detect("Patrick habite à Paris")
+
+        assert detections == []
