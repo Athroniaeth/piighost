@@ -987,8 +987,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         by this pipeline (e.g. LLM-generated output, tool arguments).
         Tokens are replaced **longest-first** to avoid partial matches.
 
-        The result is stored in the cache so that ``deanonymize()`` can
-        look it up later.
+        When at least one token is replaced, the mapping is stored in the
+        cache so that ``deanonymize()`` can look it up later. If no token
+        was present (the text is unchanged), nothing is stored.
 
         Args:
             text: Text potentially containing placeholder tokens.
@@ -1011,6 +1012,14 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
 
         anonymized = text
         restored = _replace_longest_first(text, pairs)
+
+        # Nothing was replaced: the text carried no known token, so there
+        # is no anonymization mapping to remember. Storing one here would
+        # persist clear text under an ``anon:anonymized`` key and make a
+        # later ``deanonymize`` return a spurious hit for a never-anonymized
+        # text (P3b).
+        if restored == text:
+            return restored
 
         cv_token = _current_thread_id.set(thread_id)
         try:
