@@ -265,6 +265,47 @@ class TestAnonResultCacheThread:
         # was invalidated by the override.
         assert observation.span_count == 3
 
+    async def test_override_to_empty_drops_entity_from_memory(self) -> None:
+        """HITL correction declaring no PII must stop re-anonymizing it.
+
+        The thread pipeline renders from conversation memory, so dropping
+        the detection cache is not enough: the entity recorded in memory
+        must also be reconciled, otherwise the memory-wide render keeps
+        replacing the corrected surface form.
+        """
+        pipeline, _, _, _ = self._build()
+
+        result1, _ = await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+        assert result1 == "Bonjour <<PERSON:1>>"
+
+        # Human says: "Patrick" here is not PII -> empty corrected detections.
+        await pipeline.override_detections("Bonjour Patrick", [], thread_id="t1")
+
+        result2, ents = await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+        assert result2 == "Bonjour Patrick"
+        assert ents == []
+        assert pipeline.get_memory("t1").all_entities == []
+
+    async def test_override_preserves_entity_seen_in_another_message(self) -> None:
+        """Correcting one message must not drop PII first seen elsewhere.
+
+        Patrick is first recorded in message 1.  Correcting message 2 to
+        drop its Patrick detection is a no-op on memory (Patrick lives in
+        message 1's bucket), so message 1 stays anonymized.
+        """
+        pipeline, _, _, _ = self._build()
+
+        await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+        await pipeline.anonymize("Patrick encore", thread_id="t1")
+
+        await pipeline.override_detections("Patrick encore", [], thread_id="t1")
+
+        # Patrick was first seen in message 1, so it survives the correction.
+        canonicals = [e.canonical for e in pipeline.get_memory("t1").all_entities]
+        assert canonicals == ["patrick"]
+        result, _ = await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+        assert result == "Bonjour <<PERSON:1>>"
+
     async def test_deanonymize_with_ent_populates_anon_result(self) -> None:
         pipeline, _, observation, _ = self._build()
 

@@ -127,6 +127,8 @@ class AnyConversationMemory(Protocol):
 
     def record(self, text_hash: str, entities: list[Entity]) -> bool: ...
 
+    def replace_message(self, text_hash: str, entities: list[Entity]) -> None: ...
+
     def to_dict(self) -> dict[str, Any]: ...
 
     def merge_snapshot(self, data: dict[str, Any]) -> None: ...
@@ -195,6 +197,40 @@ class ConversationMemory:
             elif self._merge_variant(slot, entity):
                 changed = True
         return changed
+
+    def replace_message(self, text_hash: str, entities: list[Entity]) -> None:
+        """Replace the entities recorded for one message, then re-index.
+
+        Used by HITL corrections (``override_detections``): when a human
+        rewrites the detections for a given text, this message's
+        contribution to the conversation memory is recomputed from the
+        corrected entities and the whole memory is replayed so the
+        canonical index and first-seen ordering stay consistent.
+
+        Only entities **first seen in this message** are affected: an
+        entity first recorded by an earlier message lives in that
+        message's bucket, so correcting a later message does not remove
+        it (the earlier message still mentions it). An entity first seen
+        here that also recurred in a later message is dropped
+        retroactively and re-recorded on the next message that mentions
+        it, so memory self-heals going forward.
+        """
+        self.entities_by_hash[text_hash] = list(entities)
+        self._reindex()
+
+    def _reindex(self) -> None:
+        """Rebuild ``entities_by_hash`` and the canonical index from scratch.
+
+        Replays every bucket in insertion order through ``record`` so the
+        canonical dedup, variant merging, and first-seen ordering are
+        reproduced exactly. Empty buckets are preserved so a corrected
+        message keeps its position if it later regains an entity.
+        """
+        old_buckets = self.entities_by_hash
+        self.entities_by_hash = {}
+        self._canonical_index = {}
+        for text_hash, bucket in old_buckets.items():
+            self.record(text_hash, list(bucket))
 
     @property
     def all_entities(self) -> list[Entity]:
@@ -689,6 +725,21 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         value = self._serialize_detections(detections)
         await self._cache_set_indexed(thread_id, detect_key, value)
         await self._cache.delete(anon_result_key)
+
+        # Reconcile conversation memory: the thread pipeline renders from
+        # memory, not from the per-message detections, so updating only the
+        # detection cache would leave the corrected entity in place and the
+        # memory-wide render would keep replacing it. Recompute this
+        # message's contribution from the corrected detections (single-text
+        # linking, no cross-message linking) and replace it in memory.
+        memory = self.get_memory(thread_id)
+        replace_message = getattr(memory, "replace_message", None)
+        if replace_message is not None:
+            corrected = self._entity_resolver.resolve(
+                self._entity_linker.link(text, detections)
+            )
+            replace_message(hash_sha256(text), corrected)
+            await self._persist_memory(thread_id)
 
     async def _cached_detect(self, text: str) -> list[Detection]:
         """Detect entities, using thread-scoped cache if available."""
