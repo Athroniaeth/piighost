@@ -70,8 +70,9 @@ class Gliner2Detector(BaseNERDetector):
         labels: list[str] | dict[str, str],
         threshold: float = 0.5,
         flat_ner: bool = True,
+        max_concurrency: int | None = None,
     ) -> None:
-        super().__init__(labels)
+        super().__init__(labels, max_concurrency=max_concurrency)
         self.model = model
         self.threshold = threshold
         self.flat_ner = flat_ner
@@ -86,13 +87,15 @@ class Gliner2Detector(BaseNERDetector):
             Detections whose score meets the configured threshold, with
             labels remapped to the external vocabulary.
         """
-        raw_entities = self.model.extract_entities(
+        result = await self._run_blocking(
+            self.model.extract_entities,
             text,
             entity_types=self.internal_labels,
             threshold=self.threshold,
             include_spans=True,
             include_confidence=True,
-        )["entities"]
+        )
+        raw_entities = result["entities"]
 
         detections: list[Detection] = []
         for entity_type, list_entity in raw_entities.items():
