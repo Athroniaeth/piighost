@@ -1,7 +1,8 @@
 """LLM-based entity detector using structured output."""
 
 import importlib.util
-from typing import TYPE_CHECKING, Any, cast
+import logging
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from piighost.config.models.detector import LLMDetectorConfig
@@ -20,6 +21,8 @@ from enum import Enum
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_PROMPT = (
     "You are a Named Entity Recognition (NER) system specialized in "
@@ -179,13 +182,27 @@ class LLMDetector:
 
         # with_structured_output wires the chain to return an instance of
         # self._schema (a dynamically generated Pydantic class with an
-        # ``entities`` field), but LangChain types ainvoke's return as
-        # ``dict | BaseModel``.  Cast to Any so the field access below is
-        # untyped rather than wrongly typed.
-        result = cast(Any, await self._chain.ainvoke(messages))
+        # ``entities`` field); LangChain types ainvoke's return as
+        # ``dict | BaseModel``. ``entities`` is read via getattr so the
+        # dynamic field access stays well-typed without a cast.
+        result = await self._chain.ainvoke(messages)
+
+        # Structured output can come back None (or without ``entities``)
+        # when the provider fails to comply with the schema. Guard against
+        # the AttributeError and treat it as no detections rather than
+        # crashing the whole pipeline. This is fail-open at the detector
+        # level; pair with an AnyGuardRail for a fail-closed final check.
+        entities = getattr(result, "entities", None)
+        if entities is None:
+            logger.warning(
+                "LLMDetector structured output returned no usable result "
+                "(got %s); treating as no detections.",
+                type(result).__name__,
+            )
+            return []
 
         detections: list[Detection] = []
-        for entity in result.entities:
+        for entity in entities:
             for start, end in find_all_word_boundary(text, entity.text):
                 detections.append(
                     Detection(
