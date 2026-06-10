@@ -8,19 +8,36 @@ def hash_sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+WORD_JOIN_CHARS = "-'"
+"""Characters treated as part of a word, in addition to ``\\w``.
+
+``\\b`` treats ``-`` and ``'`` as separators, so ``\\bJean\\b`` matches
+the "Jean" inside "Jean-Paul" or "d'Anne", wrongly linking a short name
+to an unrelated compound. These joiners are added to the word-character
+class used by :func:`boundary_wrap` so a fragment is not matched when
+glued to them, while genuine end-of-word punctuation (space, ``.``,
+``,``, newline) still bounds it. Edit this single constant to change
+what counts as a word separator across detection, linking, guarding,
+and replacement.
+"""
+
+_WORD_CLASS = "[" + "\\w" + "".join(re.escape(c) for c in WORD_JOIN_CHARS) + "]"
+"""Regex character class of word-internal characters (``[\\w\\-']``)."""
+
+
 def boundary_wrap(fragment: str) -> str:
     """Escape *fragment* and wrap it in word-boundary assertions.
 
-    Uses ``\\b`` for alphanumeric/underscore edges and lookarounds
-    ``(?<!\\w)`` / ``(?!\\w)`` for fragments starting or ending with
-    special characters.
+    Wraps the fragment in negative lookarounds against
+    :data:`_WORD_CLASS` (``\\w`` plus :data:`WORD_JOIN_CHARS`) so the
+    fragment only matches when it is not glued to a word-internal
+    character on either side. Unlike ``\\b`` this treats ``-`` and ``'``
+    as part of a word, so "Jean" does not match inside "Jean-Paul".
 
     The fragment must be non-empty; an empty fragment would produce a
     zero-width pattern matching everywhere.
     """
-    prefix = r"\b" if fragment[0:1].isalnum() or fragment[0:1] == "_" else r"(?<!\w)"
-    suffix = r"\b" if fragment[-1:].isalnum() or fragment[-1:] == "_" else r"(?!\w)"
-    return f"{prefix}{re.escape(fragment)}{suffix}"
+    return f"(?<!{_WORD_CLASS}){re.escape(fragment)}(?!{_WORD_CLASS})"
 
 
 @lru_cache(maxsize=1024)

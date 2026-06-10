@@ -172,10 +172,11 @@ class ExactMatchDetector:
 
     @staticmethod
     def _build_pattern(word: str, flags: re.RegexFlag) -> re.Pattern[str]:
-        escaped = re.escape(word)
-        prefix = r"\b" if word[0:1].isalnum() or word[0:1] == "_" else r"(?<!\w)"
-        suffix = r"\b" if word[-1:].isalnum() or word[-1:] == "_" else r"(?!\w)"
-        return re.compile(f"{prefix}{escaped}{suffix}", flags)
+        # Single source of truth for word boundaries (treats -/' as
+        # word-internal, see piighost.utils.WORD_JOIN_CHARS).
+        from piighost.utils import boundary_wrap
+
+        return re.compile(boundary_wrap(word), flags)
 
     async def detect(self, text: str) -> list[Detection]:
         """Detect entities by matching words from the dictionary in the text.
