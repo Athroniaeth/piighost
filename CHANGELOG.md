@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.14.0 (2026-06-10)
+
+### BREAKING CHANGE
+
+- AnyGuardRail.check now receives tokens (third-party guard rails must add the parameter); pipeline cache entries now expire after 3600s by default (set cache_ttl=None in code or cache_ttl = 0 in TOML to keep the previous unbounded retention).
+
+### Feat
+
+- **pipeline**: public detect_entities(thread_id)/get_resolved_tokens/observation; client forget_thread
+- **config**: [cache] TOML section (memory/redis/sqlalchemy) with env-var URL indirection
+- **config**: expose thresholds, prefixes, salts, validators and mask options in TOML
+- **middleware**: recursive tool-arg deanonymization and require_thread_id strict mode
+- **pipeline**: forget_thread purge API, 1h default cache TTL, redacted middleware logs
+- **guard**: token-aware check() ignores the placeholders the pipeline emitted
+- **models**: validate Span bounds, mask Detection repr, add Entity.canonical
+
+### Fix
+
+- **client**: URL-encode thread_id in forget_thread; pin the observation property
+- **config**: lazy SQLAlchemy schema, actionable redis ConfigError, CI redis group, serializer contract
+- **pipeline**: serialize forget_thread with in-flight writes; expose cache_ttl in TOML
+- **pipeline**: lock the key index against concurrent writes; re-publish expired memory snapshots
+- **pipeline**: skip empty memory buckets in snapshot; pin fuzzy-merge rank stability
+- **pipeline**: stable first-seen token ordering; cache-backed injectable memory
+- **pipeline**: cache-first short-circuit on both pipelines; document factory and hook contracts
+- **guard**: boundary-anchored, coverage-based token exemption; reject bare-str tokens
+- **resolver**: fuzzy keeps anchor-clustering semantics; discriminating scale test
+- **packaging**: core no longer imports pydantic; config dispatch lives in builders only
+- **pipeline**: word-boundary matching in anonymize_with_ent replacement
+
+### Refactor
+
+- **pipeline**: drop unreachable cache-None branches; truthful docstrings and protocol slimming
+- **pipeline**: single stage template with hooks; async opt-in observation pacing
+
+### Perf
+
+- **resolver**: true union-find merge; run composite detectors concurrently
+
 ## 0.13.0 (2026-06-02)
 
 ### Feat
