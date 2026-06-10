@@ -55,8 +55,9 @@ class SpacyDetector(BaseNERDetector):
         self,
         model: spacy.language.Language,
         labels: list[str] | dict[str, str] | None = None,
+        max_concurrency: int | None = None,
     ) -> None:
-        super().__init__(labels)
+        super().__init__(labels, max_concurrency=max_concurrency)
         self.model = model
 
     async def detect(self, text: str) -> list[Detection]:
@@ -72,7 +73,7 @@ class SpacyDetector(BaseNERDetector):
             mapped internal label are kept, and the external label is used
             in :class:`Detection.label`.
         """
-        doc = self.model(text)
+        doc = await self._run_blocking(self.model, text)
         detections: list[Detection] = []
 
         for ent in doc.ents:

@@ -62,8 +62,9 @@ class TransformersDetector(BaseNERDetector):
         pipeline: TokenClassificationPipeline,
         labels: list[str] | dict[str, str] | None = None,
         threshold: float = 0.0,
+        max_concurrency: int | None = None,
     ) -> None:
-        super().__init__(labels)
+        super().__init__(labels, max_concurrency=max_concurrency)
         self.pipeline = pipeline
         self.threshold = threshold
 
@@ -80,7 +81,7 @@ class TransformersDetector(BaseNERDetector):
             label are kept, and the external label is used in
             :class:`Detection.label`.
         """
-        results = self.pipeline(text)
+        results = await self._run_blocking(self.pipeline, text)
         detections: list[Detection] = []
 
         for ent in results:
