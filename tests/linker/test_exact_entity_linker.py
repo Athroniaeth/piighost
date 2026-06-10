@@ -258,3 +258,28 @@ class TestMinTextLength:
 
         assert len(entities) == 1
         assert len(entities[0].detections) > 1  # expanded
+
+
+class TestNoOverlappingExpansion:
+    def test_expand_skips_occurrence_overlapping_another_detection(self) -> None:
+        """Expansion must not re-inject an occurrence overlapping another span.
+
+        Regression for H1 (case B): "Jean" expands to the substring inside
+        "Jean-Pierre" only if the linker ignores overlap. It must not.
+        """
+        text = "Jean travaille avec Jean-Pierre."
+        detections = [
+            _det("Jean", "PERSON", 0, 4),
+            _det("Jean-Pierre", "PERSON", 20, 31),
+        ]
+        entities = ExactEntityLinker().link(text, detections)
+        spans = [
+            (d.position.start_pos, d.position.end_pos)
+            for e in entities
+            for d in e.detections
+        ]
+        assert (20, 24) not in spans  # the overlapping re-injection
+        # No two detections overlap.
+        for i, a in enumerate(spans):
+            for b in spans[i + 1 :]:
+                assert not (a[0] < b[1] and b[0] < a[1]), (a, b)
