@@ -95,7 +95,10 @@ def test_validator_registry_matches_config_literal():
 
 
 def _pipeline_from_toml(toml_text: str):
-    import tomllib
+    try:
+        import tomllib  # Python >= 3.11
+    except ModuleNotFoundError:  # Python 3.10 falls back to the tomli backport
+        import tomli as tomllib
 
     from piighost.config.models.pipeline import PipelineConfig
 
