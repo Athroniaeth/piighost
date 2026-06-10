@@ -165,9 +165,10 @@ class TestMaskPlaceholderFactory:
         e = _entity("123-45-6789", "US_SSN")
         assert MaskPlaceholderFactory().create([e])[e] == "*****6789"
 
-    def test_numeric_short_value_unchanged(self) -> None:
+    def test_numeric_short_value_fully_masked(self) -> None:
+        # <= visible_chars digits: mask everything, never return it in clear.
         e = _entity("1234", "CREDIT_CARD")
-        assert MaskPlaceholderFactory().create([e])[e] == "1234"
+        assert MaskPlaceholderFactory().create([e])[e] == "****"
 
     def test_numeric_custom_visible_chars(self) -> None:
         e = _entity("4111-1111-1111-1234", "CREDIT_CARD")
