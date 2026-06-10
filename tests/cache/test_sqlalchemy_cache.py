@@ -257,3 +257,51 @@ class TestPipelineIntegration:
             assert restored == "Patrick is here."
         finally:
             await backend.close()
+
+
+class TestSafeSerializer:
+    async def test_default_serializer_is_json_not_pickle(
+        self, cache: SQLAlchemyCache
+    ) -> None:
+        from piighost.cache.sqlalchemy import JsonBytesSerializer
+
+        assert isinstance(cache.serializer, JsonBytesSerializer)
+
+    async def test_default_serializer_round_trips_pipeline_values(
+        self, cache: SQLAlchemyCache
+    ) -> None:
+        value = {"original": "Patrick", "entities": [[{"start_pos": 0}]]}
+        await cache.set("k", value)
+        assert await cache.get("k") == value
+
+    async def test_tampered_pickle_payload_is_not_executed(
+        self, cache: SQLAlchemyCache
+    ) -> None:
+        """A malicious pickle written to the row must fail to load, not run."""
+        import os
+        import pickle
+        import tempfile
+
+        from sqlalchemy import insert
+
+        marker = os.path.join(tempfile.gettempdir(), "piighost_p2b_witness")
+        if os.path.exists(marker):
+            os.remove(marker)
+
+        class Evil:
+            def __reduce__(self):
+                return (os.system, (f"touch {marker}",))
+
+        await cache._ensure_schema()
+        async with cache._session_factory() as session:
+            await session.execute(
+                insert(cache._table).values(
+                    key="pwned", value=pickle.dumps(Evil()), expires_at=None
+                )
+            )
+            await session.commit()
+
+        # JSON loads must reject the pickle bytes instead of executing them.
+        with pytest.raises(Exception):
+            await cache.get("pwned")
+        assert not os.path.exists(marker)

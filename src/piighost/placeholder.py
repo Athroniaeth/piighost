@@ -497,10 +497,15 @@ def mask_email(text: str, mask_char: str = "*") -> str:
 
 
 def mask_numeric(text: str, mask_char: str = "*", visible_chars: int = 4) -> str:
-    """``****4567`` — keep last ``visible_chars`` digits."""
+    """``****4567`` — keep last ``visible_chars`` digits.
+
+    When the value has at most ``visible_chars`` digits, revealing the
+    suffix would expose (almost) the whole value, so everything is masked
+    instead of being returned in clear.
+    """
     digits = re.sub(r"\D", "", text)
     if len(digits) <= visible_chars:
-        return text
+        return mask_char * len(digits or text)
     visible = digits[-visible_chars:]
     masked_count = len(digits) - visible_chars
     return mask_char * masked_count + visible
