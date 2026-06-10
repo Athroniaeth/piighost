@@ -327,6 +327,26 @@ class TestAnonResultCacheThread:
         assert observation.span_count == before
         assert "<<PERSON:1>>" in result
 
+    async def test_deanonymize_with_ent_no_token_does_not_store(self) -> None:
+        """A token-free text must not be cached as an anonymization (P3b).
+
+        Memory is non-empty but the text carries no placeholder, so
+        nothing is replaced and no clear-text mapping should be stored.
+        """
+        pipeline, _, _, _ = self._build()
+
+        # Seed memory with an entity so token_map is non-empty.
+        await pipeline.anonymize("Bonjour Patrick", thread_id="t1")
+
+        clear = "Le ciel est bleu aujourd'hui."
+        result = await pipeline.deanonymize_with_ent(clear, thread_id="t1")
+        assert result == clear  # unchanged, still returned
+
+        # Nothing was stored: a strict deanonymize must report a cache miss
+        # rather than a spurious hit on clear text.
+        with pytest.raises(CacheMissError):
+            await pipeline.deanonymize(clear, thread_id="t1")
+
     async def test_deanonymize_populates_anon_result(self) -> None:
         pipeline, _, observation, _ = self._build()
 
