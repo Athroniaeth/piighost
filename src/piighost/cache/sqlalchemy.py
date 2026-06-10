@@ -35,8 +35,9 @@ if importlib.util.find_spec("sqlalchemy") is None:
         "please install piighost[sqlalchemy]"
     )
 
+import json
+
 from aiocache.base import BaseCache
-from aiocache.serializers import PickleSerializer
 from sqlalchemy import (
     Column,
     Float,
@@ -56,6 +57,37 @@ from sqlalchemy.ext.asyncio import (
 
 _DEFAULT_TABLE_NAME = "piighost_cache"
 _metadata_cache: dict[str, MetaData] = {}
+
+
+class JsonBytesSerializer:
+    """JSON serializer storing UTF-8 bytes (the cache column is binary).
+
+    The pipeline only caches JSON-compatible dicts of scalars, so JSON is
+    sufficient and avoids Pickle's arbitrary-code-execution risk: a
+    tampered row (compromised database, poisoned backup) cannot trigger
+    code on deserialization, only fail to parse. Used as the default
+    serializer; pass an explicit ``serializer=`` to override.
+
+    Deliberately not a subclass of ``aiocache.serializers.BaseSerializer``
+    (whose ``dumps`` is typed ``-> str``): aiocache duck-types the
+    serializer, so a standalone class keeps the ``-> bytes`` return type
+    honest instead of overriding it inconsistently.
+    """
+
+    # Values are stored as bytes; decoding is handled in ``loads``.
+    encoding: str | None = None
+
+    def dumps(self, value: Any) -> bytes:
+        return json.dumps(value).encode("utf-8")
+
+    def loads(self, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, memoryview):
+            value = value.tobytes()
+        if isinstance(value, (bytes, bytearray)):
+            value = bytes(value).decode("utf-8")
+        return json.loads(value)
 
 
 def _build_table(table_name: str) -> Table:
@@ -97,10 +129,12 @@ class SQLAlchemyCache(BaseCache):
         table_name: Name of the cache table.  Defaults to
             ``"piighost_cache"``.  Pick a different name to share one
             database between several PIIGhost deployments.
-        serializer: aiocache serializer.  Defaults to ``PickleSerializer``,
-            which is a fine default for the JSON-friendly dicts of scalars
-            the pipeline stores.  Pass ``JsonSerializer()`` if you prefer
-            JSON storage on the wire; the stored values are JSON-compatible.
+        serializer: aiocache serializer.  Defaults to
+            :class:`JsonBytesSerializer` (JSON encoded as UTF-8 bytes),
+            which is safe against arbitrary-code-execution on
+            deserialization, unlike Pickle.  The pipeline only stores
+            JSON-compatible dicts of scalars.  Pass ``PickleSerializer()``
+            explicitly to read caches written by older versions.
         **kwargs: Forwarded to ``aiocache.BaseCache.__init__`` (namespace,
             timeout, plugins…).
     """
@@ -125,7 +159,7 @@ class SQLAlchemyCache(BaseCache):
         if (url is None) == (engine is None):
             raise ValueError("Provide exactly one of `url` or `engine`.")
 
-        super().__init__(serializer=serializer or PickleSerializer(), **kwargs)
+        super().__init__(serializer=serializer or JsonBytesSerializer(), **kwargs)
 
         if engine is not None:
             self._engine = engine
@@ -477,4 +511,4 @@ class SQLAlchemyCache(BaseCache):
         await session.execute(self._table.insert(), values)
 
 
-__all__ = ["SQLAlchemyCache"]
+__all__ = ["JsonBytesSerializer", "SQLAlchemyCache"]
