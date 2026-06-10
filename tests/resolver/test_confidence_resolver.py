@@ -180,3 +180,23 @@ class TestConfidenceThreshold:
         )
         assert len(result) == 1
         assert result[0].label == "LOCATION"
+
+
+class TestTieBreakOnLength:
+    def test_equal_confidence_keeps_longer_span(self) -> None:
+        """On a confidence tie, the longer (more specific) span wins.
+
+        Regression for H1: a short name detected inside a longer one
+        (e.g. "Jean" inside "Jean-Pierre") must not evict the longer
+        entity when both share the same confidence.
+        """
+        detections = [
+            _make("PERSON", 0, 4, 1.0, "Jean"),  # standalone, no overlap
+            _make("PERSON", 20, 24, 1.0, "Jean"),  # inside Jean-Pierre
+            _make("PERSON", 20, 31, 1.0, "Jean-Pierre"),  # longer, same conf
+        ]
+        result = ConfidenceSpanConflictResolver().resolve(detections)
+        kept = {(d.text, d.position.start_pos, d.position.end_pos) for d in result}
+        assert ("Jean-Pierre", 20, 31) in kept
+        assert ("Jean", 20, 24) not in kept
+        assert ("Jean", 0, 4) in kept

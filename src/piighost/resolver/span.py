@@ -138,7 +138,15 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
         detections = self._pre_filter(detections)
 
         accepted: list[Detection] = []
-        ranked = sorted(detections, key=lambda d: d.confidence, reverse=True)
+        # Rank by confidence, then by span length so that on a confidence
+        # tie the longer (more specific) detection is accepted first and a
+        # shorter one overlapping it is dropped. This keeps "Jean-Pierre"
+        # over the "Jean" detected inside it (H1).
+        ranked = sorted(
+            detections,
+            key=lambda d: (d.confidence, d.position.end_pos - d.position.start_pos),
+            reverse=True,
+        )
 
         for detection in ranked:
             gen = (detection.position.overlaps(a.position) for a in accepted)

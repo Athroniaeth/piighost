@@ -230,7 +230,12 @@ class ExactEntityLinker(BaseEntityLinker):
 
             for start, end in self._find_all(text, detection.text):
                 position = Span(start_pos=start, end_pos=end)
-                if position not in occupied:
+                # Skip occurrences overlapping any existing detection, not
+                # just exact duplicates: a short surface form (e.g. "Jean")
+                # matches at a word boundary inside a longer entity
+                # ("Jean-Pierre") and must not be re-injected as an
+                # overlapping span (H1). overlaps() subsumes exact equality.
+                if not any(position.overlaps(s) for s in occupied):
                     occupied.add(position)
                     expanded.append(
                         Detection(
