@@ -36,20 +36,23 @@ def hashlib_sha256_expected(text: str) -> str:
 
 
 class TestBoundaryWrap:
-    def test_alnum_fragment_gets_word_boundary_both_sides(self):
-        assert boundary_wrap("Patrick") == r"\bPatrick\b"
+    def test_alnum_fragment_wrapped_in_word_class_lookarounds(self):
+        # boundary_wrap uses negative lookarounds against the word class
+        # ([\w] + WORD_JOIN_CHARS) rather than \b, so -/' count as
+        # word-internal.
+        assert boundary_wrap("Patrick") == r"(?<![\w\-'])Patrick(?![\w\-'])"
 
     def test_special_prefix_gets_lookbehind(self):
-        # "+33..." starts with a non-word char, so the left edge uses a
-        # lookbehind instead of \b (which would never match before "+").
+        # "+33..." starts with a non-word char; the left edge still uses a
+        # lookbehind so the fragment is not matched when glued to a word
+        # char.
         wrapped = boundary_wrap("+33")
-        assert wrapped.startswith(r"(?<!\w)")
+        assert wrapped.startswith(r"(?<![\w\-'])")
         assert re.escape("+33") in wrapped
 
     def test_non_word_suffix_gets_lookahead(self):
-        # "x.com" ends on a word char, but "x." ends on a non-word char.
         wrapped = boundary_wrap("x.")
-        assert wrapped.endswith(r"(?!\w)")
+        assert wrapped.endswith(r"(?![\w\-'])")
 
     def test_wrapped_phone_matches_standalone_but_not_glued_digits(self):
         phone = "+33 6 12 34 56 78"
@@ -115,3 +118,27 @@ class TestFindAllWordBoundary:
         info = _word_boundary_pattern.cache_info()
         assert info.hits >= 1
         assert info.misses == 1
+
+
+class TestBoundaryHyphen:
+    def test_jean_not_matched_inside_hyphenated_name(self) -> None:
+        """\"Jean\" must not match inside \"Jean-Paul\" (hyphen joins the word)."""
+        from piighost.utils import find_all_word_boundary
+
+        assert find_all_word_boundary("Jean-Paul est là", "Jean") == []
+        # But genuine end-of-word punctuation still bounds it.
+        assert find_all_word_boundary("Jean. Jean, Jean", "Jean") == [
+            (0, 4),
+            (6, 10),
+            (12, 16),
+        ]
+
+    def test_apostrophe_joins_word(self) -> None:
+        from piighost.utils import find_all_word_boundary
+
+        assert find_all_word_boundary("d'Anne arrive", "Anne") == []
+
+    def test_still_blocks_substring_without_boundary(self) -> None:
+        from piighost.utils import find_all_word_boundary
+
+        assert find_all_word_boundary("Jeanpolis", "Jean") == []
