@@ -70,9 +70,33 @@ class BaseNERDetector(ABC):
         'PERSON'
     """
 
-    def __init__(self, labels: list[str] | dict[str, str] | None) -> None:
+    def __init__(
+        self,
+        labels: list[str] | dict[str, str] | None,
+        max_concurrency: int | None = None,
+    ) -> None:
         self._label_map: dict[str, str] = self._normalize(labels)
         self._reverse_map: dict[str, str] = self._build_reverse(self._label_map)
+        # Model inference is synchronous and CPU/GPU-bound; offload it to a
+        # worker thread so it does not freeze the asyncio event loop. The
+        # optional semaphore bounds how many inferences run at once (GPU
+        # memory, CPU cores). None means rely on the default thread pool.
+        self._infer_semaphore: asyncio.Semaphore | None = (
+            asyncio.Semaphore(max_concurrency) if max_concurrency else None
+        )
+
+    async def _run_blocking(self, fn: Callable[..., object], *args: object, **kwargs: object) -> object:
+        """Run a blocking model call off the event loop, optionally bounded.
+
+        Offloads *fn* to a worker thread via ``asyncio.to_thread`` so
+        synchronous inference does not block the loop. When
+        ``max_concurrency`` was set at construction, a semaphore caps the
+        number of concurrent inferences.
+        """
+        if self._infer_semaphore is None:
+            return await asyncio.to_thread(fn, *args, **kwargs)
+        async with self._infer_semaphore:
+            return await asyncio.to_thread(fn, *args, **kwargs)
 
     @abstractmethod
     async def detect(self, text: str) -> list[Detection]:
