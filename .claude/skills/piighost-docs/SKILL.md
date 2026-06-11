@@ -1,6 +1,6 @@
 ---
 name: piighost-docs
-description: Use when editing PIIGhost documentation under docs/en/ or docs/fr/. Covers page structure, mandatory EN/FR mirroring, Mermaid + figure-caption pattern, .placeholder / .pii inline tagging, .security-table cell-level colour coding, .wide-table wrapper, nav updates in zensical.toml / zensical.fr.toml, and the zensical build/verify workflow.
+description: Use when editing PIIGhost documentation under docs/en/ or docs/fr/. Covers the writing style (term definitions by mechanism, sentence style, AI-tell avoidance, incremental page shape), page structure, mandatory EN/FR mirroring, Mermaid + figure-caption pattern, .placeholder / .pii inline tagging, .security-table cell-level colour coding, .wide-table wrapper, nav updates in zensical.toml / zensical.fr.toml, and the zensical build/verify workflow.
 ---
 
 # PIIGhost docs
@@ -268,6 +268,103 @@ Use French labels in the FR config; EN labels in the EN config.
 - `.sec-legend` chips — legend below colour-coded tables
 
 Light + dark mode are both supported via `[data-md-color-scheme="slate"]` selectors.
+
+## Writing the prose
+
+Everything above wires a page (build, layout, tables, mermaid). This section is about
+**how the text reads**. It applies to every page, EN and FR.
+
+**The voice is didactic and direct.** Explain the *why* behind a choice, define a
+concept by what it does, and prefer a short plain sentence to a clever one. No
+marketing tone, no filler, no showing off. The reader should always know what problem
+the current paragraph solves.
+
+### Define before you use
+
+- Name a concept explicitly the first time it appears, then say what it is for.
+  > On appellera ça un *placeholder* : un *token* qui remplace le texte anonymisé.
+- Define a technical concept by **how it works**, never by a vague label:
+  - *regex* : reconnaît des **motifs**, des chaînes de caractères qui suivent une
+    structure fixe (IBAN, téléphone). Efficace sur ces formats, inutilisable sur du
+    texte non structuré (prénom, nom, date écrite, lieu).
+  - *NER* : **modèle d'IA** qui, sur un texte, classe les mots selon une
+    classification décidée à l'avance (nom, prénom, lieu, organisation).
+- Code identifiers stay in English, plain inline code, no colour tag:
+  `ThreadAnonymizationPipeline`, `abefore_model`.
+
+### Sentence style
+
+- **No em dash (`—`).** Use a comma, a colon, a period, or parentheses.
+- **No mid-sentence colon** in prose. A colon is fine to introduce a list. For an
+  inline definition or apposition, use a comma or *c'est-à-dire* instead. Write
+  « reconnaît des motifs, c'est-à-dire des chaînes de caractères qui suivent une
+  structure » rather than « reconnaît des motifs : des chaînes... ».
+- **Simple copulas** (`est`, `a`) over periphrasis (`se présente comme`, `livre`).
+- **Concrete opening** over a vague hinge. Prefer « Sur un texte libre, on ne sait
+  pas... » to « Mais on reçoit... ».
+- Short sentences, varied rhythm, no filler.
+- Correct French with every accent. Avoid anglicisms (`caviardage` not `redaction`,
+  `à perte` not `lossy`).
+
+### AI tells to avoid (see the humanizer skill)
+
+- No authority/effect phrases: « la distinction clé », « ce n'est pas cosmétique »,
+  « ce qui découle de tout ce qui précède », « au fond », « en réalité ».
+- No forced rule of three, no negative parallelism (« ce n'est pas X, c'est Y »).
+- No elegant variation (cycling synonyms for the same term).
+- No generic upbeat conclusion, no signposting (« plongeons dans »).
+- No mechanical bold, no emojis in headings.
+
+### Page shape
+
+- **Incremental construction**: start from the simplest need, add one constraint at a
+  time, let each component appear because a constraint demands it.
+- **Continuity**: link explicitly to upstream pages (e.g. a page that follows
+  « Pourquoi anonymiser ? »).
+- Headings: one separator only, sentence case, no em dash.
+- Mermaid diagrams get a `.figure-caption`; pair explanations with concrete
+  before/after examples.
+
+### Examples (avoid → prefer)
+
+**Define by mechanism, not by a vague label**
+- Avoid: « Le NER repère intelligemment les entités. »
+- Prefer: « Le NER est un modèle d'IA qui classe les mots d'un texte selon une
+  classification décidée à l'avance (nom, prénom, lieu). »
+
+**Define the term the first time, then reuse it**
+- Avoid: « On remplace la valeur par un marqueur. » (term never defined)
+- Prefer: « On remplace la valeur par un placeholder, c'est-à-dire le token qui prend
+  sa place. »
+
+**One term per concept (no elegant variation)**
+- Avoid: alterner « jeton », « token », « marqueur » pour la même chose.
+- Prefer: choisir *placeholder* / *token* et s'y tenir partout.
+
+**No em dash**
+- Avoid: « Le détecteur lit le texte — puis renvoie des détections. »
+- Prefer: « Le détecteur lit le texte, puis renvoie des détections. »
+
+**No mid-sentence colon for an apposition**
+- Avoid: « reconnaît des motifs : des chaînes qui suivent une structure. »
+- Prefer: « reconnaît des motifs, c'est-à-dire des chaînes qui suivent une
+  structure. »
+
+**Simple copula, no periphrasis**
+- Avoid: « Le middleware se présente comme un simple adaptateur. »
+- Prefer: « Le middleware est un simple adaptateur. »
+
+**Concrete opening, no vague hinge**
+- Avoid: « Mais on reçoit un texte libre. »
+- Prefer: « Sur un texte libre, on ne sait pas d'avance où sont les PII. »
+
+**No authority/effect phrase**
+- Avoid: « C'est la distinction clé : asynchrone pour l'I/O et l'orchestration. »
+- Prefer: « En résumé, asynchrone pour l'I/O et l'orchestration. »
+
+**No decorative rule of three, no signposting**
+- Avoid: « Plongeons dans le cache, à la fois rapide, robuste et élégant. »
+- Prefer: « Le cache stocke les résultats de détection par hash du texte. »
 
 ## See also
 
