@@ -61,26 +61,29 @@ class Detection:
             f"position={self.position!r}, confidence={self.confidence!r})"
         )
 
-    @property
-    def hash(self) -> str:
-        """Build a unique identifier for this detection.
+    def to_dict(self, *, redact_as: str | None = None) -> dict[str, Any]:
+        """Return a JSON-friendly mapping of this detection.
 
-        Combines text, label, position, and confidence so that two detections
-        at different positions are always distinguishable.
+        Args:
+            redact_as: When set, the raw surface ``text`` is replaced by
+                this value in the output instead of the real PII. Left to
+                ``None`` (the default) the raw text is emitted as-is.
 
-        Returns:
-            A colon-separated string uniquely identifying this detection.
+        Why this parameter exists: the very same serialization is needed
+        in two places with opposite requirements, and we want a single
+        serialization path rather than two divergent ones.
 
-        Notes:
-            Used to check whether a detection appears multiple times
-            during entity extraction.
+        * The cache stores detections to later restore the original text,
+          so it needs the raw ``text`` and calls ``to_dict()`` with no
+          argument.
+        * The observation layer, when the operator opts into redaction,
+          must not let raw PII reach the trace backend, so it passes the
+          entity's placeholder token via ``redact_as`` to scrub the text
+          while keeping the label, position, and confidence intact.
         """
-        return f"{self.text}:{self.label}:{self.position.start_pos}:{self.position.end_pos}:{self.confidence}"
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-friendly mapping of this detection."""
+        text = redact_as or self.text
         return {
-            "text": self.text,
+            "text": text,
             "label": self.label,
             "start_pos": self.position.start_pos,
             "end_pos": self.position.end_pos,

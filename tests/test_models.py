@@ -41,10 +41,6 @@ class TestDetectionRepr:
         detection = self._make("Patrick")
         assert detection.to_dict()["text"] == "Patrick"
 
-    def test_hash_uses_raw_text(self) -> None:
-        detection = self._make("Patrick")
-        assert detection.hash.startswith("Patrick:PERSON:")
-
 
 class TestEntityRepr:
     """Entity repr nests Detections, whose raw PII text stays masked."""

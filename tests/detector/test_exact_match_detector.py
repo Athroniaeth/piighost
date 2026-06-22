@@ -175,11 +175,11 @@ class TestDetectionAttributes:
         span = result[0].position
         assert text[span.start_pos : span.end_pos] == "Patrick"
 
-    async def test_hash_is_unique_per_occurrence(self) -> None:
+    async def test_occurrences_are_distinct(self) -> None:
         detector = ExactMatchDetector([("Patrick", "PERSON")])
         result = await detector.detect("Patrick et Patrick")
         assert len(result) == 2
-        assert result[0].hash != result[1].hash
+        assert result[0] != result[1]
 
     async def test_patterns_compiled_once(self) -> None:
         """Bag-of-words patterns are compiled at __init__, not per detect."""

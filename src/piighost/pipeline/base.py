@@ -67,29 +67,17 @@ LangChain middleware which re-anonymises the full message history at
 every conversation turn."""
 
 
-def _detection_to_dict(d: Detection, *, token: str | None = None) -> dict[str, Any]:
-    """Serialize a Detection to a JSON-friendly dict for observation output.
-
-    When *token* is provided, the detection's surface text is replaced
-    with the token. Used to keep raw PII out of observation payloads.
-    """
-    return {
-        "label": d.label,
-        "position": [d.position.start_pos, d.position.end_pos],
-        "confidence": d.confidence,
-        "text": token if token is not None else d.text,
-    }
-
-
 def _entity_to_dict(e: Entity, *, token: str | None = None) -> dict[str, Any]:
     """Serialize an Entity to a JSON-friendly dict for observation output.
 
-    When *token* is provided, every detection's surface text is replaced
-    with the same token (the obs-side placeholder for the entity).
+    Reuses ``Detection.to_dict`` so detections share a single
+    serialization path. When *token* is provided, every detection's
+    surface text is replaced with the same token (the obs-side
+    placeholder for the entity).
     """
     return {
         "label": e.label,
-        "detections": [_detection_to_dict(d, token=token) for d in e.detections],
+        "detections": [d.to_dict(redact_as=token) for d in e.detections],
     }
 
 
@@ -255,9 +243,9 @@ class AnonymizationPipeline(Generic[PreservationT]):
         instead of once per detection.
         """
         if self._obs_anonymizer is None:
-            return [_detection_to_dict(d) for d in detections]
+            return [d.to_dict() for d in detections]
         token_map = self._obs_tokens_for_detections(detections)
-        return [_detection_to_dict(d, token=token_map[d]) for d in detections]
+        return [d.to_dict(redact_as=token_map[d]) for d in detections]
 
     async def detect_entities(self, text: str) -> list[Entity]:
         """Run the detection pipeline: detect → resolve → link → resolve.
@@ -467,7 +455,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
         Raises:
             CacheMissError: If the anonymized text was never produced by this pipeline.
         """
-        key = f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized_text)}"
+        key = self._make_cache_key(CACHE_KEY_ANONYMIZATION, anonymized_text)
         cached = await self._cache_get(key)
 
         if cached is None:
@@ -485,28 +473,45 @@ class AnonymizationPipeline(Generic[PreservationT]):
     # Cache helpers
     # ------------------------------------------------------------------
 
+    def _make_cache_key(self, prefix: str, text: str) -> str:
+        """Build the cache key for *prefix* over *text*.
+
+        Base pipeline keys are global (``<prefix>:<hash>``); the thread
+        pipeline overrides this to scope every key by ``thread_id`` so a
+        shared backend keeps conversations isolated. Centralizing key
+        construction here lets the store/lookup helpers below live only
+        in the base class.
+        """
+        return f"{prefix}:{hash_sha256(text)}"
+
+    async def _cache_write(self, key: str, value: Any) -> None:
+        """Write *value* under *key* with the pipeline's TTL.
+
+        The thread pipeline overrides this to also register *key* in a
+        per-thread index so ``forget_thread`` can purge it; the base
+        pipeline just writes through to the backend.
+        """
+        await self._cache.set(key, value, ttl=self._cache_ttl)
+
     async def _store_mapping(
         self,
         original: str,
         anonymized: str,
         entities: list[Entity],
     ) -> None:
-        """Store the anonymization mapping in cache (both directions)."""
-        serialized_entities = self._serialize_entities(entities)
-        key = f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized)}"
-
-        await self._cache.set(
+        """Store the anonymized → (original, entities) mapping in cache."""
+        key = self._make_cache_key(CACHE_KEY_ANONYMIZATION, anonymized)
+        await self._cache_write(
             key,
             {
                 "original": original,
-                "entities": serialized_entities,
+                "entities": self._serialize_entities(entities),
             },
-            ttl=self._cache_ttl,
         )
 
     async def _cache_get_anon_result(self, text: str) -> dict | None:
         """Return the cached anonymize result for *text*, or ``None``."""
-        key = f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
+        key = self._make_cache_key(CACHE_KEY_ANON_RESULT, text)
         return await self._cache.get(key)
 
     async def _store_anon_result(
@@ -523,27 +528,25 @@ class AnonymizationPipeline(Generic[PreservationT]):
         repeat call. Called from both ``anonymize`` (after a fresh run)
         and ``deanonymize`` (which produces both forms).
         """
-        key = f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"
-        await self._cache.set(
+        key = self._make_cache_key(CACHE_KEY_ANON_RESULT, original)
+        await self._cache_write(
             key,
             {
                 "anonymized": anonymized,
                 "entities": self._serialize_entities(entities),
             },
-            ttl=self._cache_ttl,
         )
 
     async def _cached_detect(self, text: str) -> list[Detection]:
         """Detect entities, using cache if available."""
-        cache_key = f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
-        cached = await self._cache.get(cache_key)
+        key = self._make_cache_key(CACHE_KEY_DETECTION, text)
+        cached = await self._cache.get(key)
 
         if cached is not None:
             return self._deserialize_detections(cached)
 
         detections = await self._detector.detect(text)
-        value = self._serialize_detections(detections)
-        await self._cache.set(cache_key, value, ttl=self._cache_ttl)
+        await self._cache_write(key, self._serialize_detections(detections))
         return detections
 
     async def _cache_get(self, key: str) -> dict | None:

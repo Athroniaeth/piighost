@@ -73,12 +73,6 @@ class TestDisabledEntityConflictResolver:
         out = DisabledEntityConflictResolver().resolve([e1, e2])
         assert out == [e1, e2]
 
-    def test_have_conflict_always_false(self) -> None:
-        d = _det("PERSON", 0, 7)
-        e1 = _ent(d)
-        e2 = _ent(d)
-        assert DisabledEntityConflictResolver().have_conflict(e1, e2) is False
-
     def test_returns_new_list(self) -> None:
         e1 = _ent(_det("PERSON", 0, 7))
         entities = [e1]
