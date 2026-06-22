@@ -6,10 +6,7 @@ from piighost.models import Detection, Entity, Span
 from piighost.utils import find_all_word_boundary
 
 if TYPE_CHECKING:
-    from piighost.config.models.entity_linker import (
-        DisabledEntityLinkerConfig,
-        ExactEntityLinkerConfig,
-    )
+    from piighost.config.models.entity_linker import ExactEntityLinkerConfig
 
 
 class AnyEntityLinker(Protocol):
@@ -103,11 +100,6 @@ class DisabledEntityLinker:
         >>> len(entities)
         2
     """
-
-    @classmethod
-    def from_config(cls, cfg: "DisabledEntityLinkerConfig") -> "DisabledEntityLinker":
-        """Build a ``DisabledEntityLinker`` from its validated configuration."""
-        return cls()
 
     def link(self, text: str, detections: list[Detection]) -> list[Entity]:
         return [Entity(detections=(d,)) for d in detections]

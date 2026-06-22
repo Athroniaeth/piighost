@@ -2,6 +2,7 @@
 
 import re
 
+from piighost.config.builders import build_placeholder_factory, build_span_resolver
 from piighost.config.loader import build_pipeline
 from piighost.config.models.detector import RegexDetectorConfig
 from piighost.config.models.entity_linker import ExactEntityLinkerConfig
@@ -28,7 +29,8 @@ from piighost.validators import validate_luhn
 
 def test_confidence_threshold_flows_from_config():
     cfg = ConfidenceSpanResolverConfig(confidence_threshold=0.6)
-    resolver = ConfidenceSpanConflictResolver.from_config(cfg)
+    resolver = build_span_resolver(cfg)
+    assert isinstance(resolver, ConfidenceSpanConflictResolver)
     assert resolver._confidence_threshold == 0.6
 
 
@@ -40,35 +42,38 @@ def test_linker_options_flow_from_config():
 
 
 def test_redact_value_and_prefixes_flow_from_config():
-    assert (
-        RedactPlaceholderFactory.from_config(
-            RedactPlaceholderConfig(type="redact", value="HIDDEN")
-        )._token
-        == "<<HIDDEN>>"
+    redact = build_placeholder_factory(
+        RedactPlaceholderConfig(type="redact", value="HIDDEN")
     )
-    assert (
-        RedactCounterPlaceholderFactory.from_config(
-            RedactCounterPlaceholderConfig(type="redact_counter", prefix="X")
-        )._prefix
-        == "X"
+    assert isinstance(redact, RedactPlaceholderFactory)
+    assert redact._token == "<<HIDDEN>>"
+
+    counter = build_placeholder_factory(
+        RedactCounterPlaceholderConfig(type="redact_counter", prefix="X")
     )
-    factory = RedactHashPlaceholderFactory.from_config(
+    assert isinstance(counter, RedactCounterPlaceholderFactory)
+    assert counter._prefix == "X"
+
+    factory = build_placeholder_factory(
         RedactHashPlaceholderConfig(type="redact_hash", prefix="X", salt="s1")
     )
+    assert isinstance(factory, RedactHashPlaceholderFactory)
     assert factory._prefix == "X" and factory._salt == "s1"
 
 
 def test_label_hash_salt_flows_from_config():
-    factory = LabelHashPlaceholderFactory.from_config(
+    factory = build_placeholder_factory(
         LabelHashPlaceholderConfig(type="label_hash", salt="s1", hash_length=12)
     )
+    assert isinstance(factory, LabelHashPlaceholderFactory)
     assert factory._salt == "s1" and factory._hash_length == 12
 
 
 def test_mask_visible_chars_flow_from_config():
-    factory = MaskPlaceholderFactory.from_config(
+    factory = build_placeholder_factory(
         MaskPlaceholderConfig(type="mask", mask_char="#", visible_chars=2)
     )
+    assert isinstance(factory, MaskPlaceholderFactory)
     # The numeric default strategy must honour visible_chars.
     assert factory._strategies["phone"]("0612345678", "#") == "########78"
 

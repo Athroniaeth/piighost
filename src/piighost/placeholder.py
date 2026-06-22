@@ -3,20 +3,9 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from typing_extensions import TypeVar
-
-if TYPE_CHECKING:
-    from piighost.config.models.placeholder import (
-        LabelCounterPlaceholderConfig,
-        LabelHashPlaceholderConfig,
-        LabelPlaceholderConfig,
-        MaskPlaceholderConfig,
-        RedactCounterPlaceholderConfig,
-        RedactHashPlaceholderConfig,
-        RedactPlaceholderConfig,
-    )
 
 from piighost.models import Entity
 from piighost.placeholder_tags import (
@@ -147,11 +136,6 @@ class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesNothing]):
 
     _token: str
 
-    @classmethod
-    def from_config(cls, cfg: "RedactPlaceholderConfig") -> "RedactPlaceholderFactory":
-        """Build a ``RedactPlaceholderFactory`` from its validated configuration."""
-        return cls(value=cfg.value)
-
     def __init__(self, value: str = "REDACT") -> None:
         self._token = f"<<{value}>>"
 
@@ -183,13 +167,6 @@ class LabelCounterPlaceholderFactory(
         >>> factory.create([e])[e]
         '<<PERSON:1>>'
     """
-
-    @classmethod
-    def from_config(
-        cls, cfg: "LabelCounterPlaceholderConfig"
-    ) -> "LabelCounterPlaceholderFactory":
-        """Build a ``LabelCounterPlaceholderFactory`` from its validated configuration."""
-        return cls()
 
     def __init__(self): ...
 
@@ -249,13 +226,6 @@ class LabelHashPlaceholderFactory(
     _hash_length: int
     _salt: str
     _pepper: str
-
-    @classmethod
-    def from_config(
-        cls, cfg: "LabelHashPlaceholderConfig"
-    ) -> "LabelHashPlaceholderFactory":
-        """Build a ``LabelHashPlaceholderFactory`` from its validated configuration."""
-        return cls(hash_length=cfg.hash_length, salt=cfg.salt)
 
     def __init__(
         self,
@@ -317,13 +287,6 @@ class RedactCounterPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnl
 
     _prefix: str
 
-    @classmethod
-    def from_config(
-        cls, cfg: "RedactCounterPlaceholderConfig"
-    ) -> "RedactCounterPlaceholderFactory":
-        """Build a ``RedactCounterPlaceholderFactory`` from its validated configuration."""
-        return cls(prefix=cfg.prefix)
-
     def __init__(self, prefix: str = "REDACT") -> None:
         self._prefix = prefix
 
@@ -381,13 +344,6 @@ class RedactHashPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnly])
     _salt: str
     _pepper: str
 
-    @classmethod
-    def from_config(
-        cls, cfg: "RedactHashPlaceholderConfig"
-    ) -> "RedactHashPlaceholderFactory":
-        """Build a ``RedactHashPlaceholderFactory`` from its validated configuration."""
-        return cls(prefix=cfg.prefix, hash_length=cfg.hash_length, salt=cfg.salt)
-
     def __init__(
         self,
         prefix: str = "REDACT",
@@ -443,11 +399,6 @@ class LabelPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
         >>> factory.create([e])[e]
         '<<PERSON>>'
     """
-
-    @classmethod
-    def from_config(cls, cfg: "LabelPlaceholderConfig") -> "LabelPlaceholderFactory":
-        """Build a ``LabelPlaceholderFactory`` from its validated configuration."""
-        return cls()
 
     def __init__(self): ...
 
@@ -566,11 +517,6 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]):
 
     _mask_char: str
     _strategies: dict[str, MaskFn]
-
-    @classmethod
-    def from_config(cls, cfg: "MaskPlaceholderConfig") -> "MaskPlaceholderFactory":
-        """Build a ``MaskPlaceholderFactory`` from its validated configuration."""
-        return cls(mask_char=cfg.mask_char, visible_chars=cfg.visible_chars)
 
     def __init__(
         self,
