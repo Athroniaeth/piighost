@@ -554,6 +554,20 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         """Prefix a cache key with the given thread id."""
         return f"{thread_id}:{key}"
 
+    def _make_cache_key(self, prefix: str, text: str) -> str:
+        """Scope the base key by the active ``thread_id``.
+
+        Reads the thread id from ``_current_thread_id`` (set by every
+        async entry point), so the store/lookup helpers inherited from
+        the base pipeline transparently produce thread-isolated keys.
+        """
+        thread_id = _current_thread_id.get()
+        return self._thread_key(thread_id, f"{prefix}:{hash_sha256(text)}")
+
+    async def _cache_write(self, key: str, value: Any) -> None:
+        """Write through the per-thread key index so ``forget_thread`` works."""
+        await self._cache_set_indexed(_current_thread_id.get(), key, value)
+
     @staticmethod
     def _memory_key(thread_id: str) -> str:
         """Cache key holding the serialized conversation memory snapshot."""
@@ -740,72 +754,6 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             )
             replace_message(hash_sha256(text), corrected)
             await self._persist_memory(thread_id)
-
-    async def _cached_detect(self, text: str) -> list[Detection]:
-        """Detect entities, using thread-scoped cache if available."""
-        thread_id = _current_thread_id.get()
-        cache_key = self._thread_key(
-            thread_id, f"{CACHE_KEY_DETECTION}:{hash_sha256(text)}"
-        )
-        cached = await self._cache.get(cache_key)
-
-        if cached is not None:
-            return self._deserialize_detections(cached)
-
-        detections = await self._detector.detect(text)
-        value = self._serialize_detections(detections)
-        await self._cache_set_indexed(thread_id, cache_key, value)
-        return detections
-
-    async def _store_mapping(
-        self,
-        original: str,
-        anonymized: str,
-        entities: list[Entity],
-    ) -> None:
-        """Store anonymization mapping under a thread-scoped key."""
-        thread_id = _current_thread_id.get()
-        serialized_entities = self._serialize_entities(entities)
-        key = self._thread_key(
-            thread_id, f"{CACHE_KEY_ANONYMIZATION}:{hash_sha256(anonymized)}"
-        )
-
-        await self._cache_set_indexed(
-            thread_id,
-            key,
-            {
-                "original": original,
-                "entities": serialized_entities,
-            },
-        )
-
-    async def _cache_get_anon_result(self, text: str) -> dict | None:
-        """Look up the cached anonymize result under a thread-scoped key."""
-        thread_id = _current_thread_id.get()
-        key = self._thread_key(
-            thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(text)}"
-        )
-        return await self._cache.get(key)
-
-    async def _store_anon_result(
-        self,
-        original: str,
-        anonymized: str,
-        entities: list[Entity],
-    ) -> None:
-        """Store ``original → (anonymized, entities)`` under a thread-scoped key."""
-        thread_id = _current_thread_id.get()
-        key = self._thread_key(
-            thread_id, f"{CACHE_KEY_ANON_RESULT}:{hash_sha256(original)}"
-        )
-        await self._cache_set_indexed(
-            thread_id,
-            key,
-            {
-                "anonymized": anonymized,
-                "entities": self._serialize_entities(entities),
-            },
-        )
 
     # ------------------------------------------------------------------
     # Anonymize / deanonymize

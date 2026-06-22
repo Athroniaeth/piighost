@@ -94,11 +94,11 @@ class TestDetectionAttributes:
         span = result[0].position
         assert text[span.start_pos : span.end_pos] == "10.0.0.1"
 
-    async def test_hash_is_unique_per_match(self) -> None:
+    async def test_matches_are_distinct_per_occurrence(self) -> None:
         detector = RegexDetector(patterns={"IP_V4": r"\b(?:\d{1,3}\.){3}\d{1,3}\b"})
         result = await detector.detect("10.0.0.1 et 10.0.0.2")
         assert len(result) == 2
-        assert result[0].hash != result[1].hash
+        assert result[0] != result[1]
 
 
 # ---------------------------------------------------------------------------

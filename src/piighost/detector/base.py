@@ -85,7 +85,9 @@ class BaseNERDetector(ABC):
             asyncio.Semaphore(max_concurrency) if max_concurrency else None
         )
 
-    async def _run_blocking(self, fn: Callable[..., object], *args: object, **kwargs: object) -> object:
+    async def _run_blocking(
+        self, fn: Callable[..., object], *args: object, **kwargs: object
+    ) -> object:
         """Run a blocking model call off the event loop, optionally bounded.
 
         Offloads *fn* to a worker thread via ``asyncio.to_thread`` so
