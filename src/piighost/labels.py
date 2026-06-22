@@ -6,6 +6,11 @@ domain.  This module gathers the labels most frequently used across
 the built-in components so callers can reference a single source of
 truth instead of repeating magic strings.
 
+They are entirely optional: every built-in component accepts a plain
+``str`` label, and nothing in the library uses these constants
+internally.  They exist purely as an ergonomic surface for callers who
+want editor autocompletion and typo-safety instead of bare strings.
+
 Use them when wiring up detectors, placeholders, or assertions:
 
     >>> from piighost import labels
