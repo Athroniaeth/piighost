@@ -1,12 +1,6 @@
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from piighost.models import Detection
-
-if TYPE_CHECKING:
-    from piighost.config.models.span_resolver import (
-        ConfidenceSpanResolverConfig,
-        DisabledSpanResolverConfig,
-    )
 
 
 class AnySpanConflictResolver(Protocol):
@@ -76,13 +70,6 @@ class DisabledSpanConflictResolver:
         True
     """
 
-    @classmethod
-    def from_config(
-        cls, cfg: "DisabledSpanResolverConfig"
-    ) -> "DisabledSpanConflictResolver":
-        """Build a ``DisabledSpanConflictResolver`` from its validated configuration."""
-        return cls()
-
     def resolve(self, detections: list[Detection]) -> list[Detection]:
         return list(detections)
 
@@ -114,13 +101,6 @@ class ConfidenceSpanConflictResolver(BaseSpanConflictResolver):
         >>> [(d.label, d.confidence) for d in resolved]
         [('PERSON', 0.91), ('LOCATION', 1.0)]
     """
-
-    @classmethod
-    def from_config(
-        cls, cfg: "ConfidenceSpanResolverConfig"
-    ) -> "ConfidenceSpanConflictResolver":
-        """Build a ``ConfidenceSpanConflictResolver`` from its validated configuration."""
-        return cls(confidence_threshold=cfg.confidence_threshold)
 
     def __init__(self, confidence_threshold: float = 0.0) -> None:
         super().__init__(confidence_threshold=confidence_threshold)

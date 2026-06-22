@@ -1,14 +1,8 @@
-from typing import TYPE_CHECKING, Protocol
+from collections import defaultdict
+from typing import Protocol
 
 from piighost.models import Detection, Entity
 from piighost.similarity import AnySimilarityFn, jaro_winkler_similarity
-
-if TYPE_CHECKING:
-    from piighost.config.models.entity_resolver import (
-        DisabledEntityResolverConfig,
-        FuzzyEntityResolverConfig,
-        MergeEntityResolverConfig,
-    )
 
 
 class AnyEntityConflictResolver(Protocol):
@@ -51,13 +45,6 @@ class DisabledEntityConflictResolver:
         True
     """
 
-    @classmethod
-    def from_config(
-        cls, cfg: "DisabledEntityResolverConfig"
-    ) -> "DisabledEntityConflictResolver":
-        """Build a ``DisabledEntityConflictResolver`` from its validated configuration."""
-        return cls()
-
     def resolve(self, entities: list[Entity]) -> list[Entity]:
         return list(entities)
 
@@ -85,52 +72,44 @@ class MergeEntityConflictResolver:
         3
     """
 
-    @classmethod
-    def from_config(
-        cls, cfg: "MergeEntityResolverConfig"
-    ) -> "MergeEntityConflictResolver":
-        """Build a ``MergeEntityConflictResolver`` from its validated configuration."""
-        return cls()
-
-    def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
-        """Check whether two entities share at least one common detection.
-
-        Args:
-            entity_a: The first entity.
-            entity_b: The second entity.
-
-        Returns:
-            ``True`` if the entities have at least one detection in common.
-        """
-        detections_a = set(entity_a.detections)
-        return any(d in detections_a for d in entity_b.detections)
-
     def resolve(self, entities: list[Entity]) -> list[Entity]:
-        """Merge all entities that share common detections, transitively.
+        """Group conflicting entities, merge each group, sort by position.
 
-        Uses union-find with path compression over entity indices:
-        every conflicting pair is unioned, then each root's detections
-        are concatenated (deduplicated, input order preserved).
-
-        Note:
-            This computes the transitive closure of pairwise
-            ``have_conflict``.  That is only correct when the conflict
-            relation is union-stable (merging two entities never
-            removes a conflict they had individually), which holds for
-            shared detections.  Subclasses whose ``have_conflict`` is
-            not union-stable (e.g. text similarity) must override
-            ``resolve``, see ``FuzzyEntityConflictResolver``.
+        Template method: the skeleton (group then merge then sort) is
+        fixed here and shared with every subclass. Only the grouping
+        strategy (:meth:`_group`) and the pairwise predicate
+        (:meth:`have_conflict`) vary.
 
         Args:
             entities: The full list of entities.
 
         Returns:
-            A merged list of entities with no shared detections,
-            sorted by earliest ``start_pos``.
+            One merged entity per group, sorted by earliest ``start_pos``.
         """
-        if not entities:
-            return []
+        return self._merge_and_sort(self._group(entities))
 
+    def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
+        """Whether two entities share at least one common detection.
+
+        The per-pair predicate consumed by :meth:`_group`. Subclasses
+        override it to change what "conflict" means (see
+        :class:`FuzzyEntityConflictResolver`).
+        """
+        detections_a = set(entity_a.detections)
+        return any(d in detections_a for d in entity_b.detections)
+
+    def _group(self, entities: list[Entity]) -> list[list[Entity]]:
+        """Partition entities into connected components under ``have_conflict``.
+
+        Uses union-find with path compression over entity indices, which
+        computes the transitive closure of pairwise ``have_conflict``.
+        That is only correct when the conflict relation is union-stable
+        (merging two entities never removes a conflict they had
+        individually), which holds for shared detections. A subclass
+        whose ``have_conflict`` is not union-stable (e.g. text
+        similarity) must override ``_group``; see
+        :class:`FuzzyEntityConflictResolver`.
+        """
         parent = list(range(len(entities)))
 
         def find(i: int) -> int:
@@ -144,33 +123,42 @@ class MergeEntityConflictResolver:
                 if find(i) != find(j) and self.have_conflict(entities[i], entities[j]):
                     parent[find(j)] = find(i)
 
-        merged: dict[int, list[Detection]] = {}
-        seen: dict[int, set[Detection]] = {}
+        groups: dict[int, list[Entity]] = defaultdict(list)
         for i, entity in enumerate(entities):
-            root = find(i)
-            bucket = merged.setdefault(root, [])
-            known = seen.setdefault(root, set())
-            for d in entity.detections:
-                if d not in known:
-                    known.add(d)
-                    bucket.append(d)
+            groups[find(i)].append(entity)
+        return list(groups.values())
 
-        result = [Entity(detections=tuple(dets)) for dets in merged.values()]
-        result.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
-        return result
+    @staticmethod
+    def _merge(group: list[Entity]) -> Entity:
+        """Fuse a group of entities into one, deduplicating detections.
+
+        First-seen order is preserved: ``dict.fromkeys`` over the
+        hashable frozen ``Detection`` dataclass keeps the first
+        occurrence and drops later duplicates.
+        """
+        detections: list[Detection] = [d for e in group for d in e.detections]
+        return Entity(detections=tuple(dict.fromkeys(detections)))
+
+    @classmethod
+    def _merge_and_sort(cls, groups: list[list[Entity]]) -> list[Entity]:
+        """Merge each group, then sort the results by earliest ``start_pos``."""
+        merged = [cls._merge(group) for group in groups]
+        merged.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
+        return merged
 
 
 class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
     """Resolver that merges entities with similar canonical text.
 
     Subclasses ``MergeEntityConflictResolver`` and overrides
-    ``have_conflict`` to use string similarity instead of shared
-    detections.  ``resolve`` is also overridden: similarity is not
-    transitive, so the base union-find (transitive closure over
-    pairwise conflicts) would let chains of pairwise-similar texts
-    over-merge distinct PIIs into a single placeholder.  Instead this
-    resolver uses greedy anchor clustering, where each entity is only
-    compared against the first entity of each existing group.
+    ``have_conflict`` (string similarity instead of shared detections)
+    and ``_group``: similarity is not transitive, so the base union-find
+    (transitive closure over pairwise conflicts) would let chains of
+    pairwise-similar texts over-merge distinct PIIs into a single
+    placeholder.  Instead this resolver uses greedy anchor clustering,
+    where each entity is only compared against the first entity of each
+    existing group.  ``resolve``, ``_merge`` and the final sort are
+    inherited unchanged.
 
     Args:
         similarity_fn: A ``(str, str) -> float`` function returning
@@ -190,13 +178,6 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
 
     _similarity_fn: AnySimilarityFn
     _threshold: float
-
-    @classmethod
-    def from_config(
-        cls, cfg: "FuzzyEntityResolverConfig"
-    ) -> "FuzzyEntityConflictResolver":
-        """Build a ``FuzzyEntityConflictResolver`` from its validated configuration."""
-        return cls(threshold=cfg.threshold)
 
     @property
     def threshold(self) -> float:
@@ -228,43 +209,22 @@ class FuzzyEntityConflictResolver(MergeEntityConflictResolver):
         text_b = entity_b.canonical
         return self._similarity_fn(text_a, text_b) >= self._threshold
 
-    def resolve(self, entities: list[Entity]) -> list[Entity]:
-        """Group entities by greedy anchor clustering on canonical similarity.
+    def _group(self, entities: list[Entity]) -> list[list[Entity]]:
+        """Greedy anchor clustering on canonical similarity.
 
-        Entities are scanned in input order.  Each entity joins the first
-        existing group whose *anchor* (the group's first entity) it is
-        similar to, otherwise it starts a new group.  Comparing against
-        the anchor only, not against every member, prevents chains of
-        pairwise-similar texts from collapsing distinct PIIs into one
-        placeholder (similarity is not transitive).  This preserves the
-        grouping behaviour of the pre-union-find implementation.
-
-        Args:
-            entities: The full list of entities.
-
-        Returns:
-            Grouped entities, sorted by earliest ``start_pos``.
+        Overrides the union-find grouping because similarity is not
+        transitive: the transitive closure would let chains of
+        pairwise-similar texts collapse distinct PIIs into one group.
+        Each entity joins the first existing group whose *anchor* (its
+        first entity) it conflicts with, otherwise it starts a new group.
+        Merging and sorting are then inherited from the base.
         """
-        if not entities:
-            return []
-
-        anchors: list[Entity] = []
-        buckets: list[list[Detection]] = []
-        seen: list[set[Detection]] = []
-
+        groups: list[list[Entity]] = []
         for entity in entities:
-            for idx, anchor in enumerate(anchors):
-                if self.have_conflict(anchor, entity):
-                    for d in entity.detections:
-                        if d not in seen[idx]:
-                            seen[idx].add(d)
-                            buckets[idx].append(d)
+            for group in groups:
+                if self.have_conflict(group[0], entity):
+                    group.append(entity)
                     break
             else:
-                anchors.append(entity)
-                buckets.append(list(entity.detections))
-                seen.append(set(entity.detections))
-
-        result = [Entity(detections=tuple(dets)) for dets in buckets]
-        result.sort(key=lambda e: min(d.position.start_pos for d in e.detections))
-        return result
+                groups.append([entity])
+        return groups
