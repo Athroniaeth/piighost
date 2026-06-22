@@ -16,19 +16,11 @@ class AnyEntityConflictResolver(Protocol):
 
     When multiple entities share common detections (e.g. from different
     linker strategies), a resolver decides how to reconcile them.
+
+    How a resolver decides that two entities conflict is an
+    implementation detail of ``resolve``; it is not part of this
+    protocol.
     """
-
-    def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
-        """Check whether two entities are in conflict.
-
-        Args:
-            entity_a: The first entity.
-            entity_b: The second entity.
-
-        Returns:
-            ``True`` if the two entities share at least one detection.
-        """
-        ...
 
     def resolve(self, entities: list[Entity]) -> list[Entity]:
         """Resolve conflicts across all entities.
@@ -50,9 +42,6 @@ class DisabledEntityConflictResolver:
     are already known to be disjoint, or when the user explicitly wants
     to keep duplicates produced by separate linkers without merging them.
 
-    ``have_conflict`` always returns ``False`` so any caller that walks
-    the entities pairwise will treat them as conflict-free.
-
     Example:
         >>> from piighost.models import Detection, Entity, Span
         >>> e1 = Entity(detections=(Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),))
@@ -68,9 +57,6 @@ class DisabledEntityConflictResolver:
     ) -> "DisabledEntityConflictResolver":
         """Build a ``DisabledEntityConflictResolver`` from its validated configuration."""
         return cls()
-
-    def have_conflict(self, entity_a: Entity, entity_b: Entity) -> bool:
-        return False
 
     def resolve(self, entities: list[Entity]) -> list[Entity]:
         return list(entities)

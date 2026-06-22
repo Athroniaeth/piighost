@@ -8,7 +8,6 @@ import asyncio
 import time
 
 from piighost.detector.base import BaseNERDetector
-from piighost.models import Detection
 
 INFER = 0.1
 
