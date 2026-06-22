@@ -37,15 +37,7 @@ garbage tokens.
 
 import importlib.util
 from collections.abc import Callable
-from typing import TYPE_CHECKING
-
 from piighost.models import Entity
-
-if TYPE_CHECKING:
-    from piighost.config.models.placeholder import (
-        FakerCounterPlaceholderConfig,
-        FakerHashPlaceholderConfig,
-    )
 from piighost.placeholder import (
     AnyPlaceholderFactory,
     _resolve_pepper,
@@ -241,13 +233,6 @@ class FakerCounterPlaceholderFactory(
     _strategies: dict[str, StrategyValue]
     _locale: str
 
-    @classmethod
-    def from_config(
-        cls, cfg: "FakerCounterPlaceholderConfig"
-    ) -> "FakerCounterPlaceholderFactory":
-        """Build a ``FakerCounterPlaceholderFactory`` from its validated configuration."""
-        return cls(locale=cfg.locale)
-
     def __init__(
         self,
         strategies: dict[str, StrategyValue] | None = None,
@@ -344,13 +329,6 @@ class FakerHashPlaceholderFactory(
     _hash_length: int
     _salt: str
     _pepper: str
-
-    @classmethod
-    def from_config(
-        cls, cfg: "FakerHashPlaceholderConfig"
-    ) -> "FakerHashPlaceholderFactory":
-        """Build a ``FakerHashPlaceholderFactory`` from its validated configuration."""
-        return cls(hash_length=cfg.hash_length, locale=cfg.locale)
 
     def __init__(
         self,

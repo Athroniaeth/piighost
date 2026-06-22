@@ -10,8 +10,9 @@ are deferred to inside ``build_detector`` to keep ``piighost.config``
 importable without their optional dependencies installed.
 """
 
+import importlib
 import os
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 
@@ -86,6 +87,29 @@ if TYPE_CHECKING:
     from piighost.resolver.span import AnySpanConflictResolver
 
 
+_COMMON_CONFIG_FIELDS = {"type", "name"}
+"""Config fields that are never constructor parameters (discriminator + label)."""
+
+
+def _construct(cls: Any, cfg: BaseModel) -> Any:
+    """Instantiate a component from its validated config.
+
+    Uses the class's own ``from_config`` when it defines one *directly*
+    (needed when construction transforms fields or loads a resource).
+    Otherwise builds generically by forwarding the config fields as
+    keyword arguments, which covers every component whose config field
+    names match its constructor parameters.
+
+    Typed ``Any`` because this is a dynamic dispatcher: the component
+    classes do not share a ``from_config`` protocol, and the generic
+    branch constructs an arbitrary class. The concrete ``build_*``
+    wrappers re-narrow the return to the family's protocol type.
+    """
+    if "from_config" in cls.__dict__:
+        return cls.from_config(cfg)
+    return cls(**cfg.model_dump(exclude=_COMMON_CONFIG_FIELDS))
+
+
 _DETECTOR_BUILDERS: dict[type[BaseModel], object] = {
     RegexDetectorConfig: RegexDetector,
     ChunkedDetectorConfig: "lazy:chunked",  # resolved lazily below
@@ -96,35 +120,28 @@ _DETECTOR_BUILDERS: dict[type[BaseModel], object] = {
 }
 
 
+# Sentinel -> (module path, class name). Resolved one at a time via
+# ``importlib`` so importing ``piighost.config`` never pulls an optional
+# dependency that the requested detector does not need.
+_LAZY_DETECTORS: dict[str, tuple[str, str]] = {
+    "lazy:gliner2": ("piighost.detector.gliner2", "Gliner2Detector"),
+    "lazy:spacy": ("piighost.detector.spacy", "SpacyDetector"),
+    "lazy:transformers": ("piighost.detector.transformers", "TransformersDetector"),
+    "lazy:llm": ("piighost.detector.llm", "LLMDetector"),
+    "lazy:chunked": ("piighost.detector.chunked", "ChunkedDetector"),
+}
+
+
 def _resolve_lazy_detector(key: str) -> type:
     """Lazy-import optional-dep detectors so ``piighost.config`` stays light."""
-    if key == "lazy:gliner2":
-        from piighost.detector.gliner2 import Gliner2Detector
-
-        return Gliner2Detector
-    if key == "lazy:spacy":
-        from piighost.detector.spacy import SpacyDetector
-
-        return SpacyDetector
-    if key == "lazy:transformers":
-        from piighost.detector.transformers import TransformersDetector
-
-        return TransformersDetector
-    if key == "lazy:llm":
-        from piighost.detector.llm import LLMDetector
-
-        return LLMDetector
-    if key == "lazy:chunked":
-        from piighost.detector.chunked import ChunkedDetector
-
-        return ChunkedDetector
-    raise KeyError(key)
+    module_path, class_name = _LAZY_DETECTORS[key]
+    return getattr(importlib.import_module(module_path), class_name)
 
 
 def build_detector(cfg: BaseModel) -> "AnyDetector":
     builder = _DETECTOR_BUILDERS[type(cfg)]
     cls = builder if not isinstance(builder, str) else _resolve_lazy_detector(builder)
-    return cls.from_config(cfg)  # pyrefly: ignore[missing-attribute]
+    return _construct(cls, cfg)
 
 
 _SPAN_RESOLVER_BUILDERS: dict[type[BaseModel], type] = {
@@ -134,7 +151,7 @@ _SPAN_RESOLVER_BUILDERS: dict[type[BaseModel], type] = {
 
 
 def build_span_resolver(cfg: BaseModel) -> "AnySpanConflictResolver":
-    return _SPAN_RESOLVER_BUILDERS[type(cfg)].from_config(cfg)
+    return _construct(_SPAN_RESOLVER_BUILDERS[type(cfg)], cfg)
 
 
 _LINKER_BUILDERS: dict[type[BaseModel], type] = {
@@ -144,7 +161,7 @@ _LINKER_BUILDERS: dict[type[BaseModel], type] = {
 
 
 def build_entity_linker(cfg: BaseModel) -> "BaseEntityLinker":
-    return _LINKER_BUILDERS[type(cfg)].from_config(cfg)
+    return _construct(_LINKER_BUILDERS[type(cfg)], cfg)
 
 
 _ENTITY_RESOLVER_BUILDERS: dict[type[BaseModel], type] = {
@@ -155,7 +172,7 @@ _ENTITY_RESOLVER_BUILDERS: dict[type[BaseModel], type] = {
 
 
 def build_entity_resolver(cfg: BaseModel) -> "AnyEntityConflictResolver":
-    return _ENTITY_RESOLVER_BUILDERS[type(cfg)].from_config(cfg)
+    return _construct(_ENTITY_RESOLVER_BUILDERS[type(cfg)], cfg)
 
 
 _PLACEHOLDER_BUILDERS: dict[type[BaseModel], object] = {
@@ -172,21 +189,24 @@ _PLACEHOLDER_BUILDERS: dict[type[BaseModel], object] = {
 }
 
 
+# Sentinel -> (module path, class name); see ``_LAZY_DETECTORS``.
+_LAZY_PLACEHOLDERS: dict[str, tuple[str, str]] = {
+    "lazy:faker": ("piighost.ph_factory.faker", "FakerPlaceholderFactory"),
+    "lazy:faker_counter": (
+        "piighost.ph_factory.faker_hash",
+        "FakerCounterPlaceholderFactory",
+    ),
+    "lazy:faker_hash": (
+        "piighost.ph_factory.faker_hash",
+        "FakerHashPlaceholderFactory",
+    ),
+}
+
+
 def _resolve_lazy_placeholder(key: str) -> type:
     """Lazy-import Faker-based factories so ``piighost.config`` stays importable without faker."""
-    if key == "lazy:faker":
-        from piighost.ph_factory.faker import FakerPlaceholderFactory
-
-        return FakerPlaceholderFactory
-    if key == "lazy:faker_counter":
-        from piighost.ph_factory.faker_hash import FakerCounterPlaceholderFactory
-
-        return FakerCounterPlaceholderFactory
-    if key == "lazy:faker_hash":
-        from piighost.ph_factory.faker_hash import FakerHashPlaceholderFactory
-
-        return FakerHashPlaceholderFactory
-    raise KeyError(key)
+    module_path, class_name = _LAZY_PLACEHOLDERS[key]
+    return getattr(importlib.import_module(module_path), class_name)
 
 
 def build_placeholder_factory(cfg: BaseModel) -> "AnyPlaceholderFactory":
@@ -194,7 +214,7 @@ def build_placeholder_factory(cfg: BaseModel) -> "AnyPlaceholderFactory":
     cls = (
         builder if not isinstance(builder, str) else _resolve_lazy_placeholder(builder)
     )
-    return cls.from_config(cfg)  # pyrefly: ignore[missing-attribute]
+    return _construct(cls, cfg)
 
 
 def build_anonymizer(cfg: DefaultAnonymizerConfig) -> Anonymizer:
