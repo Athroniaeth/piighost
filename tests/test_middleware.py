@@ -553,9 +553,12 @@ class TestRecursiveToolArgDeanonymization:
         anon, _ = await pipeline.anonymize("Bonjour Patrick")
         assert "<<PERSON:1>>" in anon
 
+        # Calls the hook directly (no LangGraph runnable context), so it
+        # runs on the default thread; opt out of the strict thread-id check.
         middleware = PIIAnonymizationMiddleware(
             pipeline=pipeline,
             tool_strategy=ToolCallStrategy.FULL,
+            require_thread_id=False,
         )
 
         captured: dict = {}
@@ -607,7 +610,12 @@ class TestRequireThreadId:
     ) -> None:
         piighost.middleware._missing_thread_id_warned = False
         pipeline = _build_pipeline()
-        middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
+        # require_thread_id defaults to True now; this test exercises the
+        # opt-in permissive path (warn once, then fall back to the shared
+        # default thread).
+        middleware = PIIAnonymizationMiddleware(
+            pipeline=pipeline, require_thread_id=False
+        )
 
         with caplog.at_level(logging.WARNING, logger="piighost.middleware"):
             first = middleware._get_thread_id()

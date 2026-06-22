@@ -37,7 +37,7 @@ from langgraph.types import Command
 from langgraph.typing import ContextT
 
 from piighost.exceptions import CacheMissError
-from piighost.pipeline.thread import ThreadAnonymizationPipeline
+from piighost.pipeline.thread import DEFAULT_THREAD_ID, ThreadAnonymizationPipeline
 from piighost.placeholder_tags import PreservesIdentity
 
 logger = logging.getLogger(__name__)
@@ -100,12 +100,14 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             :attr:`ToolCallStrategy.FULL` (current historical
             behaviour). See :class:`ToolCallStrategy` for the full
             trade-offs.
-        require_thread_id: When *True*, ``_get_thread_id`` raises
-            instead of silently falling back to the shared ``"default"``
-            thread when the LangGraph config carries no thread id. Use
-            this to fail fast rather than risk cross-conversation
-            placeholder leakage. Defaults to *False* (warn once, then
-            fall back).
+        require_thread_id: When *True* (the default), ``_get_thread_id``
+            raises instead of silently falling back to the shared
+            ``"default"`` thread when the LangGraph config carries no
+            thread id. This fails fast rather than risk
+            cross-conversation placeholder leakage, which is almost
+            always what you want in an agent context where a thread id
+            is expected. Pass *False* to restore the legacy permissive
+            behaviour (warn once, then fall back to the shared thread).
 
     Example:
         >>> from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -125,7 +127,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         self,
         pipeline: ThreadAnonymizationPipeline[PreservesIdentity],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-        require_thread_id: bool = False,
+        require_thread_id: bool = True,
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
@@ -159,7 +161,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
                 "state. Pass config={'configurable': {'thread_id': ...}} or use "
                 "require_thread_id=True to fail fast."
             )
-        return "default"
+        return DEFAULT_THREAD_ID
 
     async def abefore_model(
         self,
@@ -329,7 +331,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             return tuple(items) if isinstance(value, tuple) else items
         return value
 
-    async def _deanonymize(self, text: str, thread_id: str = "default") -> str:
+    async def _deanonymize(self, text: str, thread_id: str = DEFAULT_THREAD_ID) -> str:
         """Deanonymise text, falling back to entity-based replacement.
 
         Tries cache-based deanonymisation first (exact original text).

@@ -59,8 +59,19 @@ PreservationT = TypeVar(
     default=PlaceholderPreservation,
 )
 
+DEFAULT_THREAD_ID = "default"
+"""Fallback thread id for single-conversation or stateless use.
+
+This is a **shared** bucket: every call that omits ``thread_id`` lands
+here, so distinct conversations would see each other's placeholder
+state. It is safe only when a single conversation (or independent
+one-shot calls) goes through the pipeline. Multi-tenant callers must
+pass a real per-conversation id; the LangChain middleware requires one
+by default (``require_thread_id=True``).
+"""
+
 _current_thread_id: ContextVar[str] = ContextVar(
-    "piighost_current_thread_id", default="default"
+    "piighost_current_thread_id", default=DEFAULT_THREAD_ID
 )
 """Active thread id for the running coroutine.
 
@@ -454,7 +465,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
                 f"Use LabelCounterPlaceholderFactory or LabelHashPlaceholderFactory instead."
             )
 
-    def get_memory(self, thread_id: str = "default") -> AnyConversationMemory:
+    def get_memory(self, thread_id: str = DEFAULT_THREAD_ID) -> AnyConversationMemory:
         """Return the memory for *thread_id* (created on first access).
 
         New memories are built via the injected ``memory_factory``.  If
@@ -493,7 +504,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         self._memories.clear()
         self._index_locks.clear()
 
-    def get_resolved_entities(self, thread_id: str = "default") -> list[Entity]:
+    def get_resolved_entities(self, thread_id: str = DEFAULT_THREAD_ID) -> list[Entity]:
         """All entities from the thread's memory, merged then first-seen ordered.
 
         The entity resolver may merge entities and sorts its output by
@@ -519,7 +530,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         return resolved
 
     async def detect_entities(
-        self, text: str, thread_id: str = "default"
+        self, text: str, thread_id: str = DEFAULT_THREAD_ID
     ) -> list[Entity]:
         """Run the detection pipeline with thread-scoped caching.
 
@@ -532,7 +543,9 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         finally:
             _current_thread_id.reset(token)
 
-    def get_resolved_tokens(self, thread_id: str = "default") -> dict[Entity, str]:
+    def get_resolved_tokens(
+        self, thread_id: str = DEFAULT_THREAD_ID
+    ) -> dict[Entity, str]:
         """Placeholder token per resolved entity for *thread_id*.
 
         The same mapping the pipeline uses when rendering, exposed for
@@ -663,7 +676,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         self,
         text: str,
         detections: list[Detection],
-        thread_id: str = "default",
+        thread_id: str = DEFAULT_THREAD_ID,
     ) -> None:
         """Override cached detection results for user corrections.
 
@@ -717,7 +730,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
         try:
             with self._observation.start_as_current_span(
                 name="piighost.hitl_correction",
-                session_id=thread_id if thread_id != "default" else None,
+                session_id=thread_id if thread_id != DEFAULT_THREAD_ID else None,
                 tags=["hitl"],
             ) as span:
                 detector_labels = getattr(self._detector, "labels", None)
@@ -762,7 +775,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     async def deanonymize(
         self,
         anonymized_text: str,
-        thread_id: str = "default",
+        thread_id: str = DEFAULT_THREAD_ID,
     ) -> tuple[str, list[Entity]]:
         """Return the cached original text directly.
 
@@ -798,7 +811,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     async def anonymize(
         self,
         text: str,
-        thread_id: str = "default",
+        thread_id: str = DEFAULT_THREAD_ID,
         *,
         metadata: Mapping[str, Any] | None = None,
         root_span: AbstractSpan | None = None,
@@ -848,7 +861,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
             # rather than swallowing the whole text under one sentinel.
             with self._observation.start_as_current_span(
                 name="piighost.anonymize_pipeline",
-                session_id=thread_id if thread_id != "default" else None,
+                session_id=thread_id if thread_id != DEFAULT_THREAD_ID else None,
                 metadata=dict(metadata) if metadata else None,
             ) as auto_root:
                 return await self._anonymize_with_span(text, auto_root)
@@ -927,7 +940,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     async def deanonymize_with_ent(
         self,
         text: str,
-        thread_id: str = "default",
+        thread_id: str = DEFAULT_THREAD_ID,
     ) -> str:
         """Replace all known tokens with original values in a single pass.
 
@@ -980,7 +993,7 @@ class ThreadAnonymizationPipeline(AnonymizationPipeline[PreservationT]):
     def anonymize_with_ent(
         self,
         text: str,
-        thread_id: str = "default",
+        thread_id: str = DEFAULT_THREAD_ID,
     ) -> str:
         """Replace all known original values with tokens in a single pass.
 
