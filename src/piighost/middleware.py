@@ -100,14 +100,17 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
             :attr:`ToolCallStrategy.FULL` (current historical
             behaviour). See :class:`ToolCallStrategy` for the full
             trade-offs.
-        require_thread_id: When *True* (the default), ``_get_thread_id``
-            raises instead of silently falling back to the shared
-            ``"default"`` thread when the LangGraph config carries no
-            thread id. This fails fast rather than risk
-            cross-conversation placeholder leakage, which is almost
-            always what you want in an agent context where a thread id
-            is expected. Pass *False* to restore the legacy permissive
-            behaviour (warn once, then fall back to the shared thread).
+        require_thread_id: When *True*, ``_get_thread_id`` raises instead
+            of silently falling back to the shared ``"default"`` thread
+            when no thread id can be read from the LangGraph config. Use
+            it to fail fast against cross-conversation placeholder
+            leakage. Defaults to *False* (warn once, then fall back),
+            because ``langgraph.config.get_config()`` does not reliably
+            surface the ``thread_id`` across LangGraph versions even when
+            the caller passed one to ``ainvoke(config=...)``; a strict
+            default would therefore crash correct usage on some versions.
+            Enable it only when you control the LangGraph version and
+            have verified the thread id is visible to the middleware.
 
     Example:
         >>> from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -127,7 +130,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware):
         self,
         pipeline: ThreadAnonymizationPipeline[PreservesIdentity],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-        require_thread_id: bool = True,
+        require_thread_id: bool = False,
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
