@@ -23,7 +23,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -33,7 +32,7 @@ classifiers = [
     "Topic :: Text Processing :: Linguistic",
     "Typing :: Typed",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "typing-extensions>=4.12",
 ]
@@ -158,18 +157,26 @@ config = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m 'not integration' -p no:anyio -p no:faker -p no:langsmith_plugin"
+addopts = "-m 'not integration'"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "integration: tests that load heavy optional dependencies (torch, transformers, gliner2, spacy). Deselected by default.",
 ]
-filterwarnings = [
-    "ignore::piighost.exceptions.PIIGhostConfigWarning",
-]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.ruff]
+# v1 kept for reference during the rewrite; do not format or lint it.
+extend-exclude = ["src/v1_piighost", "v1_tests"]
+
+[tool.ruff.lint]
+# Typing is mandatory: flake8-annotations (ANN) flags any missing argument or
+# return annotation, in src and tests alike. ANN401 stays off, so an explicit
+# Any is allowed where a type genuinely cannot be narrowed.
+extend-select = ["ANN"]
+ignore = ["ANN401"]
 
 [tool.pyrefly]
 # Examples in examples/graph/ and examples/llm/ live in their own environments
@@ -178,6 +185,10 @@ show_missing = true
 # missing-import errors. Scratch scripts under scripts/ have bit-rotted and
 # reference removed APIs.
 project-excludes = [
+    # v1 kept for reference during the rewrite; its internal imports still
+    # target the old ``piighost`` name, so exclude it from type checking.
+    "src/v1_piighost/**",
+    "v1_tests/**",
     "examples/graph/**",
     "examples/llm/**",
     ".claude/**",
