@@ -196,3 +196,161 @@ Trade-off to keep in mind: the generic path couples config field names to
 constructor parameter names implicitly (checked at runtime, not statically).
 It is worth it when the convention already holds uniformly; flag it when it
 does not.
+
+### 8. Docstrings carry no markup except bullet lists
+
+Docstrings are plain prose. The only formatting allowed is bullet lists. No
+inline-code backticks, no RST roles (`:class:`, `:func:`), no emphasis
+(`*word*`), no headers, tables, or code fences. Identifiers and code fragments
+are written bare, in the flow of the sentence.
+
+Avoid:
+```python
+"""A :class:`Span` is a half-open interval ``[start, end)`` over *text*."""
+```
+
+Prefer:
+```python
+"""A Span is a half-open interval [start, end) over the text."""
+```
+
+Why: the maintainer reads docstrings as source, not rendered output, so markup
+is noise without payoff. Google-style `Args`/`Returns`/`Raises` sections are
+structure, not markup, and stay; a bullet list is fine when enumerating.
+
+### 9. Typing is complete: parameterize generics, use builtin forms
+
+Annotations are mandatory (ruff ANN) AND complete. Fill in every generic's
+parameters, and use the PEP 585 builtin generics rather than the deprecated
+`typing` aliases. On the 3.11+ codebase `type[Exception]` needs no import, while
+`typing.Type`/`Dict`/`List` do and are deprecated.
+
+Avoid:
+```python
+from typing import Dict, Type
+
+mapping: Dict[Type, Type] = {}    # deprecated aliases
+def f(cls: type) -> None: ...     # bare, unparameterized
+```
+
+Prefer:
+```python
+mapping: dict[type[Exception], type[Exception]] = {}
+def f(cls: type[Exception]) -> None: ...
+```
+
+Why: a bare `type` or `list` says no more than `Any`. Parameterizing states
+intent and lets pyrefly catch misuse; builtin generics drop the import and match
+the 3.11+ target. This complements the mandatory-annotation config.
+
+### 10. Target 3.11+ natively: no `from __future__ import annotations`
+
+The runtime floor is Python 3.11, so write native typing directly: `Self`,
+`X | Y` unions, builtin generics. Do not add `from __future__ import
+annotations`.
+
+Avoid:
+```python
+from __future__ import annotations
+
+def overlaps(self, other: "Span") -> bool: ...
+```
+
+Prefer:
+```python
+from typing import Self
+
+def overlaps(self, other: Self) -> bool: ...
+```
+
+Why: 3.11 evaluates these annotations natively. The future import adds noise and
+changes annotation semantics (strings instead of objects) for no gain here. Use
+`Self` for self-references; a rare forward reference to a later class uses a
+quoted name.
+
+### 11. One exception subclass per failure mode, under a shared base
+
+Every library error descends from a single base (`PIIGhostError`). Give each
+distinct failure its own subclass rather than a generic error or one class with
+a mode flag. A caller then catches the base for the whole family or a subclass
+for one case.
+
+Avoid:
+```python
+if start < 0 or end <= start:
+    raise ValueError("bad span")      # generic, one message for two failures
+```
+
+Prefer:
+```python
+if start < 0:
+    raise NegativeSpanStartError(...)
+if end <= start:
+    raise SpanOrderingError(...)       # both subclass SpanError -> PIIGhostError
+```
+
+Why: callers catch broadly (`except PIIGhostError`) or narrowly (`except
+SpanOrderingError`) without matching on message strings.
+
+### 12. Tests are data-driven: a constant declares cases, parametrize runs them
+
+Declare the cases in a module-level constant and drive them with
+`pytest.mark.parametrize`. Do not write one near-identical test per case, and do
+not discover cases by runtime introspection.
+
+Avoid:
+```python
+def test_span_error() -> None: assert issubclass(SpanError, PIIGhostError)
+def test_negative() -> None: assert issubclass(NegativeSpanStartError, SpanError)
+# ...one function per class, or an inspect.getmembers() discovery helper
+```
+
+Prefer:
+```python
+EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
+    SpanError: PIIGhostError,
+    NegativeSpanStartError: SpanError,
+}
+
+@pytest.mark.parametrize(("error", "parent"), EXCEPTION_HIERARCHY.items())
+def test_error_has_expected_direct_parent(
+    error: type[Exception], parent: type[Exception]
+) -> None:
+    assert error.__bases__ == (parent,)
+```
+
+Why: adding a case is one line in the constant, the data is auditable at a
+glance, and referencing the symbols in the constant also guards their names.
+Explicit data beats introspection: it is readable and fails on the exact case.
+
+### 13. Every test has a one-line docstring; regression tests name the breaking change
+
+Each test function carries a one-line docstring stating what it verifies, even
+when the method name is descriptive. A test under `tests/regression/` phrases it
+as the breaking change it guards against. Let a real failure propagate rather
+than wrapping it; do not add try/except tolerance for a case that does not exist
+yet, and do not leave debug prints.
+
+Avoid:
+```python
+def test_every_module_imports_cleanly() -> None:
+    for m in walk():
+        print(m)                        # debug leftover
+        try:
+            import_module(m.name)
+        except ImportError as exc:      # tolerance for a case that does not exist
+            if "install piighost[" not in str(exc):
+                raise
+```
+
+Prefer:
+```python
+def test_every_module_imports_cleanly() -> None:
+    """Check that no module fails to import (syntax error, circular import)."""
+    for m in walk():
+        import_module(m.name)           # a real ImportError fails the test
+```
+
+Why: the docstring documents intent; a propagated error gives the true
+traceback; speculative tolerance is dead code (YAGNI), added only when the case
+becomes real.

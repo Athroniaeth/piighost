@@ -1,0 +1,45 @@
+"""Regression guards for imports.
+
+Smoke-test that the package and its public API import cleanly. Import-time
+failures such as syntax errors, circular imports, or broken re-exports surface
+here before any behavioral test runs.
+"""
+
+import importlib
+import pkgutil
+
+import pytest
+
+import piighost
+
+# The public symbols consumers import, as (module, name) pairs. Adding a public
+# export is one line here; renaming or removing one breaks the matching case.
+PUBLIC_API: list[tuple[str, str]] = [
+    ("piighost.models", "Span"),
+    ("piighost.exceptions", "PIIGhostError"),
+    ("piighost.exceptions", "SpanError"),
+    ("piighost.exceptions", "NegativeSpanStartError"),
+    ("piighost.exceptions", "SpanOrderingError"),
+]
+
+
+def test_package_imports() -> None:
+    """Check that the top-level package name has not changed."""
+    assert piighost.__name__ == "piighost"
+
+
+@pytest.mark.parametrize(("module", "name"), PUBLIC_API)
+def test_public_symbol_is_importable(module: str, name: str) -> None:
+    """Check that no public symbol was renamed, moved, or removed."""
+    module_type = importlib.import_module(module)
+    assert hasattr(module_type, name)
+
+
+def test_every_module_imports_cleanly() -> None:
+    """Check that no module fails to import (syntax error, circular import)."""
+    # walk_packages recurses into packages (ispkg=True) to reach their
+    # submodules. A failed import propagates here and fails the test with its
+    # real traceback. When optional-dependency modules land, this loop will need
+    # to skip their guarded ImportError (install piighost[...]); none exist yet.
+    for module_info in pkgutil.walk_packages(piighost.__path__, prefix="piighost."):
+        importlib.import_module(module_info.name)
