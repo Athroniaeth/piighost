@@ -354,3 +354,44 @@ def test_every_module_imports_cleanly() -> None:
 Why: the docstring documents intent; a propagated error gives the true
 traceback; speculative tolerance is dead code (YAGNI), added only when the case
 becomes real.
+
+### 14. Class docstrings document data fields in Attributes, not Args
+
+Follow the Google Python Style Guide for classes. The class docstring documents
+its public data attributes in an `Attributes:` section (same format as a
+function's `Args:`), and NOT its properties, which the guide explicitly excludes
+and which are documented on the property itself. Reserve `Args:` for functions
+and methods. For a frozen dataclass the fields are the attributes, so they go
+under `Attributes:`; construction failures go under `Raises:`.
+
+Avoid:
+```python
+class Detection:
+    """...
+
+    Args:
+        span: ...
+    Attributes:
+        label: ...   # a property; does not belong here
+    """
+```
+
+Prefer:
+```python
+class Detection:
+    """...
+
+    Attributes:
+        span: ...          # a data field
+    Raises:
+        ConfidenceError: ...
+    """
+
+    @property
+    def label(self) -> str:
+        """The PII label."""   # documented on the property itself
+```
+
+Why: matches the Google guide, which says public attributes "excluding
+properties" go in `Attributes` and reserves `Args` for `__init__` and
+functions. It also avoids duplicating a field across `Args` and `Attributes`.
