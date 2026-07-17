@@ -53,7 +53,7 @@ class TestImmutability:
     def test_hashable_and_dedupes_by_value(self) -> None:
         """Equal spans hash equal and deduplicate in a set."""
         assert hash(Span(0, 5)) == hash(Span(0, 5))
-        assert len({Span(0, 5), Span(0, 5), Span(1, 2)}) == 2 # len(set(...)) == 2
+        assert len({Span(0, 5), Span(0, 5), Span(1, 2)}) == 2  # len(set(...)) == 2
 
 
 class TestValidation:

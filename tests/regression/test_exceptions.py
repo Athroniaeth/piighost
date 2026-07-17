@@ -9,6 +9,8 @@ exception breaks this module.
 import pytest
 
 from piighost.exceptions import (
+    ConfidenceError,
+    DetectionError,
     NegativeSpanStartError,
     PIIGhostError,
     SpanError,
@@ -23,6 +25,8 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     SpanError: PIIGhostError,
     NegativeSpanStartError: SpanError,
     SpanOrderingError: SpanError,
+    DetectionError: PIIGhostError,
+    ConfidenceError: DetectionError,
 }
 
 
