@@ -132,6 +132,8 @@ plus au moins un adaptateur.
 | Store de mapping | Le reverse map est de la PII en clair. Chiffrement au repos, TTL, contrôle d'accès. Préférer le hash irréversible quand la réversibilité n'est pas requise. |
 | Faker | Warning sur collision possible avec une valeur réelle. |
 | Config | pydantic-settings + `build()` porté par les modèles de config (unions discriminées). Supprime le registre de builders et les `from_config`. Multi-source toml/json avec surcharge env (fichier en base). |
+| Labels NER (externe vers interne) | Le mapping label NER vers label piighost se fait dans l'adaptateur, avant de retourner. Un seul port `AnyDetector` label-agnostique, pas de sous-Protocol NER (violerait l'ISP). Le code partagé vit dans un `BaseNERDetector` en Template Method (règle 6), une `ABC` dont `_raw_detect` est `@abstractmethod`, les sous-classes le fournissent. Le mapping est de la donnée (`dict[str, str]`), la normalisation liste/dict vit dans `config`. À coder avec le premier détecteur NER, pas avant (YAGNI). |
+| Chunking | Décorateur `ChunkedDetector` qui enveloppe un `AnyDetector`, `chunk_size` et `overlap` sur le wrapper, pas sur le port. Logique récursive par séparateurs reprise de LangChain mais range-based, chunks = tranches contiguës donc offsets exacts pour `Span.shift`. `RecursiveCharacterTextSplitter` réimplémenté, pas de dépendance langchain. `chunk_size` est une limite dure (sauf morceau insécable plus grand), l'overlap est au mieux (la progression prime). Composition plutôt qu'héritage, le chunking reste séparé du mapping de labels NER, son activation par défaut pour les NER se règle au composition root qui enveloppe les NER. Dédup des détections strictement identiques via `dict.fromkeys`, les conflits de label et confiances différentes partent au `SpanConflictResolver`. |
 
 ---
 
@@ -211,6 +213,17 @@ plus au moins un adaptateur.
   de retour du détecteur).
 - Faut-il un manifest de pipeline comme avant, ou le `PipelineConfig` suffit.
 - Streaming de la désanonymisation en sortie (concerne surtout le middleware).
+- Chunking et résolution de conflits. L'overlap fait qu'une même valeur dans la
+  zone de recouvrement est détectée par deux chunks. Après remap, deux cas. Même
+  span et même label = doublon pur d'overlap, à dédupliquer. Même span mais label
+  différent (ex "Chaumont" PERSON dans un chunk, COMPANY dans l'autre) = vrai
+  conflit, à laisser passer vers le `SpanConflictResolver` qui tranche par
+  confiance. Le resolver n'a pas besoin d'être conscient du chunking. En revanche
+  la dédup du `ChunkedDetector` ne doit dédupliquer que sur `(span, label)`, pas
+  sur le span seul, sinon elle écraserait un conflit avant que le resolver
+  puisse choisir. Question à trancher, où vit la dédup exacte, dans le
+  `ChunkedDetector` ou déléguée au resolver. Bonus, l'overlap donne deux vues
+  contextuelles d'une même valeur, ce qui aide la résolution par confiance.
 
 ---
 
