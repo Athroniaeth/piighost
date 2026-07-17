@@ -20,7 +20,7 @@ class Span:
     left-to-right, which is what the replacement stage relies on to apply
     edits without shifting offsets it has not processed yet.
 
-    Args:
+    Attributes:
         start: Inclusive start offset. Must be >= 0.
         end: Exclusive end offset. Must be > start.
 
