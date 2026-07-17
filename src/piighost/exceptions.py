@@ -27,3 +27,15 @@ class SpanOrderingError(SpanError):
     describes an empty range (end equals start) or a reversed one (end below
     start).
     """
+
+
+class DetectionError(PIIGhostError):
+    """Base class for errors raised while constructing a Detection.
+
+    Catch this to handle any invalid-detection case at once, or catch one of
+    its subclasses to react to a specific violation.
+    """
+
+
+class ConfidenceError(DetectionError):
+    """Raised when a Detection confidence is outside the range [0, 1]."""

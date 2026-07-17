@@ -16,10 +16,13 @@ import piighost
 # export is one line here; renaming or removing one breaks the matching case.
 PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.models", "Span"),
+    ("piighost.models", "Detection"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
     ("piighost.exceptions", "NegativeSpanStartError"),
     ("piighost.exceptions", "SpanOrderingError"),
+    ("piighost.exceptions", "DetectionError"),
+    ("piighost.exceptions", "ConfidenceError"),
 ]
 
 
