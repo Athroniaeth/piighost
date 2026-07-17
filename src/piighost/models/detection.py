@@ -14,7 +14,7 @@ class Detection:
     Ordered by (span, text, label, confidence) so detections sort by position
     first, which the span-conflict stage relies on.
 
-    Args:
+    Attributes:
         span: Where the detection sits in the text, as a half-open range.
         text: The matched substring.
         label: The PII category, for example PERSON or EMAIL.
