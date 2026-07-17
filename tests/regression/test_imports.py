@@ -17,12 +17,16 @@ import piighost
 PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.models", "Span"),
     ("piighost.models", "Detection"),
+    ("piighost.models", "Entity"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
     ("piighost.exceptions", "NegativeSpanStartError"),
     ("piighost.exceptions", "SpanOrderingError"),
     ("piighost.exceptions", "DetectionError"),
     ("piighost.exceptions", "ConfidenceError"),
+    ("piighost.exceptions", "EntityError"),
+    ("piighost.exceptions", "EmptyEntityError"),
+    ("piighost.exceptions", "MixedLabelError"),
 ]
 
 

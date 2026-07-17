@@ -39,3 +39,19 @@ class DetectionError(PIIGhostError):
 
 class ConfidenceError(DetectionError):
     """Raised when a Detection confidence is outside the range [0, 1]."""
+
+
+class EntityError(PIIGhostError):
+    """Base class for errors raised while constructing an Entity.
+
+    Catch this to handle any invalid-entity case at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class EmptyEntityError(EntityError):
+    """Raised when an Entity is built with no detections."""
+
+
+class MixedLabelError(EntityError):
+    """Raised when an Entity's detections do not all share the same label."""

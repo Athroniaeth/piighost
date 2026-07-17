@@ -11,6 +11,9 @@ import pytest
 from piighost.exceptions import (
     ConfidenceError,
     DetectionError,
+    EmptyEntityError,
+    EntityError,
+    MixedLabelError,
     NegativeSpanStartError,
     PIIGhostError,
     SpanError,
@@ -27,6 +30,9 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     SpanOrderingError: SpanError,
     DetectionError: PIIGhostError,
     ConfidenceError: DetectionError,
+    EntityError: PIIGhostError,
+    EmptyEntityError: EntityError,
+    MixedLabelError: EntityError,
 }
 
 
