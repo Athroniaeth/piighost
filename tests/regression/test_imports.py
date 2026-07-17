@@ -18,6 +18,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.models", "Span"),
     ("piighost.models", "Detection"),
     ("piighost.models", "Entity"),
+    ("piighost.detector", "AnyDetector"),
+    ("piighost.detector", "ExactMatchDetector"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
     ("piighost.exceptions", "NegativeSpanStartError"),
