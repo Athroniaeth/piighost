@@ -6,6 +6,7 @@ tag; tags.py holds those tags; concrete factories live in sibling modules.
 
 from piighost.placeholder.base import AnyPlaceholderFactory
 from piighost.placeholder.label import LabelPlaceholderFactory
+from piighost.placeholder.label_counter import LabelCounterPlaceholderFactory
 from piighost.placeholder.redact import RedactPlaceholderFactory
 from piighost.placeholder.tags import (
     PlaceholderPreservation,
@@ -23,6 +24,7 @@ from piighost.placeholder.tags import (
 
 __all__ = [
     "AnyPlaceholderFactory",
+    "LabelCounterPlaceholderFactory",
     "LabelPlaceholderFactory",
     "PlaceholderPreservation",
     "PreservesIdentity",
