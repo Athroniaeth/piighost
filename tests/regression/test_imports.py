@@ -39,6 +39,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.entity_resolver", "MergeEntityResolver"),
     ("piighost.entity_resolver", "SeparateEntityResolver"),
     ("piighost.placeholder", "AnyPlaceholderFactory"),
+    ("piighost.placeholder", "LabelPlaceholderFactory"),
     ("piighost.placeholder", "RedactPlaceholderFactory"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
