@@ -428,3 +428,55 @@ Why: each construction gets a name and a line, so the data flow reads top to
 bottom instead of hiding inside an argument list. Applies to building data (an
 object, a dataclass, a transformed value), not to every trivial subexpression
 like `f(x + 1)`.
+
+### 16. Declare a function's setup variables at the top
+
+Group a function's accumulators and initial locals at the top of the body,
+before the loop or logic that uses them, rather than interleaving declarations
+with control flow. Loop-body locals still live where they are used (rule 15).
+
+Avoid:
+```python
+def resolve(self, detections):
+    ordered = sorted(...)
+    for d in ordered:
+        ...
+    kept = []          # accumulator declared late, buried after the logic
+```
+
+Prefer:
+```python
+def resolve(self, detections):
+    kept = []
+    ordered = sorted(...)
+
+    for d in ordered:
+        ...
+```
+
+Why: the reader sees the function's working set up front, and a blank line
+separates that setup from the logic, which reads more comfortably.
+
+### 17. Extract a non-trivial lambda into a named function with a docstring
+
+A lambda used as a sort key, filter, or callback that does more than return an
+attribute gets promoted to a module-level function with a one-line docstring and
+full annotations. A trivial `key=lambda x: x.attr` may stay inline.
+
+Avoid:
+```python
+ordered = sorted(detections, key=lambda d: (-d.confidence, d.span))
+```
+
+Prefer:
+```python
+def _confidence_then_position(detection: Detection) -> tuple[float, Span]:
+    """Sort key, most confident first, then by position."""
+    return (-detection.confidence, detection.span)
+
+
+ordered = sorted(detections, key=_confidence_then_position)
+```
+
+Why: a named, annotated, documented function reads and type-checks better than
+an inline lambda, and it can be reused.
