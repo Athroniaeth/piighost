@@ -27,7 +27,9 @@ class ExactMatchDetector:
         for value, label in self.values.items():
             # re.finditer yields every non-overlapping match with its offsets;
             # re.escape keeps value literal so regex metacharacters do not apply.
-            for match in re.finditer(re.escape(value), text):
+            needle = re.escape(value)
+
+            for match in re.finditer(needle, text):
                 start = match.start()
                 end = match.end()
 

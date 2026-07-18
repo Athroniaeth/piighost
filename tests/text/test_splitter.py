@@ -3,7 +3,13 @@
 import pytest
 
 from piighost.models import Chunk
-from piighost.text import RecursiveCharacterTextSplitter
+from piighost.text import AnySplitter, RecursiveCharacterTextSplitter
+
+
+class TestConformance:
+    def test_recursive_splitter_satisfies_the_port(self) -> None:
+        """RecursiveCharacterTextSplitter is an AnySplitter."""
+        assert isinstance(RecursiveCharacterTextSplitter(), AnySplitter)
 
 
 class TestChunk:
