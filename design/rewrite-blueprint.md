@@ -102,14 +102,17 @@ plus au moins un adaptateur.
 
 - **Detector** (`AnyDetector`). Regex, NER (gliner2/spacy/transformers), LLM,
   exact (tests). Wrappers `CompositeDetector` et `ChunkedDetector`.
-- **SpanConflictResolver**. Résout les chevauchements (garde la meilleure
-  confiance).
-- **EntityLinker**. Regroupe les détections en entités, retrouve les occurrences
-  non détectées via frontières de mots.
-- **EntityConflictResolver**. Fusion (union-find) ou fuzzy (Jaro-Winkler).
+- **Overlap Resolver** (`AnyOverlapResolver`, optionnel). Résout les détections
+  qui se chevauchent, garde la meilleure confiance.
+- **Detection Expander** (optionnel). Retrouve les occurrences ratées d'une
+  détection existante (les NER qui manquent une même orthographe).
+- **Entity Linker** (optionnel). Regroupe les détections existantes en entités
+  par `(text.casefold(), label)`. Ne cherche pas d'occurrences, c'est l'Expander.
+- **Entity Resolver** (optionnel). Corrige les incohérences entre entités,
+  fusion (union-find) ou fuzzy (Jaro-Winkler), ou séparation.
 - **Anonymizer** + **PlaceholderFactory**. Trois axes orthogonaux, label /
   identité / réalisme, plus le masque (shape). Pepper via env pour les hash.
-- **GuardRail** (optionnel). Re-vérifie la sortie, ignore les tokens déjà émis,
+- **Guardrails** (optionnel). Re-vérifie la sortie, ignore les tokens déjà émis,
   lève `PIIRemainingError`.
 - **MappingStore / ConversationMemory** (repository). Réversibilité, isolation
   par thread, `forget_thread`, backend cache pour le multi-worker.
@@ -133,7 +136,7 @@ plus au moins un adaptateur.
 | Faker | Warning sur collision possible avec une valeur réelle. |
 | Config | pydantic-settings + `build()` porté par les modèles de config (unions discriminées). Supprime le registre de builders et les `from_config`. Multi-source toml/json avec surcharge env (fichier en base). |
 | Labels NER (externe vers interne) | Le mapping label NER vers label piighost se fait dans l'adaptateur, avant de retourner. Un seul port `AnyDetector` label-agnostique, pas de sous-Protocol NER (violerait l'ISP). Le code partagé vit dans un `BaseNERDetector` en Template Method (règle 6), une `ABC` dont `_raw_detect` est `@abstractmethod`, les sous-classes le fournissent. Le mapping est de la donnée (`dict[str, str]`), la normalisation liste/dict vit dans `config`. À coder avec le premier détecteur NER, pas avant (YAGNI). |
-| Chunking | Décorateur `ChunkedDetector` qui enveloppe un `AnyDetector`, `chunk_size` et `overlap` sur le wrapper, pas sur le port. Logique récursive par séparateurs reprise de LangChain mais range-based, chunks = tranches contiguës donc offsets exacts pour `Span.shift`. `RecursiveCharacterTextSplitter` réimplémenté, pas de dépendance langchain. `chunk_size` est une limite dure (sauf morceau insécable plus grand), l'overlap est au mieux (la progression prime). Composition plutôt qu'héritage, le chunking reste séparé du mapping de labels NER, son activation par défaut pour les NER se règle au composition root qui enveloppe les NER. Dédup des détections strictement identiques via `dict.fromkeys`, les conflits de label et confiances différentes partent au `SpanConflictResolver`. |
+| Chunking | Décorateur `ChunkedDetector` qui enveloppe un `AnyDetector`, `chunk_size` et `overlap` sur le wrapper, pas sur le port. Logique récursive par séparateurs reprise de LangChain mais range-based, chunks = tranches contiguës donc offsets exacts pour `Span.shift`. `RecursiveCharacterTextSplitter` réimplémenté, pas de dépendance langchain. `chunk_size` est une limite dure (sauf morceau insécable plus grand), l'overlap est au mieux (la progression prime). Composition plutôt qu'héritage, le chunking reste séparé du mapping de labels NER, son activation par défaut pour les NER se règle au composition root qui enveloppe les NER. Dédup des détections strictement identiques via `dict.fromkeys`, les conflits de label et confiances différentes partent à l'`Overlap Resolver`. |
 
 ---
 
@@ -217,7 +220,7 @@ plus au moins un adaptateur.
   zone de recouvrement est détectée par deux chunks. Après remap, deux cas. Même
   span et même label = doublon pur d'overlap, à dédupliquer. Même span mais label
   différent (ex "Chaumont" PERSON dans un chunk, COMPANY dans l'autre) = vrai
-  conflit, à laisser passer vers le `SpanConflictResolver` qui tranche par
+  conflit, à laisser passer vers l'`Overlap Resolver` qui tranche par
   confiance. Le resolver n'a pas besoin d'être conscient du chunking. En revanche
   la dédup du `ChunkedDetector` ne doit dédupliquer que sur `(span, label)`, pas
   sur le span seul, sinon elle écraserait un conflit avant que le resolver
