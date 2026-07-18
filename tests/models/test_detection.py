@@ -19,6 +19,17 @@ def _detection(confidence: float = 0.9) -> Detection:
     )
 
 
+def _at(start: int, end: int, label: str = "PERSON") -> Detection:
+    """Build a detection covering [start, end) with the given label."""
+    span = Span(start, end)
+    return Detection(
+        span=span,
+        text="x" * (end - start),
+        label=label,
+        confidence=0.9,
+    )
+
+
 class TestConstruction:
     def test_stores_all_fields(self) -> None:
         """A valid detection stores its span, label, confidence, and text."""
@@ -89,3 +100,14 @@ class TestConfidenceValidation:
         """The error message includes the offending confidence."""
         with pytest.raises(ConfidenceError, match="1.5"):
             _detection(1.5)
+
+
+class TestOverlaps:
+    def test_overlapping_detections_overlap(self) -> None:
+        """Detections whose spans overlap report overlap, in both directions."""
+        assert _at(0, 5).overlaps(_at(3, 8))
+        assert _at(3, 8).overlaps(_at(0, 5))
+
+    def test_disjoint_detections_do_not_overlap(self) -> None:
+        """Detections whose spans are disjoint do not overlap."""
+        assert not _at(0, 3).overlaps(_at(5, 9))
