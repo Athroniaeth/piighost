@@ -8,6 +8,7 @@ from piighost.placeholder.base import AnyPlaceholderFactory
 from piighost.placeholder.label import LabelPlaceholderFactory
 from piighost.placeholder.label_counter import LabelCounterPlaceholderFactory
 from piighost.placeholder.label_hash import LabelHashPlaceholderFactory
+from piighost.placeholder.mask import MaskPlaceholderFactory
 from piighost.placeholder.redact import RedactPlaceholderFactory
 from piighost.placeholder.tags import (
     PlaceholderPreservation,
@@ -28,6 +29,7 @@ __all__ = [
     "LabelCounterPlaceholderFactory",
     "LabelHashPlaceholderFactory",
     "LabelPlaceholderFactory",
+    "MaskPlaceholderFactory",
     "PlaceholderPreservation",
     "PreservesIdentity",
     "PreservesIdentityOnly",
