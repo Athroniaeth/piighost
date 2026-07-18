@@ -21,6 +21,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.models", "Chunk"),
     ("piighost.detector", "AnyDetector"),
     ("piighost.detector", "ExactMatchDetector"),
+    ("piighost.detector", "ChunkedDetector"),
+    ("piighost.text", "AnySplitter"),
     ("piighost.text", "RecursiveCharacterTextSplitter"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
