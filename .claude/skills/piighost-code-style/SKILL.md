@@ -531,3 +531,51 @@ def _fits_window(self, pieces, last, count, start) -> bool:
 Why: a named predicate reads like a sentence and is re-evaluated each iteration.
 Freezing a loop condition into a variable is a bug, the loop never sees it
 change.
+
+### 20. Give every port a Base* template, even with a single adapter
+
+A pipeline component (a port and its adapters) always ships a `Base*` ABC
+alongside the `Any*` port, even when only one adapter exists today. The template
+owns the invariant skeleton (iterate, group, sort, build) and delegates the one
+varying decision to an abstract hook; the adapter is reduced to that hook.
+
+Avoid:
+```python
+class ExactEntityLinker:
+    def link(self, detections: list[Detection]) -> list[Entity]:
+        groups: dict[tuple[str, str], list[Detection]] = {}
+        for detection in detections:
+            key = (detection.text.casefold(), detection.label)
+            groups.setdefault(key, []).append(detection)
+        return [Entity(tuple(group)) for group in groups.values()]
+```
+
+Prefer:
+```python
+class BaseEntityLinker(ABC):
+    def link(self, detections: list[Detection]) -> list[Entity]:
+        groups: dict[Hashable, list[Detection]] = {}
+        for detection in detections:
+            groups.setdefault(self._key(detection), []).append(detection)
+        return [Entity(tuple(group)) for group in groups.values()]
+
+    @abstractmethod
+    def _key(self, detection: Detection) -> Hashable: ...
+
+class ExactEntityLinker(BaseEntityLinker):
+    def _key(self, detection: Detection) -> tuple[str, str]:
+        return (detection.text.casefold(), detection.label)
+```
+
+Why: the skeleton is the real contract of the stage. Naming it once, up front,
+means the second adapter (a normalized key that strips accents or collapses
+whitespace) writes one method instead of duplicating the grouping loop, and
+every adapter is guaranteed to group, order, and build entities the same way.
+YAGNI does not apply to a pipeline port's template, this is a deliberate
+exception.
+
+The template only fits when the varying decision is a single hook over one
+input, here a key over one detection, an equivalence relation. A stage whose
+decision is pairwise (fuzzy merge by similarity, which is not transitive and has
+no hashable key) needs a different skeleton and belongs to a different port, the
+entity resolver, not the linker.
