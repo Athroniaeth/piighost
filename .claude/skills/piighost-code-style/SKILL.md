@@ -480,3 +480,27 @@ ordered = sorted(detections, key=_confidence_then_position)
 
 Why: a named, annotated, documented function reads and type-checks better than
 an inline lambda, and it can be reused.
+
+### 18. A component's base.py holds its abstractions, port and template base
+
+Put a package's abstractions in its `base.py`: the port (the `Any*` Protocol)
+and any shared template base (a `Base*` ABC). Concrete implementations go in
+named sibling modules.
+
+Avoid:
+```
+resolver/
+  base.py       # AnyOverlapResolver (port) only
+  overlap.py    # BaseOverlapResolver (template) + ConfidenceOverlapResolver
+```
+
+Prefer:
+```
+resolver/
+  base.py       # AnyOverlapResolver (port) + BaseOverlapResolver (template)
+  overlap.py    # ConfidenceOverlapResolver
+```
+
+Why: base.py is the abstract layer of the package, the contract plus the shared
+skeleton, so a class named Base* lives where "base" is. The same holds for
+detector/base.py, which will hold AnyDetector and, later, BaseNERDetector.
