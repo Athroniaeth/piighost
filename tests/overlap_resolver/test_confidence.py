@@ -1,7 +1,7 @@
 """Tests for the ConfidenceOverlapResolver."""
 
 from piighost.models import Detection, Span
-from piighost.resolver import (
+from piighost.overlap_resolver import (
     AnyOverlapResolver,
     BaseOverlapResolver,
     ConfidenceOverlapResolver,
