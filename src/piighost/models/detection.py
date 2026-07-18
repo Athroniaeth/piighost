@@ -1,6 +1,7 @@
 """Detection model: a labeled, scored span of text."""
 
 from dataclasses import dataclass
+from typing import Self
 
 from piighost.exceptions import ConfidenceError
 from piighost.models.span import Span
@@ -34,3 +35,7 @@ class Detection:
             raise ConfidenceError(
                 f"Detection confidence must be in [0, 1], got {self.confidence}"
             )
+
+    def overlaps(self, other: Self) -> bool:
+        """Whether this detection's span overlaps the other's."""
+        return self.span.overlaps(other.span)
