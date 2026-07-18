@@ -25,6 +25,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.text", "AnySplitter"),
     ("piighost.text", "RecursiveCharacterTextSplitter"),
     ("piighost.resolver", "AnyOverlapResolver"),
+    ("piighost.resolver", "BaseOverlapResolver"),
     ("piighost.resolver", "ConfidenceOverlapResolver"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
