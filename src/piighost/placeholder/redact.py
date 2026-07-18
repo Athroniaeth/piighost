@@ -4,7 +4,7 @@ from piighost.models import Entity
 from piighost.placeholder.base import AnyPlaceholderFactory
 from piighost.placeholder.tags import PreservesNothing
 
-REDACT_TOKEN = PreservesNothing("[REDACT]")
+REDACT_TOKEN = PreservesNothing("<<REDACT>>")
 """The constant token every entity collapses to, tagged as preserving nothing."""
 
 

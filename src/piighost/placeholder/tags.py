@@ -14,15 +14,16 @@ rather than a runtime surprise.
 
 Two independent axes organize the taxonomy:
 
-- Label: does the token reveal the entity type? <PERSON> does, [REDACT] does not.
+- Label: does the token reveal the entity type? <<PERSON>> does, <<REDACT>> does
+  not.
 - Identity: does the token uniquely identify the entity? <<PERSON:1>> does,
-  <PERSON> collapses every person into one token.
+  <<PERSON>> collapses every person into one token.
 
 The four base combinations are four sibling tags under the root
 PlaceholderPreservation: PreservesNothing (neither axis), PreservesLabel (label
 only), PreservesIdentity (identity only), and PreservesLabeledIdentity (both).
 PlaceholderPreservation is the root that accepts any factory; PreservesNothing
-is the concrete tag for a token that keeps nothing, such as [REDACT], a sibling
+is the concrete tag for a token that keeps nothing, such as <<REDACT>>, a sibling
 of the other three rather than their parent.
 
 PreservesLabeledIdentity inherits from both PreservesLabel and PreservesIdentity,
@@ -71,7 +72,7 @@ class PlaceholderPreservation(str):
 class PreservesNothing(PlaceholderPreservation):
     """The token is a constant marker carrying no information.
 
-    Every entity collapses to the same string, such as [REDACT]. The mapping
+    Every entity collapses to the same string, such as <<REDACT>>. The mapping
     cannot be reversed, so this fits one-shot redaction or the middleware's
     passthrough mode, never its deanonymizing modes.
     """
@@ -81,7 +82,7 @@ class PreservesLabel(PlaceholderPreservation):
     """The token preserves the entity label.
 
     Distinct entities sharing a label collide into the same token, such as
-    <PERSON>. This suits one-shot redaction but cannot be reversed, which rules
+    <<PERSON>>. This suits one-shot redaction but cannot be reversed, which rules
     it out for the middleware's tool-call handling outside passthrough mode.
     """
 
@@ -100,7 +101,7 @@ class PreservesIdentity(PlaceholderPreservation):
 class PreservesIdentityOnly(PreservesIdentity):
     """The token is a unique reversible id that hides the entity type.
 
-    A token like [a1b2c3d4] carries a per-entity hash but no label, so a reader
+    A token like <<a1b2c3d4>> carries a per-entity hash but no label, so a reader
     can tell two entities apart while learning nothing about whether they are
     persons, emails, or credit cards. No built-in factory ships this scheme; it
     is the tag for a user factory that hashes without a label prefix.
