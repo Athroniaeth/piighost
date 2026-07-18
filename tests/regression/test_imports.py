@@ -42,6 +42,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.placeholder", "LabelCounterPlaceholderFactory"),
     ("piighost.placeholder", "LabelHashPlaceholderFactory"),
     ("piighost.placeholder", "LabelPlaceholderFactory"),
+    ("piighost.placeholder", "MaskPlaceholderFactory"),
     ("piighost.placeholder", "RedactPlaceholderFactory"),
     ("piighost.exceptions", "PIIGhostError"),
     ("piighost.exceptions", "SpanError"),
