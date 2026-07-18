@@ -138,20 +138,27 @@ class RecursiveCharacterTextSplitter:
         text: str,
     ) -> list[Chunk]:
         """Pack ordered ranges into overlapping chunks of at most chunk_size."""
-        chunks: list[Chunk] = []
         cursor = 0
         count = len(pieces)
+        chunks: list[Chunk] = []
+
         while cursor < count:
-            window_start = pieces[cursor][0]
             last = cursor
-            while last < count and pieces[last][1] - window_start <= self.chunk_size:
+            window_start = pieces[cursor][0]
+
+            while self._fits_window(pieces, last, count, window_start):
                 last += 1
+
             if last == cursor:
                 # A single piece larger than chunk_size: the one case a chunk
                 # exceeds chunk_size, since a piece cannot be split further.
                 last = cursor + 1
+
             window_end = pieces[last - 1][1]
-            chunks.append(Chunk(text=text[window_start:window_end], start=window_start))
+            chunk_text = text[window_start:window_end]
+            chunk = Chunk(text=chunk_text, start=window_start)
+            chunks.append(chunk)
+
             if last >= count:
                 break
             # Step back so the next window overlaps this one by about
@@ -163,3 +170,9 @@ class RecursiveCharacterTextSplitter:
                 back -= 1
             cursor = back + 1
         return chunks
+
+    def _fits_window(
+        self, pieces: list[tuple[int, int]], last: int, count: int, window_start: int
+    ) -> bool:
+        """Whether piece `last` exists and keeps the window within chunk_size."""
+        return last < count and pieces[last][1] - window_start <= self.chunk_size
