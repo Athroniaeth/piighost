@@ -1,7 +1,11 @@
 """Tests for the ConfidenceOverlapResolver."""
 
 from piighost.models import Detection, Span
-from piighost.resolver import AnyOverlapResolver, ConfidenceOverlapResolver
+from piighost.resolver import (
+    AnyOverlapResolver,
+    BaseOverlapResolver,
+    ConfidenceOverlapResolver,
+)
 
 
 def _detection(start: int, end: int, label: str, confidence: float) -> Detection:
@@ -51,3 +55,23 @@ class TestResolve:
         second = _detection(10, 14, "EMAIL", 0.9)
         resolved = ConfidenceOverlapResolver().resolve([second, first])
         assert [detection.span for detection in resolved] == [Span(0, 4), Span(10, 14)]
+
+
+class TestTemplate:
+    def test_reduce_hook_drives_the_choice(self) -> None:
+        """A subclass's _reduce decides which overlapping detections win."""
+
+        class LongestOverlapResolver(BaseOverlapResolver):
+            def _reduce(self, conflicting: list[Detection]) -> list[Detection]:
+                """Keep the single longest detection in the group."""
+                longest = conflicting[0]
+
+                for detection in conflicting:
+                    if detection.span.length > longest.span.length:
+                        longest = detection
+                return [longest]
+
+        short = _detection(0, 4, "PERSON", 0.9)
+        wide = _detection(0, 8, "COMPANY", 0.1)
+        assert ConfidenceOverlapResolver().resolve([short, wide]) == [short]
+        assert LongestOverlapResolver().resolve([short, wide]) == [wide]
