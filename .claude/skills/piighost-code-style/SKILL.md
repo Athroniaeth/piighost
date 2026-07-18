@@ -395,3 +395,36 @@ class Detection:
 Why: matches the Google guide, which says public attributes "excluding
 properties" go in `Attributes` and reserves `Args` for `__init__` and
 functions. It also avoids duplicating a field across `Args` and `Attributes`.
+
+### 15. Bind a constructed value to a named local, do not nest it in a call
+
+When building or transforming a value to pass it on, give it a name on its own
+line rather than nesting the construction inside another call. And keep a
+multi-argument constructor call exploded, one argument per line with a trailing
+comma, so the construction stays visible and diffs cleanly.
+
+Avoid:
+```python
+detections.append(replace(detection, span=detection.span.shift(chunk.start)))
+d = Detection(span=Span(0, 4), label="PERSON", confidence=0.9, text="Emma")
+```
+
+Prefer:
+```python
+span = detection.span.shift(chunk.start)
+remapped = replace(detection, span=span)
+detections.append(remapped)
+
+span = Span(0, 4)
+d = Detection(
+    span=span,
+    label="PERSON",
+    confidence=0.9,
+    text="Emma",
+)
+```
+
+Why: each construction gets a name and a line, so the data flow reads top to
+bottom instead of hiding inside an argument list. Applies to building data (an
+object, a dataclass, a transformed value), not to every trivial subexpression
+like `f(x + 1)`.
