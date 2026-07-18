@@ -504,3 +504,30 @@ resolver/
 Why: base.py is the abstract layer of the package, the contract plus the shared
 skeleton, so a class named Base* lives where "base" is. The same holds for
 detector/base.py, which will hold AnyDetector and, later, BaseNERDetector.
+
+### 19. A complex loop condition goes in a predicate function, not a variable
+
+A loop condition is re-evaluated every iteration, so it cannot be hoisted into a
+variable computed once. When it is long enough to want a name, extract a
+predicate function or method and call it in the loop.
+
+Avoid:
+```python
+condition = last < count and pieces[last][1] - start <= self.chunk_size
+while condition:          # computed once, never re-checked, so it loops forever
+    last += 1
+```
+
+Prefer:
+```python
+while self._fits_window(pieces, last, count, start):   # re-evaluated each pass
+    last += 1
+
+def _fits_window(self, pieces, last, count, start) -> bool:
+    """Whether piece `last` exists and keeps the window within chunk_size."""
+    return last < count and pieces[last][1] - start <= self.chunk_size
+```
+
+Why: a named predicate reads like a sentence and is re-evaluated each iteration.
+Freezing a loop condition into a variable is a bug, the loop never sees it
+change.
