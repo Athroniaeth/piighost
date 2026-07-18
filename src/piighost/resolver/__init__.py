@@ -1,10 +1,10 @@
 """Resolvers: pipeline stages that reconcile detections and entities.
 
-AnyOverlapResolver defines the overlap-resolution port; more resolvers (entity)
-will follow.
+base.py holds the abstractions, the AnyOverlapResolver port and the
+BaseOverlapResolver template; concrete resolvers live in sibling modules.
 """
 
-from piighost.resolver.base import AnyOverlapResolver
-from piighost.resolver.overlap import ConfidenceOverlapResolver
+from piighost.resolver.base import AnyOverlapResolver, BaseOverlapResolver
+from piighost.resolver.confidence import ConfidenceOverlapResolver
 
-__all__ = ["AnyOverlapResolver", "ConfidenceOverlapResolver"]
+__all__ = ["AnyOverlapResolver", "BaseOverlapResolver", "ConfidenceOverlapResolver"]
