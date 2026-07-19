@@ -32,8 +32,7 @@ labeled-identity factory. Every PreservesLabeledIdentity is a PreservesLabel and
 a PreservesIdentity, but not the reverse.
 
 A realism sub-axis refines PreservesLabeledIdentity, from clearly synthetic
-(<<PERSON:1>>) to hashed realistic (a1b2c3d4@anonymized.local) to Faker output
-that can collide with real data (john.doe@example.com).
+(<<PERSON:1>>) to hashed realistic (a1b2c3d4@anonymized.local).
 
 PreservesShape is a special label-extending case: the masked token keeps a
 fragment of the original (j***@mail.com), so it implies the label through its
@@ -56,7 +55,6 @@ The full hierarchy:
     - PreservesLabeledIdentityOpaque
     - PreservesLabeledIdentityRealistic
       - PreservesLabeledIdentityHashed
-      - PreservesLabeledIdentityFaker
 """
 
 
@@ -140,8 +138,7 @@ class PreservesLabeledIdentityRealistic(PreservesLabeledIdentity):
 
     A realistic token passes downstream format validation, an email regex or a
     name pattern, at the cost of looking indistinguishable from a genuine value.
-    It is refined by PreservesLabeledIdentityHashed, which is collision-proof,
-    and PreservesLabeledIdentityFaker, which can collide with real data.
+    It is refined by PreservesLabeledIdentityHashed, which is collision-proof.
     """
 
 
@@ -154,23 +151,12 @@ class PreservesLabeledIdentityHashed(PreservesLabeledIdentityRealistic):
     """
 
 
-class PreservesLabeledIdentityFaker(PreservesLabeledIdentityRealistic):
-    """A plausible token produced by Faker.
-
-    A token like john.doe@example.com is indistinguishable from genuine data.
-    Each entity still maps to a unique token, but a Faker value can land on a
-    real person's actual data, which the middleware cannot detect during string
-    replacement.
-    """
-
-
 __all__ = [
     "PlaceholderPreservation",
     "PreservesIdentity",
     "PreservesIdentityOnly",
     "PreservesLabel",
     "PreservesLabeledIdentity",
-    "PreservesLabeledIdentityFaker",
     "PreservesLabeledIdentityHashed",
     "PreservesLabeledIdentityOpaque",
     "PreservesLabeledIdentityRealistic",
