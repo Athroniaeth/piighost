@@ -22,7 +22,6 @@ SUBCLASS_EDGES: list[tuple[type, type]] = [
     (tags.PreservesLabeledIdentityOpaque, tags.PreservesLabeledIdentity),
     (tags.PreservesLabeledIdentityRealistic, tags.PreservesLabeledIdentity),
     (tags.PreservesLabeledIdentityHashed, tags.PreservesLabeledIdentityRealistic),
-    (tags.PreservesLabeledIdentityFaker, tags.PreservesLabeledIdentityRealistic),
 ]
 
 # Pairs that must stay unrelated, so an axis is not accidentally widened. The
