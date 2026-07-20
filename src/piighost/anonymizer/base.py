@@ -54,3 +54,22 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
             The anonymized text and the entity-to-token mapping.
         """
         ...
+
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
+        """Return the text with every known token replaced by its entity value.
+
+        The mapping is the entity-to-token one an anonymization produced, read
+        in reverse. Any text carrying those tokens can be restored, including a
+        text the pipeline never produced, such as a fresh model reply. Tokens
+        absent from the mapping are left untouched. Restoration is only
+        unambiguous when the tokens preserve identity, since two entities that
+        share a token collapse to one value.
+
+        Args:
+            text: The text whose tokens should be restored.
+            tokens: The entity-to-token mapping from the anonymization.
+
+        Returns:
+            The text with each known token replaced by its entity's value.
+        """
+        ...

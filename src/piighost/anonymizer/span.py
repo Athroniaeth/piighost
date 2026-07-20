@@ -1,5 +1,6 @@
 """Span-replacement anonymizer built on a placeholder factory."""
 
+from collections.abc import Mapping
 from typing import Generic
 
 from typing_extensions import TypeVar
@@ -53,3 +54,12 @@ class Anonymizer(Generic[PreservationT]):
 
         pieces.append(text[cursor:])
         return Anonymization(text="".join(pieces), tokens=tokens)
+
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
+        """Return the text with every known token replaced by its entity value."""
+        values = {token: entity.text for entity, token in tokens.items()}
+
+        for token, value in values.items():
+            text = text.replace(token, value)
+
+        return text
