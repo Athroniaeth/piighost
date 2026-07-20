@@ -95,8 +95,11 @@ config = [
     "typer>=0.12",
     "tomli>=2.0; python_version < '3.11'",
 ]
+argon2 = [
+    "argon2-cffi>=23.1",
+]
 all = [
-    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config]",
+    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config,argon2]",
 ]
 
 [build-system]
@@ -120,6 +123,7 @@ dev = [
     "pydantic>=2.6",
     "typer>=0.12",
     "tomli>=2.0; python_version < '3.11'",
+    "argon2-cffi>=23.1",
 ]
 faker = [
     "faker>=40.11.0",
