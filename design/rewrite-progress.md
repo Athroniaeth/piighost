@@ -123,18 +123,39 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     pas de dep optionnelle). `hash(value) -> str` déterministe keyé par pepper
     (`str` au ctor car lu d'un envvar, encodé une fois en bytes en interne).
     HMAC et pas
-    `sha256(pepper+value)` (length-extension), golden test le verrouille. Argon2
-    (dep optionnelle) reste à ajouter comme frère.
+    `sha256(pepper+value)` (length-extension), golden test le verrouille.
+    Frère `Argon2Hasher` (`argon2id.py`) : Argon2id via `hash_secret_raw`, sel
+    fixe dérivé du pepper (`sha256(pepper)[:16]`) pour rester déterministe,
+    memory-hard (résiste même si le pepper leak, hors hot-path). Params de coût
+    (`time_cost`, `memory_cost`, `parallelism`, `hash_length`) en kwargs du ctor,
+    défauts en constantes nommées (profil OWASP low-memory), pas de magic number.
+    **Dep
+    optionnelle** `argon2-cffi` : le module lève un `ImportError` gardé par
+    `find_spec` pointant `pip install piighost[argon2]`, et `hasher/__init__.py`
+    l'importe en lazy via `__getattr__` (le cœur ne tire jamais argon2). Deux
+    tests anti-régression : message d'install (absence simulée par monkeypatch de
+    `find_spec`, marche même dep présente) et usabilité (`importorskip`, dep
+    installée -> ça marche).
+
+### Pattern deps optionnelles (établi ici, à réutiliser)
+
+- extra dans `[project.optional-dependencies]` (+ ajout à `all`), et la dep dans
+  le dev group pour que l'usability test tourne en CI ;
+- module adaptateur : garde `importlib.util.find_spec(pkg) is None -> raise
+  ImportError("... pip install piighost[extra]")` **avant** l'import réel (avec
+  `# noqa: E402` sur l'import gardé) ;
+- `__init__.py` du package : `__getattr__` lazy pour l'export optionnel, jamais
+  d'import eager (sinon `import piighost.X` casse sans la dep) ;
+- `tests/regression/test_imports.py::test_every_module_imports_cleanly` saute les
+  `ImportError` dont le message contient `piighost[` ;
+- deux tests : message d'install (monkeypatch `find_spec`) + usabilité
+  (`importorskip`).
 
 ## Prochaine étape
 
-Hasher (Sha256) fait (composant 12). Suites, dans l'ordre :
-- **`Argon2Hasher`** (dep optionnelle `argon2-cffi`, sel fixe = pepper via
-  `hash_secret_raw`) : premier module à dep optionnelle → mettre en place le
-  pattern (extra pyproject + garde `find_spec`, et faire sauter la garde
-  d'import `test_every_module_imports_cleanly`) ;
+Hasher (Sha256 + Argon2, pattern deps optionnelles) fait (composant 12). Suites :
 - port **`Cipher`** + `AesGcmCipher` (pyca `cryptography`, clé env, dep
-  optionnelle) ;
+  optionnelle, réutiliser le pattern) ;
 - backend **`RedisConversationMemory`** composant serde + hasher + cipher (voir
   `design/conversation-memory.md`) ;
 - puis **Guardrails**, l'**orchestrateur de pipeline**, la config, le middleware.
