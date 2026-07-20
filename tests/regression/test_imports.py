@@ -47,6 +47,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.hasher", "AnyHasher"),
     ("piighost.hasher", "BaseHasher"),
     ("piighost.hasher", "Sha256Hasher"),
+    ("piighost.cipher", "AnyCipher"),
     ("piighost.placeholder", "AnyPlaceholderFactory"),
     ("piighost.placeholder", "LabelCounterPlaceholderFactory"),
     ("piighost.placeholder", "LabelHashPlaceholderFactory"),
@@ -64,6 +65,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "MixedLabelError"),
     ("piighost.exceptions", "HasherError"),
     ("piighost.exceptions", "EmptyPepperError"),
+    ("piighost.exceptions", "CipherError"),
+    ("piighost.exceptions", "InvalidKeyLengthError"),
 ]
 
 

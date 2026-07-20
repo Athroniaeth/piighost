@@ -151,13 +151,21 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
 - deux tests : message d'install (monkeypatch `find_spec`) + usabilité
   (`importorskip`).
 
+13. **cipher/** (crypto) : port `AnyCipher` (`encrypt`/`decrypt` sur `bytes`,
+    pas de template, mécanismes symétrique/asymétrique entiers), adaptateur
+    `AesGcmCipher` (AES-GCM via pyca `cryptography`, **dep optionnelle**
+    `piighost[crypto]`, même pattern que argon2 : garde `find_spec`, export lazy
+    `__getattr__`). Nonce 96-bit aléatoire préfixé au ciphertext (chiffrement
+    randomisé + authentifié, détecte l'altération). Clé `bytes` validée 16/24/32
+    (`InvalidKeyLengthError`, fail-closed) ; décodée depuis l'env au composition
+    root. Symétrique = même process anonymise/déanonymise. Tests : message
+    d'install, round-trip, randomisation, rejet d'altération, longueur de clé.
+
 ## Prochaine étape
 
-Hasher (Sha256 + Argon2, pattern deps optionnelles) fait (composant 12). Suites :
-- port **`Cipher`** + `AesGcmCipher` (pyca `cryptography`, clé env, dep
-  optionnelle, réutiliser le pattern) ;
-- backend **`RedisConversationMemory`** composant serde + hasher + cipher (voir
-  `design/conversation-memory.md`) ;
+Hasher + Cipher faits (composants 12-13). Suites :
+- backend **`RedisConversationMemory`** composant serde + hasher (clé) + cipher
+  (valeur), avec index ordonné par thread (voir `design/conversation-memory.md`) ;
 - puis **Guardrails**, l'**orchestrateur de pipeline**, la config, le middleware.
 
 À trancher avec l'utilisateur.
