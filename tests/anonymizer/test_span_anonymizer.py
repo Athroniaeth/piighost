@@ -59,3 +59,56 @@ class TestAnonymize:
         result = Anonymizer(RedactPlaceholderFactory()).anonymize("nothing here", [])
         assert result.text == "nothing here"
         assert result.tokens == {}
+
+
+class TestDeanonymize:
+    def test_restores_a_single_token(self) -> None:
+        """A token in the text is swapped back for its entity's value."""
+        emma = _entity([(0, 4)], "Emma")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        tokens = anonymizer.anonymize("Emma", [emma]).tokens
+        assert anonymizer.deanonymize("Hello <<PERSON:1>>", tokens) == "Hello Emma"
+
+    def test_restores_a_novel_text(self) -> None:
+        """A text the pipeline never produced still has its tokens restored."""
+        emma = _entity([(0, 4)], "Emma")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        tokens = anonymizer.anonymize("Emma", [emma]).tokens
+        assert anonymizer.deanonymize("Sure, <<PERSON:1>>!", tokens) == "Sure, Emma!"
+
+    def test_restores_every_occurrence(self) -> None:
+        """Every occurrence of a token is restored, not just the first."""
+        emma = _entity([(0, 4)], "Emma")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        tokens = anonymizer.anonymize("Emma", [emma]).tokens
+        result = anonymizer.deanonymize("<<PERSON:1>> and <<PERSON:1>>", tokens)
+        assert result == "Emma and Emma"
+
+    def test_restores_several_entities(self) -> None:
+        """Each token maps back to its own entity's value."""
+        emma = _entity([(0, 4)], "Emma")
+        liam = _entity([(9, 13)], "Liam")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        tokens = anonymizer.anonymize("Emma and Liam", [emma, liam]).tokens
+        result = anonymizer.deanonymize("<<PERSON:2>> then <<PERSON:1>>", tokens)
+        assert result == "Liam then Emma"
+
+    def test_unknown_token_passes_through(self) -> None:
+        """A token absent from the mapping is left untouched."""
+        emma = _entity([(0, 4)], "Emma")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        tokens = anonymizer.anonymize("Emma", [emma]).tokens
+        assert anonymizer.deanonymize("<<PERSON:9>>", tokens) == "<<PERSON:9>>"
+
+    def test_no_tokens_leaves_text_unchanged(self) -> None:
+        """With an empty mapping the text passes through untouched."""
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        assert anonymizer.deanonymize("nothing here", {}) == "nothing here"
+
+    def test_roundtrip_restores_the_original(self) -> None:
+        """Anonymizing then deanonymizing the result returns the original text."""
+        emma = _entity([(0, 4)], "Emma")
+        liam = _entity([(9, 13)], "Liam")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        result = anonymizer.anonymize("Emma met Liam", [emma, liam])
+        assert anonymizer.deanonymize(result.text, result.tokens) == "Emma met Liam"

@@ -69,6 +69,15 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
    adaptateur `Anonymizer` (tient une factory). Remplacement en une passe
    gauche→droite en lisant le texte d'origine (pas d'édition en place, pas de
    décalage d'offsets). Suppose les spans non-chevauchants.
+10. **déanonymisation** : méthode `deanonymize(text, tokens)` sur le port
+    `AnyAnonymizer` et l'adaptateur `Anonymizer`. Prend le mapping `entity→token`
+    d'une anonymisation, l'inverse en `token→valeur`, et remplace chaque jeton
+    connu dans n'importe quel texte (voie 2, réponse inédite du modèle). Jetons
+    inconnus laissés tels quels. Param typé `Mapping[Entity, str]` (la méthode ne
+    lit que la chaîne, et ça évite l'usage covariant en position paramètre).
+    Restauration non ambiguë seulement sous identité (deux entités partageant un
+    jeton se collapsent, dernière valeur gagne) ; la garantie de type reste au
+    middleware borné à `PreservesIdentity`.
 
 ## Décisions de design notables
 
@@ -100,14 +109,12 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
 
 ## Prochaine étape
 
-La **déanonymisation** : recoller les valeurs d'origine depuis les jetons. C'est
-là que `PreservesIdentity` devient une exigence réelle (inversion fiable seulement
-si le jeton identifie l'entité de façon unique). Deux questions à trancher au
-moment de coder :
-- où vit l'inversion : une méthode `deanonymize` sur l'`Anonymizer`, ou un
-  composant séparé ;
-- sur quoi elle s'appuie : le mapping `Anonymization.tokens` inversé (jeton →
-  valeur).
+Déanonymisation faite (voir composant 10). Reste à choisir la brique suivante
+parmi le blueprint : **MappingStore / ConversationMemory** (réversibilité
+persistée, isolation par thread, `forget_thread`, backend multi-worker),
+**Guardrails** (re-vérif de la sortie, ignore les jetons émis, lève
+`PIIRemainingError`), ou l'**orchestrateur de pipeline** qui enchaîne les briques
+du domaine. À trancher avec l'utilisateur.
 
 ## Commandes dev
 
