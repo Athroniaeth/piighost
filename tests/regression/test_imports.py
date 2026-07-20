@@ -44,6 +44,9 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.conversation_memory", "AnyConversationMemory"),
     ("piighost.conversation_memory", "Forgotten"),
     ("piighost.conversation_memory", "InMemoryConversationMemory"),
+    ("piighost.hasher", "AnyHasher"),
+    ("piighost.hasher", "BaseHasher"),
+    ("piighost.hasher", "Sha256Hasher"),
     ("piighost.placeholder", "AnyPlaceholderFactory"),
     ("piighost.placeholder", "LabelCounterPlaceholderFactory"),
     ("piighost.placeholder", "LabelHashPlaceholderFactory"),
@@ -59,6 +62,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "EntityError"),
     ("piighost.exceptions", "EmptyEntityError"),
     ("piighost.exceptions", "MixedLabelError"),
+    ("piighost.exceptions", "HasherError"),
+    ("piighost.exceptions", "EmptyPepperError"),
 ]
 
 

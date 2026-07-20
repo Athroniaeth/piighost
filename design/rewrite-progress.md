@@ -117,14 +117,26 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
   **orchestrateur de pipeline**, **config TOML**, **middleware LangChain**,
   **client HTTP**, **observation**.
 
+12. **hasher/** (crypto) : port `AnyHasher` + template `BaseHasher` (porte le
+    pepper, refuse un pepper vide via `EmptyPepperError`, hook `_digest(value) ->
+    bytes`, skeleton hexlifie), adaptateur `Sha256Hasher` (HMAC-SHA256, stdlib,
+    pas de dep optionnelle). `hash(value) -> str` déterministe keyé par pepper
+    (`str` au ctor car lu d'un envvar, encodé une fois en bytes en interne).
+    HMAC et pas
+    `sha256(pepper+value)` (length-extension), golden test le verrouille. Argon2
+    (dep optionnelle) reste à ajouter comme frère.
+
 ## Prochaine étape
 
-ConversationMemory in-memory faite (composant 11). Suites possibles, dans l'ordre
-naturel :
-- ports crypto **`Hasher`** (HmacSha256 défaut / Argon2 optionnel, pepper env) et
-  **`Cipher`** (AES-GCM via pyca `cryptography`, clé env), deps optionnelles ;
-- backend **`RedisConversationMemory`** qui compose serde + hasher + cipher (voir
-  layout et flux dans `design/conversation-memory.md`) ;
+Hasher (Sha256) fait (composant 12). Suites, dans l'ordre :
+- **`Argon2Hasher`** (dep optionnelle `argon2-cffi`, sel fixe = pepper via
+  `hash_secret_raw`) : premier module à dep optionnelle → mettre en place le
+  pattern (extra pyproject + garde `find_spec`, et faire sauter la garde
+  d'import `test_every_module_imports_cleanly`) ;
+- port **`Cipher`** + `AesGcmCipher` (pyca `cryptography`, clé env, dep
+  optionnelle) ;
+- backend **`RedisConversationMemory`** composant serde + hasher + cipher (voir
+  `design/conversation-memory.md`) ;
 - puis **Guardrails**, l'**orchestrateur de pipeline**, la config, le middleware.
 
 À trancher avec l'utilisateur.
