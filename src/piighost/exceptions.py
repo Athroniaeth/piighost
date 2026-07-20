@@ -71,3 +71,15 @@ class EmptyPepperError(HasherError):
     Hashing without a secret pepper leaves low-entropy PII brute-forceable, so
     the hasher fails closed rather than accept it.
     """
+
+
+class CipherError(PIIGhostError):
+    """Base class for errors raised while constructing a cipher.
+
+    Catch this to handle any invalid-cipher case at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class InvalidKeyLengthError(CipherError):
+    """Raised when a cipher is built with a key of an unsupported length."""

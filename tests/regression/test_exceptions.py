@@ -9,12 +9,14 @@ exception breaks this module.
 import pytest
 
 from piighost.exceptions import (
+    CipherError,
     ConfidenceError,
     DetectionError,
     EmptyEntityError,
     EmptyPepperError,
     EntityError,
     HasherError,
+    InvalidKeyLengthError,
     MixedLabelError,
     NegativeSpanStartError,
     PIIGhostError,
@@ -37,6 +39,8 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     MixedLabelError: EntityError,
     HasherError: PIIGhostError,
     EmptyPepperError: HasherError,
+    CipherError: PIIGhostError,
+    InvalidKeyLengthError: CipherError,
 }
 
 
