@@ -12,7 +12,9 @@ from piighost.exceptions import (
     ConfidenceError,
     DetectionError,
     EmptyEntityError,
+    EmptyPepperError,
     EntityError,
+    HasherError,
     MixedLabelError,
     NegativeSpanStartError,
     PIIGhostError,
@@ -33,6 +35,8 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     EntityError: PIIGhostError,
     EmptyEntityError: EntityError,
     MixedLabelError: EntityError,
+    HasherError: PIIGhostError,
+    EmptyPepperError: HasherError,
 }
 
 
