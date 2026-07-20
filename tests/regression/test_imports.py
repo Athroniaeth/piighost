@@ -82,8 +82,13 @@ def test_public_symbol_is_importable(module: str, name: str) -> None:
 def test_every_module_imports_cleanly() -> None:
     """Check that no module fails to import (syntax error, circular import)."""
     # walk_packages recurses into packages (ispkg=True) to reach their
-    # submodules. A failed import propagates here and fails the test with its
-    # real traceback. When optional-dependency modules land, this loop will need
-    # to skip their guarded ImportError (install piighost[...]); none exist yet.
+    # submodules. A module guarded behind an optional dependency raises
+    # ImportError pointing at its extra (install piighost[...]) when that
+    # dependency is absent; that is expected, so skip it and let any other
+    # ImportError propagate with its real traceback.
     for module_info in pkgutil.walk_packages(piighost.__path__, prefix="piighost."):
-        importlib.import_module(module_info.name)
+        try:
+            importlib.import_module(module_info.name)
+        except ImportError as exc:
+            if "piighost[" not in str(exc):
+                raise
