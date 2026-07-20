@@ -78,6 +78,16 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     Restauration non ambiguë seulement sous identité (deux entités partageant un
     jeton se collapsent, dernière valeur gagne) ; la garantie de type reste au
     middleware borné à `PreservesIdentity`.
+11. **conversation_memory/** (repository) : port `AnyConversationMemory` +
+    résultat `Forgotten(messages, detections)`, adaptateur
+    `InMemoryConversationMemory` (`_threads` en `defaultdict`). Structure
+    `(thread_id, message) -> détections` servant à la fois le cache forward et
+    l'union first-seen via un seul `get_detections(thread_id, message=None)` :
+    sans message (ou None) = union ; avec message = ses détections (None = miss,
+    [] = vu sans PII). `remember` / `get_detections` / `forget`. Pas de template
+    `Base*` (backends = mécanismes entiers, exception pairwise règle 20).
+    Conception complète et plan crypto (hash de clé + chiffrement de valeur,
+    backend Redis) dans `design/conversation-memory.md`.
 
 ## Décisions de design notables
 
@@ -109,12 +119,15 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
 
 ## Prochaine étape
 
-Déanonymisation faite (voir composant 10). Reste à choisir la brique suivante
-parmi le blueprint : **MappingStore / ConversationMemory** (réversibilité
-persistée, isolation par thread, `forget_thread`, backend multi-worker),
-**Guardrails** (re-vérif de la sortie, ignore les jetons émis, lève
-`PIIRemainingError`), ou l'**orchestrateur de pipeline** qui enchaîne les briques
-du domaine. À trancher avec l'utilisateur.
+ConversationMemory in-memory faite (composant 11). Suites possibles, dans l'ordre
+naturel :
+- ports crypto **`Hasher`** (HmacSha256 défaut / Argon2 optionnel, pepper env) et
+  **`Cipher`** (AES-GCM via pyca `cryptography`, clé env), deps optionnelles ;
+- backend **`RedisConversationMemory`** qui compose serde + hasher + cipher (voir
+  layout et flux dans `design/conversation-memory.md`) ;
+- puis **Guardrails**, l'**orchestrateur de pipeline**, la config, le middleware.
+
+À trancher avec l'utilisateur.
 
 ## Commandes dev
 

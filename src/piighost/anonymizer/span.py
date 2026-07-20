@@ -34,7 +34,9 @@ class Anonymizer(Generic[PreservationT]):
         self.factory = factory
 
     def anonymize(
-        self, text: str, entities: list[Entity],
+        self,
+        text: str,
+        entities: list[Entity],
     ) -> Anonymization[PreservationT]:
         """Return the anonymized text and the token used for each entity."""
         cursor = 0
@@ -42,9 +44,7 @@ class Anonymizer(Generic[PreservationT]):
         tokens = self.factory.create(entities)
 
         edits = sorted(
-            (span, tokens[entity])
-            for entity in entities
-            for span in entity.spans
+            (span, tokens[entity]) for entity in entities for span in entity.spans
         )
 
         for span, token in edits:

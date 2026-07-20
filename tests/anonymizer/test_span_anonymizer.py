@@ -34,7 +34,9 @@ class TestAnonymize:
     def test_replaces_every_occurrence_of_one_entity(self) -> None:
         """All spans of an entity get the same token."""
         emma = _entity([(0, 4), (9, 13)], "Emma")
-        result = Anonymizer(RedactPlaceholderFactory()).anonymize("Emma and Emma", [emma])
+        result = Anonymizer(RedactPlaceholderFactory()).anonymize(
+            "Emma and Emma", [emma]
+        )
         assert result.text == "<<REDACT>> and <<REDACT>>"
 
     def test_replaces_several_entities(self) -> None:

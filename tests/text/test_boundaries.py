@@ -25,7 +25,10 @@ class TestFindAllWordBoundary:
 
     def test_finds_every_occurrence(self) -> None:
         """Every whole-word occurrence is returned, in order."""
-        assert find_all_word_boundary("Jean and Jean", "Jean") == [Span(0, 4), Span(9, 13)]
+        assert find_all_word_boundary("Jean and Jean", "Jean") == [
+            Span(0, 4),
+            Span(9, 13),
+        ]
 
     def test_is_case_insensitive_by_default(self) -> None:
         """By default the match ignores case."""

@@ -4,7 +4,9 @@ from piighost.entity_resolver import AnyEntityResolver, SeparateEntityResolver
 from piighost.models import Detection, Entity, Span
 
 
-def _detection(start: int, end: int, text: str = "Emma", label: str = "PERSON") -> Detection:
+def _detection(
+    start: int, end: int, text: str = "Emma", label: str = "PERSON"
+) -> Detection:
     """Build a detection covering [start, end) for the given text and label."""
     return Detection(span=Span(start, end), text=text, label=label, confidence=0.9)
 
@@ -18,7 +20,12 @@ class TestConformance:
 class TestResolve:
     def test_largest_keeps_the_shared_detection(self) -> None:
         """A-B-C and C-D share C: the larger A-B-C keeps it, so C-D becomes D."""
-        a, b, c, d = _detection(0, 1), _detection(2, 3), _detection(4, 5), _detection(6, 7)
+        a, b, c, d = (
+            _detection(0, 1),
+            _detection(2, 3),
+            _detection(4, 5),
+            _detection(6, 7),
+        )
         resolved = SeparateEntityResolver().resolve([Entity((a, b, c)), Entity((c, d))])
         assert {entity.detections for entity in resolved} == {(a, b, c), (d,)}
 

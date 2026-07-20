@@ -42,7 +42,9 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
     """
 
     def anonymize(
-        self, text: str, entities: list[Entity],
+        self,
+        text: str,
+        entities: list[Entity],
     ) -> Anonymization[PreservationT_co]:
         """Return the anonymized text and the token used for each entity.
 
