@@ -4,7 +4,9 @@ from piighost.entity_resolver import AnyEntityResolver, MergeEntityResolver
 from piighost.models import Detection, Entity, Span
 
 
-def _detection(start: int, end: int, text: str = "Emma", label: str = "PERSON") -> Detection:
+def _detection(
+    start: int, end: int, text: str = "Emma", label: str = "PERSON"
+) -> Detection:
     """Build a detection covering [start, end) for the given text and label."""
     return Detection(span=Span(start, end), text=text, label=label, confidence=0.9)
 
@@ -18,7 +20,12 @@ class TestConformance:
 class TestResolve:
     def test_merges_entities_that_share_a_detection(self) -> None:
         """A-B-C and C-D share C, so they merge into one entity."""
-        a, b, c, d = _detection(0, 1), _detection(2, 3), _detection(4, 5), _detection(6, 7)
+        a, b, c, d = (
+            _detection(0, 1),
+            _detection(2, 3),
+            _detection(4, 5),
+            _detection(6, 7),
+        )
         first = Entity((a, b, c))
         second = Entity((c, d))
         resolved = MergeEntityResolver().resolve([first, second])
@@ -35,7 +42,12 @@ class TestResolve:
 
     def test_merges_transitively(self) -> None:
         """A-B, B-C, and C-D chain through shared detections into one entity."""
-        a, b, c, d = _detection(0, 1), _detection(2, 3), _detection(4, 5), _detection(6, 7)
+        a, b, c, d = (
+            _detection(0, 1),
+            _detection(2, 3),
+            _detection(4, 5),
+            _detection(6, 7),
+        )
         resolved = MergeEntityResolver().resolve(
             [Entity((a, b)), Entity((b, c)), Entity((c, d))]
         )

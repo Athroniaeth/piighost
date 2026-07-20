@@ -25,7 +25,9 @@ class SeparateEntityResolver(BaseEntityResolver):
 
         for index, entity in enumerate(conflicting):
             for detection in entity.detections:
-                holders = [other for other in conflicting if detection in other.detections]
+                holders = [
+                    other for other in conflicting if detection in other.detections
+                ]
                 if min(holders, key=rank) is entity:
                     kept[index].append(detection)
 

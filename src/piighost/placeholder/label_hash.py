@@ -45,4 +45,6 @@ class LabelHashPlaceholderFactory(
     def _token(self, label: str, number: int) -> PreservesLabeledIdentityOpaque:
         """Render a label and its ordinal as the <<LABEL:hash>> token."""
         digest = hashlib.sha256(f"{label}:{number}".encode()).hexdigest()
-        return PreservesLabeledIdentityOpaque(f"<<{label}:{digest[: self.hash_length]}>>")
+        return PreservesLabeledIdentityOpaque(
+            f"<<{label}:{digest[: self.hash_length]}>>"
+        )
