@@ -42,7 +42,7 @@ class AnyConversationMemory(Protocol):
     the right to erasure.
     """
 
-    def remember(
+    async def remember(
         self,
         thread_id: str,
         message: str,
@@ -57,7 +57,7 @@ class AnyConversationMemory(Protocol):
         """
         ...
 
-    def get_detections(
+    async def get_detections(
         self,
         thread_id: str,
         message: str | None = None,
@@ -80,7 +80,7 @@ class AnyConversationMemory(Protocol):
         """
         ...
 
-    def forget(self, thread_id: str) -> Forgotten:
+    async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how much was dropped.
 
         Args:

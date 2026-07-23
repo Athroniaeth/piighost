@@ -19,7 +19,7 @@ class InMemoryConversationMemory:
         """Start with no threads remembered."""
         self._threads: defaultdict[str, dict[str, list[Detection]]] = defaultdict(dict)
 
-    def remember(
+    async def remember(
         self,
         thread_id: str,
         message: str,
@@ -28,7 +28,7 @@ class InMemoryConversationMemory:
         """Cache the detections found in a message, replacing any prior entry."""
         self._threads[thread_id][message] = list(detections)
 
-    def get_detections(
+    async def get_detections(
         self,
         thread_id: str,
         message: str | None = None,
@@ -44,7 +44,7 @@ class InMemoryConversationMemory:
 
         return list(thread[message])
 
-    def forget(self, thread_id: str) -> Forgotten:
+    async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""
         thread = self._threads.pop(thread_id, {})
         detections = sum(len(cached) for cached in thread.values())
