@@ -163,12 +163,25 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     root. Symétrique = même process anonymise/déanonymise. Tests : message
     d'install, round-trip, randomisation, rejet d'altération, longueur de clé.
 
+14. **conversation_memory/redis_backend.py** : `RedisConversationMemory`, backend
+    persistant multi-worker. Ctor `(client, hasher, cipher, *, namespace, ttl)` :
+    hasher + cipher **requis** (secure-by-construction). Layout : clé
+    `{ns}:{thread_id}:msg:{hash(message)}` -> `cipher.encrypt(json(detections))`,
+    plus un index liste `{ns}:{thread_id}:index` en ordre first-seen. thread_id
+    clair (énumération/forget), message haché, valeur chiffrée. Serde JSON inline
+    (`_dumps`/`_loads`, extractible si un port serde devient utile). **Dep
+    optionnelle** `piighost[redis]` (redis-py async), même pattern (garde
+    `find_spec`, export lazy `__getattr__`). Tests via fakeredis : round-trip,
+    union ordonnée, overwrite sans doublon, isolation, forget + compte, et deux
+    anti-régression at-rest (message absent des clés, PII absente du stockage).
+
 ## Prochaine étape
 
-Hasher + Cipher faits (composants 12-13). Suites :
-- backend **`RedisConversationMemory`** composant serde + hasher (clé) + cipher
-  (valeur), avec index ordonné par thread (voir `design/conversation-memory.md`) ;
-- puis **Guardrails**, l'**orchestrateur de pipeline**, la config, le middleware.
+Chaîne de persistance complète (in-memory + Redis, hasher, cipher). Suites :
+- **Guardrails** (re-vérif de la sortie, ignore les jetons émis, lève
+  `PIIRemainingError`) ;
+- l'**orchestrateur de pipeline** (template method, use cases `anonymize` /
+  `deanonymize` / `forget_thread`), la **config**, le **middleware**.
 
 À trancher avec l'utilisateur.
 

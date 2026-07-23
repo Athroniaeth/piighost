@@ -60,7 +60,7 @@ cache = [
     "aiocache>=0.12",
 ]
 redis = [
-    "aiocache[redis]>=0.12",
+    "redis>=5",
 ]
 middleware = [
     "langchain>=1.2",
@@ -128,6 +128,8 @@ dev = [
     "tomli>=2.0; python_version < '3.11'",
     "argon2-cffi>=23.1",
     "cryptography>=44",
+    "redis>=5",
+    "fakeredis>=2.20",
 ]
 faker = [
     "faker>=40.11.0",
