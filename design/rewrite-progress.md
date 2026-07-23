@@ -84,7 +84,9 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     `(thread_id, message) -> détections` servant à la fois le cache forward et
     l'union first-seen via un seul `get_detections(thread_id, message=None)` :
     sans message (ou None) = union ; avec message = ses détections (None = miss,
-    [] = vu sans PII). `remember` / `get_detections` / `forget`. Pas de template
+    [] = vu sans PII). Port **async** (`async def remember/get_detections/
+    forget`, blueprint étape 9 : cache = I/O externe) ; l'in-memory est async
+    trivial. `remember` / `get_detections` / `forget`. Pas de template
     `Base*` (backends = mécanismes entiers, exception pairwise règle 20).
     Conception complète et plan crypto (hash de clé + chiffrement de valeur,
     backend Redis) dans `design/conversation-memory.md`.
@@ -163,29 +165,12 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
 
 ## Prochaine étape
 
-Hasher + Cipher faits (composants 12-13). Prochaine brique : backend
-**`RedisConversationMemory`**. Décisions actées avec l'utilisateur :
+Hasher + Cipher faits (composants 12-13). Suites :
+- backend **`RedisConversationMemory`** composant serde + hasher (clé) + cipher
+  (valeur), avec index ordonné par thread (voir `design/conversation-memory.md`) ;
+- puis **Guardrails**, l'**orchestrateur de pipeline**, la config, le middleware.
 
-- **port `AnyConversationMemory` passe `async`** (option A, aligné blueprint
-  étape 9 : cache = I/O externe). `InMemoryConversationMemory` à convertir en
-  async trivial (les méthodes deviennent `async def`, corps inchangé). Adapter
-  les tests (asyncio_mode = auto, pas de décorateur).
-- **serde** Detection <-> bytes : **JSON stdlib** (lisible, zéro dep).
-- **client** : **redis-py async** (`redis.asyncio`), dep optionnelle
-  `piighost[redis]` (réutiliser le pattern find_spec + lazy `__getattr__`).
-- Compose serde + hasher (clé) + cipher (valeur) ; layout et flux dans
-  `design/conversation-memory.md` (clé `{ns}:{thread_id}:msg:{hash}`, index
-  ordonné par thread `{ns}:{thread_id}:index`, thread_id clair, message haché,
-  détections chiffrées).
-
-Ensuite : **Guardrails**, l'**orchestrateur de pipeline**, la config TOML, le
-middleware LangChain, le client HTTP, l'observation.
-
-### État env (rewrite en cours)
-
-`argon2-cffi` et `cryptography` installés dans le venv via `uv pip install` (pas
-de resync pour ne pas casser l'env local). `uv.lock` pas régénéré : faire
-`uv sync` pour verrouiller les extras `argon2` et `crypto`.
+À trancher avec l'utilisateur.
 
 ## Commandes dev
 
