@@ -20,7 +20,7 @@ import json
 from piighost.cipher.base import AnyCipher
 from piighost.conversation_memory.base import Forgotten
 from piighost.hasher.base import AnyHasher
-from piighost.models import Detection, Span
+from piighost.models import Detection
 
 if importlib.util.find_spec("redis") is None:
     raise ImportError(
@@ -35,17 +35,7 @@ _DEFAULT_NAMESPACE = "piighost"
 
 def _dumps(detections: list[Detection]) -> bytes:
     """Serialize detections to JSON bytes for encrypted storage."""
-    payload = [
-        {
-            "start": detection.span.start,
-            "end": detection.span.end,
-            "text": detection.text,
-            "label": detection.label,
-            "confidence": detection.confidence,
-        }
-        for detection in detections
-    ]
-    return json.dumps(payload).encode()
+    return json.dumps([detection.to_dict() for detection in detections]).encode()
 
 
 def _as_bytes(value: bytes | str) -> bytes:
@@ -55,15 +45,7 @@ def _as_bytes(value: bytes | str) -> bytes:
 
 def _loads(data: bytes) -> list[Detection]:
     """Rebuild detections from the JSON bytes written by _dumps."""
-    return [
-        Detection(
-            span=Span(item["start"], item["end"]),
-            text=item["text"],
-            label=item["label"],
-            confidence=item["confidence"],
-        )
-        for item in json.loads(data)
-    ]
+    return [Detection.from_dict(item) for item in json.loads(data)]
 
 
 class RedisConversationMemory:

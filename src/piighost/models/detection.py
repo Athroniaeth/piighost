@@ -1,7 +1,7 @@
 """Detection model: a labeled, scored span of text."""
 
 from dataclasses import dataclass
-from typing import Self
+from typing import Any, Self
 
 from piighost.exceptions import ConfidenceError
 from piighost.models.span import Span
@@ -39,3 +39,27 @@ class Detection:
     def overlaps(self, other: Self) -> bool:
         """Whether this detection's span overlaps the other's."""
         return self.span.overlaps(other.span)
+
+    def to_dict(self) -> dict[str, str | int | float]:
+        """Return the detection as a flat, JSON-ready dict.
+
+        The span is flattened into start and end, so the shape is one level that
+        a store or wire format can serialize without knowing the model.
+        """
+        return {
+            "start": self.span.start,
+            "end": self.span.end,
+            "text": self.text,
+            "label": self.label,
+            "confidence": self.confidence,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        """Rebuild a detection from the flat dict produced by to_dict."""
+        return cls(
+            span=Span(data["start"], data["end"]),
+            text=data["text"],
+            label=data["label"],
+            confidence=data["confidence"],
+        )

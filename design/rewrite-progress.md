@@ -37,7 +37,9 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
 `tests/regression/test_imports.py` liste tout le public dans `PUBLIC_API`.
 
 1. **models/** : `Span`, `Detection`, `Entity`, `Chunk` (frozen dataclasses,
-   spans demi-ouverts `[start, end)`, `order=True`).
+   spans demi-ouverts `[start, end)`, `order=True`). `Detection.to_dict()` /
+   `from_dict()` portent la forme sérialisable (span aplati en start/end),
+   source unique réutilisée par les backends et le futur client HTTP.
 2. **text/** : `RecursiveCharacterTextSplitter` (offsets préservés),
    `boundary_wrap` + `find_all_word_boundary` (renvoie des `Span`), trait d'union
    et apostrophe comptés comme internes au mot.
@@ -169,7 +171,8 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     `{ns}:{thread_id}:msg:{hash(message)}` -> `cipher.encrypt(json(detections))`,
     plus un index liste `{ns}:{thread_id}:index` en ordre first-seen. thread_id
     clair (énumération/forget), message haché, valeur chiffrée. Serde JSON inline
-    (`_dumps`/`_loads`, extractible si un port serde devient utile). **Dep
+    (`_dumps`/`_loads`) déléguant à `Detection.to_dict`/`from_dict` pour la forme ;
+    un port serde reste extractible si un 2e backend sérialisant arrive. **Dep
     optionnelle** `piighost[redis]` (redis-py async), même pattern (garde
     `find_spec`, export lazy `__getattr__`). Tests via fakeredis : round-trip,
     union ordonnée, overwrite sans doublon, isolation, forget + compte, et deux
