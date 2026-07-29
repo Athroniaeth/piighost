@@ -1,6 +1,7 @@
 """Tests for the Detection model."""
 
 import dataclasses
+import json
 
 import pytest
 
@@ -111,3 +112,37 @@ class TestOverlaps:
     def test_disjoint_detections_do_not_overlap(self) -> None:
         """Detections whose spans are disjoint do not overlap."""
         assert not _at(0, 3).overlaps(_at(5, 9))
+
+
+class TestSerialization:
+    def test_to_dict_flattens_the_span(self) -> None:
+        """to_dict yields a one-level dict with start and end, not a span."""
+        assert _detection().to_dict() == {
+            "start": 0,
+            "end": 4,
+            "text": "Emma",
+            "label": "PERSON",
+            "confidence": 0.9,
+        }
+
+    def test_to_dict_is_json_serializable(self) -> None:
+        """The dict holds only JSON-native types, so json.dumps accepts it."""
+        json.dumps(_detection().to_dict())
+
+    def test_from_dict_rebuilds_the_detection(self) -> None:
+        """from_dict restores the span and every field."""
+        data = {
+            "start": 5,
+            "end": 9,
+            "text": "Liam",
+            "label": "PERSON",
+            "confidence": 0.5,
+        }
+        assert Detection.from_dict(data) == Detection(
+            span=Span(5, 9), text="Liam", label="PERSON", confidence=0.5
+        )
+
+    def test_round_trips_through_a_dict(self) -> None:
+        """from_dict undoes to_dict exactly."""
+        detection = _detection()
+        assert Detection.from_dict(detection.to_dict()) == detection
