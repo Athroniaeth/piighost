@@ -15,11 +15,13 @@ from piighost.exceptions import (
     EmptyEntityError,
     EmptyPepperError,
     EntityError,
+    GuardError,
     HasherError,
     InvalidKeyLengthError,
     MixedLabelError,
     NegativeSpanStartError,
     PIIGhostError,
+    PIIRemainingError,
     SpanError,
     SpanOrderingError,
 )
@@ -41,6 +43,8 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     EmptyPepperError: HasherError,
     CipherError: PIIGhostError,
     InvalidKeyLengthError: CipherError,
+    GuardError: PIIGhostError,
+    PIIRemainingError: GuardError,
 }
 
 
