@@ -41,6 +41,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.anonymizer", "Anonymization"),
     ("piighost.anonymizer", "AnyAnonymizer"),
     ("piighost.anonymizer", "Anonymizer"),
+    ("piighost.guard", "AnyGuardRail"),
+    ("piighost.guard", "DetectorGuardRail"),
     ("piighost.conversation_memory", "AnyConversationMemory"),
     ("piighost.conversation_memory", "Forgotten"),
     ("piighost.conversation_memory", "InMemoryConversationMemory"),
@@ -67,6 +69,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "EmptyPepperError"),
     ("piighost.exceptions", "CipherError"),
     ("piighost.exceptions", "InvalidKeyLengthError"),
+    ("piighost.exceptions", "GuardError"),
+    ("piighost.exceptions", "PIIRemainingError"),
 ]
 
 
