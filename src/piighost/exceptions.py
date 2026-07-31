@@ -5,6 +5,11 @@ catch the whole family with a single except PIIGhostError. Specialized
 subclasses let a caller react to one specific failure.
 """
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from piighost.models import Detection
+
 
 class PIIGhostError(Exception):
     """Base class for every error raised by PIIGhost."""
@@ -83,3 +88,25 @@ class CipherError(PIIGhostError):
 
 class InvalidKeyLengthError(CipherError):
     """Raised when a cipher is built with a key of an unsupported length."""
+
+
+class GuardError(PIIGhostError):
+    """Base class for errors raised by a guard rail.
+
+    Catch this to handle any guard failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class PIIRemainingError(GuardError):
+    """Raised when a guard rail finds PII left in anonymized text.
+
+    Attributes:
+        detections: The residual detections the guard found, excluding the
+            anonymization placeholders it was told to ignore.
+    """
+
+    def __init__(self, detections: "list[Detection]") -> None:
+        self.detections = detections
+        labels = sorted({detection.label for detection in detections})
+        super().__init__(f"Anonymized text still contains PII: {labels}")
