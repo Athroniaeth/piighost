@@ -178,13 +178,28 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     union ordonnée, overwrite sans doublon, isolation, forget + compte, et deux
     anti-régression at-rest (message absent des clés, PII absente du stockage).
 
+15. **guard/** : port `AnyGuardRail`, `async check(text) -> GuardVerdict`. Le
+    guard **classe** (ne lève pas) : il ne regarde **que le texte anonymisé**
+    (les placeholders `<<...>>` sont synthétiques, un détecteur de vraie PII ne
+    les touche pas), et renvoie `GuardVerdict(flagged, score, detections)`. La
+    décision de rejeter (lever `PIIRemainingError`) revient à l'orchestrateur.
+    Pas de template (guards = mécanismes entiers, exception pairwise). Adaptateurs
+    `DetectorGuardRail` (re-détecte ; utile seulement avec un détecteur
+    **différent** du pipeline, sinon tautologie) et `ModerationGuardRail` (score
+    de catégorie `pii` d'un modèle de modération vs seuil). Le guard modération
+    dépend d'un **Protocol structurel** `AnyModerationClient`, pas de `mistralai`
+    (client injecté au composition root, extra `[mistral]`), donc testable avec
+    un faux client sans API.
+
 ## Prochaine étape
 
-Chaîne de persistance complète (in-memory + Redis, hasher, cipher). Suites :
-- **Guardrails** (re-vérif de la sortie, ignore les jetons émis, lève
-  `PIIRemainingError`) ;
-- l'**orchestrateur de pipeline** (template method, use cases `anonymize` /
-  `deanonymize` / `forget_thread`), la **config**, le **middleware**.
+Domaine + persistance/crypto + guardrails faits. Suite :
+- l'**orchestrateur de pipeline** (template method, service de dérivation
+  d'entités, use cases `anonymize` / `deanonymize` / `forget_thread`, mémoire
+  par thread) : c'est lui qui lève `PIIRemainingError` sur un verdict flaggé ;
+- puis la **config** et le **middleware**.
+- Reliquats guard différés : `LLMGuardRail` (prend le factory au ctor pour
+  générer des exemples de placeholders dans son prompt + la liste exacte).
 
 À trancher avec l'utilisateur.
 
