@@ -399,14 +399,18 @@ functions. It also avoids duplicating a field across `Args` and `Attributes`.
 ### 15. Bind a constructed value to a named local, do not nest it in a call
 
 When building or transforming a value to pass it on, give it a name on its own
-line rather than nesting the construction inside another call. And keep a
-multi-argument constructor call exploded, one argument per line with a trailing
-comma, so the construction stays visible and diffs cleanly.
+line rather than nesting the construction inside another call. When several
+transforms chain (serialize then encrypt, hash then build a key), name every
+step, do not nest one call inside the next. And keep a multi-argument
+constructor call exploded, one argument per line with a trailing comma, so the
+construction stays visible and diffs cleanly.
 
 Avoid:
 ```python
 detections.append(replace(detection, span=detection.span.shift(chunk.start)))
 d = Detection(span=Span(0, 4), label="PERSON", confidence=0.9, text="Emma")
+blob = self._cipher.encrypt(_dumps(detections))
+key = self._message_key(thread_id, self._hasher.hash(message))
 ```
 
 Prefer:
@@ -422,12 +426,40 @@ d = Detection(
     confidence=0.9,
     text="Emma",
 )
+
+json_detections = _dumps(detections)
+blob = self._cipher.encrypt(json_detections)
+
+digest_message = self._hasher.hash(message)
+key = self._message_key(thread_id, digest_message)
 ```
 
 Why: each construction gets a name and a line, so the data flow reads top to
-bottom instead of hiding inside an argument list. Applies to building data (an
-object, a dataclass, a transformed value), not to every trivial subexpression
-like `f(x + 1)`.
+bottom instead of hiding inside an argument list, and each intermediate shape
+(the JSON bytes, the ciphertext, the digest) is named where a nested call would
+hide it. Applies to building data (an object, a dataclass, a transformed value)
+and to chains of transforming calls, not to every trivial subexpression like
+`f(x + 1)`.
+
+Caveat: do not hoist an intermediate above the guard that makes it valid. A step
+that is only safe once a check has passed stays under that check, named on its
+own line after the guard, not before it.
+
+Avoid:
+```python
+blob = await client.get(key)
+detections = _loads(cipher.decrypt(blob))   # runs on a miss, blob is None
+return None if blob is None else detections
+```
+
+Prefer:
+```python
+blob = await client.get(key)
+if blob is None:
+    return None
+detections = _loads(cipher.decrypt(blob))
+return detections
+```
 
 ### 16. Declare a function's setup variables at the top
 
