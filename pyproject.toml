@@ -133,6 +133,7 @@ dev = [
     "cryptography>=44",
     "redis>=5",
     "fakeredis>=2.20",
+    "mistralai>=1.0",
 ]
 faker = [
     "faker>=40.11.0",

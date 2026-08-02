@@ -187,9 +187,11 @@ qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
     `DetectorGuardRail` (re-détecte ; utile seulement avec un détecteur
     **différent** du pipeline, sinon tautologie) et `ModerationGuardRail` (score
     de catégorie `pii` d'un modèle de modération vs seuil). Le guard modération
-    dépend d'un **Protocol structurel** `AnyModerationClient`, pas de `mistralai`
-    (client injecté au composition root, extra `[mistral]`), donc testable avec
-    un faux client sans API.
+    utilise le **client concret** `mistralai.client.Mistral` injecté (dep
+    optionnelle `[mistral]`, garde `find_spec` + export lazy `__getattr__`, comme
+    argon2/redis ; note v2.8 : le client vit dans `mistralai.client`, pas au
+    top-level). Testé avec un vrai `Mistral(api_key="test")` dont `moderate_async`
+    est monkeypatché, plus le test de message d'install.
 
 ## Prochaine étape
 
