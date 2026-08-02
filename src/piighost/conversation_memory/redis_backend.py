@@ -65,7 +65,6 @@ class RedisConversationMemory:
         client: Redis,
         hasher: AnyHasher,
         cipher: AnyCipher,
-        *,
         namespace: str = _DEFAULT_NAMESPACE,
         ttl: int | None = None,
     ) -> None:
@@ -80,24 +79,26 @@ class RedisConversationMemory:
         """Return the key of a thread's first-seen order index."""
         return f"{self.namespace}:{thread_id}:index"
 
-    def _message_key(self, thread_id: str, digest: str) -> str:
+    def _message_key(self, thread_id: str, digest_message: str) -> str:
         """Return the key of one message's stored detections."""
-        return f"{self.namespace}:{thread_id}:msg:{digest}"
+        return f"{self.namespace}:{thread_id}:msg:{digest_message}"
 
     async def remember(
         self, thread_id: str, message: str, detections: list[Detection],
     ) -> None:
         """Cache the detections found in a message, replacing any prior entry."""
-        digest = self._hasher.hash(message)
-        key = self._message_key(thread_id, digest)
-        blob = self._cipher.encrypt(_dumps(detections))
+        digest_message = self._hasher.hash(message)
+        key = self._message_key(thread_id, digest_message)
+        json_detections = _dumps(detections)
+
+        blob = self._cipher.encrypt(json_detections)
         is_new = not await self._client.exists(key)
 
         await self._client.set(key, blob, ex=self._ttl)
 
         if is_new:
             index_key = self._index_key(thread_id)
-            await self._client.rpush(index_key, digest)
+            await self._client.rpush(index_key, digest_message)
             if self._ttl is not None:
                 await self._client.expire(index_key, self._ttl)
 
@@ -106,16 +107,21 @@ class RedisConversationMemory:
     ) -> list[Detection] | None:
         """Return a thread's detections, for one message or the whole thread."""
         if message is not None:
-            blob = await self._client.get(
-                self._message_key(thread_id, self._hasher.hash(message))
-            )
-            return None if blob is None else _loads(self._cipher.decrypt(_as_bytes(blob)))
+            digest_message = self._hasher.hash(message)
+            key = self._message_key(thread_id, digest_message)
+            blob = await self._client.get(key)
+            if blob is None:
+                return None
+            json_detections = self._cipher.decrypt(_as_bytes(blob))
+            return _loads(json_detections)
 
         detections: list[Detection] = []
-        for digest in await self._digests(thread_id):
-            blob = await self._client.get(self._message_key(thread_id, digest))
+        for digest_message in await self._digests(thread_id):
+            key = self._message_key(thread_id, digest_message)
+            blob = await self._client.get(key)
             if blob is not None:
-                detections.extend(_loads(self._cipher.decrypt(_as_bytes(blob))))
+                json_detections = self._cipher.decrypt(_as_bytes(blob))
+                detections.extend(_loads(json_detections))
 
         return detections
 
