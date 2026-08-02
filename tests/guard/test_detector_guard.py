@@ -1,9 +1,6 @@
 """Tests for the DetectorGuardRail."""
 
-import pytest
-
 from piighost.detector import ExactMatchDetector
-from piighost.exceptions import PIIRemainingError
 from piighost.guard import AnyGuardRail, DetectorGuardRail
 
 
@@ -14,25 +11,27 @@ class TestConformance:
 
 
 class TestCheck:
-    async def test_clean_text_passes(self) -> None:
-        """Text the detector finds no PII in raises nothing."""
+    async def test_clean_text_is_not_flagged(self) -> None:
+        """Text the detector finds no PII in returns an unflagged verdict."""
         guard = DetectorGuardRail(ExactMatchDetector({"Emma": "PERSON"}))
-        await guard.check("nothing to see here")
+        verdict = await guard.check("nothing to see here")
+        assert verdict.flagged is False
+        assert verdict.detections == ()
 
-    async def test_residual_pii_raises(self) -> None:
-        """PII the detector still finds raises PIIRemainingError."""
+    async def test_residual_pii_is_flagged(self) -> None:
+        """PII the detector still finds flags the verdict."""
         guard = DetectorGuardRail(ExactMatchDetector({"Emma": "PERSON"}))
-        with pytest.raises(PIIRemainingError):
-            await guard.check("Emma slipped through")
+        verdict = await guard.check("Emma slipped through")
+        assert verdict.flagged is True
 
-    async def test_error_carries_the_residual_detections(self) -> None:
-        """The raised error exposes what leaked."""
+    async def test_verdict_carries_the_residual_detections(self) -> None:
+        """The verdict exposes what leaked."""
         guard = DetectorGuardRail(ExactMatchDetector({"Emma": "PERSON"}))
-        with pytest.raises(PIIRemainingError) as info:
-            await guard.check("Emma slipped through")
-        assert [detection.text for detection in info.value.detections] == ["Emma"]
+        verdict = await guard.check("Emma slipped through")
+        assert [detection.text for detection in verdict.detections] == ["Emma"]
 
     async def test_synthetic_placeholders_are_not_flagged(self) -> None:
         """A detector for real PII does not match the synthetic placeholder form."""
         guard = DetectorGuardRail(ExactMatchDetector({"Emma": "PERSON"}))
-        await guard.check("Hello <<PERSON:1>>")
+        verdict = await guard.check("Hello <<PERSON:1>>")
+        assert verdict.flagged is False
