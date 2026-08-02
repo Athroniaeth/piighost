@@ -1,9 +1,10 @@
-"""Guard rails: re-check anonymized output for residual PII.
+"""Guard rails: classify anonymized output for residual PII.
 
-base.py holds the AnyGuardRail port; concrete guards live in sibling modules.
+base.py holds the AnyGuardRail port and the GuardVerdict it returns; concrete
+guards live in sibling modules.
 """
 
-from piighost.guard.base import AnyGuardRail
+from piighost.guard.base import AnyGuardRail, GuardVerdict
 from piighost.guard.detector import DetectorGuardRail
 
-__all__ = ["AnyGuardRail", "DetectorGuardRail"]
+__all__ = ["AnyGuardRail", "DetectorGuardRail", "GuardVerdict"]
