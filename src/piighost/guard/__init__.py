@@ -6,5 +6,11 @@ guards live in sibling modules.
 
 from piighost.guard.base import AnyGuardRail, GuardVerdict
 from piighost.guard.detector import DetectorGuardRail
+from piighost.guard.moderation import ModerationGuardRail
 
-__all__ = ["AnyGuardRail", "DetectorGuardRail", "GuardVerdict"]
+__all__ = [
+    "AnyGuardRail",
+    "DetectorGuardRail",
+    "GuardVerdict",
+    "ModerationGuardRail",
+]

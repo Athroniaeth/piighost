@@ -101,8 +101,11 @@ argon2 = [
 crypto = [
     "cryptography>=44",
 ]
+mistral = [
+    "mistralai>=1.0",
+]
 all = [
-    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config,argon2,crypto]",
+    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,sqlalchemy,langfuse,opik,config,argon2,crypto,mistral]",
 ]
 
 [build-system]
