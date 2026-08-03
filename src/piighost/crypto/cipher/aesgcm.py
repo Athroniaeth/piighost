@@ -54,7 +54,8 @@ class AesGcmCipher:
     def encrypt(self, plaintext: bytes) -> bytes:
         """Return a fresh nonce followed by the authenticated ciphertext."""
         nonce = os.urandom(_NONCE_LENGTH)
-        return nonce + self._aead.encrypt(nonce, plaintext, None)
+        sealed = self._aead.encrypt(nonce, plaintext, None)
+        return nonce + sealed
 
     def decrypt(self, ciphertext: bytes) -> bytes:
         """Split the leading nonce off and decrypt the authenticated ciphertext."""
