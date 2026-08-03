@@ -6,12 +6,14 @@ lazily: reaching for it without the extra raises a helpful ImportError, while
 importing this package never pulls cryptography in.
 """
 
+from typing import Any
+
 from piighost.crypto.cipher.base import AnyCipher
 
 __all__ = ["AesGcmCipher", "AnyCipher"]
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """Import AesGcmCipher on demand so its optional dependency stays optional."""
     if name == "AesGcmCipher":
         from piighost.crypto.cipher.aesgcm import AesGcmCipher

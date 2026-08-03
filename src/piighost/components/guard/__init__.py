@@ -7,6 +7,8 @@ imported lazily: reaching for it without the extra raises a helpful ImportError,
 while importing this package never pulls mistralai in.
 """
 
+from typing import Any
+
 from piighost.components.guard.base import AnyGuardRail, GuardVerdict
 from piighost.components.guard.detector import DetectorGuardRail
 
@@ -18,7 +20,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """Import ModerationGuardRail on demand so its optional dependency stays optional."""
     if name == "ModerationGuardRail":
         from piighost.components.guard.moderation import ModerationGuardRail

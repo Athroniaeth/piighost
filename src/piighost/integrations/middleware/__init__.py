@@ -5,6 +5,8 @@ its module is imported lazily: reaching for a symbol without the extra raises a
 helpful ImportError, while importing this package never pulls langchain in.
 """
 
+from typing import Any
+
 from piighost.integrations.middleware.strategy import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
@@ -19,7 +21,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """Import the middleware on demand so its optional dependency stays optional."""
     if name == "PIIAnonymizationMiddleware":
         from piighost.integrations.middleware.langchain import (

@@ -642,9 +642,11 @@ if importlib.util.find_spec("mistralai") is None:
     )
 
 # package __init__.py
+from typing import Any
+
 __all__ = ["AnyGuardRail", "DetectorGuardRail", "GuardVerdict", "ModerationGuardRail"]
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """Import ModerationGuardRail on demand so its optional dependency stays optional."""
     if name == "ModerationGuardRail":
         from piighost.components.guard.moderation import ModerationGuardRail
