@@ -104,10 +104,6 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         self.entity_resolver = entity_resolver
         self.guard = guard
 
-    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
-        """Return the text with every known token replaced by its entity value."""
-        return self.anonymizer.deanonymize(text, tokens)
-
     def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
         """Resolve overlapping detections, or pass them through when disabled."""
         if self.overlap_resolver is None:
@@ -164,6 +160,10 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         result = self.anonymizer.anonymize(text, entities)
         await self._guard(result.text)
         return result
+
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
+        """Return the text with every known token replaced by its entity value."""
+        return self.anonymizer.deanonymize(text, tokens)
 
 
 def _pii_remaining(verdict: GuardVerdict) -> PIIRemainingError:
