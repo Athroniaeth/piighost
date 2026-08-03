@@ -3,7 +3,7 @@
 # dependencies = ["piighost[middleware]"]
 #
 # [tool.uv.sources]
-# piighost = { path = "..", editable = true }
+# piighost = { path = "../..", editable = true }
 # ///
 """Preserve entities the assistant introduces, under each strategy.
 
@@ -20,7 +20,7 @@ anonymized. AssistantEntityStrategy chooses the behavior:
 Here the assistant first names Napoleon, then the user asks about him. The
 example anonymizes that user turn under each strategy and prints what the model
 would receive. Run with:
-uv run examples/langchain_assistant_provenance.py
+uv run examples/strategies/assistant_entity.py
 """
 
 import asyncio
