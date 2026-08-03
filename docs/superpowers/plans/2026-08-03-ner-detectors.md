@@ -341,48 +341,22 @@ class BaseNERDetector(ABC):
             return await asyncio.to_thread(fn, *args, **kwargs)
 ```
 
-Create `src/piighost/components/detector/ner/__init__.py`:
+Create `src/piighost/components/detector/ner/__init__.py`. It exports only
+`BaseNERDetector` for now; each adapter task extends it with its own lazy branch,
+so the tree stays green (pyrefly cannot resolve an adapter module before it
+exists):
 
 ```python
 """NER detectors: model-backed adapters over a shared label-mapping base.
 
-BaseNERDetector holds the shared logic and imports nothing optional, so it is
-exported eagerly. Each concrete adapter needs its own optional extra, so the
-three are exposed lazily. Reaching for one imports its module then, and a
-missing extra raises a helpful ImportError only on access, never on importing
-this package.
+BaseNERDetector holds the shared logic and imports nothing optional. Concrete
+model-backed adapters, each behind its own optional extra, are added here as
+they land, exposed lazily so a missing extra fails only on access.
 """
-
-from typing import Any
 
 from piighost.components.detector.ner.base import BaseNERDetector
 
-__all__ = [
-    "BaseNERDetector",
-    "Gliner2Detector",
-    "SpacyDetector",
-    "TransformersDetector",
-]
-
-
-def __getattr__(name: str) -> Any:
-    """Import a NER adapter on demand so its optional extra stays optional."""
-    if name == "Gliner2Detector":
-        from piighost.components.detector.ner.gliner2 import Gliner2Detector
-
-        return Gliner2Detector
-    if name == "SpacyDetector":
-        from piighost.components.detector.ner.spacy import SpacyDetector
-
-        return SpacyDetector
-    if name == "TransformersDetector":
-        from piighost.components.detector.ner.transformers import (
-            TransformersDetector,
-        )
-
-        return TransformersDetector
-
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+__all__ = ["BaseNERDetector"]
 ```
 
 - [ ] **Step 4: Run it to verify it passes**
@@ -408,6 +382,7 @@ git commit -m "feat(detector): add the BaseNERDetector template method"
 
 **Files:**
 - Create: `src/piighost/components/detector/ner/gliner2.py`
+- Modify: `src/piighost/components/detector/ner/__init__.py`
 - Test: `tests/components/detector/ner/test_gliner2.py`
 
 - [ ] **Step 1: Write the tests**
@@ -557,6 +532,34 @@ class Gliner2Detector(BaseNERDetector):
         return detections
 ```
 
+Then rewrite `src/piighost/components/detector/ner/__init__.py` to expose the
+adapter lazily. The full file becomes:
+
+```python
+"""NER detectors: model-backed adapters over a shared label-mapping base.
+
+BaseNERDetector holds the shared logic and imports nothing optional. Concrete
+model-backed adapters, each behind its own optional extra, are added here as
+they land, exposed lazily so a missing extra fails only on access.
+"""
+
+from typing import Any
+
+from piighost.components.detector.ner.base import BaseNERDetector
+
+__all__ = ["BaseNERDetector", "Gliner2Detector"]
+
+
+def __getattr__(name: str) -> Any:
+    """Import a NER adapter on demand so its optional extra stays optional."""
+    if name == "Gliner2Detector":
+        from piighost.components.detector.ner.gliner2 import Gliner2Detector
+
+        return Gliner2Detector
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+```
+
 - [ ] **Step 4: Run tests and checks**
 
 Run: `find src tests -name __pycache__ -type d -exec rm -rf {} +; uv run --no-sync pytest tests/components/detector/ner/test_gliner2.py tests/regression/test_imports.py -q`
@@ -568,7 +571,7 @@ Expected: ruff clean, pyrefly 0 errors (the `gliner2` import is suppressed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/piighost/components/detector/ner/gliner2.py tests/components/detector/ner/test_gliner2.py
+git add src/piighost/components/detector/ner/gliner2.py src/piighost/components/detector/ner/__init__.py tests/components/detector/ner/test_gliner2.py
 git commit -m "feat(detector): add the GLiNER2 detector"
 ```
 
@@ -578,6 +581,7 @@ git commit -m "feat(detector): add the GLiNER2 detector"
 
 **Files:**
 - Create: `src/piighost/components/detector/ner/spacy.py`
+- Modify: `src/piighost/components/detector/ner/__init__.py`
 - Test: `tests/components/detector/ner/test_spacy.py`
 
 - [ ] **Step 1: Write the tests**
@@ -741,6 +745,38 @@ class SpacyDetector(BaseNERDetector):
         return detections
 ```
 
+Then rewrite `src/piighost/components/detector/ner/__init__.py` to add the spaCy
+adapter's lazy branch. The full file becomes:
+
+```python
+"""NER detectors: model-backed adapters over a shared label-mapping base.
+
+BaseNERDetector holds the shared logic and imports nothing optional. Concrete
+model-backed adapters, each behind its own optional extra, are added here as
+they land, exposed lazily so a missing extra fails only on access.
+"""
+
+from typing import Any
+
+from piighost.components.detector.ner.base import BaseNERDetector
+
+__all__ = ["BaseNERDetector", "Gliner2Detector", "SpacyDetector"]
+
+
+def __getattr__(name: str) -> Any:
+    """Import a NER adapter on demand so its optional extra stays optional."""
+    if name == "Gliner2Detector":
+        from piighost.components.detector.ner.gliner2 import Gliner2Detector
+
+        return Gliner2Detector
+    if name == "SpacyDetector":
+        from piighost.components.detector.ner.spacy import SpacyDetector
+
+        return SpacyDetector
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+```
+
 - [ ] **Step 4: Run tests and checks**
 
 Run: `find src tests -name __pycache__ -type d -exec rm -rf {} +; uv run --no-sync pytest tests/components/detector/ner/test_spacy.py tests/regression/test_imports.py -q`
@@ -752,7 +788,7 @@ Expected: ruff clean, pyrefly 0 errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/piighost/components/detector/ner/spacy.py tests/components/detector/ner/test_spacy.py
+git add src/piighost/components/detector/ner/spacy.py src/piighost/components/detector/ner/__init__.py tests/components/detector/ner/test_spacy.py
 git commit -m "feat(detector): add the spaCy detector"
 ```
 
@@ -762,6 +798,7 @@ git commit -m "feat(detector): add the spaCy detector"
 
 **Files:**
 - Create: `src/piighost/components/detector/ner/transformers.py`
+- Modify: `src/piighost/components/detector/ner/__init__.py`
 - Test: `tests/components/detector/ner/test_transformers.py`
 
 - [ ] **Step 1: Write the tests**
@@ -925,6 +962,49 @@ class TransformersDetector(BaseNERDetector):
         return detections
 ```
 
+Then rewrite `src/piighost/components/detector/ner/__init__.py` to add the
+transformers adapter's lazy branch. The full, final file becomes:
+
+```python
+"""NER detectors: model-backed adapters over a shared label-mapping base.
+
+BaseNERDetector holds the shared logic and imports nothing optional. Concrete
+model-backed adapters, each behind its own optional extra, are added here as
+they land, exposed lazily so a missing extra fails only on access.
+"""
+
+from typing import Any
+
+from piighost.components.detector.ner.base import BaseNERDetector
+
+__all__ = [
+    "BaseNERDetector",
+    "Gliner2Detector",
+    "SpacyDetector",
+    "TransformersDetector",
+]
+
+
+def __getattr__(name: str) -> Any:
+    """Import a NER adapter on demand so its optional extra stays optional."""
+    if name == "Gliner2Detector":
+        from piighost.components.detector.ner.gliner2 import Gliner2Detector
+
+        return Gliner2Detector
+    if name == "SpacyDetector":
+        from piighost.components.detector.ner.spacy import SpacyDetector
+
+        return SpacyDetector
+    if name == "TransformersDetector":
+        from piighost.components.detector.ner.transformers import (
+            TransformersDetector,
+        )
+
+        return TransformersDetector
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+```
+
 - [ ] **Step 4: Run tests and checks**
 
 Run: `find src tests -name __pycache__ -type d -exec rm -rf {} +; uv run --no-sync pytest tests/components/detector/ner/test_transformers.py tests/regression/test_imports.py -q`
@@ -936,7 +1016,7 @@ Expected: ruff clean, pyrefly 0 errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/piighost/components/detector/ner/transformers.py tests/components/detector/ner/test_transformers.py
+git add src/piighost/components/detector/ner/transformers.py src/piighost/components/detector/ner/__init__.py tests/components/detector/ner/test_transformers.py
 git commit -m "feat(detector): add the transformers detector"
 ```
 
