@@ -3,6 +3,7 @@
 import hashlib
 
 from piighost.components.placeholder.base import BaseCounterPlaceholderFactory
+from piighost.components.placeholder.streaming import DEFAULT_PREFIX, DEFAULT_SUFFIX
 from piighost.components.placeholder.tags import PreservesLabeledIdentityOpaque
 
 
@@ -22,7 +23,10 @@ class LabelHashPlaceholderFactory(BaseCounterPlaceholderFactory):
     """
 
     def __init__(
-        self, hash_length: int = 8, prefix: str = "<<", suffix: str = ">>"
+        self,
+        hash_length: int = 8,
+        prefix: str = DEFAULT_PREFIX,
+        suffix: str = DEFAULT_SUFFIX,
     ) -> None:
         """Store the digest length to keep and the token delimiters."""
         super().__init__(prefix, suffix)

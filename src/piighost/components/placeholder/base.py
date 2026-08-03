@@ -10,6 +10,8 @@ from typing_extensions import TypeVar
 
 from piighost.models import Entity
 from piighost.components.placeholder.streaming import (
+    DEFAULT_PREFIX,
+    DEFAULT_SUFFIX,
     PlaceholderStreamDecoder,
     compile_token_pattern,
 )
@@ -78,7 +80,9 @@ class BaseDelimitedPlaceholderFactory:
         suffix: The closing delimiter wrapped around every token.
     """
 
-    def __init__(self, prefix: str = "<<", suffix: str = ">>") -> None:
+    def __init__(
+        self, prefix: str = DEFAULT_PREFIX, suffix: str = DEFAULT_SUFFIX
+    ) -> None:
         """Store the opening and closing delimiters wrapped around every token."""
         self.prefix = prefix
         self.suffix = suffix

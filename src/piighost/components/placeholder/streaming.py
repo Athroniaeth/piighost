@@ -10,6 +10,12 @@ deanonymization; nothing wires it in yet.
 import re
 from collections.abc import Callable
 
+DEFAULT_PREFIX = "<<"
+"""Default opening delimiter wrapped around a placeholder token."""
+
+DEFAULT_SUFFIX = ">>"
+"""Default closing delimiter wrapped around a placeholder token."""
+
 
 def compile_token_pattern(prefix: str, suffix: str) -> re.Pattern[str]:
     """Compile the regex matching delimited tokens, capturing the inner form.
@@ -45,8 +51,8 @@ class PlaceholderStreamDecoder:
     def __init__(
         self,
         replace: Callable[[str], str],
-        prefix: str = "<<",
-        suffix: str = ">>",
+        prefix: str = DEFAULT_PREFIX,
+        suffix: str = DEFAULT_SUFFIX,
     ) -> None:
         """Store the delimiters and the per-token replacement callback."""
         self.prefix = prefix
