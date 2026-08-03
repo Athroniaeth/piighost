@@ -126,7 +126,9 @@ class TestEncapsulation:
         memory = InMemoryConversationMemory()
         emma = _detection("Emma")
         await memory.remember("t1", "m1", [emma])
-        (await memory.get_detections("t1")).append(_detection("Liam"))
+        union = await memory.get_detections("t1")
+        assert union is not None
+        union.append(_detection("Liam"))
         assert await memory.get_detections("t1") == [emma]
 
     async def test_remember_copies_its_input(self) -> None:

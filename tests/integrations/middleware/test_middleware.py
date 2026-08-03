@@ -33,6 +33,12 @@ def _pipeline() -> ThreadAnonymizationPipeline:
     )
 
 
+def _text(message: Any) -> str:
+    """Return a message's text content as a plain string."""
+    content = message.content
+    return content if isinstance(content, str) else str(content)
+
+
 class TestOptionalDependencyGuard:
     def test_missing_langchain_explains_how_to_install(
         self, monkeypatch: pytest.MonkeyPatch
@@ -203,7 +209,7 @@ class TestInventedPlaceholders:
         await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
         reply = {"messages": [AIMessage(text)]}
         await middleware.aafter_model(reply, None)
-        return reply["messages"][0].content
+        return _text(reply["messages"][0])
 
     @pytest.mark.parametrize(
         ("strategy", "expected"),
@@ -286,7 +292,7 @@ class TestAssistantProvenance:
         await middleware.abefore_model({"messages": [AIMessage("It is Emma")]}, None)
         state = {"messages": [HumanMessage("what about Emma")]}
         await middleware.abefore_model(state, None)
-        return state["messages"][0].content
+        return _text(state["messages"][0])
 
     async def test_preserve_keeps_assistant_value_clear(
         self, monkeypatch: pytest.MonkeyPatch

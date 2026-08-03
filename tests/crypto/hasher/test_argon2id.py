@@ -3,6 +3,7 @@
 import importlib
 import importlib.util
 import sys
+from typing import Any
 
 import pytest
 
@@ -16,7 +17,7 @@ class TestOptionalDependencyGuard:
         """Importing without argon2-cffi points the user at piighost[argon2]."""
         real_find_spec = importlib.util.find_spec
 
-        def find_spec(name: str, *args: object, **kwargs: object) -> object:
+        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
             if name == "argon2":
                 return None
             return real_find_spec(name, *args, **kwargs)
