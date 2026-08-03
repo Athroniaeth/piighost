@@ -7,13 +7,15 @@ imported lazily: reaching for it without the extra raises a helpful ImportError,
 while importing this package never pulls argon2-cffi in.
 """
 
+from typing import Any
+
 from piighost.crypto.hasher.base import AnyHasher, BaseHasher
 from piighost.crypto.hasher.sha256 import Sha256Hasher
 
 __all__ = ["AnyHasher", "Argon2Hasher", "BaseHasher", "Sha256Hasher"]
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """Import Argon2Hasher on demand so its optional dependency stays optional."""
     if name == "Argon2Hasher":
         from piighost.crypto.hasher.argon2id import Argon2Hasher
