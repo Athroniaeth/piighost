@@ -93,6 +93,16 @@ This per-message scope matches the "correct your own message" model.
 runs on the re-rendered output. A value the human added but placed on a span that
 leaves clear PII elsewhere could be re-flagged; that is the guard doing its job.
 
+Known limitation: when the human drops a false positive, that value is not in the
+`preserved` set the guard exempts (that set holds only detected-but-left-in-clear
+entities, such as assistant-provenance ones). So a configured guard whose
+detector re-finds the dropped value raises `PIIRemainingError`, overriding the
+human's authoritative drop. This is pre-existing `anonymize` behavior, not
+introduced here, and it bites only when a guard is configured and its detector
+flags the dropped value. Making the guard defer to a human drop would mean
+feeding the dropped values into the guard's `expected` set, a follow-up that
+touches `anonymize`/`_guard` rather than this thin method.
+
 ## Edge cases
 
 - An empty corrected list means the message holds no PII: it renders unchanged,
