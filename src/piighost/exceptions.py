@@ -99,14 +99,15 @@ class GuardError(PIIGhostError):
 
 
 class PIIRemainingError(GuardError):
-    """Raised when a guard rail finds PII left in anonymized text.
+    """Raised by the pipeline when a guard flags PII left in anonymized text.
 
     Attributes:
-        detections: The residual detections the guard found, excluding the
-            anonymization placeholders it was told to ignore.
+        detections: The residual detections behind the flag, empty when the
+            guard is score-based and localizes nothing.
     """
 
-    def __init__(self, detections: "list[Detection]") -> None:
-        self.detections = detections
-        labels = sorted({detection.label for detection in detections})
-        super().__init__(f"Anonymized text still contains PII: {labels}")
+    def __init__(
+        self, message: str, detections: "list[Detection] | None" = None
+    ) -> None:
+        self.detections = detections or []
+        super().__init__(message)

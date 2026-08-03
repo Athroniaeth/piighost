@@ -1,0 +1,133 @@
+"""Anonymization pipeline: chain the stages from detection to anonymized text."""
+
+from collections.abc import Mapping
+from typing import Generic
+
+from typing_extensions import TypeVar
+
+from piighost.anonymizer.base import Anonymization, AnyAnonymizer
+from piighost.detector.base import AnyDetector
+from piighost.entity_resolver.base import AnyEntityResolver
+from piighost.exceptions import PIIRemainingError
+from piighost.expander.base import AnyDetectionExpander
+from piighost.guard.base import AnyGuardRail, GuardVerdict
+from piighost.linker.base import AnyEntityLinker
+from piighost.models import Detection, Entity
+from piighost.overlap_resolver.base import AnyOverlapResolver
+from piighost.placeholder.tags import PlaceholderPreservation
+
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
+
+
+class AnonymizationPipeline(Generic[PreservationT]):
+    """Chain the anonymization stages, from a text to its anonymized form.
+
+    The stages run in order: detect the PII, resolve overlapping detections,
+    expand missed occurrences, link detections into entities, resolve entity
+    conflicts, replace the entities with placeholder tokens, and re-check the
+    output with a guard. Only the detector, the linker, and the anonymizer are
+    required; the resolvers, the expander, and the guard are optional and skipped
+    when not given.
+
+    The single path lives in anonymize, which calls one method per stage; a
+    subclass overrides a stage, such as _link for cross-message linking, without
+    rewriting the sequence. The pipeline is generic on what the anonymizer's
+    tokens preserve, so the guarantee flows to its result and to a consumer that
+    requires identity.
+
+    Attributes:
+        detector: The detector run on the text.
+        linker: The linker that groups detections into entities.
+        anonymizer: The anonymizer that replaces entities with tokens.
+        overlap_resolver: The resolver for overlapping detections, or None.
+        expander: The expander for missed occurrences, or None.
+        entity_resolver: The resolver for entity conflicts, or None.
+        guard: The guard re-checking the output, or None.
+    """
+
+    def __init__(
+        self,
+        detector: AnyDetector,
+        linker: AnyEntityLinker,
+        anonymizer: AnyAnonymizer[PreservationT],
+        overlap_resolver: AnyOverlapResolver | None = None,
+        expander: AnyDetectionExpander | None = None,
+        entity_resolver: AnyEntityResolver | None = None,
+        guard: AnyGuardRail | None = None,
+    ) -> None:
+        """Store the stage components, the optional ones defaulting to disabled."""
+        self.detector = detector
+        self.linker = linker
+        self.anonymizer = anonymizer
+        self.overlap_resolver = overlap_resolver
+        self.expander = expander
+        self.entity_resolver = entity_resolver
+        self.guard = guard
+
+    async def anonymize(self, text: str) -> Anonymization[PreservationT]:
+        """Return the anonymized text and token mapping for the given text.
+
+        Raises:
+            PIIRemainingError: If a guard flags PII left in the output.
+        """
+        detections = await self.detector.detect(text)
+        detections = self._resolve_overlaps(detections)
+        detections = self._expand(text, detections)
+        entities = self._link(detections)
+        entities = self._resolve_entities(entities)
+
+        result = self.anonymizer.anonymize(text, entities)
+        await self._guard(result.text)
+        return result
+
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
+        """Return the text with every known token replaced by its entity value."""
+        return self.anonymizer.deanonymize(text, tokens)
+
+    def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
+        """Resolve overlapping detections, or pass them through when disabled."""
+        if self.overlap_resolver is None:
+            return detections
+        return self.overlap_resolver.resolve(detections)
+
+    def _expand(self, text: str, detections: list[Detection]) -> list[Detection]:
+        """Add missed occurrences, or pass the detections through when disabled."""
+        if self.expander is None:
+            return detections
+        return self.expander.expand(text, detections)
+
+    def _link(self, detections: list[Detection]) -> list[Entity]:
+        """Group detections into entities. A subclass may widen this to a thread."""
+        return self.linker.link(detections)
+
+    def _resolve_entities(self, entities: list[Entity]) -> list[Entity]:
+        """Reconcile entity conflicts, or pass them through when disabled."""
+        if self.entity_resolver is None:
+            return entities
+        return self.entity_resolver.resolve(entities)
+
+    async def _guard(self, text: str) -> None:
+        """Raise PIIRemainingError when the guard flags the anonymized text."""
+        if self.guard is None:
+            return
+
+        verdict = await self.guard.check(text)
+        if verdict.flagged:
+            raise _pii_remaining(verdict)
+
+
+def _pii_remaining(verdict: GuardVerdict) -> PIIRemainingError:
+    """Build the error for a flagged verdict, naming its labels or its score."""
+    detections = list(verdict.detections)
+
+    if detections:
+        labels = sorted({detection.label for detection in detections})
+        return PIIRemainingError(
+            f"Anonymized text still contains PII: {labels}", detections
+        )
+
+    return PIIRemainingError(f"A guard flagged residual PII (score {verdict.score})")
