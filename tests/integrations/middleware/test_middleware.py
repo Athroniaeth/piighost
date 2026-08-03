@@ -161,6 +161,27 @@ class TestToolCalls:
         assert args["name"] == arg_seen
         assert content == response_out
 
+    async def test_before_model_never_rewrites_a_tool_message(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The before-model pass leaves a tool message raw, even under INPUT."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=ToolCallStrategy.INPUT
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        state = {"messages": [ToolMessage(content="Contact Emma", tool_call_id="c1")]}
+        update = await middleware.abefore_model(state, None)
+        assert update is None
+        assert state["messages"][0].content == "Contact Emma"
+
 
 class TestInventedPlaceholders:
     def _middleware(
