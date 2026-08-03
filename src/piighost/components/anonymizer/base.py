@@ -1,5 +1,6 @@
 """Anonymizer abstractions: the port and its span-replacement result."""
 
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Generic, Protocol, runtime_checkable
@@ -7,6 +8,7 @@ from typing import Generic, Protocol, runtime_checkable
 from typing_extensions import TypeVar
 
 from piighost.models import Entity
+from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.components.placeholder.tags import PlaceholderPreservation
 
 PreservationT_co = TypeVar(
@@ -15,6 +17,18 @@ PreservationT_co = TypeVar(
     default=PlaceholderPreservation,
     covariant=True,
 )
+
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
+"""Invariant tag for the template and its adapters.
+
+The AnyAnonymizer port is covariant, since it only returns tokens; the template
+below both takes a factory of this tag and returns tokens of it, so it needs the
+invariant variable rather than the covariant PreservationT_co.
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,4 +121,55 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
         Returns:
             The text with each known token replaced by its entity's value.
         """
+        ...
+
+
+class BaseAnonymizer(ABC, Generic[PreservationT]):
+    """Assign tokens through a factory and compose them into anonymized text.
+
+    The skeleton lives here: ask the placeholder factory for one token per
+    entity, render the text against those tokens, and pair the two into an
+    Anonymization; deanonymize reverses the mapping. A subclass defines render,
+    the only step that varies, the rule that rewrites the text given the
+    entities and their tokens.
+
+    Attributes:
+        factory: The placeholder factory that names each entity.
+    """
+
+    def __init__(self, ph_factory: AnyPlaceholderFactory[PreservationT]) -> None:
+        """Store the placeholder factory that assigns a token to each entity."""
+        self.factory = ph_factory
+
+    def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT]:
+        """Return the token the factory assigns to each entity."""
+        return self.factory.create(entities)
+
+    def anonymize(
+        self,
+        text: str,
+        entities: list[Entity],
+    ) -> Anonymization[PreservationT]:
+        """Return the anonymized text and the token used for each entity."""
+        tokens = self.create(entities)
+        rendered = self.render(text, entities, tokens)
+        return Anonymization(text=rendered, tokens=tokens)
+
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
+        """Return the text with every known token replaced by its entity value."""
+        values = {token: entity.text for entity, token in tokens.items()}
+
+        for token, value in values.items():
+            text = text.replace(token, value)
+
+        return text
+
+    @abstractmethod
+    def render(
+        self,
+        text: str,
+        entities: list[Entity],
+        tokens: Mapping[Entity, str],
+    ) -> str:
+        """Return text with each entity's spans replaced by its given token."""
         ...

@@ -1,12 +1,14 @@
 """Word-boundary detection expander: find missed whole-word occurrences."""
 
 import re
+from collections.abc import Iterable
 
-from piighost.models import Detection
+from piighost.components.expander.base import BaseDetectionExpander
+from piighost.models import Detection, Span
 from piighost.text import find_all_word_boundary
 
 
-class WordBoundaryExpander:
+class WordBoundaryExpander(BaseDetectionExpander):
     """Find occurrences a detector missed by whole-word text matching.
 
     For every detected value it searches the text for its whole-word
@@ -24,22 +26,7 @@ class WordBoundaryExpander:
         """Store whether matching respects case."""
         self.case_sensitive = case_sensitive
 
-    def expand(self, text: str, detections: list[Detection]) -> list[Detection]:
-        """Return the detections plus any missed whole-word occurrences."""
-        expanded = list(detections)
-        seen = {detection.span for detection in detections}
+    def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
+        """Return the whole-word spans of the detection's value in the text."""
         flags = re.NOFLAG if self.case_sensitive else re.IGNORECASE
-
-        for detection in detections:
-            for span in find_all_word_boundary(text, detection.text, flags):
-                if span in seen:
-                    continue
-                found = Detection(
-                    span=span,
-                    text=span.extract(text),
-                    label=detection.label,
-                    confidence=detection.confidence,
-                )
-                expanded.append(found)
-                seen.add(span)
-        return expanded
+        return find_all_word_boundary(text, detection.text, flags)
