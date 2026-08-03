@@ -17,6 +17,7 @@ from piighost.components.placeholder import (
     RedactPlaceholderFactory,
 )
 from piighost.exceptions import PIIRemainingError
+from piighost.models import Detection, Span
 from piighost.pipeline import AnonymizationPipeline
 
 
@@ -116,3 +117,47 @@ class TestRedaction:
         for span in exporter.get_finished_spans():
             for value in (span.attributes or {}).values():
                 assert "Emma" not in str(value)
+
+    async def test_redactor_survives_overlapping_detections(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        """Overlapping raw detections leak no clear fragment into any payload."""
+
+        class _OverlappingDetector:
+            """Return two overlapping detections over the secret value."""
+
+            async def detect(self, text: str) -> list[Detection]:
+                return [
+                    Detection(
+                        span=Span(0, 20), text=text[0:20], label="ID", confidence=0.9
+                    ),
+                    Detection(
+                        span=Span(10, 14), text=text[10:14], label="ID", confidence=0.8
+                    ),
+                ]
+
+        pipeline = AnonymizationPipeline(
+            _OverlappingDetector(),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            overlap_resolver=ConfidenceOverlapResolver(),
+            observation_redactor=RedactPlaceholderFactory(),
+        )
+        await pipeline.anonymize("0123456789ABCDEFGHIJ and more")
+        for span in exporter.get_finished_spans():
+            for value in (span.attributes or {}).values():
+                assert "ABCDEF" not in str(value)
+                assert "EFGHIJ" not in str(value)
+
+    async def test_redactor_replaces_values_with_its_tokens(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        """The detect payload carries the redactor's token, not an empty field."""
+        pipeline = _pipeline(observation_redactor=RedactPlaceholderFactory())
+        await pipeline.anonymize("Hi Emma!")
+        spans = {span.name: span for span in exporter.get_finished_spans()}
+        attributes = spans["piighost.detect"].attributes
+        assert attributes is not None
+        output = str(attributes["langfuse.observation.output"])
+        assert "Emma" not in output
+        assert "REDACT" in output
