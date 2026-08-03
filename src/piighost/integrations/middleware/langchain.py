@@ -16,8 +16,10 @@ from typing_extensions import TypeVar
 
 from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesIdentity
+from piighost.conversation_memory import MessageRole
 from piighost.exceptions import InventedPlaceholderError
 from piighost.integrations.middleware.strategy import (
+    AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
@@ -32,6 +34,7 @@ if importlib.util.find_spec("langchain") is None:
 from langchain.agents.middleware import AgentMiddleware, AgentState  # noqa: E402
 from langchain_core.messages import (  # noqa: E402
     AIMessage,
+    BaseMessage,
     HumanMessage,
     ToolMessage,
 )
@@ -102,6 +105,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
         require_thread_id: bool = True,
         invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
+        assistant_strategy: AssistantEntityStrategy = AssistantEntityStrategy.PRESERVE,
     ) -> None:
         """Store the pipeline, the strategies, and the thread-id policy.
 
@@ -113,12 +117,18 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         invented_strategy defaults to RAISE so a token the pipeline never issued,
         surfacing in a deanonymized model reply or tool argument, is refused
         rather than passed on. Pass KEEP or DROP to tolerate it instead.
+
+        assistant_strategy defaults to PRESERVE so a value the assistant
+        introduced is left in clear, keeping the model's world knowledge of it.
+        Pass ANONYMIZE to tokenize it anyway, or IGNORE to skip analyzing
+        assistant messages entirely and save the detector.
         """
         super().__init__()
         self._pipeline = pipeline
         self.tool_strategy = tool_strategy
         self._require_thread_id = require_thread_id
         self._invented_strategy = invented_strategy
+        self.assistant_strategy = assistant_strategy
 
     async def abefore_model(
         self,
@@ -129,16 +139,22 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         thread_id = _thread_id(self._require_thread_id)
         allowed: tuple[type, ...] = (HumanMessage, AIMessage)
 
+        if self.assistant_strategy is AssistantEntityStrategy.IGNORE:
+            # IGNORE skips assistant analysis entirely, so its messages are not
+            # sent through anonymization at all, saving the detector.
+            allowed = (HumanMessage,)
+
         if self.tool_strategy is ToolCallStrategy.INPUT:
             # INPUT left the tool response raw, so anonymize it here before the
             # model sees it, unlike OUTPUT/FULL which already anonymized it.
-            allowed = (HumanMessage, AIMessage, ToolMessage)
+            allowed = (*allowed, ToolMessage)
 
-        return await self._rewrite(
-            state,
-            allowed,
-            lambda text: self._anonymize(text, thread_id),
-        )
+        async def anonymize(message: BaseMessage, content: str) -> str:
+            """Anonymize one message under the role its type contributes."""
+            role = self._message_role(message)
+            return await self._anonymize(content, thread_id, role)
+
+        return await self._rewrite(state, allowed, anonymize)
 
     async def aafter_model(
         self,
@@ -148,11 +164,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         """Deanonymize the user and model messages for display."""
         thread_id = _thread_id(self._require_thread_id)
 
-        return await self._rewrite(
-            state,
-            (HumanMessage, AIMessage),
-            lambda text: self._deanonymize(text, thread_id),
-        )
+        async def restore(message: BaseMessage, content: str) -> str:
+            """Deanonymize one message's content for display."""
+            return await self._deanonymize(content, thread_id)
+
+        return await self._rewrite(state, (HumanMessage, AIMessage), restore)
 
     async def awrap_tool_call(
         self,
@@ -186,7 +202,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         self,
         state: AgentState,
         allowed: tuple[type, ...],
-        transform: Callable[[str], Awaitable[str]],
+        transform: Callable[[BaseMessage, str], Awaitable[str]],
     ) -> dict[str, Any] | None:
         """Apply transform to each allowed message's text, in place."""
         changed = False
@@ -197,16 +213,30 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
             if not isinstance(message, allowed) or not isinstance(content, str):
                 continue
 
-            rewritten = await transform(content)
+            rewritten = await transform(message, content)
             if rewritten != content:
                 message.content = rewritten
                 changed = True
 
         return {"messages": messages} if changed else None
 
-    async def _anonymize(self, text: str, thread_id: str) -> str:
+    def _message_role(self, message: BaseMessage) -> MessageRole:
+        """Return the provenance role a message contributes.
+
+        An AIMessage is ASSISTANT under PRESERVE, but USER under ANONYMIZE so its
+        values are anonymized like user PII. Everything else counts as USER.
+        """
+        if not isinstance(message, AIMessage):
+            return MessageRole.USER
+        if self.assistant_strategy is AssistantEntityStrategy.ANONYMIZE:
+            return MessageRole.USER
+        return MessageRole.ASSISTANT
+
+    async def _anonymize(
+        self, text: str, thread_id: str, role: MessageRole = MessageRole.USER
+    ) -> str:
         """Anonymize a text within the thread and return the anonymized string."""
-        result = await self._pipeline.anonymize(text, thread_id)
+        result = await self._pipeline.anonymize(text, thread_id, role)
         return result.text
 
     async def _deanonymize(self, text: str, thread_id: str) -> str:
