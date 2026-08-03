@@ -7,6 +7,8 @@ so it is imported lazily: reaching for it without the extra raises a helpful
 ImportError, while importing this package never pulls redis in.
 """
 
+from typing import Any
+
 from piighost.conversation_memory.base import (
     AnyConversationMemory,
     Forgotten,
@@ -23,7 +25,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """Import RedisConversationMemory on demand to keep redis optional."""
     if name == "RedisConversationMemory":
         from piighost.conversation_memory.redis_backend import RedisConversationMemory
