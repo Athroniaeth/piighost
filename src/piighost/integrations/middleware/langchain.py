@@ -10,12 +10,12 @@ the extra to install.
 import importlib.util
 import logging
 from collections.abc import Awaitable, Callable
-from enum import Enum
 from typing import Any, Generic
 
 from typing_extensions import TypeVar
 
 from piighost.components.placeholder.tags import PreservesIdentity
+from piighost.integrations.middleware.strategy import ToolCallStrategy
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 if importlib.util.find_spec("langchain") is None:
@@ -41,27 +41,6 @@ _DEFAULT_THREAD = "default"
 _missing_thread_id_warned = False
 
 IdentityT = TypeVar("IdentityT", bound=PreservesIdentity, default=PreservesIdentity)
-
-
-class ToolCallStrategy(Enum):
-    """How the middleware handles the two directions of a tool call.
-
-    The two directions are independent. INPUT deanonymizes the tool arguments so
-    the tool receives real data; OUTPUT anonymizes a string tool response so any
-    PII it returns is protected; FULL does both; PASSTHROUGH does neither, so the
-    tool sees the placeholder tokens and its response is left untouched.
-
-    - INPUT: deanonymize the arguments, leave the response for the next model
-      pass to anonymize.
-    - OUTPUT: anonymize the response, leave the arguments tokenized.
-    - FULL: INPUT and OUTPUT together.
-    - PASSTHROUGH: touch neither.
-    """
-
-    INPUT = "input"
-    OUTPUT = "output"
-    FULL = "full"
-    PASSTHROUGH = "passthrough"
 
 
 class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
