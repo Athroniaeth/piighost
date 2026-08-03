@@ -1,8 +1,9 @@
 """Anonymization pipeline: chain the stages from detection to anonymized text."""
 
 from collections.abc import Mapping
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import replace
-from typing import Generic, Protocol, runtime_checkable
+from typing import Any, Generic, Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
 
@@ -15,7 +16,9 @@ from piighost.components.guard.base import AnyGuardRail, GuardVerdict
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.models import Detection, Entity
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.components.placeholder.tags import PlaceholderPreservation
+from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
 
 PreservationT = TypeVar(
     "PreservationT",
@@ -95,8 +98,16 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         expander: AnyDetectionExpander | None = None,
         entity_resolver: AnyEntityResolver | None = None,
         guard: AnyGuardRail | None = None,
+        observation_redactor: AnyPlaceholderFactory | None = None,
     ) -> None:
-        """Store the stage components, the optional ones defaulting to disabled."""
+        """Store the stage components, the optional ones defaulting to disabled.
+
+        observation_redactor controls the observation payloads: None, the
+        default, traces the clear text and detection values, so traces double as
+        annotation datasets; a placeholder factory replaces those values with its
+        tokens, making traces safe for a PII-untrusted backend but unusable as
+        datasets.
+        """
         self.detector = detector
         self.linker = linker
         self.anonymizer = anonymizer
@@ -104,6 +115,8 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         self.expander = expander
         self.entity_resolver = entity_resolver
         self.guard = guard
+        self.observation_redactor = observation_redactor
+        self._tracer = get_tracer()
 
     def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
         """Resolve overlapping detections, or pass them through when disabled."""
@@ -127,16 +140,78 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             return entities
         return self.entity_resolver.resolve(entities)
 
-    async def _guard(self, text: str, expected: frozenset[str] = frozenset()) -> None:
-        """Raise PIIRemainingError when the guard flags unexpected PII.
+    def _stage_span(
+        self, name: str, component: object | None
+    ) -> AbstractContextManager[AnyObservationSpan]:
+        """Open a stage span when the component is configured, else a no-op."""
+        if component is None:
+            return nullcontext(NoOpSpan())
+        return self._tracer.span(name)
+
+    def _payload_detections(self, detections: list[Detection]) -> list[dict[str, Any]]:
+        """Serialize detections for a span payload, tokened when redacting."""
+        if self.observation_redactor is None:
+            return [detection.to_dict() for detection in detections]
+        tokens = self._redaction_tokens(detections)
+        return [
+            {**detection.to_dict(), "text": tokens[detection]}
+            for detection in detections
+        ]
+
+    def _payload_entities(self, entities: list[Entity]) -> list[dict[str, Any]]:
+        """Serialize entities for a span payload, tokened when redacting."""
+        if self.observation_redactor is None:
+            values = {entity: entity.text for entity in entities}
+        else:
+            tokens = self.observation_redactor.create(entities)
+            values = {entity: str(tokens[entity]) for entity in entities}
+        return [
+            {
+                "text": values[entity],
+                "label": entity.label,
+                "occurrences": len(entity.detections),
+            }
+            for entity in entities
+        ]
+
+    def _payload_text(self, text: str, detections: list[Detection]) -> str:
+        """Return a text payload, its detection spans tokened when redacting."""
+        if self.observation_redactor is None:
+            return text
+        tokens = self._redaction_tokens(detections)
+        redacted = text
+        ordered = sorted(detections, key=lambda detection: detection.span, reverse=True)
+        for detection in ordered:
+            span = detection.span
+            redacted = redacted[: span.start] + tokens[detection] + redacted[span.end :]
+        return redacted
+
+    def _redaction_tokens(self, detections: list[Detection]) -> dict[Detection, str]:
+        """Token every detection with the redactor, grouped so values share one."""
+        redactor = self.observation_redactor
+        if redactor is None:
+            return {}
+        entities = self.linker.link(detections)
+        tokens = redactor.create(entities)
+        return {
+            detection: str(tokens[entity])
+            for entity in entities
+            for detection in entity.detections
+        }
+
+    async def _guard(
+        self, text: str, expected: frozenset[str] = frozenset()
+    ) -> GuardVerdict | None:
+        """Check the guard and raise on unexpected PII, returning the verdict.
 
         Values in expected are ones the pipeline chose to leave in clear, such as
         an entity the assistant introduced. A detector-based guard would re-find
         them, so they are dropped from the verdict before deciding. A score-based
-        guard localizes nothing, so it cannot be filtered this way.
+        guard localizes nothing, so it cannot be filtered this way. Returns None
+        when no guard is configured, else the verdict that passed.
         """
         if self.guard is None:
-            return
+            return None
 
         verdict = await self.guard.check(text)
 
@@ -147,11 +222,12 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
                 if detection.text.casefold() not in expected
             )
             if not residual:
-                return
+                return replace(verdict, flagged=False, detections=())
             verdict = replace(verdict, detections=residual)
 
         if verdict.flagged:
             raise _pii_remaining(verdict)
+        return verdict
 
 
 class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
@@ -168,15 +244,38 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         Raises:
             PIIRemainingError: If a guard flags PII left in the output.
         """
-        detections = await self.detector.detect(text)
-        detections = self._resolve_overlaps(detections)
-        detections = self._expand(text, detections)
-        entities = self._link(detections)
-        entities = self._resolve_entities(entities)
+        with self._tracer.span("piighost.anonymize") as root:
+            with self._tracer.span("piighost.detect") as span:
+                detections = await self.detector.detect(text)
+                span.set_attribute("count", len(detections))
+                span.set_output(self._payload_detections(detections))
+            root.set_input(self._payload_text(text, detections))
 
-        result = self.anonymizer.anonymize(text, entities)
-        await self._guard(result.text)
-        return result
+            with self._stage_span("piighost.overlap", self.overlap_resolver):
+                detections = self._resolve_overlaps(detections)
+            with self._stage_span("piighost.expand", self.expander):
+                detections = self._expand(text, detections)
+
+            with self._tracer.span("piighost.link") as span:
+                entities = self._link(detections)
+                span.set_output(self._payload_entities(entities))
+
+            with self._stage_span("piighost.entity_resolve", self.entity_resolver):
+                entities = self._resolve_entities(entities)
+
+            with self._tracer.span("piighost.render") as span:
+                result = self.anonymizer.anonymize(text, entities)
+                span.set_attribute("tokens", len(result.tokens))
+                span.set_output(result.text)
+
+            with self._stage_span("piighost.guard", self.guard) as span:
+                verdict = await self._guard(result.text)
+                if verdict is not None:
+                    labels = sorted({d.label for d in verdict.detections})
+                    span.set_output({"flagged": verdict.flagged, "labels": labels})
+
+            root.set_output(result.text)
+            return result
 
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
         """Return the text with every known token replaced by its entity value."""
