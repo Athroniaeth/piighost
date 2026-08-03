@@ -5,9 +5,16 @@ its module is imported lazily: reaching for a symbol without the extra raises a
 helpful ImportError, while importing this package never pulls langchain in.
 """
 
-from piighost.integrations.middleware.strategy import ToolCallStrategy
+from piighost.integrations.middleware.strategy import (
+    InventedPlaceholderStrategy,
+    ToolCallStrategy,
+)
 
-__all__ = ["PIIAnonymizationMiddleware", "ToolCallStrategy"]
+__all__ = [
+    "InventedPlaceholderStrategy",
+    "PIIAnonymizationMiddleware",
+    "ToolCallStrategy",
+]
 
 
 def __getattr__(name: str) -> object:

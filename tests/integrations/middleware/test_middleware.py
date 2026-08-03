@@ -12,7 +12,11 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.conversation_memory import InMemoryConversationMemory
-from piighost.integrations.middleware import ToolCallStrategy
+from piighost.exceptions import InventedPlaceholderError
+from piighost.integrations.middleware import (
+    InventedPlaceholderStrategy,
+    ToolCallStrategy,
+)
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 _MODULE = "piighost.integrations.middleware.langchain"
@@ -155,3 +159,86 @@ class TestToolCalls:
         args, content = await self._run(monkeypatch, strategy)
         assert args["name"] == arg_seen
         assert content == response_out
+
+
+class TestInventedPlaceholders:
+    def _middleware(
+        self, monkeypatch: pytest.MonkeyPatch, strategy: InventedPlaceholderStrategy
+    ) -> Any:
+        """Build the middleware under an invented-placeholder strategy."""
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        return module.PIIAnonymizationMiddleware(
+            _pipeline(), invented_strategy=strategy
+        )
+
+    async def _reply(self, middleware: Any, text: str) -> str:
+        """Anonymize a first message, then run a model reply through aafter_model."""
+        from langchain_core.messages import AIMessage, HumanMessage
+
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+        reply = {"messages": [AIMessage(text)]}
+        await middleware.aafter_model(reply, None)
+        return reply["messages"][0].content
+
+    @pytest.mark.parametrize(
+        ("strategy", "expected"),
+        [
+            (InventedPlaceholderStrategy.KEEP, "Hi Emma, cc <<PERSON:9>>"),
+            (InventedPlaceholderStrategy.DROP, "Hi Emma, cc "),
+        ],
+    )
+    async def test_kept_or_dropped(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        strategy: InventedPlaceholderStrategy,
+        expected: str,
+    ) -> None:
+        """KEEP leaves an invented token in the reply, DROP strips it out."""
+        pytest.importorskip("langchain")
+        middleware = self._middleware(monkeypatch, strategy)
+        content = await self._reply(middleware, "Hi <<PERSON:1>>, cc <<PERSON:9>>")
+        assert content == expected
+
+    async def test_raise_refuses_an_invented_token(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """RAISE refuses a reply carrying a token the pipeline never issued."""
+        pytest.importorskip("langchain")
+        middleware = self._middleware(monkeypatch, InventedPlaceholderStrategy.RAISE)
+        with pytest.raises(InventedPlaceholderError, match=r"<<PERSON:9>>"):
+            await self._reply(middleware, "Hi <<PERSON:1>>, cc <<PERSON:9>>")
+
+    async def test_only_issued_tokens_pass_under_raise(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A reply carrying only issued tokens restores cleanly under RAISE."""
+        pytest.importorskip("langchain")
+        middleware = self._middleware(monkeypatch, InventedPlaceholderStrategy.RAISE)
+        content = await self._reply(middleware, "Hi <<PERSON:1>>")
+        assert content == "Hi Emma"
+
+    async def test_invented_tool_argument_is_refused(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An invented token in a deanonymized tool argument is refused too."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), invented_strategy=InventedPlaceholderStrategy.RAISE
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        async def handler(request: Any) -> object:
+            return ToolMessage(content="ok", tool_call_id="c1")
+
+        request = _FakeRequest({"name": "<<PERSON:9>>"})
+        with pytest.raises(InventedPlaceholderError):
+            await middleware.awrap_tool_call(request, handler)
