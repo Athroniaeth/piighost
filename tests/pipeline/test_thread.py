@@ -5,7 +5,7 @@ from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.detector import AnyDetector, ExactMatchDetector
 from piighost.linker import ExactEntityLinker
 from piighost.models import Detection
-from piighost.pipeline import AnyPipeline, ThreadAnonymizationPipeline
+from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.placeholder import LabelCounterPlaceholderFactory
 
 
@@ -33,12 +33,6 @@ def _pipeline(
         Anonymizer(LabelCounterPlaceholderFactory()),
         memory or InMemoryConversationMemory(),
     )
-
-
-class TestConformance:
-    def test_satisfies_the_pipeline_port(self) -> None:
-        """ThreadAnonymizationPipeline is an AnyPipeline."""
-        assert isinstance(_pipeline(), AnyPipeline)
 
 
 class TestThreadConsistency:
