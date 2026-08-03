@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from piighost.conversation_memory import Forgotten
+from piighost.conversation_memory import Forgotten, MessageRole
 from piighost.models import Detection, Span
 
 _MODULE = "piighost.conversation_memory.redis_backend"
@@ -156,3 +156,25 @@ class TestAtRestProtection:
         )
         assert stored
         assert b"Emma" not in stored
+
+
+class TestProvenance:
+    async def test_records_first_occurrence_role(self) -> None:
+        """A value keeps the role of the message that first held it."""
+        memory, _ = _make()
+        await memory.remember("t1", "u1", [_detection("Napoleon")], MessageRole.USER)
+        await memory.remember(
+            "t1", "a1", [_detection("Napoleon")], MessageRole.ASSISTANT
+        )
+        assert await memory.get_provenance("t1") == {"napoleon": MessageRole.USER}
+
+    async def test_default_role_is_user(self) -> None:
+        """Remembering without a role records USER provenance."""
+        memory, _ = _make()
+        await memory.remember("t1", "u1", [_detection("Emma")])
+        assert await memory.get_provenance("t1") == {"emma": MessageRole.USER}
+
+    async def test_unknown_thread_has_no_provenance(self) -> None:
+        """A thread never written to yields an empty provenance map."""
+        memory, _ = _make()
+        assert await memory.get_provenance("never") == {}
