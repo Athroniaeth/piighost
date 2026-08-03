@@ -4,6 +4,7 @@ from piighost.conversation_memory import (
     AnyConversationMemory,
     Forgotten,
     InMemoryConversationMemory,
+    MessageRole,
 )
 from piighost.models import Detection, Span
 
@@ -136,3 +137,42 @@ class TestEncapsulation:
         await memory.remember("t1", "m1", given)
         given.append(_detection("Liam"))
         assert await memory.get_detections("t1", "m1") == [emma]
+
+
+class TestProvenance:
+    async def test_records_the_role_of_a_first_occurrence(self) -> None:
+        """A value's provenance is the role of the message that first held it."""
+        memory = InMemoryConversationMemory()
+        await memory.remember(
+            "t1", "a1", [_detection("Napoleon")], MessageRole.ASSISTANT
+        )
+        assert await memory.get_provenance("t1") == {"napoleon": MessageRole.ASSISTANT}
+
+    async def test_first_occurrence_wins(self) -> None:
+        """A later message with the same value does not change its provenance."""
+        memory = InMemoryConversationMemory()
+        await memory.remember("t1", "u1", [_detection("Napoleon")], MessageRole.USER)
+        await memory.remember(
+            "t1", "a1", [_detection("Napoleon")], MessageRole.ASSISTANT
+        )
+        assert await memory.get_provenance("t1") == {"napoleon": MessageRole.USER}
+
+    async def test_provenance_folds_case(self) -> None:
+        """Case variants of a value share one provenance entry."""
+        memory = InMemoryConversationMemory()
+        await memory.remember(
+            "t1", "a1", [_detection("Napoleon")], MessageRole.ASSISTANT
+        )
+        await memory.remember("t1", "u1", [_detection("napoleon")], MessageRole.USER)
+        assert await memory.get_provenance("t1") == {"napoleon": MessageRole.ASSISTANT}
+
+    async def test_default_role_is_user(self) -> None:
+        """Remembering without a role records USER provenance."""
+        memory = InMemoryConversationMemory()
+        await memory.remember("t1", "u1", [_detection("Emma")])
+        assert await memory.get_provenance("t1") == {"emma": MessageRole.USER}
+
+    async def test_unknown_thread_has_no_provenance(self) -> None:
+        """A thread never written to yields an empty provenance map."""
+        memory = InMemoryConversationMemory()
+        assert await memory.get_provenance("never") == {}
