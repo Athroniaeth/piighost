@@ -13,17 +13,17 @@ tool's result can be re-anonymized so the model only sees placeholders. Each
 ToolCallStrategy picks which boundaries are handled:
 
   FULL         deanonymize the arguments and re-anonymize the result
-  INPUT        deanonymize the arguments only, the result is anonymized later
-               by the normal before-model pass
+  INPUT        deanonymize the arguments only, leave the result raw
   OUTPUT       re-anonymize the result only, the tool sees placeholders
   PASSTHROUGH  neither, the tool call is untouched
 
 The scenario is the same each time. The model calls lookup_manager with the
 person placeholder, and the tool returns a sentence naming a second person,
-Liam, who was never in the prompt. The table shows what the tool received and
-what the tool result looks like the instant the wrapper hands it back, which is
-where FULL and INPUT part ways: FULL re-anonymizes it right there, INPUT leaves
-it raw for the next before-model pass to clean. Run with:
+Liam, who was never in the prompt. The middleware acts only in the tool wrapper,
+never on the tool message afterwards, so the wrapper's output is exactly what the
+model then sees. The table shows what the tool received, that output, and how
+many times the detector ran, and the notes say when to reach for each strategy.
+Run with:
 uv run examples/strategies/tool_call.py
 """
 
@@ -37,8 +37,9 @@ from langchain_core.tools import tool
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.conversation_memory import InMemoryConversationMemory
-from piighost.components.detector import ExactMatchDetector
+from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
+from piighost.models import Detection
 from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
@@ -51,6 +52,24 @@ from piighost.integrations.middleware.langchain import PIIAnonymizationMiddlewar
 # example can print them; a real deployment needs nothing like these.
 TOOL_ARG: list[str] = []
 TOOL_RESULT_AFTER: list[str] = []
+
+
+class _CountingDetector:
+    """Wrap a detector to count how many texts it actually scans.
+
+    Only here to expose the cost difference between the strategies; a real
+    deployment needs nothing like it.
+    """
+
+    def __init__(self, inner: AnyDetector) -> None:
+        """Store the wrapped detector and start the call count at zero."""
+        self._inner = inner
+        self.calls = 0
+
+    async def detect(self, text: str) -> list[Detection]:
+        """Count the scan, then delegate to the wrapped detector."""
+        self.calls += 1
+        return await self._inner.detect(text)
 
 
 class RecordingMiddleware(PIIAnonymizationMiddleware[PreservesLabeledIdentityOpaque]):
@@ -87,23 +106,28 @@ def lookup_manager(person: str) -> str:
     return f"The manager of {person} is Liam."
 
 
-def _build_pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
-    """Wire a thread pipeline that knows both people the scenario mentions."""
+def _build_pipeline(
+    detector: AnyDetector,
+) -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
+    """Wire a thread pipeline over the given detector, knowing both people."""
     ph_factory = LabelCounterPlaceholderFactory()
     return ThreadAnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
+        detector,
         ExactEntityLinker(),
         Anonymizer(ph_factory),
         InMemoryConversationMemory(),
     )
 
 
-async def _run_once(strategy: ToolCallStrategy) -> tuple[str, str]:
-    """Run the scenario under one strategy, returning the tool arg and its result."""
+async def _run_once(strategy: ToolCallStrategy) -> tuple[str, str, int]:
+    """Run the scenario under one strategy, returning the arg, result, and cost."""
     TOOL_ARG.clear()
     TOOL_RESULT_AFTER.clear()
 
-    middleware = RecordingMiddleware(_build_pipeline(), tool_strategy=strategy)
+    detector = _CountingDetector(
+        ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"})
+    )
+    middleware = RecordingMiddleware(_build_pipeline(detector), tool_strategy=strategy)
     script = iter(
         [
             AIMessage(
@@ -126,7 +150,7 @@ async def _run_once(strategy: ToolCallStrategy) -> tuple[str, str]:
     config = {"configurable": {"thread_id": "t1"}}
     await agent.ainvoke(request, config=config)
 
-    return TOOL_ARG[0], TOOL_RESULT_AFTER[0]
+    return TOOL_ARG[0], TOOL_RESULT_AFTER[0], detector.calls
 
 
 async def main() -> None:
@@ -138,18 +162,30 @@ async def main() -> None:
         ToolCallStrategy.PASSTHROUGH,
     ]
 
-    print(f"{'strategy':12}  {'tool received':15}  tool result right after the wrapper")
-    print(f"{'-' * 12}  {'-' * 15}  {'-' * 42}")
+    print(
+        f"{'strategy':12}  {'tool received':15}  {'detector runs':13}  "
+        "tool result the model sees"
+    )
+    print(f"{'-' * 12}  {'-' * 15}  {'-' * 13}  {'-' * 42}")
     for strategy in strategies:
-        tool_arg, result_after = await _run_once(strategy)
-        print(f"{strategy.name:12}  {tool_arg!r:15}  {result_after!r}")
+        tool_arg, result_after, calls = await _run_once(strategy)
+        print(f"{strategy.name:12}  {tool_arg!r:15}  {calls:<13}  {result_after!r}")
 
-    print("\nInbound: FULL and INPUT hand the tool the real value; OUTPUT and")
-    print("PASSTHROUGH leave it a placeholder.")
-    print("Outbound: FULL and OUTPUT re-anonymize the result on the spot; INPUT and")
-    print("PASSTHROUGH leave it raw. INPUT's raw result is cleaned by the next")
-    print("before-model pass, so the model still sees placeholders; PASSTHROUGH never")
-    print("cleans it, so the tool's second name (Liam) reaches the model in the clear.")
+    print("\nWhen to reach for each:")
+    print("  FULL         the tool needs the real value and its output must be clean:")
+    print("               it gets real PII, the model only ever sees placeholders.")
+    print("  INPUT        the tool needs the real value and you pass its output to the")
+    print(
+        "               model as-is: no output cleaning, so the model may see raw PII."
+    )
+    print(
+        "  OUTPUT       the tool must not see real PII but its output must be cleaned:"
+    )
+    print("               it works on placeholders, any PII it returns is anonymized.")
+    print("  PASSTHROUGH  the tool neither needs nor returns PII: skip all work, the")
+    print("               call is left untouched and no extra detector pass is spent.")
+    print("\nAnonymizing the tool result (FULL, OUTPUT) costs one extra detector pass;")
+    print("INPUT and PASSTHROUGH skip it.")
 
 
 if __name__ == "__main__":
