@@ -22,10 +22,11 @@ from piighost.placeholder import LabelCounterPlaceholderFactory
 
 async def main() -> None:
     """Build a pipeline, anonymize a text, then deanonymize it back."""
+    ph_factory = LabelCounterPlaceholderFactory()
     pipeline = AnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON", "Lyon": "LOCATION"}),
         ExactEntityLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        Anonymizer(ph_factory),
     )
 
     text = "Emma lives in Lyon, and Emma loves Lyon."
