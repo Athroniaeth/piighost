@@ -1,7 +1,7 @@
 """Tests for the ThreadAnonymizationPipeline."""
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.models import Detection
@@ -95,3 +95,37 @@ class TestDeanonymize:
         await pipeline.anonymize("Emma met Liam", "t1")
         reply = "Thanks <<PERSON:1>> and <<PERSON:2>>."
         assert await pipeline.deanonymize(reply, "t1") == "Thanks Emma and Liam."
+
+
+class TestProvenance:
+    async def test_assistant_introduced_value_stays_clear(self) -> None:
+        """A value the assistant introduces first is not anonymized."""
+        pipeline = _pipeline()
+        result = await pipeline.anonymize("It is Emma", "t1", MessageRole.ASSISTANT)
+        assert result.text == "It is Emma"
+
+    async def test_user_reference_after_assistant_stays_clear(self) -> None:
+        """A user reference to an assistant-introduced value stays in clear."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("It is Emma", "t1", MessageRole.ASSISTANT)
+        result = await pipeline.anonymize("what about Emma", "t1", MessageRole.USER)
+        assert result.text == "what about Emma"
+
+    async def test_user_introduced_value_is_anonymized(self) -> None:
+        """A value the user introduces first is anonymized as before."""
+        pipeline = _pipeline()
+        result = await pipeline.anonymize("I am Emma", "t1", MessageRole.USER)
+        assert result.text == "I am <<PERSON:1>>"
+
+    async def test_assistant_repeat_after_user_stays_anonymized(self) -> None:
+        """A user-introduced value stays anonymized when the assistant repeats it."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("I am Emma", "t1", MessageRole.USER)
+        result = await pipeline.anonymize("Hello Emma", "t1", MessageRole.ASSISTANT)
+        assert result.text == "Hello <<PERSON:1>>"
+
+    async def test_default_role_anonymizes(self) -> None:
+        """Omitting the role treats the message as user PII."""
+        pipeline = _pipeline()
+        result = await pipeline.anonymize("I am Emma", "t1")
+        assert result.text == "I am <<PERSON:1>>"
