@@ -144,10 +144,10 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
             # sent through anonymization at all, saving the detector.
             allowed = (HumanMessage,)
 
-        if self.tool_strategy is ToolCallStrategy.INPUT:
-            # INPUT left the tool response raw, so anonymize it here before the
-            # model sees it, unlike OUTPUT/FULL which already anonymized it.
-            allowed = (*allowed, ToolMessage)
+        # A tool response is handled only in the tool wrapper, never here, so a
+        # ToolMessage is never rewritten by the before-model pass. A strategy
+        # that does not anonymize the response therefore leaves it as the tool
+        # returned it, and the model sees it that way.
 
         async def anonymize(message: BaseMessage, content: str) -> str:
             """Anonymize one message under the role its type contributes."""
