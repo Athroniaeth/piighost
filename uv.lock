@@ -2784,7 +2784,6 @@ llm = [
     { name = "langchain-core" },
 ]
 middleware = [
-    { name = "aiocache" },
     { name = "langchain" },
 ]
 mistral = [
@@ -2819,6 +2818,7 @@ dev = [
     { name = "commitizen" },
     { name = "cryptography" },
     { name = "fakeredis" },
+    { name = "langchain" },
     { name = "mistralai" },
     { name = "pydantic" },
     { name = "pyrefly" },
@@ -2864,7 +2864,6 @@ transformers = [
 [package.metadata]
 requires-dist = [
     { name = "aiocache", marker = "extra == 'cache'", specifier = ">=0.12" },
-    { name = "aiocache", marker = "extra == 'middleware'", specifier = ">=0.12" },
     { name = "aiosqlite", marker = "extra == 'sqlalchemy'", specifier = ">=0.20" },
     { name = "argon2-cffi", marker = "extra == 'argon2'", specifier = ">=23.1" },
     { name = "cryptography", marker = "extra == 'crypto'", specifier = ">=44" },
@@ -2903,6 +2902,7 @@ dev = [
     { name = "commitizen", specifier = ">=4.13.9" },
     { name = "cryptography", specifier = ">=44" },
     { name = "fakeredis", specifier = ">=2.20" },
+    { name = "langchain", specifier = ">=1.2" },
     { name = "mistralai", specifier = ">=1.0" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pyrefly", specifier = ">=0.55.0" },
