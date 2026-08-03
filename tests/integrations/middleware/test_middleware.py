@@ -3,6 +3,7 @@
 import importlib
 import importlib.util
 import sys
+from typing import Any
 
 import pytest
 
@@ -11,6 +12,7 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.integrations.middleware import ToolCallStrategy
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 _MODULE = "piighost.integrations.middleware.langchain"
@@ -33,7 +35,7 @@ class TestOptionalDependencyGuard:
         """Importing without langchain points the user at piighost[middleware]."""
         real_find_spec = importlib.util.find_spec
 
-        def find_spec(name: str, *args: object, **kwargs: object) -> object:
+        def find_spec(name: str, *args: Any, **kwargs: Any) -> object:
             if name == "langchain":
                 return None
             return real_find_spec(name, *args, **kwargs)
@@ -48,7 +50,7 @@ class TestOptionalDependencyGuard:
 
 
 class TestWhenInstalled:
-    def _middleware(self, monkeypatch: pytest.MonkeyPatch) -> object:
+    def _middleware(self, monkeypatch: pytest.MonkeyPatch) -> Any:
         """Build the middleware with a stubbed thread-id config."""
         module = importlib.import_module(_MODULE)
         monkeypatch.setattr(
@@ -94,3 +96,60 @@ class TestWhenInstalled:
             {"messages": [HumanMessage("nothing here")]}, None
         )
         assert update is None
+
+
+class _FakeRequest:
+    """A minimal stand-in for a langgraph ToolCallRequest."""
+
+    def __init__(self, args: dict[str, str]) -> None:
+        self.tool_call = {"name": "t", "args": args, "id": "c1", "type": "tool_call"}
+
+
+class TestToolCalls:
+    async def _run(
+        self, monkeypatch: pytest.MonkeyPatch, strategy: ToolCallStrategy
+    ) -> tuple[dict[str, str], Any]:
+        """Run one tool call under a strategy, over a thread that knows Emma.
+
+        Returns the arguments the tool actually received and the response content.
+        """
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(_pipeline(), tool_strategy=strategy)
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        received: dict[str, dict[str, str]] = {}
+
+        async def handler(request: Any) -> object:
+            received["args"] = request.tool_call["args"]
+            return ToolMessage(content="Contact Emma", tool_call_id="c1")
+
+        request = _FakeRequest({"name": "<<PERSON:1>>"})
+        response = await middleware.awrap_tool_call(request, handler)
+        return received["args"], response.content
+
+    @pytest.mark.parametrize(
+        ("strategy", "arg_seen", "response_out"),
+        [
+            (ToolCallStrategy.FULL, "Emma", "Contact <<PERSON:1>>"),
+            (ToolCallStrategy.INPUT, "Emma", "Contact Emma"),
+            (ToolCallStrategy.OUTPUT, "<<PERSON:1>>", "Contact <<PERSON:1>>"),
+            (ToolCallStrategy.PASSTHROUGH, "<<PERSON:1>>", "Contact Emma"),
+        ],
+    )
+    async def test_strategy_routes_each_direction(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        strategy: ToolCallStrategy,
+        arg_seen: str,
+        response_out: str,
+    ) -> None:
+        """Each strategy deanonymizes the args and anonymizes the result or not."""
+        args, content = await self._run(monkeypatch, strategy)
+        assert args["name"] == arg_seen
+        assert content == response_out
