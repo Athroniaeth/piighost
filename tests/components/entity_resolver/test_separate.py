@@ -1,6 +1,9 @@
 """Tests for the SeparateEntityResolver."""
 
-from piighost.components.entity_resolver import AnyEntityResolver, SeparateEntityResolver
+from piighost.components.entity_resolver import (
+    AnyEntityResolver,
+    SeparateEntityResolver,
+)
 from piighost.models import Detection, Entity, Span
 
 
