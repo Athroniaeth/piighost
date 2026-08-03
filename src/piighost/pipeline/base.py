@@ -1,7 +1,7 @@
 """Anonymization pipeline: chain the stages from detection to anonymized text."""
 
 from collections.abc import Mapping
-from typing import Generic
+from typing import Generic, Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
 
@@ -21,6 +21,48 @@ PreservationT = TypeVar(
     bound=PlaceholderPreservation,
     default=PlaceholderPreservation,
 )
+PreservationT_co = TypeVar(
+    "PreservationT_co",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+    covariant=True,
+)
+
+
+@runtime_checkable
+class AnyPipeline(Protocol[PreservationT_co]):
+    """A component that anonymizes a text and can restore it.
+
+    Generic on what its tokens preserve, so a consumer such as the middleware can
+    require a pipeline whose tokens preserve identity and reject one whose tokens
+    do not, at type-check time.
+    """
+
+    async def anonymize(self, text: str) -> Anonymization[PreservationT_co]:
+        """Return the anonymized text and the token used for each entity.
+
+        Args:
+            text: The text to anonymize.
+
+        Returns:
+            The anonymized text and the entity-to-token mapping.
+
+        Raises:
+            PIIRemainingError: If a guard flags PII left in the output.
+        """
+        ...
+
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
+        """Return the text with every known token replaced by its entity value.
+
+        Args:
+            text: The text whose tokens should be restored.
+            tokens: The entity-to-token mapping from an anonymization.
+
+        Returns:
+            The text with each known token replaced by its entity's value.
+        """
+        ...
 
 
 class AnonymizationPipeline(Generic[PreservationT]):
@@ -116,6 +158,7 @@ class AnonymizationPipeline(Generic[PreservationT]):
             return
 
         verdict = await self.guard.check(text)
+
         if verdict.flagged:
             raise _pii_remaining(verdict)
 
