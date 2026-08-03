@@ -14,8 +14,13 @@ from typing import Any, Generic
 
 from typing_extensions import TypeVar
 
+from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesIdentity
-from piighost.integrations.middleware.strategy import ToolCallStrategy
+from piighost.exceptions import InventedPlaceholderError
+from piighost.integrations.middleware.strategy import (
+    InventedPlaceholderStrategy,
+    ToolCallStrategy,
+)
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 if importlib.util.find_spec("langchain") is None:
@@ -96,18 +101,24 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         pipeline: ThreadAnonymizationPipeline[IdentityT],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
         require_thread_id: bool = True,
+        invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     ) -> None:
-        """Store the pipeline, the tool strategy, and the thread-id policy.
+        """Store the pipeline, the strategies, and the thread-id policy.
 
         require_thread_id defaults to True so a missing thread id raises rather
         than routing every conversation into the shared default thread and
         leaking placeholders across them. Pass False to opt into that shared
         fallback knowingly, for single-conversation or stateless use.
+
+        invented_strategy defaults to RAISE so a token the pipeline never issued,
+        surfacing in a deanonymized model reply or tool argument, is refused
+        rather than passed on. Pass KEEP or DROP to tolerate it instead.
         """
         super().__init__()
         self._pipeline = pipeline
         self.tool_strategy = tool_strategy
         self._require_thread_id = require_thread_id
+        self._invented_strategy = invented_strategy
 
     async def abefore_model(
         self,
@@ -140,7 +151,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         return await self._rewrite(
             state,
             (HumanMessage, AIMessage),
-            lambda text: self._pipeline.deanonymize(text, thread_id),
+            lambda text: self._deanonymize(text, thread_id),
         )
 
     async def awrap_tool_call(
@@ -198,10 +209,43 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         result = await self._pipeline.anonymize(text, thread_id)
         return result.text
 
+    async def _deanonymize(self, text: str, thread_id: str) -> str:
+        """Deanonymize a text, then apply the invented-placeholder strategy."""
+        restored = await self._pipeline.deanonymize(text, thread_id)
+        return self._handle_invented(restored)
+
+    def _handle_invented(self, text: str) -> str:
+        """Apply the invented-placeholder strategy to already deanonymized text.
+
+        Every issued token was replaced during deanonymization, so any token
+        still matching the factory's grammar was invented by the model. KEEP
+        leaves it, DROP removes it, RAISE refuses it. A factory with no
+        recognizable grammar, such as a mask, has no tokens to find, so the text
+        returns unchanged.
+        """
+        factory = getattr(self._pipeline.anonymizer, "factory", None)
+        if not isinstance(factory, BaseDelimitedPlaceholderFactory):
+            return text
+
+        invented = factory.find_tokens(text)
+        if not invented or self._invented_strategy is InventedPlaceholderStrategy.KEEP:
+            return text
+
+        if self._invented_strategy is InventedPlaceholderStrategy.RAISE:
+            raise InventedPlaceholderError(
+                f"Deanonymized text holds tokens the pipeline never issued: {invented}",
+                invented,
+            )
+
+        cleaned = text
+        for token in invented:
+            cleaned = cleaned.replace(token, "")
+        return cleaned
+
     async def _deanonymize_value(self, value: Any, thread_id: str) -> Any:
         """Deanonymize strings inside nested dict, list, and tuple containers."""
         if isinstance(value, str):
-            return await self._pipeline.deanonymize(value, thread_id)
+            return await self._deanonymize(value, thread_id)
         if isinstance(value, dict):
             return {
                 key: await self._deanonymize_value(item, thread_id)

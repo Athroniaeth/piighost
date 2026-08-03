@@ -51,6 +51,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.pipeline", "BaseAnonymizationPipeline"),
     ("piighost.pipeline", "ThreadAnonymizationPipeline"),
     ("piighost.integrations.middleware", "ToolCallStrategy"),
+    ("piighost.integrations.middleware", "InventedPlaceholderStrategy"),
     ("piighost.conversation_memory", "AnyConversationMemory"),
     ("piighost.conversation_memory", "Forgotten"),
     ("piighost.conversation_memory", "InMemoryConversationMemory"),
@@ -82,6 +83,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "InvalidKeyLengthError"),
     ("piighost.exceptions", "GuardError"),
     ("piighost.exceptions", "PIIRemainingError"),
+    ("piighost.exceptions", "MiddlewareError"),
+    ("piighost.exceptions", "InventedPlaceholderError"),
 ]
 
 

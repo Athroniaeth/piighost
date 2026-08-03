@@ -111,3 +111,27 @@ class PIIRemainingError(GuardError):
     ) -> None:
         self.detections = detections or []
         super().__init__(message)
+
+
+class MiddlewareError(PIIGhostError):
+    """Base class for errors raised by the anonymization middleware.
+
+    Catch this to handle any middleware failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class InventedPlaceholderError(MiddlewareError):
+    """Raised when deanonymized text still holds a token the pipeline never issued.
+
+    A model can emit a token that matches the placeholder grammar yet was never
+    assigned to any entity, whether hallucinated or injected. Under the RAISE
+    strategy the middleware refuses it rather than pass it on unrestored.
+
+    Attributes:
+        tokens: The invented tokens found, in order of appearance.
+    """
+
+    def __init__(self, message: str, tokens: list[str]) -> None:
+        self.tokens = tokens
+        super().__init__(message)

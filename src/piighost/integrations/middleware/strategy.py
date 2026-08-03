@@ -1,7 +1,7 @@
-"""Tool-call handling strategy for the anonymization middleware.
+"""Handling strategies for the anonymization middleware.
 
-A plain enum with no external dependency, kept out of the langchain-guarded
-module so it can be imported and referenced, for example by the config loader,
+Plain enums with no external dependency, kept out of the langchain-guarded
+module so they can be imported and referenced, for example by the config loader,
 without installing langchain.
 """
 
@@ -27,3 +27,20 @@ class ToolCallStrategy(Enum):
     OUTPUT = "output"
     FULL = "full"
     PASSTHROUGH = "passthrough"
+
+
+class InventedPlaceholderStrategy(Enum):
+    """How the middleware treats a placeholder token the pipeline never issued.
+
+    After deanonymizing, every issued token has been replaced by its value, so
+    any token still matching the placeholder grammar was invented by the model,
+    whether hallucinated or injected.
+
+    - KEEP: leave the invented token in the text.
+    - DROP: remove the invented token from the text.
+    - RAISE: raise InventedPlaceholderError.
+    """
+
+    KEEP = "keep"
+    DROP = "drop"
+    RAISE = "raise"
