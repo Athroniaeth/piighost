@@ -43,6 +43,41 @@ _missing_thread_id_warned = False
 IdentityT = TypeVar("IdentityT", bound=PreservesIdentity, default=PreservesIdentity)
 
 
+def _thread_id(require_thread_id: bool) -> str:
+    """Return the thread id from the LangGraph config.
+
+    Without one, every conversation would share a thread and leak placeholders.
+    With require_thread_id, a missing id is an error; otherwise it warns once and
+    falls back to a shared default thread, because get_config does not surface the
+    id reliably across LangGraph versions.
+    """
+    global _missing_thread_id_warned
+
+    try:
+        thread_id = get_config().get("configurable", {}).get("thread_id")
+    except RuntimeError:
+        thread_id = None
+
+    if thread_id is not None:
+        return thread_id
+
+    if require_thread_id:
+        raise ValueError(
+            "No thread_id in the LangGraph config and require_thread_id=True; "
+            "pass config={'configurable': {'thread_id': ...}} on the agent call."
+        )
+
+    if not _missing_thread_id_warned:
+        _missing_thread_id_warned = True
+        logger.warning(
+            "No thread_id in the LangGraph config; falling back to the shared "
+            "'default' thread, so distinct conversations share placeholder "
+            "state. Pass a thread_id or set require_thread_id=True."
+        )
+
+    return _DEFAULT_THREAD
+
+
 class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
     """Anonymize PII around the model and tool boundary of a LangChain agent.
 
@@ -60,47 +95,19 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         self,
         pipeline: ThreadAnonymizationPipeline[IdentityT],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-        require_thread_id: bool = False,
+        require_thread_id: bool = True,
     ) -> None:
-        """Store the pipeline, the tool strategy, and the thread-id policy."""
+        """Store the pipeline, the tool strategy, and the thread-id policy.
+
+        require_thread_id defaults to True so a missing thread id raises rather
+        than routing every conversation into the shared default thread and
+        leaking placeholders across them. Pass False to opt into that shared
+        fallback knowingly, for single-conversation or stateless use.
+        """
         super().__init__()
         self._pipeline = pipeline
         self.tool_strategy = tool_strategy
         self._require_thread_id = require_thread_id
-
-    def _thread_id(self) -> str:
-        """Return the thread id from the LangGraph config.
-
-        Without one, every conversation would share a thread and leak
-        placeholders. With require_thread_id, a missing id is an error; otherwise
-        it warns once and falls back to a shared default thread, because
-        get_config does not surface the id reliably across LangGraph versions.
-        """
-        global _missing_thread_id_warned
-
-        try:
-            thread_id = get_config().get("configurable", {}).get("thread_id")
-        except RuntimeError:
-            thread_id = None
-
-        if thread_id is not None:
-            return thread_id
-
-        if self._require_thread_id:
-            raise ValueError(
-                "No thread_id in the LangGraph config and require_thread_id=True; "
-                "pass config={'configurable': {'thread_id': ...}} on the agent call."
-            )
-
-        if not _missing_thread_id_warned:
-            _missing_thread_id_warned = True
-            logger.warning(
-                "No thread_id in the LangGraph config; falling back to the shared "
-                "'default' thread, so distinct conversations share placeholder "
-                "state. Pass a thread_id or set require_thread_id=True."
-            )
-
-        return _DEFAULT_THREAD
 
     async def abefore_model(
         self,
@@ -108,7 +115,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         runtime: Runtime[Any],
     ) -> dict[str, Any] | None:
         """Anonymize the user and model messages before the model sees them."""
-        thread_id = self._thread_id()
+        thread_id = _thread_id(self._require_thread_id)
         allowed: tuple[type, ...] = (HumanMessage, AIMessage)
 
         if self.tool_strategy is ToolCallStrategy.INPUT:
@@ -117,7 +124,9 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
             allowed = (HumanMessage, AIMessage, ToolMessage)
 
         return await self._rewrite(
-            state, allowed, lambda text: self._anonymize(text, thread_id)
+            state,
+            allowed,
+            lambda text: self._anonymize(text, thread_id),
         )
 
     async def aafter_model(
@@ -126,7 +135,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         runtime: Runtime[Any],
     ) -> dict[str, Any] | None:
         """Deanonymize the user and model messages for display."""
-        thread_id = self._thread_id()
+        thread_id = _thread_id(self._require_thread_id)
 
         return await self._rewrite(
             state,
@@ -141,10 +150,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
     ) -> ToolMessage | Command[Any]:
         """Route the tool call by strategy: deanonymize args, anonymize result."""
         strategy = self.tool_strategy
+
         if strategy is ToolCallStrategy.PASSTHROUGH:
             return await handler(request)
 
-        thread_id = self._thread_id()
+        thread_id = _thread_id(self._require_thread_id)
         deanonymize_input = strategy in (ToolCallStrategy.INPUT, ToolCallStrategy.FULL)
         anonymize_output = strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
 
