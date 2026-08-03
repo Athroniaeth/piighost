@@ -16,7 +16,6 @@ import asyncio
 
 from piighost.anonymizer import Anonymizer
 from piighost.detector import ExactMatchDetector
-from piighost.exceptions import PIIRemainingError
 from piighost.guard import DetectorGuardRail
 from piighost.linker import ExactEntityLinker
 from piighost.pipeline import AnonymizationPipeline
@@ -37,10 +36,8 @@ async def main() -> None:
     clean = await pipeline.anonymize("Contact alice@example.com.")
     print("clean output:", clean.text)
 
-    try:
-        await pipeline.anonymize("Contact alice@example.com or bob@example.com.")
-    except PIIRemainingError as error:
-        print("guard raised:", error)
+    # piighost.exceptions.PIIRemainingError: Anonymized text still contains PII: ['EMAIL']
+    await pipeline.anonymize("Contact alice@example.com or bob@example.com.")
 
 
 if __name__ == "__main__":
