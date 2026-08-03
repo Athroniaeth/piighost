@@ -44,17 +44,23 @@ IdentityT = TypeVar("IdentityT", bound=PreservesIdentity, default=PreservesIdent
 
 
 class ToolCallStrategy(Enum):
-    """How the middleware handles tool-call inputs and outputs.
+    """How the middleware handles the two directions of a tool call.
 
-    - FULL: deanonymize the tool arguments before the tool runs, then
-      re-anonymize a string tool response so any new PII it returns is protected.
-    - INBOUND_ONLY: deanonymize the arguments, but pass the response through, to
-      be anonymized on its next trip to the model.
-    - PASSTHROUGH: never touch tool calls; tools receive the placeholder tokens.
+    The two directions are independent. INPUT deanonymizes the tool arguments so
+    the tool receives real data; OUTPUT anonymizes a string tool response so any
+    PII it returns is protected; FULL does both; PASSTHROUGH does neither, so the
+    tool sees the placeholder tokens and its response is left untouched.
+
+    - INPUT: deanonymize the arguments, leave the response for the next model
+      pass to anonymize.
+    - OUTPUT: anonymize the response, leave the arguments tokenized.
+    - FULL: INPUT and OUTPUT together.
+    - PASSTHROUGH: touch neither.
     """
 
+    INPUT = "input"
+    OUTPUT = "output"
     FULL = "full"
-    INBOUND_ONLY = "inbound_only"
     PASSTHROUGH = "passthrough"
 
 
@@ -126,7 +132,9 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         thread_id = self._thread_id()
         allowed: tuple[type, ...] = (HumanMessage, AIMessage)
 
-        if self.tool_strategy is ToolCallStrategy.INBOUND_ONLY:
+        if self.tool_strategy is ToolCallStrategy.INPUT:
+            # INPUT left the tool response raw, so anonymize it here before the
+            # model sees it, unlike OUTPUT/FULL which already anonymized it.
             allowed = (HumanMessage, AIMessage, ToolMessage)
 
         return await self._rewrite(
@@ -152,16 +160,22 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         request: ToolCallRequest,
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
     ) -> ToolMessage | Command[Any]:
-        """Deanonymize the tool arguments, run the tool, re-anonymize its result."""
-        if self.tool_strategy is ToolCallStrategy.PASSTHROUGH:
+        """Route the tool call by strategy: deanonymize args, anonymize result."""
+        strategy = self.tool_strategy
+        if strategy is ToolCallStrategy.PASSTHROUGH:
             return await handler(request)
 
         thread_id = self._thread_id()
-        call = request.tool_call
-        call["args"] = await self._deanonymize_value(call["args"], thread_id)
+        deanonymize_input = strategy in (ToolCallStrategy.INPUT, ToolCallStrategy.FULL)
+        anonymize_output = strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
+
+        if deanonymize_input:
+            call = request.tool_call
+            call["args"] = await self._deanonymize_value(call["args"], thread_id)
+
         response = await handler(request)
 
-        if self.tool_strategy is ToolCallStrategy.FULL and (
+        if anonymize_output and (
             isinstance(response, ToolMessage) and isinstance(response.content, str)
         ):
             response.content = await self._anonymize(response.content, thread_id)
