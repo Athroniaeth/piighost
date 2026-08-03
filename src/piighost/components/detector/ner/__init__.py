@@ -9,7 +9,12 @@ from typing import Any
 
 from piighost.components.detector.ner.base import BaseNERDetector
 
-__all__ = ["BaseNERDetector", "Gliner2Detector", "SpacyDetector"]
+__all__ = [
+    "BaseNERDetector",
+    "Gliner2Detector",
+    "SpacyDetector",
+    "TransformersDetector",
+]
 
 
 def __getattr__(name: str) -> Any:
@@ -22,5 +27,11 @@ def __getattr__(name: str) -> Any:
         from piighost.components.detector.ner.spacy import SpacyDetector
 
         return SpacyDetector
+    if name == "TransformersDetector":
+        from piighost.components.detector.ner.transformers import (
+            TransformersDetector,
+        )
+
+        return TransformersDetector
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
