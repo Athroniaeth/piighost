@@ -52,6 +52,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.pipeline", "ThreadAnonymizationPipeline"),
     ("piighost.integrations.middleware", "ToolCallStrategy"),
     ("piighost.integrations.middleware", "InventedPlaceholderStrategy"),
+    ("piighost.integrations.middleware", "AssistantEntityStrategy"),
     ("piighost.conversation_memory", "AnyConversationMemory"),
     ("piighost.conversation_memory", "Forgotten"),
     ("piighost.conversation_memory", "InMemoryConversationMemory"),

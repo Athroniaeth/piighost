@@ -44,3 +44,20 @@ class InventedPlaceholderStrategy(Enum):
     KEEP = "keep"
     DROP = "drop"
     RAISE = "raise"
+
+
+class AssistantEntityStrategy(Enum):
+    """How the middleware treats entities the assistant introduces.
+
+    A value's provenance is the role of its first occurrence in the thread. A
+    value the assistant introduced is not user PII, so anonymizing it strips the
+    model of its world knowledge of that entity.
+
+    - PRESERVE: leave assistant-introduced values in clear.
+    - ANONYMIZE: anonymize them like user PII.
+    - IGNORE: do not analyze assistant messages at all, saving the detector.
+    """
+
+    PRESERVE = "preserve"
+    ANONYMIZE = "anonymize"
+    IGNORE = "ignore"
