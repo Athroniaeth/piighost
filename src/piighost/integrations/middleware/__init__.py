@@ -6,11 +6,13 @@ helpful ImportError, while importing this package never pulls langchain in.
 """
 
 from piighost.integrations.middleware.strategy import (
+    AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
 
 __all__ = [
+    "AssistantEntityStrategy",
     "InventedPlaceholderStrategy",
     "PIIAnonymizationMiddleware",
     "ToolCallStrategy",
