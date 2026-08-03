@@ -87,9 +87,7 @@ class TestTruePositives:
 
 class TestTrueNegatives:
     @pytest.mark.parametrize(("label", "value"), TRUE_NEGATIVES)
-    async def test_pattern_rejects_a_non_instance(
-        self, label: str, value: str
-    ) -> None:
+    async def test_pattern_rejects_a_non_instance(self, label: str, value: str) -> None:
         """The pattern does not match a value that is not a real instance."""
         assert await _detect(label, value) == []
 
