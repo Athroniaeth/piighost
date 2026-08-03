@@ -9,6 +9,7 @@ from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.conversation_memory.base import (
     AnyConversationMemory,
     Forgotten,
@@ -45,6 +46,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         expander: AnyDetectionExpander | None = None,
         entity_resolver: AnyEntityResolver | None = None,
         guard: AnyGuardRail | None = None,
+        observation_redactor: AnyPlaceholderFactory | None = None,
     ) -> None:
         """Store the stage components and the per-thread conversation memory."""
         super().__init__(
@@ -55,6 +57,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             expander,
             entity_resolver,
             guard,
+            observation_redactor,
         )
         self.memory = memory
 
@@ -74,30 +77,52 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         Raises:
             PIIRemainingError: If a guard flags PII left in the output.
         """
-        detections = await self._detect(text, thread_id, role)
-        thread_tokens = await self._thread_tokens(thread_id)
-        token_of = {
-            detection: token
-            for entity, token in thread_tokens.items()
-            for detection in entity.detections
-        }
+        with self._tracer.span("piighost.anonymize") as root:
+            root.set_attribute("langfuse.session.id", thread_id)
 
-        message_entities = self.linker.link(detections)
-        message_tokens = {
-            entity: token_of[entity.detections[0]]
-            for entity in message_entities
-            if entity.detections[0] in token_of
-        }
-        preserved = frozenset(
-            entity.text.casefold()
-            for entity in message_entities
-            if entity.detections[0] not in token_of
-        )
-        anonymizable = list(message_tokens)
-        rendered = self.anonymizer.render(text, anonymizable, message_tokens)
+            with self._tracer.span("piighost.detect") as span:
+                detections, cache_hit = await self._detect(text, thread_id, role)
+                span.set_attribute("cache_hit", cache_hit)
+                span.set_attribute("count", len(detections))
+                span.set_output(self._payload_detections(detections))
+            root.set_input(self._payload_text(text, detections))
 
-        await self._guard(rendered, preserved)
-        return Anonymization(text=rendered, tokens=message_tokens)
+            thread_tokens = await self._thread_tokens(thread_id)
+            token_of = {
+                detection: token
+                for entity, token in thread_tokens.items()
+                for detection in entity.detections
+            }
+
+            with self._tracer.span("piighost.link") as span:
+                message_entities = self.linker.link(detections)
+                span.set_output(self._payload_entities(message_entities))
+
+            message_tokens = {
+                entity: token_of[entity.detections[0]]
+                for entity in message_entities
+                if entity.detections[0] in token_of
+            }
+            preserved = frozenset(
+                entity.text.casefold()
+                for entity in message_entities
+                if entity.detections[0] not in token_of
+            )
+            anonymizable = list(message_tokens)
+
+            with self._tracer.span("piighost.render") as span:
+                rendered = self.anonymizer.render(text, anonymizable, message_tokens)
+                span.set_attribute("tokens", len(message_tokens))
+                span.set_output(rendered)
+
+            with self._stage_span("piighost.guard", self.guard) as span:
+                verdict = await self._guard(rendered, preserved)
+                if verdict is not None:
+                    labels = sorted({d.label for d in verdict.detections})
+                    span.set_output({"flagged": verdict.flagged, "labels": labels})
+
+            root.set_output(rendered)
+            return Anonymization(text=rendered, tokens=message_tokens)
 
     async def anonymize_corrected(
         self,
@@ -129,8 +154,13 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         The thread's tokens are rebuilt from its memory, so any text carrying
         them is restored, including a model reply the pipeline never anonymized.
         """
-        thread_tokens = await self._thread_tokens(thread_id)
-        return self.anonymizer.deanonymize(text, thread_tokens)
+        with self._tracer.span("piighost.deanonymize") as root:
+            root.set_input(text)
+            thread_tokens = await self._thread_tokens(thread_id)
+            restored = self.anonymizer.deanonymize(text, thread_tokens)
+            if self.observation_redactor is None:
+                root.set_output(restored)
+            return restored
 
     async def forget_thread(self, thread_id: str) -> Forgotten:
         """Erase a thread's memory and report how much was dropped."""
@@ -141,12 +171,12 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         text: str,
         thread_id: str,
         role: MessageRole = MessageRole.USER,
-    ) -> list[Detection]:
-        """Return a message's detections, from cache or a fresh cleaned detection."""
+    ) -> tuple[list[Detection], bool]:
+        """Return a message's detections and whether they came from the cache."""
         cached = await self.memory.get_detections(thread_id, text)
 
         if cached is not None:
-            return cached
+            return cached, True
 
         detections = await self.detector.detect(text)
         detections = self._resolve_overlaps(detections)
@@ -157,7 +187,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             detections=detections,
             role=role,
         )
-        return detections
+        return detections, False
 
     async def _thread_tokens(self, thread_id: str) -> Mapping[Entity, PreservationT]:
         """Assign a token to every anonymizable entity across the thread.
