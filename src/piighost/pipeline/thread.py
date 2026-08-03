@@ -1,14 +1,14 @@
 """Thread-aware anonymization pipeline: tokens stay consistent across a thread."""
 
-from piighost.anonymizer.base import Anonymization, AnyAnonymizer
+from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
 from piighost.conversation_memory.base import AnyConversationMemory, Forgotten
-from piighost.detector.base import AnyDetector
-from piighost.entity_resolver.base import AnyEntityResolver
-from piighost.expander.base import AnyDetectionExpander
-from piighost.guard.base import AnyGuardRail
-from piighost.linker.base import AnyEntityLinker
+from piighost.components.detector.base import AnyDetector
+from piighost.components.entity_resolver.base import AnyEntityResolver
+from piighost.components.expander.base import AnyDetectionExpander
+from piighost.components.guard.base import AnyGuardRail
+from piighost.components.linker.base import AnyEntityLinker
 from piighost.models import Detection
-from piighost.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 
 
@@ -67,7 +67,8 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """
         detections = await self._detect(text, thread_id)
         union = await self.memory.get_detections(thread_id) or []
-        thread_entities = self._resolve_entities(self.linker.link(union))
+        entities = self.linker.link(union)
+        thread_entities = self._resolve_entities(entities)
         thread_tokens = self.anonymizer.create(thread_entities)
         token_of = {
             detection: token
