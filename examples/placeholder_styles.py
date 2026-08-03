@@ -27,10 +27,10 @@ from piighost.placeholder import (
     RedactPlaceholderFactory,
 )
 
-TEXT = "Contact Emma at emma@example.com."
-DETECTOR = ExactMatchDetector({"Emma": "PERSON", "emma@example.com": "EMAIL"})
+text = "Contact Emma at emma@example.com."
+detector = ExactMatchDetector({"Emma": "PERSON", "emma@example.com": "EMAIL"})
 
-FACTORIES: dict[str, AnyPlaceholderFactory] = {
+factories: dict[str, AnyPlaceholderFactory] = {
     "redact": RedactPlaceholderFactory(),
     "label": LabelPlaceholderFactory(),
     "label counter": LabelCounterPlaceholderFactory(),
@@ -41,13 +41,15 @@ FACTORIES: dict[str, AnyPlaceholderFactory] = {
 
 async def main() -> None:
     """Anonymize one text with each placeholder factory and print the result."""
-    print("text:", TEXT, "\n")
+    print("text:", text, "\n")
 
-    for name, factory in FACTORIES.items():
+    for name, factory in factories.items():
         pipeline = AnonymizationPipeline(
-            DETECTOR, ExactEntityLinker(), Anonymizer(factory)
+            detector,
+            ExactEntityLinker(),
+            Anonymizer(factory),
         )
-        result = await pipeline.anonymize(TEXT)
+        result = await pipeline.anonymize(text)
         print(f"{name:>13}: {result.text}")
 
 
