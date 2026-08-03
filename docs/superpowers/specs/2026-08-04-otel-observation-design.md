@@ -89,7 +89,10 @@ Per `anonymize` call:
     detections came from conversation memory and the detector did not run).
   - `piighost.overlap`, `piighost.expand`, `piighost.entity_resolve`: emitted
     only when the corresponding optional component is configured. No empty spans
-    for disabled stages.
+    for disabled stages. These three are emitted by the base pipeline only: in
+    the thread pipeline the overlap and expand stages run inside the cached
+    detect step (on a cache miss) and entity resolution inside the thread-wide
+    token assignment, so they are not separately spanned there.
   - `piighost.link`: output the entities (value, label, occurrence count).
   - `piighost.render`: output the anonymized text, attribute `tokens` (count).
   - `piighost.guard`: only when a guard is configured; output the verdict
