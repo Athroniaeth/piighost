@@ -9,7 +9,11 @@ from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
-from piighost.conversation_memory.base import AnyConversationMemory, Forgotten
+from piighost.conversation_memory.base import (
+    AnyConversationMemory,
+    Forgotten,
+    MessageRole,
+)
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 
@@ -58,16 +62,19 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         self,
         text: str,
         thread_id: str,
+        role: MessageRole = MessageRole.USER,
     ) -> Anonymization[PreservationT]:
         """Anonymize a message with tokens consistent across its thread.
 
         The thread_id is required: there is no shared default, so two callers
-        cannot fall into one thread and leak each other's PII.
+        cannot fall into one thread and leak each other's PII. The role dates the
+        values the message introduces: a value first introduced by the assistant
+        is left in clear, since it is not user PII.
 
         Raises:
             PIIRemainingError: If a guard flags PII left in the output.
         """
-        detections = await self._detect(text, thread_id)
+        detections = await self._detect(text, thread_id, role)
         thread_tokens = await self._thread_tokens(thread_id)
         token_of = {
             detection: token
@@ -77,9 +84,12 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
 
         message_entities = self.linker.link(detections)
         message_tokens = {
-            entity: token_of[entity.detections[0]] for entity in message_entities
+            entity: token_of[entity.detections[0]]
+            for entity in message_entities
+            if entity.detections[0] in token_of
         }
-        rendered = self.anonymizer.render(text, message_entities, message_tokens)
+        anonymizable = list(message_tokens)
+        rendered = self.anonymizer.render(text, anonymizable, message_tokens)
 
         await self._guard(rendered)
         return Anonymization(text=rendered, tokens=message_tokens)
@@ -97,7 +107,12 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """Erase a thread's memory and report how much was dropped."""
         return await self.memory.forget(thread_id)
 
-    async def _detect(self, text: str, thread_id: str) -> list[Detection]:
+    async def _detect(
+        self,
+        text: str,
+        thread_id: str,
+        role: MessageRole = MessageRole.USER,
+    ) -> list[Detection]:
         """Return a message's detections, from cache or a fresh cleaned detection."""
         cached = await self.memory.get_detections(thread_id, text)
 
@@ -111,12 +126,24 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             message=text,
             thread_id=thread_id,
             detections=detections,
+            role=role,
         )
         return detections
 
     async def _thread_tokens(self, thread_id: str) -> Mapping[Entity, PreservationT]:
-        """Assign a token to every entity across the thread's stored detections."""
+        """Assign a token to every anonymizable entity across the thread.
+
+        An entity whose value was first introduced by the assistant is left out,
+        so it gets no token and stays in clear.
+        """
         union = await self.memory.get_detections(thread_id) or []
         entities = self.linker.link(union)
         thread_entities = self._resolve_entities(entities)
-        return self.anonymizer.create(thread_entities)
+        provenance = await self.memory.get_provenance(thread_id)
+
+        anonymizable = [
+            entity
+            for entity in thread_entities
+            if provenance.get(entity.text.casefold()) is not MessageRole.ASSISTANT
+        ]
+        return self.anonymizer.create(anonymizable)
