@@ -142,7 +142,8 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is not None:
                 messages += 1
-                loaded = _loads(self._cipher.decrypt(_as_bytes(blob)))
+                json_detections = self._cipher.decrypt(_as_bytes(blob))
+                loaded = _loads(json_detections)
                 detections += len(loaded)
             keys.append(key)
 

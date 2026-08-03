@@ -57,8 +57,9 @@ class Detection:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
         """Rebuild a detection from the flat dict produced by to_dict."""
+        span = Span(data["start"], data["end"])
         return cls(
-            span=Span(data["start"], data["end"]),
+            span=span,
             text=data["text"],
             label=data["label"],
             confidence=data["confidence"],
