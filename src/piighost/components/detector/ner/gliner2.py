@@ -44,7 +44,7 @@ class Gliner2Detector(BaseNERDetector):
         result = await self._run_blocking(
             self.model.extract_entities,
             text,
-            entity_types=self.internal_labels,
+            self.internal_labels,
             threshold=self.threshold,
             include_spans=True,
             include_confidence=True,
