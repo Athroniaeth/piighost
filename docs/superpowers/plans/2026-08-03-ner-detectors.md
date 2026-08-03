@@ -130,7 +130,12 @@ from piighost.models import Detection, Span
 class _FakeNERDetector(BaseNERDetector):
     """A BaseNERDetector whose raw detections are injected, no model."""
 
-    def __init__(self, raw, labels=None, max_concurrency=None):
+    def __init__(
+        self,
+        raw: list[Detection],
+        labels: list[str] | dict[str, str] | None = None,
+        max_concurrency: int | None = None,
+    ) -> None:
         super().__init__(labels, max_concurrency=max_concurrency)
         self._raw = raw
 
