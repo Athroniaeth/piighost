@@ -87,6 +87,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "PIIRemainingError"),
     ("piighost.exceptions", "MiddlewareError"),
     ("piighost.exceptions", "InventedPlaceholderError"),
+    ("piighost.exceptions", "MissingThreadIdError"),
+    ("piighost.exceptions", "UnrecognizableFactoryError"),
 ]
 
 
