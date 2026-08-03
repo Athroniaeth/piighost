@@ -1,0 +1,18 @@
+"""LangChain middleware for transparent PII anonymization.
+
+Needs the langchain optional dependency (pip install piighost[middleware]), so
+its module is imported lazily: reaching for a symbol without the extra raises a
+helpful ImportError, while importing this package never pulls langchain in.
+"""
+
+__all__ = ["PIIAnonymizationMiddleware", "ToolCallStrategy"]
+
+
+def __getattr__(name: str) -> object:
+    """Import the middleware on demand so its optional dependency stays optional."""
+    if name in __all__:
+        from piighost.integrations.middleware import langchain
+
+        return getattr(langchain, name)
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
