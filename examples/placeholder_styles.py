@@ -14,11 +14,11 @@ with: uv run examples/placeholder_styles.py
 
 import asyncio
 
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.linker import ExactEntityLinker
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
 from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import (
+from piighost.components.placeholder import (
     AnyPlaceholderFactory,
     LabelCounterPlaceholderFactory,
     LabelHashPlaceholderFactory,

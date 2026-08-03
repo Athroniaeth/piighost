@@ -5,16 +5,16 @@ from typing import Generic, Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
 
-from piighost.anonymizer.base import Anonymization, AnyAnonymizer
-from piighost.detector.base import AnyDetector
-from piighost.entity_resolver.base import AnyEntityResolver
+from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
+from piighost.components.detector.base import AnyDetector
+from piighost.components.entity_resolver.base import AnyEntityResolver
 from piighost.exceptions import PIIRemainingError
-from piighost.expander.base import AnyDetectionExpander
-from piighost.guard.base import AnyGuardRail, GuardVerdict
-from piighost.linker.base import AnyEntityLinker
+from piighost.components.expander.base import AnyDetectionExpander
+from piighost.components.guard.base import AnyGuardRail, GuardVerdict
+from piighost.components.linker.base import AnyEntityLinker
 from piighost.models import Detection, Entity
-from piighost.overlap_resolver.base import AnyOverlapResolver
-from piighost.placeholder.tags import PlaceholderPreservation
+from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.placeholder.tags import PlaceholderPreservation
 
 PreservationT = TypeVar(
     "PreservationT",
