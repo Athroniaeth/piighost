@@ -758,7 +758,7 @@ Replace `_guard`:
             raise _pii_remaining(verdict)
 ```
 
-In `src/piighost/pipeline/thread.py`, restore the `preserved` local and pass it to `_guard`. Change the tail of `anonymize` back to:
+In `src/piighost/pipeline/thread.py`, add the `preserved` local and pass it to `_guard`. Keep the existing `anonymizable = list(message_tokens)` render line from Task 4 (Anonymizer.render looks up `tokens[entity]` for every entity it is given, so only the tokenized entities may be passed). The tail of `anonymize` becomes:
 
 ```python
         message_tokens = {
@@ -771,7 +771,8 @@ In `src/piighost/pipeline/thread.py`, restore the `preserved` local and pass it 
             for entity in message_entities
             if entity.detections[0] not in token_of
         )
-        rendered = self.anonymizer.render(text, message_entities, message_tokens)
+        anonymizable = list(message_tokens)
+        rendered = self.anonymizer.render(text, anonymizable, message_tokens)
 
         await self._guard(rendered, preserved)
         return Anonymization(text=rendered, tokens=message_tokens)
