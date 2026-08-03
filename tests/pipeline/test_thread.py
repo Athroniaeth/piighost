@@ -82,9 +82,16 @@ class TestForget:
 
 
 class TestDeanonymize:
-    async def test_round_trips_through_deanonymize(self) -> None:
+    async def test_round_trips_a_message_from_the_thread(self) -> None:
         """Deanonymizing a message's output restores its original text."""
         pipeline = _pipeline()
         result = await pipeline.anonymize("Emma met Liam", "t1")
-        restored = pipeline.deanonymize(result.text, result.tokens)
+        restored = await pipeline.deanonymize(result.text, "t1")
         assert restored == "Emma met Liam"
+
+    async def test_restores_tokens_the_pipeline_never_anonymized(self) -> None:
+        """A reply built from thread tokens is restored, though never anonymized."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("Emma met Liam", "t1")
+        reply = "Thanks <<PERSON:1>> and <<PERSON:2>>."
+        assert await pipeline.deanonymize(reply, "t1") == "Thanks Emma and Liam."

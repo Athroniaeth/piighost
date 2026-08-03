@@ -1,14 +1,16 @@
 """Thread-aware anonymization pipeline: tokens stay consistent across a thread."""
 
+from collections.abc import Mapping
+
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
-from piighost.conversation_memory.base import AnyConversationMemory, Forgotten
 from piighost.components.detector.base import AnyDetector
 from piighost.components.entity_resolver.base import AnyEntityResolver
 from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail
 from piighost.components.linker.base import AnyEntityLinker
-from piighost.models import Detection
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.conversation_memory.base import AnyConversationMemory, Forgotten
+from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 
 
@@ -66,10 +68,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             PIIRemainingError: If a guard flags PII left in the output.
         """
         detections = await self._detect(text, thread_id)
-        union = await self.memory.get_detections(thread_id) or []
-        entities = self.linker.link(union)
-        thread_entities = self._resolve_entities(entities)
-        thread_tokens = self.anonymizer.create(thread_entities)
+        thread_tokens = await self._thread_tokens(thread_id)
         token_of = {
             detection: token
             for entity, token in thread_tokens.items()
@@ -83,7 +82,16 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         rendered = self.anonymizer.render(text, message_entities, message_tokens)
 
         await self._guard(rendered)
-        return Anonymization(text=rendered, tokens=message_tokens,)
+        return Anonymization(text=rendered, tokens=message_tokens)
+
+    async def deanonymize(self, text: str, thread_id: str) -> str:
+        """Return the text with every token from the thread replaced by its value.
+
+        The thread's tokens are rebuilt from its memory, so any text carrying
+        them is restored, including a model reply the pipeline never anonymized.
+        """
+        thread_tokens = await self._thread_tokens(thread_id)
+        return self.anonymizer.deanonymize(text, thread_tokens)
 
     async def forget_thread(self, thread_id: str) -> Forgotten:
         """Erase a thread's memory and report how much was dropped."""
@@ -105,3 +113,10 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             detections=detections,
         )
         return detections
+
+    async def _thread_tokens(self, thread_id: str) -> Mapping[Entity, PreservationT]:
+        """Assign a token to every entity across the thread's stored detections."""
+        union = await self.memory.get_detections(thread_id) or []
+        entities = self.linker.link(union)
+        thread_entities = self._resolve_entities(entities)
+        return self.anonymizer.create(thread_entities)
