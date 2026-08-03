@@ -33,15 +33,19 @@ class Anonymizer(Generic[PreservationT]):
         """Store the placeholder factory that assigns a token to each entity."""
         self.factory = ph_factory
 
-    def anonymize(
+    def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT]:
+        """Return the token the factory assigns to each entity."""
+        return self.factory.create(entities)
+
+    def render(
         self,
         text: str,
         entities: list[Entity],
-    ) -> Anonymization[PreservationT]:
-        """Return the anonymized text and the token used for each entity."""
+        tokens: Mapping[Entity, str],
+    ) -> str:
+        """Return text with each entity's spans replaced by its given token."""
         cursor = 0
         pieces: list[str] = []
-        tokens = self.factory.create(entities)
 
         edits = sorted(
             (span, tokens[entity]) for entity in entities for span in entity.spans
@@ -53,7 +57,16 @@ class Anonymizer(Generic[PreservationT]):
             cursor = span.end
 
         pieces.append(text[cursor:])
-        return Anonymization(text="".join(pieces), tokens=tokens)
+        return "".join(pieces)
+
+    def anonymize(
+        self,
+        text: str,
+        entities: list[Entity],
+    ) -> Anonymization[PreservationT]:
+        """Return the anonymized text and the token used for each entity."""
+        tokens = self.create(entities)
+        return Anonymization(text=self.render(text, entities, tokens), tokens=tokens)
 
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
         """Return the text with every known token replaced by its entity value."""

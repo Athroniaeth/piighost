@@ -57,6 +57,39 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
         """
         ...
 
+    def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT_co]:
+        """Return the token each entity is replaced with, without touching text.
+
+        Splitting token assignment out of rendering lets a caller assign tokens
+        over one entity set, such as a whole conversation, then render several
+        texts against those same tokens.
+
+        Args:
+            entities: The entities to assign tokens to.
+
+        Returns:
+            The token each entity maps to.
+        """
+        ...
+
+    def render(
+        self,
+        text: str,
+        entities: list[Entity],
+        tokens: Mapping[Entity, str],
+    ) -> str:
+        """Return text with each entity's spans replaced by its given token.
+
+        Args:
+            text: The text to render.
+            entities: The entities whose spans to replace, non-overlapping.
+            tokens: The token to use for each entity.
+
+        Returns:
+            The text with the entities' spans replaced.
+        """
+        ...
+
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
         """Return the text with every known token replaced by its entity value.
 
