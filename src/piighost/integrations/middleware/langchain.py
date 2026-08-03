@@ -17,7 +17,11 @@ from typing_extensions import TypeVar
 from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
-from piighost.exceptions import InventedPlaceholderError
+from piighost.exceptions import (
+    InventedPlaceholderError,
+    MissingThreadIdError,
+    UnrecognizableFactoryError,
+)
 from piighost.integrations.middleware.strategy import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
@@ -74,7 +78,7 @@ def _thread_id(require_thread_id: bool) -> str:
         return thread_id
 
     if require_thread_id:
-        raise ValueError(
+        raise MissingThreadIdError(
             "No thread_id in the LangGraph config and require_thread_id=True; "
             "pass config={'configurable': {'thread_id': ...}} on the agent call."
         )
@@ -135,7 +139,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         # when the invented-placeholder strategy would have found nothing.
         factory = getattr(pipeline.anonymizer, "factory", None)
         if not isinstance(factory, BaseDelimitedPlaceholderFactory):
-            raise TypeError(
+            raise UnrecognizableFactoryError(
                 "PIIAnonymizationMiddleware needs a pipeline built on a delimited "
                 "placeholder factory, whose tokens can be found again to detect "
                 "invented ones; got a factory without a recognizable grammar."

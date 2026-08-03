@@ -12,7 +12,7 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.conversation_memory import InMemoryConversationMemory
-from piighost.exceptions import InventedPlaceholderError
+from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
 from piighost.integrations.middleware import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
@@ -337,5 +337,5 @@ class TestFactoryContract:
             Anonymizer(MaskPlaceholderFactory()),
             InMemoryConversationMemory(),
         )
-        with pytest.raises(TypeError, match="delimited"):
+        with pytest.raises(UnrecognizableFactoryError, match="delimited"):
             module.PIIAnonymizationMiddleware(pipeline)
