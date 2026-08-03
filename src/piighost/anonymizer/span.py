@@ -29,9 +29,9 @@ class Anonymizer(Generic[PreservationT]):
         factory: The placeholder factory that names each entity.
     """
 
-    def __init__(self, factory: AnyPlaceholderFactory[PreservationT]) -> None:
+    def __init__(self, ph_factory: AnyPlaceholderFactory[PreservationT]) -> None:
         """Store the placeholder factory that assigns a token to each entity."""
-        self.factory = factory
+        self.factory = ph_factory
 
     def anonymize(
         self,
