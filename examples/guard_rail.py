@@ -25,11 +25,13 @@ from piighost.placeholder import RedactPlaceholderFactory
 
 async def main() -> None:
     """Anonymize a clean text, then one whose leftover PII trips the guard."""
+    ph_factory = RedactPlaceholderFactory()
+    guard_detector = ExactMatchDetector({"emma@example.com": "EMAIL"})
     pipeline = AnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON"}),
         ExactEntityLinker(),
-        Anonymizer(RedactPlaceholderFactory()),
-        guard=DetectorGuardRail(ExactMatchDetector({"emma@example.com": "EMAIL"})),
+        Anonymizer(ph_factory),
+        guard=DetectorGuardRail(guard_detector),
     )
 
     clean = await pipeline.anonymize("Emma says hello.")
