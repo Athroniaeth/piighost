@@ -10,11 +10,26 @@ from piighost.expander import WordBoundaryExpander
 from piighost.guard import DetectorGuardRail
 from piighost.linker import ExactEntityLinker
 from piighost.overlap_resolver import ConfidenceOverlapResolver
-from piighost.pipeline import AnonymizationPipeline
+from piighost.pipeline import AnonymizationPipeline, AnyPipeline
 from piighost.placeholder import (
     LabelCounterPlaceholderFactory,
     RedactPlaceholderFactory,
 )
+
+
+def _pipeline() -> AnonymizationPipeline:
+    """Build a minimal working pipeline for conformance checks."""
+    return AnonymizationPipeline(
+        ExactMatchDetector({"Emma": "PERSON"}),
+        ExactEntityLinker(),
+        Anonymizer(RedactPlaceholderFactory()),
+    )
+
+
+class TestConformance:
+    def test_satisfies_the_port(self) -> None:
+        """AnonymizationPipeline is an AnyPipeline."""
+        assert isinstance(_pipeline(), AnyPipeline)
 
 
 class TestAnonymize:

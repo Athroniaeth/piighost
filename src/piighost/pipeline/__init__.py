@@ -4,6 +4,6 @@ base.py holds AnonymizationPipeline, the one-text pipeline; thread-aware
 pipelines live in sibling modules.
 """
 
-from piighost.pipeline.base import AnonymizationPipeline
+from piighost.pipeline.base import AnonymizationPipeline, AnyPipeline
 
-__all__ = ["AnonymizationPipeline"]
+__all__ = ["AnonymizationPipeline", "AnyPipeline"]
