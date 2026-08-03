@@ -7,7 +7,7 @@ conversation_memory package never imports it eagerly.
 Layout, per thread, with the message hashed into the key and the value
 encrypted, so a store leak reveals neither the message nor the PII:
 
-  {namespace}:{thread_id}:msg:{hash}  -> encrypt(json(detections))
+  {namespace}:{thread_id}:msg:{hash}  -> encrypt(json({role, detections}))
   {namespace}:{thread_id}:index       -> [hash, ...] in first-seen order
 
 The thread_id stays clear as a key namespace so a thread can be enumerated and
@@ -18,7 +18,7 @@ import importlib.util
 import json
 
 from piighost.crypto.cipher.base import AnyCipher
-from piighost.conversation_memory.base import Forgotten
+from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
 
@@ -33,9 +33,13 @@ from redis.asyncio import Redis  # noqa: E402
 _DEFAULT_NAMESPACE = "piighost"
 
 
-def _dumps(detections: list[Detection]) -> bytes:
-    """Serialize detections to JSON bytes for encrypted storage."""
-    return json.dumps([detection.to_dict() for detection in detections]).encode()
+def _dumps(role: MessageRole, detections: list[Detection]) -> bytes:
+    """Serialize a message's role and detections to JSON bytes for storage."""
+    payload = {
+        "role": role.value,
+        "detections": [detection.to_dict() for detection in detections],
+    }
+    return json.dumps(payload).encode()
 
 
 def _as_bytes(value: bytes | str) -> bytes:
@@ -43,9 +47,12 @@ def _as_bytes(value: bytes | str) -> bytes:
     return value if isinstance(value, bytes) else value.encode()
 
 
-def _loads(data: bytes) -> list[Detection]:
-    """Rebuild detections from the JSON bytes written by _dumps."""
-    return [Detection.from_dict(item) for item in json.loads(data)]
+def _loads(data: bytes) -> tuple[MessageRole, list[Detection]]:
+    """Rebuild a message's role and detections from the bytes written by _dumps."""
+    payload = json.loads(data)
+    role = MessageRole(payload["role"])
+    detections = [Detection.from_dict(item) for item in payload["detections"]]
+    return role, detections
 
 
 class RedisConversationMemory:
@@ -88,11 +95,12 @@ class RedisConversationMemory:
         thread_id: str,
         message: str,
         detections: list[Detection],
+        role: MessageRole = MessageRole.USER,
     ) -> None:
         """Cache the detections found in a message, replacing any prior entry."""
         digest_message = self._hasher.hash(message)
         key = self._message_key(thread_id, digest_message)
-        json_detections = _dumps(detections)
+        json_detections = _dumps(role, detections)
 
         blob = self._cipher.encrypt(json_detections)
         is_new = not await self._client.exists(key)
@@ -118,7 +126,8 @@ class RedisConversationMemory:
             if blob is None:
                 return None
             json_detections = self._cipher.decrypt(_as_bytes(blob))
-            return _loads(json_detections)
+            _, detections = _loads(json_detections)
+            return detections
 
         detections: list[Detection] = []
         for digest_message in await self._digests(thread_id):
@@ -126,9 +135,26 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is not None:
                 json_detections = self._cipher.decrypt(_as_bytes(blob))
-                detections.extend(_loads(json_detections))
+                _, message_detections = _loads(json_detections)
+                detections.extend(message_detections)
 
         return detections
+
+    async def get_provenance(self, thread_id: str) -> dict[str, MessageRole]:
+        """Return the first-occurrence role of every value in the thread."""
+        provenance: dict[str, MessageRole] = {}
+
+        for digest_message in await self._digests(thread_id):
+            key = self._message_key(thread_id, digest_message)
+            blob = await self._client.get(key)
+            if blob is None:
+                continue
+            json_detections = self._cipher.decrypt(_as_bytes(blob))
+            role, detections = _loads(json_detections)
+            for detection in detections:
+                provenance.setdefault(detection.text.casefold(), role)
+
+        return provenance
 
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""
@@ -143,7 +169,7 @@ class RedisConversationMemory:
             if blob is not None:
                 messages += 1
                 json_detections = self._cipher.decrypt(_as_bytes(blob))
-                loaded = _loads(json_detections)
+                _, loaded = _loads(json_detections)
                 detections += len(loaded)
             keys.append(key)
 
