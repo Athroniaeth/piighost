@@ -31,6 +31,8 @@ TRUE_POSITIVES: list[tuple[str, str]] = [
     ("US_SSN", "123-45-6789"),
     ("US_PHONE", "+1 (415) 555-2671"),
     ("US_PHONE", "415-555-2671"),
+    # A bare parenthesized area code is matched whole, parentheses included.
+    ("US_PHONE", "(415) 555-2671"),
     ("US_ZIP", "94103-1234"),
     ("US_ZIP", "94103"),
     ("IBAN", "GB82WEST12345698765432"),
@@ -47,6 +49,21 @@ TRUE_NEGATIVES: list[tuple[str, str]] = [
     ("IPV4", "999.999.999.999"),
     ("US_SSN", "1234-56-789"),
     ("FR_PHONE", "0012345678"),
+    # A URL needs an http(s) scheme; a bare host or another scheme is ignored.
+    ("URL", "example.com"),
+    ("URL", "ftp://example.com"),
+    # A credit card is 13 to 19 digits; a short digit run is not one.
+    ("CREDIT_CARD", "4111 1111"),
+    # A ZIP is five digits; four is not one.
+    ("US_ZIP", "1234"),
+    # An IBAN needs a body of at least eleven alphanumerics after the prefix.
+    ("IBAN", "DE44"),
+    # A French IBAN must start with the literal FR country code.
+    ("FR_IBAN", "DE7630006000011234567890189"),
+    # A NIR month is 01 to 12; month 13 is rejected.
+    ("FR_NIR", "180137505600157"),
+    # A SIRET is fourteen digits; thirteen is not one.
+    ("FR_SIRET", "7328293200007"),
 ]
 
 # label, value, wrapper template with {v} where the value goes.
