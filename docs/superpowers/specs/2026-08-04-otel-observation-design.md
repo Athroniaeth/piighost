@@ -49,6 +49,12 @@ overhead plus silent degradation when no tracer is configured.
   custodian in the default mode; this is documented, not warned at runtime.
 - **No timestamp-spacing hack.** OTel timestamps are nanosecond-precision and
   carried through OTLP, so the v1 pacing workaround is dropped.
+- **Payloads are built even when no provider is configured.** When
+  `opentelemetry-api` is importable (it often is, transitively), the seam is
+  OTel-backed and every anonymize call serializes its payloads into attributes
+  that a non-recording span then drops. Measured under a microsecond of overhead
+  for typical texts, this is accepted; gating on `span.is_recording()` is the
+  known optimization if profiling ever shows otherwise.
 
 ## Architecture
 
