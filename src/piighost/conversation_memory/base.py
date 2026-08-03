@@ -14,10 +14,24 @@ This is the pairwise exception to the always-template rule, the same reason the
 fuzzy entity resolver stands apart from the linker.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import Enum
 from typing import Protocol, runtime_checkable
 
 from piighost.models import Detection
+
+
+class MessageRole(Enum):
+    """Who authored a message, used to date a value's first occurrence.
+
+    USER for a message from the person, ASSISTANT for one from the model. A
+    value's provenance is the role of its earliest occurrence in the thread, so
+    a value the assistant introduced can be left in clear.
+    """
+
+    USER = "user"
+    ASSISTANT = "assistant"
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +61,7 @@ class AnyConversationMemory(Protocol):
         thread_id: str,
         message: str,
         detections: list[Detection],
+        role: MessageRole = MessageRole.USER,
     ) -> None:
         """Cache the detections found in a message, replacing any prior entry.
 
@@ -54,6 +69,24 @@ class AnyConversationMemory(Protocol):
             thread_id: The conversation the message belongs to.
             message: The message the detections were found in, the cache key.
             detections: The detections found in the message, possibly empty.
+            role: Who authored the message, dating the values it introduces.
+        """
+        ...
+
+    async def get_provenance(self, thread_id: str) -> Mapping[str, MessageRole]:
+        """Return, per value, the role of its first occurrence in the thread.
+
+        The value is the detection text, casefolded, so case variants share one
+        entry. The role is that of the earliest message holding the value, in
+        first-seen order, so a value the assistant introduced reads as ASSISTANT
+        even if a later user message repeats it.
+
+        Args:
+            thread_id: The conversation to read.
+
+        Returns:
+            A mapping from each casefolded value to its first-occurrence role,
+            empty for a thread never written to.
         """
         ...
 

@@ -7,13 +7,18 @@ so it is imported lazily: reaching for it without the extra raises a helpful
 ImportError, while importing this package never pulls redis in.
 """
 
-from piighost.conversation_memory.base import AnyConversationMemory, Forgotten
+from piighost.conversation_memory.base import (
+    AnyConversationMemory,
+    Forgotten,
+    MessageRole,
+)
 from piighost.conversation_memory.memory import InMemoryConversationMemory
 
 __all__ = [
     "AnyConversationMemory",
     "Forgotten",
     "InMemoryConversationMemory",
+    "MessageRole",
     "RedisConversationMemory",
 ]
 

@@ -55,6 +55,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.conversation_memory", "AnyConversationMemory"),
     ("piighost.conversation_memory", "Forgotten"),
     ("piighost.conversation_memory", "InMemoryConversationMemory"),
+    ("piighost.conversation_memory", "MessageRole"),
     ("piighost.crypto.hasher", "AnyHasher"),
     ("piighost.crypto.hasher", "BaseHasher"),
     ("piighost.crypto.hasher", "Sha256Hasher"),
