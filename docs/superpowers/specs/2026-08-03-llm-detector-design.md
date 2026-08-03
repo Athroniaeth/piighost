@@ -55,7 +55,10 @@ directly (an LLM call is async I/O, so it does not use the base's
 `_run_blocking` thread offload):
 
 1. Return `[]` immediately when `text` is empty.
-2. `result = await self._chain.ainvoke({"labels": <internal labels joined by ", ">, "text": text})`.
+2. Format the messages with LangChain's substitution and call the structured
+   model: `messages = self._prompt_template.format_messages(labels=<internal
+   labels joined by ", ">, text=text)` then `result = await
+   self._structured.ainvoke(messages)`.
 3. Read `entities = getattr(result, "entities", None)`. When it is `None` (the
    provider did not comply with the schema), log a warning and return `[]`.
 4. For each extracted entity, find every occurrence of `entity.text` in the
@@ -75,11 +78,14 @@ prompt: str | None = None, provider: str | None = None)`:
   serves synchronous offloaded models, and the LLM call is already async).
 - When `model` is a `str`, loads it with `init_chat_model(model,
   model_provider=provider)`; otherwise uses the instance as-is.
-- Builds the structured-output schema from `internal_labels`, then composes the
-  chain: `ChatPromptTemplate.from_messages([("system", self._prompt), ("human",
-  "{text}")]) | model.with_structured_output(self._schema)`.
-- Stores the prompt, defaulting to a built-in PII-extraction template when
-  `None`.
+- Builds the structured-output schema from `internal_labels`, stores the
+  structured model `self._structured = model.with_structured_output(self._schema)`
+  and the prompt template `self._prompt_template =
+  ChatPromptTemplate.from_messages([("system", self._prompt), ("human",
+  "{text}")])`. These are kept separate (rather than piped into one LCEL chain)
+  so the structured model can be faked with a plain object exposing `ainvoke`.
+- Stores the prompt string, defaulting to a built-in PII-extraction template
+  when `None`.
 
 Structured schema (as v1): a helper `_make_schema(labels)` builds a runtime
 `Enum` of the labels, then a pydantic model `_Extraction` with `entities:
