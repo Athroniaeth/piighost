@@ -31,6 +31,7 @@ if importlib.util.find_spec("redis") is None:
 from redis.asyncio import Redis  # noqa: E402
 
 _DEFAULT_NAMESPACE = "piighost"
+"""Default key prefix isolating this library's keys in a shared Redis."""
 
 
 def _dumps(role: MessageRole, detections: list[Detection]) -> bytes:

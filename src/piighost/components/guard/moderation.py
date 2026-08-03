@@ -18,8 +18,13 @@ if importlib.util.find_spec("mistralai") is None:
 from mistralai.client import Mistral  # noqa: E402
 
 _DEFAULT_MODEL = "mistral-moderation-latest"
+"""The Mistral moderation model the guard queries by default."""
+
 _DEFAULT_THRESHOLD = 0.5
+"""Score at or above which the PII category flags the verdict, on a 0 to 1 scale."""
+
 _PII_CATEGORY = "pii"
+"""The moderation category whose score gauges residual PII."""
 
 
 class ModerationGuardRail:

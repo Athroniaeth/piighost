@@ -19,13 +19,20 @@ if importlib.util.find_spec("argon2") is None:
 
 import argon2.low_level  # noqa: E402  (guarded optional import)
 
-# Salt length in bytes for the pepper-derived salt; 16 is the argon2 default.
 _SALT_LENGTH = 16
-# Argon2id cost defaults, the OWASP low-memory profile (19 MiB, one pass).
+"""Salt length in bytes for the pepper-derived salt, the argon2 default."""
+
 _DEFAULT_TIME_COST = 2
+"""Argon2id time cost in passes, the OWASP low-memory profile of one pass."""
+
 _DEFAULT_MEMORY_COST = 19456
+"""Argon2id memory cost in KiB, the OWASP low-memory profile of 19 MiB."""
+
 _DEFAULT_PARALLELISM = 1
+"""Argon2id parallelism in lanes, the OWASP low-memory profile of one lane."""
+
 _DEFAULT_HASH_LENGTH = 32
+"""Argon2id raw output length in bytes."""
 
 
 class Argon2Hasher(BaseHasher):

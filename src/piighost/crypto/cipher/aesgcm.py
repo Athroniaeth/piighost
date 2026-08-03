@@ -18,10 +18,11 @@ if importlib.util.find_spec("cryptography") is None:
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM  # noqa: E402
 
-# 96-bit nonce, the size AES-GCM is defined for; prepended to each ciphertext.
 _NONCE_LENGTH = 12
-# AES key sizes in bytes: AES-128, AES-192, AES-256.
+"""AES-GCM nonce length in bytes, the 96-bit size the mode is defined for, prepended to each ciphertext."""
+
 _VALID_KEY_LENGTHS = (16, 24, 32)
+"""Accepted AES key sizes in bytes, for AES-128, AES-192, and AES-256."""
 
 
 class AesGcmCipher:
