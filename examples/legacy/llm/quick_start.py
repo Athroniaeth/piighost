@@ -7,7 +7,7 @@ detector = ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")])
 pipeline = AnonymizationPipeline(detector=detector, anonymizer=Anonymizer())
 
 
-async def main():
+async def main() -> None:
     anonymized, _ = await pipeline.anonymize("Patrick habite à Paris.")
     print(anonymized)
     # <<PERSON:1>> habite à <<LOCATION:1>>.

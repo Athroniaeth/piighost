@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -59,7 +60,7 @@ def _server_url() -> str:
 # Lifespan
 # ---------------------------------------------------------------------------
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Manage startup and shutdown for API keys and the TTL sweeper.
 
     On startup:
