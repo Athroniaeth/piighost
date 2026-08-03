@@ -35,7 +35,10 @@ from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.placeholder import (
+    LabelCounterPlaceholderFactory,
+    PreservesLabeledIdentityOpaque,
+)
 from piighost.integrations.middleware import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
@@ -78,7 +81,7 @@ def book_slot(person: str) -> str:
     return f"Booked a 10:00 slot for {person}."
 
 
-def _build_pipeline() -> ThreadAnonymizationPipeline:
+def _build_pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Wire a thread pipeline whose tokens preserve identity, as the middleware needs."""
     ph_factory = LabelCounterPlaceholderFactory()
     return ThreadAnonymizationPipeline(
