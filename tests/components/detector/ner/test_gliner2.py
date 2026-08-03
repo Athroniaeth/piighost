@@ -12,7 +12,9 @@ from piighost.components.detector import AnyDetector
 class _FakeGliner2:
     """A stand-in exposing the one method the adapter calls."""
 
-    def extract_entities(self, text, **kwargs):
+    def extract_entities(
+        self, text: str, labels: list[str], **kwargs: object
+    ) -> dict[str, object]:
         return {"entities": {}}
 
 
@@ -31,7 +33,9 @@ class TestConformance:
         from piighost.components.detector.ner import Gliner2Detector
 
         class _Model:
-            def extract_entities(self, text, **kwargs):
+            def extract_entities(
+                self, text: str, labels: list[str], **kwargs: object
+            ) -> dict[str, object]:
                 return {
                     "entities": {
                         "person": [
