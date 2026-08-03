@@ -84,7 +84,10 @@ class RedisConversationMemory:
         return f"{self.namespace}:{thread_id}:msg:{digest_message}"
 
     async def remember(
-        self, thread_id: str, message: str, detections: list[Detection],
+        self,
+        thread_id: str,
+        message: str,
+        detections: list[Detection],
     ) -> None:
         """Cache the detections found in a message, replacing any prior entry."""
         digest_message = self._hasher.hash(message)
@@ -103,7 +106,9 @@ class RedisConversationMemory:
                 await self._client.expire(index_key, self._ttl)
 
     async def get_detections(
-        self, thread_id: str, message: str | None = None,
+        self,
+        thread_id: str,
+        message: str | None = None,
     ) -> list[Detection] | None:
         """Return a thread's detections, for one message or the whole thread."""
         if message is not None:
@@ -137,7 +142,8 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is not None:
                 messages += 1
-                detections += len(_loads(self._cipher.decrypt(_as_bytes(blob))))
+                loaded = _loads(self._cipher.decrypt(_as_bytes(blob)))
+                detections += len(loaded)
             keys.append(key)
 
         await self._client.delete(*keys)
