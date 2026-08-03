@@ -135,3 +135,20 @@ class InventedPlaceholderError(MiddlewareError):
     def __init__(self, message: str, tokens: list[str]) -> None:
         self.tokens = tokens
         super().__init__(message)
+
+
+class MissingThreadIdError(MiddlewareError):
+    """Raised when a thread id is required but absent from the LangGraph config.
+
+    With require_thread_id set, the middleware refuses to fall back to the shared
+    default thread rather than route unrelated conversations into one bucket.
+    """
+
+
+class UnrecognizableFactoryError(MiddlewareError):
+    """Raised when the middleware is built on a factory with no re-findable grammar.
+
+    The middleware needs a delimited placeholder factory, whose tokens it can find
+    again to detect ones the model invented. A factory without that grammar, such
+    as a mask, cannot support it.
+    """
