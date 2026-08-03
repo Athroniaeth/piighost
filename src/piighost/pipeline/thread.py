@@ -138,7 +138,9 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         cache. Only a user's own messages are corrected this way, so the
         correction is recorded as a user message. The corrected set is stored as
         given, without overlap resolution or occurrence expansion, since the
-        human is authoritative over it.
+        human is authoritative over it. In observation traces the detect span of
+        this call reports cache_hit true, since the corrected detections are read
+        back from memory rather than re-detected.
         """
         await self.memory.remember(
             thread_id=thread_id,
