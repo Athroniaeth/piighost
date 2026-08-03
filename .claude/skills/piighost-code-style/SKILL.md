@@ -31,17 +31,22 @@ string) is irrelevant, bind a named local with `or` instead of an inline
 Avoid:
 ```python
 return {"text": redact_as if redact_as is not None else self.text, ...}
+self.detections = detections if detections is not None else []
 ```
 
 Prefer:
 ```python
 text = redact_as or self.text
 return {"text": text, ...}
+
+self.detections = detections or []
 ```
 
-Why: the named local reads like a sentence and `or` is shorter. Only keep
-`is not None` when an empty/zero value must be preserved distinctly from the
-default, and add a comment saying so when you do.
+Why: the named local reads like a sentence and `or` is shorter. This holds for
+a constructor defaulting an optional argument to an empty collection too:
+`self.x = arg or []`, not the ternary. Only keep `is not None` when an
+empty/zero value must be preserved distinctly from the default, and add a
+comment saying so when you do.
 
 ### 2. Prefer a data-driven dict over an if/elif dispatch cascade
 
