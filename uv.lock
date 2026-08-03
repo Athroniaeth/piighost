@@ -2743,6 +2743,7 @@ all = [
     { name = "langchain-core" },
     { name = "langfuse" },
     { name = "mistralai" },
+    { name = "opentelemetry-api" },
     { name = "opik" },
     { name = "pydantic" },
     { name = "redis" },
@@ -2781,6 +2782,7 @@ langfuse = [
     { name = "langfuse" },
 ]
 llm = [
+    { name = "langchain" },
     { name = "langchain-core" },
 ]
 middleware = [
@@ -2788,6 +2790,9 @@ middleware = [
 ]
 mistral = [
     { name = "mistralai" },
+]
+observation = [
+    { name = "opentelemetry-api" },
 ]
 opik = [
     { name = "opik" },
@@ -2820,6 +2825,8 @@ dev = [
     { name = "fakeredis" },
     { name = "langchain" },
     { name = "mistralai" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
     { name = "pydantic" },
     { name = "pyrefly" },
     { name = "pytest" },
@@ -2841,7 +2848,11 @@ langchain = [
     { name = "langchain" },
 ]
 llm = [
+    { name = "langchain" },
     { name = "langchain-core" },
+]
+observation = [
+    { name = "opentelemetry-api" },
 ]
 pipeline = [
     { name = "aiocache" },
@@ -2871,12 +2882,14 @@ requires-dist = [
     { name = "gliner2", marker = "extra == 'gliner2'", specifier = ">=1.2" },
     { name = "httpx", marker = "extra == 'client'", specifier = ">=0.28" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2" },
+    { name = "langchain", marker = "extra == 'llm'", specifier = ">=1.2" },
     { name = "langchain", marker = "extra == 'middleware'", specifier = ">=1.2" },
     { name = "langchain-core", marker = "extra == 'llm'", specifier = ">=0.3" },
     { name = "langfuse", marker = "extra == 'langfuse'", specifier = ">=3.0" },
     { name = "mistralai", marker = "extra == 'mistral'", specifier = ">=1.0" },
+    { name = "opentelemetry-api", marker = "extra == 'observation'", specifier = ">=1.30" },
     { name = "opik", marker = "extra == 'opik'", specifier = ">=2.0" },
-    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "redis", "client", "spacy", "transformers", "llm", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral"], marker = "extra == 'all'" },
+    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "redis", "client", "spacy", "transformers", "llm", "observation", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral"], marker = "extra == 'all'" },
     { name = "pydantic", marker = "extra == 'config'", specifier = ">=2.6" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5" },
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
@@ -2888,7 +2901,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12" },
     { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'client'", specifier = ">=4.4" },
 ]
-provides-extras = ["gliner2", "langchain", "faker", "cache", "redis", "middleware", "client", "spacy", "transformers", "llm", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral", "all"]
+provides-extras = ["gliner2", "langchain", "faker", "cache", "redis", "middleware", "client", "spacy", "transformers", "llm", "observation", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral", "all"]
 
 [package.metadata.requires-dev]
 config = [
@@ -2904,6 +2917,8 @@ dev = [
     { name = "fakeredis", specifier = ">=2.20" },
     { name = "langchain", specifier = ">=1.2" },
     { name = "mistralai", specifier = ">=1.0" },
+    { name = "opentelemetry-api", specifier = ">=1.30" },
+    { name = "opentelemetry-sdk", specifier = ">=1.30" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pyrefly", specifier = ">=0.55.0" },
     { name = "pytest", specifier = ">=9.0.2" },
@@ -2919,7 +2934,11 @@ dev = [
 faker = [{ name = "faker", specifier = ">=40.11.0" }]
 gliner2 = [{ name = "gliner2", specifier = ">=1.2.4" }]
 langchain = [{ name = "langchain", specifier = ">=1.2.13" }]
-llm = [{ name = "langchain-core", specifier = ">=0.3" }]
+llm = [
+    { name = "langchain", specifier = ">=1.2" },
+    { name = "langchain-core", specifier = ">=0.3" },
+]
+observation = [{ name = "opentelemetry-api", specifier = ">=1.30" }]
 pipeline = [{ name = "aiocache", specifier = ">=0.12.3" }]
 redis = [{ name = "aiocache", extras = ["redis"], specifier = ">=0.12" }]
 spacy = [{ name = "spacy", specifier = ">=3.7" }]
