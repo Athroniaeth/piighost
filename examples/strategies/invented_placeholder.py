@@ -3,7 +3,7 @@
 # dependencies = ["piighost[middleware]"]
 #
 # [tool.uv.sources]
-# piighost = { path = "..", editable = true }
+# piighost = { path = "../..", editable = true }
 # ///
 """Handle placeholder tokens the model invents, under each strategy.
 
@@ -20,7 +20,7 @@ decides what happens then:
 
 Here the scripted model replies with one real token and one invented token, and
 the example runs the reply under each strategy. Run with:
-uv run examples/langchain_invented_placeholders.py
+uv run examples/strategies/invented_placeholder.py
 """
 
 import asyncio

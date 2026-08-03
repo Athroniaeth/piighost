@@ -3,7 +3,7 @@
 # dependencies = ["piighost[middleware]"]
 #
 # [tool.uv.sources]
-# piighost = { path = "..", editable = true }
+# piighost = { path = "../..", editable = true }
 # ///
 """Contrast the four tool-call strategies of the middleware.
 
@@ -22,7 +22,7 @@ The scenario is the same each time. The model calls lookup_manager with the
 person placeholder, and the tool returns a sentence naming a second person,
 Liam, who was never in the prompt. That second name is the tell: only
 PASSTHROUGH lets it reach the model in the clear. Run with:
-uv run examples/langchain_tool_strategies.py
+uv run examples/strategies/tool_call.py
 """
 
 import asyncio
