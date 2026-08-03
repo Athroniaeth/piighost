@@ -88,10 +88,15 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             for entity in message_entities
             if entity.detections[0] in token_of
         }
+        preserved = frozenset(
+            entity.text.casefold()
+            for entity in message_entities
+            if entity.detections[0] not in token_of
+        )
         anonymizable = list(message_tokens)
         rendered = self.anonymizer.render(text, anonymizable, message_tokens)
 
-        await self._guard(rendered)
+        await self._guard(rendered, preserved)
         return Anonymization(text=rendered, tokens=message_tokens)
 
     async def deanonymize(self, text: str, thread_id: str) -> str:

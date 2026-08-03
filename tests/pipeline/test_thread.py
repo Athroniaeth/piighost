@@ -1,6 +1,9 @@
 """Tests for the ThreadAnonymizationPipeline."""
 
+import pytest
+
 from piighost.components.anonymizer import Anonymizer
+from piighost.components.guard import DetectorGuardRail
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
@@ -129,3 +132,31 @@ class TestProvenance:
         pipeline = _pipeline()
         result = await pipeline.anonymize("I am Emma", "t1")
         assert result.text == "I am <<PERSON:1>>"
+
+    async def test_a_guard_does_not_flag_a_preserved_value(self) -> None:
+        """A preserved assistant value is exempt from the guard, not flagged."""
+        memory = InMemoryConversationMemory()
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            memory,
+            guard=DetectorGuardRail(ExactMatchDetector({"Emma": "PERSON"})),
+        )
+        result = await pipeline.anonymize("It is Emma", "t1", MessageRole.ASSISTANT)
+        assert result.text == "It is Emma"
+
+    async def test_a_guard_still_flags_real_residual_pii(self) -> None:
+        """A residual value that was not preserved still trips the guard."""
+        from piighost.exceptions import PIIRemainingError
+
+        memory = InMemoryConversationMemory()
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            memory,
+            guard=DetectorGuardRail(ExactMatchDetector({"Liam": "PERSON"})),
+        )
+        with pytest.raises(PIIRemainingError):
+            await pipeline.anonymize("Liam is here", "t1", MessageRole.ASSISTANT)

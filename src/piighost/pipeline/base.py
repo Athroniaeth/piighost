@@ -1,6 +1,7 @@
 """Anonymization pipeline: chain the stages from detection to anonymized text."""
 
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Generic, Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
@@ -126,12 +127,28 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             return entities
         return self.entity_resolver.resolve(entities)
 
-    async def _guard(self, text: str) -> None:
-        """Raise PIIRemainingError when the guard flags the anonymized text."""
+    async def _guard(self, text: str, expected: frozenset[str] = frozenset()) -> None:
+        """Raise PIIRemainingError when the guard flags unexpected PII.
+
+        Values in expected are ones the pipeline chose to leave in clear, such as
+        an entity the assistant introduced. A detector-based guard would re-find
+        them, so they are dropped from the verdict before deciding. A score-based
+        guard localizes nothing, so it cannot be filtered this way.
+        """
         if self.guard is None:
             return
 
         verdict = await self.guard.check(text)
+
+        if verdict.detections:
+            residual = tuple(
+                detection
+                for detection in verdict.detections
+                if detection.text.casefold() not in expected
+            )
+            if not residual:
+                return
+            verdict = replace(verdict, detections=residual)
 
         if verdict.flagged:
             raise _pii_remaining(verdict)
