@@ -109,10 +109,11 @@ Deterministic, using `ExactMatchDetector` (no model):
 - correcting a message to add a missed value tokenizes it on re-render;
 - correcting a message to drop a false positive leaves that value in clear on
   re-render;
-- the correction persists across the thread: a later message sharing an added
-  value reuses the same token;
-- the corrected message counts as `USER` provenance (a value it introduces is
-  treated as user PII, so it is tokenized rather than left in clear);
+- the correction enters the thread's token map: an added value is deanonymizable
+  from the thread afterward (`deanonymize` on its token restores the value), so
+  the correction is reversible thread-wide;
+- the correction is local to the message: dropping a value from one message does
+  not stop a later message from tokenizing it when the detector detects it there;
 - calling the method twice with different corrected sets replaces cleanly, the
   second result reflecting only the second set.
 
