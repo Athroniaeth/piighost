@@ -64,7 +64,6 @@ redis = [
 ]
 middleware = [
     "langchain>=1.2",
-    "aiocache>=0.12",
 ]
 client = [
     "httpx>=0.28",
@@ -134,6 +133,7 @@ dev = [
     "redis>=5",
     "fakeredis>=2.20",
     "mistralai>=1.0",
+    "langchain>=1.2",
 ]
 faker = [
     "faker>=40.11.0",
