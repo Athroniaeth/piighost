@@ -11,13 +11,15 @@ from enum import Enum
 class ToolCallStrategy(Enum):
     """How the middleware handles the two directions of a tool call.
 
-    The two directions are independent. INPUT deanonymizes the tool arguments so
-    the tool receives real data; OUTPUT anonymizes a string tool response so any
-    PII it returns is protected; FULL does both; PASSTHROUGH does neither, so the
-    tool sees the placeholder tokens and its response is left untouched.
+    The two directions are independent, and the middleware acts only in the tool
+    wrapper, never on the stored response afterwards. INPUT deanonymizes the tool
+    arguments so the tool receives real data; OUTPUT anonymizes a string tool
+    response so any PII it returns is protected; FULL does both; PASSTHROUGH does
+    neither. A strategy that does not anonymize the response leaves it as the tool
+    returned it, and the model sees it that way.
 
-    - INPUT: deanonymize the arguments, leave the response for the next model
-      pass to anonymize.
+    - INPUT: deanonymize the arguments, leave the response raw, so the model sees
+      the tool's output unchanged.
     - OUTPUT: anonymize the response, leave the arguments tokenized.
     - FULL: INPUT and OUTPUT together.
     - PASSTHROUGH: touch neither.
