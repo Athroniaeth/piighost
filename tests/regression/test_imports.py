@@ -24,6 +24,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.detector", "ChunkedDetector"),
     ("piighost.components.detector", "RegexDetector"),
     ("piighost.components.detector", "CompositeDetector"),
+    ("piighost.components.detector.ner", "BaseNERDetector"),
     ("piighost.components.detector.patterns", "GENERIC_PATTERNS"),
     ("piighost.components.detector.patterns", "US_PATTERNS"),
     ("piighost.components.detector.patterns", "EU_PATTERNS"),
