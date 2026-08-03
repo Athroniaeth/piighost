@@ -108,9 +108,10 @@ that accepts `model | str`.
 ### Gliner2Detector (`ner/gliner2.py`, extra `gliner2`)
 
 `__init__(self, model: GLiNER2 | str, labels: list[str] | dict[str, str],
-threshold: float = 0.5, flat_ner: bool = True, max_concurrency: int | None =
-None)`. A `str` model is loaded with `GLiNER2.from_pretrained(model)`. `labels`
-is required, because GLiNER2 is queried with `internal_labels`.
+threshold: float = 0.5, max_concurrency: int | None = None)`. A `str` model is
+loaded with `GLiNER2.from_pretrained(model)`. `labels` is required, because
+GLiNER2 is queried with `internal_labels`. (v1 carried a `flat_ner` flag it
+stored but never passed to the model, so it is dropped here as dead config.)
 
 `_raw_detect` calls, through `_run_blocking`, `model.extract_entities(text,
 entity_types=self.internal_labels, threshold=self.threshold, include_spans=True,
