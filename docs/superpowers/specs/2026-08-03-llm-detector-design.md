@@ -34,8 +34,11 @@ text, and emits detections, reusing the label-mapping machinery of
   from them.
 - **model or name in the constructor.** Like the NER adapters, the chat model is
   passed either as a loaded `BaseChatModel` or as a `str` model name loaded via
-  `init_chat_model(model, model_provider=provider)`. This absorbs model loading,
-  so no `from_config` is needed; the later config block forwards a name string.
+  `langchain.chat_models.init_chat_model(model, model_provider=provider)`
+  (imported lazily on the str path, since `init_chat_model` needs the full
+  `langchain` package, not just `langchain-core`). This absorbs model loading, so
+  no `from_config` is needed; the later config block forwards a name string. The
+  `llm` extra therefore pins both `langchain-core` and `langchain`.
 - **LangChain prompt templating.** The prompt is composed with
   `ChatPromptTemplate`, LangChain's own variable substitution, rather than a
   manual `str.format`.

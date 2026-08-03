@@ -195,10 +195,7 @@ if importlib.util.find_spec("langchain_core") is None:
         "Install it with: pip install piighost[llm]"
     )
 
-from langchain_core.language_models import (  # noqa: E402
-    BaseChatModel,
-    init_chat_model,
-)
+from langchain_core.language_models import BaseChatModel  # noqa: E402
 from langchain_core.prompts import ChatPromptTemplate  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
@@ -258,6 +255,10 @@ class LLMDetector(BaseNERDetector):
         """Store or load the model, then build the schema, prompt, and chain."""
         super().__init__(labels)
         if isinstance(model, str):
+            # init_chat_model lives in the full langchain package, not
+            # langchain-core, so it is imported lazily on the str-loading path.
+            from langchain.chat_models import init_chat_model
+
             model = init_chat_model(model, model_provider=provider)
         self._schema = _make_schema(self.internal_labels)
         self._structured = model.with_structured_output(self._schema)
