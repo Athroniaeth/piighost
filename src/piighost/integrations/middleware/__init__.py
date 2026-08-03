@@ -5,14 +5,18 @@ its module is imported lazily: reaching for a symbol without the extra raises a
 helpful ImportError, while importing this package never pulls langchain in.
 """
 
+from piighost.integrations.middleware.strategy import ToolCallStrategy
+
 __all__ = ["PIIAnonymizationMiddleware", "ToolCallStrategy"]
 
 
 def __getattr__(name: str) -> object:
     """Import the middleware on demand so its optional dependency stays optional."""
-    if name in __all__:
-        from piighost.integrations.middleware import langchain
+    if name == "PIIAnonymizationMiddleware":
+        from piighost.integrations.middleware.langchain import (
+            PIIAnonymizationMiddleware,
+        )
 
-        return getattr(langchain, name)
+        return PIIAnonymizationMiddleware
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
