@@ -62,6 +62,23 @@ class MixedLabelError(EntityError):
     """Raised when an Entity's detections do not all share the same label."""
 
 
+class DetectorError(PIIGhostError):
+    """Base class for errors raised while constructing a detector.
+
+    Catch this to handle any invalid-detector case at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class LabelMappingError(DetectorError):
+    """Raised when a detector's label map has an ambiguous reverse lookup.
+
+    Two external labels that map to the same internal label would make the
+    internal-to-external lookup ambiguous, so the detector fails closed rather
+    than pick one silently.
+    """
+
+
 class HasherError(PIIGhostError):
     """Base class for errors raised while constructing a hasher.
 
