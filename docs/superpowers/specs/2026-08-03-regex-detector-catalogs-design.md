@@ -87,7 +87,7 @@ Notes:
 Ported verbatim from v1 (`src/v1_piighost/detector/patterns/`) as plain
 `dict[str, str]` mapping label to pattern string:
 
-- `GENERIC_PATTERNS` : `EMAIL`, `URL`, `CREDIT_CARD`
+- `GENERIC_PATTERNS` : `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD`
 - `US_PATTERNS` : `US_PHONE`, `US_SSN`, `US_ZIP`
 - `EU_PATTERNS` : `IBAN`
 - `FR_PATTERNS` : `FR_IBAN`, `FR_NIR`, `FR_PHONE`, `FR_SIRET`
@@ -105,8 +105,16 @@ comma or a newline, must:
 - still match despite the trailing character, and
 - capture the value only, excluding the trailing `.`, `,`, or `\n`.
 
-Any catalog pattern found to swallow trailing punctuation or to fail on it is
-fixed as part of this work. This is verified by the golden tests below.
+Any catalog pattern found to swallow adjacent punctuation, or to fail on it, is
+fixed as part of this work. Two v1 patterns are corrected on this basis:
+
+- `URL`, whose `[^\s<>"']+` tail swallowed a trailing `.`, `,`, or `)`. The tail
+  is changed to require a final character that is not sentence punctuation.
+- `US_PHONE`, whose leading `\b` failed to anchor before a `+` or `(`, so a
+  `+1 (415) 555-2671` matched only from `1 (415) ...`, leaking the prefix. The
+  anchor becomes a `(?<![\w+])` lookbehind plus a `(?!\d)` trailing lookahead.
+
+This is verified by the golden tests below.
 
 ## CompositeDetector
 
