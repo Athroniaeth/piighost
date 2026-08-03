@@ -78,6 +78,7 @@ transformers = [
 ]
 llm = [
     "langchain-core>=0.3",
+    "langchain>=1.2",
 ]
 sqlalchemy = [
     "sqlalchemy[asyncio]>=2.0",
@@ -159,6 +160,7 @@ redis = [
 ]
 llm = [
     "langchain-core>=0.3",
+    "langchain>=1.2",
 ]
 sqlalchemy = [
     "sqlalchemy[asyncio]>=2.0",
