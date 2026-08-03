@@ -20,8 +20,10 @@ ToolCallStrategy picks which boundaries are handled:
 
 The scenario is the same each time. The model calls lookup_manager with the
 person placeholder, and the tool returns a sentence naming a second person,
-Liam, who was never in the prompt. That second name is the tell: only
-PASSTHROUGH lets it reach the model in the clear. Run with:
+Liam, who was never in the prompt. The table shows what the tool received and
+what the tool result looks like the instant the wrapper hands it back, which is
+where FULL and INPUT part ways: FULL re-anonymizes it right there, INPUT leaves
+it raw for the next before-model pass to clean. Run with:
 uv run examples/strategies/tool_call.py
 """
 
@@ -29,10 +31,8 @@ import asyncio
 from typing import Any, Self
 
 from langchain.agents import create_agent
-from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langchain_core.outputs import ChatResult
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 
 from piighost.components.anonymizer import Anonymizer
@@ -40,42 +40,44 @@ from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.integrations.middleware import (
-    PIIAnonymizationMiddleware,
-    ToolCallStrategy,
+from piighost.components.placeholder import (
+    LabelCounterPlaceholderFactory,
+    PreservesLabeledIdentityOpaque,
 )
+from piighost.integrations.middleware import ToolCallStrategy
+from piighost.integrations.middleware.langchain import PIIAnonymizationMiddleware
 
-# What the tool received and what the model saw as the tool result, filled per
-# run so the example can print them; a real deployment needs nothing like these.
+# What the tool received and what the wrapper handed back, filled per run so the
+# example can print them; a real deployment needs nothing like these.
 TOOL_ARG: list[str] = []
-MODEL_INPUTS: list[list[str]] = []
+TOOL_RESULT_AFTER: list[str] = []
+
+
+class RecordingMiddleware(PIIAnonymizationMiddleware[PreservesLabeledIdentityOpaque]):
+    """Middleware that records the tool result its wrapper hands back.
+
+    Only here to expose the outbound boundary; a real deployment uses the plain
+    PIIAnonymizationMiddleware.
+    """
+
+    async def awrap_tool_call(self, request: Any, handler: Any) -> Any:
+        """Record the tool result right after the wrapper, then return it."""
+        response = await super().awrap_tool_call(request, handler)
+        if isinstance(response, ToolMessage) and isinstance(response.content, str):
+            TOOL_RESULT_AFTER.append(response.content)
+        return response
 
 
 class ScriptedChatModel(GenericFakeChatModel):
     """A deterministic fake model that returns preset messages, no API key.
 
     It stands in for a real chat model so the example runs offline. bind_tools
-    is a no-op because the scripted replies already carry the tool call, and
-    _generate records what the model was asked before answering.
+    is a no-op because the scripted replies already carry the tool call.
     """
 
     def bind_tools(self, tools: Any, **kwargs: Any) -> Self:
         """Ignore tool binding, the scripted replies drive the agent."""
         return self
-
-    def _generate(
-        self,
-        messages: list[BaseMessage],
-        stop: list[str] | None = None,
-        run_manager: CallbackManagerForLLMRun | None = None,
-        **kwargs: Any,
-    ) -> ChatResult:
-        """Record the non-empty message contents, then return the next script."""
-        MODEL_INPUTS.append(
-            [message.content for message in messages if message.content]
-        )
-        return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
 
 
 @tool
@@ -85,7 +87,7 @@ def lookup_manager(person: str) -> str:
     return f"The manager of {person} is Liam."
 
 
-def _build_pipeline() -> ThreadAnonymizationPipeline:
+def _build_pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Wire a thread pipeline that knows both people the scenario mentions."""
     ph_factory = LabelCounterPlaceholderFactory()
     return ThreadAnonymizationPipeline(
@@ -97,11 +99,11 @@ def _build_pipeline() -> ThreadAnonymizationPipeline:
 
 
 async def _run_once(strategy: ToolCallStrategy) -> tuple[str, str]:
-    """Run the scenario under one strategy, returning what the tool and model saw."""
+    """Run the scenario under one strategy, returning the tool arg and its result."""
     TOOL_ARG.clear()
-    MODEL_INPUTS.clear()
+    TOOL_RESULT_AFTER.clear()
 
-    middleware = PIIAnonymizationMiddleware(_build_pipeline(), tool_strategy=strategy)
+    middleware = RecordingMiddleware(_build_pipeline(), tool_strategy=strategy)
     script = iter(
         [
             AIMessage(
@@ -124,8 +126,7 @@ async def _run_once(strategy: ToolCallStrategy) -> tuple[str, str]:
     config = {"configurable": {"thread_id": "t1"}}
     await agent.ainvoke(request, config=config)
 
-    tool_result_seen = MODEL_INPUTS[1][-1]
-    return TOOL_ARG[0], tool_result_seen
+    return TOOL_ARG[0], TOOL_RESULT_AFTER[0]
 
 
 async def main() -> None:
@@ -137,14 +138,18 @@ async def main() -> None:
         ToolCallStrategy.PASSTHROUGH,
     ]
 
-    print(f"{'strategy':12}  {'tool received':18}  model saw the tool result as")
-    print(f"{'-' * 12}  {'-' * 18}  {'-' * 40}")
+    print(f"{'strategy':12}  {'tool received':15}  tool result right after the wrapper")
+    print(f"{'-' * 12}  {'-' * 15}  {'-' * 42}")
     for strategy in strategies:
-        tool_arg, tool_result_seen = await _run_once(strategy)
-        print(f"{strategy.name:12}  {tool_arg!r:18}  {tool_result_seen!r}")
+        tool_arg, result_after = await _run_once(strategy)
+        print(f"{strategy.name:12}  {tool_arg!r:15}  {result_after!r}")
 
-    print("\nOnly PASSTHROUGH lets the tool's second name (Liam) reach the model")
-    print("in the clear; FULL and INPUT also hand the tool the real value.")
+    print("\nInbound: FULL and INPUT hand the tool the real value; OUTPUT and")
+    print("PASSTHROUGH leave it a placeholder.")
+    print("Outbound: FULL and OUTPUT re-anonymize the result on the spot; INPUT and")
+    print("PASSTHROUGH leave it raw. INPUT's raw result is cleaned by the next")
+    print("before-model pass, so the model still sees placeholders; PASSTHROUGH never")
+    print("cleans it, so the tool's second name (Liam) reaches the model in the clear.")
 
 
 if __name__ == "__main__":
