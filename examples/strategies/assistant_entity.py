@@ -26,6 +26,7 @@ uv run examples/strategies/assistant_entity.py
 
 import asyncio
 import logging
+from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
@@ -69,9 +70,7 @@ def _content(message: BaseMessage) -> str:
     return content if isinstance(content, str) else str(content)
 
 
-def _middleware(
-    strategy: AssistantEntityStrategy, detector: AnyDetector
-) -> PIIAnonymizationMiddleware:
+def _middleware(strategy: AssistantEntityStrategy, detector: AnyDetector) -> Any:
     """Build the middleware over a fresh pipeline under one strategy."""
     pipeline = ThreadAnonymizationPipeline(
         detector,

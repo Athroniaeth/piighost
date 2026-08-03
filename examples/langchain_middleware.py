@@ -67,7 +67,7 @@ class ScriptedChatModel(GenericFakeChatModel):
     ) -> ChatResult:
         """Record the non-empty message contents, then return the next script."""
         MODEL_INPUTS.append(
-            [message.content for message in messages if message.content]
+            [str(message.content) for message in messages if message.content]
         )
         return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
 

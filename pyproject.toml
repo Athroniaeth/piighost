@@ -193,18 +193,16 @@ extend-select = ["ANN"]
 ignore = ["ANN401"]
 
 [tool.pyrefly]
-# Examples in examples/graph/ and examples/llm/ live in their own environments
-# (uv sub-project and PEP 723 inline metadata respectively), so their deps are
-# not installed in the main venv and would otherwise show spurious
-# missing-import errors. Scratch scripts under scripts/ have bit-rotted and
-# reference removed APIs.
+# Legacy v1 examples under examples/legacy/ have bit-rotted against the rewrite
+# and live in their own environments (uv sub-project, PEP 723 inline metadata),
+# so their deps are absent from the main venv and would show spurious errors.
+# Scratch scripts under scripts/ reference removed APIs.
 project-excludes = [
     # v1 kept for reference during the rewrite; its internal imports still
     # target the old ``piighost`` name, so exclude it from type checking.
     "src/v1_piighost/**",
     "v1_tests/**",
-    "examples/graph/**",
-    "examples/llm/**",
+    "examples/legacy/**",
     ".claude/**",
     "scripts/**",
     "benchmarks/**",
