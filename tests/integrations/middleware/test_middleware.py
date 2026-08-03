@@ -316,3 +316,20 @@ class TestAssistantProvenance:
             {"messages": [AIMessage("It is Emma")]}, None
         )
         assert update is None
+
+
+class TestFactoryContract:
+    async def test_a_non_delimited_factory_is_refused(self) -> None:
+        """Building the middleware on a non-delimited factory fails fast."""
+        pytest.importorskip("langchain")
+        from piighost.components.placeholder import MaskPlaceholderFactory
+
+        module = importlib.import_module(_MODULE)
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(MaskPlaceholderFactory()),
+            InMemoryConversationMemory(),
+        )
+        with pytest.raises(TypeError, match="delimited"):
+            module.PIIAnonymizationMiddleware(pipeline)

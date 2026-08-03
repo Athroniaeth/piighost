@@ -15,7 +15,7 @@ from typing import Any, Generic
 from typing_extensions import TypeVar
 
 from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
-from piighost.components.placeholder.tags import PreservesIdentity
+from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
 from piighost.exceptions import InventedPlaceholderError
 from piighost.integrations.middleware.strategy import (
@@ -48,7 +48,11 @@ logger = logging.getLogger(__name__)
 _DEFAULT_THREAD = "default"
 _missing_thread_id_warned = False
 
-IdentityT = TypeVar("IdentityT", bound=PreservesIdentity, default=PreservesIdentity)
+IdentityT = TypeVar(
+    "IdentityT",
+    bound=PreservesRecognizableIdentity,
+    default=PreservesRecognizableIdentity,
+)
 
 
 def _thread_id(require_thread_id: bool) -> str:
@@ -92,8 +96,10 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
     A thin adapter: it reads the thread id from the LangGraph config, anonymizes
     the user and model messages before the model call, deanonymizes them after
     for display, and routes tool calls by the chosen strategy. The pipeline's
-    tokens must preserve identity, so deanonymization is unambiguous; this is
-    enforced at type-check time by the IdentityT bound.
+    tokens must preserve identity, so deanonymization is unambiguous, and carry a
+    delimited grammar, so a token the model invented can be found and refused;
+    both are required at type-check time by the IdentityT bound, which narrows on
+    PreservesRecognizableIdentity, and re-checked at construction.
 
     Attributes:
         tool_strategy: How tool calls are handled.
@@ -124,7 +130,19 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         assistant messages entirely and save the detector.
         """
         super().__init__()
+        # The IdentityT bound guarantees a delimited factory for typed callers;
+        # re-check at runtime so an untyped one fails loudly here, not silently
+        # when the invented-placeholder strategy would have found nothing.
+        factory = getattr(pipeline.anonymizer, "factory", None)
+        if not isinstance(factory, BaseDelimitedPlaceholderFactory):
+            raise TypeError(
+                "PIIAnonymizationMiddleware needs a pipeline built on a delimited "
+                "placeholder factory, whose tokens can be found again to detect "
+                "invented ones; got a factory without a recognizable grammar."
+            )
+
         self._pipeline = pipeline
+        self._recognizer = factory
         self.tool_strategy = tool_strategy
         self._require_thread_id = require_thread_id
         self._invented_strategy = invented_strategy
@@ -249,15 +267,10 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
         Every issued token was replaced during deanonymization, so any token
         still matching the factory's grammar was invented by the model. KEEP
-        leaves it, DROP removes it, RAISE refuses it. A factory with no
-        recognizable grammar, such as a mask, has no tokens to find, so the text
-        returns unchanged.
+        leaves it, DROP removes it, RAISE refuses it. The factory is delimited by
+        construction, so its grammar is always recognizable here.
         """
-        factory = getattr(self._pipeline.anonymizer, "factory", None)
-        if not isinstance(factory, BaseDelimitedPlaceholderFactory):
-            return text
-
-        invented = factory.find_tokens(text)
+        invented = self._recognizer.find_tokens(text)
         if not invented or self._invented_strategy is InventedPlaceholderStrategy.KEEP:
             return text
 
