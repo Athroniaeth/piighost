@@ -31,10 +31,19 @@ enfichables) avant l'orchestration. Ne pas coder sans y être invité.
 
 ## Composants terminés (chaîne du domaine)
 
-Chaque composant est un package plat sous `src/piighost/`, avec `base.py`
-(port + éventuel template), des adaptateurs en modules frères, un `__init__.py`
-qui réexporte, et des tests miroirs sous `tests/`. Le guard d'imports
-`tests/regression/test_imports.py` liste tout le public dans `PUBLIC_API`.
+Chaque composant est un package avec `base.py` (port + éventuel template), des
+adaptateurs en modules frères, un `__init__.py` qui réexporte, et des tests
+miroirs sous `tests/`. Le guard d'imports `tests/regression/test_imports.py`
+liste tout le public dans `PUBLIC_API`.
+
+**Layout (regroupé)** : les composants enfichables du pipeline vivent sous
+`src/piighost/components/` (`detector`, `overlap_resolver`, `expander`, `linker`,
+`entity_resolver`, `placeholder`, `anonymizer`, `guard`), les primitives crypto
+sous `src/piighost/crypto/` (`hasher`, `cipher`), et le noyau à la racine
+(`models`, `text`, `pipeline`, `conversation_memory`, `exceptions.py`). Les
+imports sont donc `from piighost.components.detector import ...`,
+`from piighost.crypto.hasher import ...`. Les noms de package ci-dessous sont
+donnés sans ce préfixe.
 
 1. **models/** : `Span`, `Detection`, `Entity`, `Chunk` (frozen dataclasses,
    spans demi-ouverts `[start, end)`, `order=True`). `Detection.to_dict()` /

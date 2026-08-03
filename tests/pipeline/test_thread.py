@@ -1,12 +1,12 @@
 """Tests for the ThreadAnonymizationPipeline."""
 
-from piighost.anonymizer import Anonymizer
+from piighost.components.anonymizer import Anonymizer
 from piighost.conversation_memory import InMemoryConversationMemory
-from piighost.detector import AnyDetector, ExactMatchDetector
-from piighost.linker import ExactEntityLinker
+from piighost.components.detector import AnyDetector, ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
 from piighost.models import Detection
 from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
 
 class _CountingDetector:

@@ -2,16 +2,16 @@
 
 import pytest
 
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.entity_resolver import MergeEntityResolver
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.entity_resolver import MergeEntityResolver
 from piighost.exceptions import PIIRemainingError
-from piighost.expander import WordBoundaryExpander
-from piighost.guard import DetectorGuardRail
-from piighost.linker import ExactEntityLinker
-from piighost.overlap_resolver import ConfidenceOverlapResolver
+from piighost.components.expander import WordBoundaryExpander
+from piighost.components.guard import DetectorGuardRail
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.overlap_resolver import ConfidenceOverlapResolver
 from piighost.pipeline import AnonymizationPipeline, AnyPipeline
-from piighost.placeholder import (
+from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     RedactPlaceholderFactory,
 )

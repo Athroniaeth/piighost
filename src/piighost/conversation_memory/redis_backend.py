@@ -17,9 +17,9 @@ forgotten; the ordered index gives first-seen order that a key scan would not.
 import importlib.util
 import json
 
-from piighost.cipher.base import AnyCipher
+from piighost.crypto.cipher.base import AnyCipher
 from piighost.conversation_memory.base import Forgotten
-from piighost.hasher.base import AnyHasher
+from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
 
 if importlib.util.find_spec("redis") is None:
