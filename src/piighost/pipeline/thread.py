@@ -99,6 +99,30 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         await self._guard(rendered, preserved)
         return Anonymization(text=rendered, tokens=message_tokens)
 
+    async def anonymize_corrected(
+        self,
+        text: str,
+        thread_id: str,
+        detections: list[Detection],
+    ) -> Anonymization[PreservationT]:
+        """Re-anonymize a user message with a human-corrected detection set.
+
+        The corrected set replaces this message's detections in memory, then the
+        message is re-anonymized with tokens consistent across the thread.
+        Detection does not run again, since the correction is read from the
+        cache. Only a user's own messages are corrected this way, so the
+        correction is recorded as a user message. The corrected set is stored as
+        given, without overlap resolution or occurrence expansion, since the
+        human is authoritative over it.
+        """
+        await self.memory.remember(
+            thread_id=thread_id,
+            message=text,
+            detections=detections,
+            role=MessageRole.USER,
+        )
+        return await self.anonymize(text, thread_id, MessageRole.USER)
+
     async def deanonymize(self, text: str, thread_id: str) -> str:
         """Return the text with every token from the thread replaced by its value.
 
