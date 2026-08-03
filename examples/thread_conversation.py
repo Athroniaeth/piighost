@@ -52,7 +52,7 @@ async def main() -> None:
     print("\n== restore a reply ==")
     reply = await pipeline.anonymize("Thanks Emma and Liam.", "t1")
     print("  anonymized:", reply.text)
-    print("  restored:  ", pipeline.deanonymize(reply.text, reply.tokens))
+    print("  restored:  ", await pipeline.deanonymize(reply.text, "t1"))
 
     print("\n== another thread numbers from one, independently ==")
     other = await pipeline.anonymize("Emma again.", "t2")
