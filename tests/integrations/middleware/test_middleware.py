@@ -14,6 +14,7 @@ from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.exceptions import InventedPlaceholderError
 from piighost.integrations.middleware import (
+    AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
@@ -242,3 +243,55 @@ class TestInventedPlaceholders:
         request = _FakeRequest({"name": "<<PERSON:9>>"})
         with pytest.raises(InventedPlaceholderError):
             await middleware.awrap_tool_call(request, handler)
+
+
+class TestAssistantProvenance:
+    def _middleware(
+        self, monkeypatch: pytest.MonkeyPatch, strategy: AssistantEntityStrategy
+    ) -> Any:
+        """Build the middleware under an assistant-entity strategy."""
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        return module.PIIAnonymizationMiddleware(
+            _pipeline(), assistant_strategy=strategy
+        )
+
+    async def _assistant_then_user(self, middleware: Any) -> str:
+        """Let the assistant introduce Emma, then anonymize a user reference."""
+        from langchain_core.messages import AIMessage, HumanMessage
+
+        await middleware.abefore_model({"messages": [AIMessage("It is Emma")]}, None)
+        state = {"messages": [HumanMessage("what about Emma")]}
+        await middleware.abefore_model(state, None)
+        return state["messages"][0].content
+
+    async def test_preserve_keeps_assistant_value_clear(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Under PRESERVE, a user reference to an assistant value stays in clear."""
+        pytest.importorskip("langchain")
+        middleware = self._middleware(monkeypatch, AssistantEntityStrategy.PRESERVE)
+        assert await self._assistant_then_user(middleware) == "what about Emma"
+
+    async def test_anonymize_treats_assistant_value_as_pii(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Under ANONYMIZE, an assistant-introduced value is anonymized."""
+        pytest.importorskip("langchain")
+        middleware = self._middleware(monkeypatch, AssistantEntityStrategy.ANONYMIZE)
+        assert await self._assistant_then_user(middleware) == "what about <<PERSON:1>>"
+
+    async def test_ignore_does_not_analyze_assistant_messages(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Under IGNORE, an assistant message is left untouched."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import AIMessage
+
+        middleware = self._middleware(monkeypatch, AssistantEntityStrategy.IGNORE)
+        update = await middleware.abefore_model(
+            {"messages": [AIMessage("It is Emma")]}, None
+        )
+        assert update is None
