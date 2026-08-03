@@ -3,7 +3,7 @@
 import importlib
 import importlib.util
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -53,7 +53,7 @@ class TestOptionalDependencyGuard:
         """Importing without mistralai points the user at piighost[mistral]."""
         real_find_spec = importlib.util.find_spec
 
-        def find_spec(name: str, *args: object, **kwargs: object) -> object:
+        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
             if name == "mistralai":
                 return None
             return real_find_spec(name, *args, **kwargs)

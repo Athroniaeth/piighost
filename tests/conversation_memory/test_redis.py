@@ -3,6 +3,7 @@
 import importlib
 import importlib.util
 import sys
+from typing import Any
 
 import pytest
 
@@ -18,7 +19,7 @@ def _detection(text: str, label: str = "PERSON") -> Detection:
     return Detection(span=Span(0, len(text)), text=text, label=label, confidence=0.9)
 
 
-def _make() -> tuple[object, object]:
+def _make() -> tuple[Any, Any]:
     """Build a RedisConversationMemory over a fresh fake Redis client."""
     pytest.importorskip("cryptography")
     fakeredis = pytest.importorskip("fakeredis.aioredis")
@@ -41,7 +42,7 @@ class TestOptionalDependencyGuard:
         """Importing without redis points the user at piighost[redis]."""
         real_find_spec = importlib.util.find_spec
 
-        def find_spec(name: str, *args: object, **kwargs: object) -> object:
+        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
             if name == "redis":
                 return None
             return real_find_spec(name, *args, **kwargs)

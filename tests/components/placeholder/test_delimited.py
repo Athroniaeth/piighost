@@ -9,7 +9,7 @@ from piighost.components.placeholder import (
     LabelPlaceholderFactory,
     RedactPlaceholderFactory,
 )
-from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
+from piighost.components.placeholder.base import AnyPlaceholderFactory
 
 
 def _entity(text: str, label: str = "PERSON") -> Entity:
@@ -30,7 +30,7 @@ class TestCustomDelimiters:
         ],
     )
     def test_delimiters_wrap_the_token(
-        self, factory: BaseDelimitedPlaceholderFactory, expected: str
+        self, factory: AnyPlaceholderFactory, expected: str
     ) -> None:
         """Custom delimiters replace the default << >> around the inner form."""
         entity = _entity("Emma")
