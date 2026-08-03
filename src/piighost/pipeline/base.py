@@ -65,20 +65,14 @@ class AnyPipeline(Protocol[PreservationT_co]):
         ...
 
 
-class AnonymizationPipeline(Generic[PreservationT]):
-    """Chain the anonymization stages, from a text to its anonymized form.
+class BaseAnonymizationPipeline(Generic[PreservationT]):
+    """Shared machinery for the anonymization pipelines.
 
-    The stages run in order: detect the PII, resolve overlapping detections,
-    expand missed occurrences, link detections into entities, resolve entity
-    conflicts, replace the entities with placeholder tokens, and re-check the
-    output with a guard. Only the detector, the linker, and the anonymizer are
-    required; the resolvers, the expander, and the guard are optional and skipped
-    when not given.
-
-    The single path lives in anonymize, which calls one method per stage; a
-    subclass overrides a stage, such as _link for cross-message linking, without
-    rewriting the sequence. The pipeline is generic on what the anonymizer's
-    tokens preserve, so the guarantee flows to its result and to a consumer that
+    Holds the stage components and the steps common to every pipeline: the
+    optional overlap, expand, and entity-resolve stages, the guard check, and
+    deanonymization. The concrete pipelines add their own anonymize, the base one
+    over a single text, the thread one over a conversation. Generic on what the
+    anonymizer's tokens preserve, so the guarantee flows to a consumer that
     requires identity.
 
     Attributes:
@@ -109,22 +103,6 @@ class AnonymizationPipeline(Generic[PreservationT]):
         self.expander = expander
         self.entity_resolver = entity_resolver
         self.guard = guard
-
-    async def anonymize(self, text: str) -> Anonymization[PreservationT]:
-        """Return the anonymized text and token mapping for the given text.
-
-        Raises:
-            PIIRemainingError: If a guard flags PII left in the output.
-        """
-        detections = await self.detector.detect(text)
-        detections = self._resolve_overlaps(detections)
-        detections = self._expand(text, detections)
-        entities = self._link(detections)
-        entities = self._resolve_entities(entities)
-
-        result = self.anonymizer.anonymize(text, entities)
-        await self._guard(result.text)
-        return result
 
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
         """Return the text with every known token replaced by its entity value."""
@@ -161,6 +139,31 @@ class AnonymizationPipeline(Generic[PreservationT]):
 
         if verdict.flagged:
             raise _pii_remaining(verdict)
+
+
+class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
+    """Anonymize a single text through the pipeline stages.
+
+    Detect the PII, resolve overlaps, expand missed occurrences, link into
+    entities, resolve entity conflicts, replace with tokens, and re-check with a
+    guard, in that order.
+    """
+
+    async def anonymize(self, text: str) -> Anonymization[PreservationT]:
+        """Return the anonymized text and token mapping for the given text.
+
+        Raises:
+            PIIRemainingError: If a guard flags PII left in the output.
+        """
+        detections = await self.detector.detect(text)
+        detections = self._resolve_overlaps(detections)
+        detections = self._expand(text, detections)
+        entities = self._link(detections)
+        entities = self._resolve_entities(entities)
+
+        result = self.anonymizer.anonymize(text, entities)
+        await self._guard(result.text)
+        return result
 
 
 def _pii_remaining(verdict: GuardVerdict) -> PIIRemainingError:
