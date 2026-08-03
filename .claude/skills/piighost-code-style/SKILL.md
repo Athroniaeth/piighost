@@ -616,3 +616,121 @@ input, here a key over one detection, an equivalence relation. A stage whose
 decision is pairwise (fuzzy merge by similarity, which is not transitive and has
 no hashable key) needs a different skeleton and belongs to a different port, the
 entity resolver, not the linker.
+
+### 21. An optional-dependency adapter is guarded, lazy, and still declared
+
+An adapter that needs an extra follows a three-part idiom. The adapter module
+guards its heavy import at the top and raises an ImportError naming the extra;
+the package `__all__` still lists the adapter; the package `__getattr__` imports
+it on demand. So the name is discoverable and type-checkable, yet importing the
+package never pulls the extra in, and reaching for the adapter without it fails
+with a message that says what to install.
+
+Avoid:
+```python
+# package __init__.py
+from piighost.components.guard.moderation import ModerationGuardRail  # eager, pulls the extra in on any import
+```
+
+Prefer:
+```python
+# moderation.py, top of the adapter module
+if importlib.util.find_spec("mistralai") is None:
+    raise ImportError(
+        "ModerationGuardRail requires the mistralai package. "
+        "Install it with: pip install piighost[mistral]"
+    )
+
+# package __init__.py
+__all__ = ["AnyGuardRail", "DetectorGuardRail", "GuardVerdict", "ModerationGuardRail"]
+
+def __getattr__(name: str) -> object:
+    """Import ModerationGuardRail on demand so its optional dependency stays optional."""
+    if name == "ModerationGuardRail":
+        from piighost.components.guard.moderation import ModerationGuardRail
+
+        return ModerationGuardRail
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+```
+
+Why: the extra stays truly optional (a bare install imports the package fine),
+the public name is still in `__all__` for discovery and re-export, and the
+failure is a helpful ImportError at reach time rather than a bare AttributeError
+or an eager crash. `tests/test_optional_dependencies.py` and the regression
+import test assume exactly this shape.
+
+### 22. A component's test module follows the conformance-then-behavior skeleton
+
+Test modules for a pipeline component share a layout. A module-level factory
+helper builds the fixture (`_detection`, `_entity`) with defaults and a
+one-line docstring; a `TestConformance` class asserts the adapter satisfies its
+`Any*` port with a single `isinstance` check; then one `Test<Behavior>` class
+per behavior groups the cases. Match this skeleton in a new component's tests
+rather than inventing a fresh arrangement.
+
+Avoid: a flat file of free functions with inline fixture construction and no
+port-conformance check.
+
+Prefer:
+```python
+def _detection(start: int, end: int, label: str = "PERSON") -> Detection:
+    """Build a detection at a span with sensible defaults."""
+    ...
+
+class TestConformance:
+    def test_satisfies_the_port(self) -> None:
+        """ConfidenceOverlapResolver is an AnyOverlapResolver."""
+        assert isinstance(ConfidenceOverlapResolver(), AnyOverlapResolver)
+
+class TestResolve:
+    ...
+```
+
+Why: the conformance check guards the structural contract the pipeline relies
+on, the factory helper keeps each test a single readable line (rule 15), and the
+uniform grouping makes a component's tests navigable the same way every time.
+
+### 23. A test docstring states the guaranteed behavior as a present-tense fact
+
+Phrase a test's one-line docstring as the invariant it guarantees, in the
+present tense, subject first, with no Test/Should/Check prefix. Regression tests
+keep rule 13's phrasing, the breaking change they guard.
+
+Avoid:
+```python
+def test_end(self) -> None:
+    """Should test that end works correctly."""
+```
+
+Prefer:
+```python
+def test_end(self) -> None:
+    """end is the start offset plus the text length."""
+```
+
+Why: the docstring reads as documentation of the contract, not a restatement of
+the method name, and a wall of present-tense facts doubles as the component's
+behavioral spec. This sharpens rule 13, which only asks for a one-line docstring.
+
+### 24. A module-level constant carries an attached docstring
+
+Give a module-level constant a triple-quoted docstring on the line below it,
+explaining its value, unit, or caveat. This is the string form of rule 3's note
+that the constant's docstring is where the value's meaning lives.
+
+Avoid:
+```python
+_NONCE_LENGTH = 12  # 96-bit nonce
+```
+
+Prefer:
+```python
+_NONCE_LENGTH = 12
+"""AES-GCM nonce length in bytes, the 96-bit size the mode is defined for."""
+```
+
+Why: an attached docstring is retrievable (it lands in the module's help and
+survives refactors) where a trailing comment is not, and it gives the one place
+to record why the value is what it is. A short inline comment is still fine for a
+throwaway local; this is about named module constants that other code depends
+on.
