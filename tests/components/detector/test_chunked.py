@@ -1,6 +1,10 @@
 """Tests for the ChunkedDetector."""
 
-from piighost.components.detector import AnyDetector, ChunkedDetector, ExactMatchDetector
+from piighost.components.detector import (
+    AnyDetector,
+    ChunkedDetector,
+    ExactMatchDetector,
+)
 from piighost.models import Span
 from piighost.text import RecursiveCharacterTextSplitter
 

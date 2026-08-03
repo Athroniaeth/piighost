@@ -120,7 +120,9 @@ class TestToolCalls:
         monkeypatch.setattr(
             module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
         )
-        middleware = module.PIIAnonymizationMiddleware(_pipeline(), tool_strategy=strategy)
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=strategy
+        )
         await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
 
         received: dict[str, dict[str, str]] = {}
