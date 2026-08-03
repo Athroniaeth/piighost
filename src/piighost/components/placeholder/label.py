@@ -1,11 +1,16 @@
 """Label placeholder factory: one token per label, revealing the type."""
 
 from piighost.models import Entity
-from piighost.components.placeholder.base import AnyPlaceholderFactory
+from piighost.components.placeholder.base import (
+    AnyPlaceholderFactory,
+    BaseDelimitedPlaceholderFactory,
+)
 from piighost.components.placeholder.tags import PreservesLabel
 
 
-class LabelPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
+class LabelPlaceholderFactory(
+    BaseDelimitedPlaceholderFactory, AnyPlaceholderFactory[PreservesLabel]
+):
     """Map every entity to a token naming its label.
 
     Each entity becomes <<LABEL>>, such as <<PERSON>>, so a reader learns the
@@ -16,4 +21,4 @@ class LabelPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]):
 
     def create(self, entities: list[Entity]) -> dict[Entity, PreservesLabel]:
         """Return a label-naming token for every entity."""
-        return {entity: PreservesLabel(f"<<{entity.label}>>") for entity in entities}
+        return {entity: PreservesLabel(self._wrap(entity.label)) for entity in entities}

@@ -1,16 +1,12 @@
 """Label hash placeholder factory: <<LABEL:hash>> with an opaque counter suffix."""
 
 import hashlib
-from collections import defaultdict
 
-from piighost.models import Entity
-from piighost.components.placeholder.base import AnyPlaceholderFactory
+from piighost.components.placeholder.base import BaseCounterPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesLabeledIdentityOpaque
 
 
-class LabelHashPlaceholderFactory(
-    AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]
-):
+class LabelHashPlaceholderFactory(BaseCounterPlaceholderFactory):
     """Number each entity within its label, then render that count as a hash.
 
     Like the counter factory it numbers entities per label in order, but it
@@ -25,26 +21,16 @@ class LabelHashPlaceholderFactory(
         hash_length: How many hex characters of each digest to keep.
     """
 
-    def __init__(self, hash_length: int = 8) -> None:
-        """Store how many hex characters of each digest to keep."""
+    def __init__(
+        self, hash_length: int = 8, prefix: str = "<<", suffix: str = ">>"
+    ) -> None:
+        """Store the digest length to keep and the token delimiters."""
+        super().__init__(prefix, suffix)
         self.hash_length = hash_length
-
-    def create(
-        self, entities: list[Entity]
-    ) -> dict[Entity, PreservesLabeledIdentityOpaque]:
-        """Return an opaque per-label numbered token for every entity."""
-        counters: dict[str, int] = defaultdict(int)
-        tokens: dict[Entity, PreservesLabeledIdentityOpaque] = {}
-
-        for entity in entities:
-            counters[entity.label] += 1
-            tokens[entity] = self._token(entity.label, counters[entity.label])
-
-        return tokens
 
     def _token(self, label: str, number: int) -> PreservesLabeledIdentityOpaque:
         """Render a label and its ordinal as the <<LABEL:hash>> token."""
-        digest = hashlib.sha256(f"{label}:{number}".encode()).hexdigest()
-        return PreservesLabeledIdentityOpaque(
-            f"<<{label}:{digest[: self.hash_length]}>>"
-        )
+        seed = f"{label}:{number}"
+        digest = hashlib.sha256(seed.encode()).hexdigest()
+        token = self._wrap(f"{label}:{digest[: self.hash_length]}")
+        return PreservesLabeledIdentityOpaque(token)

@@ -1,15 +1,10 @@
 """Label counter placeholder factory: <<LABEL:n>> tokens, unique per entity."""
 
-from collections import defaultdict
-
-from piighost.models import Entity
-from piighost.components.placeholder.base import AnyPlaceholderFactory
+from piighost.components.placeholder.base import BaseCounterPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesLabeledIdentityOpaque
 
 
-class LabelCounterPlaceholderFactory(
-    AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]
-):
+class LabelCounterPlaceholderFactory(BaseCounterPlaceholderFactory):
     """Number each entity within its label, as <<LABEL:n>>.
 
     The first person becomes <<PERSON:1>>, the second <<PERSON:2>>, while an
@@ -19,16 +14,7 @@ class LabelCounterPlaceholderFactory(
     the entity order, so the same entity list always yields the same tokens.
     """
 
-    def create(
-        self, entities: list[Entity]
-    ) -> dict[Entity, PreservesLabeledIdentityOpaque]:
-        """Return a per-label numbered token for every entity."""
-        counters: dict[str, int] = defaultdict(int)
-        tokens: dict[Entity, PreservesLabeledIdentityOpaque] = {}
-
-        for entity in entities:
-            counters[entity.label] += 1
-            token = f"<<{entity.label}:{counters[entity.label]}>>"
-            tokens[entity] = PreservesLabeledIdentityOpaque(token)
-
-        return tokens
+    def _token(self, label: str, number: int) -> PreservesLabeledIdentityOpaque:
+        """Render one label and its ordinal as the <<LABEL:n>> token."""
+        token = self._wrap(f"{label}:{number}")
+        return PreservesLabeledIdentityOpaque(token)

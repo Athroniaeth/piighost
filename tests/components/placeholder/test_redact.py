@@ -1,9 +1,14 @@
 """Tests for the RedactPlaceholderFactory."""
 
 from piighost.models import Detection, Entity, Span
-from piighost.components.placeholder import AnyPlaceholderFactory, RedactPlaceholderFactory
-from piighost.components.placeholder.redact import REDACT_TOKEN
+from piighost.components.placeholder import (
+    AnyPlaceholderFactory,
+    RedactPlaceholderFactory,
+)
 from piighost.components.placeholder.tags import PreservesNothing
+
+REDACT_TOKEN = PreservesNothing("<<REDACT>>")
+"""The default redaction token, rebuilt here to assert the mapping."""
 
 
 def _entity(start: int, end: int, text: str, label: str = "PERSON") -> Entity:
