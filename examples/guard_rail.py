@@ -7,9 +7,9 @@
 # ///
 """Catch residual PII with a guard rail.
 
-The pipeline anonymizes names, and a second, stronger detector guards the
-output for anything the pipeline missed. A flagged guard raises
-PIIRemainingError. Run with: uv run examples/guard_rail.py
+The pipeline anonymizes the email it knows, and a second, stronger detector
+guards the output for a different email the pipeline missed. A flagged guard
+raises PIIRemainingError. Run with: uv run examples/guard_rail.py
 """
 
 import asyncio
@@ -24,21 +24,21 @@ from piighost.placeholder import RedactPlaceholderFactory
 
 
 async def main() -> None:
-    """Anonymize a clean text, then one whose leftover PII trips the guard."""
+    """Anonymize a text, then one whose second, unknown email trips the guard."""
     ph_factory = RedactPlaceholderFactory()
-    guard_detector = ExactMatchDetector({"emma@example.com": "EMAIL"})
+    guard_detector = ExactMatchDetector({"bob@example.com": "EMAIL"})
     pipeline = AnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON"}),
+        ExactMatchDetector({"alice@example.com": "EMAIL"}),
         ExactEntityLinker(),
         Anonymizer(ph_factory),
         guard=DetectorGuardRail(guard_detector),
     )
 
-    clean = await pipeline.anonymize("Emma says hello.")
+    clean = await pipeline.anonymize("Contact alice@example.com.")
     print("clean output:", clean.text)
 
     try:
-        await pipeline.anonymize("Emma at emma@example.com.")
+        await pipeline.anonymize("Contact alice@example.com or bob@example.com.")
     except PIIRemainingError as error:
         print("guard raised:", error)
 
