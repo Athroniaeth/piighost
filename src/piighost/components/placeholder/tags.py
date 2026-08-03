@@ -5,19 +5,22 @@ distinct reversible token per entity, some collapse every entity of one label
 into the same string, some leak part of the original value. The consumers of a
 factory, the anonymizer, the pipeline, and the middleware, care about this
 level. The middleware, outside its passthrough mode, needs tokens that uniquely
-identify each entity so it can deanonymize arguments reliably.
+identify each entity so it can deanonymize arguments reliably, and that carry a
+delimited grammar so a token the model invented can be found and refused.
 
 These tags are phantom types: they exist only for the type checker. Attached to
 a factory through a generic parameter, they turn an incompatible combination,
 such as handing a label-only factory to the middleware, into a static error
 rather than a runtime surprise.
 
-Two independent axes organize the taxonomy:
+Three independent axes organize the taxonomy:
 
 - Label: does the token reveal the entity type? <<PERSON>> does, <<REDACT>> does
   not.
 - Identity: does the token uniquely identify the entity? <<PERSON:1>> does,
   <<PERSON>> collapses every person into one token.
+- Recognizable: can the factory find the token again in arbitrary text? A
+  delimited <<PERSON:1>> can, a realistic a1b2c3d4@anonymized.local cannot.
 
 The four base combinations are four sibling tags under the root
 PlaceholderPreservation: PreservesNothing (neither axis), PreservesLabel (label
@@ -32,7 +35,11 @@ labeled-identity factory. Every PreservesLabeledIdentity is a PreservesLabel and
 a PreservesIdentity, but not the reverse.
 
 A realism sub-axis refines PreservesLabeledIdentity, from clearly synthetic
-(<<PERSON:1>>) to hashed realistic (a1b2c3d4@anonymized.local).
+(<<PERSON:1>>) to hashed realistic (a1b2c3d4@anonymized.local). It tracks the
+recognizability axis: the synthetic opaque token is delimited and re-findable,
+the realistic ones are not. PreservesRecognizableIdentity is the intersection
+the middleware narrows on, identity and recognizable at once; the opaque and
+identity-only tags inherit it, the realistic tags do not.
 
 PreservesShape is a special label-extending case: the masked token keeps a
 fragment of the original (j***@mail.com), so it implies the label through its
@@ -49,10 +56,12 @@ The full hierarchy:
   - PreservesNothing
   - PreservesLabel
     - PreservesShape
+  - Recognizable
   - PreservesIdentity
+  - PreservesRecognizableIdentity (PreservesIdentity, Recognizable)
     - PreservesIdentityOnly
   - PreservesLabeledIdentity (PreservesLabel, PreservesIdentity)
-    - PreservesLabeledIdentityOpaque
+    - PreservesLabeledIdentityOpaque (PreservesLabeledIdentity, PreservesRecognizableIdentity)
     - PreservesLabeledIdentityRealistic
       - PreservesLabeledIdentityHashed
 """
@@ -96,13 +105,34 @@ class PreservesIdentity(PlaceholderPreservation):
     """
 
 
-class PreservesIdentityOnly(PreservesIdentity):
+class Recognizable(PlaceholderPreservation):
+    """The token carries a delimited grammar its factory can find again in text.
+
+    A delimited token such as <<PERSON:1>> can be located in arbitrary text by
+    the factory that emitted it, which lets a consumer detect a token the model
+    invented. A realistic or masked token cannot: it has no fixed grammar, so it
+    is indistinguishable from surrounding prose.
+    """
+
+
+class PreservesRecognizableIdentity(PreservesIdentity, Recognizable):
+    """The token uniquely identifies each entity and can be found again in text.
+
+    A PreservesIdentity that is also Recognizable, this is the pair the
+    middleware narrows on: identity so deanonymization is unambiguous, and a
+    re-findable grammar so a token the model invented can be spotted. Every
+    delimited identity-preserving tag is one of these.
+    """
+
+
+class PreservesIdentityOnly(PreservesRecognizableIdentity):
     """The token is a unique reversible id that hides the entity type.
 
     A token like <<a1b2c3d4>> carries a per-entity hash but no label, so a reader
     can tell two entities apart while learning nothing about whether they are
-    persons, emails, or credit cards. No built-in factory ships this scheme; it
-    is the tag for a user factory that hashes without a label prefix.
+    persons, emails, or credit cards. It is delimited, hence recognizable. No
+    built-in factory ships this scheme; it is the tag for a user factory that
+    hashes without a label prefix.
     """
 
 
@@ -125,11 +155,14 @@ class PreservesLabeledIdentity(PreservesLabel, PreservesIdentity):
     """
 
 
-class PreservesLabeledIdentityOpaque(PreservesLabeledIdentity):
-    """Labeled, unique, and clearly synthetic.
+class PreservesLabeledIdentityOpaque(
+    PreservesLabeledIdentity, PreservesRecognizableIdentity
+):
+    """Labeled, unique, clearly synthetic, and re-findable.
 
     A token like <<PERSON:1>> cannot be confused with real data, reads easily in
-    logs, and never coincidentally collides with a real value.
+    logs, never coincidentally collides with a real value, and its delimiters let
+    the factory find it again, so it is also a PreservesRecognizableIdentity.
     """
 
 
@@ -161,5 +194,7 @@ __all__ = [
     "PreservesLabeledIdentityOpaque",
     "PreservesLabeledIdentityRealistic",
     "PreservesNothing",
+    "PreservesRecognizableIdentity",
     "PreservesShape",
+    "Recognizable",
 ]

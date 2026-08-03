@@ -25,7 +25,9 @@ from piighost.components.placeholder.tags import (
     PreservesLabeledIdentityOpaque,
     PreservesLabeledIdentityRealistic,
     PreservesNothing,
+    PreservesRecognizableIdentity,
     PreservesShape,
+    Recognizable,
 )
 
 __all__ = [
@@ -46,6 +48,8 @@ __all__ = [
     "PreservesLabeledIdentityOpaque",
     "PreservesLabeledIdentityRealistic",
     "PreservesNothing",
+    "PreservesRecognizableIdentity",
     "PreservesShape",
+    "Recognizable",
     "RedactPlaceholderFactory",
 ]

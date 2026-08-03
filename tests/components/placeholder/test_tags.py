@@ -22,6 +22,10 @@ SUBCLASS_EDGES: list[tuple[type, type]] = [
     (tags.PreservesLabeledIdentityOpaque, tags.PreservesLabeledIdentity),
     (tags.PreservesLabeledIdentityRealistic, tags.PreservesLabeledIdentity),
     (tags.PreservesLabeledIdentityHashed, tags.PreservesLabeledIdentityRealistic),
+    (tags.PreservesRecognizableIdentity, tags.PreservesIdentity),
+    (tags.PreservesRecognizableIdentity, tags.Recognizable),
+    (tags.PreservesIdentityOnly, tags.PreservesRecognizableIdentity),
+    (tags.PreservesLabeledIdentityOpaque, tags.PreservesRecognizableIdentity),
 ]
 
 # Pairs that must stay unrelated, so an axis is not accidentally widened. The
@@ -34,6 +38,9 @@ NON_SUBCLASS_PAIRS: list[tuple[type, type]] = [
     (tags.PreservesLabel, tags.PreservesNothing),
     (tags.PreservesIdentity, tags.PreservesNothing),
     (tags.PreservesLabeledIdentity, tags.PreservesNothing),
+    (tags.PreservesLabeledIdentityRealistic, tags.Recognizable),
+    (tags.PreservesLabeledIdentityHashed, tags.Recognizable),
+    (tags.PreservesShape, tags.Recognizable),
 ]
 
 
@@ -45,7 +52,7 @@ def test_tag_inherits_from_ancestor(tag: type, ancestor: type) -> None:
 
 @pytest.mark.parametrize(("tag", "other"), NON_SUBCLASS_PAIRS)
 def test_axes_stay_independent(tag: type, other: type) -> None:
-    """The label and identity axes do not leak into each other."""
+    """The label, identity, and recognizable axes do not leak into each other."""
     assert not issubclass(tag, other)
 
 
