@@ -7,7 +7,10 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.placeholder import (
+    LabelCounterPlaceholderFactory,
+    RedactPlaceholderFactory,
+)
 from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.pipeline import ThreadAnonymizationPipeline
 
@@ -78,3 +81,25 @@ class TestThreadSpans:
         assert attributes is not None
         assert attributes["langfuse.observation.input"] == "<<PERSON:1>>"
         assert attributes["langfuse.observation.output"] == "Emma"
+
+    async def test_deanonymize_omits_its_output_when_redacting(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        """With a redactor, the restored clear text never enters the payload."""
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            observation_redactor=RedactPlaceholderFactory(),
+        )
+        await pipeline.anonymize("Hi Emma", "t1")
+        exporter.clear()
+
+        restored = await pipeline.deanonymize("<<PERSON:1>>", "t1")
+        assert restored == "Emma"
+        spans = {span.name: span for span in exporter.get_finished_spans()}
+        attributes = spans["piighost.deanonymize"].attributes
+        assert attributes is not None
+        assert attributes["langfuse.observation.input"] == "<<PERSON:1>>"
+        assert "langfuse.observation.output" not in attributes

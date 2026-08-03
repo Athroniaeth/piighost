@@ -87,8 +87,8 @@ Per `anonymize` call:
 
 - Root `piighost.anonymize`. Input: the message text. Output: the anonymized
   text. The thread pipeline also sets `langfuse.session.id` to the `thread_id`,
-  so a thread's traces group into one Langfuse session, and
-  `langfuse.trace.name`.
+  so a thread's traces group into one Langfuse session. No `langfuse.trace.name`
+  attribute is set: Langfuse derives the trace name from the root span's name.
 - Children, in real execution order:
   - `piighost.detect`: output the detections (`Detection.to_dict()` list),
     attribute `count`, and on the thread pipeline `cache_hit` (true when the
