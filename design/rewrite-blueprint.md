@@ -131,7 +131,7 @@ plus au moins un adaptateur.
 | Garantie au type | Inchangée. Phantom tags + middleware borné à `PreservesIdentity`. |
 | Overrides | Deux composants. Liste noire (suppression) et liste blanche (forçage). |
 | Idempotence | Warning si un token déjà émis est re-traité (mauvais mode), pas une erreur. |
-| Placeholder inventé par le LLM | Stratégie enum `KEEP` / `DROP` / `RAISE`, défaut `KEEP`. |
+| Placeholder inventé par le LLM | Implémenté. Enum `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) sur le middleware, défaut `RAISE` (fail-closed, règle 4). Détection sans état côté core. Après désanonymisation tout token issu a été remplacé, donc un résidu reconnu par `factory.find_tokens` est inventé. Appliqué à la réponse modèle désanonymisée et aux arguments d'outil désanonymisés. `RAISE` lève `InventedPlaceholderError`. Un vrai retry du LLM (renvoyer l'anomalie comme une erreur d'outil que la boucle réinjecte) reste une stratégie distincte non implémentée. |
 | Store de mapping | Le reverse map est de la PII en clair. Chiffrement au repos, TTL, contrôle d'accès. Préférer le hash irréversible quand la réversibilité n'est pas requise. |
 | Faker | Warning sur collision possible avec une valeur réelle. |
 | Config | pydantic-settings + `build()` porté par les modèles de config (unions discriminées). Supprime le registre de builders et les `from_config`. Multi-source toml/json avec surcharge env (fichier en base). |
