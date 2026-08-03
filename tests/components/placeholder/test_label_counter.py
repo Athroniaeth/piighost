@@ -1,7 +1,10 @@
 """Tests for the LabelCounterPlaceholderFactory."""
 
 from piighost.models import Detection, Entity, Span
-from piighost.components.placeholder import AnyPlaceholderFactory, LabelCounterPlaceholderFactory
+from piighost.components.placeholder import (
+    AnyPlaceholderFactory,
+    LabelCounterPlaceholderFactory,
+)
 from piighost.components.placeholder.tags import PreservesLabeledIdentityOpaque
 
 
