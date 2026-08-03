@@ -175,15 +175,27 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         ]
 
     def _payload_text(self, text: str, detections: list[Detection]) -> str:
-        """Return a text payload, its detection spans tokened when redacting."""
+        """Return a text payload, its detection spans tokened when redacting.
+
+        Overlapping spans are merged before splicing, so the union of every
+        detection span is removed and no clear fragment of one detection can
+        survive a splice made for another. A merged range takes the token of its
+        first detection.
+        """
         if self.observation_redactor is None:
             return text
         tokens = self._redaction_tokens(detections)
-        redacted = text
-        ordered = sorted(detections, key=lambda detection: detection.span, reverse=True)
-        for detection in ordered:
+        merged: list[tuple[int, int, str]] = []
+        for detection in sorted(detections, key=lambda detection: detection.span):
             span = detection.span
-            redacted = redacted[: span.start] + tokens[detection] + redacted[span.end :]
+            if merged and span.start < merged[-1][1]:
+                start, end, token = merged[-1]
+                merged[-1] = (start, max(end, span.end), token)
+            else:
+                merged.append((span.start, span.end, tokens[detection]))
+        redacted = text
+        for start, end, token in reversed(merged):
+            redacted = redacted[:start] + token + redacted[end:]
         return redacted
 
     def _redaction_tokens(self, detections: list[Detection]) -> dict[Detection, str]:
