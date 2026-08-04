@@ -4,11 +4,15 @@ Spans flow to whatever TracerProvider the application configured, per OTel's
 library-instrumentation model: with no provider the API is a no-op. Payloads are
 serialized as JSON under the attribute keys Langfuse maps to observation input
 and output, so traces render richly there while any other OTLP backend still
-shows them as plain attributes.
+shows them as plain attributes. Span times are paced to a one-millisecond floor,
+because Langfuse stores observation times at millisecond precision and would
+otherwise render sub-millisecond stages in arbitrary order.
 """
 
 import importlib.util
 import json
+import threading
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -33,6 +37,15 @@ _TRACE_NAME_KEY = "langfuse.trace.name"
 Langfuse only fills a trace's stored name from this attribute; without it the
 trace renders unnamed in list views, even though single-trace reads derive a
 fallback from the root span.
+"""
+
+_SPACING_NS = 1_000_000
+"""One millisecond in nanoseconds, the pacing floor between span times.
+
+Langfuse stores observation times at millisecond precision, so spans closer
+than this render in arbitrary order in the trace timeline. Pacing start times
+by this floor keeps stages ordered; a stage slower than the floor keeps its
+real timings, only a sub-millisecond one is stretched to it.
 """
 
 
@@ -64,11 +77,36 @@ class OtelSpan:
 
 
 class OtelTracer:
-    """A tracer emitting piighost spans through the global OTel provider."""
+    """A tracer emitting piighost spans through the global OTel provider.
+
+    Span start times are paced so two spans never share a millisecond, and every
+    span lasts at least the pacing floor, so Langfuse's millisecond storage
+    keeps stages in execution order. A parent's end is clamped past its latest
+    child's floor, so the paced children stay contained.
+    """
 
     def __init__(self) -> None:
-        """Bind the piighost instrumentation tracer."""
+        """Bind the piighost instrumentation tracer and the pacing clock."""
         self._tracer = trace.get_tracer("piighost")
+        self._lock = threading.Lock()
+        self._last_start_ns = 0
+
+    def _paced_start_ns(self) -> int:
+        """Return the current time, at least one floor after the last start."""
+        with self._lock:
+            start = max(time.time_ns(), self._last_start_ns + _SPACING_NS)
+            self._last_start_ns = start
+            return start
+
+    def _paced_end_ns(self) -> int:
+        """Return the current time, at least one floor after the last start.
+
+        For the innermost span the last start is its own, so it lasts at least
+        the floor; for a parent it is the latest child's, so the parent's end
+        covers every paced child.
+        """
+        with self._lock:
+            return max(time.time_ns(), self._last_start_ns + _SPACING_NS)
 
     @contextmanager
     def span(self, name: str) -> Iterator[OtelSpan]:
@@ -78,10 +116,19 @@ class OtelTracer:
         carries the Langfuse trace-name attribute; a child span never does, so a
         surrounding application trace keeps its own name. An exception raised
         inside the span is recorded on it and marks its status as error before
-        propagating, which is OTel's default behavior.
+        propagating.
         """
         is_root = not trace.get_current_span().get_span_context().is_valid
-        with self._tracer.start_as_current_span(name) as span:
-            if is_root:
-                span.set_attribute(_TRACE_NAME_KEY, name)
-            yield OtelSpan(span)
+        span = self._tracer.start_span(name, start_time=self._paced_start_ns())
+        if is_root:
+            span.set_attribute(_TRACE_NAME_KEY, name)
+        try:
+            with trace.use_span(
+                span,
+                end_on_exit=False,
+                record_exception=True,
+                set_status_on_exception=True,
+            ):
+                yield OtelSpan(span)
+        finally:
+            span.end(end_time=self._paced_end_ns())

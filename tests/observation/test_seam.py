@@ -79,3 +79,23 @@ class TestOtelTracer:
         assert child_attributes is not None
         assert root_attributes["langfuse.trace.name"] == "piighost.root"
         assert "langfuse.trace.name" not in child_attributes
+
+    def test_span_times_are_paced_apart(self, exporter: InMemorySpanExporter) -> None:
+        """Sibling spans never share a millisecond and last at least one."""
+        tracer = get_tracer()
+        with tracer.span("piighost.root"):
+            with tracer.span("piighost.first"):
+                pass
+            with tracer.span("piighost.second"):
+                pass
+
+        spans = {span.name: span for span in exporter.get_finished_spans()}
+        first = spans["piighost.first"]
+        second = spans["piighost.second"]
+        root = spans["piighost.root"]
+        assert first.start_time is not None and first.end_time is not None
+        assert second.start_time is not None and second.end_time is not None
+        assert root.end_time is not None
+        assert second.start_time - first.start_time >= 1_000_000
+        assert first.end_time - first.start_time >= 1_000_000
+        assert root.end_time >= second.end_time
