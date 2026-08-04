@@ -55,6 +55,16 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
     tokens do not, at type-check time.
     """
 
+    @property
+    def factory(self) -> AnyPlaceholderFactory[PreservationT_co]:
+        """The placeholder factory that assigns tokens to entities.
+
+        A read-only property rather than a mutable attribute, so the covariant
+        preservation tag stays in a covariant position and the protocol is
+        variance sound.
+        """
+        ...
+
     def anonymize(
         self,
         text: str,
