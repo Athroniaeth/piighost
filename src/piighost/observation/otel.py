@@ -27,6 +27,14 @@ _INPUT_KEY = "langfuse.observation.input"
 _OUTPUT_KEY = "langfuse.observation.output"
 """The span attribute Langfuse maps to the observation's output."""
 
+_TRACE_NAME_KEY = "langfuse.trace.name"
+"""The root-span attribute Langfuse maps to the stored trace name.
+
+Langfuse only fills a trace's stored name from this attribute; without it the
+trace renders unnamed in list views, even though single-trace reads derive a
+fallback from the root span.
+"""
+
 
 def _as_attribute(value: Any) -> str:
     """Serialize a payload to the JSON string Langfuse expects, strings as-is."""
@@ -66,8 +74,14 @@ class OtelTracer:
     def span(self, name: str) -> Iterator[OtelSpan]:
         """Open a span in the ambient context and yield its handle.
 
-        An exception raised inside the span is recorded on it and marks its
-        status as error before propagating, which is OTel's default behavior.
+        A span opened with no ambient parent starts a new trace, so it also
+        carries the Langfuse trace-name attribute; a child span never does, so a
+        surrounding application trace keeps its own name. An exception raised
+        inside the span is recorded on it and marks its status as error before
+        propagating, which is OTel's default behavior.
         """
+        is_root = not trace.get_current_span().get_span_context().is_valid
         with self._tracer.start_as_current_span(name) as span:
+            if is_root:
+                span.set_attribute(_TRACE_NAME_KEY, name)
             yield OtelSpan(span)

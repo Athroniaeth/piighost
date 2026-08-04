@@ -123,6 +123,9 @@ async def main() -> None:
 
     tracer = trace.get_tracer("piighost.example")
     with tracer.start_as_current_span("pii-conversation") as conversation:
+        # Langfuse fills the stored trace name and session only from these
+        # root-span attributes; the observation names alone leave them empty.
+        conversation.set_attribute("langfuse.trace.name", "pii-conversation")
         conversation.set_attribute("langfuse.session.id", "demo-thread")
 
         first = await pipeline.anonymize("Hi, I am Emma.", "demo-thread")
