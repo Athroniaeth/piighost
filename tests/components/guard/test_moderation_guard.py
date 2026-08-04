@@ -59,12 +59,15 @@ class TestOptionalDependencyGuard:
             return real_find_spec(name, *args, **kwargs)
 
         monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        sys.modules.pop(_MODULE, None)
+        original = sys.modules.pop(_MODULE, None)
 
-        with pytest.raises(ImportError, match=r"piighost\[mistral\]"):
-            importlib.import_module(_MODULE)
-
-        sys.modules.pop(_MODULE, None)
+        try:
+            with pytest.raises(ImportError, match=r"piighost\[mistral\]"):
+                importlib.import_module(_MODULE)
+        finally:
+            sys.modules.pop(_MODULE, None)
+            if original is not None:
+                sys.modules[_MODULE] = original
 
 
 class TestUsableWhenInstalled:
