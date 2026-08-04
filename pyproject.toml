@@ -98,6 +98,7 @@ opik = [
 ]
 config = [
     "pydantic>=2.6",
+    "pydantic-settings>=2.0",
     "typer>=0.12",
     "tomli>=2.0; python_version < '3.11'",
 ]
@@ -133,6 +134,7 @@ dev = [
     "bandit>=1.9.4",
     "streamlit>=1.46",
     "pydantic>=2.6",
+    "pydantic-settings>=2.0",
     "typer>=0.12",
     "tomli>=2.0; python_version < '3.11'",
     "argon2-cffi>=23.1",
@@ -183,6 +185,7 @@ sqlalchemy = [
 ]
 config = [
     "pydantic>=2.6",
+    "pydantic-settings>=2.0",
     "typer>=0.12",
     "tomli>=2.0; python_version < '3.11'",
 ]

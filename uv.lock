@@ -2746,6 +2746,7 @@ all = [
     { name = "opentelemetry-api" },
     { name = "opik" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "rapidfuzz" },
     { name = "redis" },
     { name = "spacy" },
@@ -2765,6 +2766,7 @@ client = [
 ]
 config = [
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "typer" },
 ]
 crypto = [
@@ -2819,6 +2821,7 @@ transformers = [
 [package.dev-dependencies]
 config = [
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "typer" },
 ]
 dev = [
@@ -2832,6 +2835,7 @@ dev = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-sdk" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "pyrefly" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -2899,6 +2903,7 @@ requires-dist = [
     { name = "opik", marker = "extra == 'opik'", specifier = ">=2.0" },
     { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "redis", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral"], marker = "extra == 'all'" },
     { name = "pydantic", marker = "extra == 'config'", specifier = ">=2.6" },
+    { name = "pydantic-settings", marker = "extra == 'config'", specifier = ">=2.0" },
     { name = "rapidfuzz", marker = "extra == 'fuzzy'", specifier = ">=3.9" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5" },
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
@@ -2915,6 +2920,7 @@ provides-extras = ["gliner2", "langchain", "faker", "cache", "redis", "middlewar
 [package.metadata.requires-dev]
 config = [
     { name = "pydantic", specifier = ">=2.6" },
+    { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
     { name = "typer", specifier = ">=0.12" },
 ]
@@ -2929,6 +2935,7 @@ dev = [
     { name = "opentelemetry-api", specifier = ">=1.30" },
     { name = "opentelemetry-sdk", specifier = ">=1.30" },
     { name = "pydantic", specifier = ">=2.6" },
+    { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "pyrefly", specifier = ">=0.55.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=0.25" },

@@ -205,3 +205,26 @@ class RemoteError(ClientError):
     def __init__(self, message: str, status_code: int) -> None:
         self.status_code = status_code
         super().__init__(message)
+
+
+class ConfigError(PIIGhostError):
+    """Base class for errors raised while loading a configuration.
+
+    Catch this to handle any configuration failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class ConfigFileError(ConfigError):
+    """Raised when a configuration file cannot be read or parsed.
+
+    The file is missing, unreadable, or not valid TOML.
+    """
+
+
+class ConfigValidationError(ConfigError):
+    """Raised when a configuration parses but fails schema validation.
+
+    It wraps pydantic's ValidationError in the library's error family, so a
+    caller catches ConfigError rather than a pydantic type.
+    """
