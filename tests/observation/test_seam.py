@@ -62,3 +62,20 @@ class TestOtelTracer:
         assert recorded.attributes["langfuse.observation.input"] == '{"text": "hello"}'
         assert recorded.attributes["langfuse.observation.output"] == "world"
         assert recorded.attributes["count"] == 2
+
+    def test_root_spans_carry_the_trace_name(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        """A parentless span names its trace; a child span never does."""
+        tracer = get_tracer()
+        with tracer.span("piighost.root"):
+            with tracer.span("piighost.child"):
+                pass
+
+        spans = {span.name: span for span in exporter.get_finished_spans()}
+        root_attributes = spans["piighost.root"].attributes
+        child_attributes = spans["piighost.child"].attributes
+        assert root_attributes is not None
+        assert child_attributes is not None
+        assert root_attributes["langfuse.trace.name"] == "piighost.root"
+        assert "langfuse.trace.name" not in child_attributes
