@@ -77,10 +77,11 @@ Client, dans integrations/client/, derrière l'extra client (garde
 find_spec("httpx") levant un ImportError pointant piighost[client], export lazy
 depuis le __init__ du package, idiome des autres modules optionnels) :
 
-- base.py : rien de lourd ; le port vit dans pipeline/base.py, ce module peut
-  n'être qu'un point de regroupement ou contenir des utilitaires de
-  sérialisation partagés (Detection to_dict/from_dict est déjà sur le modèle).
-- httpx.py : PIIGhostClient.
+Le port vit dans pipeline/base.py, donc pas de base.py dédié ici, et le module
+de la classe s'appelle remote.py, pas httpx.py, pour ne pas masquer le paquet
+httpx à l'import.
+
+- remote.py : PIIGhostClient.
   - __init__(self, client: httpx.AsyncClient | str, recognizer:
     BaseDelimitedPlaceholderFactory | None = LabelCounterPlaceholderFactory()).
     Un str construit httpx.AsyncClient(base_url=...) et marque le client comme
