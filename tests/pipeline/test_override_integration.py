@@ -8,8 +8,10 @@ from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.override import BlacklistStrategy, DetectionOverride
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.exceptions import PIIRemainingError
-from piighost.pipeline import AnonymizationPipeline
+from piighost.models import Detection, Span
+from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
 
 
 def _pipeline(
@@ -64,3 +66,70 @@ class TestBasePipelineOverride:
         pipeline = _pipeline(ExactMatchDetector({"Emma": "PERSON"}), override, guard)
         with pytest.raises(PIIRemainingError):
             await pipeline.anonymize("Emma wrote leak@x.com")
+
+
+class TestThreadPipelineOverride:
+    async def test_whitelist_trumps_a_hitl_drop(self) -> None:
+        """A correction removing a whitelisted value sees it re-imposed."""
+        override = DetectionOverride(whitelist=ExactMatchDetector({"Emma": "PERSON"}))
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            override=override,
+        )
+        result = await pipeline.anonymize_corrected("Hi Emma", "t1", [])
+        assert result.text == "Hi <<PERSON:1>>"
+
+    async def test_blacklist_trumps_a_hitl_add(self) -> None:
+        """A correction adding a blacklisted value sees it cleared."""
+        override = DetectionOverride(
+            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+        )
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            override=override,
+        )
+        added = Detection(
+            span=Span(6, 11),
+            text="Paris",
+            label="LOCATION",
+            confidence=1.0,
+        )
+        result = await pipeline.anonymize_corrected("Visit Paris", "t1", [added])
+        assert result.text == "Visit Paris"
+
+    async def test_whitelisted_value_is_deanonymizable(self) -> None:
+        """A forced value enters the thread token map and restores."""
+        override = DetectionOverride(whitelist=ExactMatchDetector({"Emma": "PERSON"}))
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            override=override,
+        )
+        await pipeline.anonymize("Hi Emma", "t1")
+        restored = await pipeline.deanonymize("<<PERSON:1>>", "t1")
+        assert restored == "Emma"
+
+    async def test_blacklist_clears_a_fresh_thread_detection(self) -> None:
+        """A blacklisted value the detector finds on a fresh message stays clear."""
+        override = DetectionOverride(
+            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+        )
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Paris": "LOCATION"}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            override=override,
+        )
+        result = await pipeline.anonymize("Visit Paris", "t1")
+        assert result.text == "Visit Paris"
+        restored = await pipeline.deanonymize("Visit Paris", "t1")
+        assert restored == "Visit Paris"

@@ -9,6 +9,7 @@ from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.override.base import AnyDetectionOverride
 from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.conversation_memory.base import (
     AnyConversationMemory,
@@ -47,6 +48,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         entity_resolver: AnyEntityResolver | None = None,
         guard: AnyGuardRail | None = None,
         observation_redactor: AnyPlaceholderFactory | None = None,
+        override: AnyDetectionOverride | None = None,
     ) -> None:
         """Store the stage components and the per-thread conversation memory."""
         super().__init__(
@@ -58,6 +60,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             entity_resolver,
             guard,
             observation_redactor,
+            override,
         )
         self.memory = memory
 
@@ -116,7 +119,8 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 span.set_output(rendered)
 
             with self._stage_span("piighost.guard", self.guard) as span:
-                verdict = await self._guard(rendered, preserved)
+                cleared = await self._cleared_values(text)
+                verdict = await self._guard(rendered, preserved | cleared)
                 if verdict is not None:
                     labels = sorted({d.label for d in verdict.detections})
                     span.set_output({"flagged": verdict.flagged, "labels": labels})
@@ -140,12 +144,15 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         given, without overlap resolution or occurrence expansion, since the
         human is authoritative over it. In observation traces the detect span of
         this call reports cache_hit true, since the corrected detections are read
-        back from memory rather than re-detected.
+        back from memory rather than re-detected. Server-side overrides are the
+        one exception: the corrected set passes through the configured override
+        before it is stored, so the server's lists trump the correction.
         """
+        corrected = await self._override(text, detections)
         await self.memory.remember(
             thread_id=thread_id,
             message=text,
-            detections=detections,
+            detections=corrected,
             role=MessageRole.USER,
         )
         return await self.anonymize(text, thread_id, MessageRole.USER)
@@ -181,6 +188,8 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             return cached, True
 
         detections = await self.detector.detect(text)
+        with self._stage_span("piighost.override", self.override):
+            detections = await self._override(text, detections)
         detections = self._resolve_overlaps(detections)
         detections = self._expand(text, detections)
         await self.memory.remember(
