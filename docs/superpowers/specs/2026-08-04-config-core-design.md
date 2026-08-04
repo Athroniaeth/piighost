@@ -74,8 +74,11 @@ Package src/piighost/config/, derrière l'extra config.
   factory.
 - config/models/anonymizer.py : AnonymizerConfig référençant un PlaceholderConfig,
   build() renvoyant un Anonymizer sur la factory construite.
-- config/models/linker.py : LinkerConfig pour l'ExactEntityLinker, un
-  case_sensitive transformé en flags au build (cas transformant de la règle 7).
+- config/models/linker.py : LinkerConfig pour l'ExactEntityLinker. Le linker v2
+  regroupe toujours par valeur casefold, il n'a aucune option, donc le build()
+  est un simple ExactEntityLinker(). LinkerConfig est un alias de ExactLinkerConfig
+  tant qu'un seul linker existe, il deviendra une union discriminée à la brique
+  couverture.
 
 PipelineConfig (dans settings.py) porte les champs name (scalaire top-level,
 surchargeable par env), detector (DetectorConfig), linker (LinkerConfig),
