@@ -58,6 +58,11 @@ class TestDetectorConfig:
         with pytest.raises(ValidationError):
             RegexDetectorConfig(type="regex", patterns={"A": "a"}, nope=1)
 
+    def test_uncompilable_pattern_is_rejected(self) -> None:
+        """A pattern that is not a valid regex fails validation, not detection."""
+        with pytest.raises(ValidationError):
+            RegexDetectorConfig(type="regex", patterns={"BAD": "[a"})
+
 
 class TestPlaceholderConfig:
     def test_each_factory_builds_and_renders(self) -> None:
