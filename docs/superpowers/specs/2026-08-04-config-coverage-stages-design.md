@@ -114,9 +114,13 @@ l'environnement dev.
   regroupe deux variantes proches, override force ou efface une détection, le
   guard detector lève sur une PII résiduelle, la factory label_hash rend un token
   de forme LABEL deux-points hash ;
-- pour les guards llm et moderation, la config parse et build() renvoie la bonne
-  classe sans appel réseau. Le test moderation monkeypatche MISTRAL_API_KEY pour
-  que le client Mistral se construise, le test llm vérifie le type retourné ;
+- le guard moderation parse et build() renvoie un ModerationGuardRail sans appel
+  réseau, le test monkeypatchant MISTRAL_API_KEY pour que le client Mistral se
+  construise ;
+- le guard llm parse et l'union GuardConfig dispatche sur type llm vers
+  LLMGuardRailConfig. Son build() n'est pas exercé en test, car LLMGuardRail
+  appelle init_chat_model à la construction, ce qui exige un package provider et
+  des identifiants, une affaire de déploiement ;
 - l'union entity_resolver et l'union guard dispatchent sur type, type merge
   construit un MergeEntityResolver, type fuzzy un FuzzyEntityResolver, type
   detector un DetectorGuardRail ;
