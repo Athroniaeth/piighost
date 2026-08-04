@@ -30,9 +30,15 @@ overhead plus silent degradation when no tracer is configured.
 
 - **OpenTelemetry as the foundation, no per-backend adapters.** The pipeline
   emits spans through `opentelemetry-api`. Backends are the application's
-  concern: initialize the Langfuse v3 SDK (OTel-based, automatic capture) or
-  configure an OTLP exporter. One instrumentation, N backends; opik and others
-  need documentation only. This replaces v1's custom port and adapters.
+  concern: initialize the Langfuse v3 SDK (OTel-based) or configure an OTLP
+  exporter. One instrumentation, N backends; opik and others need documentation
+  only. This replaces v1's custom port and adapters. Caveat found end-to-end:
+  the Langfuse v3 SDK's default export filter only passes its own spans, spans
+  carrying gen_ai attributes, and an allowlist of known LLM instrumentors, so
+  capturing the piighost scope needs
+  `Langfuse(should_export_span=<predicate admitting "piighost">)`; the raw OTLP
+  endpoint has no such filter. Verified against Langfuse cloud (traces, session
+  grouping, stage nesting, payload mapping all render).
 - **No `observation` parameter on the pipeline.** Injection is the global OTel
   `TracerProvider` configured by the application, per OTel's library
   instrumentation philosophy. The API is no-op by design when no provider is
