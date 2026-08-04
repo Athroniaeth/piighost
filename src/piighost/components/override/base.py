@@ -42,3 +42,19 @@ class AnyDetectionOverride(Protocol):
             The casefolded matched values, empty without a blacklist.
         """
         ...
+
+    async def forces_value(self, value: str) -> bool:
+        """Return whether the whitelist forces this value to a token.
+
+        The thread pipeline's provenance filter leaves assistant-introduced
+        values in clear; a True here keeps the value tokenized anyway, which
+        only the FORCE whitelist strategy requests.
+
+        Args:
+            value: The entity value to test against the whitelist.
+
+        Returns:
+            True when the whitelist matches the whole value and the strategy
+            is FORCE, else False.
+        """
+        ...

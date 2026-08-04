@@ -57,6 +57,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.override", "BlacklistStrategy"),
     ("piighost.components.override", "DetectionOverride"),
     ("piighost.components.override", "OverrideConflictStrategy"),
+    ("piighost.components.override", "WhitelistStrategy"),
     ("piighost.pipeline", "AnonymizationPipeline"),
     ("piighost.pipeline", "AnyPipeline"),
     ("piighost.pipeline", "BaseAnonymizationPipeline"),

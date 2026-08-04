@@ -6,9 +6,13 @@ from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
-from piighost.components.override import BlacklistStrategy, DetectionOverride
+from piighost.components.override import (
+    BlacklistStrategy,
+    DetectionOverride,
+    WhitelistStrategy,
+)
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.exceptions import PIIRemainingError
 from piighost.models import Detection, Span
 from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
@@ -133,3 +137,36 @@ class TestThreadPipelineOverride:
         assert result.text == "Visit Paris"
         restored = await pipeline.deanonymize("Visit Paris", "t1")
         assert restored == "Visit Paris"
+
+    async def test_assistant_introduced_whitelisted_value_stays_clear(self) -> None:
+        """By default, provenance outranks the whitelist for tokenization."""
+        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            override=override,
+        )
+        first = await pipeline.anonymize("Acme rocks", "t1", MessageRole.ASSISTANT)
+        later = await pipeline.anonymize("I love Acme", "t1")
+        assert first.text == "Acme rocks"
+        assert later.text == "I love Acme"
+
+    async def test_force_strategy_outranks_assistant_provenance(self) -> None:
+        """Under FORCE, a whitelisted value is tokenized whoever introduced it."""
+        override = DetectionOverride(
+            whitelist=ExactMatchDetector({"Acme": "ORG"}),
+            whitelist_strategy=WhitelistStrategy.FORCE,
+        )
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            override=override,
+        )
+        first = await pipeline.anonymize("Acme rocks", "t1", MessageRole.ASSISTANT)
+        later = await pipeline.anonymize("I love Acme", "t1")
+        assert first.text == "<<ORG:1>> rocks"
+        assert later.text == "I love <<ORG:1>>"

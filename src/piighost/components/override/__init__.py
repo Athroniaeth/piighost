@@ -10,6 +10,7 @@ from piighost.components.override.detector import DetectionOverride
 from piighost.components.override.strategy import (
     BlacklistStrategy,
     OverrideConflictStrategy,
+    WhitelistStrategy,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "BlacklistStrategy",
     "DetectionOverride",
     "OverrideConflictStrategy",
+    "WhitelistStrategy",
 ]
