@@ -12,6 +12,7 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.overlap_resolver import ConfidenceOverlapResolver
+from piighost.components.override import DetectionOverride
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     RedactPlaceholderFactory,
@@ -65,13 +66,19 @@ class TestSpanTree:
         pipeline = _pipeline(
             overlap_resolver=ConfidenceOverlapResolver(),
             guard=DetectorGuardRail(ExactMatchDetector({})),
+            override=DetectionOverride(
+                whitelist=ExactMatchDetector({"Liam": "PERSON"})
+            ),
         )
         await pipeline.anonymize("Hi Emma!")
         names = [span.name for span in exporter.get_finished_spans()]
+        assert "piighost.override" in names
         assert "piighost.overlap" in names
         assert "piighost.guard" in names
         assert "piighost.expand" not in names
         assert "piighost.entity_resolve" not in names
+        assert names.index("piighost.detect") < names.index("piighost.override")
+        assert names.index("piighost.override") < names.index("piighost.link")
 
     async def test_root_records_input_and_output(
         self, exporter: InMemorySpanExporter
@@ -117,6 +124,22 @@ class TestRedaction:
         for span in exporter.get_finished_spans():
             for value in (span.attributes or {}).values():
                 assert "Emma" not in str(value)
+
+    async def test_redactor_covers_forced_values(
+        self, exporter: InMemorySpanExporter
+    ) -> None:
+        """A value forced by the override is tokened in the redacted root input."""
+        pipeline = _pipeline(
+            observation_redactor=RedactPlaceholderFactory(),
+            override=DetectionOverride(
+                whitelist=ExactMatchDetector({"Liam": "PERSON"})
+            ),
+        )
+        await pipeline.anonymize("Hi Liam!")
+        spans = {span.name: span for span in exporter.get_finished_spans()}
+        attributes = spans["piighost.anonymize"].attributes
+        assert attributes is not None
+        assert "Liam" not in str(attributes["langfuse.observation.input"])
 
     async def test_redactor_survives_overlapping_detections(
         self, exporter: InMemorySpanExporter
