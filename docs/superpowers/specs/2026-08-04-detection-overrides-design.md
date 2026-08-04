@@ -164,7 +164,16 @@ squelette conformance-then-behavior :
   détections survivantes de la même valeur) ; recommander VALUE quand un
   expander est configuré.
 - Le trade-off de fraîcheur : les changements de listes ne se ré-appliquent pas
-  aux messages en cache, re-soumettre ou forget_thread.
+  aux messages en cache, re-soumettre ou forget_thread. Cas plus large du même
+  mécanisme : des messages mis en cache par une instance sans override (override
+  ajouté plus tard, ou déploiement multi-worker où un worker partage le backend
+  mémoire sans les listes) sont servis tels quels, les listes n'y sont pas
+  imposées. Même remède, et à couvrir explicitement en doc.
+- Angle mort d'observabilité assumé : l'application de l'override sur le chemin
+  corrigé (anonymize_corrected, avant remember) n'émet pas de span, elle se
+  produit hors de toute trace racine ; le rendu qui suit lit le cache, donc le
+  moment où le serveur surclasse une correction humaine n'est pas visible en
+  trace.
 - La chaîne de précédence complète : overrides serveur, puis corrections HITL,
   puis détection automatique.
 
