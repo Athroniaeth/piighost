@@ -1,11 +1,12 @@
 """Observation: OpenTelemetry-based tracing of the pipelines.
 
 The pipelines emit spans through the seam returned by get_tracer. Backends are
-the application's concern: initialize the Langfuse v3 SDK (built on OTel, it
-captures these spans automatically) or configure any OTLP exporter. Unlike the
-other optional dependencies, a missing extra degrades silently to a no-op
-instead of raising, because tracing must never be required for anonymization to
-work.
+the application's concern: any OTLP exporter works as-is, and the Langfuse v3
+SDK (built on OTel) captures these spans when its should_export_span predicate
+admits the piighost instrumentation scope, since its default export filter only
+passes its own spans and known LLM instrumentors. Unlike the other optional
+dependencies, a missing extra degrades silently to a no-op instead of raising,
+because tracing must never be required for anonymization to work.
 """
 
 import importlib.util
