@@ -55,6 +55,14 @@ class TestLoadConfig:
         with pytest.raises(ConfigValidationError):
             load_config(_write(tmp_path, bad))
 
+    def test_uncompilable_regex_raises_config_validation_error(
+        self, tmp_path: Path
+    ) -> None:
+        """A malformed regex pattern fails at load time, not at detection time."""
+        bad = _VALID_TOML.replace('EMAIL = "[a-z]+@[a-z.]+"', 'EMAIL = "[a"')
+        with pytest.raises(ConfigValidationError):
+            load_config(_write(tmp_path, bad))
+
     def test_unreadable_file_raises_config_file_error(self, tmp_path: Path) -> None:
         """An existing but unreadable file raises ConfigFileError, not OSError."""
         if os.geteuid() == 0:
