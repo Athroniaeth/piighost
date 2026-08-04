@@ -13,11 +13,12 @@
 
 The pipeline emits OpenTelemetry spans through the piighost observation seam.
 With Langfuse credentials in the environment (copy .env.example to .env), the
-Langfuse v3 SDK is initialized and captures those spans automatically, being
-itself built on OTel: every anonymize call renders as one trace named
-piighost.anonymize with a child per stage, and a thread's traces group into one
-session. Without credentials the spans print to the console instead, so the
-example runs offline and still shows the span tree. Run with:
+Langfuse v3 SDK is initialized with a should_export_span predicate admitting the
+piighost scope, and captures those spans, being itself built on OTel: every
+anonymize call renders as one trace named piighost.anonymize with a child per
+stage, and a thread's traces group into one session. Without credentials the
+spans print to the console instead, so the example runs offline and still shows
+the span tree. Run with:
 uv run examples/observation/langfuse_tracing.py
 """
 
@@ -48,7 +49,7 @@ def _load_env() -> None:
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, _, value = stripped.partition("=")
-        os.environ.setdefault(key.strip(), value.strip())
+        os.environ.setdefault(key.strip(), value.strip().strip("'\""))
 
 
 def _format_span(span: ReadableSpan) -> str:
@@ -58,18 +59,31 @@ def _format_span(span: ReadableSpan) -> str:
     return f"[span] {span.name:22} {output[:58]}\n"
 
 
+def _export_piighost_spans(span: ReadableSpan) -> bool:
+    """Let Langfuse export the piighost spans alongside its own.
+
+    Langfuse v3 exports, by default, only its own spans, spans carrying gen_ai
+    attributes, and spans from an allowlist of known LLM instrumentation scopes.
+    The piighost scope is not on that list, so this predicate admits it
+    explicitly, plus Langfuse's own scope so SDK-created observations keep
+    flowing.
+    """
+    scope = span.instrumentation_scope
+    return scope is not None and scope.name in ("piighost", "langfuse-sdk")
+
+
 def _configure_backend() -> Any:
     """Wire Langfuse when credentials exist, else print spans to the console.
 
     Returns the Langfuse client, to flush before exiting, or None in console
-    mode. Initializing the Langfuse v3 client is all it takes: it registers an
-    OTel tracer provider, so the piighost spans flow into it with no further
-    wiring.
+    mode. Initializing the Langfuse v3 client registers an OTel tracer provider,
+    and the should_export_span predicate admits the piighost spans into its
+    exporter.
     """
     if os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"):
         from langfuse import Langfuse  # pyrefly: ignore[missing-import]
 
-        client = Langfuse()
+        client = Langfuse(should_export_span=_export_piighost_spans)
         host = os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com")
         print(f"backend: Langfuse ({host})")
         return client
