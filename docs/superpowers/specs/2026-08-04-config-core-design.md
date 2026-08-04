@@ -133,8 +133,8 @@ modèle) :
   composants n'est pas surchargeable par env ;
 - un TOML syntaxiquement invalide lève ConfigFileError ; un schéma invalide, un
   détecteur sans type, lève ConfigValidationError ;
-- le couplage à sens unique tient, le test_core_no_extras.py existant reste vert,
-  le core n'importe pas config.
+- le couplage à sens unique tient, le core n'importe pas config, garanti par le
+  walk test_every_module_imports_cleanly de tests/regression/test_imports.py.
 
 Packaging : ajout de pydantic-settings>=2.0 à l'extra config (les deux blocs) et
 au groupe dev (pydantic y est déjà, pydantic-settings non), pour que les tests
