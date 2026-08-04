@@ -1,12 +1,21 @@
 """Tests for loading a pipeline config from TOML via pydantic-settings."""
 
 import os
+import re
 from pathlib import Path
 
 import pytest
 
+from piighost.components.entity_resolver import MergeEntityResolver
+from piighost.components.expander import WordBoundaryExpander
+from piighost.components.overlap_resolver import ConfidenceOverlapResolver
+from piighost.components.override import DetectionOverride
 from piighost.config import PipelineConfig, load_config, load_pipeline
-from piighost.exceptions import ConfigFileError, ConfigValidationError
+from piighost.exceptions import (
+    ConfigFileError,
+    ConfigValidationError,
+    PIIRemainingError,
+)
 
 _VALID_TOML = """
 name = "from-file"
@@ -112,3 +121,102 @@ class TestLoadPipeline:
         pipeline = load_pipeline(_write(tmp_path, toml))
         result = await pipeline.anonymize("reach a@b.co now")
         assert result.text == "reach <<REDACT>> now"
+
+
+_STAGES_TOML = """
+[detector]
+type = "regex"
+patterns = { EMAIL = "[a-z]+@[a-z.]+" }
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "redact"
+
+[overlap_resolver]
+type = "confidence"
+
+[expander]
+type = "word_boundary"
+case_sensitive = true
+
+[entity_resolver]
+type = "merge"
+
+[override.whitelist]
+type = "regex"
+patterns = { CODE = "banana" }
+"""
+
+
+class TestOptionalStagesWiring:
+    def test_pipeline_wires_every_configured_stage(self, tmp_path: Path) -> None:
+        """load_pipeline wires each configured optional stage into the pipeline."""
+        pipeline = load_pipeline(_write(tmp_path, _STAGES_TOML))
+        assert isinstance(pipeline.overlap_resolver, ConfidenceOverlapResolver)
+        assert isinstance(pipeline.expander, WordBoundaryExpander)
+        assert pipeline.expander.case_sensitive is True
+        assert isinstance(pipeline.entity_resolver, MergeEntityResolver)
+        assert isinstance(pipeline.override, DetectionOverride)
+
+    def test_omitted_stages_are_none(self, tmp_path: Path) -> None:
+        """A config without a stage leaves that pipeline stage disabled."""
+        pipeline = load_pipeline(_write(tmp_path, _VALID_TOML))
+        assert pipeline.overlap_resolver is None
+        assert pipeline.expander is None
+        assert pipeline.entity_resolver is None
+        assert pipeline.guard is None
+        assert pipeline.override is None
+
+
+class TestOverrideEffect:
+    async def test_whitelist_forces_a_detection(self, tmp_path: Path) -> None:
+        """A whitelist detector forces anonymization of a value the detector missed."""
+        pipeline = load_pipeline(_write(tmp_path, _STAGES_TOML))
+        result = await pipeline.anonymize("mail a@b.co about banana")
+        assert "banana" not in result.text
+        assert "a@b.co" not in result.text
+
+
+class TestGuardEffect:
+    async def test_detector_guard_raises_on_residual(self, tmp_path: Path) -> None:
+        """A detector guard raises PIIRemainingError on residual clear PII."""
+        toml = """
+[detector]
+type = "regex"
+patterns = { EMAIL = "[a-z]+@[a-z.]+" }
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "redact"
+
+[guard]
+type = "detector"
+
+[guard.detector]
+type = "regex"
+patterns = { WORD = "banana" }
+"""
+        pipeline = load_pipeline(_write(tmp_path, toml))
+        with pytest.raises(PIIRemainingError):
+            await pipeline.anonymize("mail a@b.co about banana")
+
+
+class TestHashFactoryEndToEnd:
+    async def test_label_hash_renders_a_hashed_token(self, tmp_path: Path) -> None:
+        """A label_hash anonymizer renders a hashed token for a detection."""
+        toml = _VALID_TOML.replace('type = "redact"', 'type = "label_hash"')
+        pipeline = load_pipeline(_write(tmp_path, toml))
+        result = await pipeline.anonymize("mail a@b.co now")
+        assert re.search(r"<<EMAIL:[0-9a-f]{8}>>", result.text)
+
+
+class TestObservationRedactorWiring:
+    def test_observation_redactor_is_wired(self, tmp_path: Path) -> None:
+        """An observation_redactor placeholder config wires into the pipeline."""
+        toml = _VALID_TOML + '\n[observation_redactor]\ntype = "label"\n'
+        pipeline = load_pipeline(_write(tmp_path, toml))
+        assert pipeline.observation_redactor is not None

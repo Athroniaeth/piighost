@@ -22,7 +22,13 @@ from pydantic_settings import (
 from piighost.components.placeholder.tags import PlaceholderPreservation
 from piighost.config.models.anonymizer import AnonymizerConfig
 from piighost.config.models.detector import DetectorConfig
+from piighost.config.models.entity_resolver import EntityResolverConfig
+from piighost.config.models.expander import ExpanderConfig
+from piighost.config.models.guard import GuardConfig
 from piighost.config.models.linker import LinkerConfig
+from piighost.config.models.overlap_resolver import OverlapResolverConfig
+from piighost.config.models.override import OverrideConfig
+from piighost.config.models.placeholder import PlaceholderConfig
 from piighost.exceptions import ConfigFileError, ConfigValidationError
 from piighost.pipeline import AnonymizationPipeline
 
@@ -39,6 +45,13 @@ class PipelineConfig(BaseSettings):
         detector: The detector stage configuration.
         linker: The entity linker configuration.
         anonymizer: The anonymizer configuration.
+        overlap_resolver: The optional overlapping-detection resolver stage.
+        expander: The optional missed-occurrence expander stage.
+        entity_resolver: The optional entity-conflict resolver stage.
+        guard: The optional residual-PII guard rail stage.
+        override: The optional detection-override stage.
+        observation_redactor: The optional placeholder factory redacting
+            observation payloads.
     """
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
@@ -49,6 +62,12 @@ class PipelineConfig(BaseSettings):
     detector: DetectorConfig
     linker: LinkerConfig
     anonymizer: AnonymizerConfig
+    overlap_resolver: OverlapResolverConfig | None = None
+    expander: ExpanderConfig | None = None
+    entity_resolver: EntityResolverConfig | None = None
+    guard: GuardConfig | None = None
+    override: OverrideConfig | None = None
+    observation_redactor: PlaceholderConfig | None = None
 
     @classmethod
     def settings_customise_sources(
@@ -71,7 +90,27 @@ class PipelineConfig(BaseSettings):
         detector = self.detector.build()
         linker = self.linker.build()
         anonymizer = self.anonymizer.build()
-        return AnonymizationPipeline(detector, linker, anonymizer)
+        overlap_resolver = (
+            self.overlap_resolver.build() if self.overlap_resolver else None
+        )
+        expander = self.expander.build() if self.expander else None
+        entity_resolver = self.entity_resolver.build() if self.entity_resolver else None
+        guard = self.guard.build() if self.guard else None
+        override = self.override.build() if self.override else None
+        observation_redactor = (
+            self.observation_redactor.build() if self.observation_redactor else None
+        )
+        return AnonymizationPipeline(
+            detector,
+            linker,
+            anonymizer,
+            overlap_resolver=overlap_resolver,
+            expander=expander,
+            entity_resolver=entity_resolver,
+            guard=guard,
+            observation_redactor=observation_redactor,
+            override=override,
+        )
 
 
 def load_config(path: str | Path) -> PipelineConfig:
