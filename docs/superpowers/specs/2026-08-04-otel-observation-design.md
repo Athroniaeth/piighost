@@ -93,8 +93,11 @@ Per `anonymize` call:
 
 - Root `piighost.anonymize`. Input: the message text. Output: the anonymized
   text. The thread pipeline also sets `langfuse.session.id` to the `thread_id`,
-  so a thread's traces group into one Langfuse session. No `langfuse.trace.name`
-  attribute is set: Langfuse derives the trace name from the root span's name.
+  so a thread's traces group into one Langfuse session. A span opened with no
+  ambient parent starts a new trace, so the seam also sets `langfuse.trace.name`
+  on it (verified: Langfuse fills the stored trace name only from that
+  attribute, and list views render it empty otherwise); a child span never sets
+  it, so an application-level trace keeps its own name.
 - Children, in real execution order:
   - `piighost.detect`: output the detections (`Detection.to_dict()` list),
     attribute `count`, and on the thread pipeline `cache_hit` (true when the
