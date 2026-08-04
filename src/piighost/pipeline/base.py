@@ -164,6 +164,12 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             return frozenset()
         return await self.override.cleared_values(text)
 
+    async def _forces_value(self, value: str) -> bool:
+        """Whether the override's whitelist forces this value to a token."""
+        if self.override is None:
+            return False
+        return await self.override.forces_value(value)
+
     def _stage_span(
         self, name: str, component: object | None
     ) -> AbstractContextManager[AnyObservationSpan]:
