@@ -17,8 +17,12 @@ from piighost.components.linker.base import AnyEntityLinker
 from piighost.models import Detection, Entity
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.components.override.base import AnyDetectionOverride
-from piighost.components.placeholder.base import AnyPlaceholderFactory
+from piighost.components.placeholder.base import (
+    AnyPlaceholderFactory,
+    BaseDelimitedPlaceholderFactory,
+)
 from piighost.components.placeholder.tags import PlaceholderPreservation
+from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
 
 PreservationT = TypeVar(
@@ -67,6 +71,45 @@ class AnyPipeline(Protocol[PreservationT_co]):
         Returns:
             The text with each known token replaced by its entity's value.
         """
+        ...
+
+
+@runtime_checkable
+class AnyThreadPipeline(Protocol[PreservationT_co]):
+    """A thread-scoped pipeline, local or remote, anonymizing a conversation.
+
+    It anonymizes each message of a thread with tokens stable across the thread,
+    re-anonymizes a human-corrected message, deanonymizes any text carrying the
+    thread's tokens, and forgets a thread wholesale. It also exposes the grammar
+    of the tokens it emits, so a consumer such as the middleware can find them
+    again without reaching into a local anonymizer, which a remote pipeline does
+    not have. Being runtime_checkable, an isinstance check confirms only that
+    these members are present, not their signatures.
+    """
+
+    async def anonymize(
+        self, text: str, thread_id: str, role: MessageRole = MessageRole.USER
+    ) -> Anonymization[PreservationT_co]:
+        """Return the anonymized message and the token used for each entity."""
+        ...
+
+    async def anonymize_corrected(
+        self, text: str, thread_id: str, detections: list[Detection]
+    ) -> Anonymization[PreservationT_co]:
+        """Re-anonymize a user message with a human-corrected detection set."""
+        ...
+
+    async def deanonymize(self, text: str, thread_id: str) -> str:
+        """Return the text with every token from the thread replaced by its value."""
+        ...
+
+    async def forget_thread(self, thread_id: str) -> Forgotten:
+        """Erase a thread's memory and report how much was dropped."""
+        ...
+
+    @property
+    def recognizer(self) -> BaseDelimitedPlaceholderFactory | None:
+        """The grammar of the tokens this pipeline emits, or None if none."""
         ...
 
 

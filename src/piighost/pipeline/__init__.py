@@ -7,6 +7,7 @@ pipelines live in sibling modules.
 from piighost.pipeline.base import (
     AnonymizationPipeline,
     AnyPipeline,
+    AnyThreadPipeline,
     BaseAnonymizationPipeline,
 )
 from piighost.pipeline.thread import ThreadAnonymizationPipeline
@@ -14,6 +15,7 @@ from piighost.pipeline.thread import ThreadAnonymizationPipeline
 __all__ = [
     "AnonymizationPipeline",
     "AnyPipeline",
+    "AnyThreadPipeline",
     "BaseAnonymizationPipeline",
     "ThreadAnonymizationPipeline",
 ]
