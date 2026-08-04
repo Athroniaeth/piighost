@@ -53,8 +53,16 @@ overhead plus silent degradation when no tracer is configured.
   datasets. An optional per-pipeline `observation_redactor` placeholder factory
   replaces those values with tokens. The observation backend becomes a PII
   custodian in the default mode; this is documented, not warned at runtime.
-- **No timestamp-spacing hack.** OTel timestamps are nanosecond-precision and
-  carried through OTLP, so the v1 pacing workaround is dropped.
+- **Start-time pacing with a one-millisecond floor.** The initial bet, that
+  OTel's nanosecond timestamps carried through OTLP would make v1's pacing
+  workaround unnecessary, did not survive contact: Langfuse stores observation
+  times at millisecond precision, so sub-millisecond stages rendered in
+  arbitrary order. Unlike v1, which had to sleep between stages, the OTel API
+  exposes explicit start and end times, so the tracer paces timestamps without
+  adding latency: consecutive spans start at least 1 ms apart and last at least
+  1 ms, a parent's end covering its paced children. A stage slower than the
+  floor keeps its real timings; only sub-millisecond ones get the cosmetic 1 ms.
+  Verified ordered in Langfuse end to end.
 - **Payloads are built even when no provider is configured.** When
   `opentelemetry-api` is importable (it often is, transitively), the seam is
   OTel-backed and every anonymize call serializes its payloads into attributes
