@@ -76,7 +76,9 @@ Nouveaux modules sous src/piighost/config/models/, plus deux fichiers modifiés.
   l'extra mistral, et construit le client qui lit MISTRAL_API_KEY dans
   l'environnement.
 - config/models/override.py : OverrideConfig, avec whitelist et blacklist des
-  DetectorConfig ou None, blacklist_strategy BlacklistStrategy défaut EXACT,
+  DetectorConfig ou None. La whitelist force ses détections dans l'ensemble,
+  remplaçant celles qu'elle chevauche, la blacklist invalide des détections
+  existantes selon sa stratégie. blacklist_strategy BlacklistStrategy défaut EXACT,
   whitelist_strategy WhitelistStrategy défaut RESPECT_PROVENANCE,
   conflict_strategy OverrideConflictStrategy défaut WHITELIST_WINS. build()
   renvoie DetectionOverride avec les deux détecteurs construits ou None et les
