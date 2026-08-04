@@ -83,6 +83,9 @@ llm = [
 observation = [
     "opentelemetry-api>=1.30",
 ]
+fuzzy = [
+    "rapidfuzz>=3.9",
+]
 sqlalchemy = [
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
@@ -108,7 +111,7 @@ mistral = [
     "mistralai>=1.0",
 ]
 all = [
-    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,observation,sqlalchemy,langfuse,opik,config,argon2,crypto,mistral]",
+    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,observation,fuzzy,sqlalchemy,langfuse,opik,config,argon2,crypto,mistral]",
 ]
 
 [build-system]
@@ -140,6 +143,7 @@ dev = [
     "langchain>=1.2",
     "opentelemetry-api>=1.30",
     "opentelemetry-sdk>=1.30",
+    "rapidfuzz>=3.9",
 ]
 faker = [
     "faker>=40.11.0",
@@ -169,6 +173,9 @@ llm = [
 ]
 observation = [
     "opentelemetry-api>=1.30",
+]
+fuzzy = [
+    "rapidfuzz>=3.9",
 ]
 sqlalchemy = [
     "sqlalchemy[asyncio]>=2.0",
