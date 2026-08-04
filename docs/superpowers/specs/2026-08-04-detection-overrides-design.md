@@ -46,6 +46,18 @@ les collisions, appliqué de façon à surclasser les corrections HITL.
     whitelist d'abord, blacklist invalide ensuite y compris le forcé. RAISE :
     une collision entre les sorties des deux détecteurs lève
     ConflictingOverrideError.
+  - WhitelistStrategy, quand une valeur whitelistée a une provenance assistant
+    (la revue finale a montré que sans décision explicite, la provenance
+    gagnait en silence). RESPECT_PROVENANCE, le défaut : la whitelist garantit
+    la détection, mais une valeur introduite d'abord par l'assistant reste en
+    clair. Le modèle l'a émise parce qu'elle était utile au contexte et ne sait
+    pas qu'elle est confidentielle ; la remplacer par un token lui signalerait
+    précisément que cette valeur est sensible, une fuite de métadonnée, en plus
+    de le priver de sa connaissance du monde. FORCE : une valeur whitelistée
+    est tokenisée quel que soit son introducteur. Mécanique : le port gagne
+    forces_value(value), vrai quand la whitelist matche la valeur entière et
+    que la stratégie est FORCE ; le filtre de provenance de _thread_tokens
+    garde les entités que l'override force.
 - **La whitelist remplace ce qu'elle chevauche.** Une détection whitelistée
   écrase toute détection primaire chevauchante, sinon le rendu recevrait des
   spans conflictuels et la précédence serveur serait violée.
