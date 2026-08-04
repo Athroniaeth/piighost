@@ -6,6 +6,7 @@ from piighost.components.detector.base import AnyDetector
 from piighost.components.override.strategy import (
     BlacklistStrategy,
     OverrideConflictStrategy,
+    WhitelistStrategy,
 )
 from piighost.exceptions import ConflictingOverrideError
 from piighost.models import Detection
@@ -58,6 +59,7 @@ class DetectionOverride:
         whitelist: The detector whose detections are forced in, or None.
         blacklist: The detector whose detections invalidate, or None.
         blacklist_strategy: How a blacklist detection invalidates.
+        whitelist_strategy: Whether the whitelist outranks assistant provenance.
         conflict_strategy: Who wins when the two lists contradict each other.
     """
 
@@ -66,6 +68,7 @@ class DetectionOverride:
         whitelist: AnyDetector | None = None,
         blacklist: AnyDetector | None = None,
         blacklist_strategy: BlacklistStrategy = BlacklistStrategy.EXACT,
+        whitelist_strategy: WhitelistStrategy = WhitelistStrategy.RESPECT_PROVENANCE,
         conflict_strategy: OverrideConflictStrategy = (
             OverrideConflictStrategy.WHITELIST_WINS
         ),
@@ -74,6 +77,7 @@ class DetectionOverride:
         self.whitelist = whitelist
         self.blacklist = blacklist
         self.blacklist_strategy = blacklist_strategy
+        self.whitelist_strategy = whitelist_strategy
         self.conflict_strategy = conflict_strategy
 
     async def apply(self, text: str, detections: list[Detection]) -> list[Detection]:
@@ -104,6 +108,15 @@ class DetectionOverride:
             return frozenset()
         cleared = await self.blacklist.detect(text)
         return frozenset(detection.text.casefold() for detection in cleared)
+
+    async def forces_value(self, value: str) -> bool:
+        """Return whether the whitelist forces this value to a token."""
+        if self.whitelist is None:
+            return False
+        if self.whitelist_strategy is WhitelistStrategy.RESPECT_PROVENANCE:
+            return False
+        matches = await self.whitelist.detect(value)
+        return any(match.text.casefold() == value.casefold() for match in matches)
 
     def _force(
         self, detections: list[Detection], forced: list[Detection]

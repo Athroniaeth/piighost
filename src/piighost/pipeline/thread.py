@@ -204,16 +204,19 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """Assign a token to every anonymizable entity across the thread.
 
         An entity whose value was first introduced by the assistant is left out,
-        so it gets no token and stays in clear.
+        so it gets no token and stays in clear, unless the override's whitelist
+        forces it under the FORCE strategy.
         """
         union = await self.memory.get_detections(thread_id) or []
         entities = self.linker.link(union)
         thread_entities = self._resolve_entities(entities)
         provenance = await self.memory.get_provenance(thread_id)
 
-        anonymizable = [
-            entity
-            for entity in thread_entities
-            if provenance.get(entity.text.casefold()) is not MessageRole.ASSISTANT
-        ]
+        anonymizable = []
+        for entity in thread_entities:
+            introduced_by_assistant = (
+                provenance.get(entity.text.casefold()) is MessageRole.ASSISTANT
+            )
+            if not introduced_by_assistant or await self._forces_value(entity.text):
+                anonymizable.append(entity)
         return self.anonymizer.create(anonymizable)

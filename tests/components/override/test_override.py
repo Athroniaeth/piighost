@@ -8,6 +8,7 @@ from piighost.components.override import (
     BlacklistStrategy,
     DetectionOverride,
     OverrideConflictStrategy,
+    WhitelistStrategy,
 )
 from piighost.exceptions import ConflictingOverrideError
 from piighost.models import Detection, Span
@@ -153,3 +154,26 @@ class TestClearedValues:
     async def test_is_empty_without_a_blacklist(self) -> None:
         """cleared_values is empty when no blacklist is configured."""
         assert await DetectionOverride().cleared_values("Visit Paris") == frozenset()
+
+
+class TestForcesValue:
+    async def test_respect_provenance_never_forces(self) -> None:
+        """The default strategy defers to provenance even on a whitelist match."""
+        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+        assert await override.forces_value("Acme") is False
+
+    async def test_force_forces_a_matched_value(self) -> None:
+        """FORCE claims a value the whitelist matches in full."""
+        override = DetectionOverride(
+            whitelist=ExactMatchDetector({"Acme": "ORG"}),
+            whitelist_strategy=WhitelistStrategy.FORCE,
+        )
+        assert await override.forces_value("Acme") is True
+
+    async def test_force_ignores_an_unmatched_value(self) -> None:
+        """FORCE claims nothing the whitelist does not match."""
+        override = DetectionOverride(
+            whitelist=ExactMatchDetector({"Acme": "ORG"}),
+            whitelist_strategy=WhitelistStrategy.FORCE,
+        )
+        assert await override.forces_value("Globex") is False
