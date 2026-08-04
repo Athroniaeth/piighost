@@ -2746,6 +2746,7 @@ all = [
     { name = "opentelemetry-api" },
     { name = "opik" },
     { name = "pydantic" },
+    { name = "rapidfuzz" },
     { name = "redis" },
     { name = "spacy" },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -2771,6 +2772,9 @@ crypto = [
 ]
 faker = [
     { name = "faker" },
+]
+fuzzy = [
+    { name = "rapidfuzz" },
 ]
 gliner2 = [
     { name = "gliner2" },
@@ -2832,6 +2836,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "rapidfuzz" },
     { name = "redis" },
     { name = "ruff" },
     { name = "streamlit" },
@@ -2840,6 +2845,9 @@ dev = [
 ]
 faker = [
     { name = "faker" },
+]
+fuzzy = [
+    { name = "rapidfuzz" },
 ]
 gliner2 = [
     { name = "gliner2" },
@@ -2889,8 +2897,9 @@ requires-dist = [
     { name = "mistralai", marker = "extra == 'mistral'", specifier = ">=1.0" },
     { name = "opentelemetry-api", marker = "extra == 'observation'", specifier = ">=1.30" },
     { name = "opik", marker = "extra == 'opik'", specifier = ">=2.0" },
-    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "redis", "client", "spacy", "transformers", "llm", "observation", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral"], marker = "extra == 'all'" },
+    { name = "piighost", extras = ["gliner2", "langchain", "faker", "cache", "redis", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral"], marker = "extra == 'all'" },
     { name = "pydantic", marker = "extra == 'config'", specifier = ">=2.6" },
+    { name = "rapidfuzz", marker = "extra == 'fuzzy'", specifier = ">=3.9" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5" },
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sqlalchemy'", specifier = ">=2.0" },
@@ -2901,7 +2910,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12" },
     { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'client'", specifier = ">=4.4" },
 ]
-provides-extras = ["gliner2", "langchain", "faker", "cache", "redis", "middleware", "client", "spacy", "transformers", "llm", "observation", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral", "all"]
+provides-extras = ["gliner2", "langchain", "faker", "cache", "redis", "middleware", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "sqlalchemy", "langfuse", "opik", "config", "argon2", "crypto", "mistral", "all"]
 
 [package.metadata.requires-dev]
 config = [
@@ -2924,6 +2933,7 @@ dev = [
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=0.25" },
     { name = "pytest-cov", specifier = ">=6.0" },
+    { name = "rapidfuzz", specifier = ">=3.9" },
     { name = "redis", specifier = ">=5" },
     { name = "ruff", specifier = ">=0.15.5" },
     { name = "streamlit", specifier = ">=1.46" },
@@ -2932,6 +2942,7 @@ dev = [
     { name = "zensical", specifier = ">=0.0.27" },
 ]
 faker = [{ name = "faker", specifier = ">=40.11.0" }]
+fuzzy = [{ name = "rapidfuzz", specifier = ">=3.9" }]
 gliner2 = [{ name = "gliner2", specifier = ">=1.2.4" }]
 langchain = [{ name = "langchain", specifier = ">=1.2.13" }]
 llm = [
