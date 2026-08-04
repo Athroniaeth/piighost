@@ -115,7 +115,11 @@ blacklist sont toutes deux configurées, le pipeline exécute le détecteur de
 blacklist sur le message et alimente les valeurs matchées (casefoldées) dans le
 paramètre expected de _guard, le mécanisme d'exemption existant déjà utilisé
 pour les valeurs de provenance assistant. L'exemption est par valeur, pas par
-span, comme le reste du mécanisme expected.
+span, comme le reste du mécanisme expected. Coût accepté : le détecteur de
+blacklist tourne une seconde fois par appel gardé (une fois dans apply, une
+fois pour l'exemption) ; si une blacklist lourde (modèle) est un jour
+configurée, mettre en cache sa sortie au sein de l'appel est l'optimisation
+connue.
 
 ## Errors
 
