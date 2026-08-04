@@ -169,3 +169,19 @@ class UnrecognizableFactoryError(MiddlewareError):
     again to detect ones the model invented. A factory without that grammar, such
     as a mask, cannot support it.
     """
+
+
+class OverrideError(PIIGhostError):
+    """Base class for errors raised by a detection override.
+
+    Catch this to handle any override failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class ConflictingOverrideError(OverrideError):
+    """Raised when the whitelist and the blacklist contradict each other.
+
+    Under the RAISE conflict strategy, a span both forced and cleared is a
+    configuration error, refused loudly rather than resolved silently.
+    """
