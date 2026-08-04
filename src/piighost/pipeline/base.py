@@ -16,6 +16,7 @@ from piighost.components.guard.base import AnyGuardRail, GuardVerdict
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.models import Detection, Entity
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.override.base import AnyDetectionOverride
 from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.components.placeholder.tags import PlaceholderPreservation
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
@@ -87,6 +88,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         expander: The expander for missed occurrences, or None.
         entity_resolver: The resolver for entity conflicts, or None.
         guard: The guard re-checking the output, or None.
+        override: The server override imposed on every detection set, or None.
     """
 
     def __init__(
@@ -99,6 +101,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         entity_resolver: AnyEntityResolver | None = None,
         guard: AnyGuardRail | None = None,
         observation_redactor: AnyPlaceholderFactory | None = None,
+        override: AnyDetectionOverride | None = None,
     ) -> None:
         """Store the stage components, the optional ones defaulting to disabled.
 
@@ -106,7 +109,8 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         default, traces the clear text and detection values, so traces double as
         annotation datasets; a placeholder factory replaces those values with its
         tokens, making traces safe for a PII-untrusted backend but unusable as
-        datasets.
+        datasets. override imposes the server's whitelist and blacklist on every
+        detection set, trumping the detector and any corrected set.
         """
         self.detector = detector
         self.linker = linker
@@ -116,6 +120,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         self.entity_resolver = entity_resolver
         self.guard = guard
         self.observation_redactor = observation_redactor
+        self.override = override
         self._tracer = get_tracer()
 
     def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
@@ -139,6 +144,25 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         if self.entity_resolver is None:
             return entities
         return self.entity_resolver.resolve(entities)
+
+    async def _override(
+        self, text: str, detections: list[Detection]
+    ) -> list[Detection]:
+        """Impose the override, or pass detections through when disabled."""
+        if self.override is None:
+            return detections
+        return await self.override.apply(text, detections)
+
+    async def _cleared_values(self, text: str) -> frozenset[str]:
+        """The values the blacklist clears here, exempted from the guard.
+
+        A blacklisted value is deliberately left in clear, so a detector-based
+        guard would re-find it and refuse the output. Empty when no override or
+        no guard is configured, since the exemption only serves the guard.
+        """
+        if self.override is None or self.guard is None:
+            return frozenset()
+        return await self.override.cleared_values(text)
 
     def _stage_span(
         self, name: str, component: object | None
@@ -261,6 +285,9 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 detections = await self.detector.detect(text)
                 span.set_attribute("count", len(detections))
                 span.set_output(self._payload_detections(detections))
+
+            with self._stage_span("piighost.override", self.override):
+                detections = await self._override(text, detections)
             root.set_input(self._payload_text(text, detections))
 
             with self._stage_span("piighost.overlap", self.overlap_resolver):
@@ -281,7 +308,8 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 span.set_output(result.text)
 
             with self._stage_span("piighost.guard", self.guard) as span:
-                verdict = await self._guard(result.text)
+                cleared = await self._cleared_values(text)
+                verdict = await self._guard(result.text, cleared)
                 if verdict is not None:
                     labels = sorted({d.label for d in verdict.detections})
                     span.set_output({"flagged": verdict.flagged, "labels": labels})
