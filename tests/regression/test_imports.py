@@ -53,6 +53,10 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.guard", "AnyGuardRail"),
     ("piighost.components.guard", "DetectorGuardRail"),
     ("piighost.components.guard", "GuardVerdict"),
+    ("piighost.components.override", "AnyDetectionOverride"),
+    ("piighost.components.override", "BlacklistStrategy"),
+    ("piighost.components.override", "DetectionOverride"),
+    ("piighost.components.override", "OverrideConflictStrategy"),
     ("piighost.pipeline", "AnonymizationPipeline"),
     ("piighost.pipeline", "AnyPipeline"),
     ("piighost.pipeline", "BaseAnonymizationPipeline"),
@@ -101,6 +105,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "InventedPlaceholderError"),
     ("piighost.exceptions", "MissingThreadIdError"),
     ("piighost.exceptions", "UnrecognizableFactoryError"),
+    ("piighost.exceptions", "OverrideError"),
+    ("piighost.exceptions", "ConflictingOverrideError"),
 ]
 
 
