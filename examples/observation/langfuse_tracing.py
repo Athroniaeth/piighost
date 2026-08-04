@@ -14,11 +14,12 @@
 The pipeline emits OpenTelemetry spans through the piighost observation seam.
 With Langfuse credentials in the environment (copy .env.example to .env), the
 Langfuse v3 SDK is initialized with a should_export_span predicate admitting the
-piighost scope, and captures those spans, being itself built on OTel: every
-anonymize call renders as one trace named piighost.anonymize with a child per
-stage, and a thread's traces group into one session. Without credentials the
-spans print to the console instead, so the example runs offline and still shows
-the span tree. Run with:
+piighost scope, and captures those spans, being itself built on OTel. The whole
+conversation is wrapped in one application-level span, so it renders as a single
+trace: the conversation root, one child per pipeline call, and the stage spans
+below each, grouped into a session by thread id. Without credentials the spans
+print to the console instead, so the example runs offline and still shows the
+span tree. Run with:
 uv run examples/observation/langfuse_tracing.py
 """
 
@@ -64,12 +65,18 @@ def _export_piighost_spans(span: ReadableSpan) -> bool:
 
     Langfuse v3 exports, by default, only its own spans, spans carrying gen_ai
     attributes, and spans from an allowlist of known LLM instrumentation scopes.
-    The piighost scope is not on that list, so this predicate admits it
-    explicitly, plus Langfuse's own scope so SDK-created observations keep
-    flowing.
+    The piighost scope is not on that list, so this predicate admits it (and its
+    sub-scopes, such as this example's conversation root), plus Langfuse's own
+    scope so SDK-created observations keep flowing.
     """
     scope = span.instrumentation_scope
-    return scope is not None and scope.name in ("piighost", "langfuse-sdk")
+    if scope is None:
+        return False
+    return (
+        scope.name == "langfuse-sdk"
+        or scope.name == "piighost"
+        or scope.name.startswith("piighost.")
+    )
 
 
 def _configure_backend() -> Any:
@@ -97,7 +104,13 @@ def _configure_backend() -> Any:
 
 
 async def main() -> None:
-    """Anonymize a small conversation and trace every stage of each call."""
+    """Anonymize a small conversation, traced as one application-level trace.
+
+    The pipeline spans nest under whatever span is current, so opening one
+    conversation-level span around the calls renders the whole exchange as a
+    single trace: the conversation root, then one child per call, each with its
+    stage spans below.
+    """
     _load_env()
     client = _configure_backend()
 
@@ -108,9 +121,13 @@ async def main() -> None:
         InMemoryConversationMemory(),
     )
 
-    first = await pipeline.anonymize("Hi, I am Emma.", "demo-thread")
-    second = await pipeline.anonymize("Emma met Liam today.", "demo-thread")
-    restored = await pipeline.deanonymize(second.text, "demo-thread")
+    tracer = trace.get_tracer("piighost.example")
+    with tracer.start_as_current_span("pii-conversation") as conversation:
+        conversation.set_attribute("langfuse.session.id", "demo-thread")
+
+        first = await pipeline.anonymize("Hi, I am Emma.", "demo-thread")
+        second = await pipeline.anonymize("Emma met Liam today.", "demo-thread")
+        restored = await pipeline.deanonymize(second.text, "demo-thread")
 
     print()
     print("anonymized 1:", first.text)
