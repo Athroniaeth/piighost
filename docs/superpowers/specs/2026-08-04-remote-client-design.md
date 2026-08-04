@@ -164,3 +164,15 @@ test_every_module_imports_cleanly.
 - La sérialisation du mapping entité vers token complet dans anonymize (tokens
   vides en distant, décision ci-dessus).
 - Le câblage TOML du client (bloc config ultérieur).
+- La propagation traceparent, abandonnée côté piighost, pas simplement reportée.
+  Relier une trace Langfuse d'agent LangChain et les spans piighost en un seul
+  arbre est déjà couvert sans code lib. En local, le middleware tourne dans le
+  même process, donc les spans piighost s'imbriquent sous le span ambiant de
+  l'agent, une seule trace, c'est le sens du choix de ne poser
+  langfuse.trace.name que sur le span racine. En distant, comme l'appelant
+  injecte lui-même le httpx.AsyncClient du client, il injecte un client
+  instrumenté OTel (opentelemetry-instrumentation-httpx) qui pose traceparent
+  sur les requêtes sortantes ; l'api continue la trace et exporte vers le même
+  projet Langfuse. La corrélation cross-process est donc une affaire de
+  configuration de déploiement et d'instrumentation standard OTel, jamais du
+  code piighost.
