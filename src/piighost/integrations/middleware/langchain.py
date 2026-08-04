@@ -14,7 +14,6 @@ from typing import Any, Generic
 
 from typing_extensions import TypeVar
 
-from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
 from piighost.exceptions import (
@@ -27,7 +26,7 @@ from piighost.integrations.middleware.strategy import (
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
-from piighost.pipeline import ThreadAnonymizationPipeline
+from piighost.pipeline import AnyThreadPipeline
 
 if importlib.util.find_spec("langchain") is None:
     raise ImportError(
@@ -111,7 +110,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
     def __init__(
         self,
-        pipeline: ThreadAnonymizationPipeline[IdentityT],
+        pipeline: AnyThreadPipeline[IdentityT],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
         require_thread_id: bool = True,
         invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
@@ -134,19 +133,20 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         assistant messages entirely and save the detector.
         """
         super().__init__()
-        # The IdentityT bound guarantees a delimited factory for typed callers;
-        # re-check at runtime so an untyped one fails loudly here, not silently
-        # when the invented-placeholder strategy would have found nothing.
-        factory = getattr(pipeline.anonymizer, "factory", None)
-        if not isinstance(factory, BaseDelimitedPlaceholderFactory):
+        # The IdentityT bound guarantees a recognizable grammar for typed
+        # callers; re-check at runtime so an untyped or remote pipeline without
+        # one fails loudly here, not silently when the invented-placeholder
+        # strategy would have found nothing.
+        recognizer = pipeline.recognizer
+        if recognizer is None:
             raise UnrecognizableFactoryError(
-                "PIIAnonymizationMiddleware needs a pipeline built on a delimited "
-                "placeholder factory, whose tokens can be found again to detect "
-                "invented ones; got a factory without a recognizable grammar."
+                "PIIAnonymizationMiddleware needs a pipeline exposing a delimited "
+                "token recognizer, whose tokens can be found again to detect "
+                "invented ones; got a pipeline with no recognizable grammar."
             )
 
         self._pipeline = pipeline
-        self._recognizer = factory
+        self._recognizer = recognizer
         self.tool_strategy = tool_strategy
         self._require_thread_id = require_thread_id
         self._invented_strategy = invented_strategy

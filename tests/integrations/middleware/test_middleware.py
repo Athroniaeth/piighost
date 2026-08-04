@@ -11,13 +11,14 @@ from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
 from piighost.integrations.middleware import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
+from piighost.integrations.middleware.langchain import PIIAnonymizationMiddleware
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 _MODULE = "piighost.integrations.middleware.langchain"
@@ -339,3 +340,41 @@ class TestFactoryContract:
         )
         with pytest.raises(UnrecognizableFactoryError, match="delimited"):
             module.PIIAnonymizationMiddleware(pipeline)
+
+    def test_reads_the_recognizer_from_the_pipeline(self) -> None:
+        """The middleware takes its recognizer from the pipeline's property."""
+
+        class _Remoteish:
+            """A minimal pipeline exposing only what the middleware reads."""
+
+            recognizer = LabelCounterPlaceholderFactory()
+
+            async def anonymize(
+                self, text: object, thread_id: object, role: object = MessageRole.USER
+            ) -> object:
+                return None
+
+            async def anonymize_corrected(
+                self, text: object, thread_id: object, detections: object
+            ) -> object:
+                return None
+
+            async def deanonymize(self, text: object, thread_id: object) -> object:
+                return text
+
+            async def forget_thread(self, thread_id: object) -> object:
+                return None
+
+        middleware = PIIAnonymizationMiddleware(_Remoteish())
+        assert middleware._recognizer is _Remoteish.recognizer
+
+    def test_a_pipeline_without_a_recognizer_is_refused(self) -> None:
+        """A pipeline whose recognizer is None fails fast at construction."""
+
+        class _Unrecognizable:
+            """A pipeline that emits no recognizable token grammar."""
+
+            recognizer = None
+
+        with pytest.raises(UnrecognizableFactoryError, match="recognizable"):
+            PIIAnonymizationMiddleware(_Unrecognizable())
