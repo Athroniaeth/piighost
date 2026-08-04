@@ -62,6 +62,7 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.pipeline", "AnyPipeline"),
     ("piighost.pipeline", "BaseAnonymizationPipeline"),
     ("piighost.pipeline", "ThreadAnonymizationPipeline"),
+    ("piighost.pipeline", "AnyThreadPipeline"),
     ("piighost.integrations.middleware", "ToolCallStrategy"),
     ("piighost.integrations.middleware", "InventedPlaceholderStrategy"),
     ("piighost.integrations.middleware", "AssistantEntityStrategy"),
@@ -108,6 +109,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "UnrecognizableFactoryError"),
     ("piighost.exceptions", "OverrideError"),
     ("piighost.exceptions", "ConflictingOverrideError"),
+    ("piighost.exceptions", "ClientError"),
+    ("piighost.exceptions", "RemoteError"),
 ]
 
 
