@@ -185,3 +185,23 @@ class ConflictingOverrideError(OverrideError):
     Under the RAISE conflict strategy, a span both forced and cleared is a
     configuration error, refused loudly rather than resolved silently.
     """
+
+
+class ClientError(PIIGhostError):
+    """Base class for errors raised by the remote client.
+
+    Catch this to handle any client failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class RemoteError(ClientError):
+    """Raised when the remote piighost-api returns a non-2xx response.
+
+    Attributes:
+        status_code: The HTTP status the server returned.
+    """
+
+    def __init__(self, message: str, status_code: int) -> None:
+        self.status_code = status_code
+        super().__init__(message)
