@@ -6,6 +6,7 @@ from pydantic import Discriminator, Field
 
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
+    LabelHashPlaceholderFactory,
     LabelPlaceholderFactory,
     MaskPlaceholderFactory,
     RedactPlaceholderFactory,
@@ -57,10 +58,22 @@ class MaskPlaceholderConfig(_ComponentConfig):
         return MaskPlaceholderFactory(visible=self.visible, mask_char=self.mask_char)
 
 
+class LabelHashPlaceholderConfig(_ComponentConfig):
+    """Config for the label-hash factory, a hashed token per label."""
+
+    type: Literal["label_hash"]
+    hash_length: int = Field(default=8, ge=1)
+
+    def build(self) -> AnyPlaceholderFactory[PlaceholderPreservation]:
+        """Build the label-hash placeholder factory with the digest length."""
+        return LabelHashPlaceholderFactory(hash_length=self.hash_length)
+
+
 PlaceholderConfig = Annotated[
     RedactPlaceholderConfig
     | LabelPlaceholderConfig
     | LabelCounterPlaceholderConfig
-    | MaskPlaceholderConfig,
+    | MaskPlaceholderConfig
+    | LabelHashPlaceholderConfig,
     Discriminator("type"),
 ]
