@@ -14,11 +14,13 @@ class OverrideConfig(_ComponentConfig):
     """Config for the detection override, a whitelist and a blacklist detector.
 
     Attributes:
-        whitelist: A detector whose hits are cleared from the set, or None.
-        blacklist: A detector whose hits are forced into the set, or None.
-        blacklist_strategy: How a blacklist hit matches, exact span, value, or overlap.
-        whitelist_strategy: Whether a whitelist hit respects provenance or forces it.
-        conflict_strategy: Which list wins when both touch the same span.
+        whitelist: A detector whose hits are forced into the set, replacing any
+            detection they overlap, or None.
+        blacklist: A detector whose hits invalidate existing detections, per the
+            blacklist strategy, or None.
+        blacklist_strategy: How a blacklist hit invalidates, exact span, value, or overlap.
+        whitelist_strategy: Whether a whitelist hit respects assistant provenance or forces it.
+        conflict_strategy: Which list wins when the two contradict each other.
     """
 
     whitelist: DetectorConfig | None = None
