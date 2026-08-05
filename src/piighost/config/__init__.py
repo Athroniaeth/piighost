@@ -18,6 +18,7 @@ from piighost.config.settings import (  # noqa: E402
     PipelineConfig,
     load_config,
     load_pipeline,
+    load_thread_pipeline,
 )
 
-__all__ = ["PipelineConfig", "load_config", "load_pipeline"]
+__all__ = ["PipelineConfig", "load_config", "load_pipeline", "load_thread_pipeline"]
