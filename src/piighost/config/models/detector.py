@@ -19,6 +19,12 @@ from piighost.components.detector.patterns import (
     US_PATTERNS,
 )
 from piighost.config.models.common import _ComponentConfig
+from piighost.config.models.detector_model import (
+    Gliner2DetectorConfig,
+    LLMDetectorConfig,
+    SpacyDetectorConfig,
+    TransformersDetectorConfig,
+)
 from piighost.text import RecursiveCharacterTextSplitter
 
 CatalogName = Literal["generic", "us", "eu", "fr"]
@@ -138,7 +144,11 @@ DetectorConfig = Annotated[
     RegexDetectorConfig
     | CompositeDetectorConfig
     | ExactMatchDetectorConfig
-    | ChunkedDetectorConfig,
+    | ChunkedDetectorConfig
+    | Gliner2DetectorConfig
+    | SpacyDetectorConfig
+    | TransformersDetectorConfig
+    | LLMDetectorConfig,
     Discriminator("type"),
 ]
 
