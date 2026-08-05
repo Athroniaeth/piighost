@@ -9,7 +9,7 @@ settings_customise_sources, so the path is not frozen at class definition.
 import tomllib
 from contextvars import ContextVar
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from pydantic import ValidationError
 from pydantic_settings import (
@@ -26,11 +26,16 @@ from piighost.config.models.entity_resolver import EntityResolverConfig
 from piighost.config.models.expander import ExpanderConfig
 from piighost.config.models.guard import GuardConfig
 from piighost.config.models.linker import LinkerConfig
+from piighost.config.models.memory import MemoryConfig
 from piighost.config.models.overlap_resolver import OverlapResolverConfig
 from piighost.config.models.override import OverrideConfig
 from piighost.config.models.placeholder import PlaceholderConfig
-from piighost.exceptions import ConfigFileError, ConfigValidationError
-from piighost.pipeline import AnonymizationPipeline
+from piighost.exceptions import ConfigError, ConfigFileError, ConfigValidationError
+from piighost.pipeline import (
+    AnonymizationPipeline,
+    BaseAnonymizationPipeline,
+    ThreadAnonymizationPipeline,
+)
 
 _toml_path: ContextVar[Path | None] = ContextVar("_toml_path", default=None)
 """The TOML file the current load reads, set by load_config, read by the source."""
@@ -52,6 +57,8 @@ class PipelineConfig(BaseSettings):
         override: The optional detection-override stage.
         observation_redactor: The optional placeholder factory redacting
             observation payloads.
+        memory: The optional conversation memory; when set, the pipeline is a
+            thread pipeline keeping per-thread state.
     """
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
@@ -68,6 +75,7 @@ class PipelineConfig(BaseSettings):
     guard: GuardConfig | None = None
     override: OverrideConfig | None = None
     observation_redactor: PlaceholderConfig | None = None
+    memory: MemoryConfig | None = None
 
     @classmethod
     def settings_customise_sources(
@@ -85,8 +93,13 @@ class PipelineConfig(BaseSettings):
             sources.append(TomlConfigSettingsSource(settings_cls, toml_file=path))
         return tuple(sources)
 
-    def build(self) -> AnonymizationPipeline[PlaceholderPreservation]:
-        """Assemble the AnonymizationPipeline the configuration describes."""
+    def build(self) -> BaseAnonymizationPipeline[PlaceholderPreservation]:
+        """Assemble the pipeline the configuration describes.
+
+        A configured memory yields a ThreadAnonymizationPipeline keeping a
+        per-thread conversation memory; without it, a stateless
+        AnonymizationPipeline.
+        """
         detector = self.detector.build()
         linker = self.linker.build()
         anonymizer = self.anonymizer.build()
@@ -100,6 +113,19 @@ class PipelineConfig(BaseSettings):
         observation_redactor = (
             self.observation_redactor.build() if self.observation_redactor else None
         )
+        if self.memory is not None:
+            return ThreadAnonymizationPipeline(
+                detector,
+                linker,
+                anonymizer,
+                memory=self.memory.build(),
+                overlap_resolver=overlap_resolver,
+                expander=expander,
+                entity_resolver=entity_resolver,
+                guard=guard,
+                observation_redactor=observation_redactor,
+                override=override,
+            )
         return AnonymizationPipeline(
             detector,
             linker,
@@ -140,5 +166,30 @@ def load_config(path: str | Path) -> PipelineConfig:
 
 
 def load_pipeline(path: str | Path) -> AnonymizationPipeline[PlaceholderPreservation]:
-    """Load a configuration and build its AnonymizationPipeline."""
-    return load_config(path).build()
+    """Load a configuration and build its stateless AnonymizationPipeline.
+
+    Raises:
+        ConfigError: If the configuration declares a memory, which describes a
+            thread pipeline; use load_thread_pipeline instead.
+    """
+    pipeline = load_config(path).build()
+    if not isinstance(pipeline, AnonymizationPipeline):
+        raise ConfigError(
+            "this configuration declares a memory; use load_thread_pipeline"
+        )
+    return cast(AnonymizationPipeline[PlaceholderPreservation], pipeline)
+
+
+def load_thread_pipeline(
+    path: str | Path,
+) -> ThreadAnonymizationPipeline[PlaceholderPreservation]:
+    """Load a configuration and build its ThreadAnonymizationPipeline.
+
+    Raises:
+        ConfigError: If the configuration declares no memory, which a thread
+            pipeline needs; use load_pipeline instead.
+    """
+    pipeline = load_config(path).build()
+    if not isinstance(pipeline, ThreadAnonymizationPipeline):
+        raise ConfigError("this configuration declares no memory; use load_pipeline")
+    return cast(ThreadAnonymizationPipeline[PlaceholderPreservation], pipeline)
