@@ -1,8 +1,0 @@
-# Use a remote piighost-api server instead of a local pipeline. The client is a
-# drop-in for the thread pipeline: same anonymize, deanonymize, forget_thread.
-#
-# Load it with:
-#   from piighost.config import load_client
-#   client = load_client("examples/config/remote_client.toml")
-
-base_url = "http://localhost:8000"

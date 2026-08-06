@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["piighost[config,fuzzy,client,redis,crypto,argon2]"]
+# dependencies = ["piighost[config,fuzzy,redis,crypto,argon2]"]
 #
 # [tool.uv.sources]
 # piighost = { path = "../..", editable = true }
@@ -10,8 +10,7 @@
 The local pipeline configs (minimal.toml, minimal.json, pipeline.toml) are
 anonymized end to end, with no model and no network. The Redis thread pipeline
 is built offline, with dummy secrets and a client that does not connect until
-its first command, so it is only built (not run) here. The remote client is
-built offline too, since calling it would need a running piighost-api.
+its first command, so it is only built (not run) here.
 
 Run with:
 uv run examples/config/run.py
@@ -22,11 +21,7 @@ import base64
 import os
 from pathlib import Path
 
-from piighost.config import (
-    load_client,
-    load_pipeline,
-    load_thread_pipeline,
-)
+from piighost.config import load_pipeline, load_thread_pipeline
 
 _HERE = Path(__file__).parent
 _SAMPLE = "Email alice@corp.com and bob@corp.com about ACME-SECRET, ref EMP-1234."
@@ -52,19 +47,12 @@ def _build_thread_redis() -> None:
     print(f"[thread_redis.toml] built with {type(pipeline.memory).__name__}")
 
 
-def _build_client() -> None:
-    """Build the remote client offline, printing its token recognizer."""
-    client = load_client(_HERE / "remote_client.toml")
-    print(f"[remote_client.toml] client with {type(client.recognizer).__name__}")
-
-
 async def main() -> None:
     """Load every example config and show what each produces."""
     await _run_local("minimal.toml")
     await _run_local("minimal.json")
     await _run_local("pipeline.toml")
     _build_thread_redis()
-    _build_client()
 
 
 if __name__ == "__main__":
