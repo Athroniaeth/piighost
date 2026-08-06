@@ -174,5 +174,5 @@ class RecursiveCharacterTextSplitter:
     def _fits_window(
         self, pieces: list[tuple[int, int]], last: int, count: int, window_start: int
     ) -> bool:
-        """Whether piece `last` exists and keeps the window within chunk_size."""
+        """Whether piece last exists and keeps the window within chunk_size."""
         return last < count and pieces[last][1] - window_start <= self.chunk_size

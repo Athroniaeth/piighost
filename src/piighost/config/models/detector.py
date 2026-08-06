@@ -28,6 +28,7 @@ from piighost.config.models.detector_model import (
 from piighost.text import RecursiveCharacterTextSplitter
 
 CatalogName = Literal["generic", "us", "eu", "fr"]
+"""The prebuilt catalog names a regex detector config can pull patterns from."""
 
 _CATALOGS: dict[str, dict[str, str]] = {
     "generic": GENERIC_PATTERNS,

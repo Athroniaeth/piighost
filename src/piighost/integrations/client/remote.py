@@ -78,7 +78,8 @@ class PIIGhostClient:
             "role": role.value,
         }
         data = await self._post("/v1/anonymize", payload)
-        return Anonymization(text=cast(str, data["anonymized_text"]), tokens={})
+        anonymized_text = cast(str, data["anonymized_text"])
+        return Anonymization(text=anonymized_text, tokens={})
 
     async def anonymize_corrected(
         self, text: str, thread_id: str, detections: list[Detection]
@@ -94,7 +95,8 @@ class PIIGhostClient:
             "detections": [detection.to_dict() for detection in detections],
         }
         data = await self._post("/v1/anonymize/corrected", payload)
-        return Anonymization(text=cast(str, data["anonymized_text"]), tokens={})
+        anonymized_text = cast(str, data["anonymized_text"])
+        return Anonymization(text=anonymized_text, tokens={})
 
     async def deanonymize(self, text: str, thread_id: str) -> str:
         """Deanonymize text remotely through the server's thread mapping."""

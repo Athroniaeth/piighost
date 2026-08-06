@@ -30,12 +30,23 @@ PreservationT = TypeVar(
     bound=PlaceholderPreservation,
     default=PlaceholderPreservation,
 )
+"""What the concrete pipeline's tokens preserve, invariant on the implementations.
+
+Invariant, since a pipeline both consumes its anonymizer's tag and hands the same
+tokens back out, so it cannot vary in either direction.
+"""
+
 PreservationT_co = TypeVar(
     "PreservationT_co",
     bound=PlaceholderPreservation,
     default=PlaceholderPreservation,
     covariant=True,
 )
+"""What a pipeline's tokens preserve, on the AnyPipeline and AnyThreadPipeline ports.
+
+Covariant, so a pipeline whose tokens preserve identity satisfies a consumer such
+as the middleware that requires only identity or less.
+"""
 
 
 @runtime_checkable

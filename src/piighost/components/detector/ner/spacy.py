@@ -26,6 +26,9 @@ class SpacyDetector(BaseNERDetector):
     labels is optional. When omitted, every entity spaCy produces is kept with
     its spaCy label. A str model is loaded with spacy.load; a loaded instance is
     used as-is.
+
+    Attributes:
+        model: The loaded spaCy Language model run over each text.
     """
 
     def __init__(

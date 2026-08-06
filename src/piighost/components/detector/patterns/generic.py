@@ -20,3 +20,4 @@ GENERIC_PATTERNS: dict[str, str] = {
     # 13 to 19 digits with optional spaces or dashes. Matches on shape alone.
     "CREDIT_CARD": r"\b(?:\d[ -]?){12,18}\d\b",
 }
+"""Locale-agnostic PII patterns (email, URL, IPv4, credit card), reusable across regions."""

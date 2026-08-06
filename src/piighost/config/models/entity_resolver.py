@@ -36,7 +36,12 @@ class SeparateEntityResolverConfig(_ComponentConfig):
 
 
 class FuzzyEntityResolverConfig(_ComponentConfig):
-    """Config for the fuzzy resolver, clustering near-duplicate entities."""
+    """Config for the fuzzy resolver, clustering near-duplicate entities.
+
+    Attributes:
+        threshold: The Jaro-Winkler similarity at or above which two entities are
+            clustered together.
+    """
 
     type: Literal["fuzzy"]
     threshold: float = Field(default=_DEFAULT_FUZZY_THRESHOLD, ge=0.0, le=1.0)

@@ -1,4 +1,10 @@
-"""Splitter port: the contract every text splitter satisfies."""
+"""Splitter port: the contract every text splitter satisfies.
+
+There is no Base template. A splitter's varying decision is not a single
+equivalence-key hook over one input: character, token, and sentence splitting
+differ in structure, not in one swappable rule. So there is no shared skeleton to
+template, and this port stands alone.
+"""
 
 from typing import Protocol, runtime_checkable
 

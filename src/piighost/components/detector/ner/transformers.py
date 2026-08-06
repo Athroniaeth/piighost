@@ -29,6 +29,10 @@ class TransformersDetector(BaseNERDetector):
     label. A str pipeline is loaded with the transformers pipeline factory as an
     ner pipeline; a built pipeline is used as-is. An entity scoring below
     threshold is dropped.
+
+    Attributes:
+        pipeline: The token-classification pipeline run over each text.
+        threshold: The score below which a detected entity is dropped.
     """
 
     def __init__(
