@@ -48,3 +48,10 @@ class TestLoadJson:
         bad = {**_CONFIG, "detector": {"patterns": {"EMAIL": "[a-z]+@[a-z.]+"}}}
         with pytest.raises(ConfigValidationError):
             load_config(_write_json(tmp_path, bad))
+
+    def test_uppercase_json_suffix_is_recognized(self, tmp_path: Path) -> None:
+        """An uppercase .JSON suffix routes to the JSON source, case-insensitively."""
+        path = tmp_path / "config.JSON"
+        path.write_text(json.dumps(_CONFIG))
+        config = load_config(path)
+        assert config.detector.type == "regex"
