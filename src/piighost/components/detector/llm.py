@@ -111,12 +111,11 @@ class LLMDetector(BaseNERDetector):
         detections: list[Detection] = []
         for entity in entities:
             for span in find_all_word_boundary(text, entity.text):
-                detections.append(
-                    Detection(
-                        span=span,
-                        text=text[span.start : span.end],
-                        label=entity.label.value,
-                        confidence=1.0,
-                    )
+                detection = Detection(
+                    span=span,
+                    text=text[span.start : span.end],
+                    label=entity.label.value,
+                    confidence=1.0,
                 )
+                detections.append(detection)
         return detections

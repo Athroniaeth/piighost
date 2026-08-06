@@ -14,4 +14,5 @@ class AnonymizerConfig(_ComponentConfig):
 
     def build(self) -> AnyAnonymizer[PlaceholderPreservation]:
         """Build an Anonymizer on the configured placeholder factory."""
-        return Anonymizer(self.placeholder.build())
+        placeholder = self.placeholder.build()
+        return Anonymizer(placeholder)

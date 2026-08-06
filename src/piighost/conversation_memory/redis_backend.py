@@ -126,7 +126,8 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is None:
                 return None
-            json_detections = self._cipher.decrypt(_as_bytes(blob))
+            ciphertext = _as_bytes(blob)
+            json_detections = self._cipher.decrypt(ciphertext)
             _, detections = _loads(json_detections)
             return detections
 
@@ -135,7 +136,8 @@ class RedisConversationMemory:
             key = self._message_key(thread_id, digest_message)
             blob = await self._client.get(key)
             if blob is not None:
-                json_detections = self._cipher.decrypt(_as_bytes(blob))
+                ciphertext = _as_bytes(blob)
+                json_detections = self._cipher.decrypt(ciphertext)
                 _, message_detections = _loads(json_detections)
                 detections.extend(message_detections)
 
@@ -150,7 +152,8 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is None:
                 continue
-            json_detections = self._cipher.decrypt(_as_bytes(blob))
+            ciphertext = _as_bytes(blob)
+            json_detections = self._cipher.decrypt(ciphertext)
             role, detections = _loads(json_detections)
             for detection in detections:
                 provenance.setdefault(detection.text.casefold(), role)
@@ -169,7 +172,8 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is not None:
                 messages += 1
-                json_detections = self._cipher.decrypt(_as_bytes(blob))
+                ciphertext = _as_bytes(blob)
+                json_detections = self._cipher.decrypt(ciphertext)
                 _, loaded = _loads(json_detections)
                 detections += len(loaded)
             keys.append(key)

@@ -17,3 +17,4 @@ US_PATTERNS: dict[str, str] = {
     # ZIP (5 digits) and ZIP+4 (5-4 digits).
     "US_ZIP": r"\b\d{5}(?:-\d{4})?\b",
 }
+"""United States PII patterns (SSN, phone, ZIP), labels prefixed with US_."""
