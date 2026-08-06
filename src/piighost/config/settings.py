@@ -11,7 +11,7 @@ import json
 import tomllib
 from contextvars import ContextVar
 from pathlib import Path
-from typing import ClassVar, TypeVar, cast
+from typing import TYPE_CHECKING, ClassVar, TypeVar, cast
 
 from pydantic import ValidationError
 from pydantic_settings import (
@@ -39,6 +39,9 @@ from piighost.pipeline import (
     BaseAnonymizationPipeline,
     ThreadAnonymizationPipeline,
 )
+
+if TYPE_CHECKING:
+    from piighost.integrations.client import PIIGhostClient
 
 _config_path: ContextVar[Path | None] = ContextVar("_config_path", default=None)
 """The config file the current load reads, set by a loader, read by the source."""
@@ -223,3 +226,51 @@ def load_thread_pipeline(
     if not isinstance(pipeline, ThreadAnonymizationPipeline):
         raise ConfigError("this configuration declares no memory; use load_pipeline")
     return cast(ThreadAnonymizationPipeline[PlaceholderPreservation], pipeline)
+
+
+class ClientConfig(BaseSettings):
+    """Configuration for a remote PIIGhostClient.
+
+    Attributes:
+        base_url: The base URL of the piighost-api server the client calls.
+    """
+
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+        env_prefix="PIIGHOST_", extra="forbid"
+    )
+
+    base_url: str
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Layer init, then env, then the config file the current load points at."""
+        sources: list[PydanticBaseSettingsSource] = [init_settings, env_settings]
+        file_source = _file_source(settings_cls)
+        if file_source is not None:
+            sources.append(file_source)
+        return tuple(sources)
+
+    def build(self) -> "PIIGhostClient":
+        """Build a PIIGhostClient over the configured base URL."""
+        from piighost.integrations.client import PIIGhostClient
+
+        return PIIGhostClient(self.base_url)
+
+
+def load_client(path: str | Path) -> "PIIGhostClient":
+    """Load a configuration and build its remote PIIGhostClient.
+
+    The file may be TOML or JSON, chosen by its suffix.
+
+    Raises:
+        ConfigFileError: If the file is missing, unreadable, or invalid TOML/JSON.
+        ConfigValidationError: If the parsed data fails schema validation.
+    """
+    return _read(ClientConfig, path).build()
