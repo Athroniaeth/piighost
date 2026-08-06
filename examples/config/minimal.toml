@@ -1,0 +1,17 @@
+# The smallest working piighost pipeline: detect emails by regex and redact them.
+#
+# Validate it from the shell:
+#   piighost validate examples/config/minimal.toml
+# Load it in Python:
+#   from piighost.config import load_pipeline
+#   pipeline = load_pipeline("examples/config/minimal.toml")
+
+[detector]
+type = "regex"
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "redact"
