@@ -15,18 +15,14 @@ if importlib.util.find_spec("pydantic_settings") is None:
     )
 
 from piighost.config.settings import (  # noqa: E402
-    ClientConfig,
     PipelineConfig,
-    load_client,
     load_config,
     load_pipeline,
     load_thread_pipeline,
 )
 
 __all__ = [
-    "ClientConfig",
     "PipelineConfig",
-    "load_client",
     "load_config",
     "load_pipeline",
     "load_thread_pipeline",
