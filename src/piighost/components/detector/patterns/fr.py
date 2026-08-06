@@ -19,3 +19,4 @@ FR_PATTERNS: dict[str, str] = {
     # SIRET, 9-digit SIREN + 5-digit establishment number, optional grouping.
     "FR_SIRET": r"\b\d{3}[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{5}\b",
 }
+"""French PII patterns (phone, IBAN, NIR, SIRET), labels prefixed with FR_."""

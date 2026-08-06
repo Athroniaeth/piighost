@@ -49,6 +49,11 @@ from langgraph.types import Command  # noqa: E402
 logger = logging.getLogger(__name__)
 
 _DEFAULT_THREAD = "default"
+"""Shared fallback thread id used when no thread id is present.
+
+Falling back to it lets distinct conversations share placeholder state, which
+leaks entities across them; require_thread_id exists to reject that fallback.
+"""
 _missing_thread_id_warned = False
 
 IdentityT = TypeVar(
@@ -159,7 +164,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
     ) -> dict[str, Any] | None:
         """Anonymize the user and model messages before the model sees them."""
         thread_id = _thread_id(self._require_thread_id)
-        allowed: tuple[type, ...] = (HumanMessage, AIMessage)
+        allowed: tuple[type[BaseMessage], ...] = (HumanMessage, AIMessage)
 
         if self.assistant_strategy is AssistantEntityStrategy.IGNORE:
             # IGNORE skips assistant analysis entirely, so its messages are not
@@ -223,7 +228,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
     async def _rewrite(
         self,
         state: AgentState,
-        allowed: tuple[type, ...],
+        allowed: tuple[type[BaseMessage], ...],
         transform: Callable[[BaseMessage, str], Awaitable[str]],
     ) -> dict[str, Any] | None:
         """Apply transform to each allowed message's text, in place."""

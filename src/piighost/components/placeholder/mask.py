@@ -38,4 +38,5 @@ class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]):
         # Cap the reveal at len - 1 so at least one character is always masked
         # and the whole value is never exposed, however short it is.
         kept = min(self.visible, max(len(value) - 1, 0))
-        return PreservesShape(value[:kept] + self.mask_char * (len(value) - kept))
+        masked = value[:kept] + self.mask_char * (len(value) - kept)
+        return PreservesShape(masked)

@@ -17,6 +17,11 @@ PreservationT_co = TypeVar(
     default=PlaceholderPreservation,
     covariant=True,
 )
+"""What the anonymizer's tokens preserve, on the port and its result.
+
+Covariant, since an anonymizer only returns tokens, so one whose tokens preserve
+more satisfies a consumer asking for less.
+"""
 
 PreservationT = TypeVar(
     "PreservationT",

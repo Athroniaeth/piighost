@@ -35,7 +35,15 @@ class DetectorGuardRailConfig(_ComponentConfig):
 
 
 class LLMGuardRailConfig(_ComponentConfig):
-    """Config for the LLM guard, prompting a model to find residual PII."""
+    """Config for the LLM guard, prompting a model to find residual PII.
+
+    Attributes:
+        model: The chat model identifier the guard prompts.
+        labels: The labels the guard is told to look for, a list or an emitted to
+            model mapping.
+        prompt: The prompt overriding the default guard instructions, or None.
+        provider: The chat model provider, or None to infer it from the model.
+    """
 
     type: Literal["llm"]
     model: str
@@ -63,6 +71,10 @@ class ModerationGuardRailConfig(_ComponentConfig):
     committed. build() requires it to be present and raises a ConfigError when it
     is not, rather than deferring an opaque authentication failure to the first
     moderation call.
+
+    Attributes:
+        model: The Mistral moderation model the guard scores with.
+        threshold: The category score at or above which the guard flags the text.
     """
 
     type: Literal["moderation"]

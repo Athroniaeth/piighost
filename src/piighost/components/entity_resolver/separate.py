@@ -4,6 +4,11 @@ from piighost.components.entity_resolver.base import BaseEntityResolver
 from piighost.models import Detection, Entity, Span
 
 
+def _by_size_then_position(entity: Entity) -> tuple[int, Span]:
+    """Rank an entity: most detections first, earliest occurrence on a tie."""
+    return -len(entity.detections), min(entity.spans)
+
+
 class SeparateEntityResolver(BaseEntityResolver):
     """Keep conflicting entities apart, giving each shared detection to the largest.
 
@@ -16,11 +21,6 @@ class SeparateEntityResolver(BaseEntityResolver):
 
     def _reduce(self, conflicting: list[Entity]) -> list[Entity]:
         """Assign each detection to its largest holder, dropping emptied entities."""
-
-        def rank(entity: Entity) -> tuple[int, Span]:
-            """Rank an entity: most detections first, earliest occurrence on a tie."""
-            return -len(entity.detections), min(entity.spans)
-
         kept: list[list[Detection]] = [[] for _ in conflicting]
 
         for index, entity in enumerate(conflicting):
@@ -28,7 +28,7 @@ class SeparateEntityResolver(BaseEntityResolver):
                 holders = [
                     other for other in conflicting if detection in other.detections
                 ]
-                if min(holders, key=rank) is entity:
+                if min(holders, key=_by_size_then_position) is entity:
                     kept[index].append(detection)
 
         return [Entity(tuple(detections)) for detections in kept if detections]

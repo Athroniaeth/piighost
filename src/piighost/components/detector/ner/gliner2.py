@@ -25,6 +25,10 @@ class Gliner2Detector(BaseNERDetector):
     labels is required, because GLiNER2 is queried with the internal labels. A
     str model is loaded with GLiNER2.from_pretrained; a loaded instance is used
     as-is.
+
+    Attributes:
+        model: The loaded GLiNER2 model queried for entities.
+        threshold: The confidence at or above which an entity is kept.
     """
 
     def __init__(
