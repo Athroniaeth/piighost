@@ -5,8 +5,8 @@ typer, shipped with the config extra, so the module guards its import and raises
 an ImportError pointing at the extra when typer is absent.
 
 Subcommands:
-- validate parses and validates a TOML config without building any component,
-  exiting 0 on success and 1 on any configuration error.
+- validate parses and validates a TOML or JSON config without building any
+  component, exiting 0 on success and 1 on any configuration error.
 - schema prints the JSON Schema of PipelineConfig to stdout.
 """
 
@@ -27,9 +27,11 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 @app.command()
 def validate(
-    path: Annotated[Path, typer.Argument(help="Path to a TOML pipeline config.")],
+    path: Annotated[
+        Path, typer.Argument(help="Path to a TOML or JSON pipeline config.")
+    ],
 ) -> None:
-    """Validate a pipeline TOML configuration without building it."""
+    """Validate a pipeline configuration file, TOML or JSON, without building it."""
     from piighost.config import load_config
     from piighost.exceptions import ConfigError
 
