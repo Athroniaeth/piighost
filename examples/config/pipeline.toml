@@ -1,0 +1,48 @@
+# A fuller local pipeline, still runnable with no model and no network.
+#
+# The detector pulls the generic pattern catalog and adds one inline pattern;
+# several optional stages are enabled. For model-backed detectors (gliner2,
+# spacy, transformers, llm) see docs/en/configuration, they need extra
+# dependencies and a model, so they are left out of this runnable example.
+
+[detector]
+type = "regex"
+catalogs = ["generic"]
+patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
+
+# Keep the most confident detection when two overlap.
+[overlap_resolver]
+type = "confidence"
+
+# Re-find a detected value's other whole-word occurrences in the text.
+[expander]
+type = "word_boundary"
+
+# Cluster near-duplicate entities so they share one placeholder.
+[entity_resolver]
+type = "fuzzy"
+threshold = 0.85
+
+[linker]
+type = "exact"
+
+# Number each entity per label, so <<EMAIL:1>>, <<EMAIL:2>>, ...
+[anonymizer.placeholder]
+type = "label_counter"
+
+# Force a codename to be anonymized even when no detector caught it.
+[override.whitelist]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+# Re-check the anonymized output and refuse it if a clear email slipped through.
+[guard]
+type = "detector"
+
+[guard.detector]
+type = "regex"
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
+
+# When observation is enabled, scrub trace payloads to label tokens, not values.
+[observation_redactor]
+type = "label"

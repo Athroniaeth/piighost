@@ -1,0 +1,35 @@
+# A production thread pipeline backed by Redis, with encrypted stored values.
+#
+# The hash pepper and the cipher key are secrets read from the environment,
+# never from this file:
+#   export PIIGHOST_HASH_PEPPER="any non-empty string"
+#   export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"   # 16, 24, or 32 bytes
+#
+# Load it with:
+#   from piighost.config import load_thread_pipeline
+#   pipeline = load_thread_pipeline("examples/config/thread_redis.toml")
+
+[detector]
+type = "regex"
+catalogs = ["generic"]
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "label_counter"
+
+# A configured memory turns this into a thread pipeline, keeping per-thread state.
+[memory]
+type = "redis"
+url = "redis://localhost:6379/0"
+namespace = "piighost"
+ttl = 3600
+
+# The hasher keys each message into its storage key; the pepper comes from the env.
+[memory.hasher]
+type = "argon2"
+
+# The cipher encrypts each stored value; the base64 key comes from the env.
+[memory.cipher]
+type = "aesgcm"
