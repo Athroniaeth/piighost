@@ -6,10 +6,12 @@ icon: lucide/download
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
-## Basic installation
+## Installation
+
+The core has no optional dependency. It is enough for a local pipeline that de-identifies by regex or by known values, with no model and no network.
 
 === "uv"
 
@@ -25,29 +27,47 @@ icon: lucide/download
 
 ## Extras
 
-`piighost` installs minimal by default (regex detectors only). NER detectors and the LangChain middleware are optional extras:
+Model-based detectors, the middleware, and the optional backends are extras to combine as needed.
 
 === "uv"
 
     ```bash
-    uv add piighost[gliner2]       # GLiNER2 NER detector
-    uv add piighost[spacy]         # spaCy NER detector
-    uv add piighost[transformers]  # transformers NER detector
-    uv add piighost[langchain]     # LangChain / LangGraph middleware
-    uv add piighost[client]        # HTTP client for piighost-api
+    uv add 'piighost[gliner2]'       # détecteur GLiNER2 (NER)
+    uv add 'piighost[spacy]'         # détecteur spaCy (NER)
+    uv add 'piighost[transformers]'  # détecteur transformers (NER)
+    uv add 'piighost[llm]'           # détecteur LLM (extraction structurée)
+    uv add 'piighost[middleware]'    # middleware LangChain/LangGraph
+    uv add 'piighost[config]'        # configuration TOML et JSON
+    uv add 'piighost[fuzzy]'         # résolveur d'entités fuzzy (Jaro-Winkler)
+    uv add 'piighost[redis]'         # mémoire de conversation Redis
+    uv add 'piighost[crypto]'        # chiffrement AES-GCM des valeurs stockées
+    uv add 'piighost[argon2]'        # hachage Argon2id des clés de stockage
+    uv add 'piighost[mistral]'       # garde-fou de modération Mistral
+    uv add 'piighost[client]'        # client HTTP pour piighost-api
+    uv add 'piighost[observation]'   # traçage OpenTelemetry
+    uv add 'piighost[all]'           # tous les extras
     ```
 
 === "pip"
 
     ```bash
-    pip install piighost[gliner2]
-    pip install piighost[spacy]
-    pip install piighost[transformers]
-    pip install piighost[langchain]
-    pip install piighost[client]
+    pip install 'piighost[gliner2]'
+    pip install 'piighost[spacy]'
+    pip install 'piighost[transformers]'
+    pip install 'piighost[llm]'
+    pip install 'piighost[middleware]'
+    pip install 'piighost[config]'
+    pip install 'piighost[fuzzy]'
+    pip install 'piighost[redis]'
+    pip install 'piighost[crypto]'
+    pip install 'piighost[argon2]'
+    pip install 'piighost[mistral]'
+    pip install 'piighost[client]'
+    pip install 'piighost[observation]'
+    pip install 'piighost[all]'
     ```
 
-Extras compose: `piighost[gliner2,langchain]` installs both.
+Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`, adding `argon2` for a more resistant key hash.
 
 ## Development installation
 
@@ -60,8 +80,8 @@ uv sync
 ## Development commands
 
 ```bash
-uv sync                              # Install dependencies
-make lint                            # Format (ruff) + lint (ruff) + type-check (pyrefly)
-uv run pytest                        # Run the full test suite
-uv run pytest tests/ -k "test_name"  # Run a single test
+uv sync                              # installer les dépendances
+make lint                            # format (ruff) + lint (ruff) + types (pyrefly)
+uv run pytest                        # lancer tous les tests
+uv run pytest tests/ -k "test_name"  # lancer un test précis
 ```

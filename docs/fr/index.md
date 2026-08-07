@@ -4,9 +4,14 @@ icon: lucide/shield
 
 # PIIGhost
 
-`piighost` est une librairie pour créer des **pipelines d'anonymisation de PII**. C'est une surcouche aux regex, NER ou LLM que vous branchez, qui est prévue pour être utilisable avec les agents conversationnels, ce qui vous permet d'utiliser un LLM hébergé (GPT, Claude, Gemini) sans jamais lui envoyer les données brutes de vos utilisateurs. `piighost` repère les PII comme les noms, emails, adresses, tout ce que le modèle n'a pas à voir, les remplace par des placeholders (par exemple `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder }, `patrick@acme.com`{ .pii } devient `<<EMAIL:2>>`{ .placeholder }, `Paris`{ .pii } devient `<<LOCATION:1>>`{ .placeholder }) sur lesquels le LLM peut continuer à raisonner, et restitue les vraies valeurs à vos outils et vos utilisateurs finaux. La même PII garde le même placeholder tout au long d'une conversation, même quand elle s'étale sur plusieurs messages ou appels d'outils, et votre code agent ne change pas.
+`piighost` est une librairie Python qui empêche les PII (données personnelles identifiables) d'atteindre un modèle de langage, tout en gardant l'application pleinement fonctionnelle.
 
-Au-dessus du pipeline de base, `piighost` embarque des couches supplémentaires pour renforcer chaque étape, comme des détecteurs composables avec arbitrage par confiance pour la **détection**, un linker tolérant aux fautes de frappe et variantes de casse pour la **correction**, et des guardrails de sortie (regex ou LLM) pour la **sécurité** quand le LLM génère accidentellement une PII nouvelle dans sa réponse.
+Cette librairie repère les PII grâce à des détecteurs (regex, NER, ou un autre LLM) et remplace chaque valeur par un placeholder stable, par exemple `John Doe`{ .pii } devient `<<PERSON:1>>`{ .placeholder } et `john.doe@example.com`{ .pii } devient `<<EMAIL:1>>`{ .placeholder }. Le modèle ne travaille donc que sur du texte dé-identifié. Quand le LLM retourne des placeholders, `piighost` réinjecte les vraies valeurs à leur place, l'utilisateur final voit `John Doe`{ .pii } et n'a jamais conscience de la dé-identification. La même mécanique protège les agents outillés. Un outil qui a besoin de la vraie adresse la reçoit en clair, alors que le LLM qui décide de l'appeler ne voit toujours que `<<EMAIL:1>>`{ .placeholder }.
+
+Enfin, `piighost` garde la correspondance entre la valeur et son placeholder tout au long de la conversation. Si `john.doe@example.com`{ .pii } réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`{ .placeholder }, ce qui permet au modèle de suivre le fil de discussion.
+
+!!! note "Dé-identification réversible"
+    `piighost` conserve la correspondance entre une valeur et son placeholder pour pouvoir restaurer les données. Au sens du RGPD, il s'agit d'une pseudonymisation, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
 ```mermaid
 sequenceDiagram
@@ -16,207 +21,28 @@ sequenceDiagram
     participant L as LLM
     participant T as Outil
 
-    U->>M: "Email Patrick à patrick@acme.com"
-    M->>L: "Email <<PERSON:1>> à <<EMAIL:1>>"
+    U->>M: "Écris à John Doe à john.doe@example.com"
+    M->>L: "Écris à <<PERSON:1>> à <<EMAIL:1>>"
     L->>M: tool_call(send_email, to=<<EMAIL:1>>)
-    M->>T: send_email(to="patrick@acme.com")
+    M->>T: send_email(to="john.doe@example.com")
     T-->>M: "Envoyé."
     M-->>L: "Envoyé."
     L-->>M: "C'est fait, votre email à <<PERSON:1>> est parti."
-    M-->>U: "C'est fait, votre email à Patrick est parti."
+    M-->>U: "C'est fait, votre email à John Doe est parti."
 ```
 
 *Tour complet d'un agent. L'utilisateur et l'outil voient les vraies valeurs, le LLM ne voit que des placeholders.*
 { .figure-caption }
 
-## Pourquoi piighost ?
+## Pourquoi dé-identifier ?
 
-Quand vous mettez en production une feature LLM, vous choisissez en général parmi trois familles de fournisseurs, et chacune impose un compromis.
+Un LLM hébergé (GPT, Claude, Gemini) reçoit chaque octet de contexte que vous lui envoyez, PII des utilisateurs comprises. Dé-identifier en amont découple le choix du modèle de la sensibilité du contenu. Quand les PII n'atteignent jamais le modèle, le fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence.
 
-- **Cloud hébergé hors UE** (OpenAI, Anthropic, Google), les meilleurs modèles, mais chaque octet de contexte, PII brutes des utilisateurs incluses, quitte votre juridiction.
-- **Cloud souverain UE** (Mistral AI, OVHcloud, Scaleway), garanties juridiques sur la résidence des données, mais vous renoncez à une partie de l'état de l'art.
-- **Auto-hébergement open weights**, contrôle total, mais infrastructure à porter et un cran en arrière du SOTA.
+Le spectre des fournisseurs, le détail juridique (CLOUD Act, FISA 702, Schrems II), les cas d'usage et la comparaison avec les alternatives sont dans [Pourquoi dé-identifier ?](why-anonymize.md).
 
-La seule façon propre de découpler le LLM de la sensibilité du contenu, c'est d'**anonymiser en amont**. Quand les PII n'atteignent jamais le modèle, le choix du fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence. C'est exactement la place que prend `piighost`.
+## Par où commencer
 
-Le détail juridique (CLOUD Act, FISA 702, Schrems II) et le tableau complet du spectre des fournisseurs sont dans [Pourquoi anonymiser ?](why-anonymize.md).
-
-## Cas d'usage
-
-Cinq familles de scénarios où `piighost` trouve naturellement sa place, du plus défensif (protéger l'utilisateur) au plus intégré (agents outillés).
-
-**1. Protéger l'utilisateur face aux providers LLM tiers.** Les APIs cloud peuvent stocker, croiser et exploiter les PII : profilage commercial, réquisition légale, entraînement sur les conversations, ciblage de journalistes, de lanceurs d'alerte ou de politiques.
-
-*Exemple : assistant médical grand public dont les conversations ne doivent pas quitter votre infrastructure avec le nom du patient.*
-
-**2. Extraction structurée sans fuite dans le JSON.** Quand un LLM extrait des champs vers un schéma, les PII réapparaissent telles quelles en sortie. Avec `piighost`, le modèle manipule uniquement des placeholders ; la désanonymisation restaure les vraies valeurs côté client.
-
-*Exemple : extraction d'un acte notarial vers un JSON (parties, biens, montants) sans que le LLM ait accès aux identités réelles.*
-
-**3. Caviardage de documents.** Produire une version publiable d'un document confidentiel en protégeant les personnes physiques, tout en gardant un texte lisible et exploitable.
-
-*Exemple : anonymiser un jugement avant diffusion open-access.*
-
-**4. RAG d'entreprise sur documents privés.** Un RAG classique sur un LLM cloud vous cantonne de fait aux documents déjà publics : dès qu'on y verse un contrat interne, un dossier RH ou une note stratégique, le provider l'ingère. En anonymisant les chunks récupérés avant l'envoi au modèle, vous pouvez indexer des documents réellement privés tout en gardant un LLM hébergé.
-
-*Exemple : base documentaire juridique interne (contrats, jurisprudence annotée) interrogée via un LLM cloud sans que noms de clients, montants ou clauses sensibles ne quittent votre infrastructure.*
-
-**5. Agents avec outils internes.** Le LLM raisonne sur des placeholders, les outils (CRM, email, DB) reçoivent les vraies valeurs au moment de l'appel. Le modèle ne voit jamais les PII, les outils fonctionnent normalement.
-
-*Exemple : agent commercial qui consulte le CRM et envoie un email sans que le LLM ait lu les noms des clients.*
-
-**6. Réduction des biais.** Les LLM héritent des biais présents dans leurs données d'entraînement (genre, origine, âge). Anonymiser un prénom, un nom ou un lieu avant d'envoyer un texte au modèle évite que ces biais n'influencent une décision : le LLM ne juge plus que le contenu.
-
-*Exemple : tri de CV où prénoms, noms et adresses sont remplacés par des placeholders pour neutraliser les biais discriminatoires sur le profil du candidat.*
-
----
-
-## Problématiques
-
-Aujourd'hui, avec l'essor des LLM, la question de la protection des données sensibles prend une nouvelle dimension. Les
-entreprises qui hébergent ces modèles peuvent potentiellement exploiter les données que leurs utilisateurs leur
-envoient, et se reposer uniquement sur le RGPD offre une garantie juridique mais pas technique. Parallèlement, les
-modèles propriétaires (GPT, Claude, Gemini) restent souvent plus puissants que leurs équivalents open-source : on
-ne veut pas avoir à choisir entre performance et confidentialité. Anonymiser les PII avant qu'ils atteignent le LLM
-permet de profiter des modèles les plus capables tout en gardant la main sur les données de ses utilisateurs.
-
-!!! info "Qu'est-ce qu'un PII ?"
-    Un *PII* (**P**ersonal **I**dentifiable **I**nformation) est une donnée qui permet d'identifier une personne :
-    nom, adresse, téléphone, email, lieu, organisation… Les anonymiser dans les conversations d'agents IA est devenu
-    un enjeu de confidentialité à part entière : un LLM hébergé chez un tiers ne devrait pas voir les données
-    sensibles de vos utilisateurs.
-
-!!! tip "Première fois sur ces termes ?"
-    Consultez le [Glossaire](glossary.md) pour les définitions de NER, span, liaison d'entités, middleware, placeholder et plus.
-
-Sur le papier, anonymiser des PII est simple : on prend un détecteur (regex pour les emails, modèle NER pour les noms), on remplace ce qui matche par des placeholders, et on envoie au LLM. En pratique, quatre problèmes apparaissent presque immédiatement.
-
-**Cohérence des placeholders.** Le but est de remplacer `Patrick`{ .pii } par un placeholder du type `<<PERSON:1>>`{ .placeholder }, qui dit deux choses au LLM : on a caché une personne ici, et toutes les occurrences de `<<PERSON:1>>`{ .placeholder } parlent de la même personne. Si `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } au début et `<<PERSON:3>>`{ .placeholder } à la fin, le LLM ne peut plus raisonner sur le fait qu'il s'agit du même individu.
-
-**Variantes ratées par le détecteur.** Le NER détecte `Patrick Dupont`{ .pii } en début de texte mais rate `Patrick`{ .pii } tout seul deux phrases plus loin. Ou il détecte `Patrick`{ .pii } mais pas `patrick`{ .pii } en bas de casse. Ou pas `Patriick`{ .pii } avec une faute d'orthographe.
-
-**Chevauchement entre détecteurs.** Deux NER chaînés pour augmenter le rappel peuvent revendiquer le même span avec des labels différents (l'un dit `PERSON`, l'autre dit `ORG` parce qu'il a confondu avec un nom d'entreprise). Sans arbitrage, le remplacement final tape sur la même position deux fois et casse le texte.
-
-**Persistance entre messages.** Une fois que le LLM a vu `<<PERSON:1>>`{ .placeholder } dans le message 1, il faut que le message 2 utilise le même placeholder. Sans mémoire partagée, `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } puis `<<PERSON:7>>`{ .placeholder } selon le moment, et le LLM perd le fil.
-
-`piighost` adresse les trois premiers via trois composants du pipeline (résolution de spans, liaison
-d'entités, fusion d'entités), et le quatrième via la couche conversationnelle (`ThreadAnonymizationPipeline`).
-Chaque composant a une **contrepartie** : la résolution de spans peut écarter
-une détection légitime sur un faux conflit, la liaison floue peut grouper à tort deux entités distinctes, etc.
-Si vos détections sont déjà propres (ou si vous préférez gérer ces cas vous-même), chaque composant est
-**désactivable individuellement** via une instance `Disabled*` qui le transforme en passe-plat. Voir
-[Étendre PIIGhost](extending.md) pour le détail de chaque section.
-
-### Le cas conversationnel (agents IA)
-
-Pour utiliser l'anonymisation dans des agents IA, plusieurs contraintes supplémentaires apparaissent :
-
-- **Transparence** : l'utilisateur envoie son message en clair et reçoit la réponse en clair, sans avoir à se
-  soucier de l'anonymisation.
-- **Utilisation par des outils externes** : l'agent doit pouvoir appeler un outil (ex. récupérer la météo d'une
-  ville mentionnée) avec les vraies valeurs, sans que le LLM lui-même les voie.
-- **Persistance inter-messages** : une entité anonymisée dans le premier message doit l'être de la même manière
-  dans tous les messages suivants, côté utilisateur comme côté agent, pour que l'agent puisse raisonner sur
-  l'identité des PII au fil de la conversation.
-
----
-
-## Solution
-
-`piighost` combine les briques existantes pour offrir une détection et une anonymisation des PII à la fois précises,
-cohérentes et faciles à intégrer :
-
-- **Détection hybride** : composez un ou plusieurs backends NER et des regex via `CompositeDetector` pour
-  tirer parti des deux mondes.
-- **Liaison d'entités** : regroupe automatiquement les variantes (casse, fautes, mentions partielles) pour
-  garantir des placeholders cohérents.
-- **Anonymisation bidirectionnelle** : chaque anonymisation est cachée et peut être inversée à la volée, y compris
-  sur du texte produit par un LLM qui n'a jamais vu les vraies valeurs.
-- **Middleware LangChain** : intégration transparente dans un agent LangGraph, sans modifier votre code d'agent.
-  Le LLM ne voit que des placeholders, les outils reçoivent les vraies valeurs, l'utilisateur voit la réponse
-  désanonymisée.
-
----
-
-## Comment ça marche
-
-Le cœur de la librairie est un pipeline en 5 étapes, chacune branchable via une interface :
-
-```mermaid
-flowchart LR
-    A[Texte] --> B[1. Detect]
-    B --> C[2. Resolve Spans]
-    C --> D[3. Link Entities]
-    D --> E[4. Resolve Entities]
-    E --> F[5. Anonymize]
-    F --> G[Texte anonymisé]
-```
-
-1. **Detect** : plusieurs détecteurs (NER, regex) repèrent les candidats PII.
-2. **Resolve Spans** : arbitrage des chevauchements et imbrications entre détections.
-3. **Link Entities** : regroupement des occurrences d'une même entité (y compris fautes et variations de casse).
-4. **Resolve Entities** : fusion des groupes incohérents entre détecteurs.
-5. **Anonymize** : remplacement par des placeholders via une factory pluggable.
-
-Voir [Architecture](architecture.md) pour les détails de chaque étape.
-
----
-
-## Pourquoi pas une solution existante ?
-
-D'autres librairies couvrent une partie du périmètre :
-
-- **[Microsoft Presidio](https://github.com/microsoft/presidio)** : catalogue riche de recognizers prêts à
-  l'emploi (cartes bancaires validées par Luhn, IBAN avec checksum, SSN, passeports, emails, téléphones) enrichis
-  par scoring contextuel par mots-clés, avec un moteur NER branché sur spaCy / stanza / transformers. Pas de
-  liaison inter-messages native ni de middleware LangChain bidirectionnel. Excellent comme moteur de détection
-  brut, mais laisse au développeur la charge d'orchestrer le cas conversationnel.
-- **Extensions spaCy / regex custom** : bon pour des pipelines de traitement batch, mais ne gèrent pas l'aller-retour
-  anonymisation/désanonymisation au fil d'une conversation.
-
-Le différenciateur de `piighost` : **la liaison persistante inter-messages** et un **middleware bidirectionnel**
-(texte → placeholders → LLM → texte → outils → placeholders → utilisateur) qui fonctionne tel quel dans LangGraph.
-
-Vue synthétique des fonctionnalités face aux alternatives :
-
-<div class="wide-table" markdown="1">
-
-|                                                  | **piighost**            | LangChain                      | Microsoft Presidio           |
-|--------------------------------------------------|-------------------------|--------------------------------|------------------------------|
-| Détecteurs interchangeables (NER, regex, LLM…)   | ✅                      | ⚠️ regex / Presidio uniquement | ⚠️ lié à spaCy / recognizers |
-| Composer plusieurs détecteurs                    | ✅                      | ❌ une stratégie par instance  | ⚠️ partiel                   |
-| Liaison d'entités inter-messages                 | ✅                      | ❌                             | ❌                           |
-| Tolérance casse / fautes de frappe               | ⚠️ matching approximatif | ❌                             | ❌                           |
-| Anonymisation réversible (deanonymize)           | ✅                      | ❌ block / mask uniquement     | ⚠️ API séparée               |
-| Middleware LangChain / LangGraph                 | ✅                      | ✅                             | ❌                           |
-| Désanonymise / réanonymise à l'appel d'outil     | ✅                      | ❌                             | ❌                           |
-| API async-first                                  | ✅                      | ⚠️                             | ⚠️                           |
-| Format de placeholder personnalisable            | ✅                      | ⚠️ template seulement          | ⚠️ template seulement        |
-
-</div>
-
----
-
-## Aperçu
-
-Entrée :
-
-> `Patrick`{ .pii } habite à `Paris`{ .pii }. `Patrick`{ .pii } adore `Paris`{ .pii }.
-
-Sortie :
-
-> `<<PERSON:1>>`{ .placeholder } habite à `<<LOCATION:1>>`{ .placeholder }. `<<PERSON:1>>`{ .placeholder } adore `<<LOCATION:1>>`{ .placeholder }.
-
-Les deux occurrences de `Patrick`{ .pii } sont reliées, idem pour `Paris`{ .pii }. Dans une conversation, les
-messages suivants réutilisent les mêmes placeholders, et la désanonymisation est automatique pour l'utilisateur final.
-
-Pour l'installation et le premier exemple complet, voir [Installation](getting-started/installation.md) puis [Premier pipeline](getting-started/first-pipeline.md).
-
----
-
-## Navigation
-
-Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/) : tutoriel pour apprendre, how-to pour résoudre une tâche, référence pour consulter l'API, explication pour comprendre les choix de design.
+Chaque page suit un rôle du [framework Diátaxis](https://diataxis.fr/), tutoriel pour apprendre, recette pour résoudre une tâche, référence pour consulter l'API, concept pour comprendre les choix de design.
 
 <div class="grid cards" markdown>
 
@@ -224,27 +50,25 @@ Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/)
 
     ---
 
-    Installer et prendre piighost en main.
+    Installer et prendre `piighost` en main.
 
     - [Installation](getting-started/installation.md)
     - [Quickstart](getting-started/quickstart.md)
     - [Premier pipeline](getting-started/first-pipeline.md)
     - [Pipeline conversationnel](getting-started/conversation.md)
     - [Middleware LangChain](getting-started/langchain.md)
-    - [Client distant](getting-started/api-client.md)
-    - [Usage basique](examples/basic.md)
 
--   :lucide-wrench: __Usage__
+-   :lucide-wrench: __Recettes__
 
     ---
 
-    Recettes ciblées pour un cas d'usage.
+    Résoudre une tâche précise.
 
+    - [Usage basique](examples/basic.md)
     - [Intégration LangChain](examples/langchain.md)
     - [Détecteurs prêts à l'emploi](examples/detectors.md)
     - [Étendre PIIGhost](extending.md)
     - [Tests](examples/testing.md)
-    - [Déploiement](deployment.md)
 
 -   :lucide-book-open: __Référence__
 
@@ -263,20 +87,9 @@ Chaque page suit un rôle précis du [framework Diátaxis](https://diataxis.fr/)
 
     Comprendre les choix de design.
 
+    - [Pourquoi dé-identifier ?](why-anonymize.md)
     - [Architecture](architecture.md)
-    - [Glossaire](glossary.md)
-    - [Limites](limitations.md)
+    - [Placeholder factories](placeholder-factories.md)
     - [Sécurité](security.md)
-
--   :lucide-users: __Communauté__
-
-    ---
-
-    Participer, signaler, échanger.
-
-    - [Contribuer](community/contributing.md)
-    - [Code de conduite](community/code-of-conduct.md)
-    - [Signaler un bug](community/bug-reports.md)
-    - [FAQ](community/faq.md)
 
 </div>

@@ -19,14 +19,15 @@ nav = [
     { "Conversational pipeline" = "getting-started/conversation.md" },
     { "LangChain middleware" = "getting-started/langchain.md" },
     { "Remote client" = "getting-started/api-client.md" },
-    { "Basic usage" = "examples/basic.md" },
   ]},
-  { "Usage" = [
+  { "Recipes" = [
+    { "Basic usage" = "examples/basic.md" },
     { "LangChain integration" = "examples/langchain.md" },
     { "Pre-built detectors" = "examples/detectors.md" },
     { "Extending PIIGhost" = "extending.md" },
-    { "Deployment" = "deployment.md" },
     { "Testing" = "examples/testing.md" },
+    { "Deployment" = "deployment.md" },
+    { "Multi-instance deployment" = "multi-instance.md" },
   ]},
   { "Reference" = [
     { "Anonymizer" = "reference/anonymizer.md" },
@@ -39,13 +40,15 @@ nav = [
     ]},
   ]},
   { "Concepts" = [
-    { "Glossary" = "glossary.md" },
+    { "Why de-identify?" = "why-anonymize.md" },
     { "Architecture" = "architecture.md" },
+    { "Pipeline design" = "conception.md" },
     { "Placeholder factories" = "placeholder-factories.md" },
     { "Tool-call strategies" = "tool-call-strategies.md" },
-    { "Why anonymize?" = "why-anonymize.md" },
+    { "Observation and cache" = "observation.md" },
     { "Security" = "security.md" },
     { "Limitations" = "limitations.md" },
+    { "Glossary" = "glossary.md" },
   ]},
   { "Community" = [
     { "Contributing" = "community/contributing.md" },

@@ -1,7 +1,7 @@
 [project]
 site_name = "PIIGhost"
 site_url = "https://athroniaeth.github.io/piighost/fr/"
-site_description = "`piighost` est une bibliothèque Python qui détecte les données personnelles identifiables (PII), les extrait, puis anonymise et désanonymise automatiquement les entités sensibles (noms, lieux, etc.). Elle propose des modules d'anonymisation bidirectionnelle pour les conversations d'agents IA, et s'intègre via un middleware LangChain sans modification de votre code agent existant."
+site_description = "`piighost` est une bibliothèque Python qui empêche les PII (données personnelles identifiables) d'atteindre un modèle de langage. Elle dé-identifie le texte avant le LLM et restaure les vraies valeurs pour l'utilisateur et les outils, avec un middleware LangChain sans modification de votre code agent."
 site_author = "PIIGhost"
 copyright = "Copyright &copy; 2026 contributeurs PIIGhost"
 repo_url = "https://github.com/Athroniaeth/piighost"
@@ -20,15 +20,15 @@ nav = [
         { "Pipeline conversationnel" = "getting-started/conversation.md" },
         { "Middleware LangChain" = "getting-started/langchain.md" },
         { "Client distant" = "getting-started/api-client.md" },
-        { "Usage basique" = "examples/basic.md" },
     ] },
-    { "Usage" = [
+    { "Recettes" = [
+        { "Usage basique" = "examples/basic.md" },
         { "Intégration LangChain" = "examples/langchain.md" },
         { "Détecteurs prêts à l'emploi" = "examples/detectors.md" },
         { "Étendre PIIGhost" = "extending.md" },
+        { "Tests" = "examples/testing.md" },
         { "Déploiement" = "deployment.md" },
         { "Déploiement multi-instance" = "multi-instance.md" },
-        { "Tests" = "examples/testing.md" },
     ] },
     { "Référence" = [
         { "Anonymizer" = "reference/anonymizer.md" },
@@ -41,15 +41,15 @@ nav = [
         ]},
     ] },
     { "Concepts" = [
-        { "Glossaire" = "glossary.md" },
+        { "Pourquoi dé-identifier ?" = "why-anonymize.md" },
         { "Architecture" = "architecture.md" },
         { "Conception du pipeline" = "conception.md" },
         { "Placeholder factories" = "placeholder-factories.md" },
         { "Stratégies d'appel outil" = "tool-call-strategies.md" },
         { "Observation et cache" = "observation.md" },
-        { "Pourquoi anonymiser ?" = "why-anonymize.md" },
         { "Sécurité" = "security.md" },
         { "Limites" = "limitations.md" },
+        { "Glossaire" = "glossary.md" },
     ] },
     { "Communauté" = [
         { "Contribuer" = "community/contributing.md" },
