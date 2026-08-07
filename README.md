@@ -1,16 +1,21 @@
 # PIIGhost
 
-[![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg?cacheSeconds=3600)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/piighost.svg?cacheSeconds=3600)](https://pypi.org/project/piighost/)
-[![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg?cacheSeconds=3600)](https://pypi.org/project/piighost/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg?cacheSeconds=3600)](LICENSE)
-[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg?cacheSeconds=3600)](https://github.com/PyCQA/bandit)
+[![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
+[![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 [README EN](README.md) - [README FR](README.fr.md) / [Documentation EN](https://athroniaeth.github.io/piighost/) - [Documentation FR](https://athroniaeth.github.io/piighost/fr/)
 
-`piighost` is a library for building **PII anonymization pipelines**. It sits as a layer on top of any regex, NER, or LLM you plug in, designed to work with conversational agents, so you can use a hosted LLM (GPT, Claude, Gemini) without ever sending it the raw data of your users. `piighost` spots PII like names, emails, addresses, anything the model does not need to see, swaps them for placeholders (for example `<<PERSON:1>>`, `<<EMAIL:2>>`, `<<LOCATION:1>>`) the LLM can still reason about, and restores the real values for your tools and your end users. The same PII keeps the same placeholder across an entire conversation, even when it spans multiple messages or tool calls, and your agent code does not change.
+`piighost` is a Python library that keeps PII (personally identifiable information) from reaching a language model, while keeping the application fully functional.
 
-On top of the core pipeline, `piighost` ships extra layers to harden each step, like composable detectors with confidence arbitration for **detection**, a tolerant linker for **correction** of typos and case variants, and output guardrails (regex or LLM-based) for **safety** when the LLM accidentally generates fresh PII in its response.
+The library spots PII with detectors (regex, NER, or another LLM) and replaces each value with a stable placeholder, for example `john.doe@example.com` becomes `<<EMAIL:1>>`. The model only ever works on de-identified text. When the LLM returns placeholders, `piighost` puts the real values back in place, the end user sees `john.doe@example.com` and never notices the de-identification. The same mechanism protects tool-using agents. A tool that needs the real address receives it in clear, while the LLM that decides to call it still sees only `<<EMAIL:1>>`.
+
+Finally, the library keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com` shows up again three messages later, the placeholder stays `<<EMAIL:1>>`, so the model can follow the thread.
+
+> [!NOTE]
+> `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
 ```mermaid
 sequenceDiagram
@@ -20,443 +25,82 @@ sequenceDiagram
     participant L as LLM
     participant T as Tool
 
-    U->>M: "Email Patrick at patrick@acme.com"
-    M->>L: "Email <<PERSON:1>> at <<EMAIL:1>>"
+    U->>M: "Write to John Doe at john.doe@example.com"
+    M->>L: "Write to <<PERSON:1>> at <<EMAIL:1>>"
     L->>M: tool_call(send_email, to=<<EMAIL:1>>)
-    M->>T: send_email(to="patrick@acme.com")
+    M->>T: send_email(to="john.doe@example.com")
     T-->>M: "Sent."
     M-->>L: "Sent."
-    L-->>M: "Done, your email to <<PERSON:1>> went out."
-    M-->>U: "Done, your email to Patrick went out."
+    L-->>M: "Done, your email to <<PERSON:1>> has been sent."
+    M-->>U: "Done, your email to John Doe has been sent."
 ```
 
-> The LLM only ever sees `<<PERSON:1>>` and `<<EMAIL:1>>`. Your `send_email` tool still receives the real address. The end user receives a deanonymized response. Zero changes to your agent code.
+*The LLM only sees placeholders. The tool receives the real address, the user gets a clear-text reply, and your agent code stays the same.*
 
-## Table of contents
-
-- [Why piighost?](#why-piighost)
-- [What makes this hard](#what-makes-this-hard)
-- [Quick start](#quick-start)
-- [Bring your own detector](#bring-your-own-detector)
-- [Use cases](#use-cases)
-- [How it works](#how-it-works)
-    - [Pipeline](#pipeline)
-    - [Middleware](#middleware-integration)
-- [Installation](#installation)
-- [FAQ](#faq)
-- [Limitations](#limitations)
-- [Development & contributing](#development)
-- [Ecosystem](#ecosystem)
-- [Star us!](#star-us)
-
-## Why piighost?
-
-When you ship an LLM feature, you usually pick one of three families of providers, and each one forces a trade-off:
-
-- **Hosted non-EU clouds** (OpenAI, Anthropic, Google): the best models, but every byte of context, including raw user PII, leaves your jurisdiction.
-- **EU-sovereign clouds** (Mistral AI, OVHcloud, Scaleway): legal guarantees on residency, but you give up some of the state of the art.
-- **Self-hosted open weights**: total control, but you carry the infra cost and you stay further from the SOTA.
-
-The only clean way to decouple the LLM from the sensitivity of the content is to **anonymize upstream**. Once PII never reaches the model, the choice of provider stops being a privacy decision and goes back to being a quality / cost / latency one. That's the slot `piighost` fills.
-
-|                                           | **piighost**                  | LangChain                       | Microsoft Presidio              |
-|-------------------------------------------|-------------------------------|---------------------------------|---------------------------------|
-| Pluggable detectors (NER, regex, LLM, …)  | ✅ via shared protocol        | ⚠️ regex / Presidio only         | ⚠️ tied to spaCy / recognizers   |
-| Compose multiple detectors                | ✅                            | ❌                                | ⚠️ partial                       |
-| Cross-message entity linking              | ✅                            | ❌                               | ❌                               |
-| Tolerates case / typo variants            | ⚠️ approximate matching       | ❌                               | ❌                               |
-| Reversible anonymization (deanonymize)    | ✅ cache-backed               | ❌ block / mask only             | ⚠️ separate API                  |
-| LangChain / LangGraph middleware          | ✅                            | ✅                              | ❌                               |
-| Per-tool deanonymize / re-anonymize       | ✅                            | ❌                               | ❌                               |
-| Async-first API                           | ✅                            | ⚠️                               | ⚠️                               |
-| Bring-your-own placeholder format         | ✅ free format                | ⚠️ template-only                 | ⚠️ template-only                 |
-
-LangChain's built-in [`PIIMiddleware`](https://docs.langchain.com/oss/python/langchain/middleware#pii-middleware) is the closest neighbour: it wires anonymization into the agent loop, but it is one-shot (block / redact / mask / hash) and can't deanonymize for end users or pass real values to tools. `piighost` keeps the same hook point and adds the round trip, the cross-message memory, and the swappable detection stack, so the LLM sees placeholders while the rest of the system keeps working with real data.
-
-## What makes this hard
-
-On paper, "replace names with tokens before the LLM call" is a one-liner. In practice, four problems show up immediately, and they are what shape the pipeline:
-
-- **Placeholder consistency.** If `Patrick` is `<<PERSON:1>>` at line 1, every later mention of `Patrick` must stay `<<PERSON:1>>`. Restart the counter and the LLM thinks it's three different people.
-- **Detector misses.** A NER model finds the full mention `Patrick Dupont` but skips a standalone `Patrick` two paragraphs later. The bare regex you'd add to compensate misses the variants. You need a layer that re-scans for known entities, not just raw NER output.
-- **Span overlaps.** Run two detectors and they will sometimes claim the same offset with different labels (`PERSON` at confidence 0.95, `ORG` at 0.60). Without arbitration, span replacement walks over itself and you get garbled text.
-- **Multi-message state.** Anonymize each message in isolation and you hit a silent collision: `Patrick` becomes `<<PERSON:1>>` in message 1, `Bob` becomes `<<PERSON:1>>` in message 2, both decode to the same person. Conversation memory is non-optional.
-
-Each pipeline stage in `piighost` exists to fix one of those four. The 5-step architecture isn't theoretical, it's the smallest set that makes anonymization work end-to-end on real conversations.
-
-## Quick start
-
-Install the cache extra (used by the pipeline):
+## Quickstart
 
 ```bash
-uv add 'piighost[cache]'
+uv add piighost
 ```
 
-Anonymize and deanonymize without downloading any model. The `ExactMatchDetector` matches a fixed dictionary by word-boundary regex, ideal to try `piighost` in under a minute.
+### De-identify a text
+
+`ExactMatchDetector` de-identifies a dictionary of known values without downloading a model.
 
 ```python
 import asyncio
-from pprint import pp
 
-from piighost import Anonymizer, ExactMatchDetector
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")])
-pipeline = AnonymizationPipeline(detector=detector, anonymizer=Anonymizer())
+detector = ExactMatchDetector({"John Doe": "PERSON", "john.doe@example.com": "EMAIL"})
+pipeline = AnonymizationPipeline(
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+)
 
-
-async def main() -> None:
-    anonymized, entities = await pipeline.anonymize("Patrick lives in Paris.")
-    print(anonymized)
-    # <<PERSON:1>> lives in <<LOCATION:1>>.
-
-    pp(entities)
-    # [
-    #     Entity(detections=(
-    #         Detection(
-    #             text='Patrick',
-    #             label='PERSON',
-    #             position=Span(start_pos=0, end_pos=7),
-    #             confidence=1.0,
-    #         ),
-    #     )),
-    #     Entity(detections=(
-    #         Detection(
-    #             text='Paris',
-    #             label='LOCATION',
-    #             position=Span(start_pos=17, end_pos=22),
-    #             confidence=1.0,
-    #         ),
-    #     )),
-    # ]
-
-    original, restored = await pipeline.deanonymize(anonymized)
-    print(original)
-    # Patrick lives in Paris.
-
-    pp(restored)
-    # [
-    #     Entity(detections=(
-    #         Detection(
-    #             text='Patrick',
-    #             label='PERSON',
-    #             position=Span(start_pos=0, end_pos=7),
-    #             confidence=1.0,
-    #         ),
-    #     )),
-    #     Entity(detections=(
-    #         Detection(
-    #             text='Paris',
-    #             label='LOCATION',
-    #             position=Span(start_pos=17, end_pos=22),
-    #             confidence=1.0,
-    #         ),
-    #     )),
-    # ]
-
-
-asyncio.run(main())
+result = asyncio.run(pipeline.anonymize("Write to John Doe at john.doe@example.com."))
+print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
 ```
 
-> Both `anonymize` and `deanonymize` return `(text, list[Entity])`: the entities come straight from the cache, no re-detection. Note that an `Entity` does **not** carry its placeholder: the placeholder is regenerated on the fly by the `PlaceholderFactory` from the ordered list of entities. That's how counter-style factories such as `LabelCounterPlaceholderFactory` produce stable `<<PERSON:1>>`, `<<PERSON:2>>`, ... numbers across `anonymize` and `deanonymize` (the order is the source of truth). The `text` field of `Detection` is rendered verbatim by the standard dataclass `repr`, scrub it yourself if you forward these objects to logs (see [security docs](https://athroniaeth.github.io/piighost/security/)).
+### Conversations and agents (LangChain)
 
-> **How does `deanonymize` know the original?** It does not re-run the detector. The pipeline keeps an in-memory cache (`aiocache.SimpleMemoryCache` by default) that maps `sha256(anonymized_text) → (original_text, entities)`. Calling `deanonymize` is just a lookup. For multi-instance deployments, swap in a Redis or Memcached backend, see [deployment docs](https://athroniaeth.github.io/piighost/deployment/).
+The middleware wraps a conversational pipeline and handles each agent turn. The LLM only sees placeholders, tools receive the real values, the user gets a clear-text reply.
 
-For real workloads, plug in a NER model or your own detector below.
-
-<details>
-<summary><strong>Advanced configuration</strong> (real NER, custom resolvers, full pipeline)</summary>
-
-```python
-import asyncio
-from gliner2 import GLiNER2
-
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.pipeline import AnonymizationPipeline
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-detector = Gliner2Detector(model=model, labels=["PERSON", "LOCATION"])
-pipeline = AnonymizationPipeline(detector=detector, anonymizer=Anonymizer())
-
-
-async def main() -> None:
-    text = "Patrick lives in Paris. Patrick loves Paris."
-    anonymized, entities = await pipeline.anonymize(text)
-    print(anonymized)
-    # <<PERSON:1>> lives in <<LOCATION:1>>. <<PERSON:1>> loves <<LOCATION:1>>.
-
-    for entity in entities:
-        print(f"  {entity.label}: {entity.detections[0].text}")
-    # PERSON: Patrick
-    # LOCATION: Paris
-
-    original, _ = await pipeline.deanonymize(anonymized)
-    print(original)
-    # Patrick lives in Paris. Patrick loves Paris.
-
-
-asyncio.run(main())
+```bash
+uv add 'piighost[middleware]'
 ```
-
-Swap `Gliner2Detector` for any other implementation of `AnyDetector` (spaCy, regex, a remote API, your own, see [Bring your own detector](#bring-your-own-detector)). Same for every other stage of the pipeline.
-
-</details>
-
-### With LangChain agent middleware
-
-A LangChain middleware is an extension point that runs before and after every LLM call and every tool call. `piighost` hooks into it to intercept and transform messages, so PII anonymization is applied without changing your agent code.
 
 ```python
 from langchain.agents import create_agent
-from langchain_core.tools import tool
+from piighost.integrations.middleware import PIIAnonymizationMiddleware
 
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.middleware import PIIAnonymizationMiddleware
-
-from gliner2 import GLiNER2
-
-
-@tool
-def send_email(to: str, subject: str, body: str) -> str:
-    """Send an email to a given address."""
-    return f"Email successfully sent to {to}."
-
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-detector = Gliner2Detector(model=model, labels=["PERSON", "LOCATION"])
-pipeline = ThreadAnonymizationPipeline(detector=detector, anonymizer=Anonymizer())
-middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
-
-graph = create_agent(
+# pipeline: a ThreadAnonymizationPipeline, see the conversation guide
+agent = create_agent(
     model="openai:gpt-5.4",
-    system_prompt="You are a helpful assistant.",
     tools=[send_email],
-    middleware=[middleware],
+    middleware=[PIIAnonymizationMiddleware(pipeline=pipeline)],
 )
 ```
 
-The middleware intercepts every agent turn: the LLM only sees anonymized text, tools receive real values, and user-facing messages are deanonymized automatically.
+For a real detector, the conversational pipeline and a full LangChain example, see the [Quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/) and the [LangChain integration](https://athroniaeth.github.io/piighost/examples/langchain/).
 
-## Bring your own detector
+## Documentation
 
-The detection stage is just a `Protocol`. Anything async with a `detect(text) -> list[Detection]` method works. The pipeline does not care whether it's a model, a regex, or an HTTP call.
+- **Get started**: [installation](https://athroniaeth.github.io/piighost/getting-started/installation/), [quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/), [first pipeline](https://athroniaeth.github.io/piighost/getting-started/first-pipeline/)
+- **How-to**: [basic usage](https://athroniaeth.github.io/piighost/examples/basic/), [LangChain integration](https://athroniaeth.github.io/piighost/examples/langchain/), [ready-made detectors](https://athroniaeth.github.io/piighost/examples/detectors/)
+- **Reference**: [pipeline](https://athroniaeth.github.io/piighost/reference/pipeline/), [middleware](https://athroniaeth.github.io/piighost/reference/middleware/), [detectors](https://athroniaeth.github.io/piighost/reference/detectors/), [CLI](https://athroniaeth.github.io/piighost/reference/cli/)
+- **Concepts**: [why de-identify](https://athroniaeth.github.io/piighost/why-anonymize/), [architecture](https://athroniaeth.github.io/piighost/architecture/), [placeholder factories](https://athroniaeth.github.io/piighost/placeholder-factories/), [security](https://athroniaeth.github.io/piighost/security/)
 
-```python
-import httpx
+## Project
 
-from piighost.detector.base import AnyDetector  # protocol, structural typing
-from piighost.models import Detection, Span
-
-
-class RemoteNERDetector:
-    """Calls a hosted NER service and maps its response to Detection objects."""
-
-    def __init__(self, url: str, api_key: str) -> None:
-        self._url, self._key = url, api_key
-
-    async def detect(self, text: str) -> list[Detection]:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                self._url,
-                json={"text": text},
-                headers={"Authorization": f"Bearer {self._key}"},
-            )
-        return [
-            Detection(
-                text=hit["text"],
-                label=hit["label"],
-                position=Span(start_pos=hit["start"], end_pos=hit["end"]),
-                confidence=hit["score"],
-            )
-            for hit in r.json()["entities"]
-        ]
-
-
-# Satisfies AnyDetector by structural typing — drop it straight into the pipeline.
-detector: AnyDetector = RemoteNERDetector(url="...", api_key="...")
-```
-
-Combine several detectors with `CompositeDetector` and let `ConfidenceSpanConflictResolver` pick a winner when their spans overlap. See [extending docs](https://athroniaeth.github.io/piighost/extending/) for the full catalogue (spaCy, transformers, LLM-as-detector, regex with validators for IBAN / NIR / Luhn).
-
-## Use cases
-
-`piighost` fits anywhere a third-party LLM should not see real names, identifiers, or free-text PII:
-
-- **Customer support chatbot.** A SaaS sends every ticket to GPT to generate a draft reply. With `piighost`, the LLM sees `<<CUSTOMER:1>> reports an outage on order <<ORDER_ID:3>>`, the response comes back deanonymized, and the customer email is never logged on the provider side.
-- **Healthcare / clinical assistant.** A nurse pastes patient notes into a triage assistant. `piighost` strips patient names, SSN, and addresses before the LLM call, while the medical content (symptoms, vitals, treatments) reaches the model intact, which keeps reasoning quality high while avoiding a HIPAA / GDPR incident.
-- **HR agent on internal documents.** A RAG agent answers questions over performance reviews and salary grids. Employee names and amounts are anonymized in retrieved chunks; the LLM never sees who got what; the final answer is reconstructed for the authorized HR user only.
-- **Legal assistant.** Contracts processed with client and counterparty names redacted before reaching the model. Structured data extraction (dates, amounts, obligations) without ever exposing the parties involved.
-- **Tool-enabled agents.** Anonymize free-text inputs without breaking tool calls: the `send_email` / CRM / Jira tool still receives the real address, the LLM only ever saw `<<PERSON:1>>`.
-
-## How it works
-
-### Pipeline
-
-`AnonymizationPipeline` runs five stages, each one a swappable protocol:
-
-```mermaid
----
-title: "AnonymizationPipeline.anonymize() flow"
----
-flowchart LR
-    classDef stage fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef protocol fill:#FFF9C4,stroke:#F9A825,color:#000
-    classDef data fill:#A5D6A7,stroke:#2E7D32,color:#000
-
-    INPUT(["`**Input text**
-    _'Patrick lives in Paris.
-    Patrick loves Paris.'_`"]):::data
-
-    DETECT["`**1. Detect**
-    _AnyDetector_`"]:::stage
-    RESOLVE_SPANS["`**2. Resolve Spans**
-    _AnySpanConflictResolver_`"]:::stage
-    LINK["`**3. Link Entities**
-    _AnyEntityLinker_`"]:::stage
-    RESOLVE_ENTITIES["`**4. Resolve Entities**
-    _AnyEntityConflictResolver_`"]:::stage
-    ANONYMIZE["`**5. Anonymize**
-    _AnyAnonymizer_`"]:::stage
-
-    OUTPUT(["`**Output**
-    _'<<PERSON:1>> lives in <<LOCATION:1>>.
-    <<PERSON:1>> loves <<LOCATION:1>>.'_`"]):::data
-
-    INPUT --> DETECT
-    DETECT -- "list[Detection]" --> RESOLVE_SPANS
-    RESOLVE_SPANS -- "deduplicated detections" --> LINK
-    LINK -- "list[Entity]" --> RESOLVE_ENTITIES
-    RESOLVE_ENTITIES -- "merged entities" --> ANONYMIZE
-    ANONYMIZE --> OUTPUT
-
-    P_DETECT["`GlinerDetector
-    _(or RegexDetector, ExactMatchDetector, CompositeDetector…)_`"]:::protocol
-    P_RESOLVE_SPANS["`ConfidenceSpanConflictResolver
-    _(highest confidence wins)_`"]:::protocol
-    P_LINK["`ExactEntityLinker
-    _(word-boundary regex)_`"]:::protocol
-    P_RESOLVE_ENTITIES["`MergeEntityConflictResolver
-    _(union-find merge)_`"]:::protocol
-    P_ANONYMIZE["`Anonymizer + LabelCounterPlaceholderFactory
-    _(<<LABEL:N>> tags)_`"]:::protocol
-
-    P_DETECT -. "implements" .-> DETECT
-    P_RESOLVE_SPANS -. "implements" .-> RESOLVE_SPANS
-    P_LINK -. "implements" .-> LINK
-    P_RESOLVE_ENTITIES -. "implements" .-> RESOLVE_ENTITIES
-    P_ANONYMIZE -. "implements" .-> ANONYMIZE
-```
-
-> Three terms drive the pipeline: a **span** is a `(start, end)` offset, a **detection** is a span + label + confidence emitted by a detector, an **entity** is a group of detections referring to the same real-world PII (so they share the same placeholder). Full definitions in the [glossary](https://athroniaeth.github.io/piighost/glossary/).
-
-### Middleware integration
-
-The middleware hooks into LangChain's `abefore_model`, `awrap_tool_call` and `aafter_model` to anonymize, deanonymize for tools, and re-anonymize tool results. See [architecture docs](https://athroniaeth.github.io/piighost/architecture/) for the full sequence.
-
-## Installation
-
-`piighost` ships as a regular wheel on PyPI. The core package has no required dependencies, install only the extras for the features you need.
-
-### Inside a uv project (recommended)
-
-```bash
-uv add piighost                 # core only (small, no model)
-uv add 'piighost[cache]'        # AnonymizationPipeline (aiocache)
-uv add 'piighost[gliner2]'      # Gliner2Detector
-uv add 'piighost[middleware]'   # PIIAnonymizationMiddleware (langchain + aiocache)
-uv add 'piighost[all]'          # everything
-```
-
-or with pip:
-
-```bash
-pip install piighost
-pip install 'piighost[middleware]'
-```
-
-### Compatibility
-
-| Python  | LangChain (extra `middleware`) | aiocache (extra `cache`) | GLiNER2 (extra `gliner2`) |
-|---------|-------------------------------|--------------------------|---------------------------|
-| >=3.10  | >=1.2                         | >=0.12                   | >=1.2                     |
-
-`piighost` is tested on Python 3.10 through 3.14. Versions are declared in [`pyproject.toml`](pyproject.toml).
-
-### From source (development)
-
-```bash
-git clone https://github.com/Athroniaeth/piighost.git
-cd piighost
-uv sync
-make lint        # ruff format + check, pyrefly type-check, bandit
-uv run pytest
-```
-
-## FAQ
-
-**Q: Which components are required?**
-Only `detector` and `anonymizer` are required, the three middle stages (span resolver, entity linker, entity resolver) have sensible defaults you can override. Full table of defaults, roles, and what each stage protects against in [architecture docs](https://athroniaeth.github.io/piighost/architecture/).
-
-**Q: What languages are supported?**
-That's entirely up to the detector you plug in. The pipeline itself is language-agnostic. With `Gliner2Detector` and a multilingual GLiNER2 model, you get ~100 languages out of the box. With `SpacyDetector`, anything spaCy supports. With `RegexDetector`, language doesn't matter.
-
-**Q: Which entities does it detect out of the box?**
-None: `piighost` does not ship its own NER model, on purpose. You bring the detector. Use `ExactMatchDetector` for fixed dictionaries, `RegexDetector` with `piighost.detector.patterns` (FR_IBAN, FR_NIR, EU_VAT, ...), `Gliner2Detector` for open-set NER (`PERSON`, `LOCATION`, `ORGANIZATION`, `EMAIL`, ... whatever labels you query), or compose them.
-
-**Q: How much latency does it add?**
-The pipeline itself is ~milliseconds (regex + dict lookups). Real cost is the detector you choose. CPU GLiNER2 on a 200-token message is typically 50-200 ms; an LLM-as-detector is hundreds of ms. The pipeline caches detection results per text hash via `aiocache`, so repeated content is free. Benchmarks for your own workload are recommended before sizing production traffic.
-
-**Q: Does it work fully offline? (GDPR / RGPD)**
-Yes. With a local detector (`Gliner2Detector`, `SpacyDetector`, `RegexDetector`, `ExactMatchDetector`), no data leaves your process. The middleware only forwards already-anonymized text to the LLM. This is the main reason teams adopt `piighost`: keep using a hosted LLM under EU constraints without exfiltrating raw PII.
-
-**Q: What happens when the NER misses an entity?**
-The **entity linker** scans the whole text (and the conversation, in `ThreadAnonymizationPipeline`) for word-level matches of every detected entity. So if `Patrick` is detected once, every other `Patrick` in the text gets the same placeholder, even if the NER missed them. It's a safety net for repeated mentions but it does not rescue missed unique mentions. If the NER misses `Dupont` and `ExactEntityLinker` is your linker, then `Dupont` stays as `Dupont` in the anonymized text. That's why you should pick a detector that is robust and adapted to your domain.
-
-**Q: Can I use it without LangChain?**
-Yes. `AnonymizationPipeline` and `ThreadAnonymizationPipeline` are independent of any agent framework. The LangChain middleware is one integration; the pipeline itself can be called from anywhere (FastAPI handler, batch script, custom agent loop).
-
-**Q: How is reversibility (deanonymize) implemented?**
-A SHA-256 keyed cache stores `anonymized_text → (original_text, entities)`. `pipeline.deanonymize(anonymized_text)` looks up the mapping and restores the original. The cache is in-memory by default (`SimpleMemoryCache`), pass any `aiocache` backend (Redis, Memcached) for multi-instance deployments.
-
-## Limitations
-
-`piighost` is not a silver bullet. Trade-offs to keep in mind before deploying:
-
-- **Entity linking amplifies NER mistakes.** If `Rose` is mistakenly detected as a person, every `rose` (the flower) is anonymized too. This component can be disabled.
-- **Fuzzy resolution can over-merge.** Jaro-Winkler on short names (`Marin` vs `Martin`) can fuse distinct people that the NER had correctly told apart. This component can be disabled.
-- **Latency overhead is detector-bound.** Benchmark on your own workload before sizing.
-
-Every anonymization pipeline has its own precision, latency and safety requirements, so they have to be taken into account when picking pipeline components and configuring mitigation strategies. For example, on notarial document anonymization, we'd want strong anonymization even at the cost of false positives (data anonymized that isn't actually PII), whereas for a customer support agent, too many false positives can be more annoying than false negatives.
-
-See [architecture docs](https://athroniaeth.github.io/piighost/architecture/), [extending docs](https://athroniaeth.github.io/piighost/extending/), and [limitations docs](https://athroniaeth.github.io/piighost/limitations/) for mitigation strategies.
-
-## Development
-
-```bash
-uv sync                              # install dev dependencies
-make lint                            # ruff format + check, pyrefly, bandit
-uv run pytest                        # run all tests
-uv run pytest tests/ -k "test_name"  # run a single test
-```
-
-### Contributing
-
-- **Commits**: Conventional Commits via Commitizen (`feat:`, `fix:`, `refactor:`, ...)
-- **Type checking**: PyReFly (not mypy)
-- **Formatting / linting**: Ruff
-- **Package manager**: uv (not pip)
-- **Python**: 3.10+
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-
-## Ecosystem
-
-- **[piighost-api](https://github.com/Athroniaeth/piighost-api)**: REST API server for PII anonymization inference. Loads a piighost pipeline once server-side and exposes `anonymize` / `deanonymize` over HTTP, so clients only need a lightweight HTTP client instead of embedding the NER model.
-- **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)**: Demo chat app showcasing privacy-preserving AI conversations. Uses `PIIAnonymizationMiddleware` with LangChain to anonymize messages before the LLM and deanonymize responses transparently. Built with SvelteKit, Litestar, and Docker Compose.
-
-## Star us!
-
-If `piighost` saves you a few hours, a ⭐ on [GitHub](https://github.com/Athroniaeth/piighost) helps others find it. Bug reports and PRs are even better, see [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Contributing**: [contribution guide](https://athroniaeth.github.io/piighost/community/contributing/) and [report a bug](https://athroniaeth.github.io/piighost/community/bug-reports/)
+- **Ecosystem**:
+    - [piighost.athroniaeth.cloud](https://piighost.athroniaeth.cloud): presentation site
+    - [piighost-api](https://github.com/Athroniaeth/piighost-api): piighost inference API
+    - [piighost-chat](https://github.com/Athroniaeth/piighost-chat): example interface with HITL
+- **License**: [MIT](LICENSE)

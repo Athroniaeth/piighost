@@ -4,30 +4,48 @@ icon: lucide/zap
 
 # Quickstart
 
-Le chemin le plus court pour voir `piighost` à l'œuvre : aucun modèle à télécharger, pas d'inférence, juste un dictionnaire fixe. Idéal pour essayer la librairie en moins d'une minute.
+Le chemin le plus court pour voir `piighost` à l'œuvre, sans télécharger de modèle. Vous allez dé-identifier une phrase à partir d'un dictionnaire de valeurs connues, en moins d'une minute.
+
+!!! note "Prérequis"
+    `piighost` installé, voir [Installation](installation.md). Cet exemple n'utilise que le socle, sans extra.
 
 ```python
 import asyncio
 
-from piighost import Anonymizer, ExactMatchDetector
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")])
-pipeline = AnonymizationPipeline(detector=detector, anonymizer=Anonymizer())
+detector = ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"})
+pipeline = AnonymizationPipeline(
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+)
 
 
-async def main():
-    anonymized, _ = await pipeline.anonymize("Patrick habite à Paris.")
-    print(anonymized)
-    # <<PERSON:1>> habite à <<LOCATION:1>>.
+async def main() -> None:
+    result = await pipeline.anonymize("John Doe habite à Paris.")
+    print(result.text)
 
 
 asyncio.run(main())
 ```
 
-`ExactMatchDetector` repère les occurrences exactes (aux frontières de mots) des paires `(texte, label)` fournies. `AnonymizationPipeline` applique des valeurs par défaut raisonnables pour les trois étapes intermédiaires : résolution de chevauchements, liaison d'entités, fusion des groupes. C'est suffisant pour un premier essai.
+La sortie doit être :
 
-!!! tip "Et ensuite ?"
-    - Pour une vraie détection automatique (noms et lieux arbitraires), passez au [Premier pipeline](first-pipeline.md) avec un NER comme GLiNER2.
-    - Pour détecter des formats structurés (emails, IPs, numéros de carte) sans NER, voir les [Détecteurs prêts à l'emploi](../examples/detectors.md).
-    - Pour anonymiser au fil d'une conversation avec mémoire persistante, voir le [Pipeline conversationnel](conversation.md).
+```text
+<<PERSON:1>> habite à <<LOCATION:1>>.
+```
+
+## Comment ça marche
+
+`ExactMatchDetector` repère les occurrences exactes, aux frontières de mots, des valeurs du dictionnaire fourni. `ExactEntityLinker` regroupe les détections d'une même valeur et d'un même label en une entité. `Anonymizer` remplace chaque entité par le jeton de sa factory, ici `LabelCounterPlaceholderFactory` qui numérote par label, donc `<<PERSON:1>>` et `<<LOCATION:1>>`. Les étapes optionnelles du pipeline, résolution de chevauchement, expansion et fusion d'entités, sont désactivées par défaut. C'est suffisant pour un premier essai, sans aucun modèle à charger.
+
+## Et ensuite
+
+- Pour une vraie détection automatique, noms et lieux arbitraires, passez au [Premier pipeline](first-pipeline.md) avec un NER comme GLiNER2.
+- Pour décrire un pipeline complet dans un fichier plutôt qu'en Python, voir la [Référence TOML](../configuration/toml.md).
+- Pour dé-identifier au fil d'une conversation avec mémoire persistante, voir le [Pipeline conversationnel](conversation.md).
