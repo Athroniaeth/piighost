@@ -5,250 +5,132 @@ tags:
   - Middleware
 ---
 
-# Integration LangChain
+# Construire un agent LangChain avec un vrai détecteur
 
-Cette page presente l'integration complete de PIIGhost dans un agent LangGraph, basee sur l'exemple disponible dans [`examples/graph/`](https://github.com/Athroniaeth/piighost/tree/main/examples/graph).
+Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des jetons, où un outil reçoit quand même les vraies valeurs dont il a besoin, et où la détection tourne sur un vrai modèle NER plutôt que sur une liste de valeurs figée. Cette page assemble cet agent de bout en bout. Un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, un system prompt qui apprend au modèle à traiter les jetons comme des données, et un outil qui cherche une personne par son nom.
 
----
+Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [Middleware LangChain](../getting-started/langchain.md). Cette page en reprend la forme avec un vrai modèle et un system prompt.
 
-## Installation
+!!! note "Prérequis"
+    `piighost` installé avec les extras middleware et gliner2, `pip install piighost[middleware,gliner2]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
 
-Pour utiliser le middleware LangChain, installez les dependances supplementaires :
+## 1. Construire le pipeline sur un détecteur GLiNER2
 
-=== "uv"
+`Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. L'anonymiseur utilise `LabelCounterPlaceholderFactory`, qui émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que le middleware sait retrouver.
 
-    ```bash
-    uv add piighost[langchain] langchain-openai
-    ```
-
-=== "pip"
-
-    ```bash
-    pip install piighost langchain langgraph langchain-openai
-    ```
-
-!!! warning "Dependance optionnelle"
-    `PIIAnonymizationMiddleware` importe `langchain` au moment de son instanciation. Si `langchain` n'est pas installe, une `ImportError` explicite est levee avec le message `"You must install piighost[langchain] for use middleware"`.
-
----
-
-## Structure de l'integration
-
-```mermaid
-flowchart TB
-    classDef model fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef comp fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef mw fill:#BBDEFB,stroke:#1565C0,color:#000
-    classDef agent fill:#FFF9C4,stroke:#F9A825,color:#000
-
-    MODEL["`**Modèle GLiNER2**
-    _fastino/gliner2-multi-v1_`"]:::model
-    DET["`**Gliner2Detector**
-    _encapsule le modèle NER_`"]:::comp
-    PIPE["`**ThreadAnonymizationPipeline**
-    _étend AnonymizationPipeline_
-    _contient ConversationMemory_`"]:::comp
-    MW["`**PIIAnonymizationMiddleware**
-    _hooks LangChain_`"]:::mw
-    AGENT["`**create_agent(middleware=[...])**
-    _point d'entrée LangGraph_`"]:::agent
-
-    MODEL -->|encapsulé par| DET
-    DET -->|injecté dans| PIPE
-    PIPE -->|passé à| MW
-    MW -->|enregistré auprès de| AGENT
-```
-
----
-
-## Exemple complet
-
-```python title="agent.py" linenums="1" hl_lines="91 101"
-from dotenv import load_dotenv
-from gliner2 import GLiNER2
-from langchain.agents import create_agent
-from langchain_core.tools import tool
-
-from piighost.anonymizer import Anonymizer
+```python
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector.ner import Gliner2Detector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.detector import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.entity_resolver import MergeEntityConflictResolver
-from piighost.middleware import PIIAnonymizationMiddleware
-from piighost.placeholder import LabelCounterPlaceholderFactory
-from piighost.span_resolver import ConfidenceSpanConflictResolver
+from piighost.conversation_memory import InMemoryConversationMemory
 
-load_dotenv()
-
-
-# ---------------------------------------------------------------------------
-# 1. Definir les outils de l'agent
-# ---------------------------------------------------------------------------
-
-@tool
-def send_email(to: str, subject: str, body: str) -> str:
-    """Envoie un email a l'adresse donnee.
-
-    Args:
-        to: Adresse email du destinataire.
-        subject: Objet de l'email.
-        body: Corps du message.
-
-    Returns:
-        Confirmation d'envoi.
-    """
-    return f"Email envoye a {to}."
-
-
-@tool
-def get_weather(country_or_city: str) -> str:
-    """Retourne la meteo actuelle pour un lieu donne.
-
-    Args:
-        country_or_city: Nom de la ville ou du pays.
-
-    Returns:
-        Resume meteo.
-    """
-    return f"Il fait 22C et ensoleille a {country_or_city}."
-
-
-# ---------------------------------------------------------------------------
-# 2. Configurer le system prompt pour les placeholders
-# ---------------------------------------------------------------------------
-
-system_prompt = """\
-Tu es un assistant utile. Certaines entrees peuvent contenir des placeholders \
-anonymises qui remplacent des valeurs reelles pour des raisons de confidentialite.
-
-Regles :
-1. Traite chaque placeholder comme s'il etait la vraie valeur. Ne commente jamais \
-son format, ne dis pas que c'est un token, ne demande pas a l'utilisateur de le reveler.
-2. Les placeholders peuvent etre passes directement aux outils. Cela preserve la \
-confidentialite de l'utilisateur tout en permettant aux outils de fonctionner.
-3. Si l'utilisateur demande un detail specifique sur un placeholder \
-(ex: "quelle est la premiere lettre ?"), reponds brievement : "Je ne peux pas \
-repondre a cette question car les donnees ont ete anonymisees pour proteger vos \
-informations personnelles."
-"""
-
-# ---------------------------------------------------------------------------
-# 3. Initialiser la stack d'anonymisation
-# ---------------------------------------------------------------------------
-
-# Charger le modele GLiNER2 (telechargement HuggingFace ~500 Mo a la premiere execution)
-extractor = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-
-# Instancier chaque composant
-detector = Gliner2Detector(model=extractor, labels=["PERSON", "LOCATION"], threshold=0.5)
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
-
-# Assembler le pipeline puis le middleware
+detector = Gliner2Detector(
+    "fastino/gliner2-multi-v1",
+    labels=["PERSON", "LOCATION"],
+    threshold=0.5,
+)
 pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
-)
-middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
-
-# ---------------------------------------------------------------------------
-# 4. Creer l'agent LangGraph avec le middleware
-# ---------------------------------------------------------------------------
-
-graph = create_agent(
-    model="openai:gpt-5.4",
-    system_prompt=system_prompt,
-    tools=[send_email, get_weather],
-    middleware=[middleware],
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+    InMemoryConversationMemory(),
 )
 ```
 
----
+## 2. Déclarer un outil qui a besoin de la vraie valeur
 
-## Comment fonctionne le middleware
+Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas de `<<PERSON:1>>`{ .placeholder }. Écrivez-le contre les vraies valeurs. Sous `ToolCallStrategy.FULL`, le middleware restaure l'argument avant l'appel et ré-anonymise le résultat après.
 
-Le `PIIAnonymizationMiddleware` intercepte chaque tour de l'agent en trois points :
+```python
+from langchain.tools import tool
 
-### `abefore_model` avant le LLM
 
-```mermaid
-flowchart LR
-    classDef user fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef mw fill:#BBDEFB,stroke:#1565C0,color:#000
-    classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
-
-    U["`**Utilisateur**
-    _'Envoie un email à Patrick à Paris'_`"]:::user
-    M["`**Middleware**
-    _détection NER via_
-    _pipeline.anonymize()_`"]:::mw
-    L["`**Le LLM voit**
-    _'Envoie un email à &lt;&lt;PERSON_1&gt;&gt;_
-    _à &lt;&lt;LOCATION_1&gt;&gt;'_`"]:::llm
-
-    U --> M --> L
+@tool
+def lookup_city(person: str) -> str:
+    """Return the city where a person lives."""
+    directory = {"Patrick": "Paris"}
+    return directory.get(person, "unknown")
 ```
 
-### `awrap_tool_call` autour des outils
+## 3. Dire au modèle que les jetons sont des données
 
-```mermaid
-flowchart TB
-    classDef tool fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef mw fill:#BBDEFB,stroke:#1565C0,color:#000
-    classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
+Le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } au lieu d'un nom. Un court system prompt l'empêche de commenter le jeton ou de refuser de le passer à un outil.
 
-    L1["`**Le LLM appelle**
-    _send_email(to='&lt;&lt;PERSON_1&gt;&gt;', ...)_`"]:::llm
-    M1["`**Middleware**
-    _désanonymise les arguments_`"]:::mw
-    T1["`**L'outil reçoit**
-    _to='Patrick' (vraie valeur)_`"]:::tool
-    T2["`**L'outil retourne**
-    _'Email envoyé à Patrick.'_`"]:::tool
-    M2["`**Middleware**
-    _réanonymise la réponse_`"]:::mw
-    L2["`**Le LLM voit**
-    _'Email envoyé à &lt;&lt;PERSON_1&gt;&gt;.'_`"]:::llm
+```python
+SYSTEM_PROMPT = """\
+You are a helpful assistant. Some inputs contain placeholders like <<PERSON:1>> \
+that stand in for real values withheld for privacy.
 
-    L1 --> M1 --> T1 --> T2 --> M2 --> L2
+Treat each placeholder as if it were the real value. Never comment on its \
+format, never say it is a token, and pass it to tools unchanged as an argument. \
+If the user asks about the content of a placeholder, say the data is withheld \
+and you cannot reveal it.
+"""
 ```
 
-### `aafter_model` après le LLM
+## 4. Enrober le pipeline et créer l'agent
 
-```mermaid
-flowchart LR
-    classDef user fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef mw fill:#BBDEFB,stroke:#1565C0,color:#000
-    classDef llm fill:#FFF9C4,stroke:#F9A825,color:#000
+`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` dé-identifie les arguments de l'outil à l'entrée et anonymise le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
 
-    L["`**Le LLM répond**
-    _'C'est fait ! Email envoyé à &lt;&lt;PERSON_1&gt;&gt;.'_`"]:::llm
-    M["`**Middleware**
-    _désanonymise tous les messages_`"]:::mw
-    U["`**L'utilisateur voit**
-    _'C'est fait ! Email envoyé à Patrick.'_`"]:::user
+```python
+from langchain.agents import create_agent
+from piighost.integrations.middleware import (
+    PIIAnonymizationMiddleware,
+    ToolCallStrategy,
+)
 
-    L --> M --> U
+agent = create_agent(
+    model="openai:gpt-4o",
+    system_prompt=SYSTEM_PROMPT,
+    tools=[lookup_city],
+    middleware=[
+        PIIAnonymizationMiddleware(
+            pipeline=pipeline,
+            tool_strategy=ToolCallStrategy.FULL,
+        )
+    ],
+)
 ```
 
----
+## 5. Exécuter un tour
 
-## Utiliser l'agent
+Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à ce fil.
 
-```python title="main.py"
+```python
 import asyncio
 
-async def main():
-    response = await graph.ainvoke({
-        "messages": [{"role": "user", "content": "Envoie un email a Patrick a Paris"}]
-    })
-    print(response["messages"][-1].content)
-    # C'est fait ! Email envoye a Patrick.
+
+async def main() -> None:
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "Where does Patrick live?"}]},
+        config={"configurable": {"thread_id": "thread-42"}},
+    )
+    print(result["messages"][-1].content)
+
 
 asyncio.run(main())
 ```
+
+La réponse est dé-identifiée pour l'affichage, donc elle se lit avec les vraies valeurs :
+
+```text
+Patrick lives in Paris.
+```
+
+## Qui voit quoi
+
+GLiNER2 marque `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, chaque frontière du tour substitue une direction.
+
+- `abefore_model` fait passer le message dans `pipeline.anonymize`, si bien que le LLM reçoit `Where does <<PERSON:1>> live?`.
+- Le modèle appelle `lookup_city(person="<<PERSON:1>>")`. Sous `ToolCallStrategy.FULL`, `awrap_tool_call` dé-identifie l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis ré-anonymise le résultat texte de l'outil.
+- `aafter_model` dé-identifie la réponse pour l'utilisateur.
+
+Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape.
+
+## Et ensuite
+
+- Pour choisir un autre comportement d'outil, `INPUT` seul, `OUTPUT` seul ou `PASSTHROUGH`, voir [Stratégies d'appel d'outil](../tool-call-strategies.md).
+- Pour remplacer GLiNER2 par spaCy, un pack regex ou votre propre détecteur, voir [Étendre PIIGhost](../extending.md).
+- Pour exécuter le pipeline hors du processus contre un serveur partagé, voir [Client distant](../getting-started/api-client.md).

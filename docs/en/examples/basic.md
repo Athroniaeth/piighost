@@ -2,184 +2,114 @@
 icon: lucide/code
 ---
 
-# Basic usage
+# How to de-identify a text and restore it
 
-This page covers the fundamental usages of the library without any LangChain integration.
+You have a text with PII, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency.
 
----
+Install the core.
 
-## Simple anonymization with the pipeline
+```bash
+uv add piighost
+```
 
-```python title="pipeline.py" linenums="1" hl_lines="28-35"
+## Do the round-trip
+
+A pipeline chains a detector, a linker, and an anonymizer. `anonymize` returns the de-identified text and the token assigned to each entity. `deanonymize` replays that mapping in reverse.
+
+```python
 import asyncio
 
-from gliner2 import GLiNER2
-
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
 
-# Load the GLiNER2 model
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-detector = Gliner2Detector(
-    model=model,
-    threshold=0.5,
-    labels=["PERSON", "LOCATION"],
-)
-
-# Build the pipeline
 pipeline = AnonymizationPipeline(
-    detector=detector,  # (1)!
-    span_resolver=span_resolver,  # (2)!
-    entity_linker=entity_linker,  # (3)!
-    entity_resolver=entity_resolver,  # (4)!
-    anonymizer=anonymizer,  # (5)!
+    RegexDetector(GENERIC_PATTERNS),
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
 
 async def main():
-    # Anonymize a text
-    anonymized, entities = await pipeline.anonymize(
-        "Patrick lives in Paris. Patrick loves Paris.",
-    )
-    print(anonymized)
+    result = await pipeline.anonymize("Contact alice@example.com from 192.168.1.42.")
+    print(result.text)
+    # Contact <<EMAIL:1>> from <<IPV4:1>>.
+
+    restored = pipeline.deanonymize(result.text, result.tokens)
+    print(restored)
+    # Contact alice@example.com from 192.168.1.42.
+
+
+asyncio.run(main())
+```
+
+`result.text` carries `<<EMAIL:1>>`{ .placeholder } in place of `alice@example.com`{ .pii }. `result.tokens` maps each entity to its token. Pass it as-is to `deanonymize` to recover the original text.
+
+## Restore an LLM reply
+
+`deanonymize` restores any text that carries the tokens, not only the one the pipeline produced. If the LLM answers with `<<EMAIL:1>>`{ .placeholder }, put the real values back with the same `result.tokens` mapping.
+
+```python
+async def main():
+    result = await pipeline.anonymize("Contact alice@example.com from 192.168.1.42.")
+
+    llm_reply = "I sent the message to <<EMAIL:1>>."
+    print(pipeline.deanonymize(llm_reply, result.tokens))
+    # I sent the message to alice@example.com.
+
+
+asyncio.run(main())
+```
+
+## Group repeated occurrences
+
+A value cited several times gets a single token, so the LLM keeps the thread. `ExactEntityLinker` groups occurrences by value and label.
+
+```python
+from piighost.components.detector import ExactMatchDetector
+
+pipeline = AnonymizationPipeline(
+    ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"}),
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+)
+
+
+async def main():
+    result = await pipeline.anonymize("Patrick lives in Paris. Patrick loves Paris.")
+    print(result.text)
     # <<PERSON:1>> lives in <<LOCATION:1>>. <<PERSON:1>> loves <<LOCATION:1>>.
 
-    # Deanonymize
-    original, _ = await pipeline.deanonymize(anonymized)
-    print(original)
-    # Patrick lives in Paris. Patrick loves Paris.
-
 
 asyncio.run(main())
 ```
 
-1. **Detect**: finds PII candidates in the text via the NER model (here GLiNER2, interchangeable with spaCy or Transformers).
-2. **Resolve Spans**: arbitrates overlaps when several detectors report overlapping positions.
-3. **Link Entities**: groups occurrences of the same PII (case variants, typos, partial mentions).
-4. **Resolve Entities**: merges groups that share a mention across detectors.
-5. **Anonymize**: replaces each entity with a placeholder produced by the factory (here `<<PERSON:1>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }…).
+`ExactMatchDetector` detects fixed literal values, which keeps the example reproducible without loading a model. For free text, swap it for an NER or LLM detector, see the [detectors reference](../reference/detectors.md).
 
----
+## Change the token shape
 
-## Inspecting entities
-
-The pipeline returns the entities used for anonymization:
+`LabelCounterPlaceholderFactory` produces `<<LABEL:N>>`{ .placeholder }. If you want another token shape, change the factory passed to the `Anonymizer`.
 
 ```python
-async def main():
-    anonymized, entities = await pipeline.anonymize(
-        "Mary Smith works at Acme Corp in Lyon.",
-    )
-    print(anonymized)
-    # <<PERSON:1>> works at <<ORGANIZATION:1>> in <<LOCATION:1>>.
+from piighost.components.placeholder import (
+    LabelHashPlaceholderFactory,
+    LabelPlaceholderFactory,
+)
 
-    for entity in entities:
-        canonical = entity.detections[0].text
-        print(f"'{canonical}' [{entity.label}] {len(entity.detections)} detection(s)")
+# Deterministic hash, one opaque token per value: <<PERSON:a1b2c3d4>>
+Anonymizer(LabelHashPlaceholderFactory())
 
-asyncio.run(main())
+# Label only, no counter: <<PERSON>>
+Anonymizer(LabelPlaceholderFactory())
 ```
 
----
+To restore the values, the factory must preserve identity, which `LabelCounterPlaceholderFactory` does and `LabelPlaceholderFactory` does not, since it gives the same `<<PERSON>>`{ .placeholder } to two distinct people. See the [placeholder factories](../placeholder-factories.md) page.
 
-## Conversation pipeline with memory
+## See also
 
-For multi-message scenarios (conversations), `ThreadAnonymizationPipeline` accumulates entities across messages and provides string-based deanonymization/reanonymization.
-
-```python
-import asyncio
-
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
-
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-detector = Gliner2Detector(
-    model=model,
-    threshold=0.5,
-    labels=["PERSON", "LOCATION"],
-)
-conv_pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
-)
-
-
-async def conversation():
-    # First message: NER detection + entity recording
-    r1, _ = await conv_pipeline.anonymize("Patrick is in Paris.")
-    print(r1)
-    # <<PERSON:1>> is in <<LOCATION:1>>.
-
-    # Same text again: cache hit (no second NER call)
-    r2, _ = await conv_pipeline.anonymize("Patrick is in Paris.")
-    print(r2)
-    # <<PERSON:1>> is in <<LOCATION:1>>.
-
-    # String-based deanonymization on any text with tokens
-    restored = await conv_pipeline.deanonymize_with_ent("Hello, <<PERSON:1>>!")
-    print(restored)
-    # Hello, Patrick!
-
-    # String-based reanonymization (original → token)
-    reanon = conv_pipeline.anonymize_with_ent("Answer for Patrick in Paris")
-    print(reanon)
-    # Answer for <<PERSON:1>> in <<LOCATION:1>>
-
-
-asyncio.run(conversation())
-```
-
----
-
-## Different placeholder factories
-
-By default, `LabelCounterPlaceholderFactory` generates `<<LABEL:N>>` tags. You can swap it for other strategies:
-
-```python
-from piighost.placeholder import LabelHashPlaceholderFactory, LabelPlaceholderFactory
-
-# Hash-based: deterministic opaque tags
-pipeline_hash = AnonymizationPipeline(
-    ...,
-    anonymizer=Anonymizer(LabelHashPlaceholderFactory()),
-)
-# Produces: <<PERSON:a1b2c3d4>>
-
-# Redact: all entities get <<LABEL>> (no counter)
-pipeline_redact = AnonymizationPipeline(
-    ...,
-    anonymizer=Anonymizer(LabelPlaceholderFactory()),
-)
-# Produces: <<PERSON>>
-```
-
----
-
-For unit testing pipelines without loading an NER model, see the [Testing](testing.md) guide.
-
-See also [Extending PIIGhost](../extending.md) for creating custom components.
+- [Pre-built detectors](detectors.md) to combine catalogs and detectors.
+- [Pipeline reference](../reference/pipeline.md) for the optional stages.
+- [Extending PIIGhost](../extending.md) to write your own components.

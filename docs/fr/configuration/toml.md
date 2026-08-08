@@ -1,191 +1,506 @@
-# Configuration TOML du pipeline
+# Référence de configuration
 
-`piighost` accepte un fichier TOML déclaratif qui décrit entièrement un
-`ThreadAnonymizationPipeline`. Ce fichier est utilisé par :
+Module : `piighost.config`
 
-- Le serveur `piighost-api` (`piighost-api serve --config <file>`).
-- Les commandes CLI `piighost validate` et `piighost schema`.
-- Toute application qui importe `piighost.config.load_pipeline`.
+Un fichier de configuration décrit un pipeline entier de façon déclarative. `piighost` le lit en TOML ou en JSON, choisi par le suffixe du fichier, le valide avec Pydantic, et construit le pipeline que le fichier décrit. Cette page documente chaque section et chaque `type` de composant.
 
-Aucun code Python n'est exécuté au chargement. Le format est entièrement
-validé par Pydantic v2 ; les clés inconnues lèvent une erreur au lieu d'être
-silencieusement ignorées.
-
-## Exemple minimal
-
-```toml
-[[detectors]]
-type = "regex"
-patterns = { EMAIL = "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}" }
+```python
+from piighost.config import load_config, load_pipeline, load_thread_pipeline
 ```
 
-Ce fragment produit un pipeline avec un détecteur regex, les résolveurs de
-spans et d'entités par défaut, et la factory de placeholders `label_counter`
-(qui génère des marqueurs du type `<<EMAIL_1>>`).
+L'extra `config` est requis (`pip install piighost[config]`), qui tire `pydantic-settings`. Les clés inconnues sont rejetées, donc une faute de frappe échoue à la validation au lieu d'être ignorée.
 
-## Exemple complet
+---
+
+## Points d'entrée
+
+<div class="wide-table" markdown="1">
+
+| Fonction | Renvoie | Construit | Mémoire |
+|----------|---------|-----------|---------|
+| `load_config(path)` | `PipelineConfig` | rien, valide seulement | quelconque |
+| `load_pipeline(path)` | `AnonymizationPipeline` | un pipeline sans état | rejette une section `[memory]` |
+| `load_thread_pipeline(path)` | `ThreadAnonymizationPipeline` | un pipeline de thread | requiert une section `[memory]` |
+
+</div>
+
+`load_config` analyse et valide un fichier en `PipelineConfig` sans construire de composant, donc aucun modèle ne charge. `load_pipeline` construit un `AnonymizationPipeline` sans état et lève `ConfigError` si le fichier déclare une section `[memory]`, car une mémoire décrit un pipeline de thread. `load_thread_pipeline` construit un `ThreadAnonymizationPipeline` et lève `ConfigError` si le fichier ne déclare aucune section `[memory]`.
+
+```python
+from piighost.config import load_pipeline, load_thread_pipeline
+
+stateless = load_pipeline("pipeline.toml")       # no [memory]
+thread = load_thread_pipeline("thread.toml")     # has [memory]
+```
+
+---
+
+## Format de fichier
+
+Le suffixe choisit le parseur. `.json` est lu en JSON, tout le reste en TOML. Les deux formats portent le même schéma. Une section est une table TOML ou un objet JSON.
 
 ```toml
-[pipeline]
-name = "pii-en-multi"
-description = "GLiNER2 + regex coverage for English text"
-schema_version = 1
-
-[[detectors]]
-name = "common"
+[detector]
 type = "regex"
-patterns = { EMAIL = "[a-z]+@[a-z]+\\.[a-z]+", IP_V4 = "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b" }
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
 
-[[detectors]]
-name = "gliner2"
-type = "gliner2"
-model = "fastino/gliner2-multi-v1"
-threshold = 0.5
-labels = ["person", "city", "email address"]
-
-[span_resolver]
-type = "confidence"
-
-[entity_linker]
+[linker]
 type = "exact"
 
-[entity_resolver]
-type = "merge"
+[anonymizer.placeholder]
+type = "redact"
+```
 
-[anonymizer.placeholder_factory]
+```json
+{
+  "detector": { "type": "regex", "patterns": { "EMAIL": "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}" } },
+  "linker": { "type": "exact" },
+  "anonymizer": { "placeholder": { "type": "redact" } }
+}
+```
+
+---
+
+## Surcharges par l'environnement
+
+Les scalaires de premier niveau acceptent une surcharge par une variable d'environnement préfixée `PIIGHOST_`. Le seul scalaire de premier niveau est `name`, donc `PIIGHOST_NAME` surcharge la clé `name`. Les surcharges se superposent au fichier, donc une valeur d'environnement l'emporte sur la valeur du fichier.
+
+Les secrets ne sont jamais lus depuis le fichier. Chacun est lu depuis sa propre variable d'environnement à la construction, et une variable manquante lève `ConfigError` depuis `build()`.
+
+<div class="wide-table" markdown="1">
+
+| Secret | Variable | Format | Utilisé par |
+|--------|----------|--------|-------------|
+| Poivre de hachage | `PIIGHOST_HASH_PEPPER` | toute chaîne non vide | `[memory.hasher]` |
+| Clé de chiffrement | `PIIGHOST_CIPHER_KEY` | base64 de 16, 24 ou 32 octets | `[memory.cipher]` |
+| Clé de modération | `MISTRAL_API_KEY` | clé d'API Mistral | `[guard]` type `moderation` |
+
+</div>
+
+---
+
+## Sections
+
+Les clés de premier niveau d'un `PipelineConfig`.
+
+<div class="wide-table" markdown="1">
+
+| Section | Requise | Signification |
+|---------|---------|---------------|
+| `name` | non | Un nom de pipeline optionnel, un scalaire de premier niveau surchargeable par `PIIGHOST_NAME` |
+| `[detector]` | oui | L'étage de détection |
+| `[linker]` | oui | Le linker d'entités |
+| `[anonymizer]` | oui | L'étage de rendu, construit sur une factory de placeholders |
+| `[overlap_resolver]` | non | Résout les détections qui se chevauchent |
+| `[expander]` | non | Retrouve les occurrences manquées d'une valeur détectée |
+| `[entity_resolver]` | non | Regroupe les entités qui désignent la même chose |
+| `[guard]` | non | Revérifie la sortie pour une PII résiduelle |
+| `[override]` | non | Force ou écarte des détections via une whitelist et une blacklist |
+| `[observation_redactor]` | non | Une factory de placeholders caviardant les charges de trace |
+| `[memory]` | non | La mémoire de conversation. Sa présence fait un pipeline de thread |
+
+</div>
+
+---
+
+## `[detector]`
+
+Discriminé sur `type`. Requis.
+
+### `type = "regex"`
+
+Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` nommés, ou des deux. Les catalogues fusionnent d'abord, puis les patterns en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue au même label. Au moins un pattern en ligne ou un catalogue est requis. Chaque pattern est validé comme un regex compilable au chargement.
+
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `patterns` | `dict[str, str]` | `{}` | Correspondance label vers regex en ligne |
+| `catalogs` | `list[str]` | `[]` | Catalogues prêts, parmi `generic`, `us`, `eu`, `fr` |
+
+```toml
+[detector]
+type = "regex"
+catalogs = ["generic", "fr"]
+patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
+```
+
+### `type = "composite"`
+
+Exécute des détecteurs enfants ensemble et fusionne leurs détections.
+
+| Clé | Type | Signification |
+|-----|------|---------------|
+| `detectors` | `list[detector]` | Les configs de détecteurs enfants, au moins un, sous `[[detector.detectors]]` |
+
+```toml
+[detector]
+type = "composite"
+
+[[detector.detectors]]
+type = "regex"
+catalogs = ["generic"]
+
+[[detector.detectors]]
+type = "exact"
+values = { Patrick = "PERSON" }
+```
+
+### `type = "exact"`
+
+Trouve les occurrences de valeurs littérales, chacune associée à un label.
+
+| Clé | Type | Signification |
+|-----|------|---------------|
+| `values` | `dict[str, str]` | Correspondance valeur littérale vers label, au moins une |
+
+```toml
+[detector]
+type = "exact"
+values = { Patrick = "PERSON", Lyon = "LOCATION" }
+```
+
+### `type = "chunked"`
+
+Enveloppe un détecteur avec un splitter qui découpe un texte long en tranches qui se chevauchent.
+
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `detector` | `detector` | | Le détecteur exécuté sur chaque tranche, sous `[detector.detector]` |
+| `chunk_size` | `int` | `1000` | Taille maximale d'une tranche, supérieure à 0 |
+| `chunk_overlap` | `int` | `100` | Chevauchement entre tranches, inférieur à `chunk_size` |
+
+```toml
+[detector]
+type = "chunked"
+chunk_size = 2000
+chunk_overlap = 200
+
+[detector.detector]
+type = "spacy"
+model = "en_core_web_sm"
+```
+
+### Détecteurs à modèle
+
+Chacun nécessite un extra et un modèle. `labels` accepte une liste ou une map `{emitted: internal}`. `max_concurrency` plafonne les inférences concurrentes, ou `None` pour illimité.
+
+<div class="wide-table" markdown="1">
+
+| `type` | Extra | Clés |
+|--------|-------|------|
+| `gliner2` | `gliner2` | `model` (requis), `labels` (requis), `threshold` (défaut `0.5`), `max_concurrency` |
+| `spacy` | `spacy` | `model` (requis), `labels`, `max_concurrency` |
+| `transformers` | `transformers` | `model` (requis), `labels`, `threshold` (défaut `0.0`), `max_concurrency` |
+| `llm` | `llm` | `model` (requis), `labels` (requis), `prompt`, `provider` |
+
+</div>
+
+```toml
+[detector]
+type = "gliner2"
+model = "fastino/gliner2-multi-v1"
+labels = ["PERSON", "LOCATION"]
+threshold = 0.5
+```
+
+Le détecteur `llm` lit l'identifiant de son fournisseur depuis la variable d'environnement propre au fournisseur, jamais depuis le fichier.
+
+---
+
+## `[linker]`
+
+Discriminé sur `type`. Requis.
+
+| `type` | Signification |
+|--------|---------------|
+| `exact` | Regroupe les détections par valeur repliée en casse |
+
+```toml
+[linker]
+type = "exact"
+```
+
+---
+
+## `[anonymizer]`
+
+L'étage de rendu. Requis. Il porte une table `[anonymizer.placeholder]` qui choisit la factory de placeholders, discriminée sur `type`.
+
+<div class="wide-table" markdown="1">
+
+| `type` | Token | Clés |
+|--------|-------|------|
+| `redact` | `<<REDACT>>` | |
+| `label` | `<<PERSON>>` | |
+| `label_counter` | `<<PERSON:1>>` | |
+| `label_hash` | `<<PERSON:a1b2c3d4>>` | `hash_length` (défaut `8`) |
+| `mask` | `P***` | `visible` (défaut `1`), `mask_char` (défaut `*`) |
+
+</div>
+
+```toml
+[anonymizer.placeholder]
 type = "label_counter"
 ```
 
-## Référence
+Le middleware a besoin d'une factory délimitée, donc `redact`, `label`, `label_counter` ou `label_hash`. La factory `mask` produit `P***`{ .placeholder }, qui ne garde aucun délimiteur et n'a pas de reconnaisseur.
 
-### `[pipeline]` (optionnel)
+---
 
-| Clé              | Type    | Défaut | Signification                                |
-| ---------------- | ------- | ------ | -------------------------------------------- |
-| `name`           | string  | `null` | Exposé par `/v1/labels`.                     |
-| `description`    | string  | `null` | Documentation libre, non utilisée par le code. |
-| `schema_version` | integer | `1`    | Seule valeur valide pour l'instant.          |
+## `[overlap_resolver]`
 
-### `[[detectors]]` (obligatoire, au moins un)
+Optionnel. Discriminé sur `type`.
 
-Chaque entrée déclare un détecteur. Plusieurs entrées forment implicitement
-un `CompositeDetector`, dans l'ordre de déclaration.
-
-Clés communes :
-
-| Clé    | Type    | Obligatoire | Signification                                    |
-| ------ | ------- | ----------- | ------------------------------------------------ |
-| `type` | string  | oui         | Discriminant (`regex`, `gliner2`, ...).           |
-| `name` | string  | non         | Utilisé pour le regroupement dans `/v1/labels`.  |
-
-Par `type` :
-
-**`regex`**
-
-| Clé        | Type             | Obligatoire | Signification                           |
-| ---------- | ---------------- | ----------- | --------------------------------------- |
-| `patterns` | table[str, str]  | oui         | Nom du label vers le motif regex.       |
-
-**`gliner2`** (nécessite `piighost[gliner2]`)
-
-| Clé         | Type     | Obligatoire | Signification                                    |
-| ----------- | -------- | ----------- | ------------------------------------------------ |
-| `model`     | string   | oui         | Identifiant du modèle HF, ex. `fastino/gliner2-multi-v1`. |
-| `labels`    | list[str]| oui         | Types d'entités à rechercher.                    |
-| `threshold` | float    | non         | Seuil de confiance, défaut `0.5`.                |
-| `flat_ner`  | bool     | non         | Défaut `true`.                                   |
-
-**`spacy`** (nécessite `piighost[spacy]`)
-
-| Clé      | Type     | Obligatoire | Signification                             |
-| -------- | -------- | ----------- | ----------------------------------------- |
-| `model`  | string   | oui         | Nom du modèle spaCy.                      |
-| `labels` | list[str]| oui         | Types d'entités spaCy à conserver.        |
-
-**`transformers`** (nécessite `piighost[transformers]`)
-
-| Clé         | Type   | Obligatoire | Signification                                    |
-| ----------- | ------ | ----------- | ------------------------------------------------ |
-| `model`     | string | oui         | Identifiant du modèle HF.                        |
-| `threshold` | float  | non         | Seuil de confiance, défaut `0.5`.                |
-
-**`llm`** (nécessite `piighost[llm]`, secrets dans l'environnement)
-
-| Clé        | Type     | Obligatoire | Signification                             |
-| ---------- | -------- | ----------- | ----------------------------------------- |
-| `provider` | string   | oui         | Ex. `openai`, `anthropic`.                |
-| `model`    | string   | oui         | Identifiant de modèle propre au fournisseur. |
-| `labels`   | list[str]| oui         | Labels à extraire.                        |
-
-Les clés d'API ne sont jamais stockées dans le TOML. Elles sont lues depuis
-les variables d'environnement par le client du fournisseur.
-
-**`chunked`** (enveloppe un autre détecteur)
-
-| Clé          | Type           | Obligatoire | Signification                              |
-| ------------ | -------------- | ----------- | ------------------------------------------ |
-| `chunk_size` | integer (>= 1) | oui         | Fenêtre de caractères par tranche.          |
-| `overlap`    | integer (>= 0) | non         | Chevauchement entre les tranches, défaut 0. |
-| `inner`      | detector cfg   | oui         | Le détecteur à exécuter sur chaque tranche. |
-
-### `[span_resolver]` (optionnel, défaut `confidence`)
-
-| `type`        | Comportement                                                          |
-| ------------- | --------------------------------------------------------------------- |
-| `confidence`  | Conserve la détection avec la confiance la plus haute en cas de chevauchement. |
-| `disabled`    | Aucune résolution de conflit.                                          |
-
-### `[entity_linker]` (optionnel, défaut `exact`)
-
-| `type`     | Comportement                                                      |
-| ---------- | ----------------------------------------------------------------- |
-| `exact`    | Une regex à frontière de mot relie les mentions répétées.         |
-| `disabled` | Aucun lien entre les mentions.                                    |
-
-### `[entity_resolver]` (optionnel, défaut `merge`)
-
-| `type`     | Comportement                     | Clé supplémentaire |
-| ---------- | -------------------------------- | ------------------ |
-| `merge`    | Fusion par union-find.           |                    |
-| `fuzzy`    | Fusion par Jaro-Winkler.         | `threshold` (float, 0.0..1.0, défaut `0.85`). |
-| `disabled` | Aucune fusion d'entités.         |                    |
-
-### `[anonymizer]` (optionnel, défaut `default`)
+| `type` | Signification |
+|--------|---------------|
+| `confidence` | Garde la détection la plus confiante quand deux se chevauchent |
 
 ```toml
-[anonymizer]
-type = "default"
-
-[anonymizer.placeholder_factory]
-type = "label_counter"     # see below
+[overlap_resolver]
+type = "confidence"
 ```
 
-### `[anonymizer.placeholder_factory]` (optionnel, défaut `label_counter`)
+---
 
-| `type`            | Format du marqueur                      | Clés supplémentaires                       |
-| ----------------- | --------------------------------------- | ------------------------------------------ |
-| `label_counter`   | `<<PERSON_1>>`                          |                                            |
-| `label_hash`      | `<<PERSON_a1b2c3>>`                     | `hash_length` (4..64, défaut 8)            |
-| `label`           | `<<PERSON>>` (sans désambiguïsation)    |                                            |
-| `mask`            | `*****`                                 | `mask_char` (1 caractère, défaut `*`)      |
-| `redact_counter`  | `<<REDACTED_1>>`                        |                                            |
-| `redact_hash`     | `<<REDACTED_a1b2c3>>`                   | `hash_length`                              |
-| `redact`          | `<<REDACTED>>`                          |                                            |
-| `faker_counter`   | Valeur synthétique réaliste, indexée    | `locale` (défaut `en_US`)                  |
-| `faker_hash`      | Valeur synthétique réaliste, hashée     | `locale`, `hash_length`                    |
-| `faker`           | Valeur synthétique réaliste             | `locale`                                   |
+## `[expander]`
 
-Les factories basées sur Faker nécessitent `piighost[faker]`.
+Optionnel. Discriminé sur `type`.
 
-## Commandes CLI
+| `type` | Clés | Signification |
+|--------|------|---------------|
+| `word_boundary` | `case_sensitive` (défaut `false`) | Retrouve les autres occurrences entières d'une valeur détectée |
 
-```
-$ piighost validate ./pipeline.toml
-OK: pipeline.toml
-
-$ piighost schema > schema.json
+```toml
+[expander]
+type = "word_boundary"
+case_sensitive = false
 ```
 
-`schema.json` est le schéma JSON canonique décrivant la structure
-ci-dessus, utilisable pour l'autocomplétion dans les éditeurs ou dans
-toute future interface web.
+---
+
+## `[entity_resolver]`
+
+Optionnel. Discriminé sur `type`.
+
+| `type` | Clés | Signification |
+|--------|------|---------------|
+| `merge` | | Unit les entités qui partagent des détections |
+| `separate` | | Garde chaque entité distincte |
+| `fuzzy` | `threshold` (défaut `0.85`) | Regroupe les entités au-dessus d'une similarité de Jaro-Winkler |
+
+```toml
+[entity_resolver]
+type = "fuzzy"
+threshold = 0.85
+```
+
+---
+
+## `[guard]`
+
+Optionnel. Discriminé sur `type`. Revérifie la sortie dé-identifiée pour une PII résiduelle et la refuse quand une PII subsiste.
+
+### `type = "detector"`
+
+Réexécute un détecteur sur la sortie. Porte une config imbriquée `[guard.detector]`.
+
+```toml
+[guard]
+type = "detector"
+
+[guard.detector]
+type = "regex"
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
+```
+
+### `type = "llm"`
+
+Demande à un modèle de chat de trouver une PII résiduelle.
+
+| Clé | Type | Signification |
+|-----|------|---------------|
+| `model` | `str` | L'identifiant du modèle de chat (requis) |
+| `labels` | `list` ou `dict` | Les labels à chercher (requis) |
+| `prompt` | `str` | Un prompt qui remplace celui par défaut, ou omis |
+| `provider` | `str` | Le fournisseur, ou omis pour l'inférer du modèle |
+
+### `type = "moderation"`
+
+Note la sortie avec un modèle de modération Mistral. L'identifiant est lu depuis `MISTRAL_API_KEY` à la construction, et `build()` lève `ConfigError` quand il est absent.
+
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `model` | `str` | `mistral-moderation-latest` | Le modèle de modération |
+| `threshold` | `float` | `0.5` | Le score de catégorie au-dessus duquel le texte est signalé |
+
+---
+
+## `[override]`
+
+Optionnel. Force des détections via une whitelist et en écarte via une blacklist. Chaque liste est une config de détecteur, `[override.whitelist]` et `[override.blacklist]`, toutes deux optionnelles.
+
+<div class="wide-table" markdown="1">
+
+| Clé | Valeurs | Défaut | Signification |
+|-----|---------|--------|---------------|
+| `[override.whitelist]` | détecteur | | Un détecteur dont les hits sont forcés dans l'ensemble |
+| `[override.blacklist]` | détecteur | | Un détecteur dont les hits invalident des détections |
+| `blacklist_strategy` | `exact`, `value`, `overlap` | `exact` | Comment un hit de blacklist invalide : même span et label, même valeur repliée en casse, ou tout span en chevauchement |
+| `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de whitelist laisse en clair une valeur introduite par l'assistant, ou la tokenise quand même |
+| `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
+
+</div>
+
+```toml
+[override]
+blacklist_strategy = "value"
+
+[override.whitelist]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+[override.blacklist]
+type = "exact"
+values = { "public@corp.com" = "EMAIL" }
+```
+
+---
+
+## `[observation_redactor]`
+
+Optionnel. Une config de factory de placeholders, mêmes valeurs de `type` que `[anonymizer.placeholder]`, caviardant les charges envoyées à un backend de traçage pour qu'une trace porte des tokens, pas des valeurs brutes.
+
+```toml
+[observation_redactor]
+type = "label"
+```
+
+---
+
+## `[memory]`
+
+Optionnel. Sa présence fait du pipeline un `ThreadAnonymizationPipeline` qui garde un état par thread. Discriminé sur `type`.
+
+### `type = "in_memory"`
+
+Un stockage local au processus, perdu au redémarrage et non partagé entre workers.
+
+```toml
+[memory]
+type = "in_memory"
+```
+
+### `type = "redis"`
+
+Un stockage persistant et multi-worker. Chaque valeur stockée est indexée par un hacheur et chiffrée par un cipher.
+
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `url` | `str` | | L'URL de connexion Redis (requis) |
+| `namespace` | `str` | `piighost` | Le préfixe de clé isolant les clés de cette librairie |
+| `ttl` | `int` | `None` | Secondes de vie d'un message stocké, ou omis pour garder jusqu'à l'éviction |
+| `[memory.hasher]` | hacheur | | Le hacheur qui indexe chaque message (requis) |
+| `[memory.cipher]` | cipher | | Le cipher qui chiffre chaque valeur (requis) |
+
+Le hacheur, `[memory.hasher]`, est discriminé sur `type`.
+
+<div class="wide-table" markdown="1">
+
+| `type` | Clés | Signification |
+|--------|------|---------------|
+| `sha256` | | HMAC-SHA256, un condensé rapide à clé |
+| `argon2` | `time_cost` (défaut `2`), `memory_cost` (défaut `19456`), `parallelism` (défaut `1`), `hash_length` (défaut `32`) | Argon2id, un condensé lent et gourmand en mémoire |
+
+</div>
+
+Le cipher, `[memory.cipher]`, a un seul type.
+
+| `type` | Signification |
+|--------|---------------|
+| `aesgcm` | Chiffrement authentifié AES-GCM des valeurs stockées |
+
+Le hacheur lit son poivre depuis `PIIGHOST_HASH_PEPPER` et le cipher lit sa clé base64 depuis `PIIGHOST_CIPHER_KEY`, tous deux à la construction. Une valeur manquante ou mal formée lève `ConfigError`.
+
+```toml
+[memory]
+type = "redis"
+url = "redis://localhost:6379/0"
+namespace = "piighost"
+ttl = 3600
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
+---
+
+## Exemple complet
+
+Un pipeline sans état qui tire un catalogue, ajoute un pattern en ligne, et active plusieurs étages optionnels.
+
+```toml
+name = "local-en"
+
+[detector]
+type = "regex"
+catalogs = ["generic"]
+patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "label_counter"
+
+[overlap_resolver]
+type = "confidence"
+
+[expander]
+type = "word_boundary"
+
+[entity_resolver]
+type = "fuzzy"
+threshold = 0.85
+
+[override.whitelist]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+[guard]
+type = "detector"
+
+[guard.detector]
+type = "regex"
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
+
+[observation_redactor]
+type = "label"
+```
+
+Le même contenu en JSON, choisi par un suffixe `.json`, est équivalent. Une table devient un objet, une table en ligne devient un objet imbriqué, et un tableau de tables devient un tableau d'objets.
+
+---
+
+## Erreurs
+
+<div class="wide-table" markdown="1">
+
+| Erreur | Levée quand |
+|--------|-------------|
+| `ConfigFileError` | Le fichier est absent, illisible, ou du TOML ou JSON invalide |
+| `ConfigValidationError` | Les données analysées échouent à la validation du schéma |
+| `ConfigError` | Un secret manque à la construction, ou le mauvais point d'entrée est utilisé pour la mémoire déclarée |
+
+</div>
+
+`ConfigFileError` et `ConfigValidationError` sont des sous-classes de `ConfigError`, donc attraper `ConfigError` couvre les trois. Les classes vivent dans `piighost.exceptions`, donc un appelant peut les attraper sans l'extra `config`.
+
+---
+
+## Voir aussi
+
+- [Interface en ligne de commande](../reference/cli.md) pour valider un fichier depuis le shell.
+- [Référence Détecteurs](../reference/detectors.md) pour le détecteur que chaque `type` construit.
+- [Référence Middleware](../reference/middleware.md) pour piloter un pipeline de thread dans un agent.

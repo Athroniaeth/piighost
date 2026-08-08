@@ -2,93 +2,95 @@
 icon: lucide/container
 ---
 
-# Deploying `piighost-api`
+# Deploy a production pipeline
 
-[`piighost-api`](https://github.com/Athroniaeth/piighost-api) ships as a Docker image on `ghcr.io/athroniaeth/piighost-api`. The base image (~218 MB) only bundles regex detectors. To use NER-based detectors (GLiNER2, spaCy, transformers) or integration extras (Faker, etc.), you install them through one of the two extras channels:
+This guide sets up a thread pipeline for production, with a Redis conversation memory that persists across restarts and workers, encrypts every stored value, and reads its secrets from the environment. If you only need a single process that keeps nothing after it exits, the in-RAM memory is enough and you can skip to [Conversational pipeline](getting-started/conversation.md).
 
-- **`EXTRA_PACKAGES`** (runtime): read at container startup, `uv` installs the listed extras before the server boots.
-- **`PIIGHOST_EXTRAS`** (build time): baked into a custom image via `docker build --build-arg PIIGHOST_EXTRAS="gliner2"`.
+The pipeline reads its shape from a config file, so the deployment carries a TOML file plus a handful of environment variables. No pipeline code is written by hand.
 
-The runtime channel is convenient for prototyping but pulls hundreds of MB of wheels (`torch`, `nvidia-*`, `triton`, `transformers`, …) every time the container starts. The strategies below let you amortise that cost.
+## Install the extras
 
----
+The Redis memory pulls three extras beyond the config layer, plus one for the Argon2 hasher used below.
 
-## Caching optional packages
-
-### Strategy 1: Cache the `uv` download directory (recommended quick win)
-
-Add a named volume on `/root/.cache/uv`. `uv` keeps every wheel it has ever downloaded there; on the next start, it skips the network and only re-links the files into the container's venv. Typical cold-start time drops from several minutes to a handful of seconds, without touching the image.
-
-```yaml
-services:
-  api:
-    image: ghcr.io/athroniaeth/piighost-api:latest
-    environment:
-      - EXTRA_PACKAGES=piighost[gliner2]
-    volumes:
-      - ./pipeline.py:/app/pipeline.py
-      - huggingface-cache:/root/.cache/huggingface  # model weights
-      - uv-cache:/root/.cache/uv                    # Python wheels
-
-volumes:
-  huggingface-cache:
-  uv-cache:
+```bash
+uv add 'piighost[config,redis,crypto,argon2]'
 ```
 
-!!! note
-    The `huggingface-cache` volume caches downloaded model weights (GLiNER2, transformers models). It is independent from the wheel cache and should be kept.
+The `config` extra reads the file, `redis` talks to the store, `crypto` provides the AES-GCM cipher, and `argon2` provides the Argon2id hasher. Drop `argon2` if you key messages with HMAC-SHA256 instead.
 
-### Strategy 2: Bake the extras into a custom image (zero runtime install)
+## Write the config file
 
-For environments where startup time matters (CI, production, serverless), build your own image on top of `piighost-api`. The `uv sync` runs once at `docker build`, the extras are baked into an image layer, and every subsequent container start is instant.
+A `[memory]` section turns the pipeline into a thread pipeline keeping per-thread state. Its `type = "redis"` names the store, `[memory.hasher]` keys each message into its storage key, and `[memory.cipher]` encrypts each stored value.
 
-```dockerfile
-# Dockerfile
-FROM ghcr.io/athroniaeth/piighost-api:latest
-RUN uv pip install --system "piighost[gliner2]"
+```toml title="pipeline.toml"
+[detector]
+type = "regex"
+catalogs = ["generic"]
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "label_counter"
+
+[memory]
+type = "redis"
+url = "redis://redis.internal:6379/0"
+namespace = "piighost"
+ttl = 3600
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
 ```
 
-```yaml
-# compose.yml
-services:
-  api:
-    build: ./piighost-api
-    volumes:
-      - ./pipeline.py:/app/pipeline.py
-      - huggingface-cache:/root/.cache/huggingface
-    # EXTRA_PACKAGES is no longer needed
+`namespace` prefixes every key so `piighost` shares a Redis instance with other applications without collisions. `ttl` is the seconds a stored message lives before Redis evicts it, or you omit it to keep entries until the store decides to drop them. `label_counter` emits `<<PERSON:1>>`{ .placeholder }, a token that carries identity, which the [middleware](getting-started/langchain.md) needs to restore the value.
+
+The full section catalogue, every component `type`, and the JSON form of the same file are in the [configuration reference](configuration/toml.md).
+
+## Set the secrets in the environment
+
+The hasher pepper and the cipher key are secrets read from the environment at build time, never from the file. A file with a secret in it would leak the secret through version control.
+
+```bash
+export PIIGHOST_HASH_PEPPER="a-long-random-string"
+export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 ```
 
-This is the most reproducible option: the image is self-contained, Docker's layer cache handles rebuilds, and there is no runtime dependency on PyPI availability.
-
-### Strategy 3: Mount the whole venv (fastest startup, more fragile)
-
-Mount a named volume on the image's venv path so the installed files themselves persist across runs. Startup is effectively instantaneous after the first boot, at the cost of a cache that can silently desync if the upstream image changes Python version or venv layout.
-
-```yaml
-services:
-  api:
-    image: ghcr.io/athroniaeth/piighost-api:latest
-    environment:
-      - EXTRA_PACKAGES=piighost[gliner2]
-    volumes:
-      - piighost-venv:/app/.venv
-
-volumes:
-  piighost-venv:
-```
+`PIIGHOST_HASH_PEPPER` is any non-empty string. `PIIGHOST_CIPHER_KEY` is base64 of 16, 24, or 32 bytes, so `openssl rand -base64 32` gives an AES-256 key. If a [moderation guard](configuration/toml.md) is configured, its `MISTRAL_API_KEY` follows the same rule and lives only in the environment.
 
 !!! warning
-    If you upgrade `ghcr.io/athroniaeth/piighost-api:latest`, purge the venv volume (`docker compose down -v`) before the next start. Otherwise the old venv shadows the new one and you will debug mysterious version mismatches.
+    A pepper or key written into the config file cancels the protection: the store leaks alongside the file that decrypts it. Keep both in the process environment or a secrets manager, and rotate them like any production credential. A missing or malformed secret raises `ConfigError` at build time, so the pipeline fails to start rather than running unprotected.
 
----
+## Load and run
 
-## Which one should I pick?
+`load_thread_pipeline` reads the file, builds every component, and returns the thread pipeline. It raises `ConfigError` if the file declares no `[memory]`, so a stateless config cannot be loaded here by mistake.
 
-| Scenario                               | Recommended strategy               |
-| -------------------------------------- | ---------------------------------- |
-| Local development, occasional restarts | Strategy 1 (`uv` cache volume)     |
-| CI / production / fixed versions       | Strategy 2 (custom image)          |
-| Fast dev loop on a pinned base image   | Strategy 3 (venv volume)           |
+```python
+from piighost.config import load_thread_pipeline
 
-Strategies 1 and 2 compose well: keep the `uv` cache on your dev machine to speed up `docker build`, and bake the extras into the image for deployment.
+pipeline = load_thread_pipeline("pipeline.toml")
+
+result = await pipeline.anonymize("Patrick lives in Lyon.", thread_id="user-42")
+print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
+```
+
+The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token, and a different `thread_id` never sees it, so two users stay isolated. Behind the scenes the pipeline hashes the message into a Redis key and stores the detections encrypted, so a leak of the Redis disk reveals neither the message nor the PII.
+
+## How the store protects the data
+
+Two protections combine on every write, both keyed by a secret the store never holds.
+
+- The **key is hashed**. The hasher derives a digest of the message under the pepper. `argon2` (Argon2id) is slow and memory-hard, the right choice when the pepper itself might leak. `sha256` (HMAC-SHA256) is fast and fits a busy hot path. Both are deterministic, so the same message always lands on the same key.
+- The **value is encrypted**. `aesgcm` (AES-GCM) encrypts the detections before they are written, with a fresh nonce per message. Decryption fails on an altered ciphertext, so tampering is detected.
+
+The `thread_id` stays in the clear as a key namespace, which is what lets a whole thread be enumerated and forgotten with `forget_thread`. The threat model and the backend comparison are in [Security](security.md).
+
+## See also
+
+- [Configuration reference](configuration/toml.md): every section and component `type`, TOML and JSON.
+- [Multi-instance deployment](multi-instance.md): why the shared Redis memory is required behind a load balancer.
+- [Security](security.md): the at-rest threat model and the backend comparison.
+- [Conversational pipeline](getting-started/conversation.md): the thread pipeline API the middleware drives.

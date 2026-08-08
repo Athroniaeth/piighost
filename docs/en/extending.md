@@ -7,83 +7,85 @@ tags:
 
 # Extending PIIGhost
 
-PIIGhost is built around **protocols** (Python structural subtyping). Every pipeline stage is an injection point where you can plug in your own implementation without touching the rest of the code.
+Every pipeline stage is a **port**: a `Protocol` you satisfy by implementing its one method. There is no base class to inherit, and nothing else in the pipeline changes. You can also subclass a `Base*` template where one exists, which supplies the shared skeleton and leaves you a single hook.
 
 ```mermaid
 flowchart LR
-    A[AnonymizationPipeline] -->|inject| B[AnyDetector]
-    A -->|inject| C[AnySpanConflictResolver]
-    A -->|inject| D[AnyEntityLinker]
-    A -->|inject| E[AnyEntityConflictResolver]
-    A -->|inject| F[AnyAnonymizer]
-    F -->|inject| G[AnyPlaceholderFactory]
+    P[AnonymizationPipeline] -->|detector| D[AnyDetector]
+    P -->|overlap_resolver| O[AnyOverlapResolver]
+    P -->|expander| X[AnyDetectionExpander]
+    P -->|linker| L[AnyEntityLinker]
+    P -->|entity_resolver| R[AnyEntityResolver]
+    P -->|anonymizer| A[AnyAnonymizer]
+    P -->|guard| G[AnyGuardRail]
+    A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-No base class to inherit from. Simply implement the required method Python checks compatibility at call time.
+*The pipeline injects one component per port. Only detector, linker, and anonymizer are required; the others default to disabled.*
+{ .figure-caption }
+
+The ports live in each component's `base.py`, under `piighost.components.*`. The data models they exchange live in `piighost.models`.
+
+```python
+from piighost.models import Detection, Entity, Span
+```
+
+A `Detection` is a `Span(start, end)` carrying `text`, `label`, and a `confidence` in the range 0 to 1. An `Entity` groups the detections that share a value, and derives its `label`, `text`, and `spans` from them.
 
 ---
 
-## Custom `AnyDetector`
+## A custom detector
 
-**When to use**: replace GLiNER2 with spaCy, a remote API call, an allowlist, etc.
-
-### Protocol
+A detector finds PII in a text. Implement one method:
 
 ```python
 class AnyDetector(Protocol):
     async def detect(self, text: str) -> list[Detection]: ...
 ```
 
-???+ example "spaCy detector"
+`detect` is async so an implementation can await a model server or an LLM API. Return detections in any order. Overlaps and repeats are resolved by later stages, not here.
 
-    ```python
-    import spacy
-    from piighost.models import Detection, Span
-
-    class SpacyDetector:
-        """NER detector backed by spaCy."""
-
-        def __init__(self, model_name: str = "en_core_web_sm"):
-            self._nlp = spacy.load(model_name)
-
-        async def detect(self, text: str) -> list[Detection]:
-            doc = self._nlp(text)
-            return [
-                Detection(
-                    text=ent.text,
-                    label=ent.label_,
-                    position=Span(start_pos=ent.start_char, end_pos=ent.end_char),
-                    confidence=1.0,
-                )
-                for ent in doc.ents
-            ]
-    ```
-
-??? example "Allowlist detector"
+???+ example "Regex handle detector"
 
     ```python
     import re
+
     from piighost.models import Detection, Span
 
-    class AllowlistDetector:
-        """Detects entities from a fixed list (useful for tests or structured data)."""
 
-        def __init__(self, allowlist: dict[str, str]):
-            # {"Patrick Dupont": "PERSON", "Paris": "LOCATION"}
-            self._allowlist = allowlist
+    class HandleDetector:
+        """Detect @handles as USERNAME."""
 
         async def detect(self, text: str) -> list[Detection]:
-            detections = []
-            for fragment, label in self._allowlist.items():
-                for match in re.finditer(re.escape(fragment), text):
-                    detections.append(Detection(
+            detections: list[Detection] = []
+            for match in re.finditer(r"@\w+", text):
+                span = Span(match.start(), match.end())
+                detections.append(
+                    Detection(
+                        span=span,
                         text=match.group(),
-                        label=label,
-                        position=Span(start_pos=match.start(), end_pos=match.end()),
+                        label="USERNAME",
                         confidence=1.0,
-                    ))
+                    )
+                )
             return detections
     ```
+
+To feed a detector from a fixed value list in tests, use the built-in `ExactMatchDetector` instead. See [Test a pipeline without models](examples/testing.md).
+
+### For NER models, subclass `BaseNERDetector`
+
+The model-backed detectors (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) all extend `BaseNERDetector`. It maps the label a model emits internally to the label that appears in `Detection.label`, so you can query a model with the strings it detects best while producing clean labels downstream. Pass `labels` as a list for identity mapping, or as an `{emitted: internal}` dict to rename:
+
+```python
+from piighost.components.detector.ner import Gliner2Detector
+
+# Query GLiNER2 with "person" and "company" but emit "PERSON" / "COMPANY".
+detector = Gliner2Detector(
+    model,
+    labels={"PERSON": "person", "COMPANY": "company"},
+)
+```
 
 ### Usage
 
@@ -91,268 +93,228 @@ class AnyDetector(Protocol):
 from piighost.pipeline import AnonymizationPipeline
 
 pipeline = AnonymizationPipeline(
-    detector=SpacyDetector("en_core_web_sm"),
-    ...,
+    HandleDetector(),
+    linker,
+    anonymizer,
 )
 ```
 
 ---
 
-## Curated regex packs
+## A custom overlap resolver
 
-For structured PII whose syntax is standardised (e-mails, IBANs, phone
-numbers, SSN), PIIGhost ships ready-to-use regex dictionaries organised
-by region. You pick only the packs you need, and merge them freely.
-
-| Pack | Module | Labels |
-|------|--------|--------|
-| `GENERIC_PATTERNS` | `piighost.detector.patterns.generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| `FR_PATTERNS` | `piighost.detector.patterns.fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET` |
-| `US_PATTERNS` | `piighost.detector.patterns.us` | `US_SSN`, `US_PHONE`, `US_ZIP` |
-| `EU_PATTERNS` | `piighost.detector.patterns.eu` | `IBAN` (any country) |
+An overlap resolver reconciles detections whose spans overlap into a non-overlapping set. The port:
 
 ```python
-from piighost.detector import RegexDetector
-from piighost.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
-
-detector = RegexDetector(patterns={**GENERIC_PATTERNS, **FR_PATTERNS})
-```
-
-The packs are intentionally **permissive on syntax**: the `CREDIT_CARD`
-pattern accepts any 13-19 digit sequence, `IBAN` accepts any country
-prefix + 11-30 alphanumerics, `FR_NIR` accepts the full NIR shape
-without enforcing the key. Without a validator, those patterns will
-over-match (any long digit sequence looks like a card number).
-
-## Checksum validators
-
-PIIGhost ships checksum validators in `piighost.validators` that you can
-plug into `RegexDetector` to filter syntactic matches that fail a
-domain-specific check:
-
-| Validator | Applies to | Algorithm |
-|-----------|-----------|-----------|
-| `validate_luhn` | credit cards, IMEIs | mod-10 (Luhn) |
-| `validate_iban` | IBANs (any country) | ISO 13616 mod-97 |
-| `validate_nir` | French NIR | key = 97 − (body mod 97) |
-
-```python
-from piighost.detector import RegexDetector
-from piighost.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
-from piighost.validators import validate_iban, validate_luhn, validate_nir
-
-detector = RegexDetector(
-    patterns={**GENERIC_PATTERNS, **FR_PATTERNS},
-    validators={
-        "CREDIT_CARD": validate_luhn,
-        "FR_IBAN": validate_iban,
-        "FR_NIR": validate_nir,
-    },
-)
-```
-
-A label without an entry in `validators` is accepted on the regex match
-alone. Matches rejected by a validator are silently dropped (no log, no
-exception); chain with another detector if you want to record the
-rejection.
-
-!!! tip "Bring your own validator"
-    Any `Callable[[str], bool]` works. Use this to add custom
-    checks (SSA invalid-range filter on `US_SSN`, allowlist of accepted
-    e-mail domains on `EMAIL`, etc.) without touching the regex.
-
----
-
-## NER label mapping
-
-The built-in NER detectors (`SpacyDetector`, `Gliner2Detector`, `TransformersDetector`) all inherit from `BaseNERDetector`, which supports **label mapping**: decoupling the label a model produces internally from the label that appears in `Detection.label` (and therefore in placeholders, datasets, etc.).
-
-Pass a `{external: internal}` dict instead of a list to enable mapping:
-
-```python
-from piighost.detector.spacy import SpacyDetector
-
-# Without mapping (identity): Detection.label will be "PER" / "LOC"
-detector = SpacyDetector(model=nlp, labels=["PER", "LOC"])
-
-# With mapping: Detection.label will be "PERSON" / "LOCATION"
-detector = SpacyDetector(
-    model=nlp,
-    labels={"PERSON": "PER", "LOCATION": "LOC"},
-)
-```
-
-For GLiNER2, this is especially useful because some query strings perform better than others:
-
-```python
-from piighost.detector.gliner2 import Gliner2Detector
-
-# Query GLiNER2 with "person" and "company" (better detection)
-# but produce clean "PERSON" / "COMPANY" labels in Detection objects.
-detector = Gliner2Detector(
-    model=model,
-    labels={"PERSON": "person", "COMPANY": "company"},
-)
-```
-
-This lets you swap the underlying model without changing downstream code (placeholder factories, entity resolvers, test assertions). It is also the foundation for building stable NER training datasets from user input.
-
-You can inspect the resulting labels with `detector.external_labels` and `detector.internal_labels`.
-
----
-
-## Custom `AnySpanConflictResolver`
-
-**When to use**: different strategy for handling overlapping detections (e.g., prefer longer spans).
-
-### Protocol
-
-```python
-class AnySpanConflictResolver(Protocol):
+class AnyOverlapResolver(Protocol):
     def resolve(self, detections: list[Detection]) -> list[Detection]: ...
 ```
 
-### Example longest span wins
+Rather than implement `resolve` from scratch, subclass `BaseOverlapResolver`. It clusters the detections into overlap groups and hands each group to your `_reduce`, so you only decide which detections to keep from a group that overlaps.
 
-```python
-from piighost.models import Detection
+???+ example "Longest span wins"
 
-class LongestSpanResolver:
-    """Keeps the longest detection when spans overlap."""
+    ```python
+    from piighost.models import Detection
+    from piighost.components.overlap_resolver.base import BaseOverlapResolver
 
-    def resolve(self, detections: list[Detection]) -> list[Detection]:
-        # Sort by span length descending
-        sorted_dets = sorted(
-            detections,
-            key=lambda d: d.position.end_pos - d.position.start_pos,
-            reverse=True,
-        )
-        kept: list[Detection] = []
-        for det in sorted_dets:
-            if not any(det.position.overlaps(k.position) for k in kept):
-                kept.append(det)
-        return kept
-```
 
-### Disabling
+    class LongestOverlapResolver(BaseOverlapResolver):
+        """Keep the longest detection in each overlap group."""
 
-Pass `DisabledSpanConflictResolver()` to keep every detection untouched. Useful when the detector already guarantees non-overlapping spans, or when the user wants overlapping detections to flow into the linker.
+        def _reduce(self, conflicting: list[Detection]) -> list[Detection]:
+            return [max(conflicting, key=lambda d: d.span.length)]
+    ```
 
-```python
-from piighost import DisabledSpanConflictResolver
-
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=DisabledSpanConflictResolver(),  # ← passthrough
-    entity_linker=...,
-    entity_resolver=...,
-    anonymizer=...,
-)
-```
+The built-in `ConfidenceOverlapResolver` keeps the highest-confidence detection instead. The stage is optional: pass no `overlap_resolver` and overlapping detections flow straight to the linker.
 
 ---
 
-## Custom `AnyEntityLinker`
+## A custom expander
 
-**When to use**: different logic for grouping detections into entities (e.g., fuzzy matching, phonetic variants).
+An expander finds occurrences a detector missed, such as a repeat of a name flagged elsewhere. The port:
 
-### Protocol
+```python
+class AnyDetectionExpander(Protocol):
+    def expand(self, text: str, detections: list[Detection]) -> list[Detection]: ...
+```
+
+Subclass `BaseDetectionExpander`. It keeps the original detections and, for each one, adds a detection at every extra occurrence your `_find_occurrences` returns, carrying the source detection's label and confidence.
+
+???+ example "Whole-word repeats"
+
+    ```python
+    import re
+    from collections.abc import Iterable
+
+    from piighost.models import Detection, Span
+    from piighost.components.expander.base import BaseDetectionExpander
+
+
+    class WholeWordExpander(BaseDetectionExpander):
+        """Find whole-word repeats of a detected value."""
+
+        def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
+            pattern = re.compile(rf"\b{re.escape(detection.text)}\b")
+            return [Span(m.start(), m.end()) for m in pattern.finditer(text)]
+    ```
+
+The built-in `WordBoundaryExpander` does exactly this. The stage is optional.
+
+---
+
+## A custom entity linker
+
+A linker groups the detections that refer to the same value into entities, so every occurrence shares one placeholder. The port:
 
 ```python
 class AnyEntityLinker(Protocol):
-    def link(self, text: str, detections: list[Detection]) -> list[Entity]: ...
+    def link(self, detections: list[Detection]) -> list[Entity]: ...
 ```
 
-### Disabling
+Subclass `BaseEntityLinker`. It groups detections by a key you compute in `_key`, one entity per distinct key, keeping first-occurrence order.
 
-Pass `DisabledEntityLinker()` to map each detection 1:1 to an `Entity`. No expansion (no search for missed occurrences), no grouping, no cross-message linking. Useful when the detector already produces clean, deduplicated detections.
+???+ example "Group by exact value and label"
 
-```python
-from piighost import DisabledEntityLinker
+    ```python
+    from collections.abc import Hashable
 
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=...,
-    entity_linker=DisabledEntityLinker(),  # ← passthrough
-    entity_resolver=...,
-    anonymizer=...,
-)
-```
+    from piighost.models import Detection
+    from piighost.components.linker.base import BaseEntityLinker
+
+
+    class CaseSensitiveLinker(BaseEntityLinker):
+        """Group detections that share an exact value and label."""
+
+        def _key(self, detection: Detection) -> Hashable:
+            return (detection.text, detection.label)
+    ```
+
+The built-in `ExactEntityLinker` groups on the casefolded value, so `Patrick`{ .pii } and `patrick`{ .pii } become one entity.
 
 ---
 
-## Custom `AnyEntityConflictResolver`
+## A custom entity resolver
 
-**When to use**: different strategy for merging entities that refer to the same PII.
-
-### Protocol
+An entity resolver reconciles entities that should not coexist, such as two entities sharing a detection. The port:
 
 ```python
-class AnyEntityConflictResolver(Protocol):
+class AnyEntityResolver(Protocol):
     def resolve(self, entities: list[Entity]) -> list[Entity]: ...
 ```
 
-The built-in implementations:
+Subclass `BaseEntityResolver`. It clusters entities that share a detection into groups and hands each group to your `_reduce`, which returns a consistent set, whether by merging the group into one entity or by keeping them apart. The built-ins:
 
-- `MergeEntityConflictResolver` union-find algorithm merging entities with shared detections
-- `FuzzyEntityConflictResolver` merges entities with similar canonical text using Jaro-Winkler similarity
-- `DisabledEntityConflictResolver` passthrough that returns entities unchanged (use to opt out of merging entirely)
+- `MergeEntityResolver` merges entities that share a detection, by union-find.
+- `SeparateEntityResolver` keeps them apart, giving each shared detection to one entity.
+- `FuzzyEntityResolver` merges entities with similar values (needs the `rapidfuzz` extra).
+
+The stage is optional.
 
 ---
 
-## Custom `AnyPlaceholderFactory`
+## A custom placeholder factory
 
-**When to use**: UUID tags for full anonymity, custom format, integration with an external token system.
-
-### Protocol
+A placeholder factory turns entities into their replacement tokens. It is generic on a **preservation tag**, a phantom type stating what its tokens preserve, which the type checker uses to gate a consumer like the middleware. The port:
 
 ```python
 class AnyPlaceholderFactory(Protocol[PreservationT_co]):
-    def create(self, entities: list[Entity]) -> dict[Entity, str]: ...
+    def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT_co]: ...
 ```
 
-Every factory carries a phantom **preservation tag** (`PreservesIdentity`, `PreservesLabel`, `PreservesShape`, `PreservesNothing`) that the type-checker uses to gate consumers like `PIIAnonymizationMiddleware`. See [Placeholder factories](placeholder-factories.md) for the full taxonomy, the worked examples (`UUIDPlaceholderFactory`, `BracketPlaceholderFactory`), and the reasoning behind the constraint.
+A token is an instance of the tag, which is a `str` subclass, so it is a real string that carries its preservation level in its own type. `create` must be deterministic: the same entities yield the same tokens on every call, because the pipeline calls it more than once per run.
+
+???+ example "Bracket label factory"
+
+    ```python
+    from collections.abc import Mapping
+
+    from piighost.models import Entity
+    from piighost.components.placeholder.base import AnyPlaceholderFactory
+    from piighost.components.placeholder.tags import PreservesLabel
+
+
+    class BracketLabelFactory(AnyPlaceholderFactory[PreservesLabel]):
+        """Emit [LABEL] for every entity, collapsing each label to one token."""
+
+        def create(self, entities: list[Entity]) -> Mapping[Entity, PreservesLabel]:
+            return {
+                entity: PreservesLabel(f"[{entity.label}]") for entity in entities
+            }
+    ```
+
+`PreservesLabel` says the token reveals the type but not a unique identity, so this factory suits one-shot redaction, not the middleware. For a token the middleware can deanonymize and find again, tag it `PreservesRecognizableIdentity` (or a sub-tag such as `PreservesLabeledIdentityOpaque`) and use a delimited grammar like `<<PERSON:1>>`{ .placeholder }. To wrap an inner form in delimiters without writing the wrapping yourself, subclass `BaseDelimitedPlaceholderFactory`. See [Placeholder factories](placeholder-factories.md) for the full tag taxonomy and worked examples.
 
 ### Usage
 
 ```python
-from piighost.anonymizer import Anonymizer
+from piighost.components.anonymizer import Anonymizer
 
-anonymizer = Anonymizer(ph_factory=UUIDPlaceholderFactory())
+anonymizer = Anonymizer(BracketLabelFactory())
+```
+
+---
+
+## A custom guard rail
+
+A guard rail re-checks the anonymized output for residual PII. It classifies, it does not decide: it returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
+
+```python
+class AnyGuardRail(Protocol):
+    async def check(self, text: str) -> GuardVerdict: ...
+```
+
+`check` sees only the anonymized text. The placeholders it carries are clearly synthetic, so a check meant for real PII does not mistake them for it.
+
+???+ example "Flag a residual @ sign"
+
+    ```python
+    from piighost.components.guard.base import GuardVerdict
+
+
+    class AtSignGuard:
+        """Flag any residual @ sign as leftover PII."""
+
+        async def check(self, text: str) -> GuardVerdict:
+            return GuardVerdict(flagged="@" in text)
+    ```
+
+The built-in `DetectorGuardRail` re-runs a detector and reports the residual detections. The stage is optional: pass no `guard` and the output is returned unchecked.
+
+### Usage
+
+```python
+from piighost.pipeline import AnonymizationPipeline
+
+pipeline = AnonymizationPipeline(
+    detector,
+    linker,
+    anonymizer,
+    guard=AtSignGuard(),
+)
 ```
 
 ---
 
 ## Full composition
 
-All components are independent and can be freely combined:
+The stages are independent, so a custom detector, factory, and guard combine freely with the built-ins:
 
 ```python
-from piighost.anonymizer import Anonymizer
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import FuzzyEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.middleware import PIIAnonymizationMiddleware
-from piighost.pipeline import ThreadAnonymizationPipeline
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.overlap_resolver import ConfidenceOverlapResolver
+from piighost.components.entity_resolver import MergeEntityResolver
+from piighost.pipeline import AnonymizationPipeline
 
-entity_linker = ExactEntityLinker()  # Or your linker
-entity_resolver = FuzzyEntityConflictResolver()  # Fuzzy merging
-span_resolver = ConfidenceSpanConflictResolver()  # Or your resolver
-
-ph_factory = UUIDPlaceholderFactory()  # Opaque UUID tags
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-detector = SpacyDetector("en_core_web_sm")  # Your detector
-pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+pipeline = AnonymizationPipeline(
+    HandleDetector(),
+    ExactEntityLinker(),
+    Anonymizer(BracketLabelFactory()),
+    overlap_resolver=ConfidenceOverlapResolver(),
+    entity_resolver=MergeEntityResolver(),
+    guard=AtSignGuard(),
 )
-
-middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 ```
 
----
-
-For unit-testing your custom components with `ExactMatchDetector` and pytest, see the [Testing](examples/testing.md) guide.
+To unit-test a custom component deterministically, feed it through `ExactMatchDetector`. See [Test a pipeline without models](examples/testing.md).
