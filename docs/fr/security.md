@@ -4,73 +4,99 @@ icon: lucide/shield-check
 
 # Sécurité
 
-Cette page complète [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) à la racine du
-dépôt avec un modèle de menaces : ce contre quoi `piighost` protège, et ce contre quoi il ne protège pas.
+Cette page complète [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) à la racine du dépôt avec un modèle de menaces. Elle décrit ce contre quoi `piighost` protège, ce contre quoi il ne protège pas, et pourquoi.
+
+!!! note "Dé-identification réversible"
+    `piighost` dé-identifie par défaut. Il remplace chaque PII par un placeholder et **garde le lien** entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Ce lien est un mapping de PII en clair. Le protéger est au coeur de ce modèle de menaces.
+
+## Le trajet d'une valeur
+
+Prenons un message qui contient `jean@mail.com`{ .pii }. `piighost` détecte la PII, la remplace par `<<EMAIL:1>>`{ .placeholder }, et envoie le texte dé-identifié au LLM. Le LLM ne voit que `<<EMAIL:1>>`{ .placeholder }. Quand la réponse revient, `piighost` réinjecte `jean@mail.com`{ .pii } à la place du placeholder, et l'utilisateur voit la vraie valeur.
+
+Deux choses coexistent donc à tout moment. Le texte dé-identifié, qui peut circuler vers le LLM sans danger, et le mapping `<<EMAIL:1>>`{ .placeholder } vers `jean@mail.com`{ .pii }, qui ne doit jamais sortir de votre périmètre. Le modèle de menaces tient dans cette séparation.
 
 ## Ce contre quoi `piighost` protège
 
 !!! success "Dans le périmètre de protection"
-    - **Exfiltration vers les LLM tiers** : le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.),
-      jamais les vraies PII. Même si le prestataire journalise la requête, aucune donnée sensible ne fuit.
-    - **Fuite via les appels d'outils** : le middleware désanonymise les arguments d'outil juste avant exécution
-      et réanonymise les résultats avant qu'ils ne repartent vers le LLM, de sorte que les vraies valeurs ne
-      transitent jamais par le contexte visible du LLM.
-    - **Dérive inter-messages** : le cache lie les variantes (`Patrick`{ .pii } / `patrick`{ .pii }) pour que la même entité
-      garde le même placeholder sur toute la conversation, ce qui empêche le LLM de voir la même PII sous
-      différents masques.
+    - **Exfiltration vers les LLM tiers** : le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), jamais les vraies PII. Même si le provider journalise la requête, aucune donnée sensible ne fuit vers lui.
+    - **Fuite via les appels d'outils** : le middleware désanonymise les arguments d'outil juste avant l'exécution, puis réanonymise les résultats avant qu'ils ne repartent vers le LLM. Les vraies valeurs ne transitent jamais par le contexte visible du LLM.
+    - **Dérive inter-messages** : la `ConversationMemory` lie les variantes (`Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(text.casefold(), label)`), pour que la même entité garde le même placeholder sur toute la conversation. Le LLM ne voit jamais la même PII sous deux masques différents.
+    - **Fuite d'un store persistant volé** : le backend Redis chiffre chaque valeur stockée et hache la clé, donc un vol du store ne révèle ni le message ni la PII. Voir plus bas.
 
 ## Ce contre quoi `piighost` ne protège pas
 
 !!! danger "Hors du périmètre de protection"
-    - **Compromission de la mémoire locale** : le cache garde le mapping `placeholder -> valeur réelle` en
-      mémoire (ou dans le backend que vous avez configuré). Un attaquant ayant accès à la mémoire du processus
-      récupère le mapping en clair.
-    - **Vol disque d'un backend de cache non chiffré** : si vous pointez `aiocache` vers une instance Redis sans
-      chiffrement disque, et que quelqu'un repart avec le disque, il repart avec le mapping. Chiffrez le stockage
-      du backend.
-    - **Hallucinations du LLM** : si le LLM invente une PII qui n'était jamais dans l'entrée, `piighost` ne peut
-      pas la lier puisqu'elle n'a jamais été mise en cache. Voir [Limites](limitations.md) pour la mitigation.
-    - **Inférence par canal auxiliaire** : les placeholders préservent la structure du texte. Un adversaire
-      déterminé avec une connaissance partielle peut tenter de réidentifier les entités à partir du contexte
-      (rare mais pas impossible).
-    - **Accès amont aux journaux** : `piighost` ne journalise pas les PII brutes, mais votre application peut le
-      faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
+    - **Compromission de la mémoire du processus** : le mapping `placeholder` vers valeur d'origine vit en RAM le temps du traitement. Un attaquant qui lit la mémoire du processus récupère la PII en clair, quel que soit le backend.
+    - **Store persistant non chiffré** : la mémoire en RAM (`InMemoryConversationMemory`) ne chiffre rien, elle sert au développement et au mono-processus. Un backend persistant qui ne chiffrerait pas ses valeurs exposerait la PII en cas de vol disque. Le backend Redis fourni chiffre et hache par construction.
+    - **Placeholders inventés par le LLM** : si le LLM fabrique un placeholder qui n'a jamais été émis, `piighost` ne peut pas le rattacher à une valeur puisqu'il n'est dans aucun mapping. Le middleware refuse par défaut ces jetons (`InventedPlaceholderError`). Voir [Limites](limitations.md).
+    - **Ré-identification par le contexte** : un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. « Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants » désigne une personne sans nommer sa PII. Le détecteur ne voit que des tokens, pas cette inférence.
+    - **Détecteurs faillibles** : un détecteur est au mieux. Une PII qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
+    - **Journaux applicatifs en amont** : `piighost` ne journalise jamais de PII brute, mais votre application peut le faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
+
+## Le mapping est de la PII en clair
+
+La réversibilité a un prix. Pour restaurer `jean@mail.com`{ .pii } à partir de `<<EMAIL:1>>`{ .placeholder }, `piighost` garde le lien entre les deux. Ce lien, porté par la `ConversationMemory`, contient de la PII en clair. C'est l'actif le plus sensible du système, et il faut le protéger comme tel.
+
+Deux backends existent, avec deux profils de sécurité.
+
+`InMemoryConversationMemory` garde le mapping dans un dictionnaire du processus. Rien n'est chiffré, rien ne survit à un redémarrage, rien n'est partagé entre processus. C'est le bon choix pour le développement, les tests et un déploiement mono-processus. Ce n'est pas un stockage sécurisé.
+
+`RedisConversationMemory` persiste chaque message dans Redis, avec deux protections combinées.
+
+- La **clé est hachée**. Le hasher tire une empreinte du message avec un poivre (*pepper*) secret. Le défaut est `Sha256Hasher` (HMAC-SHA256, rapide, adapté au chemin chaud). `Argon2Hasher` (Argon2id, lent et à mémoire dure) est l'alternative si le poivre lui-même risque de fuiter. Les deux sont déterministes, donc le même message retombe sur la même clé.
+- La **valeur est chiffrée**. Le cipher chiffre le JSON des détections avant l'écriture. `AesGcmCipher` (AES-GCM) est le chiffrement authentifié fourni. Un nonce aléatoire est tiré par message, et le chiffrement échoue à déchiffrer un texte altéré.
+
+Le poivre et la clé de chiffrement ne vivent **jamais dans le fichier de config**. Ils sont lus dans l'environnement, `PIIGHOST_HASH_PEPPER` pour le hasher et `PIIGHOST_CIPHER_KEY` (base64) pour le cipher. La sécurité repose sur ce secret qui vit hors du store. Un vol du disque Redis seul ne révèle ni le message ni la PII, parce que la clé est hachée et la valeur chiffrée sous un secret que le disque ne contient pas.
+
+!!! warning "Le secret vit dans l'environnement, pas dans la config"
+    Un poivre ou une clé écrits dans un fichier de config versionné annulent la protection. Gardez-les dans l'environnement du processus ou dans un gestionnaire de secrets, et faites-les tourner comme n'importe quel secret de production.
+
+### Gradient confidentialité / restauration selon le backend
+
+<table class="security-table" markdown="1">
+<thead>
+<tr><th>Backend</th><th>Mapping chiffré au repos ?</th><th>Clé du store lisible ?</th><th>Survit à un redémarrage ?</th><th>Partagé multi-worker ?</th></tr>
+</thead>
+<tbody>
+<tr><td>InMemory (défaut)</td><td class="c-red">non (RAM en clair)</td><td class="c-red">oui (dict du processus)</td><td class="c-red">non</td><td class="c-red">non</td></tr>
+<tr><td>Redis + Sha256Hasher + AesGcm</td><td class="c-blue">oui (AES-GCM)</td><td class="c-green">non (HMAC-SHA256)</td><td class="c-blue">oui</td><td class="c-blue">oui</td></tr>
+<tr><td>Redis + Argon2Hasher + AesGcm</td><td class="c-blue">oui (AES-GCM)</td><td class="c-blue">non (Argon2id, mémoire dure)</td><td class="c-blue">oui</td><td class="c-blue">oui</td></tr>
+</tbody>
+</table>
+
+<small>
+Légende :
+<span class="sec-legend c-blue">meilleur</span>
+<span class="sec-legend c-green">correct</span>
+<span class="sec-legend c-yellow">partiel</span>
+<span class="sec-legend c-red">problématique</span>
+</small>
+
+La colonne rouge de la mémoire en RAM n'est pas un défaut, c'est un choix de périmètre. Ce backend ne prétend pas être un stockage sécurisé. Dès que le mapping doit survivre à un redémarrage ou être partagé entre workers, passez à Redis chiffré.
 
 ## Discipline de journalisation pour les dataclasses porteuses de PII
 
-La dataclass `Detection` porte la forme brute de la PII dans son champ
-`text`. Le `__repr__` généré par dataclass affiche cette valeur en
-clair, ce qui rend l'API prévisible pour l'inspection, le debug et les
-tests :
+La dataclass `Detection` porte la forme brute de la PII dans son champ `text`. Le `__repr__` généré par dataclass affiche cette valeur en clair, ce qui rend l'API prévisible pour l'inspection, le debug et les tests.
 
 ```python
 >>> from piighost.models import Detection, Span
->>> d = Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9)
+>>> d = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9)
 >>> repr(d)
-"Detection(text='Patrick', label='PERSON', position=Span(start_pos=0, end_pos=7), confidence=0.9)"
+"Detection(span=Span(start=0, end=7), text='Patrick', label='PERSON', confidence=0.9)"
 ```
 
-La bibliothèque ne masque délibérément pas ce champ. Si vous
-transférez des instances `Detection` ou `Entity` vers des logs, des
-traces ou un reporter d'erreurs, faites le scrub vous-même. Deux
-recettes simples :
+La librairie ne masque délibérément pas ce champ. Si vous transférez des instances `Detection` ou `Entity` vers des logs, des traces ou un reporter d'erreurs, faites le scrub vous-même. Deux recettes simples.
 
 - Filtrer `to_dict()` avant sérialisation (retirer la clé `text`).
-- Encapsuler votre logger structuré dans un redactor qui reconnaît les
-  `Detection` et remplace `text` par un marqueur de longueur.
+- Encapsuler votre logger structuré dans un redactor qui reconnaît les `Detection` et remplace `text` par un marqueur de longueur.
 
-`piighost` lui-même n'écrit jamais de PII dans aucun logger ; la
-discipline ci-dessus est nécessaire dans votre propre code.
+`piighost` lui-même n'écrit jamais de PII dans aucun logger. La discipline ci-dessus est nécessaire dans votre propre code.
 
 ## Redaction des payloads d'observation
 
-Quand le pipeline est configuré avec un `AbstractObservationService`
-(par exemple `LangfuseObservationService`), chaque étape produit une
-observation enfant avec ses propres `input` et `output`. Le pipeline
-applique une placeholder factory dédiée à l'observation pour
-remplacer chaque PII détectée avant de pousser le payload vers le
-backend. Le défaut est `RedactPlaceholderFactory()`, qui collapse
-toute entité sur `<<REDACT>>` :
+Le pipeline trace ses étapes via OpenTelemetry. Chaque étape produit un span avec son propre payload d'entrée et de sortie, poussé vers le backend de trace que vous avez branché. Par défaut ces payloads contiennent le texte en clair et les valeurs des détections, ce qui rend les traces utilisables comme jeux d'annotation, mais dangereuses sur un backend qui n'a pas le droit de voir de la PII.
+
+Le paramètre `observation_redactor` du pipeline contrôle ce comportement. Il prend une placeholder factory qui remplace chaque valeur détectée avant que le payload ne parte vers le backend. Avec `RedactPlaceholderFactory()`, toute entité collapse sur `<<REDACT>>`{ .placeholder }.
 
 ```text
 texte utilisateur     : "Patrick habite à Paris."
@@ -79,58 +105,33 @@ payload d'observation : "<<REDACT>> habite à <<REDACT>>."
 
 Concrètement :
 
-- l'`input` du span racine, du stage `detect` et du stage
-  `placeholder` est rempli avec le texte rédigé par la factory une
-  fois la détection terminée. Tant que la détection n'a pas tourné,
-  le span racine n'a pas d'`input` du tout, donc rien ne fuit avant
-  d'avoir un mapping fiable,
-- les `Detection` et `Entity` sérialisées dans `detect.output` et
-  `link.input/output` portent le token de la factory à la place de
-  leur champ `text`. Le label, la position et la confidence restent
-  visibles pour le débogage,
-- les payloads déjà anonymisés (`placeholder.output`,
-  `guard.input/output`, `output` du span racine) passent inchangés
-  puisqu'ils ne contiennent que des placeholders.
+- les payloads de texte voient chaque span de détection remplacé par le token de la factory. L'union des spans est fusionnée avant remplacement, donc aucun fragment en clair d'une détection ne survit au remplacement d'une autre,
+- les `Detection` et `Entity` sérialisées portent le token de la factory à la place de leur champ `text`. Le label, la position et le nombre d'occurrences restent visibles pour le débogage,
+- les payloads déjà dé-identifiés passent inchangés puisqu'ils ne contiennent que des placeholders.
 
-Cette politique protège l'entrée utilisateur même si le pipeline
-échoue avant d'avoir produit le texte anonymisé final. Un crash au
-stage `link` ou `placeholder` ne fait pas fuiter la PII brute vers
-Langfuse, parce que tout ce qui a été poussé jusque-là porte déjà
-des placeholders d'observation.
-
-Pour surfacer plus de structure (par exemple une numérotation
-distincte par PII en environnement de dev), passer une autre factory
-au constructeur :
+Pour surfacer plus de structure (par exemple une numérotation distincte par PII en environnement de dev), passer une autre factory.
 
 ```python
-from piighost.placeholder import RedactCounterPlaceholderFactory
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
-pipeline = ThreadAnonymizationPipeline(
+pipeline = AnonymizationPipeline(
     detector=detector,
+    linker=linker,
     anonymizer=anonymizer,
-    observation=LangfuseObservationService(client),
-    observation_ph_factory=RedactCounterPlaceholderFactory(),  # <<REDACT:1>>, <<REDACT:2>>, ...
+    observation_redactor=LabelCounterPlaceholderFactory(),  # <<PERSON:1>>, <<EMAIL:2>>, ...
 )
 ```
 
-N'importe quelle implémentation de `AnyPlaceholderFactory` est
-acceptée. La factory d'observation est indépendante de celle qui
-sert à l'anonymisation réelle, donc on peut afficher du
-`<<PERSON:1>>` côté Langfuse tout en gardant un faux nom Faker côté
-LLM.
+N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le redactor d'observation est indépendant de la factory qui sert à la dé-identification réelle, donc on peut afficher du `<<PERSON:1>>`{ .placeholder } côté trace tout en envoyant un autre schéma de placeholder au LLM. Laisser `observation_redactor` à `None` trace le texte en clair, à réserver à un backend de confiance.
 
 ## Décisions de conception qui soutiennent le modèle de menaces
 
-- **L'anonymisation est locale** : les PII sont remplacées avant que la requête HTTP n'atteigne le fournisseur du
-  LLM.
-- **Cache clé SHA-256** : les placeholders sont dérivés de manière déterministe, pas stockés en clair sous le label
-  du placeholder. Même un dump du cache ne révèle pas quel placeholder mappe à quelle PII sans le sel.
-- **Aucune journalisation des PII brutes par la bibliothèque** : `piighost` lui-même n'écrit jamais de PII dans un
-  logger. Votre propre code doit suivre la même discipline.
-- **Dataclasses gelées** : `Entity`, `Detection`, `Span` sont immuables, ce qui empêche la mutation accidentelle
-  après que l'anonymisation a été appliquée.
+- **La dé-identification est locale** : les PII sont remplacées avant que la requête HTTP n'atteigne le provider du LLM.
+- **Le mapping est reconnu comme sensible** : le store de mapping contient de la PII en clair. Le backend Redis le chiffre au repos (AES-GCM) et hache ses clés (HMAC-SHA256 ou Argon2id), le secret vivant hors du store.
+- **Aucune journalisation des PII brutes par la librairie** : `piighost` lui-même n'écrit jamais de PII dans un logger. Votre propre code doit suivre la même discipline.
+- **Dataclasses gelées** : `Entity`, `Detection`, `Span` sont immuables, ce qui empêche la mutation accidentelle après que la dé-identification a été appliquée.
+- **Garde-fou optionnel** : un garde-fou (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-vérifie la sortie dé-identifiée et signale une PII résiduelle, à charge pour l'appelant de lever `PIIRemainingError`. Voir [Limites](limitations.md).
 
 ## Signaler une vulnérabilité
 
-Voir [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) pour le canal privé de
-signalement de vulnérabilités et la matrice des versions supportées.
+Voir [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) pour le canal privé de signalement de vulnérabilités et la matrice des versions supportées.

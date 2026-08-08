@@ -5,146 +5,177 @@ tags:
   - Regex
 ---
 
-# Pre-built detectors usage
+# How to use pattern catalogs and combine detectors
 
-`piighost` ships ready-to-use regex pattern sets for the most common PII: emails, IPs, URLs, API keys, phone numbers, SSNs, IBANs... You can use them as-is, combine them together, or extend them with your own patterns.
+`piighost` ships ready-to-use regex pattern catalogs for structured PII (email, IP, IBAN, phone). This guide shows how to load them, merge them, and combine several detectors, with the `piighost` core alone.
 
-This page walks through the usage recipes. For the full catalog of available labels (Common, US, Europe), see [Reference Pre-built detectors](../reference/detectors.md).
-
----
-
-## Single region
+The four catalogs are plain `label` to `pattern` dictionaries.
 
 ```python
-from examples.detectors.common import create_detector
+from piighost.components.detector.patterns import (
+    EU_PATTERNS,
+    FR_PATTERNS,
+    GENERIC_PATTERNS,
+    US_PATTERNS,
+)
+```
 
-from piighost.anonymizer import Anonymizer
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
+- `GENERIC_PATTERNS`: email, URL, IPv4, credit card, country-agnostic.
+- `US_PATTERNS`: SSN, phone, ZIP, prefixed `US_`.
+- `EU_PATTERNS`: pan-European ISO 13616 IBAN.
+- `FR_PATTERNS`: phone, IBAN, NIR, SIRET, prefixed `FR_`.
+
+For the label details, see the [detectors reference](../reference/detectors.md).
+
+## Use a single catalog
+
+Pass the catalog to a `RegexDetector`, then assemble the pipeline.
+
+```python
+import asyncio
+
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
-
-detector = create_detector()
-
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
 
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    RegexDetector(GENERIC_PATTERNS),
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, _ = await pipeline.anonymize("Email me at alice@example.com, server 192.168.1.42.")
-print(anonymized)
-# Email me at <<EMAIL:1>>, server <<IP_V4_1>>.
+
+async def main():
+    result = await pipeline.anonymize("Email alice@example.com, server 192.168.1.42.")
+    print(result.text)
+    # Email <<EMAIL:1>>, server <<IPV4:1>>.
+
+
+asyncio.run(main())
 ```
 
----
+## Merge generic and regional catalogs
 
-## Combine common + regional patterns
+If you want to cover both generic PII and a region's PII, merge the dictionaries. The right-hand entry wins on a shared label.
 
 ```python
-from examples.detectors.us import create_full_detector
+from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
 
-detector = create_full_detector()
-# create_full_detector() merges common + US patterns via CompositeDetector
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+patterns = {**GENERIC_PATTERNS, **FR_PATTERNS}
+detector = RegexDetector(patterns)
 
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, _ = await pipeline.anonymize(
-    "SSN 123-45-6789, email john@example.com, card 4532-1234-5678-9012."
-)
-print(anonymized)
-# SSN <<US_SSN:1>>, email <<EMAIL:1>>, card <<CREDIT_CARD:1>>.
+
+async def main():
+    result = await pipeline.anonymize(
+        "IBAN FR7630006000011234567890189, email marie@exemple.fr, tel 06 12 34 56 78."
+    )
+    print(result.text)
+    # IBAN <<FR_IBAN:1>>, email <<EMAIL:1>>, tel <<FR_PHONE:1>>.
+
+
+asyncio.run(main())
 ```
 
----
-
-## Mix-and-match with `PATTERNS` dicts
+To keep only some labels, build a hand-picked dictionary.
 
 ```python
-from piighost.detector import RegexDetector
-
-from examples.detectors.common import PATTERNS as COMMON
-from examples.detectors.europe import PATTERNS as EU
-
-# Cherry-pick only what you need
-my_patterns = {
-    "EMAIL": COMMON["EMAIL"],
-    "URL": COMMON["URL"],
-    "EU_IBAN": EU["EU_IBAN"],
-    "FR_PHONE": EU["FR_PHONE"],
+patterns = {
+    "EMAIL": GENERIC_PATTERNS["EMAIL"],
+    "FR_IBAN": FR_PATTERNS["FR_IBAN"],
 }
-
-detector = RegexDetector(patterns=my_patterns)
+detector = RegexDetector(patterns)
 ```
 
----
+## Combine several detectors
 
-## Combine with an NER (NER + regex)
+`CompositeDetector` runs several detectors over the same text and concatenates their detections. Overlaps are arbitrated by the pipeline's resolution stage. This is how you pair a regex detector with one that recognizes names.
 
 ```python
-from gliner2 import GLiNER2
+from piighost.components.detector import CompositeDetector, ExactMatchDetector, RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
 
-from piighost.detector import CompositeDetector
-from piighost.detector.gliner2 import Gliner2Detector
-from examples.detectors.common import create_detector as create_regex
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-
-ner_detector = Gliner2Detector(model=model, labels=["PERSON", "LOCATION"], threshold=0.5)
-regex_detector = create_regex()  # emails, IPs, URLs, API keys, etc.
-detector = CompositeDetector(detectors=[ner_detector, regex_detector])
-
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+detector = CompositeDetector([
+    ExactMatchDetector({"Patrick": "PERSON"}),
+    RegexDetector(GENERIC_PATTERNS),
+])
 
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, _ = await pipeline.anonymize("Patrick at alice@example.com, IP 10.0.0.1.")
-print(anonymized)
-# <<PERSON:1>> at <<EMAIL:1>>, IP <<IP_V4_1>>.
+
+async def main():
+    result = await pipeline.anonymize("Patrick emailed alice@example.com.")
+    print(result.text)
+    # <<PERSON:1>> emailed <<EMAIL:1>>.
+
+
+asyncio.run(main())
 ```
 
----
+In production, replace `ExactMatchDetector` with an NER or LLM detector, see the [detectors reference](../reference/detectors.md). `ExactMatchDetector` is used here to keep the example reproducible without a model.
 
-## Adding your own patterns
+## Handle a long text
 
-The pattern sets are plain dictionaries, extend them or create your own:
+An NER detector has a bounded context window, and a long document can exceed it. `ChunkedDetector` wraps any detector, splits the text into overlapping chunks, detects on each, and remaps the offsets back onto the original text.
 
 ```python
-from examples.detectors.common import PATTERNS as COMMON
+from piighost.components.detector import ChunkedDetector, RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
+from piighost.text import RecursiveCharacterTextSplitter
 
-my_patterns = {
-    **COMMON,
-    "LICENSE_PLATE_FR": r"\b[A-Z]{2}-\d{3}-[A-Z]{2}\b",
-    "CUSTOM_ID": r"\bCUST-\d{6}\b",
-}
+detector = ChunkedDetector(
+    RegexDetector(GENERIC_PATTERNS),
+    splitter=RecursiveCharacterTextSplitter(chunk_size=40, chunk_overlap=10),
+)
+
+pipeline = AnonymizationPipeline(
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+)
+
+
+async def main():
+    text = (
+        "Filler text here. Reach alice@example.com now. "
+        "More filler padding words. Then bob@example.org later."
+    )
+    result = await pipeline.anonymize(text)
+    print(result.text)
+    # Filler text here. Reach <<EMAIL:1>> now. More filler padding words. Then <<EMAIL:2>> later.
+
+
+asyncio.run(main())
 ```
 
-See also [Extending PIIGhost](../extending.md) for creating fully custom detector classes.
+Leave `splitter=None` for a default `RecursiveCharacterTextSplitter` tuned for real documents. The reduced `chunk_size` above only forces several chunks in a short example.
+
+## Load catalogs from a config file
+
+If you drive the pipeline from a config file rather than from code, a regex detector accepts a `catalogs` key.
+
+```toml
+[detector]
+type = "regex"
+catalogs = ["generic", "fr"]
+```
+
+Catalogs merge first, then the inline `patterns`, so an inline pattern wins on a shared label. See the [TOML configuration](../configuration/toml.md).
+
+## See also
+
+- [De-identify a text and restore it](basic.md) for the full round-trip.
+- [Detectors reference](../reference/detectors.md) for the label catalog.
+- [Extending PIIGhost](../extending.md) to write your own detectors.

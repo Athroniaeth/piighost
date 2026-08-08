@@ -4,369 +4,431 @@ icon: lucide/layers
 
 # Architecture
 
-PIIGhost est organise en couches distinctes : un **anonymiseur stateless** au coeur, encapsule dans un **pipeline** avec cache et resolution d'entites, etendu par un **pipeline conversationnel** avec memoire, adapte au monde LangChain via un **middleware**.
+`piighost` suit une architecture hexagonale, aussi appelée ports et adaptateurs.
+Le coeur ne connaît que des contrats abstraits, les **ports**. Chaque implémentation
+concrète, un détecteur GLiNER2, un backend Redis, un middleware LangChain, est un
+**adaptateur** qui satisfait un port sans que le coeur ne le connaisse. Le pipeline
+de dé-identification s'assemble en injectant les adaptateurs voulus derrière les ports
+qu'il attend.
+
+!!! note "Dé-identification, pas anonymisation"
+    Par défaut `piighost` garde le lien entre une valeur et son token, pour pouvoir
+    restaurer la valeur. C'est de la dé-identification réversible, au sens du RGPD une
+    pseudonymisation, et non de l'anonymisation. Le terme anonymisation reste réservé à
+    une suppression irréversible, par exemple avec `RedactPlaceholderFactory`.
 
 ---
 
-## Vue d'ensemble
+## Les trois anneaux
+
+Le code se lit en trois anneaux, du plus abstrait au plus concret. Le sens des
+dépendances est fixé une fois pour toutes, un anneau extérieur importe un anneau
+intérieur, jamais l'inverse.
 
 ```mermaid
----
-title: "architecture en couches de piighost"
----
 flowchart TB
-    classDef hook fill:#BBDEFB,stroke:#1565C0,color:#000
-    classDef layer fill:#90CAF9,stroke:#1565C0,color:#000
     classDef core fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef protocol fill:#FFF9C4,stroke:#F9A825,color:#000
-    classDef ext fill:#E1BEE7,stroke:#6A1B9A,color:#000
+    classDef app fill:#90CAF9,stroke:#1565C0,color:#000
+    classDef adapter fill:#E1BEE7,stroke:#6A1B9A,color:#000
+    classDef config fill:#FFF9C4,stroke:#F9A825,color:#000
 
-    subgraph MW ["PIIAnonymizationMiddleware : couche LangChain"]
+    subgraph CONFIG ["Config, point de composition"]
         direction LR
-        HBEF["abefore_model"]:::hook
-        HAFT["aafter_model"]:::hook
-        HTOOL["awrap_tool_call"]:::hook
+        CFG["load_pipeline / load_thread_pipeline"]:::config
     end
 
-    subgraph THREAD ["ThreadAnonymizationPipeline : mémoire & ops string"]
+    subgraph ADAPTERS ["Adaptateurs, implémentations concrètes"]
         direction LR
-        MEM["ConversationMemory"]:::layer
-        DEANO_ENT["deanonymize_with_ent"]:::layer
-        ANON_ENT["anonymize_with_ent"]:::layer
+        A_DET["Gliner2Detector, RegexDetector…"]:::adapter
+        A_MEM["InMemoryConversationMemory, Redis…"]:::adapter
+        A_MW["PIIAnonymizationMiddleware"]:::adapter
     end
 
-    subgraph PIPE ["AnonymizationPipeline : cache & orchestration"]
+    subgraph APP ["Application, orchestration"]
         direction LR
-        DETECT_API["detect_entities"]:::core
-        ANON_API["anonymize"]:::core
-        DEANON_API["deanonymize"]:::core
+        P_BASE["BaseAnonymizationPipeline"]:::app
+        P_ONE["AnonymizationPipeline"]:::app
+        P_THREAD["ThreadAnonymizationPipeline"]:::app
     end
 
-    subgraph PROTO ["Protocoles composants : pipeline 5 étapes"]
+    subgraph CORE ["Coeur, ports et modèles"]
         direction LR
-        P_DETECT["AnyDetector"]:::protocol
-        P_SPANS["AnySpanConflictResolver"]:::protocol
-        P_LINK["AnyEntityLinker"]:::protocol
-        P_ENT["AnyEntityConflictResolver"]:::protocol
-        P_ANON["AnyAnonymizer"]:::protocol
-        P_DETECT --> P_SPANS --> P_LINK --> P_ENT --> P_ANON
+        PORTS["AnyDetector, AnyEntityLinker,\nAnyAnonymizer, AnyConversationMemory…"]:::core
+        MODELS["Detection, Entity, Span"]:::core
     end
 
-    CACHE[("aiocache")]:::ext
-    LLM(["Fournisseur LLM"]):::ext
-    TOOLS(["Outils de l'agent"]):::ext
-
-    HBEF --> MEM
-    HAFT --> DEANO_ENT
-    HTOOL --> ANON_ENT
-    HTOOL --> DEANO_ENT
-
-    MEM --> ANON_API
-    DEANO_ENT --> DEANON_API
-    ANON_ENT --> ANON_API
-
-    ANON_API --> P_DETECT
-    DETECT_API --> P_DETECT
-    ANON_API <--> CACHE
-    DEANON_API <--> CACHE
-
-    MW <--> LLM
-    MW <--> TOOLS
+    CONFIG --> ADAPTERS
+    CONFIG --> APP
+    ADAPTERS --> CORE
+    APP --> CORE
 ```
 
-*Architecture en couches : du protocole au middleware LangChain.*
+*Trois anneaux et le point de composition. Les dépendances pointent toujours vers le
+coeur.*
 { .figure-caption }
 
+- **Coeur.** Les modèles de données (`Detection`, `Entity`, `Span`, des dataclasses
+  gelées) et les ports. Aucune dépendance externe, pas de pydantic, pas d'I/O.
+- **Application.** L'orchestration du pipeline, qui ne dépend que des ports du coeur.
+  C'est là que vivent `anonymize`, `deanonymize` et `forget_thread`.
+- **Adaptateurs.** Les implémentations concrètes des ports, détecteurs, résolveurs,
+  factories, gardes-fous, backends de mémoire, observation, client HTTP, middleware.
+  Chaque adaptateur importe le coeur, jamais le contraire.
+- **Config.** Le point de composition. C'est le seul endroit autorisé à connaître à la
+  fois les ports et les adaptateurs concrets, pour les assembler.
+
 ---
 
-## Pipeline 5 etapes
+## Ports et templates
 
-!!! tip "Tout est remplaçable"
-    Chaque étape se trouve derrière un protocole. Voir [Étendre PIIGhost](extending.md) pour brancher votre propre détecteur, linker, résolveur ou factory.
+Un port est un `Protocol` Python marqué `runtime_checkable`, dans le `base.py` de
+chaque composant. Le typage y est **structurel**, un objet satisfait le port dès qu'il
+en a les méthodes, sans en hériter. Le pipeline dépend du port, jamais d'une classe
+concrète.
 
-Le coeur de PIIGhost est `AnonymizationPipeline` qui orchestre 5 etapes, chacune implementee par un protocole swappable.
+```python
+@runtime_checkable
+class AnyDetector(Protocol):
+    async def detect(self, text: str) -> list[Detection]: ...
+```
+
+Quand plusieurs adaptateurs d'un même port partagent un squelette, ce squelette vit
+dans une classe `Base*`, une classe abstraite qui applique le patron de méthode
+(Template Method). Le squelette est écrit une fois dans la classe de base, et chaque
+sous-classe ne fournit que le pas qui varie.
+
+```python
+class BaseEntityLinker(ABC):
+    def link(self, detections: list[Detection]) -> list[Entity]:
+        # squelette commun : grouper par clé
+        ...
+
+    @abstractmethod
+    def _key(self, detection: Detection) -> Hashable:
+        # seul pas variable, défini par la sous-classe
+        ...
+```
+
+Deux ports n'ont pas de template. Les gardes-fous et les backends de mémoire diffèrent
+par tout leur mécanisme, pas par un seul pas, donc rien de commun n'est à factoriser.
+C'est l'exception assumée à la règle du template systématique.
+
+---
+
+## Les étapes du pipeline
+
+`BaseAnonymizationPipeline` enchaîne les étapes de la détection au texte
+dé-identifié. Trois étapes sont obligatoires, la détection, le linking et
+l'anonymisation. Les autres sont optionnelles et se comportent en passe-plat quand
+elles ne sont pas fournies.
 
 ```mermaid
----
-title: "piighost AnonymizationPipeline.anonymize() flow"
----
 flowchart LR
-    classDef stage fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef protocol fill:#FFF9C4,stroke:#F9A825,color:#000
+    classDef req fill:#90CAF9,stroke:#1565C0,color:#000
+    classDef opt fill:#FFF9C4,stroke:#F9A825,color:#000
     classDef data fill:#A5D6A7,stroke:#2E7D32,color:#000
 
-    INPUT(["`**Texte source**
-    _'Patrick habite a Paris.
+    IN(["`**Texte source**
+    _'Patrick habite à Paris.
     Patrick aime Paris.'_`"]):::data
 
-    DETECT["`**1. Detect**
-    _AnyDetector_`"]:::stage
-    RESOLVE_SPANS["`**2. Resolve Spans**
-    _AnySpanConflictResolver_`"]:::stage
-    LINK["`**3. Link Entities**
-    _AnyEntityLinker_`"]:::stage
-    RESOLVE_ENTITIES["`**4. Resolve Entities**
-    _AnyEntityConflictResolver_`"]:::stage
-    ANONYMIZE["`**5. Anonymize**
-    _AnyAnonymizer_`"]:::stage
+    DET["`**Détecteur**
+    _AnyDetector_`"]:::req
+    OVR["`override
+    _AnyDetectionOverride_`"]:::opt
+    OVL["`résolveur de spans
+    _AnyOverlapResolver_`"]:::opt
+    EXP["`expander
+    _AnyDetectionExpander_`"]:::opt
+    LINK["`**Linker**
+    _AnyEntityLinker_`"]:::req
+    ENT["`résolveur d'entités
+    _AnyEntityResolver_`"]:::opt
+    ANON["`**Anonymiseur**
+    _AnyAnonymizer + factory_`"]:::req
+    GUARD["`garde-fou
+    _AnyGuardRail_`"]:::opt
 
-    OUTPUT(["`**Sortie**
-    _'<<PERSON:1>> habite a <<LOCATION:1>>.
+    OUT(["`**Sortie**
+    _'<<PERSON:1>> habite à <<LOCATION:1>>.
     <<PERSON:1>> aime <<LOCATION:1>>.'_`"]):::data
 
-    INPUT --> DETECT
-    DETECT -- "list[Detection]" --> RESOLVE_SPANS
-    RESOLVE_SPANS -- "dedupliquees" --> LINK
-    LINK -- "list[Entity]" --> RESOLVE_ENTITIES
-    RESOLVE_ENTITIES -- "fusionnees" --> ANONYMIZE
-    ANONYMIZE --> OUTPUT
-
-    P_DETECT["`GlinerDetector
-    _(ou RegexDetector, ExactMatchDetector, CompositeDetector…)_`"]:::protocol
-    P_RESOLVE_SPANS["`ConfidenceSpanConflictResolver
-    _(plus haute confiance gagne)_`"]:::protocol
-    P_LINK["`ExactEntityLinker
-    _(regex word-boundary)_`"]:::protocol
-    P_RESOLVE_ENTITIES["`MergeEntityConflictResolver
-    _(fusion union-find)_`"]:::protocol
-    P_ANONYMIZE["`Anonymizer + LabelCounterPlaceholderFactory
-    _(tags <<LABEL:N>>)_`"]:::protocol
-
-    P_DETECT -. "implemente" .-> DETECT
-    P_RESOLVE_SPANS -. "implemente" .-> RESOLVE_SPANS
-    P_LINK -. "implemente" .-> LINK
-    P_RESOLVE_ENTITIES -. "implemente" .-> RESOLVE_ENTITIES
-    P_ANONYMIZE -. "implemente" .-> ANONYMIZE
+    IN --> DET --> OVR --> OVL --> EXP --> LINK --> ENT --> ANON --> GUARD --> OUT
 ```
 
-### Etape 1 Detect
+*Le pipeline, étapes obligatoires en bleu, étapes optionnelles en jaune.*
+{ .figure-caption }
 
-`AnyDetector` execute la detection async sur le texte source et retourne une liste d'objets `Detection` (text, label, position, confidence).
+Le détail de pourquoi chaque étape existe et dans quel ordre est traité dans
+[Conception du pipeline](conception.md). Voici le rôle et l'adaptateur par défaut de
+chacune.
 
-Les implementations fournies incluent `ExactMatchDetector` (regex word-boundary), `RegexDetector` (patterns), `Gliner2Detector` (NER), et `CompositeDetector` (chaine plusieurs detecteurs).
+<div class="wide-table" markdown="1">
 
-**Exemple :**
+| Étape | Port | Adaptateur fourni | Rôle |
+|---|---|---|---|
+| Détecteur | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Trouve les PII, renvoie des `Detection` positionnées et typées. |
+| Résolveur de spans | `AnyOverlapResolver` | `ConfidenceOverlapResolver` | Arbitre les détections qui se chevauchent, garde la plus confiante. |
+| Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Rattrape les occurrences ratées d'une valeur déjà détectée. |
+| Linker | `AnyEntityLinker` | `ExactEntityLinker` | Regroupe les détections d'une même valeur en une `Entity`. |
+| Résolveur d'entités | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Réconcilie les entités qui partagent une détection. |
+| Anonymiseur | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Remplace chaque entité par son token. |
+| Garde-fou | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-vérifie la sortie, lève `PIIRemainingError` sur PII résiduelle. |
 
-```text
-Texte : "Patrick habite a Paris."
+</div>
 
-Détections :
-  - PERSON   "Patrick"  [0:7]   confidence=0.95
-  - LOCATION "Paris"    [17:22] confidence=0.92
-```
-
-A ce stade, on a une liste brute de detections. Pas encore d'anonymisation ni de gestion de doublons : juste « voici ce qui ressemble a des PII et ou elles sont ».
-
-### Etape 2 Resolve Spans
-
-**Le probleme.** Quand on chaine plusieurs detecteurs sur le meme texte, ils peuvent revendiquer le meme morceau avec des labels differents. Sans arbitrage, le remplacement final tape deux fois sur la meme position et casse le texte.
-
-`AnySpanConflictResolver` gere les detections qui se chevauchent (totalement ou partiellement) en gardant celle avec la plus haute confiance.
-
-**Exemple :**
-
-```text
-Texte : "Patrick travaille chez Orange depuis 2015."
-
-Détections en entrée :
-  - PERSON "Patrick" [0:7] confidence=0.95   (NER A)
-  - ORG    "Patrick" [0:7] confidence=0.60   (NER B, confond avec un nom d'entreprise)
-
-Après ConfidenceSpanConflictResolver :
-  - PERSON "Patrick" [0:7] confidence=0.95
-```
-
-### Etape 3 Link Entities
-
-**Le probleme.** Le NER rate des occurrences. Il trouve `Patrick Dupont` dans la phrase 1, mais rate `Patrick` tout seul dans la phrase 3. Si on s'arrete a la detection brute, `Patrick` reste en clair dans le texte anonymise.
-
-`AnyEntityLinker` etend et groupe les detections en objets `Entity`. `ExactEntityLinker` cherche toutes les occurrences de chaque texte detecte par recherche word-boundary, puis les groupe par texte normalise.
-
-**Exemple :**
-
-```text
-Texte : "Patrick Dupont habite à Paris. Patrick adore Paris."
-
-Détections brutes du NER :
-  - PERSON   "Patrick Dupont"  (phrase 1)
-  - LOCATION "Paris"            (phrase 1)
-  # "Patrick" et "Paris" de la phrase 2 ont été ratés par le NER
-
-Après ExactEntityLinker :
-  - Entity(label=PERSON,   detections=["Patrick Dupont", "Patrick"])
-  - Entity(label=LOCATION, detections=["Paris", "Paris"])
-```
-
-Le matching est strict sur la chaine. Pour rattraper les variantes de casse ou les fautes (`patrick`, `Patriick`), il faut un linker fuzzy custom (voir [Etendre PIIGhost](extending.md)).
-
-### Etape 4 Resolve Entities
-
-**Le probleme.** Apres le linker, deux entites distinctes peuvent referer a la meme personne (le NER detecte `Patrick Dupont`, un dictionnaire metier detecte `Patrick` tout seul). Sans fusion, `Patrick Dupont` devient `<<PERSON:1>>` et `Patrick` devient `<<PERSON:2>>`, et le LLM pense qu'il s'agit de deux personnes differentes.
-
-`AnyEntityConflictResolver` fusionne ces entites. `MergeEntityConflictResolver` utilise un algorithme union-find pour fusionner les entites partageant des detections communes (matching strict). `FuzzyEntityConflictResolver` fusionne les entites avec un texte canonique similaire via similarite Jaro-Winkler (plus tolerant, faux positifs plus eleves).
-
-**Exemple :**
-
-```text
-Avant fusion :
-  - Entity(label=PERSON, detections=["Patrick Dupont"])
-  - Entity(label=PERSON, detections=["Patrick"])
-  # Les deux entités partagent une détection sur la chaîne "Patrick"
-
-Après MergeEntityConflictResolver :
-  - Entity(label=PERSON, detections=["Patrick Dupont", "Patrick"])
-```
-
-### Etape 5 Anonymize
-
-`AnyAnonymizer` utilise un `AnyPlaceholderFactory` pour generer un placeholder unique par entite, puis remplace les spans dans le texte de droite a gauche (pour ne pas decaler les positions des spans suivants).
-
-**Exemple :**
-
-```text
-Entrée : "Patrick Dupont habite à Paris. Patrick adore Paris."
-
-Après Anonymizer + LabelCounterPlaceholderFactory :
-  "<<PERSON:1>> habite à <<LOCATION:1>>. <<PERSON:1>> adore <<LOCATION:1>>."
-```
-
-Le format `<<LABEL:N>>`{ .placeholder } par defaut a quatre proprietes utiles : il est unique comme token, le LLM voit immediatement de quel type de PII il s'agit, il n'est pas ambigu dans du texte normal, et il distingue plusieurs personnes entre elles (contrairement a `<<PERSON>>` tout court). Pour les autres formats disponibles (hash, faker, mask), voir [Placeholder Factories](placeholder-factories.md).
+L'override (`AnyDetectionOverride`, adaptateur `DetectionOverride`) est un composant
+serveur optionnel. Il applique une liste blanche et une liste noire à chaque jeu de
+détections, juste après la détection, avant la résolution des spans.
 
 ---
 
-## Recapitulatif des composants
+## Le composant placeholder et ses tags de préservation
 
-| Etape | Protocole | Defaut | Passe-plat | Quand l'utiliser |
-|-------|-----------|--------|------------|------------------|
-| 1. Detect | `AnyDetector` | `Gliner2Detector` | — (toujours requis) | Detection NER, regex, exact match, ou composite. Voir [Detecteurs](examples/detectors.md). |
-| 2. Resolve Spans | `AnySpanConflictResolver` | `ConfidenceSpanConflictResolver` | `DisabledSpanConflictResolver` | Garde la detection la plus confiante en cas de chevauchement. Desactiver si vos detections sont deja propres. |
-| 3. Link Entities | `AnyEntityLinker` | `ExactEntityLinker` | `DisabledEntityLinker` | Rattrape les occurrences ratees par le detecteur via word-boundary. Desactiver si vous voulez vous limiter aux detections brutes. |
-| 4. Resolve Entities | `AnyEntityConflictResolver` | `MergeEntityConflictResolver` | `DisabledEntityConflictResolver` | Fusionne les entites distinctes referant a la meme PII. `FuzzyEntityConflictResolver` (Jaro-Winkler) tolere les fautes mais augmente le risque de faux positifs. |
-| 5. Anonymize | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | — (toujours requis) | Le choix du `PlaceholderFactory` pilote le format de sortie. Voir [Placeholder Factories](placeholder-factories.md). |
-
-Chaque variante `Disabled*` est un passe-plat strict (entree = sortie). Utile en test, ou pour brancher un pipeline minimal qui se contente d'un detecteur deja parfait. Voir [Etendre PIIGhost](extending.md) pour brancher votre propre implementation.
-
----
-
-## Flux middleware LangChain
-
-Le `PIIAnonymizationMiddleware` intercepte le cycle de l'agent a 3 points cles.
+L'anonymiseur délègue la forme du token à une **placeholder factory**
+(`AnyPlaceholderFactory`). Ce qui change entre deux factories, c'est **ce que le token
+préserve** de la valeur d'origine.
 
 ```mermaid
+classDiagram
+    class PlaceholderPreservation {
+        racine
+    }
+    class PreservesNothing {
+        &lt;&lt;REDACT&gt;&gt;
+    }
+    class PreservesLabel {
+        &lt;&lt;PERSON&gt;&gt;
+    }
+    class PreservesShape {
+        j***@mail.com
+    }
+    class PreservesLabeledIdentity {
+        &lt;&lt;PERSON:1&gt;&gt;
+    }
+
+    PlaceholderPreservation <|-- PreservesNothing
+    PlaceholderPreservation <|-- PreservesLabel
+    PlaceholderPreservation <|-- PreservesIdentity
+    PreservesLabel <|-- PreservesShape
+    PreservesLabel <|-- PreservesLabeledIdentity
+    PreservesIdentity <|-- PreservesLabeledIdentity
+```
+
+*Les tags de préservation, du token qui ne garde rien à celui qui identifie chaque
+entité.*
+{ .figure-caption }
+
+Chaque tag est une sous-classe de `str`, donc un token est une vraie chaîne qui porte
+son niveau de préservation dans son propre type. Ces tags sont des types fantômes, ils
+n'existent que pour le vérificateur de types. Le middleware exige un tag qui préserve
+l'identité (`PreservesRecognizableIdentity`), donc brancher une factory `<<PERSON>>`
+sur le middleware est une erreur détectée à la vérification de types, pas une surprise
+à l'exécution.
+
+Les factories fournies vont du moins au plus informatif. `RedactPlaceholderFactory`
+émet `<<REDACT>>`{ .placeholder }, `LabelPlaceholderFactory` émet
+`<<PERSON>>`{ .placeholder }, `LabelCounterPlaceholderFactory` émet
+`<<PERSON:1>>`{ .placeholder }, `LabelHashPlaceholderFactory` émet
+`<<PERSON:a1b2c3d4>>`{ .placeholder }, `MaskPlaceholderFactory` émet
+`j***@mail.com`{ .placeholder }. Le détail est dans
+[Placeholder factories](placeholder-factories.md).
+
 ---
-title: "piighost PIIAnonymizationMiddleware dans la boucle agent"
+
+## Le pipeline mono-texte
+
+`AnonymizationPipeline` traite un texte isolé. Il détecte, applique les étapes
+optionnelles présentes, groupe en entités, anonymise, puis passe la sortie au
+garde-fou. Sa méthode `deanonymize` reçoit le mapping token vers entité produit par
+`anonymize` et restaure les valeurs.
+
+```python
+from piighost.pipeline import AnonymizationPipeline
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
+
+pipeline = AnonymizationPipeline(
+    detector=ExactMatchDetector({"Patrick": "PERSON"}),
+    linker=ExactEntityLinker(),
+    anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+)
+result = await pipeline.anonymize("Patrick habite à Paris.")
+# result.text   -> "<<PERSON:1>> habite à Paris."
+# result.tokens -> {Entity("Patrick"): "<<PERSON:1>>"}
+restored = pipeline.deanonymize(result.text, result.tokens)
+# restored -> "Patrick habite à Paris."
+```
+
+Le constructeur ne prend que le détecteur, le linker et l'anonymiseur en obligatoire.
+Les étapes optionnelles arrivent en argument nommé.
+
+```python
+AnonymizationPipeline(
+    detector,
+    linker,
+    anonymizer,
+    overlap_resolver=None,   # AnyOverlapResolver
+    expander=None,           # AnyDetectionExpander
+    entity_resolver=None,    # AnyEntityResolver
+    guard=None,              # AnyGuardRail
+    override=None,           # AnyDetectionOverride
+)
+```
+
 ---
+
+## Le pipeline conversationnel
+
+`ThreadAnonymizationPipeline` partage le même socle mais ajoute une **mémoire de
+conversation** (`AnyConversationMemory`), passée en argument obligatoire. Un agent
+enchaîne des messages, et le même `Patrick`{ .pii } doit garder le même
+`<<PERSON:1>>`{ .placeholder } du premier au dernier.
+
+Les tokens sont attribués sur **l'union des détections de tous les messages** du
+thread, pas sur un message seul. Une valeur revue plus tard retrouve donc son token au
+lieu d'en créer un nouveau. Le rendu, lui, reste par message, seuls les spans du
+message courant sont remplacés, car les détections de messages différents ne partagent
+pas le même espace d'offsets.
+
+```python
+result = await thread_pipeline.anonymize(text, thread_id="t-42")
+restored = await thread_pipeline.deanonymize(reply, thread_id="t-42")
+dropped = await thread_pipeline.forget_thread("t-42")
+```
+
+- Le `thread_id` est **obligatoire**, il n'y a pas de thread partagé par défaut, donc
+  deux appelants ne peuvent pas tomber dans le même thread et fuiter leurs PII.
+- `deanonymize` reconstruit les tokens du thread depuis la mémoire, donc **n'importe
+  quel** texte porteur de ces tokens est restauré, y compris une réponse du modèle que
+  le pipeline n'a jamais anonymisée.
+- `forget_thread` efface toute la mémoire d'un thread et rend le compte de ce qui a été
+  supprimé, pour le droit à l'oubli.
+
+### La provenance des valeurs
+
+Une valeur dont la première occurrence dans le thread vient d'un message du modèle
+n'est pas de la PII utilisateur. La tokeniser priverait le modèle de sa connaissance du
+monde. La mémoire enregistre donc le **rôle** de la première occurrence de chaque
+valeur (`MessageRole.USER` ou `MessageRole.ASSISTANT`), et le pipeline laisse en clair
+les valeurs introduites par l'assistant.
+
+---
+
+## La mémoire de conversation et le chiffrement
+
+La mémoire est un **repository**, un port `AnyConversationMemory` avec deux
+adaptateurs.
+
+- `InMemoryConversationMemory` garde tout dans un dictionnaire du processus. Simple,
+  suffisant pour un seul worker.
+- `RedisConversationMemory` persiste dans Redis, pour un déploiement multi-worker où
+  chaque worker doit voir les threads des autres.
+
+Le backend Redis stocke de la PII en clair par nature, le mapping inverse. Deux
+composants **crypto** le protègent. Un `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`)
+transforme chaque message en clé déterministe sans révéler le texte. Un `AnyCipher`
+(`AesGcmCipher`) chiffre les détections au repos, de sorte qu'une fuite de la base ne
+révèle ni le message ni la PII. Le `thread_id` reste en clair comme préfixe de clé,
+pour qu'un thread puisse être énuméré et oublié.
+
+---
+
+## Le middleware LangChain
+
+`PIIAnonymizationMiddleware` branche le pipeline conversationnel dans une boucle
+d'agent LangChain. Il ne contient aucune logique de dé-identification, il délègue tout
+au pipeline. C'est un adaptateur entre le monde LangChain et le coeur.
+
+```mermaid
 sequenceDiagram
     participant U as Utilisateur
     participant M as Middleware
     participant L as LLM
     participant T as Outil
 
-    U->>M: "Envoie un email a Patrick a Paris"
-    M->>M: abefore_model()<br/>NER detect + anonymise
-    M->>L: "Envoie un email a <<PERSON:1>> a <<LOCATION:1>>"
+    U->>M: "Envoie un email à Patrick à Paris"
+    M->>M: abefore_model, dé-identifie
+    M->>L: "Envoie un email à <<PERSON:1>> à <<LOCATION:1>>"
     L->>M: tool_call(send_email, to=<<PERSON:1>>)
-    M->>M: awrap_tool_call()<br/>desanonymise les args
+    M->>M: awrap_tool_call, restaure les arguments
     M->>T: send_email(to="Patrick")
-    T->>M: "Email envoye a Patrick"
-    M->>M: awrap_tool_call()<br/>reanonymise le resultat
-    M->>L: "Email envoye a <<PERSON:1>>"
-    L->>M: "C'est fait ! Email envoye a <<PERSON:1>>."
-    M->>M: aafter_model()<br/>desanonymise pour l'utilisateur
-    M->>U: "C'est fait ! Email envoye a Patrick."
+    T->>M: "Email envoyé à Patrick"
+    M->>M: awrap_tool_call, ré-identifie le résultat
+    M->>L: "Email envoyé à <<PERSON:1>>"
+    L->>M: "C'est fait, email envoyé à <<PERSON:1>>."
+    M->>M: aafter_model, restaure pour l'utilisateur
+    M->>U: "C'est fait, email envoyé à Patrick."
 ```
 
-### `abefore_model`
-
-Avant chaque appel LLM : execute `pipeline.anonymize()` sur tous les messages. Detection NER complete sur `HumanMessage`, reanonymisation sur `AIMessage` / `ToolMessage`.
-
-### `aafter_model`
-
-Apres chaque reponse LLM : desanonymise tous les messages. Essaie d'abord `pipeline.deanonymize()` (cache), puis `pipeline.deanonymize_with_ent()` (entites) en cas de `CacheMissError`.
-
-### `awrap_tool_call`
-
-Enveloppe chaque appel d'outil :
-
-1. Desanonymise les arguments `str` avant l'execution → l'outil recoit les vraies valeurs
-2. Execute l'outil
-3. Reanonymise la reponse de l'outil → le LLM ne voit pas de vraies donnees
-
----
-
-## Couche conversation `ThreadAnonymizationPipeline`
-
-`ThreadAnonymizationPipeline` étend `AnonymizationPipeline` avec :
-
-| Mecanisme | Description |
-|-----------|-------------|
-| **`ConversationMemory`** | Accumule les entites entre les messages, dedupliquees par `(text.lower(), label)` |
-| **`deanonymize_with_ent()`** | Remplacement de chaine : tokens → valeurs originales (plus long d'abord) |
-| **`anonymize_with_ent()`** | Remplacement de chaine : valeurs originales → tokens (plus long d'abord) |
-
-### Cycle de vie d'une PII
-
-Du point de vue d'une PII donnée, voici les états qu'elle traverse entre sa détection initiale et son affichage à l'utilisateur final, et les transitions possibles (premier passage, cache hit, désanonymisation).
-
-```mermaid
-flowchart TB
-    classDef state fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef cache fill:#FFF9C4,stroke:#F9A825,color:#000
-    classDef terminal fill:#E1BEE7,stroke:#6A1B9A,color:#000
-
-    START([Texte brut]):::terminal
-    DET[Détectée]:::state
-    VAL[Validée]:::state
-    LINK[Groupée en Entity]:::state
-    MERGE[Consolidée]:::state
-    ANON[Anonymisée]:::state
-    CACHE[("En cache
-    _thread_id scope_")]:::cache
-    REST[Restaurée]:::state
-    END([Texte restauré]):::terminal
-
-    START -->|AnyDetector NER / regex| DET
-    DET -->|Resolve Spans| VAL
-    VAL -->|Link Entities| LINK
-    LINK -->|Resolve Entities| MERGE
-    MERGE -->|placeholder factory| ANON
-    ANON -->|store SHA-256 key| CACHE
-    CACHE -.->|cache hit même thread| ANON
-    ANON -->|deanonymize| REST
-    REST --> END
-```
-
-*Cycle de vie d'une PII au fil du pipeline et du cache de conversation.*
+*Le middleware intercepte la boucle d'agent en trois points.*
 { .figure-caption }
 
-La mémoire (`ConversationMemory`) partage le mapping d'une entité sur toute la conversation identifiée par un `thread_id`. Un second message contenant la même PII saute directement à l'état `Anonymisée` via le cache, sans repasser par le détecteur NER.
+- `abefore_model` dé-identifie les messages avant que le LLM ne les voie.
+- `aafter_model` restaure la sortie du modèle pour l'affichage utilisateur.
+- `awrap_tool_call` traite l'appel d'outil selon la stratégie choisie
+  (`ToolCallStrategy`), en restaurant les arguments pour que l'outil reçoive de vraies
+  données, puis en ré-identifiant sa réponse.
+
+Le middleware exige au type une factory qui préserve l'identité. Il reconnaît aussi les
+tokens que le modèle **invente** (`InventedPlaceholderStrategy`), car après restauration
+tout token qui suit encore la grammaire des placeholders n'a pas été émis par le
+pipeline. Le détail des stratégies d'outil est dans
+[Stratégies d'appel outil](tool-call-strategies.md).
 
 ---
 
-## Modeles de donnees
+## L'observation
 
-Tous les modeles sont des **dataclasses gelees** (immutables, thread-safe) :
-
-| Modele | Champs cles |
-|--------|-------------|
-| `Detection` | `text`, `label`, `position: Span`, `confidence` |
-| `Entity` | `detections: tuple[Detection, ...]`, `label` (propriete) |
-| `Span` | `start_pos`, `end_pos`, `overlaps()` |
+`piighost` émet une trace par étape du pipeline à travers un port
+(`AnyObservationTracer`), une couture au-dessus d'OpenTelemetry. Sans backend configuré,
+une implémentation no-op ne trace rien et ne coûte rien, donc le pipeline peut toujours
+émettre sans vérifier si le traçage est actif. Un `observation_redactor` optionnel
+remplace les valeurs des traces par des tokens, pour un backend qui n'a pas le droit de
+voir la PII.
 
 ---
 
-## Injection de dependances
+## La config, point de composition
 
-Chaque etape utilise un **protocole** (typage structurel Python) comme point d'injection :
+Un fichier TOML ou JSON décrit tout le pipeline. Le sous-système config le lit avec
+pydantic-settings et le convertit en modèles de config, des unions discriminées où
+chaque type de composant porte une méthode `build()`. Assembler le pipeline revient à
+appeler `build()` sur chaque modèle.
 
 ```python
-AnonymizationPipeline(
-    detector=GlinerDetector(...),                    # AnyDetector
-    span_resolver=ConfidenceSpanConflictResolver(),  # AnySpanConflictResolver
-    entity_linker=ExactEntityLinker(),               # AnyEntityLinker
-    entity_resolver=MergeEntityConflictResolver(),   # AnyEntityConflictResolver
-    anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),  # AnyAnonymizer
-)
+from piighost.config import load_pipeline, load_thread_pipeline
+
+pipeline = load_pipeline("piighost.toml")
+thread_pipeline = load_thread_pipeline("piighost.toml")
 ```
 
-Pour remplacer un composant, il suffit de fournir un objet implementant le protocole correspondant. Voir [Etendre PIIGhost](extending.md).
+Le couplage est à sens unique, la config dépend du coeur et des adaptateurs, le coeur
+n'importe jamais la config. Ajouter un composant, c'est écrire un adaptateur, un modèle
+de config avec `build()`, et rien d'autre. Le pipeline ne change pas.
+
+---
+
+## Modèles de données
+
+Tous les modèles du coeur sont des **dataclasses gelées**, immuables donc partageables
+entre coroutines sans risque.
+
+| Modèle | Champs clés |
+|---|---|
+| `Detection` | `text`, `label`, `span: Span`, `confidence` |
+| `Entity` | `detections: tuple[Detection, ...]`, `label` et `text` en propriété |
+| `Span` | `start`, `end`, `overlaps()`, `extract()` |
+
+---
+
+## Voir aussi
+
+- [Conception du pipeline](conception.md), pourquoi chaque étape existe et dans quel
+  ordre
+- [Placeholder factories](placeholder-factories.md), les familles de tokens et ce
+  qu'elles préservent
+- [Stratégies d'appel outil](tool-call-strategies.md), le détail de `awrap_tool_call`
+- [Étendre PIIGhost](extending.md), brancher son propre adaptateur derrière un port

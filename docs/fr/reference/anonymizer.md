@@ -2,15 +2,37 @@
 icon: lucide/scan-text
 ---
 
-# Reference Anonymizer
+# Référence Anonymizer
 
-Module : `piighost.anonymizer`
+Module : `piighost.components.anonymizer`
+
+L'anonymizer est l'étage de rendu d'un pipeline. Il prend les entités liées et le texte source, demande à une placeholder factory un token par entité, et réécrit le texte pour que chaque occurrence d'une entité devienne son token. Il inverse aussi la correspondance pour restaurer l'original.
+
+---
+
+## `Anonymization`
+
+Le résultat de la dé-identification d'un texte. Le texte réécrit associé au token qui a remplacé chaque entité. Un dataclass gelé.
+
+```python
+@dataclass(frozen=True, slots=True)
+class Anonymization(Generic[PreservationT_co]):
+    text: str
+    tokens: Mapping[Entity, PreservationT_co]
+```
+
+| Attribut | Type | Description |
+|----------|------|-------------|
+| `text` | `str` | Le texte avec chaque occurrence d'entité remplacée par son token |
+| `tokens` | `Mapping[Entity, str]` | Le token qui a remplacé chaque entité |
+
+La correspondance est typée par ce que la factory préserve, donc un appelant peut l'inverser pour désanonymiser seulement quand les tokens préservent l'identité.
 
 ---
 
 ## `Anonymizer`
 
-Effectue le remplacement de texte par spans en utilisant une placeholder factory. Classe **stateless** aucun etat interne entre les appels.
+Remplace les spans de chaque entité par le token qu'une factory lui assigne. Il édite les spans de gauche à droite en une passe, ce qui reste correct car les étages en amont les laissent sans chevauchement, donc aucune édition ne décale un offset dont une autre a encore besoin. Sans état. Rien n'est retenu d'un appel à l'autre.
 
 ### Constructeur
 
@@ -18,193 +40,107 @@ Effectue le remplacement de texte par spans en utilisant une placeholder factory
 Anonymizer(ph_factory: AnyPlaceholderFactory)
 ```
 
-| Parametre | Type | Description |
+| Paramètre | Type | Description |
 |-----------|------|-------------|
-| `ph_factory` | `AnyPlaceholderFactory` | Factory de placeholders pour la generation de tokens (requis) |
+| `ph_factory` | `AnyPlaceholderFactory` | La placeholder factory qui assigne un token à chaque entité (requis) |
 
-### Methodes
+La factory est exposée ensuite via la propriété `factory`.
 
-#### `anonymize(text, entities) -> str`
+### Méthodes
 
-Remplace chaque detection dans `text` par le token de son entite. Les remplacements sont appliques de droite a gauche.
+#### `anonymize(text, entities) -> Anonymization`
+
+Assigne un token à chaque entité, rend le texte contre ces tokens, et renvoie les deux dans une `Anonymization`.
 
 ```python
-from piighost.anonymizer import Anonymizer
-from piighost.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.models import Detection, Entity, Span
 
 anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
 
 entity = Entity(detections=(
-    Detection(text="Patrick", label="PERSON", position=Span(0, 7), confidence=0.9),
+    Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9),
 ))
 
-result = anonymizer.anonymize("Patrick est gentil", [entity])
-# '<<PERSON:1>> est gentil'
+result = anonymizer.anonymize("Patrick is nice", [entity])
+# result.text == "<<PERSON:1>> is nice"
+# result.tokens == {entity: "<<PERSON:1>>"}
 ```
 
-#### `deanonymize(anonymized_text, entities) -> str`
+#### `create(entities) -> Mapping[Entity, str]`
 
-Restaure le texte original en remplacant les tokens par les textes de detection originaux.
+Renvoie le token que chaque entité obtient, sans toucher au texte. Séparer l'assignation des tokens du rendu permet à un appelant d'assigner les tokens sur un ensemble d'entités, comme toute une conversation, puis de rendre plusieurs textes contre ces mêmes tokens.
 
 ```python
-original = anonymizer.deanonymize("<<PERSON:1>> est gentil", [entity])
-# 'Patrick est gentil'
+tokens = anonymizer.create([entity])
+# {entity: "<<PERSON:1>>"}
+```
+
+#### `render(text, entities, tokens) -> str`
+
+Renvoie `text` avec les spans de chaque entité remplacés par le token donné. Utilisé par le pipeline de thread pour rendre un message contre des tokens assignés sur tout le thread.
+
+```python
+rendered = anonymizer.render("Patrick is nice", [entity], tokens)
+# "<<PERSON:1>> is nice"
+```
+
+#### `deanonymize(text, tokens) -> str`
+
+Renvoie le texte avec chaque token connu remplacé par la valeur de son entité, en lisant la correspondance à l'envers. Tout texte portant ces tokens est restauré, y compris un texte que le pipeline n'a jamais produit. Les tokens absents de la correspondance sont laissés intacts.
+
+La restauration n'est sans ambiguïté que si les tokens préservent l'identité, car deux entités partageant un même token se confondent en une seule valeur.
+
+```python
+original = anonymizer.deanonymize("<<PERSON:1>> is nice", result.tokens)
+# "Patrick is nice"
 ```
 
 ---
 
-## Detecteurs
+## `AnyAnonymizer` (protocole)
 
-Module : `piighost.detector`
-
-### `AnyDetector` (Protocole)
-
-Interface pour tous les detecteurs d'entites. Tous les detecteurs sont **async**.
+Le port que tout anonymizer implémente. Générique sur ce que ses tokens préservent, donc un consommateur comme le middleware peut exiger un anonymizer dont les tokens préservent l'identité et rejeter celui dont les tokens ne la préservent pas, à la vérification de types.
 
 ```python
-class AnyDetector(Protocol):
-    async def detect(self, text: str) -> list[Detection]: ...
-```
+class AnyAnonymizer(Protocol[PreservationT_co]):
+    @property
+    def factory(self) -> AnyPlaceholderFactory[PreservationT_co]: ...
 
-### `GlinerDetector`
+    def anonymize(
+        self, text: str, entities: list[Entity]
+    ) -> Anonymization[PreservationT_co]: ...
 
-Implementation utilisant le modele **GLiNER2**.
+    def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT_co]: ...
 
-```python
-GlinerDetector(
-    model: GLiNER2,
-    labels: list[str],
-    threshold: float = 0.5,
-    flat_ner: bool = True,
-)
-```
+    def render(
+        self, text: str, entities: list[Entity], tokens: Mapping[Entity, str]
+    ) -> str: ...
 
-| Parametre | Type | Defaut | Description |
-|-----------|------|--------|-------------|
-| `model` | `GLiNER2` | | Instance du modele GLiNER2 (requis) |
-| `labels` | `list[str]` | | Types d'entites a detecter (requis) |
-| `threshold` | `float` | `0.5` | Score de confiance minimum (0.0–1.0) |
-| `flat_ner` | `bool` | `True` | Mode NER sans entites imbriquees |
-
-### `ExactMatchDetector`
-
-Detection par correspondance exacte de mots avec regex word-boundary. Utile pour les tests.
-
-```python
-ExactMatchDetector(
-    bag_of_words: list[tuple[str, str]],
-    flags: re.RegexFlag = re.IGNORECASE,
-)
-```
-
-### `RegexDetector`
-
-Detection par patterns regex, un pattern par label.
-
-```python
-RegexDetector(patterns: dict[str, str])
-```
-
-### `CompositeDetector`
-
-Chaine plusieurs detecteurs et fusionne leurs resultats.
-
-```python
-CompositeDetector(detectors: list[AnyDetector])
+    def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str: ...
 ```
 
 ---
 
-## Placeholder Factories
+## `BaseAnonymizer`
 
-Module : `piighost.placeholder`
-
-### `AnyPlaceholderFactory` (Protocole)
+Le template que `Anonymizer` étend. Il tient les étapes partagées. Demander à la factory un token par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie, la règle qui réécrit le texte à partir des entités et de leurs tokens.
 
 ```python
-class AnyPlaceholderFactory(Protocol):
-    def create(self, entities: list[Entity]) -> dict[Entity, str]: ...
-```
+class BaseAnonymizer(ABC, Generic[PreservationT]):
+    def __init__(self, ph_factory: AnyPlaceholderFactory[PreservationT]) -> None: ...
 
-### `LabelCounterPlaceholderFactory`
-
-Tags sequentiels `<<LABEL:N>>`.
-
-```python
-factory = LabelCounterPlaceholderFactory()
-tokens = factory.create([person, location])
-# {person: '<<PERSON:1>>', location: '<<LOCATION:1>>'}
-```
-
-### `LabelHashPlaceholderFactory`
-
-Tags opaques deterministes bases sur SHA-256.
-
-```python
-factory = LabelHashPlaceholderFactory(hash_length=8)
-tokens = factory.create([person])
-# {person: '<<PERSON:a1b2c3d4>>'}
-```
-
-### `LabelPlaceholderFactory`
-
-Toutes les entites du meme label partagent le meme token `<<LABEL>>`.
-
-```python
-factory = LabelPlaceholderFactory()
-tokens = factory.create([person, location])
-# {person: '<<PERSON>>', location: '<<LOCATION>>'}
+    @abstractmethod
+    def render(
+        self, text: str, entities: list[Entity], tokens: Mapping[Entity, str]
+    ) -> str: ...
 ```
 
 ---
 
-## Modeles de donnees
+## Voir aussi
 
-Module : `piighost.models`
-
-### `Detection`
-
-Resultat de detection NER.
-
-```python
-@dataclass(frozen=True)
-class Detection:
-    text: str           # Forme de surface : "Patrick"
-    label: str          # Type d'entite : "PERSON"
-    position: Span      # Position dans le texte
-    confidence: float   # Score (0.0–1.0)
-```
-
-### `Entity`
-
-Groupe de detections referant au meme PII.
-
-```python
-@dataclass(frozen=True)
-class Entity:
-    detections: tuple[Detection, ...]
-    # label: str (propriete, depuis la premiere detection)
-```
-
-### `Span`
-
-Position dans le texte source.
-
-```python
-@dataclass(frozen=True)
-class Span:
-    start_pos: int   # Index de debut (inclus)
-    end_pos: int     # Index de fin (exclus)
-    # overlaps(other: Span) -> bool
-```
-
----
-
-## Exceptions
-
-Module : `piighost.exceptions`
-
-### `CacheMissError`
-
-Levee quand une recherche en cache ne trouve pas d'entree. Utilisee par le middleware pour basculer de `pipeline.deanonymize()` vers `pipeline.deanonymize_with_ent()`.
+- [Référence Pipeline](pipeline.md) pour le pipeline qui pilote l'anonymizer.
+- [Placeholder factories](../placeholder-factories.md) pour les tokens que l'anonymizer émet.
+- [Étendre PIIGhost](../extending.md) pour écrire son propre anonymizer.

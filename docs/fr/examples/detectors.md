@@ -5,143 +5,177 @@ tags:
   - Regex
 ---
 
-# Utiliser les détecteurs prêts à l'emploi
+# Comment utiliser les catalogues de patterns et combiner des détecteurs
 
-`piighost` fournit des ensembles de patterns regex prêts à l'emploi pour les PII les plus courants : emails, IPs, URLs, clés d'API, numéros de téléphone, SSN, IBAN... Vous pouvez les utiliser tels quels, les combiner entre eux ou les étendre avec vos propres patterns.
+`piighost` fournit des catalogues de patterns regex prêts à l'emploi pour les PII à structure fixe (email, IP, IBAN, téléphone). Ce guide montre comment les charger, les fusionner et combiner plusieurs détecteurs, avec le seul cœur de `piighost`.
 
-Cette page en détaille les recettes d'usage. Pour le catalogue complet des labels disponibles (Communs, US, Europe), voir [Référence Détecteurs prêts à l'emploi](../reference/detectors.md).
-
----
-
-## Une seule région
+Les quatre catalogues sont de simples dictionnaires `label` vers `pattern`.
 
 ```python
-from examples.detectors.common import create_detector
+from piighost.components.detector.patterns import (
+    EU_PATTERNS,
+    FR_PATTERNS,
+    GENERIC_PATTERNS,
+    US_PATTERNS,
+)
+```
 
-from piighost.anonymizer import Anonymizer
-from piighost.linker.entity import ExactEntityLinker
-from piighost.entity_resolver import MergeEntityConflictResolver
+- `GENERIC_PATTERNS` : email, URL, IPv4, carte bancaire, indépendants du pays.
+- `US_PATTERNS` : SSN, téléphone, ZIP, préfixés `US_`.
+- `EU_PATTERNS` : IBAN ISO 13616 pan-européen.
+- `FR_PATTERNS` : téléphone, IBAN, NIR, SIRET, préfixés `FR_`.
+
+Pour le détail des labels, voir la [référence des détecteurs](../reference/detectors.md).
+
+## Utiliser un seul catalogue
+
+Passez le catalogue à un `RegexDetector`, puis montez le pipeline.
+
+```python
+import asyncio
+
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
-from piighost.span_resolver import ConfidenceSpanConflictResolver
-
-detector = create_detector()
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
 
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    RegexDetector(GENERIC_PATTERNS),
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, _ = await pipeline.anonymize("Écrivez-moi à alice@example.com, serveur 192.168.1.42.")
-print(anonymized)
-# Écrivez-moi à <<EMAIL:1>>, serveur <<IP_V4_1>>.
+
+async def main():
+    result = await pipeline.anonymize("Email alice@example.com, server 192.168.1.42.")
+    print(result.text)
+    # Email <<EMAIL:1>>, server <<IPV4:1>>.
+
+
+asyncio.run(main())
 ```
 
----
+## Fusionner générique et régional
 
-## Combiner commun + régional
+Si vous voulez couvrir à la fois les PII génériques et celles d'une région, fusionnez les dictionnaires. La fusion de droite l'emporte sur un même label.
 
 ```python
-from examples.detectors.europe import create_full_detector
+from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
 
-detector = create_full_detector()
-# create_full_detector() fusionne les patterns communs + européens via CompositeDetector
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+patterns = {**GENERIC_PATTERNS, **FR_PATTERNS}
+detector = RegexDetector(patterns)
 
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, _ = await pipeline.anonymize(
-    "IBAN FR7630006000011234567890189, email marie@exemple.fr, tel 06 12 34 56 78."
-)
-print(anonymized)
-# IBAN <<EU_IBAN:1>>, email <<EMAIL:1>>, tel <<FR_PHONE:1>>.
+
+async def main():
+    result = await pipeline.anonymize(
+        "IBAN FR7630006000011234567890189, email marie@exemple.fr, tel 06 12 34 56 78."
+    )
+    print(result.text)
+    # IBAN <<FR_IBAN:1>>, email <<EMAIL:1>>, tel <<FR_PHONE:1>>.
+
+
+asyncio.run(main())
 ```
 
----
-
-## Sélectionner des patterns à la carte
+Pour ne garder que certains labels, construisez un dictionnaire à la carte.
 
 ```python
-from piighost.detector import RegexDetector
-
-from examples.detectors.common import PATTERNS as COMMON
-from examples.detectors.europe import PATTERNS as EU
-
-# Choisissez uniquement ce dont vous avez besoin
-my_patterns = {
-    "EMAIL": COMMON["EMAIL"],
-    "URL": COMMON["URL"],
-    "EU_IBAN": EU["EU_IBAN"],
-    "FR_PHONE": EU["FR_PHONE"],
+patterns = {
+    "EMAIL": GENERIC_PATTERNS["EMAIL"],
+    "FR_IBAN": FR_PATTERNS["FR_IBAN"],
 }
-
-detector = RegexDetector(patterns=my_patterns)
+detector = RegexDetector(patterns)
 ```
 
----
+## Combiner plusieurs détecteurs
 
-## Combiner avec un NER (NER + regex)
+`CompositeDetector` exécute plusieurs détecteurs sur le même texte et concatène leurs détections. Les chevauchements sont arbitrés par l'étage de résolution du pipeline. C'est ainsi qu'on couple un détecteur regex à un détecteur qui reconnaît des noms.
 
 ```python
-from gliner2 import GLiNER2
+from piighost.components.detector import CompositeDetector, ExactMatchDetector, RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
 
-from piighost.detector import Gliner2Detector, CompositeDetector
-from examples.detectors.common import create_detector as create_regex
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-
-ner_detector = Gliner2Detector(model=model, labels=["PERSON", "LOCATION"], threshold=0.5)
-regex_detector = create_regex()  # emails, IPs, URLs, clés API, etc.
-detector = CompositeDetector(detectors=[ner_detector, regex_detector])
-
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+detector = CompositeDetector([
+    ExactMatchDetector({"Patrick": "PERSON"}),
+    RegexDetector(GENERIC_PATTERNS),
+])
 
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, _ = await pipeline.anonymize("Patrick à alice@example.com, IP 10.0.0.1.")
-print(anonymized)
-# <<PERSON:1>> à <<EMAIL:1>>, IP <<IP_V4_1>>.
+
+async def main():
+    result = await pipeline.anonymize("Patrick emailed alice@example.com.")
+    print(result.text)
+    # <<PERSON:1>> emailed <<EMAIL:1>>.
+
+
+asyncio.run(main())
 ```
 
----
+En production, remplacez `ExactMatchDetector` par un détecteur NER ou LLM, voir la [référence des détecteurs](../reference/detectors.md). `ExactMatchDetector` sert ici à garder l'exemple reproductible sans modèle.
 
-## Ajouter vos propres patterns
+## Traiter un texte long
 
-Les ensembles de patterns sont de simples dictionnaires, étendez-les ou créez les vôtres :
+Un détecteur NER a une fenêtre de contexte bornée, et un long document peut la dépasser. `ChunkedDetector` enveloppe n'importe quel détecteur, découpe le texte en fragments qui se chevauchent, détecte sur chacun et reprojette les positions sur le texte d'origine.
 
 ```python
-from examples.detectors.common import PATTERNS as COMMON
+from piighost.components.detector import ChunkedDetector, RegexDetector
+from piighost.components.detector.patterns import GENERIC_PATTERNS
+from piighost.text import RecursiveCharacterTextSplitter
 
-my_patterns = {
-    **COMMON,
-    "LICENSE_PLATE_FR": r"\b[A-Z]{2}-\d{3}-[A-Z]{2}\b",
-    "CUSTOM_ID": r"\bCUST-\d{6}\b",
-}
+detector = ChunkedDetector(
+    RegexDetector(GENERIC_PATTERNS),
+    splitter=RecursiveCharacterTextSplitter(chunk_size=40, chunk_overlap=10),
+)
+
+pipeline = AnonymizationPipeline(
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+)
+
+
+async def main():
+    text = (
+        "Filler text here. Reach alice@example.com now. "
+        "More filler padding words. Then bob@example.org later."
+    )
+    result = await pipeline.anonymize(text)
+    print(result.text)
+    # Filler text here. Reach <<EMAIL:1>> now. More filler padding words. Then <<EMAIL:2>> later.
+
+
+asyncio.run(main())
 ```
 
-Voir aussi [Étendre PIIGhost](../extending.md) pour créer des classes de détecteur entièrement personnalisées.
+Laissez `splitter=None` pour un `RecursiveCharacterTextSplitter` par défaut, réglé pour de vrais documents. Le `chunk_size` réduit ci-dessus ne sert qu'à forcer plusieurs fragments dans un court exemple.
+
+## Charger les catalogues depuis un fichier de config
+
+Si vous pilotez le pipeline par un fichier de configuration plutôt que par du code, un détecteur regex accepte une clé `catalogs`.
+
+```toml
+[detector]
+type = "regex"
+catalogs = ["generic", "fr"]
+```
+
+Les catalogues fusionnent d'abord, puis les `patterns` en ligne, donc un pattern en ligne l'emporte au même label. Voir la [configuration TOML](../configuration/toml.md).
+
+## Voir aussi
+
+- [Dé-identifier un texte et le restaurer](basic.md) pour l'aller-retour complet.
+- [Référence des détecteurs](../reference/detectors.md) pour le catalogue des labels.
+- [Étendre PIIGhost](../extending.md) pour écrire vos propres détecteurs.

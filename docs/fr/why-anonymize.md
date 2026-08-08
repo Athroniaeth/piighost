@@ -2,14 +2,17 @@
 icon: lucide/shield-alert
 ---
 
-# Pourquoi anonymiser ?
+# Pourquoi dé-identifier ?
 
-Cette page a pour but d'expliquer, pour un public large (technique ou non), pourquoi il est préférable d'anonymiser les données personnelles avant de les envoyer à un LLM, **indépendamment de `piighost`**. L'objectif n'est pas de vous vendre cette librairie, mais de poser un constat que vous pourrez opposer à un décideur ou à un interlocuteur sceptique.
+Cette page explique, pour un public large (technique ou non), pourquoi il est préférable de dé-identifier les données personnelles avant de les envoyer à un LLM, **indépendamment de `piighost`**. L'objectif n'est pas de vous vendre cette librairie, mais de poser un constat que vous pourrez opposer à un décideur ou à un interlocuteur sceptique.
+
+!!! note "Dé-identification, pas anonymisation"
+    `piighost` remplace chaque PII par un placeholder (`<<PERSON:1>>`{ .placeholder }) et garde le lien entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Au sens du RGPD, c'est de la **pseudonymisation**, pas de l'anonymisation. On parle donc de dé-identification sur cette page. Le mot anonymisation est réservé à un retrait irréversible, sans restauration possible, et signalé comme tel quand il apparaît.
 
 !!! abstract "Résumé"
-    Quand vous envoyez du texte à un LLM hébergé par un provider tiers, vous ne contrôlez plus qui le lit, combien de temps il est conservé, ni sous quelle juridiction il retombe. Cela peut être utilisé contre les utilisateurs en récupérant ces données et les agrégeant à d'autres pour de la surveillance de masse, du fichage politique, ciblage publicitaire. L'anonymisation **avant envoi** est une protection qui ne dépend ni du provider, d'une promesse, de la sécurité de leur infrastructure et ni d'une décision politique future.
+    Quand vous envoyez du texte à un LLM hébergé par un provider tiers, vous ne contrôlez plus qui le lit, combien de temps il est conservé, ni sous quelle juridiction il retombe. Ces données peuvent être récupérées et croisées avec d'autres pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire. La dé-identification **avant envoi** est une protection qui ne dépend ni du provider, ni d'une promesse, ni de la sécurité de son infrastructure, ni d'une décision politique future.
 
-La réflexion se construit en trois temps. D'abord, **comment un LLM cloud fonctionne techniquement** et **pourquoi la promesse contractuelle d'un provider ne suffit pas**. Ensuite, **le cadre juridique** qui s'applique à ces services, et ses zones grises. Enfin, **ce que l'anonymisation change concrètement**, ses usages obligatoires et ses limites.
+La réflexion se construit en trois temps. D'abord, **comment un LLM cloud fonctionne techniquement** et **pourquoi la promesse contractuelle d'un provider ne suffit pas**. Ensuite, **le cadre juridique** qui s'applique à ces services, et ses zones grises. Enfin, **ce que la dé-identification change concrètement**, ses usages obligatoires et ses limites.
 
 ---
 
@@ -140,11 +143,11 @@ Le risque est différent des deux précédents : il ne nécessite ni juge, ni ma
 
 **Enfin, la porosité documentée entre écosystème publicitaire et surveillance.** Un rapport de l'`Office of the Director of National Intelligence` daté de **janvier 2022 et déclassifié en juin 2023** reconnaît que les agences de renseignement américaines **achètent régulièrement des données commerciales auprès de data brokers**, notamment des données de localisation et de navigation. Ce qui est collecté pour vendre de la publicité peut donc être racheté pour surveiller, sans mandat ni notification.
 
-Dans ce contexte, la question n'est pas "est-ce que les conversations LLM seront un jour monétisées ou revendues" mais "que reste-t-il de ce risque si les données qui quittent votre périmètre ne contiennent plus de PII identifiantes ?". L'anonymisation en amont coupe l'utilité commerciale et stratégique de ces données avant même qu'elles n'entrent dans l'écosystème du provider.
+Dans ce contexte, la question n'est pas "est-ce que les conversations LLM seront un jour monétisées ou revendues" mais "que reste-t-il de ce risque si les données qui quittent votre périmètre ne contiennent plus de PII identifiantes ?". La dé-identification en amont coupe l'utilité commerciale et stratégique de ces données avant même qu'elles n'entrent dans l'écosystème du provider.
 
-### Pourquoi l'anonymisation casse ce graphe
+### Pourquoi la dé-identification casse ce graphe
 
-Une PII envoyée en clair devient un nœud dans un graphe potentiel : elle peut être croisée avec des réseaux sociaux, des brèches antérieures, des registres publics ou des bases commerciales, pour ré-identifier, enrichir ou cibler. Un placeholder `<<PERSON:1>>` n'a, lui, aucune valeur d'agrégation. L'anonymisation avant envoi coupe la racine commune à toutes les chaînes d'usage secondaire décrites plus haut.
+Une PII envoyée en clair devient un nœud dans un graphe potentiel. Elle peut être croisée avec des réseaux sociaux, des brèches antérieures, des registres publics ou des bases commerciales, pour ré-identifier, enrichir ou cibler. Un placeholder `<<PERSON:1>>`{ .placeholder } n'a, lui, aucune valeur d'agrégation. La dé-identification avant envoi coupe la racine commune à toutes les chaînes d'usage secondaire décrites plus haut.
 
 ---
 
@@ -170,7 +173,7 @@ Changer de juridiction en passant à un **provider européen** (Mistral, OVHclou
 
 Enfin, **exécuter le modèle localement** sur votre propre infrastructure (`Ollama`, `vLLM`, `llama.cpp` ou équivalent) supprime entièrement le tiers : aucun provider n'a d'accès technique au contenu, par construction. C'est la protection maximale sur le plan de la confidentialité. La contrepartie est que toute la responsabilité bascule chez vous : sécurité physique et logique, chiffrement au repos, gestion des accès, mises à jour, journalisation. Les modèles ouverts exécutables localement (Llama, Mistral, Qwen, DeepSeek, etc.) peuvent rester en retrait des meilleurs modèles propriétaires sur certaines tâches complexes, bien que l'écart se réduise rapidement.
 
-Le choix du provider continue de compter pour beaucoup de choses : latence, coût, qualité du modèle, conformité RGPD d'ensemble, écosystème d'intégration. Mais **pour le risque spécifique de fuite de PII, l'anonymisation neutralise ce choix**. Si seuls des placeholders comme `<<PERSON:1>>` quittent votre infrastructure, un provider américain ne reçoit rien d'exploitable sur vos données sensibles. Il se retrouve, de ce seul point de vue, équivalent à un modèle exécuté en local.
+Le choix du provider continue de compter pour beaucoup de choses : latence, coût, qualité du modèle, conformité RGPD d'ensemble, écosystème d'intégration. Mais **pour le risque spécifique de fuite de PII, la dé-identification neutralise ce choix**. Si seuls des placeholders comme `<<PERSON:1>>`{ .placeholder } quittent votre infrastructure, un provider américain ne reçoit rien d'exploitable sur vos données sensibles. Il se retrouve, de ce seul point de vue, équivalent à un modèle exécuté en local.
 
 ---
 
@@ -181,11 +184,11 @@ Le choix du provider continue de compter pour beaucoup de choses : latence, coû
 Dans plusieurs professions, l'envoi de données personnelles à un LLM non souverain n'est pas un choix d'opportunité, c'est une impossibilité réglementaire.
 
 - **Finance** : MiFID II, secret bancaire, obligations de confidentialité client.
-- **Avocats** : secret professionnel absolu (article 66-5 de la loi du 31 décembre 1971). Une consultation client envoyée brute et nominative à un LLM américain peut constituer une faute déontologique ; les guides récents du `CNB` exigent au minimum anonymisation, consentement client et choix d'un provider adéquat.
+- **Avocats** : secret professionnel absolu (article 66-5 de la loi du 31 décembre 1971). Une consultation client envoyée brute et nominative à un LLM américain peut constituer une faute déontologique. Les guides récents du `CNB` exigent au minimum une dé-identification, le consentement client et le choix d'un provider adéquat.
 - **Médecine** : secret médical (article L.1110-4 du Code de la santé publique en France), HIPAA aux États-Unis. Un dossier patient ne peut pas transiter par un service tiers sans garanties techniques lourdes (hébergeur certifié `HDS`, `DPO`, etc.).
 - **Défense et secteurs stratégiques** : régimes spécifiques (classification, `CUI` (*Controlled Unclassified Information*) aux US, `Diffusion Restreinte` en France). Le croisement potentiel entre l'accès légal du gouvernement américain et des intérêts stratégiques (énergie, défense, technologie) rend ce risque non-théorique.
 
-Dans ces secteurs, l'anonymisation avant envoi n'est pas une bonne pratique, c'est un prérequis de conformité.
+Dans ces secteurs, la dé-identification avant envoi n'est pas une bonne pratique, c'est un prérequis de conformité.
 
 ### Ce que les grandes entreprises ont déjà décidé
 
@@ -194,7 +197,7 @@ Dans ces secteurs, l'anonymisation avant envoi n'est pas une bonne pratique, c'e
 - **Samsung, avril 2023** : plusieurs incidents internes où des ingénieurs collent du code source et des notes de réunion dans ChatGPT. Samsung rappelle publiquement que les données ainsi partagées sont impossibles à récupérer, puisqu'elles sont désormais sur les serveurs d'OpenAI. En mai 2023, l'entreprise interdit l'usage des LLM génératifs sur les appareils professionnels.
 - **Secteur bancaire américain, printemps 2023** : JPMorgan Chase, Bank of America, Citigroup, Goldman Sachs, Deutsche Bank et Wells Fargo bloquent ou restreignent l'usage de ChatGPT par leurs employés. Verizon, Amazon et Walmart émettent des avertissements internes.
 
-Ces décisions proviennent de directions juridiques et de RSSI qui ont fait le calcul : **le risque structurel dépasse le gain de productivité**, tant qu'aucune barrière technique ne garantit que les PII ne quittent pas l'entreprise. L'anonymisation ouvre précisément cette troisième voie, entre l'interdiction pure et l'envoi en clair.
+Ces décisions proviennent de directions juridiques et de RSSI qui ont fait le calcul : **le risque structurel dépasse le gain de productivité**, tant qu'aucune barrière technique ne garantit que les PII ne quittent pas l'entreprise. La dé-identification ouvre précisément cette troisième voie, entre l'interdiction pure et l'envoi en clair.
 
 ---
 
@@ -210,7 +213,7 @@ Toutes les protections mobilisées jusqu'ici reposent sur des instruments **juri
 | Régulation régionale         | RGPD                                       | Lent à produire des sanctions appliquées sur les LLM     |
 | Hébergement régional         | "Datacenters en Europe"                    | Neutralisé par le CLOUD Act si le provider est américain |
 
-La protection technique fonctionne différemment. Si la donnée personnelle ne quitte jamais votre infrastructure, et que seul un placeholder (par exemple `<<PERSON:1>>`) est envoyé au LLM :
+La protection technique fonctionne différemment. Si la donnée personnelle ne quitte jamais votre infrastructure, et que seul un placeholder (par exemple `<<PERSON:1>>`{ .placeholder }) est envoyé au LLM :
 
 - aucune injonction ne peut obliger un tiers à divulguer ce qu'il n'a pas,
 - aucun changement d'accord international ne vous affecte,
@@ -221,12 +224,13 @@ C'est la différence entre **"on vous promet de ne pas regarder"** et **"on est 
 
 ---
 
-## Ce que l'anonymisation ne résout pas
+## Ce que la dé-identification ne résout pas
 
-L'anonymisation est une couche dans une défense en profondeur, pas une solution miracle.
+La dé-identification est une couche dans une défense en profondeur, pas une solution miracle.
 
-- Elle ne rend pas un LLM conforme à tous les régimes réglementaires. Certaines données (santé nominativement reliable, secret-défense) ne doivent pas sortir de l'infrastructure, même sous forme anonymisée.
-- Elle dépend de la qualité des détecteurs. Une PII non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel.
+- Elle ne rend pas un LLM conforme à tous les régimes réglementaires. Certaines données (santé nominative, secret-défense) ne doivent pas sortir de l'infrastructure, même dé-identifiées.
+- Elle dépend de la qualité des détecteurs. Une PII non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel. Voir [Limites](limitations.md).
+- Le lien entre placeholder et valeur d'origine reste stocké quelque part chez vous. Ce mapping contient de la PII en clair, il faut donc le protéger. Voir [Sécurité](security.md).
 - Elle ne remplace pas les autres bonnes pratiques : chiffrement au repos, journalisation auditée, gestion des accès, formation des équipes.
 
 ---

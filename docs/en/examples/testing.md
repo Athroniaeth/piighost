@@ -4,82 +4,83 @@ tags:
   - Testing
 ---
 
-# Testing
+# Test a pipeline without models
 
-How to unit-test PIIGhost pipelines and custom components. The recommended approach uses `ExactMatchDetector` to avoid downloading an NER model in CI, but the patterns here apply to any detector.
+You want to assert what a pipeline produces without downloading an NER model or reaching the network. `ExactMatchDetector` gives you that: you tell it which literal values map to which label, and it finds their occurrences with a plain regex. The rest of the pipeline runs unchanged, so a test exercises real linking, resolution, and anonymization against a detector whose output you control.
 
----
+Use this to test a pipeline you assembled, or a custom component you wrote, against `<<PERSON:1>>`{ .placeholder } rather than a model's guess.
 
-## Deterministic detection with `ExactMatchDetector`
+## Assert one anonymized string
 
-`ExactMatchDetector` takes a list of `(text, label)` pairs and finds their word-boundary occurrences. No model, no network, fully predictable output.
+Build a pipeline with `ExactMatchDetector`, run it on a text, and compare `result.text` to the expected output.
 
 ```python
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
+import asyncio
+
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
 
-detector = ExactMatchDetector([("Patrick", "PERSON"), ("Paris", "LOCATION")])
-span_resolver = ConfidenceSpanConflictResolver()
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
-
+detector = ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"})
 pipeline = AnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
 )
 
-anonymized, entities = await pipeline.anonymize("Patrick lives in Paris.")
-assert anonymized == "<<PERSON:1>> lives in <<LOCATION:1>>."
+
+async def main() -> None:
+    result = await pipeline.anonymize("John Doe lives in Paris.")
+    assert result.text == "<<PERSON:1>> lives in <<LOCATION:1>>."
+
+
+asyncio.run(main())
 ```
 
----
+`ExactMatchDetector` takes a mapping of literal value to label. It emits one detection per occurrence with confidence `1.0`, so its output never varies between runs.
 
-## Pytest pattern
+## Write it as a pytest test
+
+The project runs pytest with `asyncio_mode = "auto"`, so an `async def test_...` needs no decorator. Assert both the exact output and the absence of the raw value.
 
 ```python
-import pytest
-from piighost.anonymizer import Anonymizer
-from piighost.detector import ExactMatchDetector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
 
 
-@pytest.mark.asyncio
-async def test_my_pipeline():
-    detector = ExactMatchDetector([("Alice", "PERSON")])
-    span_resolver = ConfidenceSpanConflictResolver()
-    entity_linker = ExactEntityLinker()
-    entity_resolver = MergeEntityConflictResolver()
-    anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
-
-    pipeline = AnonymizationPipeline(
-        detector=detector,
-        span_resolver=span_resolver,
-        entity_linker=entity_linker,
-        entity_resolver=entity_resolver,
-        anonymizer=anonymizer,
+def build_pipeline(values: dict[str, str]) -> AnonymizationPipeline:
+    return AnonymizationPipeline(
+        ExactMatchDetector(values),
+        ExactEntityLinker(),
+        Anonymizer(LabelCounterPlaceholderFactory()),
     )
 
-    anonymized, entities = await pipeline.anonymize("Alice lives in Lyon.")
-    assert "<<PERSON:1>>" in anonymized
-    assert "Alice" not in anonymized
+
+async def test_person_is_tokenized() -> None:
+    pipeline = build_pipeline({"Alice": "PERSON"})
+    result = await pipeline.anonymize("Alice lives in Lyon.")
+    assert result.text == "<<PERSON:1>> lives in Lyon."
+    assert "Alice" not in result.text
 ```
 
-!!! tip "ExactMatchDetector in CI"
-    Always use `ExactMatchDetector` (or equivalent) in CI to avoid loading an NER model during automated tests.
+If your own project runs pytest with the default synchronous mode, install `pytest-asyncio` and mark the test with `@pytest.mark.asyncio`, or set `asyncio_mode = "auto"` in your pytest config to drop the decorator.
 
----
+## Assert that repeats share one token
 
-## Testing custom components
+Entity linking groups every occurrence of a value under one entity, so a repeated name reuses its first token. `ExactMatchDetector` finds each occurrence, `ExactEntityLinker` groups them, and the assertion checks the shared `<<PERSON:1>>`{ .placeholder }.
 
-Every pipeline stage is a protocol, which makes each component swappable in isolation for tests. See [Extending PIIGhost](../extending.md) for protocol definitions, then inject your custom component alongside `ExactMatchDetector` above.
+```python
+async def test_repeat_shares_one_token() -> None:
+    pipeline = build_pipeline({"Alice": "PERSON"})
+    result = await pipeline.anonymize("Alice met Alice again.")
+    assert result.text == "<<PERSON:1>> met <<PERSON:1>> again."
+```
+
+## Test a custom component
+
+Every pipeline stage is a port, so you can drop your own component in beside `ExactMatchDetector` and let the deterministic detector feed it. Give the stage a fixed input through `ExactMatchDetector`, then assert on `result.text`. See [Extending PIIGhost](../extending.md) for the ports and worked component examples.

@@ -2,110 +2,144 @@
 icon: lucide/blend
 ---
 
-# Reference Middleware
+# Middleware reference
 
-Module: `piighost.middleware`
+Module: `piighost.integrations.middleware`
+
+`PIIAnonymizationMiddleware` is a LangChain `AgentMiddleware` that de-identifies PII around the model and tool boundary of an agent. It reads the thread id from the LangGraph config, de-identifies messages before the model sees them, restores them after for display, and routes tool calls by a chosen strategy. All detection, token assignment, and replacement is delegated to a `ThreadAnonymizationPipeline`.
+
+```python
+from piighost.integrations.middleware import (
+    AssistantEntityStrategy,
+    InventedPlaceholderStrategy,
+    PIIAnonymizationMiddleware,
+    ToolCallStrategy,
+)
+```
+
+Needs the `middleware` extra (`pip install piighost[middleware]`), which pulls in `langchain`. Importing the package never pulls `langchain` in; the middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
 
 ---
 
 ## `PIIAnonymizationMiddleware`
 
-LangChain middleware that transparently anonymizes personal data around the LLM / tools boundary.
+Extends `AgentMiddleware` and hooks the agent loop at three points.
 
-Extends `AgentMiddleware` from LangChain and intercepts the agent loop at **3 points**:
+<div class="wide-table" markdown="1">
 
 | Hook | When | Operation |
 |------|------|-----------|
-| `abefore_model` | Before each LLM call | Anonymizes all messages |
-| `aafter_model` | After each LLM response | Deanonymizes for the user |
-| `awrap_tool_call` | Around each tool | Deanonymizes args, reanonymizes response |
+| `abefore_model` | Before each model call | De-identifies the user and model messages |
+| `aafter_model` | After each model response | Restores the user and model messages for display |
+| `awrap_tool_call` | Around each tool call | De-identifies arguments, de-identifies the response, per strategy |
+
+</div>
 
 ### Constructor
 
 ```python
-PIIAnonymizationMiddleware(pipeline: ThreadAnonymizationPipeline)
+PIIAnonymizationMiddleware(
+    pipeline: AnyThreadPipeline,
+    tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
+    require_thread_id: bool = True,
+    invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
+    assistant_strategy: AssistantEntityStrategy = AssistantEntityStrategy.PRESERVE,
+)
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `pipeline` | `ThreadAnonymizationPipeline` | Configured conversation pipeline with memory |
+| `pipeline` | `AnyThreadPipeline` | The thread pipeline that de-identifies and restores (required) |
+| `tool_strategy` | `ToolCallStrategy` | How the two directions of a tool call are handled |
+| `require_thread_id` | `bool` | Whether a missing thread id raises, rather than falling back to a shared thread |
+| `invented_strategy` | `InventedPlaceholderStrategy` | How a token the pipeline never issued is treated after restoration |
+| `assistant_strategy` | `AssistantEntityStrategy` | How values the assistant introduces are treated |
 
-### Usage
+The pipeline must expose a delimited token recognizer through `pipeline.recognizer`, so a token the model invented can be found again. A pipeline whose placeholder factory is not delimited (a mask, for example) has no recognizer, and the constructor raises `UnrecognizableFactoryError`. The `IdentityT` type bound enforces the same at type-check time for typed callers.
+
+`require_thread_id` defaults to `True`, so a missing thread id raises `MissingThreadIdError` rather than routing every conversation into the shared `"default"` thread, which would leak placeholder state across conversations. Pass `False` to opt into that shared fallback for single-conversation or stateless use.
+
+---
+
+## Hooks
+
+### `abefore_model(state, runtime) -> dict | None`
+
+De-identifies the user and model messages before the model sees them. Each message is passed through `pipeline.anonymize()` under the role its type contributes. A `ToolMessage` is never rewritten here, only in the tool wrapper. Under `AssistantEntityStrategy.IGNORE`, `AIMessage` content is skipped entirely.
+
+Returns `{"messages": [...]}` when a message changed, `None` otherwise.
 
 ```python
-from piighost.middleware import PIIAnonymizationMiddleware
-from piighost.pipeline import ThreadAnonymizationPipeline
-from langchain.agents import create_agent
+# before: [HumanMessage("Email Patrick in Paris")]
+# after:  [HumanMessage("Email <<PERSON:1>> in <<LOCATION:1>>")]
+```
 
-middleware = PIIAnonymizationMiddleware(pipeline=conv_pipeline)
+### `aafter_model(state, runtime) -> dict | None`
 
-agent = create_agent(
-    model="openai:gpt-5.4",
-    tools=[...],
-    middleware=[middleware],
-)
+Restores the user and model messages for display through `pipeline.deanonymize()`, then applies `invented_strategy` to the restored text. Returns `{"messages": [...]}` when a message changed, `None` otherwise.
+
+```python
+# before: [AIMessage("Sent to <<PERSON:1>>.")]
+# after:  [AIMessage("Sent to Patrick.")]
+```
+
+### `awrap_tool_call(request, handler) -> ToolMessage | Command`
+
+Routes the tool call by `tool_strategy`. When the strategy de-identifies input, the tool arguments are restored to real values before the tool runs. When it de-identifies output, a string tool response is passed through `pipeline.anonymize()` after the tool runs. `PASSTHROUGH` touches neither.
+
+Argument restoration recurses through nested `dict`, `list`, and `tuple` containers. Only `str` leaves are restored; other types pass through unchanged.
+
+```python
+# model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
+#                       restore args
+# tool receives: send_email(to="Patrick", subject="Hi")
+# tool returns : "Sent to Patrick."
+#                       de-identify response
+# model sees   : "Sent to <<PERSON:1>>."
 ```
 
 ---
 
-## Hooks in detail
+## Strategies
 
-### `abefore_model(state, runtime) -> dict | None` *(async)*
+Plain enums in `piighost.integrations.middleware.strategy`, importable without `langchain`.
 
-Called before each LLM call. Anonymizes all messages in the conversation via `pipeline.anonymize()`.
+### `ToolCallStrategy`
 
-**Behavior by message type:**
+How the two directions of a tool call are handled. The directions are independent, and the middleware acts only in the tool wrapper.
 
-- `HumanMessage` → full NER detection and anonymization
-- `AIMessage` → anonymization (re-anonymizes any deanonymized values)
-- `ToolMessage` → anonymization (re-anonymizes tool responses)
+| Value | Arguments | Response |
+|-------|-----------|----------|
+| `INPUT` | restored to real values | left as the tool returned it |
+| `OUTPUT` | left tokenized | de-identified |
+| `FULL` | restored to real values | de-identified |
+| `PASSTHROUGH` | untouched | untouched |
 
-```python
-# Before abefore_model:
-# [HumanMessage("Send an email to Patrick in Paris")]
+`FULL` is the default. A strategy that does not de-identify the response leaves it as the tool returned it, and the model sees it that way.
 
-# After abefore_model:
-# [HumanMessage("Send an email to <<PERSON:1>> in <<LOCATION:1>>")]
-```
+### `InventedPlaceholderStrategy`
 
-**Returns**: `{"messages": [...]}` if modifications were made, `None` otherwise.
+How a token the pipeline never issued is treated. After restoration, every issued token has been replaced by its value, so any token still matching the placeholder grammar was invented by the model, whether hallucinated or injected.
 
----
+| Value | Effect |
+|-------|--------|
+| `KEEP` | leave the invented token in the text |
+| `DROP` | remove the invented token |
+| `RAISE` | raise `InventedPlaceholderError` |
 
-### `aafter_model(state, runtime) -> dict | None` *(async)*
+`RAISE` is the default.
 
-Called after each LLM response. Deanonymizes all messages so the user sees real values. First tries `pipeline.deanonymize()` (cache-based), falls back to `pipeline.deanonymize_with_ent()` (entity-based) on `CacheMissError`.
+### `AssistantEntityStrategy`
 
-```python
-# Before aafter_model:
-# [AIMessage("Done! Email sent to <<PERSON:1>>.")]
+How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not user PII, so de-identifying it strips the model of its world knowledge of that entity.
 
-# After aafter_model:
-# [AIMessage("Done! Email sent to Patrick.")]
-```
+| Value | Effect |
+|-------|--------|
+| `PRESERVE` | leave assistant-introduced values in clear |
+| `ANONYMIZE` | de-identify them like user PII |
+| `IGNORE` | do not analyze assistant messages at all, saving the detector |
 
-**Returns**: `{"messages": [...]}` if modifications were made, `None` otherwise.
-
----
-
-### `awrap_tool_call(request, handler) -> ToolMessage | Command` *(async)*
-
-Wraps each tool call in 3 steps:
-
-1. **Deanonymizes** `str` arguments → the tool receives real values
-2. **Executes** the tool via `handler(request)`
-3. **Reanonymizes** the tool response via `pipeline.anonymize()` → the LLM never sees personal data
-
-```python
-# LLM calls : send_email(to="<<PERSON:1>>", subject="Hello")
-#                      ↓  deanonymize args
-# Tool gets  : send_email(to="Patrick", subject="Hello")
-# Tool returns: "Email successfully sent to Patrick."
-#                      ↓  reanonymize response
-# LLM sees   : "Email successfully sent to <<PERSON:1>>."
-```
-
-Only `str` arguments are deanonymized. Non-string types are passed through unchanged.
+`PRESERVE` is the default.
 
 ---
 
@@ -115,86 +149,46 @@ Only `str` arguments are deanonymized. Non-string types are passed through uncha
 sequenceDiagram
     participant U as User
     participant M as PIIAnonymizationMiddleware
-    participant L as LLM
+    participant L as Model
     participant T as Tool
 
-    U->>M: User message (plain text)
-    M->>M: abefore_model()<br/>anonymize HumanMessage via NER
-    M->>L: Anonymized message (placeholders)
-    L->>M: Tool call with anonymized args
-    M->>M: awrap_tool_call()<br/>deanonymize args
+    U->>M: User message (clear text)
+    M->>M: abefore_model()
+    M->>L: De-identified message (tokens)
+    L->>M: Tool call with tokenized args
+    M->>M: awrap_tool_call() restore args
     M->>T: Tool call with real values
     T->>M: Tool response (real values)
-    M->>M: awrap_tool_call()<br/>reanonymize response
-    M->>L: Anonymized tool response
-    L->>M: Final response (placeholders)
-    M->>M: aafter_model()<br/>deanonymize for user
-    M->>U: Final response (plain text)
+    M->>M: awrap_tool_call() de-identify response
+    M->>L: De-identified tool response
+    L->>M: Final response (tokens)
+    M->>M: aafter_model() restore for display
+    M->>U: Final response (clear text)
 ```
+
+*From the user message to the restored response, through the model and the tool.*
+{ .figure-caption }
 
 ---
 
-## LangChain dependency
-
-`PIIAnonymizationMiddleware` requires `langchain` to be installed. If not, an `ImportError` is raised on import:
-
-```
-ImportError: You must install piighost[langchain] for use middleware
-```
-
-Installation:
-
-```bash
-uv add piighost[langchain]
-```
-
----
-
-## Full example
+## Example
 
 ```python
-import asyncio
-from gliner2 import GLiNER2
 from langchain.agents import create_agent
 from langchain_core.tools import tool
 
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.middleware import PIIAnonymizationMiddleware
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
+from piighost.config import load_thread_pipeline
+from piighost.integrations.middleware import PIIAnonymizationMiddleware
 
 
 @tool
 def get_info(person: str) -> str:
-    """Returns information about a person."""
+    """Return information about a person."""
     return f"{person} is a software engineer in Paris."
 
 
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-detector = Gliner2Detector(
-    model=model,
-    threshold=0.5,
-    labels=["PERSON", "LOCATION"],
-)
-pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
-)
-middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
+pipeline = load_thread_pipeline("pipeline.toml")
+middleware = PIIAnonymizationMiddleware(pipeline)
 
 agent = create_agent(
     model="openai:gpt-5.4",
@@ -203,13 +197,20 @@ agent = create_agent(
     middleware=[middleware],
 )
 
-
-async def main():
-    result = await agent.ainvoke({
-        "messages": [{"role": "user", "content": "Who is Patrick?"}]
-    })
-    print(result["messages"][-1].content)
-
-
-asyncio.run(main())
+config = {"configurable": {"thread_id": "conv-1"}}
+result = await agent.ainvoke(
+    {"messages": [{"role": "user", "content": "Who is Patrick?"}]},
+    config,
+)
+print(result["messages"][-1].content)
 ```
+
+The pipeline must be a thread pipeline whose placeholder factory is delimited, such as `label`, `label_counter`, or `label_hash`. Pass a thread id on every call through `config["configurable"]["thread_id"]`, since `require_thread_id` defaults to `True`.
+
+---
+
+## See also
+
+- [Pipeline reference](pipeline.md) for the thread pipeline the middleware drives.
+- [Tool-call strategies](../tool-call-strategies.md) for the reasoning behind each strategy.
+- [TOML configuration](../configuration/toml.md) for building the pipeline from a file.
