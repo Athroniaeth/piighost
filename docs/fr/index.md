@@ -13,23 +13,8 @@ Enfin, `piighost` garde la correspondance entre la valeur et son placeholder tou
 !!! note "Dé-identification réversible"
     `piighost` conserve la correspondance entre une valeur et son placeholder pour pouvoir restaurer les données. Au sens du RGPD, il s'agit d'une pseudonymisation, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Utilisateur
-    participant M as piighost
-    participant L as LLM
-    participant T as Outil
-
-    U->>M: "Écris à John Doe à john.doe@example.com"
-    M->>L: "Écris à <<PERSON:1>> à <<EMAIL:1>>"
-    L->>M: tool_call(send_email, to=<<EMAIL:1>>)
-    M->>T: send_email(to="john.doe@example.com")
-    T-->>M: "Envoyé."
-    M-->>L: "Envoyé."
-    L-->>M: "C'est fait, votre email à <<PERSON:1>> est parti."
-    M-->>U: "C'est fait, votre email à John Doe est parti."
-```
+![Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-light.svg#only-light)
+![Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-dark.svg#only-dark)
 
 *Tour complet d'un agent. L'utilisateur et l'outil voient les vraies valeurs, le LLM ne voit que des placeholders.*
 { .figure-caption }
