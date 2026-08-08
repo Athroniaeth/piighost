@@ -4,89 +4,86 @@ icon: lucide/messages-square
 
 # Pipeline conversationnel
 
-## Pourquoi pas juste `AnonymizationPipeline` ?
+Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable pour une même valeur d'un message à l'autre. Une valeur vue au message 1 conserve son `<<PERSON:1>>`{ .placeholder } au message 2, au lieu de repartir de zéro à chaque appel. Vous assemblez le pipeline avec une mémoire en RAM, envoyez deux messages du même fil, puis effacez le fil.
 
-Le pipeline standard fonctionne sur un message isolé. Dans une conversation multi-messages, trois problèmes apparaissent :
+!!! note "Prérequis"
+    `piighost` installé, voir [Installation](installation.md). Cet exemple n'utilise que le socle, sans extra.
 
-- **Compteurs non partagés.** Chaque appel à `anonymize` repart de zéro. Le mapping `Patrick → <<PERSON:1>>`{ .placeholder } du message 1 n'est pas réutilisé au message 2.
-- **Détections manquées entre messages.** Le NER détecte `Patrick`{ .pii } dans le message 1 mais le rate dans le message 5. Sans mémoire des entités déjà vues, on ne peut pas combler le trou.
-- **Conversations concurrentes.** Si plusieurs utilisateurs partagent la même instance de pipeline, leurs entités se mélangent et leurs `<<PERSON:1>>`{ .placeholder } deviennent indiscernables.
+## 1. Assembler le pipeline
 
-Démonstration du bug avec le pipeline standard :
+`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. La mémoire accumule les détections de chaque message par fil, ce qui laisse le pipeline attribuer les jetons sur l'ensemble du fil plutôt que sur un message isolé.
 
-```python
-# Avec un AnonymizationPipeline (sans mémoire de conversation)
-
-m1, _ = await pipeline.anonymize("Patrick habite à Paris.")
-# <<PERSON:1>> habite à <<LOCATION:1>>.
-
-m2, _ = await pipeline.anonymize("Bob est content.")
-# <<PERSON:1>> est content.   ← le compteur est reparti à 1
-# Bob hérite donc du même placeholder que Patrick → collision :
-# le LLM pense que c'est la même personne.
-```
-
-`ThreadAnonymizationPipeline` encapsule le pipeline de base avec une `ConversationMemory` pour accumuler les entités entre les messages et fournir désanonymisation / réanonymisation par remplacement de chaîne. La mémoire et le cache sont scopés par `thread_id`, ce qui isole chaque conversation et permet de réutiliser les entités déjà vues pour rester cohérent au fil des messages.
+`InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus, ce qui convient au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues, pour un résultat vérifiable sans modèle.
 
 ```python
 import asyncio
 
-from piighost.anonymizer import Anonymizer
-from piighost.detector.gliner2 import Gliner2Detector
-from piighost.linker.entity import ExactEntityLinker
-from piighost.resolver import MergeEntityConflictResolver, ConfidenceSpanConflictResolver
-from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
-from piighost.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.pipeline import ThreadAnonymizationPipeline
+from piighost.conversation_memory import InMemoryConversationMemory
 
-from gliner2 import GLiNER2
-
-entity_linker = ExactEntityLinker()
-entity_resolver = MergeEntityConflictResolver()
-span_resolver = ConfidenceSpanConflictResolver()
-
-ph_factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(ph_factory=ph_factory)
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-detector = Gliner2Detector(
-    model=model,
-    threshold=0.5,
-    labels=["PERSON", "LOCATION"],
-)
+detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
 pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    span_resolver=span_resolver,
-    entity_linker=entity_linker,
-    entity_resolver=entity_resolver,
-    anonymizer=anonymizer,
+    detector,
+    ExactEntityLinker(),
+    Anonymizer(LabelCounterPlaceholderFactory()),
+    InMemoryConversationMemory(),
 )
-
-
-async def conversation():
-    # Premier message : détection NER + enregistrement des entités
-    # la pipeline garde en mémoire que l'entrée et la sortie sont liées,
-    # et que <<PERSON:1>> correspond à "Patrick" et <<LOCATION:1>> à "Paris"
-    anonymized, _ = await pipeline.anonymize("Patrick habite à Paris.")
-    print(anonymized)
-    # <<PERSON:1>> habite à <<LOCATION:1>>.
-
-    # Désanonymisation via la correspondance stockée dans le cache de la pipeline
-    restored = await pipeline.deanonymize("Bonjour <<PERSON:1>> !")
-    print(restored)
-
-    # Désanonymisation par remplacement de texte, utilisant les anciennes détections stockées en mémoire
-    restored = await pipeline.deanonymize_with_ent("Bonjour <<PERSON:1>> !")
-    print(restored)
-    # Bonjour Patrick !
-
-    # Réanonymisation par remplacement de texte, utilisant les anciennes détections stockées en mémoire
-    reanon = pipeline.anonymize_with_ent("Résultat pour Patrick à Paris")
-    print(reanon)
-    # Résultat pour <<PERSON:1>> à <<LOCATION:1>>
-
-
-asyncio.run(conversation())
 ```
 
-??? info "Cache SHA-256"
-    Le pipeline utilise aiocache avec des clés SHA-256. Si le même texte est soumis plusieurs fois, le résultat mis en cache est retourné sans appel au modèle NER.
+## 2. Dé-identifier deux messages du même fil
+
+`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire, il n'y a pas de fil par défaut partagé, si bien que deux appelants ne peuvent pas tomber dans le même fil et se fuiter mutuellement leurs PII. On envoie deux messages sur le fil `"thread-42"`.
+
+```python
+async def main() -> None:
+    first = await pipeline.anonymize("Patrick habite à Paris.", "thread-42")
+    print(first.text)
+
+    second = await pipeline.anonymize("Est-ce que Patrick aime Paris ?", "thread-42")
+    print(second.text)
+
+
+asyncio.run(main())
+```
+
+La sortie doit être :
+
+```text
+<<PERSON:1>> habite à <<LOCATION:1>>.
+Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
+```
+
+`Patrick`{ .pii } garde `<<PERSON:1>>`{ .placeholder } du premier au second message, et `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder }. Avec un `AnonymizationPipeline` ordinaire, chaque appel repartirait à `<<PERSON:1>>`{ .placeholder } sans lien avec le message précédent. La mémoire du fil est ce qui rend le numéro stable.
+
+## 3. Restaurer une valeur
+
+`deanonymize` reconstruit les jetons du fil depuis sa mémoire, donc n'importe quel texte qui les porte est restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
+
+```python
+    restored = await pipeline.deanonymize("Bonjour <<PERSON:1>> !", "thread-42")
+    print(restored)
+    # Bonjour Patrick !
+```
+
+## 4. Oublier un fil
+
+`forget_thread` efface la mémoire d'un fil et renvoie le compte de ce qui a été supprimé. Utile pour respecter une demande d'effacement ou libérer la RAM à la fin d'une conversation.
+
+```python
+    forgotten = await pipeline.forget_thread("thread-42")
+    print(forgotten)
+    # Forgotten(messages=2, detections=4)
+```
+
+## Comment ça marche
+
+`ThreadAnonymizationPipeline` encapsule le pipeline de base avec une mémoire par fil. À chaque message, il met en cache les détections, puis attribue les jetons sur l'union des détections de tout le fil, pas du seul message courant. Une valeur reçoit donc un jeton pour l'ensemble du fil. Le rendu reste par message, seules les positions du message courant sont remplacées, car les positions de messages différents vivent dans des espaces d'indices distincts.
+
+## Et ensuite
+
+- Pour partager la mémoire entre plusieurs processus, remplacez `InMemoryConversationMemory` par une mémoire persistante. Voir la [Référence TOML](../configuration/toml.md) pour la déclarer en configuration.
+- Pour brancher ce pipeline dans un agent LangGraph, voir le [Middleware LangChain](langchain.md).
