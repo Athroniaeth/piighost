@@ -13,23 +13,8 @@ Finally, `piighost` keeps the mapping between a value and its placeholder throug
 !!! note "Reversible de-identification"
     `piighost` keeps the mapping between a value and its placeholder so it can restore the data. Under the GDPR this is pseudonymization, not definitive anonymization. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Utilisateur
-    participant M as piighost
-    participant L as LLM
-    participant T as Outil
-
-    U->>M: "Écris à John Doe à john.doe@example.com"
-    M->>L: "Écris à <<PERSON:1>> à <<EMAIL:1>>"
-    L->>M: tool_call(send_email, to=<<EMAIL:1>>)
-    M->>T: send_email(to="john.doe@example.com")
-    T-->>M: "Envoyé."
-    M-->>L: "Envoyé."
-    L-->>M: "C'est fait, votre email à <<PERSON:1>> est parti."
-    M-->>U: "C'est fait, votre email à John Doe est parti."
-```
+![A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls.](assets/deid-chat-light.svg#only-light)
+![A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls.](assets/deid-chat-dark.svg#only-dark)
 
 *Full round trip of an agent. The user and the tool see the real values, the LLM sees only placeholders.*
 { .figure-caption }

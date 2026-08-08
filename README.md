@@ -17,23 +17,12 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 > [!NOTE]
 > `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User
-    participant M as piighost
-    participant L as LLM
-    participant T as Tool
-
-    U->>M: "Write to John Doe at john.doe@example.com"
-    M->>L: "Write to <<PERSON:1>> at <<EMAIL:1>>"
-    L->>M: tool_call(send_email, to=<<EMAIL:1>>)
-    M->>T: send_email(to="john.doe@example.com")
-    T-->>M: "Sent."
-    M-->>L: "Sent."
-    L-->>M: "Done, your email to <<PERSON:1>> has been sent."
-    M-->>U: "Done, your email to John Doe has been sent."
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-dark.gif">
+    <img alt="A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
+  </picture>
+</p>
 
 *The LLM only sees placeholders. The tool receives the real address, the user gets a clear-text reply, and your agent code stays the same.*
 
