@@ -70,7 +70,8 @@ The anonymizer replaces each entity with a placeholder, that is the token that t
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 ```
 
 ## 4. Assemble and run

@@ -24,10 +24,13 @@ from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 detector = ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"})
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
     detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    linker,
+    anonymizer,
 )
 
 
@@ -54,10 +57,14 @@ from piighost.pipeline import AnonymizationPipeline
 
 
 def build_pipeline(values: dict[str, str]) -> AnonymizationPipeline:
+    detector = ExactMatchDetector(values)
+    linker = ExactEntityLinker()
+    factory = LabelCounterPlaceholderFactory()
+    anonymizer = Anonymizer(factory)
     return AnonymizationPipeline(
-        ExactMatchDetector(values),
-        ExactEntityLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        detector,
+        linker,
+        anonymizer,
     )
 
 

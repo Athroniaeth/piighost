@@ -57,7 +57,8 @@ from piighost.components.anonymizer import Anonymizer
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.models import Detection, Entity, Span
 
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 
 detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9)
 entity = Entity(detections=(detection,))

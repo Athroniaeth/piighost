@@ -250,10 +250,14 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
+detector = ExactMatchDetector({"Patrick": "PERSON"})
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
-    detector=ExactMatchDetector({"Patrick": "PERSON"}),
-    linker=ExactEntityLinker(),
-    anonymizer=Anonymizer(LabelCounterPlaceholderFactory()),
+    detector=detector,
+    linker=linker,
+    anonymizer=anonymizer,
 )
 result = await pipeline.anonymize("Patrick habite à Paris.")
 # result.text   -> "<<PERSON:1>> habite à Paris."

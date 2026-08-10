@@ -70,7 +70,8 @@ L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 ```
 
 ## 4. Assembler et lancer

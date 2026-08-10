@@ -31,11 +31,15 @@ detector = Gliner2Detector(
     labels=["PERSON", "LOCATION"],
     threshold=0.5,
 )
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
+memory = InMemoryConversationMemory()
 pipeline = ThreadAnonymizationPipeline(
     detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-    InMemoryConversationMemory(),
+    linker,
+    anonymizer,
+    memory,
 )
 ```
 
