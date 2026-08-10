@@ -10,14 +10,14 @@ Cette librairie repère les PII grâce à des détecteurs (regex, NER, ou un aut
 
 Enfin, `piighost` garde la correspondance entre la valeur et son placeholder tout au long de la conversation. Si `john.doe@example.com`{ .pii } réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`{ .placeholder }, ce qui permet au modèle de suivre le fil de discussion.
 
-!!! note "Dé-identification réversible"
-    `piighost` conserve la correspondance entre une valeur et son placeholder pour pouvoir restaurer les données. Au sens du RGPD, il s'agit d'une pseudonymisation, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
-
 ![Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-light.svg#only-light)
 ![Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-dark.svg#only-dark)
 
 *Tour complet d'un agent. L'utilisateur et l'outil voient les vraies valeurs, le LLM ne voit que des placeholders.*
 { .figure-caption }
+
+!!! note "Dé-identification réversible"
+    `piighost` conserve la correspondance entre une valeur et son placeholder pour pouvoir restaurer les données. Au sens du RGPD, il s'agit d'une pseudonymisation, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
 ## Pourquoi dé-identifier ?
 

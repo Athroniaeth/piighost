@@ -62,6 +62,7 @@ def build_pipeline(values: dict[str, str]) -> AnonymizationPipeline:
 
 
 async def test_person_is_tokenized() -> None:
+    """A detected person becomes its token, and the raw value is gone."""
     pipeline = build_pipeline({"Alice": "PERSON"})
     result = await pipeline.anonymize("Alice lives in Lyon.")
     assert result.text == "<<PERSON:1>> lives in Lyon."
@@ -76,6 +77,7 @@ La liaison d'entités regroupe chaque occurrence d'une valeur sous une seule ent
 
 ```python
 async def test_repeat_shares_one_token() -> None:
+    """A repeated value reuses its first token."""
     pipeline = build_pipeline({"Alice": "PERSON"})
     result = await pipeline.anonymize("Alice met Alice again.")
     assert result.text == "<<PERSON:1>> met <<PERSON:1>> again."

@@ -10,14 +10,14 @@ The library spots PII with detectors (regex, NER, or another LLM) and replaces e
 
 Finally, `piighost` keeps the mapping between a value and its placeholder throughout the conversation. If `john.doe@example.com`{ .pii } reappears three messages later, the placeholder stays `<<EMAIL:1>>`{ .placeholder }, which lets the model follow the thread of the discussion.
 
-!!! note "Reversible de-identification"
-    `piighost` keeps the mapping between a value and its placeholder so it can restore the data. Under the GDPR this is pseudonymization, not definitive anonymization. The real values stay stored for the duration of the conversation and must be protected accordingly.
-
 ![A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls.](assets/deid-chat-light.svg#only-light)
 ![A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls.](assets/deid-chat-dark.svg#only-dark)
 
 *Full round trip of an agent. The user and the tool see the real values, the LLM sees only placeholders.*
 { .figure-caption }
+
+!!! note "Reversible de-identification"
+    `piighost` keeps the mapping between a value and its placeholder so it can restore the data. Under the GDPR this is pseudonymization, not definitive anonymization. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
 ## Why de-identify?
 

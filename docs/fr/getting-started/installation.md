@@ -13,6 +13,8 @@ icon: lucide/download
 
 Le socle n'a aucune dépendance optionnelle. Il suffit pour un pipeline local qui dé-identifie par regex ou par valeurs connues, sans modèle ni réseau.
 
+Installez-le avec `uv`. Si vous êtes un boomeur, `pip` marche aussi.
+
 === "uv"
 
     ```bash
@@ -27,43 +29,21 @@ Le socle n'a aucune dépendance optionnelle. Il suffit pour un pipeline local qu
 
 ## Extras
 
-Les détecteurs à modèle, le middleware et les backends optionnels sont des extras à combiner selon les besoins.
+Les détecteurs à modèle, le middleware et les backends optionnels sont des extras à combiner selon les besoins. La liste complète est dans `pyproject.toml`.
 
 === "uv"
 
     ```bash
-    uv add 'piighost[gliner2]'       # détecteur GLiNER2 (NER)
-    uv add 'piighost[spacy]'         # détecteur spaCy (NER)
-    uv add 'piighost[transformers]'  # détecteur transformers (NER)
-    uv add 'piighost[llm]'           # détecteur LLM (extraction structurée)
-    uv add 'piighost[middleware]'    # middleware LangChain/LangGraph
-    uv add 'piighost[config]'        # configuration TOML et JSON
-    uv add 'piighost[fuzzy]'         # résolveur d'entités fuzzy (Jaro-Winkler)
-    uv add 'piighost[redis]'         # mémoire de conversation Redis
-    uv add 'piighost[crypto]'        # chiffrement AES-GCM des valeurs stockées
-    uv add 'piighost[argon2]'        # hachage Argon2id des clés de stockage
-    uv add 'piighost[mistral]'       # garde-fou de modération Mistral
-    uv add 'piighost[client]'        # client HTTP pour piighost-api
-    uv add 'piighost[observation]'   # traçage OpenTelemetry
-    uv add 'piighost[all]'           # tous les extras
+    uv add 'piighost[gliner2]'     # détecteur GLiNER2 (NER)
+    uv add 'piighost[middleware]'  # middleware LangChain/LangGraph
+    uv add 'piighost[all]'         # tous les extras
     ```
 
 === "pip"
 
     ```bash
     pip install 'piighost[gliner2]'
-    pip install 'piighost[spacy]'
-    pip install 'piighost[transformers]'
-    pip install 'piighost[llm]'
     pip install 'piighost[middleware]'
-    pip install 'piighost[config]'
-    pip install 'piighost[fuzzy]'
-    pip install 'piighost[redis]'
-    pip install 'piighost[crypto]'
-    pip install 'piighost[argon2]'
-    pip install 'piighost[mistral]'
-    pip install 'piighost[client]'
-    pip install 'piighost[observation]'
     pip install 'piighost[all]'
     ```
 
