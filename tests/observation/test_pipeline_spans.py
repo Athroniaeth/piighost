@@ -54,10 +54,12 @@ class TestSpanTree:
         spans = {span.name: span for span in exporter.get_finished_spans()}
         root = spans["piighost.anonymize"]
         assert root.parent is None
+        root_context = root.context
+        assert root_context is not None
         for name in ("piighost.detect", "piighost.link", "piighost.render"):
             parent = spans[name].parent
             assert parent is not None
-            assert parent.span_id == root.context.span_id
+            assert parent.span_id == root_context.span_id
 
     async def test_optional_stage_spans_appear_when_configured(
         self, exporter: InMemorySpanExporter

@@ -58,8 +58,9 @@ class TestHasherConfig:
 
     def test_non_positive_cost_is_rejected(self) -> None:
         """An argon2 cost below one fails validation."""
+        invalid_cost: int = 0
         with pytest.raises(ValidationError):
-            Argon2HasherConfig(type="argon2", time_cost=0)
+            Argon2HasherConfig(type="argon2", time_cost=invalid_cost)
 
     def test_union_dispatches_on_type(self) -> None:
         """The type discriminant selects the matching hasher config."""

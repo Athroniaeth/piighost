@@ -1,6 +1,8 @@
 """Tests for the PIIGhostClient, a remote thread pipeline over HTTP."""
 
 import json
+from collections.abc import Callable
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -13,7 +15,7 @@ from piighost.models import Detection, Span
 from piighost.pipeline import AnyThreadPipeline
 
 
-def _client(handler: object) -> PIIGhostClient:
+def _client(handler: Callable[[httpx.Request], httpx.Response]) -> PIIGhostClient:
     """Build a client over a MockTransport driven by handler."""
     transport = httpx.MockTransport(handler)
     http = httpx.AsyncClient(transport=transport, base_url="http://api")
@@ -54,7 +56,8 @@ class TestAnonymize:
 
         client = _client(handler)
         await client.anonymize("x", "t1", MessageRole.ASSISTANT)
-        assert seen["body"]["role"] == "assistant"
+        body = cast("dict[str, Any]", seen["body"])
+        assert body["role"] == "assistant"
 
 
 class TestAnonymizeCorrected:
@@ -73,7 +76,8 @@ class TestAnonymizeCorrected:
         )
         result = await client.anonymize_corrected("Emma", "t1", [detection])
         assert seen["path"] == "/v1/anonymize/corrected"
-        assert seen["body"]["detections"] == [detection.to_dict()]
+        body = cast("dict[str, Any]", seen["body"])
+        assert body["detections"] == [detection.to_dict()]
         assert result.text == "<<PERSON:1>>"
 
 

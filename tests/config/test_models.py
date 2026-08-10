@@ -1,5 +1,7 @@
 """Tests for the config component models and their build()."""
 
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
@@ -55,8 +57,13 @@ class TestDetectorConfig:
 
     def test_unknown_key_is_rejected(self) -> None:
         """A model forbids keys it does not declare, catching typos."""
+        bad_kwargs: dict[str, Any] = {
+            "type": "regex",
+            "patterns": {"A": "a"},
+            "nope": 1,
+        }
         with pytest.raises(ValidationError):
-            RegexDetectorConfig(type="regex", patterns={"A": "a"}, nope=1)
+            RegexDetectorConfig(**bad_kwargs)
 
     def test_uncompilable_pattern_is_rejected(self) -> None:
         """A pattern that is not a valid regex fails validation, not detection."""

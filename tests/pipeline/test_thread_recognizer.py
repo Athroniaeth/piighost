@@ -4,6 +4,7 @@ from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
+    AnyPlaceholderFactory,
     LabelCounterPlaceholderFactory,
     MaskPlaceholderFactory,
 )
@@ -12,7 +13,7 @@ from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.pipeline import AnyThreadPipeline, ThreadAnonymizationPipeline
 
 
-def _pipeline(factory: object) -> ThreadAnonymizationPipeline:
+def _pipeline(factory: AnyPlaceholderFactory) -> ThreadAnonymizationPipeline:
     """Build a thread pipeline over the given placeholder factory."""
     return ThreadAnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON"}),

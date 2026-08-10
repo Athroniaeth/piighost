@@ -3,14 +3,17 @@
 import importlib
 import importlib.util
 import sys
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.placeholder import (
+    LabelCounterPlaceholderFactory,
+    PreservesRecognizableIdentity,
+)
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
 from piighost.integrations.middleware import (
@@ -19,7 +22,7 @@ from piighost.integrations.middleware import (
     ToolCallStrategy,
 )
 from piighost.integrations.middleware.langchain import PIIAnonymizationMiddleware
-from piighost.pipeline import ThreadAnonymizationPipeline
+from piighost.pipeline import AnyThreadPipeline, ThreadAnonymizationPipeline
 
 _MODULE = "piighost.integrations.middleware.langchain"
 
@@ -365,7 +368,9 @@ class TestFactoryContract:
             async def forget_thread(self, thread_id: object) -> object:
                 return None
 
-        middleware = PIIAnonymizationMiddleware(_Remoteish())
+        middleware = PIIAnonymizationMiddleware(
+            cast(AnyThreadPipeline[PreservesRecognizableIdentity], _Remoteish())
+        )
         assert middleware._recognizer is _Remoteish.recognizer
 
     def test_a_pipeline_without_a_recognizer_is_refused(self) -> None:
@@ -377,4 +382,8 @@ class TestFactoryContract:
             recognizer = None
 
         with pytest.raises(UnrecognizableFactoryError, match="recognizable"):
-            PIIAnonymizationMiddleware(_Unrecognizable())
+            PIIAnonymizationMiddleware(
+                cast(
+                    AnyThreadPipeline[PreservesRecognizableIdentity], _Unrecognizable()
+                )
+            )
