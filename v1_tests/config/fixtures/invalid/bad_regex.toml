@@ -1,3 +1,0 @@
-[[detectors]]
-type = "regex"
-patterns = { EMAIL = "((unclosed" }
