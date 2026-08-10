@@ -26,11 +26,15 @@ from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.conversation_memory import InMemoryConversationMemory
 
 detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
+memory = InMemoryConversationMemory()
 pipeline = ThreadAnonymizationPipeline(
     detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-    InMemoryConversationMemory(),
+    linker,
+    anonymizer,
+    memory,
 )
 ```
 

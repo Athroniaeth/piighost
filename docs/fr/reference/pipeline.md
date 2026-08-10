@@ -130,7 +130,8 @@ Redé-identifie un message utilisateur avec un ensemble de détections corrigé 
 L'ensemble corrigé est stocké tel quel, sans résolution de chevauchement ni recherche d'occurrences, car l'humain fait autorité sur lui. Un `override` configuré s'applique encore, donc les listes du serveur priment sur la correction.
 
 ```python
-detections = [Detection(span=Span(0, 5), text="Marie", label="PERSON", confidence=1.0)]
+detection = Detection(span=Span(0, 5), text="Marie", label="PERSON", confidence=1.0)
+detections = [detection]
 result = await pipeline.anonymize_corrected("Marie called.", "user-A", detections)
 ```
 
@@ -236,13 +237,16 @@ from piighost.pipeline import ThreadAnonymizationPipeline
 
 model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
 detector = Gliner2Detector(model=model, threshold=0.5, labels=["PERSON", "LOCATION"])
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
+linker = ExactEntityLinker()
+memory = InMemoryConversationMemory()
 
 pipeline = ThreadAnonymizationPipeline(
     detector=detector,
-    linker=ExactEntityLinker(),
+    linker=linker,
     anonymizer=anonymizer,
-    memory=InMemoryConversationMemory(),
+    memory=memory,
 )
 
 
