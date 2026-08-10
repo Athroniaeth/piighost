@@ -59,9 +59,8 @@ from piighost.models import Detection, Entity, Span
 
 anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
 
-entity = Entity(detections=(
-    Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9),
-))
+detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9)
+entity = Entity(detections=(detection,))
 
 result = anonymizer.anonymize("Patrick is nice", [entity])
 # result.text == "<<PERSON:1>> is nice"
