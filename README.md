@@ -39,18 +39,11 @@ uv add piighost
 ```python
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 detector = ExactMatchDetector({"John Doe": "PERSON", "john.doe@example.com": "EMAIL"})
-pipeline = AnonymizationPipeline(
-    detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-)
+pipeline = AnonymizationPipeline(detector)
 
 result = asyncio.run(pipeline.anonymize("Write to John Doe at john.doe@example.com."))
 print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
