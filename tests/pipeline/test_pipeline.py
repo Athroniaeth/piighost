@@ -53,6 +53,21 @@ class TestAnonymize:
         result = await pipeline.anonymize("Emma and Emma")
         assert result.text == "<<PERSON:1>> and <<PERSON:1>>"
 
+    async def test_defaults_to_link_and_counter_tokens(self) -> None:
+        """Omitting linker and anonymizer links exactly and tokens by label counter."""
+        pipeline = AnonymizationPipeline(
+            ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"}),
+        )
+        result = await pipeline.anonymize("John Doe lives in Paris.")
+        assert result.text == "<<PERSON:1>> lives in <<LOCATION:1>>."
+
+    def test_defaults_instantiate_linker_and_anonymizer(self) -> None:
+        """A detector-only pipeline has an ExactEntityLinker and a label-counter Anonymizer."""
+        pipeline = AnonymizationPipeline(ExactMatchDetector({"Emma": "PERSON"}))
+        assert isinstance(pipeline.linker, ExactEntityLinker)
+        assert isinstance(pipeline.anonymizer, Anonymizer)
+        assert isinstance(pipeline.anonymizer.factory, LabelCounterPlaceholderFactory)
+
     async def test_all_stages_compose(self) -> None:
         """The optional resolvers and expander run without changing correctness."""
         pipeline = AnonymizationPipeline(

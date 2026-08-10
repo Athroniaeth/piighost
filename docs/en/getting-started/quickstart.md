@@ -12,22 +12,15 @@ The shortest path to see `piighost` at work, without downloading a model. You wi
 ```python
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 detector = ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"})
-pipeline = AnonymizationPipeline(
-    detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-)
+pipeline = AnonymizationPipeline(detector)
 
 
 async def main() -> None:
-    result = await pipeline.anonymize("John Doe habite à Paris.")
+    result = await pipeline.anonymize("John Doe lives in Paris.")
     print(result.text)
 
 
@@ -37,12 +30,12 @@ asyncio.run(main())
 The output should be:
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>.
+<<PERSON:1>> lives in <<LOCATION:1>>.
 ```
 
 ## How it works
 
-`ExactMatchDetector` spots exact occurrences, at word boundaries, of the values in the dictionary you pass. `ExactEntityLinker` groups the detections of the same value and the same label into one entity. `Anonymizer` replaces each entity with the token from its factory, here `LabelCounterPlaceholderFactory` which numbers per label, so `<<PERSON:1>>` and `<<LOCATION:1>>`. The optional pipeline stages, overlap resolution, entity expansion and merging, are disabled by default. That is enough for a first try, with no model to load.
+`ExactMatchDetector` spots exact occurrences, at word boundaries, of the values in the dictionary you pass. Given only a detector, the pipeline fills the required stages with their defaults. It groups the detections of the same value and label with an `ExactEntityLinker`, then replaces each entity with a `LabelCounterPlaceholderFactory` that numbers per label, so `<<PERSON:1>>` and `<<LOCATION:1>>`. The optional stages, overlap resolution, entity expansion and merging, stay disabled. That is enough for a first try, with no model to load.
 
 ## What's next
 
