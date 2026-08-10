@@ -26,10 +26,14 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
+detector = RegexDetector(GENERIC_PATTERNS)
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
-    RegexDetector(GENERIC_PATTERNS),
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    detector,
+    linker,
+    anonymizer,
 )
 
 
@@ -71,10 +75,14 @@ A value cited several times gets a single token, so the LLM keeps the thread. `E
 ```python
 from piighost.components.detector import ExactMatchDetector
 
+detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
-    ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"}),
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    detector,
+    linker,
+    anonymizer,
 )
 
 
@@ -100,10 +108,12 @@ from piighost.components.placeholder import (
 )
 
 # Deterministic hash, one opaque token per value: <<PERSON:a1b2c3d4>>
-Anonymizer(LabelHashPlaceholderFactory())
+hash_factory = LabelHashPlaceholderFactory()
+Anonymizer(hash_factory)
 
 # Label only, no counter: <<PERSON>>
-Anonymizer(LabelPlaceholderFactory())
+label_factory = LabelPlaceholderFactory()
+Anonymizer(label_factory)
 ```
 
 To restore the values, the factory must preserve identity, which `LabelCounterPlaceholderFactory` does and `LabelPlaceholderFactory` does not, since it gives the same `<<PERSON>>`{ .placeholder } to two distinct people. See the [placeholder factories](../placeholder-factories.md) page.

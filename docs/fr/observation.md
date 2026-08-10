@@ -96,11 +96,12 @@ chaque payload est caviardé au travers avant de sortir du processus.
 from piighost.pipeline import AnonymizationPipeline
 from piighost.components.placeholder import LabelPlaceholderFactory
 
+redactor = LabelPlaceholderFactory()
 pipeline = AnonymizationPipeline(
     detector,
     linker,
     anonymizer,
-    observation_redactor=LabelPlaceholderFactory(),
+    observation_redactor=redactor,
 )
 ```
 

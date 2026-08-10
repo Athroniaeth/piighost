@@ -88,11 +88,12 @@ every payload is scrubbed through it before it leaves the process.
 from piighost.pipeline import AnonymizationPipeline
 from piighost.components.placeholder import LabelPlaceholderFactory
 
+redactor = LabelPlaceholderFactory()
 pipeline = AnonymizationPipeline(
     detector,
     linker,
     anonymizer,
-    observation_redactor=LabelPlaceholderFactory(),
+    observation_redactor=redactor,
 )
 ```
 

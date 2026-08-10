@@ -92,8 +92,9 @@ detector = Gliner2Detector(
 ```python
 from piighost.pipeline import AnonymizationPipeline
 
+detector = HandleDetector()
 pipeline = AnonymizationPipeline(
-    HandleDetector(),
+    detector,
     linker,
     anonymizer,
 )
@@ -250,7 +251,8 @@ A token is an instance of the tag, which is a `str` subclass, so it is a real st
 ```python
 from piighost.components.anonymizer import Anonymizer
 
-anonymizer = Anonymizer(BracketLabelFactory())
+factory = BracketLabelFactory()
+anonymizer = Anonymizer(factory)
 ```
 
 ---
@@ -286,11 +288,12 @@ The built-in `DetectorGuardRail` re-runs a detector and reports the residual det
 ```python
 from piighost.pipeline import AnonymizationPipeline
 
+guard = AtSignGuard()
 pipeline = AnonymizationPipeline(
     detector,
     linker,
     anonymizer,
-    guard=AtSignGuard(),
+    guard=guard,
 )
 ```
 
@@ -307,13 +310,20 @@ from piighost.components.overlap_resolver import ConfidenceOverlapResolver
 from piighost.components.entity_resolver import MergeEntityResolver
 from piighost.pipeline import AnonymizationPipeline
 
+detector = HandleDetector()
+linker = ExactEntityLinker()
+factory = BracketLabelFactory()
+anonymizer = Anonymizer(factory)
+overlap_resolver = ConfidenceOverlapResolver()
+entity_resolver = MergeEntityResolver()
+guard = AtSignGuard()
 pipeline = AnonymizationPipeline(
-    HandleDetector(),
-    ExactEntityLinker(),
-    Anonymizer(BracketLabelFactory()),
-    overlap_resolver=ConfidenceOverlapResolver(),
-    entity_resolver=MergeEntityResolver(),
-    guard=AtSignGuard(),
+    detector,
+    linker,
+    anonymizer,
+    overlap_resolver=overlap_resolver,
+    entity_resolver=entity_resolver,
+    guard=guard,
 )
 ```
 

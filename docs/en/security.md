@@ -114,11 +114,12 @@ To surface more structure (for example a distinct counter per PII during local d
 ```python
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
+redactor = LabelCounterPlaceholderFactory()
 pipeline = AnonymizationPipeline(
     detector=detector,
     linker=linker,
     anonymizer=anonymizer,
-    observation_redactor=LabelCounterPlaceholderFactory(),  # <<PERSON:1>>, <<EMAIL:2>>, ...
+    observation_redactor=redactor,  # <<PERSON:1>>, <<EMAIL:2>>, ...
 )
 ```
 

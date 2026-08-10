@@ -41,10 +41,14 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
+detector = RegexDetector(GENERIC_PATTERNS)
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
-    RegexDetector(GENERIC_PATTERNS),
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    detector,
+    linker,
+    anonymizer,
 )
 
 
@@ -67,10 +71,13 @@ from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
 patterns = {**GENERIC_PATTERNS, **FR_PATTERNS}
 detector = RegexDetector(patterns)
 
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
     detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    linker,
+    anonymizer,
 )
 
 
@@ -103,15 +110,17 @@ detector = RegexDetector(patterns)
 from piighost.components.detector import CompositeDetector, ExactMatchDetector, RegexDetector
 from piighost.components.detector.patterns import GENERIC_PATTERNS
 
-detector = CompositeDetector([
-    ExactMatchDetector({"Patrick": "PERSON"}),
-    RegexDetector(GENERIC_PATTERNS),
-])
+exact_detector = ExactMatchDetector({"Patrick": "PERSON"})
+regex_detector = RegexDetector(GENERIC_PATTERNS)
+detector = CompositeDetector([exact_detector, regex_detector])
 
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
     detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    linker,
+    anonymizer,
 )
 
 
@@ -135,15 +144,17 @@ from piighost.components.detector import ChunkedDetector, RegexDetector
 from piighost.components.detector.patterns import GENERIC_PATTERNS
 from piighost.text import RecursiveCharacterTextSplitter
 
-detector = ChunkedDetector(
-    RegexDetector(GENERIC_PATTERNS),
-    splitter=RecursiveCharacterTextSplitter(chunk_size=40, chunk_overlap=10),
-)
+regex_detector = RegexDetector(GENERIC_PATTERNS)
+splitter = RecursiveCharacterTextSplitter(chunk_size=40, chunk_overlap=10)
+detector = ChunkedDetector(regex_detector, splitter=splitter)
 
+linker = ExactEntityLinker()
+factory = LabelCounterPlaceholderFactory()
+anonymizer = Anonymizer(factory)
 pipeline = AnonymizationPipeline(
     detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
+    linker,
+    anonymizer,
 )
 
 
