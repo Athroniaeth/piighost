@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -15,7 +16,7 @@ _CONFIG = {
 }
 
 
-def _write_json(tmp_path: Path, data: dict[str, object]) -> Path:
+def _write_json(tmp_path: Path, data: dict[str, Any]) -> Path:
     """Write data as JSON to a config.json under tmp_path and return the path."""
     path = tmp_path / "config.json"
     path.write_text(json.dumps(data))

@@ -90,6 +90,7 @@ class TestOverrideConfig:
         """The override config builds both a whitelist and a blacklist detector."""
         config = OverrideConfig(whitelist=_REGEX, blacklist=_REGEX)
         override = config.build()
+        assert isinstance(override, DetectionOverride)
         assert isinstance(override.whitelist, RegexDetector)
         assert isinstance(override.blacklist, RegexDetector)
 

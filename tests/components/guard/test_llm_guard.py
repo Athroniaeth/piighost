@@ -5,9 +5,14 @@ needed. The tests are guarded with importorskip for environments without the llm
 extra, but run in the dev venv where langchain-core is installed.
 """
 
+from typing import TYPE_CHECKING, cast
+
 import pytest
 
 from piighost.components.guard import AnyGuardRail
+
+if TYPE_CHECKING:
+    from langchain_core.messages import BaseMessage
 
 
 class _FakeLabel:
@@ -126,6 +131,6 @@ class TestCheck:
         verdict = await guard.check("Emma slipped through")
         assert verdict.flagged is True
         # The custom prompt reached the model as the substituted system message.
-        messages = captured[0]
+        messages = cast("list[BaseMessage]", captured[0])
         system_message = messages[0]
         assert "Sentinel audit instruction" in str(system_message.content)
