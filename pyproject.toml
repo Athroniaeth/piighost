@@ -50,15 +50,6 @@ piighost = "piighost.cli:main"
 gliner2 = [
     "gliner2>=1.2",
 ]
-langchain = [
-    "langchain>=1.2",
-]
-faker = [
-    "faker>=40.11",
-]
-cache = [
-    "aiocache>=0.12",
-]
 redis = [
     "redis>=5",
 ]
@@ -86,16 +77,6 @@ observation = [
 fuzzy = [
     "rapidfuzz>=3.9",
 ]
-sqlalchemy = [
-    "sqlalchemy[asyncio]>=2.0",
-    "aiosqlite>=0.20",
-]
-langfuse = [
-    "langfuse>=3.0",
-]
-opik = [
-    "opik>=2.0",
-]
 config = [
     "pydantic>=2.6",
     "pydantic-settings>=2.0",
@@ -112,7 +93,7 @@ mistral = [
     "mistralai>=1.0",
 ]
 all = [
-    "piighost[gliner2,langchain,faker,cache,redis,client,spacy,transformers,llm,observation,fuzzy,sqlalchemy,langfuse,opik,config,argon2,crypto,mistral]",
+    "piighost[gliner2,redis,middleware,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral]",
 ]
 
 [build-system]
@@ -147,9 +128,6 @@ dev = [
     "opentelemetry-sdk>=1.30",
     "rapidfuzz>=3.9",
 ]
-faker = [
-    "faker>=40.11.0",
-]
 gliner2 = [
     "gliner2>=1.2.4",
 ]
@@ -163,12 +141,6 @@ transformers = [
     "transformers>=4.40",
     "torch>=2.0",
 ]
-pipeline = [
-    "aiocache>=0.12.3",
-]
-redis = [
-    "aiocache[redis]>=0.12",
-]
 llm = [
     "langchain-core>=0.3",
     "langchain>=1.2",
@@ -178,10 +150,6 @@ observation = [
 ]
 fuzzy = [
     "rapidfuzz>=3.9",
-]
-sqlalchemy = [
-    "sqlalchemy[asyncio]>=2.0",
-    "aiosqlite>=0.20",
 ]
 config = [
     "pydantic>=2.6",
@@ -202,8 +170,9 @@ markers = [
 show_missing = true
 
 [tool.ruff]
-# v1 kept for reference during the rewrite; do not format or lint it.
-extend-exclude = ["src/v1_piighost", "v1_tests"]
+# tools/ holds self-contained dev scripts (the animation generator), not
+# library code, so they are exempt from the strict annotation lint.
+extend-exclude = ["tools"]
 
 [tool.ruff.lint]
 # Typing is mandatory: flake8-annotations (ANN) flags any missing argument or
@@ -218,13 +187,10 @@ ignore = ["ANN401"]
 # so their deps are absent from the main venv and would show spurious errors.
 # Scratch scripts under scripts/ reference removed APIs.
 project-excludes = [
-    # v1 kept for reference during the rewrite; its internal imports still
-    # target the old ``piighost`` name, so exclude it from type checking.
-    "src/v1_piighost/**",
-    "v1_tests/**",
     "examples/legacy/**",
     ".claude/**",
     "scripts/**",
+    "tools/**",
     "benchmarks/**",
     "dist/**",
     "site/**",
