@@ -49,6 +49,7 @@ class TestExpanderConfig:
         expander = WordBoundaryExpanderConfig(
             type="word_boundary", case_sensitive=True
         ).build()
+        assert isinstance(expander, WordBoundaryExpander)
         assert expander.case_sensitive is True
 
 
@@ -94,5 +95,6 @@ class TestLabelHashPlaceholderConfig:
 
     def test_rejects_zero_hash_length(self) -> None:
         """A zero hash_length fails validation, it would render an empty digest."""
+        invalid_length: int = 0
         with pytest.raises(ValidationError):
-            LabelHashPlaceholderConfig(type="label_hash", hash_length=0)
+            LabelHashPlaceholderConfig(type="label_hash", hash_length=invalid_length)

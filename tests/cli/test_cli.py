@@ -34,7 +34,11 @@ def _write(tmp_path: Path, text: str) -> Path:
 class TestConformance:
     def test_app_exposes_the_two_commands(self) -> None:
         """The app registers exactly the validate and schema commands."""
-        names = {command.callback.__name__ for command in app.registered_commands}
+        names = set()
+        for command in app.registered_commands:
+            callback = command.callback
+            assert callback is not None
+            names.add(callback.__name__)
         assert names == {"validate", "schema"}
 
 

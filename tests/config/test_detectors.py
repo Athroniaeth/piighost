@@ -1,6 +1,6 @@
 """Tests for the catalog, exact, and chunked detector config models."""
 
-from typing import get_args
+from typing import Any, cast, get_args
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
@@ -23,7 +23,10 @@ from piighost.config.models.detector import (
 @pytest.mark.parametrize("name", get_args(CatalogName))
 def test_each_catalog_builds_non_empty_patterns(name: str) -> None:
     """Every catalog name wires a non-empty pattern set into the detector."""
-    detector = RegexDetectorConfig(type="regex", catalogs=[name]).build()
+    detector = RegexDetectorConfig(
+        type="regex", catalogs=[cast(CatalogName, name)]
+    ).build()
+    assert isinstance(detector, RegexDetector)
     assert detector.patterns
 
 
@@ -51,6 +54,7 @@ class TestRegexCatalogs:
             type="regex", catalogs=["generic"], patterns={"EMAIL": "OVERRIDE"}
         )
         detector = config.build()
+        assert isinstance(detector, RegexDetector)
         assert detector.patterns["EMAIL"] == "OVERRIDE"
 
     def test_catalog_and_inline_both_survive(self) -> None:
@@ -59,6 +63,7 @@ class TestRegexCatalogs:
             type="regex", catalogs=["generic"], patterns={"CUSTOM": "x"}
         )
         detector = config.build()
+        assert isinstance(detector, RegexDetector)
         assert "EMAIL" in detector.patterns
         assert "CUSTOM" in detector.patterns
 
@@ -69,8 +74,9 @@ class TestRegexCatalogs:
 
     def test_unknown_catalog_name_is_rejected(self) -> None:
         """An unknown catalog name fails validation."""
+        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["mars"]}
         with pytest.raises(ValidationError):
-            RegexDetectorConfig(type="regex", catalogs=["mars"])
+            RegexDetectorConfig(**bad_kwargs)
 
 
 class TestExactDetectorConfig:

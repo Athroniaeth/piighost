@@ -61,10 +61,12 @@ class TestThreadSpans:
         await _pipeline().anonymize("Hi Emma", "t1")
         spans = {span.name: span for span in exporter.get_finished_spans()}
         root = spans["piighost.anonymize"]
+        root_context = root.context
+        assert root_context is not None
         for name in ("piighost.detect", "piighost.link", "piighost.render"):
             parent = spans[name].parent
             assert parent is not None
-            assert parent.span_id == root.context.span_id
+            assert parent.span_id == root_context.span_id
 
     async def test_deanonymize_emits_its_own_root(
         self, exporter: InMemorySpanExporter
