@@ -3,20 +3,23 @@
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, nullcontext
 from dataclasses import replace
-from typing import Any, Generic, Protocol, runtime_checkable
+from typing import Any, Generic, Protocol, cast, runtime_checkable
 
 from typing_extensions import TypeVar
 
+from piighost.components.anonymizer import Anonymizer
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
 from piighost.components.detector.base import AnyDetector
 from piighost.components.entity_resolver.base import AnyEntityResolver
 from piighost.exceptions import PIIRemainingError
 from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail, GuardVerdict
+from piighost.components.linker import ExactEntityLinker
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.models import Detection, Entity
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.components.override.base import AnyDetectionOverride
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.components.placeholder.base import (
     AnyPlaceholderFactory,
     BaseDelimitedPlaceholderFactory,
@@ -136,8 +139,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
 
     Attributes:
         detector: The detector run on the text.
-        linker: The linker that groups detections into entities.
-        anonymizer: The anonymizer that replaces entities with tokens.
+        linker: The linker that groups detections into entities. Defaults to an
+            ExactEntityLinker.
+        anonymizer: The anonymizer that replaces entities with tokens. Defaults
+            to an Anonymizer with a LabelCounterPlaceholderFactory.
         overlap_resolver: The resolver for overlapping detections, or None.
         expander: The expander for missed occurrences, or None.
         entity_resolver: The resolver for entity conflicts, or None.
@@ -148,8 +153,8 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
     def __init__(
         self,
         detector: AnyDetector,
-        linker: AnyEntityLinker,
-        anonymizer: AnyAnonymizer[PreservationT],
+        linker: AnyEntityLinker | None = None,
+        anonymizer: AnyAnonymizer[PreservationT] | None = None,
         overlap_resolver: AnyOverlapResolver | None = None,
         expander: AnyDetectionExpander | None = None,
         entity_resolver: AnyEntityResolver | None = None,
@@ -159,6 +164,11 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
     ) -> None:
         """Store the stage components, the optional ones defaulting to disabled.
 
+        Only the detector is required. Omitting linker builds an ExactEntityLinker,
+        and omitting anonymizer builds an Anonymizer with a
+        LabelCounterPlaceholderFactory, so the smallest pipeline is
+        AnonymizationPipeline(detector).
+
         observation_redactor controls the observation payloads: None, the
         default, traces the clear text and detection values, so traces double as
         annotation datasets; a placeholder factory replaces those values with its
@@ -167,8 +177,14 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         detection set, trumping the detector and any corrected set.
         """
         self.detector = detector
-        self.linker = linker
-        self.anonymizer = anonymizer
+        self.linker = linker or ExactEntityLinker()
+        # The default anonymizer's tag is fixed, but the caller left PreservationT
+        # unbound, so cast to widen it. The tokens it preserves satisfy any consumer
+        # of the widened default.
+        default_anonymizer = cast(
+            "AnyAnonymizer[PreservationT]", Anonymizer(LabelCounterPlaceholderFactory())
+        )
+        self.anonymizer = anonymizer or default_anonymizer
         self.overlap_resolver = overlap_resolver
         self.expander = expander
         self.entity_resolver = entity_resolver

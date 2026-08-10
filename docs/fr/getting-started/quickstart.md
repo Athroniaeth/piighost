@@ -12,18 +12,11 @@ Le chemin le plus court pour voir `piighost` à l'œuvre, sans télécharger de 
 ```python
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 detector = ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"})
-pipeline = AnonymizationPipeline(
-    detector,
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-)
+pipeline = AnonymizationPipeline(detector)
 
 
 async def main() -> None:
@@ -42,7 +35,7 @@ La sortie doit être :
 
 ## Comment ça marche
 
-`ExactMatchDetector` repère les occurrences exactes, aux frontières de mots, des valeurs du dictionnaire fourni. `ExactEntityLinker` regroupe les détections d'une même valeur et d'un même label en une entité. `Anonymizer` remplace chaque entité par le jeton de sa factory, ici `LabelCounterPlaceholderFactory` qui numérote par label, donc `<<PERSON:1>>` et `<<LOCATION:1>>`. Les étapes optionnelles du pipeline, résolution de chevauchement, expansion et fusion d'entités, sont désactivées par défaut. C'est suffisant pour un premier essai, sans aucun modèle à charger.
+`ExactMatchDetector` repère les occurrences exactes, aux frontières de mots, des valeurs du dictionnaire fourni. Passé seul, le détecteur suffit, le pipeline complète les étapes obligatoires avec leurs valeurs par défaut. Il regroupe les détections d'une même valeur et d'un même label avec un `ExactEntityLinker`, puis remplace chaque entité avec un `LabelCounterPlaceholderFactory` qui numérote par label, donc `<<PERSON:1>>` et `<<LOCATION:1>>`. Les étapes optionnelles du pipeline, résolution de chevauchement, expansion et fusion d'entités, restent désactivées. C'est suffisant pour un premier essai, sans aucun modèle à charger.
 
 ## Et ensuite
 
