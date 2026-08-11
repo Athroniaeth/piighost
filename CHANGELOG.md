@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 (unreleased)
+
+First stable release. PIIGhost was rewritten from scratch into a composable,
+hexagonal de-identification pipeline: every stage is a port (an `Any*` protocol)
+with a `Base*` template, so detectors, linkers, resolvers, anonymizers, guards,
+memory backends, and observation are swappable, and configuration couples to the
+core in one direction only.
+
+### BREAKING CHANGE
+
+- The entire public API was redesigned. Imports now live under
+  `piighost.components.*`, `piighost.pipeline`, `piighost.config`, and
+  `piighost.integrations.*`. `AnonymizationPipeline(detector)` needs only a
+  detector, the linker and anonymizer default. The v1 package is gone, along
+  with the faker, cache (aiocache), sqlalchemy, langfuse, and opik extras.
+
+### Feat
+
+- **pipeline**: composable detect, resolve overlaps, expand, link, resolve
+  entities, anonymize, and guard, with the optional stages disabled by default;
+  `ThreadAnonymizationPipeline` keeps tokens stable across a conversation.
+- **detector**: regex with EU/US/FR/generic catalogs, exact-match, composite,
+  chunked, GLiNER2, spaCy, transformers, and LLM detectors behind one port.
+- **placeholder**: redact, label, label-counter, label-hash, and mask factories,
+  with a phantom-type tag hierarchy describing what each token preserves; the
+  middleware requires a recognizable-identity token.
+- **integrations**: LangChain/LangGraph PIIAnonymizationMiddleware with
+  tool-call, invented-placeholder, and assistant-entity strategies and strict
+  thread isolation; an async HTTP client for a remote piighost-api.
+- **config**: pydantic-settings TOML and JSON that build a full pipeline, a
+  `piighost` CLI (validate, schema), and secrets read from the environment.
+- **memory**: in-memory and Redis conversation memory, with optional AES-GCM
+  encryption and Argon2id key hashing of the stored values.
+- **observation**: OpenTelemetry-native per-stage spans with an optional payload
+  redactor.
+
+### Docs
+
+- New bilingual documentation site (English and French) with an animated
+  de-identification hero.
+
 ## 0.14.0 (2026-06-10)
 
 ### BREAKING CHANGE
