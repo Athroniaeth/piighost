@@ -4,97 +4,92 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PIIGhost is a composable PII anonymization pipeline for LLM agents. It detects, anonymizes, and deanonymizes sensitive entities using pluggable detectors (GLiNER2, spaCy, Transformers, LLM, regex), with a LangChain middleware for LangGraph agents, TOML-driven configuration, and an HTTP client for the companion `piighost-api` server.
+PIIGhost is a composable PII de-identification pipeline for LLM agents. It detects, anonymizes, and deanonymizes sensitive entities using pluggable detectors (regex, GLiNER2, spaCy, Transformers, LLM), with a LangChain middleware for LangGraph agents, TOML/JSON-driven configuration, and an HTTP client for the companion `piighost-api` server. The design is hexagonal: every stage is a port (an `Any*` runtime_checkable Protocol) with a `Base*` template ABC, and configuration couples to the core in one direction only.
 
 ## Development Commands
 
 ```bash
 uv sync                      # Install dependencies (dev group included)
-make lint                    # ruff format + ruff check --fix + pyrefly + bandit
+make format                  # Auto-fix: ruff format + ruff check --fix
+make lint                    # Blocking gate: ruff format --check + ruff check + pyrefly + bandit
 uv run pytest                # Run all tests (integration tests deselected by default)
-uv run pytest tests/test_anonymizer.py -k "test_name"  # Run a single test
+uv run pytest tests/pipeline/test_pipeline.py -k "test_name"  # Run a single test
 uv run pytest -m integration # Run integration tests (load torch/gliner2/spacy)
 make docs-build              # Build EN + FR docs (zensical)
 make docs-watch              # Serve EN docs with live reload (docs-watch-fr for FR)
 ```
 
-Tests marked `integration` load heavy optional dependencies and are excluded by the default `addopts`. `asyncio_mode = "auto"`, so async tests need no decorator.
+`make lint` is a real gate (non-mutating, fails on any issue); use `make format` to auto-fix. Tests marked `integration` load heavy optional dependencies and are excluded by the default `addopts`. `asyncio_mode = "auto"`, so async tests need no decorator.
 
 ## Architecture
 
+Each pipeline stage is a package under `src/piighost/components/` whose `base.py` holds the port (`Any*` Protocol) and a `Base*` template ABC; concrete adapters are sibling modules.
+
 ### Anonymization Pipeline
 
-`AnonymizationPipeline` (`pipeline/base.py`) orchestrates 5 stages plus an optional guard:
+`AnonymizationPipeline` (`pipeline/base.py`, extends `BaseAnonymizationPipeline`) runs the stages in order. Only the detector is required: the linker defaults to `ExactEntityLinker` and the anonymizer to `Anonymizer(LabelCounterPlaceholderFactory())`, and the overlap, expand, entity-resolve, override, and guard stages default to disabled.
 
-1. **Detect**: `AnyDetector` protocol (`detector/base.py`). Implementations: `Gliner2Detector`, `SpacyDetector`, `TransformersDetector` (all extend `BaseNERDetector` for external→internal label mapping), `LLMDetector` (LangChain structured output), `RegexDetector` (with optional checksum validators from `validators.py`: Luhn, IBAN, NIR), `ExactMatchDetector` (tests), `CompositeDetector` (chains detectors), `ChunkedDetector` (wraps any detector with overlapping-chunk splitting for long texts). Pre-built regex pattern dicts live in `detector/patterns/` (generic, us, eu, fr).
-2. **Resolve Spans**: `AnySpanConflictResolver` — `ConfidenceSpanConflictResolver` keeps the highest-confidence detection when spans overlap.
-3. **Link Entities**: `AnyEntityLinker` — `ExactEntityLinker` finds all occurrences via word-boundary regex and groups them; `link_entities()` links entities across messages.
-4. **Resolve Entities**: `AnyEntityConflictResolver` — `MergeEntityConflictResolver` (union-find) or `FuzzyEntityConflictResolver` (Jaro-Winkler, `similarity.py`).
-5. **Anonymize**: `AnyAnonymizer` — `Anonymizer` applies span-based replacement using an `AnyPlaceholderFactory`.
-6. **Guard rail** (optional): `AnyGuardRail` (`guard.py`) re-checks anonymized output for residual PII via `check(text, tokens=...)`, where `tokens` are the placeholders the pipeline just emitted so the guard can ignore them. `DetectorGuardRail` re-runs a detector, `LLMGuardRail` (`guard_llm.py`) uses an LLM prompted to ignore placeholders. Raises `PIIRemainingError`.
+1. **Detect**: `AnyDetector` (`components/detector/base.py`). `RegexDetector` (prebuilt pattern catalogs in `components/detector/patterns/`: generic, us, eu, fr; no checksum validators, so it matches on shape alone and never drops an OCR-mangled value), `ExactMatchDetector` (tests), `CompositeDetector` (runs several concurrently), `ChunkedDetector` (overlapping-chunk splitting for long text), and the model detectors `Gliner2Detector` / `SpacyDetector` / `TransformersDetector` (extend `BaseNERDetector` for label mapping) plus `LLMDetector` (LangChain structured output).
+2. **Override** (optional): `AnyDetectionOverride` (`components/override/`) imposes a server whitelist and blacklist on every detection set.
+3. **Resolve overlaps** (optional): `AnyOverlapResolver` / `ConfidenceOverlapResolver` keeps the highest-confidence detection when spans overlap.
+4. **Expand** (optional): `AnyDetectionExpander` / `WordBoundaryExpander` adds missed occurrences.
+5. **Link**: `AnyEntityLinker` / `ExactEntityLinker` groups detections that share a value and label into an `Entity`.
+6. **Resolve entities** (optional): `AnyEntityResolver` / `MergeEntityResolver` (union-find) or `FuzzyEntityResolver` (Jaro-Winkler, `fuzzy` extra).
+7. **Anonymize**: `AnyAnonymizer` / `Anonymizer` applies span-based replacement using an `AnyPlaceholderFactory`.
+8. **Guard rail** (optional): `AnyGuardRail` (`components/guard/`) re-checks the output for residual PII and raises `PIIRemainingError`. `DetectorGuardRail` re-runs a detector, `LLMGuardRail` (`guard/llm.py`) prompts an LLM to ignore placeholders, `ModerationGuardRail` (`guard/moderation.py`, `mistral` extra) backs the check with Mistral.
 
-All stages run through a single template method `_anonymize_with_span()` in `pipeline/base.py`, which calls hooks (`_link_stage`, `_record_entities`, `_render_stage`) in order; the thread pipeline overrides these hooks to add cross-message linking, conversation-memory recording, and memory-wide rendering.
-
-All stages use **protocols** (structural subtyping) for dependency injection. Tests use `ExactMatchDetector` to avoid loading real models. Data models (`Entity`, `Detection`, `Span` in `models.py`) are frozen dataclasses.
+Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models/`. Tests use `ExactMatchDetector` to avoid loading real models.
 
 ### Placeholder Factories & Preservation Tags
 
-`placeholder_tags.py` defines a phantom-type hierarchy describing what a placeholder preserves: label axis (`<PERSON>` vs `[REDACT]`), identity axis (`<<PERSON:1>>` uniquely identifies), realism axis (Opaque / Hashed / Faker), plus `PreservesShape` (masks like `j***@mail.com`). Pipelines are generic on this tag; the middleware requires `PreservesIdentity` to deanonymize safely.
-
-Factories in `placeholder.py`: `RedactPlaceholderFactory`, `LabelPlaceholderFactory`, `MaskPlaceholderFactory`, `RedactCounterPlaceholderFactory`, `RedactHashPlaceholderFactory`, `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`), `LabelHashPlaceholderFactory`. Faker-based factories in `ph_factory/`: `FakerPlaceholderFactory`, `FakerCounterPlaceholderFactory`, `FakerHashPlaceholderFactory`. Hash factories support a pepper via `PIIGHOST_HASH_PEPPER`.
+`components/placeholder/tags.py` defines a phantom-type hierarchy (a `str` subclass) describing what a token preserves: label (`<PERSON>` vs `[REDACT]`), identity (`<<PERSON:1>>` uniquely identifies), realism (Opaque / Hashed), and shape (masks like `j***@mail.com`). Pipelines are generic on this tag. Factories in `components/placeholder/`: `RedactPlaceholderFactory`, `LabelPlaceholderFactory`, `MaskPlaceholderFactory`, `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`), `LabelHashPlaceholderFactory` (pepper via `PIIGHOST_HASH_PEPPER`). The middleware requires a token that preserves recognizable identity (`PreservesRecognizableIdentity`) so it can find and restore it. There is no Faker factory.
 
 ### Conversation Layer
 
-`ThreadAnonymizationPipeline` (`pipeline/thread.py`) extends the base pipeline with:
-- **Thread isolation**: memory and cache scoped per `thread_id` (propagated via a ContextVar, defaults to `"default"`)
-- `ConversationMemory` accumulates entities across messages per thread, deduplicated by `(text.lower(), label)`, tracking case variants so "patrick" in message 2 shares the placeholder of "Patrick" in message 1. Memory is cache-backed (write-through snapshots persisted to the cache backend, hydrated per call so multi-worker deployments see each other's entities) and injectable via `memory_factory`.
-- `forget_thread(thread_id)` purges a conversation from both RAM and the cache backend (via a per-thread key index, since aiocache has no portable prefix scan)
-- `deanonymize_with_ent()` / `anonymize_with_ent()` for string-based token replacement on any text
-- aiocache-backed caching of detector results and anonymization mappings (SHA-256 keyed, prefixed by thread_id). `cache_ttl` defaults to 3600 s (one hour) on every entry the pipeline writes; pass `None` to keep entries until backend eviction. In TOML configs the knob is `[pipeline] cache_ttl` (`0` disables expiry). `cache/sqlalchemy.py` provides `SQLAlchemyCache`, an aiocache-compatible backend for SQLite/PostgreSQL persistence (required for multi-worker deployments).
+`ThreadAnonymizationPipeline` (`pipeline/thread.py`) extends the base pipeline to keep a value's token stable across a whole thread, assigning tokens over the union of every message's detections. `conversation_memory/` holds the memory port plus `InMemoryConversationMemory` and a Redis backend (`redis_backend.py`, `redis` extra); the Redis backend optionally encrypts stored values with AES-GCM and hashes the storage keys with Argon2id (`crypto/`, `crypto` / `argon2` extras, keyed by `PIIGHOST_CIPHER_KEY`). `thread_id` propagates via a ContextVar (default `"default"`); `require_thread_id` refuses the shared default. `forget_thread(thread_id)` purges a conversation. There is no result cache (no aiocache, no SQLAlchemy cache).
 
 ### Middleware Integration
 
-`PIIAnonymizationMiddleware` (`middleware.py`) extends LangChain's `AgentMiddleware`:
-- Extracts `thread_id` from LangGraph config via `get_config()["configurable"]["thread_id"]`; `require_thread_id=True` raises instead of falling back to the shared `"default"` thread when no thread id is present
-- `abefore_model` anonymizes messages before the LLM sees them; `aafter_model` deanonymizes for user display (cache-based, `CacheMissError` falls back to entity-based)
-- `awrap_tool_call` behavior is controlled by `ToolCallStrategy`: `FULL` (deanonymize args, re-anonymize result), `INBOUND_ONLY`, or `PASSTHROUGH`. Tool-call args are deanonymized recursively through nested dict/list/tuple containers (`_deanonymize_value`); other container types pass through unchanged
+`PIIAnonymizationMiddleware` (`integrations/middleware/langchain.py`) extends LangChain's `AgentMiddleware`:
+- Reads `thread_id` from the LangGraph config; `require_thread_id` defaults to `True`, so a missing thread id raises instead of leaking into the shared default.
+- Anonymizes messages before the model sees them and deanonymizes for user display.
+- `ToolCallStrategy` (`INPUT` / `OUTPUT` / `FULL` / `PASSTHROUGH`) governs tool-call de- and re-anonymization; `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) handles tokens the model made up; `AssistantEntityStrategy` (`PRESERVE` / `ANONYMIZE` / `IGNORE`) handles values the assistant introduces.
+- Requires a pipeline whose tokens are recognizable (`pipeline.recognizer`), else raises at construction.
 
-### TOML Configuration & CLI
+### Configuration & CLI
 
-`config/` builds a full pipeline from a TOML file: `load_config()` parses into Pydantic models (`config/models/`, discriminated unions per component type), `build_pipeline()` dispatches to each component's `from_config()` classmethod (`config/builders.py`, optional imports deferred), `load_pipeline()` combines both and returns the pipeline plus a `PipelineManifest`. The `piighost` CLI (`cli/`) exposes `validate <file.toml>` and `schema`. Detector labels accept a list or an `{emitted: model}` mapping dict.
+`config/` builds a full pipeline from a TOML or JSON file via pydantic-settings. `PipelineConfig` and each component config carry a `build()` method (no builder registry, no `from_config` classmethods); `load_config`, `load_pipeline`, and `load_thread_pipeline` combine parsing and building. Secrets are read from the environment only (`PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `MISTRAL_API_KEY`), raising `ConfigError` at build time when missing. The `piighost` CLI (`cli/`) exposes `validate <file>` and `schema`.
 
 ### Other Components
 
-- `client.py`: `PIIGhostClient`, async httpx client for a remote piighost-api server (`detect`, `anonymize`, `deanonymize`, `override_detections`)
-- `observation/`: backend-agnostic tracing protocols (`AbstractObservationService`, mirroring Langfuse v3 vocabulary) with Langfuse and Opik adapters; the pipeline emits per-stage spans when a service is provided
-- `labels.py`: common label constants (`PERSON`, `EMAIL`, ...); custom labels remain allowed
+- `integrations/client/remote.py`: `PIIGhostClient`, async httpx client for a remote piighost-api server.
+- `observation/`: OpenTelemetry-native tracing behind a `get_tracer()` seam. The pipeline emits per-stage spans; an optional `observation_redactor` tokenizes span payloads so traces stay safe for a PII-untrusted backend. There is no Langfuse or Opik library adapter.
+- `text/`: `RecursiveCharacterTextSplitter` and word-boundary helpers used by `ChunkedDetector`.
 
 ### Optional Dependencies
 
-Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `faker`, `middleware`, `client`, `sqlalchemy`, `config`, `langfuse`, `opik`, `all`. Imports of optional packages stay inside functions/modules that need them; `tests/test_optional_dependencies.py` enforces this. Keep new optional features behind the same pattern.
+Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `middleware`, `config`, `fuzzy`, `redis`, `crypto`, `argon2`, `mistral`, `client`, `observation`, `all`. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/test_optional_dependencies.py` enforces this. Keep new optional features behind the same pattern.
 
 ### Design Patterns
 
-Config coupling is **one-way**: `config/builders.py` maps config types to component classes and dispatches to each component's `from_config()`, but core modules never import `piighost.config` at runtime (config-model type hints in core are guarded by `TYPE_CHECKING`). This is enforced by `tests/test_core_no_extras.py`. Adding a new component means a core class plus a config model plus a builder entry, never a core-to-config import.
+Config coupling is **one-way**: `config/` imports and builds the core components, but core modules never import `piighost.config` at runtime (config-model type hints in core are guarded by `TYPE_CHECKING`). Every stage ships an `Any*` port and a `Base*` template in its `base.py`; adding a component means a core adapter plus a config model with a `build()`, never a core-to-config import.
 
 ## Conventions
 
 - **Commits**: Conventional Commits via Commitizen (`feat:`, `fix:`, `refactor:`, etc.); releases via `cz bump`
-- **Type checking**: PyReFly (not mypy)
-- **Formatting/linting**: Ruff; security lint via Bandit (both run by `make lint`)
+- **Type checking**: PyReFly (not mypy); `make lint` is a blocking gate, `make format` auto-fixes
+- **Formatting/linting**: Ruff; security lint via Bandit
 - **Package manager**: uv (not pip)
-- **Python**: 3.10+ runtime support (dev on 3.12+)
+- **Python**: 3.11+
 
 ## Documentation
 
-Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/fr/`, with nav declared in `zensical.toml` (EN) and `zensical.fr.toml` (FR). Built with Zensical. When touching one language, update the other.
+Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/fr/`, with nav declared in `zensical.toml` (EN) and `zensical.fr.toml` (FR). Built with Zensical. When touching one language, update the other, and keep the code blocks byte-identical between them.
 
 ## Examples
 
-- `examples/graph/`: LangGraph agent with PII middleware (own uv sub-project: Aegra, FastAPI, PostgreSQL, Langfuse) — see its README
-- `examples/llm/`, `examples/observation/`: standalone PEP 723 inline-metadata scripts (run with `uv run <script>`)
-- `examples/streamlit/playground.py`: interactive playground
-- `examples/detectors/`: regex pattern catalogs
+- `examples/`: standalone PEP 723 inline-metadata scripts (`anonymize_basic.py`, `thread_conversation.py`, `guard_rail.py`, `langchain_middleware.py`, `placeholder_styles.py`, plus `strategies/`, `observation/`, `config/`), run with `uv run <script>`.
+- `examples/legacy/`: pre-rewrite examples kept for reference, excluded from lint and type checking.
 
 New examples should be PEP 723 scripts, not uv sub-projects.
 
