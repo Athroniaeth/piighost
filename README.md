@@ -1,3 +1,5 @@
+
+
 # PIIGhost
 
 [![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg?cacheSeconds=3600)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
@@ -231,7 +233,7 @@ pipeline = ThreadAnonymizationPipeline(detector=detector, anonymizer=Anonymizer(
 middleware = PIIAnonymizationMiddleware(pipeline=pipeline)
 
 graph = create_agent(
-    model="openai:gpt-5.4",
+    model="openai:gpt-4o",
     system_prompt="You are a helpful assistant.",
     tools=[send_email],
     middleware=[middleware],
