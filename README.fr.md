@@ -12,9 +12,6 @@ Cette librairie repère les PII grâce à des détecteurs (regex, NER, ou un aut
 
 Enfin, cette librairie garde la correspondance entre la valeur et son placeholder tout au long de la conversation. Si `john.doe@example.com` réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`, ce qui permet au modèle de suivre le fil de discussion.
 
-> [!NOTE]
-> `piighost` fait de la **dé-identification réversible**. Comme la correspondance entre une valeur et son placeholder est conservée pour pouvoir restaurer les données, il s'agit d'une pseudonymisation au sens du RGPD, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-fr-dark.gif">
@@ -23,6 +20,9 @@ Enfin, cette librairie garde la correspondance entre la valeur et son placeholde
 </p>
 
 *Le LLM ne voit que des placeholders. L'outil reçoit la vraie adresse, l'utilisateur reçoit une réponse en clair, et le code de l'agent ne change pas.*
+
+> [!NOTE]
+> `piighost` fait de la **dé-identification réversible**. Comme la correspondance entre une valeur et son placeholder est conservée pour pouvoir restaurer les données, il s'agit d'une pseudonymisation au sens du RGPD, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
 ## Démarrage rapide
 
