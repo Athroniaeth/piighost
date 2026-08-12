@@ -6,15 +6,6 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-dark.gif">
-    <img alt="A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
-  </picture>
-</p>
-
-*The LLM only sees placeholders. The tool receives the real address, the user gets a clear-text reply, and your agent code stays the same.*
-
 `piighost` is a Python library that keeps PII (personally identifiable information) from reaching a language model, while keeping the application fully functional.
 
 The library spots PII with detectors (regex, NER, or another LLM) and replaces each value with a stable placeholder, for example `john.doe@example.com` becomes `<<EMAIL:1>>`. The model only ever works on de-identified text. When the LLM returns placeholders, `piighost` puts the real values back in place, the end user sees `john.doe@example.com` and never notices the de-identification. The same mechanism protects tool-using agents. A tool that needs the real address receives it in clear, while the LLM that decides to call it still sees only `<<EMAIL:1>>`.
@@ -23,6 +14,15 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 
 > [!NOTE]
 > `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-dark.gif">
+    <img alt="A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
+  </picture>
+</p>
+
+*The LLM only sees placeholders. The tool receives the real address, the user gets a clear-text reply, and your agent code stays the same.*
 
 ## Quickstart
 
