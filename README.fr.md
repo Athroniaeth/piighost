@@ -6,7 +6,14 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
-[README EN](README.md) - [README FR](README.fr.md) / [Documentation EN](https://athroniaeth.github.io/piighost/) - [Documentation FR](https://athroniaeth.github.io/piighost/fr/)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-fr-dark.gif">
+    <img alt="Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="docs/assets/deid-chat-fr-light.gif" width="760">
+  </picture>
+</p>
+
+*Le LLM ne voit que des placeholders. L'outil reçoit la vraie adresse, l'utilisateur reçoit une réponse en clair, et le code de l'agent ne change pas.*
 
 `piighost` est une librairie Python qui empêche les PII (données personnelles identifiables) d'atteindre un modèle de langage, tout en gardant l'application pleinement fonctionnelle.
 
@@ -16,15 +23,6 @@ Enfin, cette librairie garde la correspondance entre la valeur et son placeholde
 
 > [!NOTE]
 > `piighost` fait de la **dé-identification réversible**. Comme la correspondance entre une valeur et son placeholder est conservée pour pouvoir restaurer les données, il s'agit d'une pseudonymisation au sens du RGPD, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-fr-dark.gif">
-    <img alt="Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="docs/assets/deid-chat-fr-light.gif" width="760">
-  </picture>
-</p>
-
-*Le LLM ne voit que des placeholders. L'outil reçoit la vraie adresse, l'utilisateur reçoit une réponse en clair, et le code de l'agent ne change pas.*
 
 ## Démarrage rapide
 
@@ -73,16 +71,32 @@ Pour un vrai détecteur, le pipeline conversationnel et un exemple LangChain com
 
 ## Documentation
 
-- **Démarrer** : [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/), [quickstart](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/), [premier pipeline](https://athroniaeth.github.io/piighost/fr/getting-started/first-pipeline/)
-- **Recettes** : [usage basique](https://athroniaeth.github.io/piighost/fr/examples/basic/), [intégration LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/), [détecteurs prêts à l'emploi](https://athroniaeth.github.io/piighost/fr/examples/detectors/)
-- **Référence** : [pipeline](https://athroniaeth.github.io/piighost/fr/reference/pipeline/), [middleware](https://athroniaeth.github.io/piighost/fr/reference/middleware/), [détecteurs](https://athroniaeth.github.io/piighost/fr/reference/detectors/), [CLI](https://athroniaeth.github.io/piighost/fr/reference/cli/)
-- **Concepts** : [pourquoi dé-identifier](https://athroniaeth.github.io/piighost/fr/why-anonymize/), [architecture](https://athroniaeth.github.io/piighost/fr/architecture/), [placeholder factories](https://athroniaeth.github.io/piighost/fr/placeholder-factories/), [sécurité](https://athroniaeth.github.io/piighost/fr/security/)
+**[Documentation complète](https://athroniaeth.github.io/piighost/fr/)**
+
+- **Démarrer**
+    - [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/)
+    - [quickstart](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/)
+    - [premier pipeline](https://athroniaeth.github.io/piighost/fr/getting-started/first-pipeline/)
+- **Recettes**
+    - [usage basique](https://athroniaeth.github.io/piighost/fr/examples/basic/)
+    - [intégration LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/)
+    - [détecteurs prêts à l'emploi](https://athroniaeth.github.io/piighost/fr/examples/detectors/)
+- **Référence**
+    - [pipeline](https://athroniaeth.github.io/piighost/fr/reference/pipeline/)
+    - [middleware](https://athroniaeth.github.io/piighost/fr/reference/middleware/)
+    - [détecteurs](https://athroniaeth.github.io/piighost/fr/reference/detectors/)
+    - [CLI](https://athroniaeth.github.io/piighost/fr/reference/cli/)
+- **Concepts**
+    - [pourquoi dé-identifier](https://athroniaeth.github.io/piighost/fr/why-anonymize/)
+    - [architecture](https://athroniaeth.github.io/piighost/fr/architecture/)
+    - [placeholder factories](https://athroniaeth.github.io/piighost/fr/placeholder-factories/)
+    - [sécurité](https://athroniaeth.github.io/piighost/fr/security/)
 
 ## Projet
 
 - **Contribuer** : [guide de contribution](https://athroniaeth.github.io/piighost/fr/community/contributing/) et [signaler un bug](https://athroniaeth.github.io/piighost/fr/community/bug-reports/)
 - **Écosystème** :
-    - [piighost.athroniaeth.cloud](https://piighost.athroniaeth.cloud) : site de présentation
-    - [piighost-api](https://github.com/Athroniaeth/piighost-api) : API d'inférence piighost
-    - [piighost-chat](https://github.com/Athroniaeth/piighost-chat) : exemple d'interface avec HITL
+    - **[Site de présentation](https://piighost.athroniaeth.cloud)** : une vue d'ensemble du projet
+    - **[piighost-api](https://github.com/Athroniaeth/piighost-api)** : le serveur d'API d'inférence
+    - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)** : un exemple d'interface de chat avec HITL
 - **Licence** : [MIT](LICENSE)
