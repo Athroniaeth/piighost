@@ -113,6 +113,71 @@ class TestForgetThread:
         assert forgotten == Forgotten(messages=2, detections=5)
 
 
+class TestDetect:
+    async def test_posts_and_parses_entities(self) -> None:
+        """detect posts the text and rebuilds entities from the preview."""
+        seen: dict[str, object] = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen["path"] = request.url.path
+            seen["body"] = json.loads(request.content)
+            return httpx.Response(
+                200,
+                json={
+                    "entities": [
+                        {
+                            "label": "PERSON",
+                            "placeholder": "",
+                            "detections": [
+                                {
+                                    "text": "Emma",
+                                    "label": "PERSON",
+                                    "start_pos": 3,
+                                    "end_pos": 7,
+                                    "confidence": 0.9,
+                                }
+                            ],
+                        }
+                    ]
+                },
+            )
+
+        client = _client(handler)
+        entities = await client.detect("Hi Emma", "t1")
+        assert seen["path"] == "/v1/detect"
+        assert seen["body"] == {"text": "Hi Emma", "thread_id": "t1"}
+        assert len(entities) == 1
+        detection = entities[0].detections[0]
+        assert detection.text == "Emma"
+        assert detection.label == "PERSON"
+        assert detection.span == Span(3, 7)
+        assert detection.confidence == 0.9
+
+
+class TestLabels:
+    async def test_gets_and_returns_the_vocabulary(self) -> None:
+        """labels gets the server metadata and returns its label list."""
+        seen: dict[str, object] = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen["method"] = request.method
+            seen["path"] = request.url.path
+            return httpx.Response(
+                200,
+                json={
+                    "name": "demo",
+                    "detector": "regex",
+                    "labels": ["EMAIL", "PERSON"],
+                },
+            )
+
+        client = _client(handler)
+        labels = await client.labels()
+        assert seen["method"] == "GET"
+        assert seen["path"] == "/v1/labels"
+        assert labels == ["EMAIL", "PERSON"]
+
+
 class TestErrors:
     async def test_non_2xx_raises_remote_error(self) -> None:
         """A non-2xx response raises RemoteError with the status."""
