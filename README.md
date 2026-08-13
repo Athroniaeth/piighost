@@ -5,6 +5,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
 `piighost` is a Python library that keeps PII (personally identifiable information) from reaching a language model, while keeping the application fully functional.
 
@@ -94,6 +95,7 @@ For a real detector, the conversational pipeline and a full LangChain example, s
 
 ## Project
 
+- **Community**: [Discord](https://discord.gg/vFg9GHQR2s) to get help, report bugs, request features, and discuss de-identification
 - **Contributing**: [contribution guide](https://athroniaeth.github.io/piighost/community/contributing/) and [report a bug](https://athroniaeth.github.io/piighost/community/bug-reports/)
 - **Ecosystem**:
     - **[Presentation site](https://piighost.athroniaeth.cloud)**: an overview of the project

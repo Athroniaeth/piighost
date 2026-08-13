@@ -18,7 +18,7 @@ from piighost.components.placeholder.label_counter import (
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.exceptions import RemoteError
-from piighost.models import Detection
+from piighost.models import Detection, Entity, Span
 
 if importlib.util.find_spec("httpx") is None:
     raise ImportError(
@@ -38,6 +38,10 @@ class PIIGhostClient:
     tokens and deanonymize restores through the server. The token grammar is
     declared by the recognizer, defaulting to the standard delimited grammar a
     piighost server emits, overridable when the server is configured otherwise.
+
+    Beyond the strict port it exposes two conveniences a local pipeline offers
+    through its parts: detect previews a message's entities without anonymizing,
+    and labels returns the detector's label vocabulary.
     """
 
     def __init__(
@@ -114,6 +118,31 @@ class PIIGhostClient:
             detections=cast(int, data["detections"]),
         )
 
+    async def detect(self, text: str, thread_id: str = "default") -> list[Entity]:
+        """Preview the entities a message's PII groups into, without anonymizing.
+
+        The server runs detection and linking but does not tokenize the text or
+        touch the thread's memory, so this is safe for a human review pass before
+        the message is anonymized for real. It reaches past the strict thread
+        pipeline port, offering the detection a local pipeline exposes through its
+        detector and linker.
+        """
+        payload: dict[str, object] = {"text": text, "thread_id": thread_id}
+        data = await self._post("/v1/detect", payload)
+        entities = cast("list[dict[str, object]]", data["entities"])
+        return [self._entity_from_wire(entity) for entity in entities]
+
+    async def labels(self) -> list[str]:
+        """Return the label vocabulary the server's detector can emit.
+
+        A remote counterpart to reading a local pipeline's detector labels, this
+        is the set a caller can offer for human correction. It reaches past the
+        strict thread pipeline port.
+        """
+        response = await self._client.get("/v1/labels")
+        data = self._json(response)
+        return list(cast("list[str]", data["labels"]))
+
     async def aclose(self) -> None:
         """Close the underlying client when this one built it."""
         if self._owns_client:
@@ -144,4 +173,20 @@ class PIIGhostClient:
         raise RemoteError(
             f"piighost-api returned {response.status_code}: {response.text}",
             response.status_code,
+        )
+
+    @staticmethod
+    def _entity_from_wire(entity: dict[str, object]) -> Entity:
+        """Rebuild an Entity from the server's detection preview wire shape."""
+        detections = cast("list[dict[str, object]]", entity["detections"])
+        return Entity(
+            detections=tuple(
+                Detection(
+                    span=Span(cast(int, d["start_pos"]), cast(int, d["end_pos"])),
+                    text=cast(str, d["text"]),
+                    label=cast(str, d["label"]),
+                    confidence=cast(float, d["confidence"]),
+                )
+                for d in detections
+            )
         )
