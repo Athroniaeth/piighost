@@ -14,7 +14,10 @@ from piighost.components.placeholder.label_counter import LabelCounterPlaceholde
 from piighost.components.placeholder.label_hash import LabelHashPlaceholderFactory
 from piighost.components.placeholder.mask import MaskPlaceholderFactory
 from piighost.components.placeholder.redact import RedactPlaceholderFactory
-from piighost.components.placeholder.streaming import PlaceholderStreamDecoder
+from piighost.components.placeholder.streaming import (
+    AsyncPlaceholderStreamDecoder,
+    PlaceholderStreamDecoder,
+)
 from piighost.components.placeholder.tags import (
     PlaceholderPreservation,
     PreservesIdentity,
@@ -32,6 +35,7 @@ from piighost.components.placeholder.tags import (
 
 __all__ = [
     "AnyPlaceholderFactory",
+    "AsyncPlaceholderStreamDecoder",
     "BaseCounterPlaceholderFactory",
     "BaseDelimitedPlaceholderFactory",
     "LabelCounterPlaceholderFactory",
