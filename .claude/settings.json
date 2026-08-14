@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -c 'if (((.tool_input.file_path // .tool_response.filePath) // \"\") | test(\"/(src|tests)/.*\\\\.py$\")) then {hookSpecificOutput:{hookEventName:\"PostToolUse\", additionalContext:(\"You edited \" + ((.tool_input.file_path // .tool_response.filePath)) + \". Review this change against the piighost-code-style skill rules and fix any violation before continuing.\")}} else empty end'",
+            "statusMessage": "piighost code-style check"
+          }
+        ]
+      }
+    ]
+  }
+}
