@@ -3,7 +3,7 @@
 import re
 from abc import abstractmethod
 from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
@@ -12,6 +12,7 @@ from piighost.models import Entity
 from piighost.components.placeholder.streaming import (
     DEFAULT_PREFIX,
     DEFAULT_SUFFIX,
+    AsyncPlaceholderStreamDecoder,
     PlaceholderStreamDecoder,
     compile_token_pattern,
 )
@@ -108,10 +109,20 @@ class BaseDelimitedPlaceholderFactory:
         """Return a decoder that rewrites this factory's tokens over a stream.
 
         The decoder keeps tokens whole across streamed fragments and rewrites
-        each with replace. It is a preparation for streaming deanonymization,
-        wired in by no caller yet.
+        each with replace, a plain callback for a synchronous stream.
         """
         return PlaceholderStreamDecoder(replace, self.prefix, self.suffix)
+
+    def async_stream_decoder(
+        self, replace: Callable[[str], Awaitable[str]]
+    ) -> AsyncPlaceholderStreamDecoder:
+        """Return an async decoder that rewrites this factory's tokens over a stream.
+
+        The async twin of stream_decoder: it keeps tokens whole across streamed
+        fragments and awaits replace for each completed token, so a coroutine
+        deanonymization, local or remote, can drive streaming restoration.
+        """
+        return AsyncPlaceholderStreamDecoder(replace, self.prefix, self.suffix)
 
 
 class BaseCounterPlaceholderFactory(
