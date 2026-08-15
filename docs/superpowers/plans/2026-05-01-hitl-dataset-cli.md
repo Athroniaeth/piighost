@@ -234,7 +234,7 @@ AnonymizationPipeline.observation_ph_factory used to default to
 RedactPlaceholderFactory(), so observation traces always redacted PII
 on the way to Langfuse / Opik. This blocks downstream HITL dataset
 extraction because the raw user text is unrecoverable. Flip the default
-to None: raw text in traces. When the operator passes a factory
+to None: raw text in traces. When the operator passes a ph_factory
 explicitly, emit a PIIGhostConfigWarning that documents the trade-off.
 
 Also introduce two helpers, _obs_text and _obs_detection_to_dict,
