@@ -38,6 +38,32 @@ def _pipeline(
     )
 
 
+class TestDefaults:
+    def test_builds_from_a_detector_alone(self) -> None:
+        """Omitting linker, anonymizer, and memory builds their defaults."""
+        detector = ExactMatchDetector({"Emma": "PERSON"})
+        pipeline = ThreadAnonymizationPipeline(detector)
+        assert isinstance(pipeline.linker, ExactEntityLinker)
+        assert isinstance(pipeline.anonymizer, Anonymizer)
+        assert isinstance(pipeline.memory, InMemoryConversationMemory)
+
+    async def test_the_default_pipeline_stays_thread_stable(self) -> None:
+        """The detector-only pipeline tokenizes and keeps tokens across a thread."""
+        detector = ExactMatchDetector({"Emma": "PERSON"})
+        pipeline = ThreadAnonymizationPipeline(detector)
+        first = await pipeline.anonymize("Hello Emma", "t1")
+        second = await pipeline.anonymize("Bye Emma", "t1")
+        assert first.text == "Hello <<PERSON:1>>"
+        assert second.text == "Bye <<PERSON:1>>"
+
+    def test_each_pipeline_gets_its_own_memory(self) -> None:
+        """The default memory is built per instance, not shared across pipelines."""
+        detector = ExactMatchDetector({"Emma": "PERSON"})
+        one = ThreadAnonymizationPipeline(detector)
+        two = ThreadAnonymizationPipeline(detector)
+        assert one.memory is not two.memory
+
+
 class TestThreadConsistency:
     async def test_a_value_keeps_its_token_across_messages(self) -> None:
         """A name seen in two messages of one thread gets the same token."""
@@ -98,6 +124,33 @@ class TestDeanonymize:
         await pipeline.anonymize("Emma met Liam", "t1")
         reply = "Thanks <<PERSON:1>> and <<PERSON:2>>."
         assert await pipeline.deanonymize(reply, "t1") == "Thanks Emma and Liam."
+
+
+class TestThreadTokenMap:
+    async def test_maps_each_token_to_its_value(self) -> None:
+        """The map pairs every thread token with the value it restores to."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("Emma met Liam", "t1")
+        assert await pipeline.thread_token_map("t1") == {
+            "<<PERSON:1>>": "Emma",
+            "<<PERSON:2>>": "Liam",
+        }
+
+    async def test_an_untouched_thread_has_an_empty_map(self) -> None:
+        """A thread with nothing anonymized yet maps to nothing."""
+        pipeline = _pipeline()
+        assert await pipeline.thread_token_map("empty") == {}
+
+    async def test_matches_what_deanonymize_restores(self) -> None:
+        """Replacing a text through the map yields what deanonymize would."""
+        pipeline = _pipeline()
+        result = await pipeline.anonymize("Emma met Liam", "t1")
+        token_map = await pipeline.thread_token_map("t1")
+
+        rebuilt = result.text
+        for token, value in token_map.items():
+            rebuilt = rebuilt.replace(token, value)
+        assert rebuilt == await pipeline.deanonymize(result.text, "t1")
 
 
 class TestProvenance:
