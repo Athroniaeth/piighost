@@ -19,6 +19,7 @@ from piighost.conversation_memory.base import (
     Forgotten,
     MessageRole,
 )
+from piighost.conversation_memory.memory import InMemoryConversationMemory
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 
@@ -43,9 +44,9 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
     def __init__(
         self,
         detector: AnyDetector,
-        linker: AnyEntityLinker,
-        anonymizer: AnyAnonymizer[PreservationT],
-        memory: AnyConversationMemory,
+        linker: AnyEntityLinker | None = None,
+        anonymizer: AnyAnonymizer[PreservationT] | None = None,
+        memory: AnyConversationMemory | None = None,
         overlap_resolver: AnyOverlapResolver | None = None,
         expander: AnyDetectionExpander | None = None,
         entity_resolver: AnyEntityResolver | None = None,
@@ -53,7 +54,15 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
     ) -> None:
-        """Store the stage components and the per-thread conversation memory."""
+        """Store the stage components and the per-thread conversation memory.
+
+        Only the detector is required. As in the base pipeline, omitting linker
+        or anonymizer builds their defaults, and omitting memory builds an
+        InMemoryConversationMemory, so the smallest thread pipeline is
+        ThreadAnonymizationPipeline(detector).
+        """
+        if memory is None:
+            memory = InMemoryConversationMemory()
         super().__init__(
             detector,
             linker,
@@ -186,6 +195,17 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             if self.observation_redactor is None:
                 root.set_output(restored)
             return restored
+
+    async def thread_token_map(self, thread_id: str) -> dict[str, str]:
+        """Return the thread's placeholder-to-value map, derived from the cache.
+
+        It is the same cache-derived mapping deanonymize replaces against, exposed
+        as token to value so a caller can resolve a whole stream once rather than
+        deanonymizing token by token. A token the thread never issued is absent
+        from the map, matching deanonymize leaving an unknown token as it stood.
+        """
+        thread_tokens = await self._thread_tokens(thread_id)
+        return {f"{token}": entity.text for entity, token in thread_tokens.items()}
 
     async def forget_thread(self, thread_id: str) -> Forgotten:
         """Erase a thread's memory and report how much was dropped."""

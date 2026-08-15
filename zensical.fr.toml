@@ -24,6 +24,7 @@ nav = [
     { "Recettes" = [
         { "Usage basique" = "examples/basic.md" },
         { "Intégration LangChain" = "examples/langchain.md" },
+        { "Intégration Pydantic AI" = "examples/pydantic-ai.md" },
         { "Détecteurs prêts à l'emploi" = "examples/detectors.md" },
         { "Étendre PIIGhost" = "extending.md" },
         { "Tests" = "examples/testing.md" },
@@ -147,6 +148,7 @@ toggle.name = "Passer en mode clair"
 
 [project.extra.tags]
 LangChain = "langchain"
+"Pydantic AI" = "pydantic-ai"
 Middleware = "middleware"
 "Détecteur" = "detecteur"
 Regex = "regex"
@@ -156,6 +158,7 @@ Tests = "tests"
 [project.theme.icon.tag]
 default = "lucide/hash"
 langchain = "lucide/link"
+pydantic-ai = "lucide/bot"
 middleware = "lucide/blend"
 detecteur = "lucide/scan-search"
 regex = "lucide/regex"

@@ -56,6 +56,9 @@ redis = [
 middleware = [
     "langchain>=1.2",
 ]
+pydantic-ai = [
+    "pydantic-ai>=2.0",
+]
 client = [
     "httpx>=0.28",
     "typing-extensions>=4.4; python_version < '3.11'",
@@ -93,7 +96,7 @@ mistral = [
     "mistralai>=1.0",
 ]
 all = [
-    "piighost[gliner2,redis,middleware,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral]",
+    "piighost[gliner2,redis,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral]",
 ]
 
 [build-system]
@@ -124,6 +127,7 @@ dev = [
     "fakeredis>=2.20",
     "mistralai>=1.0",
     "langchain>=1.2",
+    "pydantic-ai>=2.0",
     "opentelemetry-api>=1.30",
     "opentelemetry-sdk>=1.30",
     "rapidfuzz>=3.9",

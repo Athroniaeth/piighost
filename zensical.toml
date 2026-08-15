@@ -23,6 +23,7 @@ nav = [
   { "Recipes" = [
     { "Basic usage" = "examples/basic.md" },
     { "LangChain integration" = "examples/langchain.md" },
+    { "Pydantic AI integration" = "examples/pydantic-ai.md" },
     { "Pre-built detectors" = "examples/detectors.md" },
     { "Extending PIIGhost" = "extending.md" },
     { "Testing" = "examples/testing.md" },
@@ -156,6 +157,7 @@ lang = "fr"
 
 [project.extra.tags]
 LangChain = "langchain"
+"Pydantic AI" = "pydantic-ai"
 Middleware = "middleware"
 Detector = "detector"
 Regex = "regex"
@@ -165,6 +167,7 @@ Testing = "testing"
 [project.theme.icon.tag]
 default = "lucide/hash"
 langchain = "lucide/link"
+pydantic-ai = "lucide/bot"
 middleware = "lucide/blend"
 detector = "lucide/scan-search"
 regex = "lucide/regex"
