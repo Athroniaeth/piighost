@@ -81,6 +81,7 @@ Pour un vrai détecteur, le pipeline conversationnel et un exemple LangChain com
 - **Recettes**
     - [usage basique](https://athroniaeth.github.io/piighost/fr/examples/basic/)
     - [intégration LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/)
+    - [intégration Pydantic AI](https://athroniaeth.github.io/piighost/fr/examples/pydantic-ai/)
     - [détecteurs prêts à l'emploi](https://athroniaeth.github.io/piighost/fr/examples/detectors/)
 - **Référence**
     - [pipeline](https://athroniaeth.github.io/piighost/fr/reference/pipeline/)
