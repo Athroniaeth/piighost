@@ -16,11 +16,8 @@ from typing_extensions import TypeVar
 
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
-from piighost.exceptions import (
-    InventedPlaceholderError,
-    MissingThreadIdError,
-    UnrecognizableFactoryError,
-)
+from piighost.exceptions import MissingThreadIdError
+from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.middleware.strategy import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
@@ -138,23 +135,12 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         assistant messages entirely and save the detector.
         """
         super().__init__()
-        # The IdentityT bound guarantees a recognizable grammar for typed
-        # callers; re-check at runtime so an untyped or remote pipeline without
-        # one fails loudly here, not silently when the invented-placeholder
-        # strategy would have found nothing.
-        recognizer = pipeline.recognizer
-        if recognizer is None:
-            raise UnrecognizableFactoryError(
-                "PIIAnonymizationMiddleware needs a pipeline exposing a delimited "
-                "token recognizer, whose tokens can be found again to detect "
-                "invented ones; got a pipeline with no recognizable grammar."
-            )
-
-        self._pipeline = pipeline
-        self._recognizer = recognizer
+        # The de-identifier holds the pipeline and the invented-placeholder
+        # policy, and re-checks the recognizer at construction so an untyped or
+        # remote pipeline without one fails loudly here.
+        self._deid = TextDeidentifier(pipeline, invented_strategy)
         self.tool_strategy = tool_strategy
         self._require_thread_id = require_thread_id
-        self._invented_strategy = invented_strategy
         self.assistant_strategy = assistant_strategy
 
     async def abefore_model(
@@ -263,36 +249,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         self, text: str, thread_id: str, role: MessageRole = MessageRole.USER
     ) -> str:
         """Anonymize a text within the thread and return the anonymized string."""
-        result = await self._pipeline.anonymize(text, thread_id, role)
-        return result.text
+        return await self._deid.anonymize(text, thread_id, role)
 
     async def _deanonymize(self, text: str, thread_id: str) -> str:
-        """Deanonymize a text, then apply the invented-placeholder strategy."""
-        restored = await self._pipeline.deanonymize(text, thread_id)
-        return self._handle_invented(restored)
-
-    def _handle_invented(self, text: str) -> str:
-        """Apply the invented-placeholder strategy to already deanonymized text.
-
-        Every issued token was replaced during deanonymization, so any token
-        still matching the factory's grammar was invented by the model. KEEP
-        leaves it, DROP removes it, RAISE refuses it. The factory is delimited by
-        construction, so its grammar is always recognizable here.
-        """
-        invented = self._recognizer.find_tokens(text)
-        if not invented or self._invented_strategy is InventedPlaceholderStrategy.KEEP:
-            return text
-
-        if self._invented_strategy is InventedPlaceholderStrategy.RAISE:
-            raise InventedPlaceholderError(
-                f"Deanonymized text holds tokens the pipeline never issued: {invented}",
-                invented,
-            )
-
-        cleaned = text
-        for token in invented:
-            cleaned = cleaned.replace(token, "")
-        return cleaned
+        """Deanonymize a text, applying the invented-placeholder strategy."""
+        return await self._deid.deanonymize(text, thread_id)
 
     async def _deanonymize_value(self, value: Any, thread_id: str) -> Any:
         """Deanonymize strings inside nested dict, list, and tuple containers."""

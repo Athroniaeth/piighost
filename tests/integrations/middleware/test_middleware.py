@@ -371,7 +371,7 @@ class TestFactoryContract:
         middleware = PIIAnonymizationMiddleware(
             cast(AnyThreadPipeline[PreservesRecognizableIdentity], _Remoteish())
         )
-        assert middleware._recognizer is _Remoteish.recognizer
+        assert middleware._deid._recognizer is _Remoteish.recognizer
 
     def test_a_pipeline_without_a_recognizer_is_refused(self) -> None:
         """A pipeline whose recognizer is None fails fast at construction."""
