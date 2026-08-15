@@ -66,7 +66,9 @@ def _held_length(buffer: str, prefix: str) -> int:
 
 
 def _split_buffer(
-    buffer: str, pattern: re.Pattern[str], prefix: str
+    buffer: str,
+    pattern: re.Pattern[str],
+    prefix: str,
 ) -> tuple[list[_Segment], str]:
     """Split a buffer into ordered segments to emit and the tail to hold back.
 
