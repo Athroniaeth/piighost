@@ -38,6 +38,32 @@ def _pipeline(
     )
 
 
+class TestDefaults:
+    def test_builds_from_a_detector_alone(self) -> None:
+        """Omitting linker, anonymizer, and memory builds their defaults."""
+        detector = ExactMatchDetector({"Emma": "PERSON"})
+        pipeline = ThreadAnonymizationPipeline(detector)
+        assert isinstance(pipeline.linker, ExactEntityLinker)
+        assert isinstance(pipeline.anonymizer, Anonymizer)
+        assert isinstance(pipeline.memory, InMemoryConversationMemory)
+
+    async def test_the_default_pipeline_stays_thread_stable(self) -> None:
+        """The detector-only pipeline tokenizes and keeps tokens across a thread."""
+        detector = ExactMatchDetector({"Emma": "PERSON"})
+        pipeline = ThreadAnonymizationPipeline(detector)
+        first = await pipeline.anonymize("Hello Emma", "t1")
+        second = await pipeline.anonymize("Bye Emma", "t1")
+        assert first.text == "Hello <<PERSON:1>>"
+        assert second.text == "Bye <<PERSON:1>>"
+
+    def test_each_pipeline_gets_its_own_memory(self) -> None:
+        """The default memory is built per instance, not shared across pipelines."""
+        detector = ExactMatchDetector({"Emma": "PERSON"})
+        one = ThreadAnonymizationPipeline(detector)
+        two = ThreadAnonymizationPipeline(detector)
+        assert one.memory is not two.memory
+
+
 class TestThreadConsistency:
     async def test_a_value_keeps_its_token_across_messages(self) -> None:
         """A name seen in two messages of one thread gets the same token."""

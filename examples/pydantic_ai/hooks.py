@@ -23,11 +23,7 @@ import asyncio
 from dotenv import load_dotenv
 from pydantic_ai import Agent
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.integrations.pydantic_ai import pii_hooks
 from piighost.pipeline import ThreadAnonymizationPipeline
 
@@ -36,11 +32,7 @@ async def main() -> None:
     """Run a two-turn conversation with the model working only on placeholders."""
     load_dotenv()
     detector = ExactMatchDetector({"Emma": "PERSON"})
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    memory = InMemoryConversationMemory()
-    pipeline = ThreadAnonymizationPipeline(detector, linker, anonymizer, memory)
+    pipeline = ThreadAnonymizationPipeline(detector)
     hooks = pii_hooks(pipeline, "demo-thread")
     agent = Agent("openai:gpt-5.5", capabilities=[hooks])
 
