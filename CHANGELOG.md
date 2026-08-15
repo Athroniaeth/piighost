@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.0 (2026-08-15)
+
+### Feat
+
+- resolve a thread's tokens to values on the pipeline and client
+- **pipeline**: default ThreadAnonymizationPipeline components, minimal examples
+- **integrations**: add Pydantic AI PII de-identification capability
+- **placeholder**: add AsyncPlaceholderStreamDecoder for streaming deanonymization
+
 ## 1.0.1 (2026-08-13)
 
 ### Fix
