@@ -78,6 +78,7 @@ class TextDeidentifier(Generic[IdentityT]):
         construction, so its grammar is always recognizable here.
         """
         invented = self._recognizer.find_tokens(text)
+
         if not invented or self.invented_strategy is InventedPlaceholderStrategy.KEEP:
             return text
 
