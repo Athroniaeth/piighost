@@ -196,6 +196,17 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 root.set_output(restored)
             return restored
 
+    async def thread_token_map(self, thread_id: str) -> dict[str, str]:
+        """Return the thread's placeholder-to-value map, derived from the cache.
+
+        It is the same cache-derived mapping deanonymize replaces against, exposed
+        as token to value so a caller can resolve a whole stream once rather than
+        deanonymizing token by token. A token the thread never issued is absent
+        from the map, matching deanonymize leaving an unknown token as it stood.
+        """
+        thread_tokens = await self._thread_tokens(thread_id)
+        return {f"{token}": entity.text for entity, token in thread_tokens.items()}
+
     async def forget_thread(self, thread_id: str) -> Forgotten:
         """Erase a thread's memory and report how much was dropped."""
         return await self.memory.forget(thread_id)

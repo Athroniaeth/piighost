@@ -143,6 +143,18 @@ class PIIGhostClient:
         data = self._json(response)
         return list(cast("list[str]", data["labels"]))
 
+    async def thread_token_map(self, thread_id: str) -> dict[str, str]:
+        """Fetch the thread's placeholder-to-value map from the server.
+
+        The remote counterpart of the local pipeline's thread_token_map: it fetches
+        the whole thread map in one call so a caller resolves a stream with cheap
+        lookups rather than deanonymizing token by token.
+        """
+        safe_id = urllib.parse.quote(thread_id, safe="")
+        response = await self._client.get(f"/v1/threads/{safe_id}/tokens")
+        data = self._json(response)
+        return cast("dict[str, str]", data["tokens"])
+
     async def aclose(self) -> None:
         """Close the underlying client when this one built it."""
         if self._owns_client:

@@ -178,6 +178,23 @@ class TestLabels:
         assert labels == ["EMAIL", "PERSON"]
 
 
+class TestThreadTokenMap:
+    async def test_gets_and_returns_the_thread_map(self) -> None:
+        """thread_token_map gets the thread's token-to-value map, id url-quoted."""
+        seen: dict[str, object] = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen["method"] = request.method
+            seen["path"] = request.url.raw_path.decode()
+            return httpx.Response(200, json={"tokens": {"<<PERSON:1>>": "Emma"}})
+
+        client = _client(handler)
+        token_map = await client.thread_token_map("t 1")
+        assert seen["method"] == "GET"
+        assert seen["path"] == "/v1/threads/t%201/tokens"
+        assert token_map == {"<<PERSON:1>>": "Emma"}
+
+
 class TestErrors:
     async def test_non_2xx_raises_remote_error(self) -> None:
         """A non-2xx response raises RemoteError with the status."""
