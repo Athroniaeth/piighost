@@ -8,6 +8,7 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     MaskPlaceholderFactory,
+    PreservesLabeledIdentityOpaque,
 )
 from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
@@ -16,7 +17,7 @@ from piighost.integrations.middleware.strategy import InventedPlaceholderStrateg
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
-def _pipeline() -> ThreadAnonymizationPipeline:
+def _pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Build a thread pipeline over a counter factory and in-memory backend."""
     return ThreadAnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
@@ -76,4 +77,6 @@ class TestConstruction:
             InMemoryConversationMemory(),
         )
         with pytest.raises(UnrecognizableFactoryError):
-            TextDeidentifier(pipeline)
+            # The mask factory has no recognizable grammar, so its tag violates
+            # the IdentityT bound on purpose; the point is the runtime refusal.
+            TextDeidentifier(pipeline)  # pyrefly: ignore[bad-specialization]
