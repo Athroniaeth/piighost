@@ -19,6 +19,7 @@ from piighost.conversation_memory.base import (
     Forgotten,
     MessageRole,
 )
+from piighost.conversation_memory.memory import InMemoryConversationMemory
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 
@@ -43,9 +44,9 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
     def __init__(
         self,
         detector: AnyDetector,
-        linker: AnyEntityLinker,
-        anonymizer: AnyAnonymizer[PreservationT],
-        memory: AnyConversationMemory,
+        linker: AnyEntityLinker | None = None,
+        anonymizer: AnyAnonymizer[PreservationT] | None = None,
+        memory: AnyConversationMemory | None = None,
         overlap_resolver: AnyOverlapResolver | None = None,
         expander: AnyDetectionExpander | None = None,
         entity_resolver: AnyEntityResolver | None = None,
@@ -53,7 +54,15 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
     ) -> None:
-        """Store the stage components and the per-thread conversation memory."""
+        """Store the stage components and the per-thread conversation memory.
+
+        Only the detector is required. As in the base pipeline, omitting linker
+        or anonymizer builds their defaults, and omitting memory builds an
+        InMemoryConversationMemory, so the smallest thread pipeline is
+        ThreadAnonymizationPipeline(detector).
+        """
+        if memory is None:
+            memory = InMemoryConversationMemory()
         super().__init__(
             detector,
             linker,
