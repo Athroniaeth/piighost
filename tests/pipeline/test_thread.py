@@ -126,6 +126,33 @@ class TestDeanonymize:
         assert await pipeline.deanonymize(reply, "t1") == "Thanks Emma and Liam."
 
 
+class TestThreadTokenMap:
+    async def test_maps_each_token_to_its_value(self) -> None:
+        """The map pairs every thread token with the value it restores to."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("Emma met Liam", "t1")
+        assert await pipeline.thread_token_map("t1") == {
+            "<<PERSON:1>>": "Emma",
+            "<<PERSON:2>>": "Liam",
+        }
+
+    async def test_an_untouched_thread_has_an_empty_map(self) -> None:
+        """A thread with nothing anonymized yet maps to nothing."""
+        pipeline = _pipeline()
+        assert await pipeline.thread_token_map("empty") == {}
+
+    async def test_matches_what_deanonymize_restores(self) -> None:
+        """Replacing a text through the map yields what deanonymize would."""
+        pipeline = _pipeline()
+        result = await pipeline.anonymize("Emma met Liam", "t1")
+        token_map = await pipeline.thread_token_map("t1")
+
+        rebuilt = result.text
+        for token, value in token_map.items():
+            rebuilt = rebuilt.replace(token, value)
+        assert rebuilt == await pipeline.deanonymize(result.text, "t1")
+
+
 class TestProvenance:
     async def test_assistant_introduced_value_stays_clear(self) -> None:
         """A value the assistant introduces first is not anonymized."""
