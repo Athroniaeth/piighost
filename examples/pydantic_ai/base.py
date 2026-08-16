@@ -14,8 +14,9 @@ and deanonymizes the model's reply for the user. The thread id given here is a
 fixed string, but it can also be a callable over the run context.
 
 The agent runs against openai:gpt-5.5, so set an OPENAI_API_KEY in the
-environment (copy .env.example to .env). Run with:
-uv run examples/pydantic_ai/hooks.py
+environment (copy .env.example to .env). For a tool-calling agent, see tools.py
+beside this file. Run with:
+uv run examples/pydantic_ai/base.py
 """
 
 import asyncio
@@ -29,15 +30,23 @@ from piighost.pipeline import ThreadAnonymizationPipeline
 
 
 async def main() -> None:
-    """Run a two-turn conversation with the model working only on placeholders."""
+    """Ask for the first letter of a name the model only ever sees as a token.
+
+    The model receives <<PERSON:1>>, not Emma, so it cannot tell that the name
+    starts with E. Its own answer to the second turn shows the anonymization
+    held, without any extra instrumentation.
+    """
     load_dotenv()
     detector = ExactMatchDetector({"Emma": "PERSON"})
     pipeline = ThreadAnonymizationPipeline(detector)
     hooks = pii_hooks(pipeline, "demo-thread")
     agent = Agent("openai:gpt-5.5", capabilities=[hooks])
 
-    first = await agent.run("Hi, I am Emma. Book me a slot.")
-    second = await agent.run("Remind me my name?", message_history=first.all_messages())
+    first = await agent.run("Hi, I am Emma.")
+    second = await agent.run(
+        "What is the first letter of my first name?",
+        message_history=first.all_messages(),
+    )
 
     print(f"turn 1: {first.output!r}")
     print(f"turn 2: {second.output!r}")

@@ -14,8 +14,9 @@ deanonymizes the reply for the user. The thread id is read from the LangGraph
 config, under configurable.
 
 The agent runs against openai:gpt-5.5, so set an OPENAI_API_KEY in the
-environment (copy .env.example to .env). Run with:
-uv run examples/langchain/middleware.py
+environment (copy .env.example to .env). For a tool-calling agent, see tools.py
+beside this file. Run with:
+uv run examples/langchain/base.py
 """
 
 import asyncio
@@ -30,7 +31,12 @@ from piighost.pipeline import ThreadAnonymizationPipeline
 
 
 async def main() -> None:
-    """Run a two-turn conversation with the model working only on placeholders."""
+    """Ask for the first letter of a name the model only ever sees as a token.
+
+    The model receives <<PERSON:1>>, not Emma, so it cannot tell that the name
+    starts with E. Its own answer to the second turn shows the anonymization
+    held, without any extra instrumentation.
+    """
     load_dotenv()
     detector = ExactMatchDetector({"Emma": "PERSON"})
     pipeline = ThreadAnonymizationPipeline(detector)
@@ -39,11 +45,17 @@ async def main() -> None:
     config = {"configurable": {"thread_id": "demo-thread"}}
 
     first = await agent.ainvoke(
-        {"messages": [HumanMessage("Hi, I am Emma. Book me a slot.")]}, config=config
+        {"messages": [HumanMessage("Hi, I am Emma.")]}, config=config
     )
     history = first["messages"]
     second = await agent.ainvoke(
-        {"messages": [*history, HumanMessage("Remind me my name?")]}, config=config
+        {
+            "messages": [
+                *history,
+                HumanMessage("What is the first letter of my first name?"),
+            ]
+        },
+        config=config,
     )
 
     print(f"turn 1: {first['messages'][-1].content!r}")
