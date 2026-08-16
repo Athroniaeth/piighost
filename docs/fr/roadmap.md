@@ -9,6 +9,12 @@ Cette page liste ce qui reste en attente pour `piighost`. Tout ce que la réécr
 !!! note "Comment lire cette page"
     Cette roadmap n'est pas un engagement de calendrier. Elle liste les items identifiés comme encore manquants, pas une promesse de les construire dans l'ordre.
 
+## Proxy compatible OpenAI
+
+`piighost` dé-identifie aujourd'hui à l'intérieur d'un framework d'agent, via le middleware LangChain ou les hooks Pydantic AI. Un proxy déplacerait cette protection à la frontière HTTP. `piighost-api` exposerait un endpoint compatible OpenAI, une application ne change donc que son `base_url` et n'a besoin d'aucun autre code. À chaque appel `/v1/chat/completions`, le proxy anonymise les messages, relaie la requête anonymisée au vrai fournisseur, désanonymise la réponse, et la renvoie au format OpenAI, le fournisseur ne reçoit donc jamais `Patrick`{ .pii }, seulement `<<PERSON:1>>`{ .placeholder }. Le même proxy se place devant n'importe quel endpoint compatible OpenAI, comme Azure OpenAI ou un serveur auto-hébergé.
+
+Trois briques existent déjà pour ça. Le pipeline conversationnel anonymise et restaure, la dé-identification de la frontière des outils couvre les appels d'outils, et le décodeur de streaming réécrit un jeton coupé entre deux chunks server-sent-event. Les questions ouvertes sont la façon dont une requête sans état cadre ses jetons, via un thread par requête ou un header d'identifiant de thread adossé à la mémoire de conversation, et la part du streaming et des appels d'outils qu'une première version couvre.
+
 ## Placeholder factory Faker
 
 La hiérarchie de tags de placeholder porte un axe de réalisme, mais aucune factory ne produit encore de valeur réaliste. Une factory Faker émettrait des valeurs qui ressemblent à du vrai, par exemple un nom plausible à la place de `Patrick`{ .pii }, plutôt qu'un token synthétique comme `<<PERSON:1>>`{ .placeholder }. Elle se range sous la branche qui préserve le label, pas sous celle qui préserve l'identité. Un pool Faker est fini, donc deux personnes distinctes peuvent tirer le même faux nom et une fausse valeur peut se confondre avec une vraie. C'est pourquoi la factory ne porte aucune garantie de restauration et se place à côté de la factory de masquage plutôt qu'à côté des factories à compteur et à hash. Voir [Placeholder factories](placeholder-factories.md) pour les axes de tags actuels.
