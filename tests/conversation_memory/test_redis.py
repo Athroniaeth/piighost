@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from piighost.conversation_memory import Forgotten, MessageRole
+from piighost.exceptions import PIIGhostSecurityWarning
 from piighost.models import Detection, Span
 
 _MODULE = "piighost.conversation_memory.redis_backend"
@@ -180,3 +181,30 @@ class TestProvenance:
         """A thread never written to yields an empty provenance map."""
         memory, _ = _make()
         assert await memory.get_provenance("never") == {}
+
+
+class TestRedisPlaintext:
+    async def test_round_trips_without_crypto(self) -> None:
+        """Without a hasher or cipher, detections still round-trip in clear."""
+        import fakeredis.aioredis
+
+        from piighost.components.detector import ExactMatchDetector
+        from piighost.conversation_memory import RedisConversationMemory
+
+        client = fakeredis.aioredis.FakeRedis()
+        with pytest.warns(PIIGhostSecurityWarning):
+            memory = RedisConversationMemory(client)
+        detections = await ExactMatchDetector({"Emma": "PERSON"}).detect("Hi Emma")
+        await memory.remember("t1", "Hi Emma", detections)
+        assert await memory.get_detections("t1", "Hi Emma") == detections
+
+    def test_exactly_one_of_hasher_cipher_is_refused(self) -> None:
+        """Providing only a hasher, or only a cipher, is a misuse."""
+        import fakeredis.aioredis
+
+        from piighost.conversation_memory import RedisConversationMemory
+        from piighost.crypto.hasher import Sha256Hasher
+
+        client = fakeredis.aioredis.FakeRedis()
+        with pytest.raises(ValueError):
+            RedisConversationMemory(client, hasher=Sha256Hasher("pepper"))
