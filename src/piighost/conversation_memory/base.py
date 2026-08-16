@@ -14,12 +14,33 @@ This is the pairwise exception to the always-template rule, the same reason the
 fuzzy entity resolver stands apart from the linker.
 """
 
+import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, runtime_checkable
 
+from piighost.exceptions import PIIGhostSecurityWarning
 from piighost.models import Detection
+
+_SECURITY_DOC_URL = "https://athroniaeth.github.io/piighost/security/"
+"""Documentation page explaining the at-rest crypto options for a backend."""
+
+
+def warn_plaintext(backend: str) -> None:
+    """Warn that a networked backend stores PII in clear, no crypto configured.
+
+    Called at construction by a persistent backend built without a hasher and
+    cipher, when its store is networked or shared. It nudges toward configuring
+    crypto rather than failing, so a knowing plaintext setup still runs.
+    """
+    warnings.warn(
+        f"{backend} was built without a hasher or cipher, so it stores PII in "
+        f"clear. For a networked or shared store, configure a hasher and a "
+        f"cipher. See {_SECURITY_DOC_URL}",
+        PIIGhostSecurityWarning,
+        stacklevel=3,
+    )
 
 
 class MessageRole(Enum):
