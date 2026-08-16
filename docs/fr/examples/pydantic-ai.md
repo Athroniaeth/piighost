@@ -90,6 +90,20 @@ from piighost.integrations.middleware import ToolCallStrategy
 hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
 ```
 
+## Valeurs de l'assistant
+
+Toute valeur n'est pas une PII utilisateur. Quand le modèle introduit lui-même une valeur tirée de sa connaissance du monde, la tokeniser la lui cacherait au tour suivant sans rien protéger côté utilisateur. `assistant_strategy` décide du sort d'une valeur introduite par l'assistant, encore le même enum que le middleware. Sous `PRESERVE`, le défaut, elle reste en clair, le modèle garde donc sa propre connaissance et seule une PII utilisateur connue est tokenisée. `ANONYMIZE` la tokenise quand même, et `IGNORE` saute entièrement les messages de l'assistant, économisant le détecteur.
+
+```python
+from piighost.integrations.middleware import AssistantEntityStrategy
+
+hooks = pii_hooks(
+    pipeline,
+    "thread-42",
+    assistant_strategy=AssistantEntityStrategy.ANONYMIZE,
+)
+```
+
 ## Et ensuite
 
 - Pour comparer avec le middleware d'agent LangChain, voyez l'[intégration LangChain](langchain.md).
