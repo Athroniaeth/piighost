@@ -62,7 +62,7 @@ export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 `PIIGHOST_HASH_PEPPER` is any non-empty string. `PIIGHOST_CIPHER_KEY` is base64 of 16, 24, or 32 bytes, so `openssl rand -base64 32` gives an AES-256 key. If a [moderation guard](configuration/toml.md) is configured, its `MISTRAL_API_KEY` follows the same rule and lives only in the environment.
 
 !!! warning
-    A pepper or key written into the config file cancels the protection: the store leaks alongside the file that decrypts it. Keep both in the process environment or a secrets manager, and rotate them like any production credential. A missing or malformed secret raises `ConfigError` at build time, so the pipeline fails to start rather than running unprotected.
+    A pepper or key written into the config file cancels the protection. The store leaks alongside the file that decrypts it. Keep both in the process environment or a secrets manager, and rotate them like any production credential. A missing or malformed secret raises `ConfigError` at build time, so the pipeline fails to start rather than running unprotected.
 
 ## Load and run
 

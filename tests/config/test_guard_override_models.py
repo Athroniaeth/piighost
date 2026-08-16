@@ -24,6 +24,7 @@ from piighost.config.models.override import OverrideConfig
 from piighost.exceptions import ConfigError
 
 _REGEX = {"type": "regex", "patterns": {"EMAIL": "[a-z]+@[a-z.]+"}}
+"""An inline regex detector config, reused as the nested detector under test."""
 
 
 class TestGuardConfig:

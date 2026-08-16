@@ -15,6 +15,7 @@ from piighost.components.detector.patterns import (
     GENERIC_PATTERNS,
     US_PATTERNS,
 )
+from piighost.models import Detection
 
 ALL_PATTERNS: dict[str, str] = {
     **GENERIC_PATTERNS,
@@ -86,7 +87,7 @@ RESILIENCE_VALUES: list[tuple[str, str]] = [
 ]
 
 
-async def _detect(label: str, text: str) -> list:
+async def _detect(label: str, text: str) -> list[Detection]:
     """Run a single-label RegexDetector over text and return its detections."""
     detector = RegexDetector({label: ALL_PATTERNS[label]})
     return await detector.detect(text)

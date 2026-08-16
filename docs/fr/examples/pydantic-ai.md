@@ -8,7 +8,7 @@ tags:
 
 Vous voulez un agent Pydantic AI où le modèle ne voit jamais que des jetons, jamais les vrais noms de la conversation, et où une valeur garde le même jeton d'un tour à l'autre. Cette page assemble cet agent de bout en bout avec un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, et `pii_hooks`, la capability qui dé-identifie autour du modèle.
 
-La capability couvre les messages, le prompt utilisateur et les réponses du modèle lui-même, et le boundary des outils aussi. Sous la stratégie par défaut, un outil reçoit les vraies valeurs pendant que le modèle continue de travailler sur des jetons.
+La capability couvre les messages, le prompt utilisateur et les réponses du modèle lui-même, et la frontière des outils aussi. Sous la stratégie par défaut, un outil reçoit les vraies valeurs pendant que le modèle continue de travailler sur des jetons.
 
 !!! note "Prérequis"
     `piighost` installé avec les extras pydantic-ai et gliner2, `pip install piighost[pydantic-ai,gliner2]`, plus une clé OpenAI dans `OPENAI_API_KEY`. La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
@@ -82,7 +82,7 @@ hooks = pii_hooks(
 
 ## Appels d'outils
 
-`pii_hooks` dé-identifie aussi le boundary des outils, piloté par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont désanonymisés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est ré-anonymisé avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne désanonymise que les arguments, `OUTPUT` ne ré-anonymise que le résultat, et `PASSTHROUGH` ne touche à rien.
+`pii_hooks` dé-identifie aussi la frontière des outils, pilotée par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont désanonymisés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est ré-anonymisé avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne désanonymise que les arguments, `OUTPUT` ne ré-anonymise que le résultat, et `PASSTHROUGH` ne touche à rien.
 
 ```python
 from piighost.integrations.middleware import ToolCallStrategy

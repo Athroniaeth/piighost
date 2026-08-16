@@ -72,10 +72,11 @@ def _content(message: BaseMessage) -> str:
 
 def _middleware(strategy: AssistantEntityStrategy, detector: AnyDetector) -> Any:
     """Build the middleware over a fresh pipeline under one strategy."""
+    ph_factory = LabelCounterPlaceholderFactory()
     pipeline = ThreadAnonymizationPipeline(
         detector,
         ExactEntityLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        Anonymizer(ph_factory),
         InMemoryConversationMemory(),
     )
     return PIIAnonymizationMiddleware(

@@ -36,7 +36,7 @@ Merci de l'intérêt porté à `piighost`. Cette page résume le workflow de con
 Toujours depuis `master` :
 
 ```bash
-git checkout -b feat/ma-fonctionnalite
+git checkout -b feat/my-feature
 ```
 
 ### Respecter les conventions
@@ -52,7 +52,7 @@ Avant de soumettre une PR :
 
 ```bash
 make lint       # Format + lint + type-check
-uv run pytest   # Suite de tests
+uv run pytest   # Test suite
 ```
 
 ### Ouvrir la Pull Request

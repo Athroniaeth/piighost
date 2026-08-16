@@ -229,11 +229,11 @@ L'étage de rendu. Requis. Il porte une table `[anonymizer.placeholder]` qui cho
 
 | `type` | Token | Clés |
 |--------|-------|------|
-| `redact` | `<<REDACT>>` | |
-| `label` | `<<PERSON>>` | |
-| `label_counter` | `<<PERSON:1>>` | |
-| `label_hash` | `<<PERSON:a1b2c3d4>>` | `hash_length` (défaut `8`) |
-| `mask` | `P***` | `visible` (défaut `1`), `mask_char` (défaut `*`) |
+| `redact` | `<<REDACT>>`{ .placeholder } | |
+| `label` | `<<PERSON>>`{ .placeholder } | |
+| `label_counter` | `<<PERSON:1>>`{ .placeholder } | |
+| `label_hash` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | `hash_length` (défaut `8`) |
+| `mask` | `P***`{ .placeholder } | `visible` (défaut `1`), `mask_char` (défaut `*`) |
 
 </div>
 

@@ -8,7 +8,7 @@ tags:
 
 You want a Pydantic AI agent where the model only ever sees tokens, never the real names in the conversation, and where a value keeps the same token from one turn to the next. This page wires that agent end to end with a GLiNER2 detector, a `ThreadAnonymizationPipeline`, and `pii_hooks`, the capability that de-identifies around the model.
 
-The capability covers the messages, the user prompt and the model's own replies, and the tool boundary too: under the default strategy a tool receives the real values while the model keeps working on tokens.
+The capability covers the messages, the user prompt and the model's own replies, and the tool boundary too. Under the default strategy a tool receives the real values while the model keeps working on tokens.
 
 !!! note "Prerequisites"
     `piighost` installed with the pydantic-ai and gliner2 extras, `pip install piighost[pydantic-ai,gliner2]`, plus an OpenAI key in `OPENAI_API_KEY`. The first run downloads the GLiNER2 weights, roughly 500 MB.

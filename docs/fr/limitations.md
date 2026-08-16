@@ -36,7 +36,7 @@ La contrepartie est que `RegexDetector` peut détecter des chaînes qui ont la f
 
 La factory de placeholder décide de ce qui distingue deux entités. Certaines familles laissent deux valeurs différentes retomber sur le même token.
 
-- `RedactPlaceholderFactory` collapse toute PII sur `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` collapse toute PII d'un même label sur `<<PERSON>>`{ .placeholder }. Ces deux familles ne distinguent pas les entités, donc elles ne sont pas réversibles.
+- `RedactPlaceholderFactory` ramène toute PII sur `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` ramène toute PII d'un même label sur `<<PERSON>>`{ .placeholder }. Ces deux familles ne distinguent pas les entités, donc elles ne sont pas réversibles.
 - `MaskPlaceholderFactory` garde un fragment de la valeur, `j***@mail.com`{ .placeholder }. Deux valeurs de forme voisine peuvent se confondre sur un même masque, et un masque peut aussi se confondre avec une vraie valeur dans une réponse d'outil.
 - `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }) donnent un token distinct par entité et se retrouvent dans le texte, donc elles restent réversibles sans ambiguïté.
 
@@ -44,7 +44,7 @@ La factory de placeholder décide de ce qui distingue deux entités. Certaines f
 
 ## La désanonymisation n'est fiable que sous identité
 
-Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Une factory qui préserve l'identité (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) garantit qu'un token retombe toujours sur la même valeur. Une factory qui collapse (redact, label, masque) ne le garantit pas, donc la désanonymisation devient ambiguë ou impossible.
+Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Une factory qui préserve l'identité (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) garantit qu'un token retombe toujours sur la même valeur. Une factory qui les confond (redact, label, masque) ne le garantit pas, donc la désanonymisation devient ambiguë ou impossible.
 
 Le middleware `PIIAnonymizationMiddleware` impose cette contrainte au niveau du type. Il exige une factory `PreservesRecognizableIdentity`, c'est-à-dire un token unique par entité et reconnaissable dans un texte. Une factory qui ne remplit pas ce contrat est refusée à la construction (`UnrecognizableFactoryError`). La frontière d'appel d'outil s'appuie sur du remplacement de chaîne, elle a besoin de tokens uniques pour rester réversible.
 

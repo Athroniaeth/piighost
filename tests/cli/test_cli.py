@@ -53,13 +53,15 @@ class TestValidate:
     def test_invalid_schema_exits_one(self, tmp_path: Path) -> None:
         """validate on a config missing a detector type exits 1 with a message."""
         bad = _VALID_TOML.replace('type = "regex"\n', "")
-        result = runner.invoke(app, ["validate", str(_write(tmp_path, bad))])
+        path = _write(tmp_path, bad)
+        result = runner.invoke(app, ["validate", str(path)])
         assert result.exit_code == 1
         assert "invalid configuration" in result.stderr
 
     def test_invalid_toml_exits_one(self, tmp_path: Path) -> None:
         """validate on syntactically invalid TOML exits 1."""
-        result = runner.invoke(app, ["validate", str(_write(tmp_path, "x = = y"))])
+        path = _write(tmp_path, "x = = y")
+        result = runner.invoke(app, ["validate", str(path)])
         assert result.exit_code == 1
         assert result.stderr
 

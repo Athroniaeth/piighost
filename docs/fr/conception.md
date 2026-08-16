@@ -4,7 +4,7 @@ icon: lucide/blocks
 
 # Conception du pipeline
 
-Une fois admis qu'il faut dé-identifier (voir [Pourquoi anonymiser ?](why-anonymize.md)),
+Une fois admis qu'il faut dé-identifier (voir [Pourquoi dé-identifier ?](why-anonymize.md)),
 reste le comment. Cette page le construit pas à pas. On part de la première brique,
 détecter les données sensibles, et on ajoute une contrainte à la fois. Chaque composant
 du pipeline apparaît parce qu'une contrainte précédente l'a rendu nécessaire. À la fin,
