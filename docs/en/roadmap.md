@@ -9,6 +9,12 @@ This page tracks what is still pending for `piighost`. Everything the v2 rewrite
 !!! note "How to read this page"
     This roadmap is not a calendar commitment. It lists the items identified as still missing, not a promise to build them in order.
 
+## OpenAI-compatible proxy
+
+`piighost` de-identifies inside an agent framework today, through the LangChain middleware or the Pydantic AI hooks. A proxy would move that protection to the HTTP boundary. `piighost-api` would expose an OpenAI-compatible endpoint, so an application changes only its `base_url` and needs no other code. On each `/v1/chat/completions` call the proxy anonymizes the messages, forwards the anonymized request to the real provider, deanonymizes the reply, and returns it in the OpenAI shape, so the provider never receives `Patrick`{ .pii }, only `<<PERSON:1>>`{ .placeholder }. The same proxy fronts any OpenAI-compatible endpoint, such as Azure OpenAI or a self-hosted server.
+
+Three core pieces already exist for it. The conversation pipeline anonymizes and restores, the tool-boundary de-identification covers tool calls, and the streaming decoder rewrites a token split across server-sent-event chunks. The open questions are how a stateless request scopes its tokens, through a per-request thread or a thread-id header backed by the conversation memory, and how much of streaming and tool calls a first version covers.
+
 ## Faker placeholder factory
 
 The placeholder tag hierarchy has a realism axis, but no factory yet produces realistic values. A Faker factory would emit values that look real, such as a plausible name in place of `Patrick`{ .pii }, rather than a synthetic token like `<<PERSON:1>>`{ .placeholder }. It belongs under the label-preserving branch of the hierarchy, not the identity-preserving one. A Faker pool is finite, so two distinct people can draw the same fake name and a fake value can collide with a real one. That is why the factory carries no restoration guarantee and sits beside the masking factory rather than beside the counter and hash factories. See [Placeholder factories](placeholder-factories.md) for the current tag axes.
