@@ -9,7 +9,7 @@ restores known tokens, and the invented-placeholder policy is applied here, at
 the integration boundary, not inside the pipeline.
 """
 
-from typing import Generic
+from typing import Any, Generic
 
 from typing_extensions import TypeVar
 
@@ -68,6 +68,26 @@ class TextDeidentifier(Generic[IdentityT]):
         """Deanonymize a text, then apply the invented-placeholder strategy."""
         restored = await self._pipeline.deanonymize(text, thread_id)
         return self._handle_invented(restored)
+
+    async def deanonymize_value(self, value: Any, thread_id: str) -> Any:
+        """Deanonymize the strings inside nested dict, list, and tuple containers.
+
+        A tool call's arguments are a nested structure, so this walks it and
+        deanonymizes every string it holds, leaving other values untouched. Each
+        string still goes through deanonymize, so the invented-placeholder
+        strategy applies to a token the model put in a tool argument.
+        """
+        if isinstance(value, str):
+            return await self.deanonymize(value, thread_id)
+        if isinstance(value, dict):
+            return {
+                key: await self.deanonymize_value(item, thread_id)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            items = [await self.deanonymize_value(item, thread_id) for item in value]
+            return tuple(items) if isinstance(value, tuple) else items
+        return value
 
     def _handle_invented(self, text: str) -> str:
         """Apply the invented-placeholder strategy to already deanonymized text.

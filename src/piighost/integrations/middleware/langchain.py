@@ -200,7 +200,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
         if deanonymize_input:
             call = request.tool_call
-            call["args"] = await self._deanonymize_value(call["args"], thread_id)
+            call["args"] = await self._deid.deanonymize_value(call["args"], thread_id)
 
         response = await handler(request)
 
@@ -254,17 +254,3 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
     async def _deanonymize(self, text: str, thread_id: str) -> str:
         """Deanonymize a text, applying the invented-placeholder strategy."""
         return await self._deid.deanonymize(text, thread_id)
-
-    async def _deanonymize_value(self, value: Any, thread_id: str) -> Any:
-        """Deanonymize strings inside nested dict, list, and tuple containers."""
-        if isinstance(value, str):
-            return await self._deanonymize(value, thread_id)
-        if isinstance(value, dict):
-            return {
-                key: await self._deanonymize_value(item, thread_id)
-                for key, item in value.items()
-            }
-        if isinstance(value, (list, tuple)):
-            items = [await self._deanonymize_value(item, thread_id) for item in value]
-            return tuple(items) if isinstance(value, tuple) else items
-        return value

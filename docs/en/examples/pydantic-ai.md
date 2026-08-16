@@ -8,7 +8,7 @@ tags:
 
 You want a Pydantic AI agent where the model only ever sees tokens, never the real names in the conversation, and where a value keeps the same token from one turn to the next. This page wires that agent end to end with a GLiNER2 detector, a `ThreadAnonymizationPipeline`, and `pii_hooks`, the capability that de-identifies around the model.
 
-The capability handles the messages, the user prompt and the model's own replies. Tool calls stay out of scope in this version. If your agent calls tools with sensitive arguments, use the [LangChain integration](langchain.md), whose middleware routes tool calls by a strategy.
+The capability covers the messages, the user prompt and the model's own replies, and the tool boundary too: under the default strategy a tool receives the real values while the model keeps working on tokens.
 
 !!! note "Prerequisites"
     `piighost` installed with the pydantic-ai and gliner2 extras, `pip install piighost[pydantic-ai,gliner2]`, plus an OpenAI key in `OPENAI_API_KEY`. The first run downloads the GLiNER2 weights, roughly 500 MB.
@@ -80,8 +80,18 @@ hooks = pii_hooks(
 )
 ```
 
+## Tool calls
+
+`pii_hooks` also de-identifies the tool boundary, governed by `tool_strategy`, the same enum the LangChain middleware uses. Under `FULL`, the default, a tool call's arguments are deanonymized before the tool runs, so a tool that needs `Patrick`{ .pii } gets it and not `<<PERSON:1>>`{ .placeholder }, and the tool's string result is re-anonymized before the model reads it, so the model keeps seeing tokens. `INPUT` deanonymizes only the arguments, `OUTPUT` re-anonymizes only the result, and `PASSTHROUGH` leaves both untouched.
+
+```python
+from piighost.integrations.middleware import ToolCallStrategy
+
+hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
+```
+
 ## What's next
 
-- For a tool-calling agent where the tool needs the real value, see the [LangChain integration](langchain.md).
+- To compare with the LangChain agent middleware, see the [LangChain integration](langchain.md).
 - To swap GLiNER2 for spaCy, a regex pack, or your own detector, see [Extending PIIGhost](../extending.md).
-- The runnable script is in `examples/pydantic_ai/hooks.py`.
+- The runnable scripts are in `examples/pydantic_ai/base.py` (messages) and `examples/pydantic_ai/tools.py` (a tool).
