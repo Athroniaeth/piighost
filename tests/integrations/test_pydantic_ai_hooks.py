@@ -11,6 +11,7 @@ from pydantic_ai.messages import (  # noqa: E402
     ModelMessage,
     ModelResponse,
     TextPart,
+    ToolCallPart,
     UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel  # noqa: E402
@@ -21,6 +22,7 @@ from piighost.components.linker import ExactEntityLinker  # noqa: E402
 from piighost.components.placeholder import LabelCounterPlaceholderFactory  # noqa: E402
 from piighost.conversation_memory import InMemoryConversationMemory  # noqa: E402
 from piighost.exceptions import InventedPlaceholderError  # noqa: E402
+from piighost.integrations.middleware import ToolCallStrategy  # noqa: E402
 from piighost.integrations.pydantic_ai import pii_hooks  # noqa: E402
 from piighost.pipeline import ThreadAnonymizationPipeline  # noqa: E402
 
@@ -110,3 +112,64 @@ class TestThreadIdGetter:
         agent = Agent(FunctionModel(model_fn), deps_type=Deps, capabilities=[hooks])
         await agent.run("Hi Emma", deps=Deps(thread_id="conv-1"))
         assert seen[-1] == "Hi <<PERSON:1>>"
+
+
+class TestTools:
+    async def test_tool_gets_the_value_and_its_result_is_reanonymized(self) -> None:
+        """The tool receives the real value; its result is re-anonymized for the model."""
+        received: dict[str, str] = {}
+        seen: list[str] = []
+        state = {"calls": 0}
+
+        def send_email(to: str, body: str) -> str:
+            received["to"] = to
+            received["body"] = body
+            return f"Email sent to {to}."
+
+        def model_fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            for message in messages:
+                for part in message.parts:
+                    content = getattr(part, "content", None)
+                    if isinstance(content, str):
+                        seen.append(content)
+            state["calls"] += 1
+            if state["calls"] == 1:
+                args = {"to": "<<PERSON:1>>", "body": "hi <<PERSON:1>>"}
+                return ModelResponse(
+                    parts=[ToolCallPart(tool_name="send_email", args=args)]
+                )
+            return ModelResponse(
+                parts=[TextPart(content="Done, emailed <<PERSON:1>>.")]
+            )
+
+        hooks = pii_hooks(_pipeline(), "t1")
+        agent = Agent(FunctionModel(model_fn), tools=[send_email], capabilities=[hooks])
+        result = await agent.run("Email Emma.")
+
+        assert received == {"to": "Emma", "body": "hi Emma"}
+        assert "Emma" not in " ".join(seen)
+        assert result.output == "Done, emailed Emma."
+
+    async def test_passthrough_leaves_the_arguments_as_tokens(self) -> None:
+        """PASSTHROUGH runs the tool on the placeholder, deanonymizing nothing."""
+        received: dict[str, str] = {}
+        state = {"calls": 0}
+
+        def send_email(to: str) -> str:
+            received["to"] = to
+            return "ok"
+
+        def model_fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            state["calls"] += 1
+            if state["calls"] == 1:
+                args = {"to": "<<PERSON:1>>"}
+                return ModelResponse(
+                    parts=[ToolCallPart(tool_name="send_email", args=args)]
+                )
+            return ModelResponse(parts=[TextPart(content="ok")])
+
+        hooks = pii_hooks(_pipeline(), "t1", tool_strategy=ToolCallStrategy.PASSTHROUGH)
+        agent = Agent(FunctionModel(model_fn), tools=[send_email], capabilities=[hooks])
+        await agent.run("Email Emma.")
+
+        assert received["to"] == "<<PERSON:1>>"
