@@ -16,7 +16,10 @@ from typing_extensions import TypeVar
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
 from piighost.integrations._deidentify import TextDeidentifier
-from piighost.integrations.middleware.strategy import InventedPlaceholderStrategy
+from piighost.integrations.middleware.strategy import (
+    InventedPlaceholderStrategy,
+    ToolCallStrategy,
+)
 from piighost.pipeline import AnyThreadPipeline
 
 if importlib.util.find_spec("pydantic_ai") is None:
@@ -26,8 +29,13 @@ if importlib.util.find_spec("pydantic_ai") is None:
     )
 
 from pydantic_ai import ModelRequestContext, RunContext  # noqa: E402
-from pydantic_ai.capabilities import Hooks  # noqa: E402
-from pydantic_ai.messages import ModelResponse, TextPart, UserPromptPart  # noqa: E402
+from pydantic_ai.capabilities import Hooks, ValidatedToolArgs  # noqa: E402
+from pydantic_ai.messages import (  # noqa: E402
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
+    UserPromptPart,
+)
 
 IdentityT = TypeVar(
     "IdentityT",
@@ -40,6 +48,7 @@ def pii_hooks(
     pipeline: AnyThreadPipeline[IdentityT],
     thread_id: Callable[[RunContext[Any]], str] | str,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
+    tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
 ) -> Hooks:
     """Build a Pydantic AI capability that de-identifies PII around the model.
 
@@ -50,11 +59,20 @@ def pii_hooks(
     from thread_id, either a fixed string or a callable over the run context, for
     example lambda ctx: ctx.deps.thread_id.
 
+    tool_strategy governs the tool boundary the same way as the LangChain
+    middleware. Under FULL, the default, a tool call's arguments are deanonymized
+    before the tool runs, so the tool works on the real values, and the tool's
+    string result is re-anonymized after, so the model keeps seeing placeholders.
+    INPUT deanonymizes only the arguments, OUTPUT re-anonymizes only the result,
+    and PASSTHROUGH leaves both untouched.
+
     The pipeline must expose a recognizable token grammar, or this raises at build
     time through TextDeidentifier. A token the model invents is handled by
     invented_strategy on restore, RAISE by default.
     """
     deid = TextDeidentifier(pipeline, invented_strategy)
+    deanonymize_args = tool_strategy in (ToolCallStrategy.INPUT, ToolCallStrategy.FULL)
+    anonymize_result = tool_strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
 
     def resolve_thread_id(ctx: RunContext[Any]) -> str:
         """Return the run's thread id from the fixed value or the getter."""
@@ -95,5 +113,34 @@ def pii_hooks(
             if isinstance(part, TextPart) and isinstance(part.content, str):
                 part.content = await deid.deanonymize(part.content, current_thread)
         return response
+
+    @hooks.on.before_tool_execute
+    async def deanonymize_tool_args(
+        ctx: RunContext[Any],
+        *,
+        call: ToolCallPart,
+        tool_def: Any,
+        args: ValidatedToolArgs,
+    ) -> ValidatedToolArgs:
+        """Deanonymize the tool arguments so the tool works on the real values."""
+        if not deanonymize_args:
+            return args
+        current_thread = resolve_thread_id(ctx)
+        return await deid.deanonymize_value(args, current_thread)
+
+    @hooks.on.after_tool_execute
+    async def anonymize_tool_result(
+        ctx: RunContext[Any],
+        *,
+        call: ToolCallPart,
+        tool_def: Any,
+        args: ValidatedToolArgs,
+        result: Any,
+    ) -> Any:
+        """Re-anonymize the tool result so the model keeps seeing placeholders."""
+        if not anonymize_result or not isinstance(result, str):
+            return result
+        current_thread = resolve_thread_id(ctx)
+        return await deid.anonymize(result, current_thread)
 
     return hooks
