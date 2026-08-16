@@ -122,7 +122,12 @@ class SqlAlchemyConversationMemory:
         detections: list[Detection],
         role: MessageRole = MessageRole.USER,
     ) -> None:
-        """Cache the detections found in a message, replacing any prior entry."""
+        """Cache the detections found in a message, replacing any prior entry.
+
+        The check-then-write is not atomic across concurrent transactions on the same
+        message, a portable choice over dialect-specific upsert; a rare concurrent
+        double-insert of the same message raises the unique-constraint error.
+        """
         digest = self._digest(message)
         blob = self._serialize(detections)
         table = self._table
