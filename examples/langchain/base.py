@@ -14,8 +14,9 @@ deanonymizes the reply for the user. The thread id is read from the LangGraph
 config, under configurable.
 
 The agent runs against openai:gpt-5.5, so set an OPENAI_API_KEY in the
-environment (copy .env.example to .env). Run with:
-uv run examples/langchain/middleware.py
+environment (copy .env.example to .env). For a tool-calling agent, see tools.py
+beside this file. Run with:
+uv run examples/langchain/base.py
 """
 
 import asyncio
