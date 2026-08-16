@@ -47,10 +47,12 @@ class RedisMemoryConfig(_ComponentConfig):
         from piighost.conversation_memory import RedisConversationMemory
 
         client = Redis.from_url(self.url)
+        hasher = self.hasher.build()
+        cipher = self.cipher.build()
         return RedisConversationMemory(
             client,
-            self.hasher.build(),
-            self.cipher.build(),
+            hasher,
+            cipher,
             namespace=self.namespace,
             ttl=self.ttl,
         )

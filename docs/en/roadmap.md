@@ -11,7 +11,7 @@ This page tracks what is still pending for `piighost`. Everything the v2 rewrite
 
 ## Faker placeholder factory
 
-The placeholder tag hierarchy has a realism axis, but no factory yet produces realistic values. A Faker factory would emit values that look real, such as a plausible name in place of `Patrick`{ .pii }, rather than a synthetic token like `<<PERSON:1>>`{ .placeholder }. It belongs under the label-preserving branch of the hierarchy, not the identity-preserving one: a Faker pool is finite, so two distinct people can draw the same fake name and a fake value can collide with a real one. That is why the factory carries no restoration guarantee and sits beside the masking factory rather than beside the counter and hash factories. See [Placeholder factories](placeholder-factories.md) for the current tag axes.
+The placeholder tag hierarchy has a realism axis, but no factory yet produces realistic values. A Faker factory would emit values that look real, such as a plausible name in place of `Patrick`{ .pii }, rather than a synthetic token like `<<PERSON:1>>`{ .placeholder }. It belongs under the label-preserving branch of the hierarchy, not the identity-preserving one. A Faker pool is finite, so two distinct people can draw the same fake name and a fake value can collide with a real one. That is why the factory carries no restoration guarantee and sits beside the masking factory rather than beside the counter and hash factories. See [Placeholder factories](placeholder-factories.md) for the current tag axes.
 
 ## Text normalization
 

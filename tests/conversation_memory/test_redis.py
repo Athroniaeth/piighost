@@ -11,7 +11,8 @@ from piighost.conversation_memory import Forgotten, MessageRole
 from piighost.models import Detection, Span
 
 _MODULE = "piighost.conversation_memory.redis_backend"
-_AES_KEY = b"0123456789abcdef0123456789abcdef"  # 32 bytes, AES-256
+_AES_KEY = b"0123456789abcdef0123456789abcdef"
+"""A 32-byte key, the AES-256 size."""
 
 
 def _detection(text: str, label: str = "PERSON") -> Detection:

@@ -30,6 +30,7 @@ type = "exact"
 [anonymizer.placeholder]
 type = "redact"
 """
+"""A minimal valid pipeline config, reused as the base for the load cases."""
 
 
 def _write(tmp_path: Path, text: str) -> Path:
@@ -148,6 +149,7 @@ type = "merge"
 type = "regex"
 patterns = { CODE = "banana" }
 """
+"""A config enabling every optional stage, for the wiring and override cases."""
 
 
 class TestOptionalStagesWiring:

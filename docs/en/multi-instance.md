@@ -11,7 +11,7 @@ A thread pipeline keeps one placeholder per value for the length of a conversati
 
 ## Why one process is not enough
 
-`InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment: nothing survives a restart and nothing is shared across processes.
+`InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment. Nothing survives a restart and nothing is shared across processes.
 
 The problem appears the moment a load balancer routes the same `thread_id` to more than one worker. Each worker holds its own memory, and these memories do not talk to each other. A value tokenized as `<<PERSON:1>>`{ .placeholder } on worker A is unknown to worker B, which numbers it fresh.
 
@@ -73,7 +73,7 @@ The Redis memory also encrypts each stored value and hashes each key, and reads 
 
 ## Align with LangGraph
 
-The same trap hits LangGraph's `checkpointer`: `MemorySaver` is process-local, `PostgresSaver` and `RedisSaver` are shared. If your agent already runs a shared saver behind the load balancer, run the `piighost` memory on the same infrastructure. A `thread_id` that has a checkpointed state then also has its token mapping reachable, on any worker.
+The same trap hits LangGraph's `checkpointer`. `MemorySaver` is process-local, `PostgresSaver` and `RedisSaver` are shared. If your agent already runs a shared saver behind the load balancer, run the `piighost` memory on the same infrastructure. A `thread_id` that has a checkpointed state then also has its token mapping reachable, on any worker.
 
 ## See also
 

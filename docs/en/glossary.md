@@ -16,7 +16,7 @@ PII
 De-identification
 :   Replacing PII with placeholders while keeping the mapping between each value
     and its placeholder, so the original can be restored later. The default
-    `piighost` pipeline de-identifies. Under the RGPD this is pseudonymization,
+    `piighost` pipeline de-identifies. Under the GDPR this is pseudonymization,
     not anonymization.
 
 Anonymization

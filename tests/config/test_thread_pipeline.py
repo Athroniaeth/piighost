@@ -24,6 +24,7 @@ type = "label_counter"
 [memory]
 type = "in_memory"
 """
+"""A thread-pipeline config with two people and an in-memory backend."""
 
 _SIMPLE_TOML = """
 [detector]
@@ -36,6 +37,7 @@ type = "exact"
 [anonymizer.placeholder]
 type = "label_counter"
 """
+"""A pipeline config with no memory section, the memory-less counterpart."""
 
 
 def _write(tmp_path: Path, text: str) -> Path:

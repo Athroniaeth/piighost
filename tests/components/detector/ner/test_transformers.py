@@ -13,10 +13,10 @@ from piighost.components.detector import AnyDetector
 class _FakePipeline:
     """A callable stand-in returning HF token-classification dicts."""
 
-    def __init__(self, entities: list[dict]) -> None:
+    def __init__(self, entities: list[dict[str, object]]) -> None:
         self._entities = entities
 
-    def __call__(self, text: str) -> list[dict]:
+    def __call__(self, text: str) -> list[dict[str, object]]:
         return self._entities
 
 
@@ -37,7 +37,9 @@ class TestDetect:
         from piighost.components.detector.ner import TransformersDetector
         from piighost.models import Span
 
-        entities = [{"entity_group": "PER", "score": 0.99, "start": 0, "end": 4}]
+        entities: list[dict[str, object]] = [
+            {"entity_group": "PER", "score": 0.99, "start": 0, "end": 4}
+        ]
         detector = TransformersDetector(pipeline=_FakePipeline(entities))
         detections = await detector.detect("Emma is here")
         assert len(detections) == 1
@@ -51,7 +53,9 @@ class TestDetect:
         pytest.importorskip("transformers")
         from piighost.components.detector.ner import TransformersDetector
 
-        entities = [{"entity_group": "PER", "score": 0.10, "start": 0, "end": 4}]
+        entities: list[dict[str, object]] = [
+            {"entity_group": "PER", "score": 0.10, "start": 0, "end": 4}
+        ]
         detector = TransformersDetector(pipeline=_FakePipeline(entities), threshold=0.5)
         assert await detector.detect("Emma is here") == []
 

@@ -57,12 +57,11 @@ class Gliner2Detector(BaseNERDetector):
         for native_label, entities in result["entities"].items():
             for entity in entities:
                 span = Span(entity["start"], entity["end"])
-                detections.append(
-                    Detection(
-                        span=span,
-                        text=entity["text"],
-                        label=native_label,
-                        confidence=entity["confidence"],
-                    )
+                detection = Detection(
+                    span=span,
+                    text=entity["text"],
+                    label=native_label,
+                    confidence=entity["confidence"],
                 )
+                detections.append(detection)
         return detections

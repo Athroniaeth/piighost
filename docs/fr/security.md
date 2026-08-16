@@ -96,7 +96,7 @@ La librairie ne masque délibérément pas ce champ. Si vous transférez des ins
 
 Le pipeline trace ses étapes via OpenTelemetry. Chaque étape produit un span avec son propre payload d'entrée et de sortie, poussé vers le backend de trace que vous avez branché. Par défaut ces payloads contiennent le texte en clair et les valeurs des détections, ce qui rend les traces utilisables comme jeux d'annotation, mais dangereuses sur un backend qui n'a pas le droit de voir de la PII.
 
-Le paramètre `observation_redactor` du pipeline contrôle ce comportement. Il prend une placeholder factory qui remplace chaque valeur détectée avant que le payload ne parte vers le backend. Avec `RedactPlaceholderFactory()`, toute entité collapse sur `<<REDACT>>`{ .placeholder }.
+Le paramètre `observation_redactor` du pipeline contrôle ce comportement. Il prend une placeholder factory qui remplace chaque valeur détectée avant que le payload ne parte vers le backend. Avec `RedactPlaceholderFactory()`, toute entité retombe sur `<<REDACT>>`{ .placeholder }.
 
 ```text
 texte utilisateur     : "Patrick habite à Paris."

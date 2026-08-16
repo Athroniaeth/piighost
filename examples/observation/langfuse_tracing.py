@@ -114,10 +114,11 @@ async def main() -> None:
     _load_env()
     client = _configure_backend()
 
+    ph_factory = LabelCounterPlaceholderFactory()
     pipeline = ThreadAnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
         ExactEntityLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        Anonymizer(ph_factory),
         InMemoryConversationMemory(),
     )
 

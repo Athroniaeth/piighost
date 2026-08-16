@@ -14,6 +14,7 @@ _CONFIG = {
     "linker": {"type": "exact"},
     "anonymizer": {"placeholder": {"type": "redact"}},
 }
+"""A minimal valid pipeline config, reused as the base for JSON load cases."""
 
 
 def _write_json(tmp_path: Path, data: dict[str, Any]) -> Path:

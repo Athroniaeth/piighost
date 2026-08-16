@@ -17,6 +17,7 @@ from piighost.crypto.hasher.sha256 import Sha256Hasher
 from piighost.exceptions import ConfigError
 
 _KEY_B64 = base64.b64encode(b"0" * 32).decode()
+"""A base64-encoded 32-byte AES-GCM key, valid for the cipher env var."""
 
 
 class TestHasherConfig:
