@@ -64,6 +64,14 @@ class TestRoundTrip:
         await memory.remember("t1", "and Liam", second)
         assert await memory.get_detections("t1") == first + second
 
+    async def test_clean_message_is_a_hit_with_no_detections(
+        self, memory: SqlAlchemyConversationMemory
+    ) -> None:
+        """A remembered clean message is a hit returning an empty list, not None."""
+        await memory.remember("t1", "nothing here", [])
+        assert await memory.get_detections("t1", "nothing here") == []
+        assert await memory.get_detections("t1", "unseen") is None
+
     async def test_rewriting_a_message_keeps_first_seen_order(
         self, memory: SqlAlchemyConversationMemory
     ) -> None:

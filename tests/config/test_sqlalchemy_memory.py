@@ -25,3 +25,12 @@ class TestBuild:
         config = SqlAlchemyMemoryConfig(type="sqlalchemy")
         with pytest.raises(ConfigError):
             config.build()
+
+    def test_half_configured_crypto_raises_config_error(self) -> None:
+        """Configuring only a hasher (or only a cipher) is a config error."""
+        config = SqlAlchemyMemoryConfig(
+            type="sqlalchemy",
+            hasher={"type": "sha256"},
+        )
+        with pytest.raises(ConfigError):
+            config.build()

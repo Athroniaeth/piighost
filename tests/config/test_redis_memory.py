@@ -13,6 +13,7 @@ from piighost.config.models.memory import (
     RedisMemoryConfig,
 )
 from piighost.conversation_memory import RedisConversationMemory
+from piighost.exceptions import ConfigError
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 _KEY_B64 = base64.b64encode(b"0" * 32).decode()
@@ -64,6 +65,16 @@ class TestRedisMemoryConfig:
         monkeypatch.setenv("PIIGHOST_CIPHER_KEY", _KEY_B64)
         config = RedisMemoryConfig.model_validate(_REDIS_MEMORY)
         assert isinstance(config.build(), RedisConversationMemory)
+
+    def test_half_configured_crypto_raises_config_error(self) -> None:
+        """Configuring only a hasher (or only a cipher) is a config error."""
+        config = RedisMemoryConfig(
+            type="redis",
+            url="redis://localhost:6379/0",
+            hasher={"type": "sha256"},
+        )
+        with pytest.raises(ConfigError):
+            config.build()
 
 
 class TestMemoryUnion:

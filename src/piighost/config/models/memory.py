@@ -45,7 +45,10 @@ class RedisMemoryConfig(_ComponentConfig):
         from redis.asyncio import Redis
 
         from piighost.conversation_memory import RedisConversationMemory
+        from piighost.exceptions import ConfigError
 
+        if (self.hasher is None) != (self.cipher is None):
+            raise ConfigError("Configure both a hasher and a cipher, or neither")
         client = Redis.from_url(self.url)
         hasher = self.hasher.build() if self.hasher is not None else None
         cipher = self.cipher.build() if self.cipher is not None else None
@@ -84,6 +87,8 @@ class SqlAlchemyMemoryConfig(_ComponentConfig):
         from piighost.conversation_memory import SqlAlchemyConversationMemory
         from piighost.exceptions import ConfigError
 
+        if (self.hasher is None) != (self.cipher is None):
+            raise ConfigError("Configure both a hasher and a cipher, or neither")
         url = os.environ.get(self.url_env)
         if not url:
             raise ConfigError(
