@@ -79,6 +79,36 @@ class TransformersDetectorConfig(_ComponentConfig):
         )
 
 
+class PresidioDetectorConfig(_ComponentConfig):
+    """Config for the Presidio detector, wrapping a default AnalyzerEngine.
+
+    The config path builds Presidio's default English AnalyzerEngine with its
+    default recognizers. Other languages, custom recognizers, or a custom NLP
+    engine are the programmatic path, constructing the engine and passing it to
+    PresidioDetector directly.
+    """
+
+    type: Literal["presidio"]
+    labels: list[str] | dict[str, str] | None = None
+    language: str = "en"
+    threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    def build(self) -> AnyDetector:
+        """Build a PresidioDetector over Presidio's default AnalyzerEngine."""
+        from piighost.components.detector.ner.presidio import (
+            AnalyzerEngine,
+            PresidioDetector,
+        )
+
+        analyzer = AnalyzerEngine()
+        return PresidioDetector(
+            analyzer=analyzer,
+            labels=self.labels,
+            language=self.language,
+            threshold=self.threshold,
+        )
+
+
 class LLMDetectorConfig(_ComponentConfig):
     """Config for the LLM detector, extracting entities via a chat model."""
 
