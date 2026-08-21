@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("llama_index")
 
-from llama_index.core.base.response.schema import Response  # noqa: E402
+from llama_index.core.base.response.schema import Response  # pyrefly: ignore[missing-import]  # noqa: E402
 
 from piighost.components.detector import ExactMatchDetector  # noqa: E402
 from piighost.integrations.llama_index import PIIQueryEngine  # noqa: E402
@@ -43,7 +43,7 @@ def _pipeline() -> ThreadAnonymizationPipeline:
 
 async def test_anonymizes_query_and_restores_answer() -> None:
     """The inner engine sees the anonymized query; the answer is restored."""
-    from llama_index.core.schema import QueryBundle
+    from llama_index.core.schema import QueryBundle  # pyrefly: ignore[missing-import]
 
     inner = _FakeInner("<<PERSON:1>> is in the office")
     engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
@@ -63,7 +63,7 @@ def test_sync_query_bridges_to_aquery() -> None:
 
 async def test_rejects_a_streaming_response() -> None:
     """A streaming inner response, which has no .response, is refused."""
-    from llama_index.core.schema import QueryBundle
+    from llama_index.core.schema import QueryBundle  # pyrefly: ignore[missing-import]
 
     class _StreamingResponse:
         def __init__(self) -> None:
