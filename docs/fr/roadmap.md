@@ -15,6 +15,10 @@ Cette page liste ce qui reste en attente pour `piighost`. Tout ce que la réécr
 
 Trois briques existent déjà pour ça. Le pipeline conversationnel anonymise et restaure, la dé-identification de la frontière des outils couvre les appels d'outils, et le décodeur de streaming réécrit un jeton coupé entre deux chunks server-sent-event. Les questions ouvertes sont la façon dont une requête sans état cadre ses jetons, via un thread par requête ou un header d'identifiant de thread adossé à la mémoire de conversation, et la part du streaming et des appels d'outils qu'une première version couvre.
 
+## Intégration LlamaIndex
+
+`piighost` s'intègre aujourd'hui à LangChain et Pydantic AI. LlamaIndex expose la dé-identification de PII comme un node postprocessor dans un pipeline RAG, donc une intégration piighost enroberait le pipeline conversationnel dans un `NodePostprocessor` qui anonymise les nodes retrouvés avant que le modèle ne les lise et restaure la réponse pour l'utilisateur. Elle suit la forme que `examples/langchain/rag.py` montre déjà à la main. Chaque chunk est anonymisé dans un thread corpus unique pour qu'une valeur garde son token, la retrieval tourne sur le texte anonymisé, et la réponse est désanonymisée. Un postprocessor natif emballe tout ça en une ligne de câblage sur un index existant.
+
 ## Placeholder factory Faker
 
 La hiérarchie de tags de placeholder porte un axe de réalisme, mais aucune factory ne produit encore de valeur réaliste. Une factory Faker émettrait des valeurs qui ressemblent à du vrai, par exemple un nom plausible à la place de `Patrick`{ .pii }, plutôt qu'un token synthétique comme `<<PERSON:1>>`{ .placeholder }. Elle se range sous la branche qui préserve le label, pas sous celle qui préserve l'identité. Un pool Faker est fini, donc deux personnes distinctes peuvent tirer le même faux nom et une fausse valeur peut se confondre avec une vraie. C'est pourquoi la factory ne porte aucune garantie de restauration et se place à côté de la factory de masquage plutôt qu'à côté des factories à compteur et à hash. Voir [Placeholder factories](placeholder-factories.md) pour les axes de tags actuels.
