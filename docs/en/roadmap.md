@@ -29,10 +29,6 @@ A detector sees the text exactly as written. Accents, casing, spacing, or OCR no
 
 The conversation memory caches each message's detections per thread, so resending a message inside a thread skips detection. There is no cache below the thread, so the same text sent under two different `thread_id` values is detected twice. An optional result cache keyed by text hash would let identical content skip detection regardless of thread, with a SQLAlchemy backend (aiosqlite for development, PostgreSQL for a shared deployment) as the persistent option beside the in-process one.
 
-## Presidio detector adapter
-
-`piighost` ships its own pluggable detectors, but Microsoft Presidio carries a broad catalog of recognizers and context enhancers. A Presidio detector adapter would wrap a Presidio `AnalyzerEngine` behind the `AnyDetector` port, so a caller reuses every Presidio recognizer inside a piighost pipeline while keeping piighost's own entity linking, conversation memory, and placeholder factories. Presidio finds the spans, piighost groups them, keeps a value's token stable across a thread, and restores it. The adapter would map each Presidio result's `entity_type` and offsets onto a `Detection`, the same shape the NER detectors already produce, and would need the `presidio-analyzer` package behind its own extra.
-
 ## Wiring the streaming decoder
 
 `AsyncPlaceholderStreamDecoder` already reassembles a token split across server-sent-event chunks, but nothing wires it into the integrations yet. A streamed reply arrives in fragments, so `<<PER`{ .placeholder } may land in one chunk and `SON:1>>`{ .placeholder } in the next, and a naive restore leaves the user seeing the broken token. Wiring the decoder into the LangChain middleware, the Pydantic AI hooks, and the future proxy would let each of them deanonymize a stream on the fly, buffering only across a token boundary and emitting restored text as it goes. It finishes an existing piece rather than building a new one, and it is a prerequisite for streaming through the proxy.
