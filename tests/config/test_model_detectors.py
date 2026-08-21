@@ -63,6 +63,7 @@ _DISPATCH_CASES = [
     ({"type": "transformers", "model": "m"}, TransformersDetectorConfig),
     ({"type": "llm", "model": "m", "labels": ["A"]}, LLMDetectorConfig),
 ]
+"""Each model detector payload paired with the config type it should dispatch to."""
 
 
 @pytest.mark.parametrize(("data", "expected"), _DISPATCH_CASES)

@@ -7,6 +7,7 @@ from piighost.components.detector import (
     CompositeDetector,
     ExactMatchDetector,
 )
+from piighost.models import Detection
 
 
 class TestConformance:
@@ -38,7 +39,7 @@ class TestDetect:
         started = 0
 
         class _Blocking:
-            async def detect(self, text: str) -> list:
+            async def detect(self, text: str) -> list[Detection]:
                 nonlocal started
                 started += 1
                 if started == 2:

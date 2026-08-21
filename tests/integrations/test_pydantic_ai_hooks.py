@@ -22,7 +22,10 @@ from piighost.components.linker import ExactEntityLinker  # noqa: E402
 from piighost.components.placeholder import LabelCounterPlaceholderFactory  # noqa: E402
 from piighost.conversation_memory import InMemoryConversationMemory  # noqa: E402
 from piighost.exceptions import InventedPlaceholderError  # noqa: E402
-from piighost.integrations.middleware import ToolCallStrategy  # noqa: E402
+from piighost.integrations.middleware import (  # noqa: E402
+    AssistantEntityStrategy,
+    ToolCallStrategy,
+)
 from piighost.integrations.pydantic_ai import pii_hooks  # noqa: E402
 from piighost.pipeline import ThreadAnonymizationPipeline  # noqa: E402
 
@@ -173,3 +176,40 @@ class TestTools:
         await agent.run("Email Emma.")
 
         assert received["to"] == "<<PERSON:1>>"
+
+
+class TestAssistantStrategy:
+    async def _seen_on_second_turn(self, strategy: AssistantEntityStrategy) -> str:
+        """Let the assistant introduce Emma, then read what turn two shows the model."""
+        seen: list[str] = []
+        state = {"calls": 0}
+
+        def model_fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            state["calls"] += 1
+            if state["calls"] == 1:
+                return ModelResponse(parts=[TextPart(content="It is Emma")])
+            seen.append(_model_facing_text(messages))
+            return ModelResponse(parts=[TextPart(content="ok")])
+
+        hooks = pii_hooks(_pipeline(), "t1", assistant_strategy=strategy)
+        agent = Agent(FunctionModel(model_fn), capabilities=[hooks])
+        first = await agent.run("hello")
+        await agent.run("what about Emma", message_history=first.all_messages())
+        return seen[-1]
+
+    async def test_preserve_keeps_the_assistant_value_clear(self) -> None:
+        """PRESERVE leaves a user reference to an assistant-introduced value in clear."""
+        seen = await self._seen_on_second_turn(AssistantEntityStrategy.PRESERVE)
+        assert "what about Emma" in seen
+
+    async def test_anonymize_treats_the_assistant_value_as_pii(self) -> None:
+        """ANONYMIZE tokenizes a value the assistant introduced."""
+        seen = await self._seen_on_second_turn(AssistantEntityStrategy.ANONYMIZE)
+        assert "what about <<PERSON:1>>" in seen
+        assert "Emma" not in seen
+
+    async def test_ignore_leaves_the_assistant_message_unanalyzed(self) -> None:
+        """IGNORE skips the assistant text, so the user reference tokenizes fresh."""
+        seen = await self._seen_on_second_turn(AssistantEntityStrategy.IGNORE)
+        assert "It is Emma" in seen
+        assert "what about <<PERSON:1>>" in seen

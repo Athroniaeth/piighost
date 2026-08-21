@@ -18,6 +18,11 @@ separator across detection, expansion, linking, and replacement.
 """
 
 _WORD_CLASS = "[" + "\\w" + "".join(re.escape(char) for char in WORD_JOIN_CHARS) + "]"
+"""Regex character class of what counts as inside a word.
+
+The word class plus the WORD_JOIN_CHARS joiners, so a fragment glued to a
+hyphen or apostrophe is treated as part of a larger word, not a match.
+"""
 
 
 def boundary_wrap(fragment: str) -> str:

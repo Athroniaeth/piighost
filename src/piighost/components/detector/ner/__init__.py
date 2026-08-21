@@ -12,6 +12,7 @@ from piighost.components.detector.ner.base import BaseNERDetector
 __all__ = [
     "BaseNERDetector",
     "Gliner2Detector",
+    "Gliner2PiiDetector",
     "SpacyDetector",
     "TransformersDetector",
 ]
@@ -23,6 +24,10 @@ def __getattr__(name: str) -> Any:
         from piighost.components.detector.ner.gliner2 import Gliner2Detector
 
         return Gliner2Detector
+    if name == "Gliner2PiiDetector":
+        from piighost.components.detector.ner.gliner2 import Gliner2PiiDetector
+
+        return Gliner2PiiDetector
     if name == "SpacyDetector":
         from piighost.components.detector.ner.spacy import SpacyDetector
 

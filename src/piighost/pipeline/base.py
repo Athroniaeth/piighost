@@ -181,8 +181,9 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         # The default anonymizer's tag is fixed, but the caller left PreservationT
         # unbound, so cast to widen it. The tokens it preserves satisfy any consumer
         # of the widened default.
+        default_factory = LabelCounterPlaceholderFactory()
         default_anonymizer = cast(
-            "AnyAnonymizer[PreservationT]", Anonymizer(LabelCounterPlaceholderFactory())
+            "AnyAnonymizer[PreservationT]", Anonymizer(default_factory)
         )
         self.anonymizer = anonymizer or default_anonymizer
         self.overlap_resolver = overlap_resolver

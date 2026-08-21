@@ -65,12 +65,11 @@ class TransformersDetector(BaseNERDetector):
             start = int(entity["start"])
             end = int(entity["end"])
             span = Span(start, end)
-            detections.append(
-                Detection(
-                    span=span,
-                    text=text[start:end],
-                    label=native_label,
-                    confidence=score,
-                )
+            detection = Detection(
+                span=span,
+                text=text[start:end],
+                label=native_label,
+                confidence=score,
             )
+            detections.append(detection)
         return detections

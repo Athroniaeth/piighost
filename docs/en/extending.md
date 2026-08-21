@@ -259,7 +259,7 @@ anonymizer = Anonymizer(factory)
 
 ## A custom guard rail
 
-A guard rail re-checks the anonymized output for residual PII. It classifies, it does not decide: it returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
+A guard rail re-checks the anonymized output for residual PII. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
 
 ```python
 class AnyGuardRail(Protocol):

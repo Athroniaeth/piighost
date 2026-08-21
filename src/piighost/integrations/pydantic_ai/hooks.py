@@ -17,6 +17,7 @@ from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.middleware.strategy import (
+    AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
@@ -49,6 +50,7 @@ def pii_hooks(
     thread_id: Callable[[RunContext[Any]], str] | str,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
+    assistant_strategy: AssistantEntityStrategy = AssistantEntityStrategy.PRESERVE,
 ) -> Hooks:
     """Build a Pydantic AI capability that de-identifies PII around the model.
 
@@ -66,6 +68,13 @@ def pii_hooks(
     INPUT deanonymizes only the arguments, OUTPUT re-anonymizes only the result,
     and PASSTHROUGH leaves both untouched.
 
+    assistant_strategy governs values the assistant introduces, as in the
+    LangChain middleware. Under PRESERVE, the default, an assistant text is
+    anonymized under the ASSISTANT role, so a value the assistant first
+    introduced is left in clear and only known user PII is tokenized. ANONYMIZE
+    treats it as USER, tokenizing those values too, and IGNORE skips assistant
+    texts entirely, saving the detector.
+
     The pipeline must expose a recognizable token grammar, or this raises at build
     time through TextDeidentifier. A token the model invents is handled by
     invented_strategy on restore, RAISE by default.
@@ -73,6 +82,11 @@ def pii_hooks(
     deid = TextDeidentifier(pipeline, invented_strategy)
     deanonymize_args = tool_strategy in (ToolCallStrategy.INPUT, ToolCallStrategy.FULL)
     anonymize_result = tool_strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
+    skip_assistant = assistant_strategy is AssistantEntityStrategy.IGNORE
+    if assistant_strategy is AssistantEntityStrategy.ANONYMIZE:
+        assistant_role = MessageRole.USER
+    else:
+        assistant_role = MessageRole.ASSISTANT
 
     def resolve_thread_id(ctx: RunContext[Any]) -> str:
         """Return the run's thread id from the fixed value or the getter."""
@@ -94,9 +108,13 @@ def pii_hooks(
                     part.content = await deid.anonymize(
                         part.content, current_thread, MessageRole.USER
                     )
-                elif isinstance(part, TextPart) and isinstance(part.content, str):
+                elif (
+                    not skip_assistant
+                    and isinstance(part, TextPart)
+                    and isinstance(part.content, str)
+                ):
                     part.content = await deid.anonymize(
-                        part.content, current_thread, MessageRole.ASSISTANT
+                        part.content, current_thread, assistant_role
                     )
         return request_context
 

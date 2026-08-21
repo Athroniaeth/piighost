@@ -22,14 +22,22 @@ __all__ = [
     "InMemoryConversationMemory",
     "MessageRole",
     "RedisConversationMemory",
+    "SqlAlchemyConversationMemory",
 ]
 
 
 def __getattr__(name: str) -> Any:
-    """Import RedisConversationMemory on demand to keep redis optional."""
+    """Import the optional backends on demand to keep their extras optional."""
     if name == "RedisConversationMemory":
         from piighost.conversation_memory.redis_backend import RedisConversationMemory
 
         return RedisConversationMemory
+
+    if name == "SqlAlchemyConversationMemory":
+        from piighost.conversation_memory.sqlalchemy_backend import (
+            SqlAlchemyConversationMemory,
+        )
+
+        return SqlAlchemyConversationMemory
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

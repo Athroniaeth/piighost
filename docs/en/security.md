@@ -21,13 +21,13 @@ Two things therefore coexist at all times. The de-identified text, which can tra
     - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real PII. Even if the provider logs the request, no sensitive data leaks to it.
     - **Tool-call leakage**: the middleware deanonymizes tool arguments just before execution, then re-anonymizes results before they go back to the LLM. The real values never flow through the LLM's visible context.
     - **Cross-message drift**: the `ConversationMemory` links variants (`Patrick`{ .pii } and `patrick`{ .pii } group by `(text.casefold(), label)`), so the same entity keeps the same placeholder across the whole conversation. The LLM never sees the same PII under two different masks.
-    - **Theft of a stolen persistent store**: the Redis backend encrypts every stored value and hashes the key, so a store leak reveals neither the message nor the PII. See below.
+    - **Theft of a stolen persistent store**: a persistent backend (Redis or SQL) can encrypt every stored value and hash the key, so a store leak reveals neither the message nor the PII. See below.
 
 ## What `piighost` does not protect against
 
 !!! danger "Outside the protection scope"
     - **Process memory compromise**: the mapping from `placeholder` to original value lives in RAM for the duration of processing. An attacker who reads process memory recovers the cleartext PII, whatever the backend.
-    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing; it serves development and single-process use. A persistent backend that did not encrypt its values would expose the PII on disk theft. The provided Redis backend encrypts and hashes by construction.
+    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing; it serves development and single-process use. A persistent backend built without crypto stores its values in clear, so a disk theft exposes the PII. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
     - **LLM-invented placeholders**: if the LLM fabricates a placeholder that was never emitted, `piighost` cannot map it back to a value since it is in no mapping. The middleware refuses such tokens by default (`InventedPlaceholderError`). See [Limitations](limitations.md).
     - **Re-identification from context**: a placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
     - **Fallible detectors**: a detector is best-effort. A PII it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
@@ -37,19 +37,27 @@ Two things therefore coexist at all times. The de-identified text, which can tra
 
 Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link, held by the `ConversationMemory`, contains cleartext PII. It is the system's most sensitive asset, and it must be protected as such.
 
-Two backends exist, with two security profiles.
+Three backends exist, with three security profiles.
 
 `InMemoryConversationMemory` keeps the mapping in a process-local dictionary. Nothing is encrypted, nothing survives a restart, nothing is shared across processes. It is the right choice for development, tests, and a single-process deployment. It is not secure storage.
 
-`RedisConversationMemory` persists each message in Redis, with two combined protections.
+`RedisConversationMemory` persists each message in Redis, a networked store shared across workers. `SqlAlchemyConversationMemory` persists each message in a SQL table, durable for long-lived conversations that outlive a process, over sqlite for development and PostgreSQL for production. Both persistent backends offer two combined protections.
 
 - The **key is hashed**. The hasher derives a digest of the message with a secret pepper. The default is `Sha256Hasher` (HMAC-SHA256, fast, fit for the hot path). `Argon2Hasher` (Argon2id, slow and memory-hard) is the alternative when the pepper itself might leak. Both are deterministic, so the same message lands on the same key.
 - The **value is encrypted**. The cipher encrypts the JSON of the detections before writing. `AesGcmCipher` (AES-GCM) is the provided authenticated encryption. A random nonce is drawn per message, and decryption fails on an altered ciphertext.
 
-The pepper and the encryption key **never live in the config file**. They are read from the environment, `PIIGHOST_HASH_PEPPER` for the hasher and `PIIGHOST_CIPHER_KEY` (base64) for the cipher. Security rests on that secret living outside the store. A theft of the Redis disk alone reveals neither the message nor the PII, because the key is hashed and the value encrypted under a secret the disk does not hold.
+The pepper and the encryption key **never live in the config file**. They are read from the environment, `PIIGHOST_HASH_PEPPER` for the hasher and `PIIGHOST_CIPHER_KEY` (base64) for the cipher. Security rests on that secret living outside the store. A theft of the store disk alone reveals neither the message nor the PII, because the key is hashed and the value encrypted under a secret the disk does not hold.
 
 !!! warning "The secret lives in the environment, not the config"
     A pepper or key written into a versioned config file cancels the protection. Keep them in the process environment or a secrets manager, and rotate them like any production secret.
+
+### At-rest crypto is opt-in on every persistent backend
+
+The hasher and the cipher are optional on both `RedisConversationMemory` and `SqlAlchemyConversationMemory`. Pass both to store securely, or neither to store in clear. Passing exactly one raises `ValueError`, since a hashed key with a cleartext value, or the reverse, protects nothing coherently.
+
+A networked backend built without crypto emits a `PIIGhostSecurityWarning` at construction, pointing to this page. That warning fires for Redis, always networked, and for the SQL backend on a non-sqlite dialect such as PostgreSQL. It does not fire for the in-RAM memory, which is ephemeral, nor for the SQL backend on sqlite, which is local development. The warning nudges toward configuring crypto rather than failing, so a knowing plaintext setup still runs.
+
+The SQL backend takes an injected async engine whose lifecycle the caller owns. Call `await memory.create_schema()` once at startup to create the table. Through the config, `SqlAlchemyMemoryConfig` (type `"sqlalchemy"`) reads the database URL from an environment variable, `PIIGHOST_DATABASE_URL` by default, so the URL and its password stay out of the config file.
 
 ### Confidentiality / restoration gradient by backend
 
@@ -59,6 +67,8 @@ The pepper and the encryption key **never live in the config file**. They are re
 </thead>
 <tbody>
 <tr><td>InMemory (default)</td><td class="c-red">no (cleartext RAM)</td><td class="c-red">yes (process dict)</td><td class="c-red">no</td><td class="c-red">no</td></tr>
+<tr><td>SQL (sqlite, no crypto)</td><td class="c-red">no (cleartext column)</td><td class="c-red">yes (plain SHA-256)</td><td class="c-blue">yes</td><td class="c-yellow">local file</td></tr>
+<tr><td>SQL (PostgreSQL) + Sha256Hasher + AesGcm</td><td class="c-blue">yes (AES-GCM)</td><td class="c-green">no (HMAC-SHA256)</td><td class="c-blue">yes</td><td class="c-blue">yes</td></tr>
 <tr><td>Redis + Sha256Hasher + AesGcm</td><td class="c-blue">yes (AES-GCM)</td><td class="c-green">no (HMAC-SHA256)</td><td class="c-blue">yes</td><td class="c-blue">yes</td></tr>
 <tr><td>Redis + Argon2Hasher + AesGcm</td><td class="c-blue">yes (AES-GCM)</td><td class="c-blue">no (Argon2id, memory-hard)</td><td class="c-blue">yes</td><td class="c-blue">yes</td></tr>
 </tbody>
@@ -72,7 +82,7 @@ Legend:
 <span class="sec-legend c-red">problematic</span>
 </small>
 
-The red column for in-RAM memory is not a flaw, it is a scope choice. That backend does not claim to be secure storage. As soon as the mapping must survive a restart or be shared across workers, switch to encrypted Redis.
+The red column for in-RAM memory is not a flaw, it is a scope choice. That backend does not claim to be secure storage. The sqlite row shows the same red on confidentiality when built without crypto, fit for local development only. As soon as the mapping must survive a restart or be shared across workers, switch to an encrypted persistent backend, Redis or PostgreSQL with a hasher and a cipher.
 
 ## Logging discipline for PII-bearing dataclasses
 
@@ -128,7 +138,7 @@ Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor
 ## Design decisions that back the threat model
 
 - **De-identification happens locally**: PII is replaced before the HTTP request reaches the LLM provider.
-- **The mapping is treated as sensitive**: the mapping store holds cleartext PII. The Redis backend encrypts it at rest (AES-GCM) and hashes its keys (HMAC-SHA256 or Argon2id), the secret living outside the store.
+- **The mapping is treated as sensitive**: the mapping store holds cleartext PII. A persistent backend (Redis or SQL) can encrypt it at rest (AES-GCM) and hash its keys (HMAC-SHA256 or Argon2id), the secret living outside the store. Crypto is opt-in and all-or-nothing, and a networked backend built without it warns.
 - **No logging of raw PII by the library**: `piighost` itself never writes PII to any logger. Your own code must follow the same discipline.
 - **Frozen dataclasses**: `Entity`, `Detection`, `Span` are immutable, preventing accidental mutation after de-identification has been applied.
 - **Optional guard rail**: a guard rail (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual PII, leaving the caller to raise `PIIRemainingError`. See [Limitations](limitations.md).

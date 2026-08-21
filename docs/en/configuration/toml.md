@@ -229,11 +229,11 @@ The render stage. Required. It carries one `[anonymizer.placeholder]` table sele
 
 | `type` | Token | Keys |
 |--------|-------|------|
-| `redact` | `<<REDACT>>` | |
-| `label` | `<<PERSON>>` | |
-| `label_counter` | `<<PERSON:1>>` | |
-| `label_hash` | `<<PERSON:a1b2c3d4>>` | `hash_length` (default `8`) |
-| `mask` | `P***` | `visible` (default `1`), `mask_char` (default `*`) |
+| `redact` | `<<REDACT>>`{ .placeholder } | |
+| `label` | `<<PERSON>>`{ .placeholder } | |
+| `label_counter` | `<<PERSON:1>>`{ .placeholder } | |
+| `label_hash` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | `hash_length` (default `8`) |
+| `mask` | `P***`{ .placeholder } | `visible` (default `1`), `mask_char` (default `*`) |
 
 </div>
 
