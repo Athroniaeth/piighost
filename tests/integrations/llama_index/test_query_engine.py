@@ -41,39 +41,38 @@ def _pipeline() -> ThreadAnonymizationPipeline:
     return ThreadAnonymizationPipeline(detector)
 
 
-async def test_anonymizes_query_and_restores_answer() -> None:
-    """The inner engine sees the anonymized query; the answer is restored."""
-    from llama_index.core.schema import QueryBundle  # pyrefly: ignore[missing-import]
+class TestQuery:
+    async def test_anonymizes_query_and_restores_answer(self) -> None:
+        """The inner engine sees the anonymized query; the answer is restored."""
+        from llama_index.core.schema import QueryBundle  # pyrefly: ignore[missing-import]
 
-    inner = _FakeInner("<<PERSON:1>> is in the office")
-    engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
-    response = await engine._aquery(QueryBundle(query_str="Where is Emma?"))
-    assert inner.received == "Where is <<PERSON:1>>?"
-    assert response.response == "Emma is in the office"
+        inner = _FakeInner("<<PERSON:1>> is in the office")
+        engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
+        response = await engine._aquery(QueryBundle(query_str="Where is Emma?"))
+        assert inner.received == "Where is <<PERSON:1>>?"
+        assert response.response == "Emma is in the office"
 
+    def test_sync_query_bridges_to_aquery(self) -> None:
+        """The public sync query path anonymizes and restores too."""
+        inner = _FakeInner("<<PERSON:1>> is here")
+        engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
+        response = engine.query("Where is Emma?")
+        assert inner.received == "Where is <<PERSON:1>>?"
+        assert response.response == "Emma is here"
 
-def test_sync_query_bridges_to_aquery() -> None:
-    """The public sync query path anonymizes and restores too."""
-    inner = _FakeInner("<<PERSON:1>> is here")
-    engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
-    response = engine.query("Where is Emma?")
-    assert inner.received == "Where is <<PERSON:1>>?"
-    assert response.response == "Emma is here"
+    async def test_rejects_a_streaming_response(self) -> None:
+        """A streaming inner response, which has no .response, is refused."""
+        from llama_index.core.schema import QueryBundle  # pyrefly: ignore[missing-import]
 
+        class _StreamingResponse:
+            def __init__(self) -> None:
+                self.response_gen = iter(())
 
-async def test_rejects_a_streaming_response() -> None:
-    """A streaming inner response, which has no .response, is refused."""
-    from llama_index.core.schema import QueryBundle  # pyrefly: ignore[missing-import]
+        class _StreamingInner:
+            async def aquery(self, query: str) -> _StreamingResponse:
+                return _StreamingResponse()
 
-    class _StreamingResponse:
-        def __init__(self) -> None:
-            self.response_gen = iter(())
-
-    class _StreamingInner:
-        async def aquery(self, query: str) -> _StreamingResponse:
-            return _StreamingResponse()
-
-    inner = _StreamingInner()
-    engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
-    with pytest.raises(NotImplementedError):
-        await engine._aquery(QueryBundle(query_str="Where is Emma?"))
+        inner = _StreamingInner()
+        engine = PIIQueryEngine(inner=inner, pipeline=_pipeline(), thread_id="t")
+        with pytest.raises(NotImplementedError):
+            await engine._aquery(QueryBundle(query_str="Where is Emma?"))

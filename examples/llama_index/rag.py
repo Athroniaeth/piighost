@@ -62,11 +62,12 @@ def main() -> None:
 
     # Ingest: the anonymizer runs before embedding, so the embedding provider
     # only ever sees tokens, and a value keeps one token across the corpus.
+    splitter = SentenceSplitter()
     anonymizer = PIINodeAnonymizer(pipeline=pipeline, thread_id=THREAD)
     documents = [Document(text=text) for text in CORPUS]
     index = VectorStoreIndex.from_documents(
         documents,
-        transformations=[SentenceSplitter(), anonymizer],
+        transformations=[splitter, anonymizer],
     )
 
     # Query: the wrapper anonymizes the question into the same thread, so its
