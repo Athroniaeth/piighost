@@ -8,20 +8,19 @@ raises an ImportError pointing at the extra.
 """
 
 import asyncio
-import importlib.util
 from typing import Any
 
 from pydantic import ConfigDict
 
 from piighost.pipeline import AnyThreadPipeline
 
-if importlib.util.find_spec("llama_index") is None:
+try:
+    from llama_index.core.schema import TransformComponent  # pyrefly: ignore[missing-import]
+except ImportError as exc:
     raise ImportError(
         "The LlamaIndex integration requires the llama-index package. "
         "Install it with: pip install piighost[llama-index]"
-    )
-
-from llama_index.core.schema import TransformComponent  # pyrefly: ignore[missing-import]  # noqa: E402
+    ) from exc
 
 
 class PIINodeAnonymizer(TransformComponent):

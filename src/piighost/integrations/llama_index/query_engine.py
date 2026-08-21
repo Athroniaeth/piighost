@@ -9,7 +9,6 @@ an ImportError pointing at the extra.
 """
 
 import asyncio
-import importlib.util
 from typing import Any, Generic
 
 from typing_extensions import TypeVar
@@ -19,15 +18,15 @@ from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.middleware.strategy import InventedPlaceholderStrategy
 from piighost.pipeline import AnyThreadPipeline
 
-if importlib.util.find_spec("llama_index") is None:
+try:
+    from llama_index.core.base.base_query_engine import (  # pyrefly: ignore[missing-import]
+        BaseQueryEngine,
+    )
+except ImportError as exc:
     raise ImportError(
         "The LlamaIndex integration requires the llama-index package. "
         "Install it with: pip install piighost[llama-index]"
-    )
-
-from llama_index.core.base.base_query_engine import (  # pyrefly: ignore[missing-import]  # noqa: E402
-    BaseQueryEngine,
-)
+    ) from exc
 
 IdentityT = TypeVar(
     "IdentityT",

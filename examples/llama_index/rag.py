@@ -26,8 +26,8 @@ uv run examples/llama_index/rag.py
 """
 
 from dotenv import load_dotenv
-from llama_index.core import Document, Settings, VectorStoreIndex
-from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import Document, Settings, VectorStoreIndex  # pyrefly: ignore[missing-import]
+from llama_index.core.node_parser import SentenceSplitter  # pyrefly: ignore[missing-import]
 from llama_index.embeddings.openai import OpenAIEmbedding  # pyrefly: ignore[missing-import]
 from llama_index.llms.openai import OpenAI  # pyrefly: ignore[missing-import]
 
