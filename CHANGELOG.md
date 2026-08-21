@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0 (2026-08-21)
+
+### Feat
+
+- **detector**: add Gliner2PiiDetector PII preset
+- **config**: add SqlAlchemyMemoryConfig, make Redis crypto optional
+- **memory**: add the SQLAlchemy conversation memory backend
+- **memory**: make Redis crypto optional, warn on plaintext
+- **memory**: add PIIGhostSecurityWarning and the warn_plaintext helper
+- **pydantic-ai**: add assistant_strategy, matching the middleware
+
+### Fix
+
+- **memory**: surface ConfigError for half-configured crypto; test empty-hit; note upsert race
+
 ## 1.1.1 (2026-08-16)
 
 ### Fix
