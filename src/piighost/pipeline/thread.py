@@ -61,8 +61,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         InMemoryConversationMemory, so the smallest thread pipeline is
         ThreadAnonymizationPipeline(detector).
         """
-        if memory is None:
-            memory = InMemoryConversationMemory()
+        memory = memory or InMemoryConversationMemory()
         super().__init__(
             detector,
             linker,

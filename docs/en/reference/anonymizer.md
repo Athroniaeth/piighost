@@ -12,7 +12,7 @@ The anonymizer is the render stage of a pipeline. It takes the linked entities a
 
 ## `Anonymization`
 
-The result of anonymizing a text: the rewritten text paired with the token each entity was replaced with. A frozen dataclass.
+The result of anonymizing a text. The rewritten text paired with the token each entity was replaced with. A frozen dataclass.
 
 ```python
 @dataclass(frozen=True, slots=True)

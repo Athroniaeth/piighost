@@ -21,6 +21,7 @@ from piighost.components.detector import (
 )
 from piighost.components.detector.ner import (
     Gliner2Detector,
+    Gliner2PiiDetector,
     SpacyDetector,
     TransformersDetector,
 )
@@ -210,6 +211,26 @@ Gliner2Detector(
 |-----------|------|-------------|
 | `model` | `GLiNER2 \| str` | Un modèle chargé, ou un nom chargé avec `from_pretrained` (requis) |
 | `labels` | `list[str] \| dict[str, str]` | Les labels à interroger, liste ou map `{emitted: internal}` (requis) |
+| `threshold` | `float` | La confiance à partir de laquelle une entité est conservée |
+| `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
+
+### `Gliner2PiiDetector`
+
+Un `Gliner2Detector` prêt à l'emploi sur le modèle GLiNER2 de fastino affiné pour les PII, avec une map de labels préréglée, donc ni identifiant de modèle ni argument `labels` n'est requis. Le préréglage couvre la taxonomie du modèle, des noms et coordonnées aux identifiants, données de paiement, identité numérique, secrets et dates sensibles. Passez `labels` pour restreindre ou étendre l'ensemble, ou `model` pour injecter une instance chargée, par exemple dans un test, afin qu'aucun poids ne soit téléchargé.
+
+```python
+Gliner2PiiDetector(
+    model: GLiNER2 | str | None = None,
+    labels: list[str] | dict[str, str] | None = None,
+    threshold: float = 0.5,
+    max_concurrency: int | None = None,
+)
+```
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `model` | `GLiNER2 \| str \| None` | Un modèle chargé ou un nom, ou `None` pour le modèle PII préréglé |
+| `labels` | `list[str] \| dict[str, str] \| None` | Les labels à interroger, ou `None` pour la map de labels PII préréglée |
 | `threshold` | `float` | La confiance à partir de laquelle une entité est conservée |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
 

@@ -8,7 +8,7 @@ tags:
 
 You want a Pydantic AI agent where the model only ever sees tokens, never the real names in the conversation, and where a value keeps the same token from one turn to the next. This page wires that agent end to end with a GLiNER2 detector, a `ThreadAnonymizationPipeline`, and `pii_hooks`, the capability that de-identifies around the model.
 
-The capability covers the messages, the user prompt and the model's own replies, and the tool boundary too: under the default strategy a tool receives the real values while the model keeps working on tokens.
+The capability covers the messages, the user prompt and the model's own replies, and the tool boundary too. Under the default strategy a tool receives the real values while the model keeps working on tokens.
 
 !!! note "Prerequisites"
     `piighost` installed with the pydantic-ai and gliner2 extras, `pip install piighost[pydantic-ai,gliner2]`, plus an OpenAI key in `OPENAI_API_KEY`. The first run downloads the GLiNER2 weights, roughly 500 MB.
@@ -88,6 +88,20 @@ hooks = pii_hooks(
 from piighost.integrations.middleware import ToolCallStrategy
 
 hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
+```
+
+## Assistant values
+
+Not every value is user PII. When the model itself introduces a value from its world knowledge, tokenizing it would hide it from the model on the next turn and protect nothing of the user. `assistant_strategy` decides what happens to a value the assistant introduces, again the same enum the middleware uses. Under `PRESERVE`, the default, it stays in clear, so the model keeps its own knowledge of it and only known user PII is tokenized. `ANONYMIZE` tokenizes it anyway, and `IGNORE` skips the assistant's messages entirely, saving the detector.
+
+```python
+from piighost.integrations.middleware import AssistantEntityStrategy
+
+hooks = pii_hooks(
+    pipeline,
+    "thread-42",
+    assistant_strategy=AssistantEntityStrategy.ANONYMIZE,
+)
 ```
 
 ## What's next

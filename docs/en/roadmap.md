@@ -4,14 +4,22 @@ icon: lucide/list-checks
 
 # Roadmap
 
-This page tracks what is still pending for `piighost`. Everything the v2 rewrite has shipped is documented in the rest of the site: pluggable detectors, entity linking and resolution, placeholder factories, the residual-PII guard, the Redis conversation memory with encrypted values, TOML and JSON configuration, the LangChain middleware, and OpenTelemetry observation.
+This page tracks what is still pending for `piighost`, and the capabilities it deliberately leaves out. Everything the v2 rewrite has shipped is documented in the rest of the site: pluggable detectors, entity linking and resolution, placeholder factories, the residual-PII guard, the Redis conversation memory with encrypted values, TOML and JSON configuration, the LangChain middleware, and OpenTelemetry observation.
 
 !!! note "How to read this page"
     This roadmap is not a calendar commitment. It lists the items identified as still missing, not a promise to build them in order.
 
-## Faker placeholder factory
+## OpenAI-compatible proxy
 
-The placeholder tag hierarchy has a realism axis, but no factory yet produces realistic values. A Faker factory would emit values that look real, such as a plausible name in place of `Patrick`{ .pii }, rather than a synthetic token like `<<PERSON:1>>`{ .placeholder }. It belongs under the label-preserving branch of the hierarchy, not the identity-preserving one: a Faker pool is finite, so two distinct people can draw the same fake name and a fake value can collide with a real one. That is why the factory carries no restoration guarantee and sits beside the masking factory rather than beside the counter and hash factories. See [Placeholder factories](placeholder-factories.md) for the current tag axes.
+`piighost` de-identifies inside an agent framework today, through the LangChain middleware or the Pydantic AI hooks. A proxy would move that protection to the HTTP boundary. `piighost-api` would expose an OpenAI-compatible endpoint, so an application changes only its `base_url` and needs no other code. On each `/v1/chat/completions` call the proxy anonymizes the messages, forwards the anonymized request to the real provider, deanonymizes the reply, and returns it in the OpenAI shape, so the provider never receives `Patrick`{ .pii }, only `<<PERSON:1>>`{ .placeholder }. The same proxy fronts any OpenAI-compatible endpoint, such as Azure OpenAI or a self-hosted server.
+
+Three core pieces already exist for it. The conversation pipeline anonymizes and restores, the tool-boundary de-identification covers tool calls, and the streaming decoder rewrites a token split across server-sent-event chunks. The open questions are how a stateless request scopes its tokens, through a per-request thread or a thread-id header backed by the conversation memory, and how much of streaming and tool calls a first version covers.
+
+Beyond the OpenAI wire format, the same de-identification core could sit behind several provider protocols, an `/v1` OpenAI route, an Anthropic Messages route, a Bedrock route, each a thin adapter over the shared pipeline, so an application keeps its native SDK and only points at the proxy.
+
+## LlamaIndex integration
+
+`piighost` plugs into LangChain and Pydantic AI today. LlamaIndex exposes PII de-identification as a node postprocessor inside a RAG pipeline, so a piighost integration would wrap the conversation pipeline in a `NodePostprocessor` that anonymizes the retrieved nodes before the model reads them and restores the answer for the user. It follows the shape `examples/langchain/rag.py` already shows by hand. Every chunk is anonymized into one corpus thread so a value keeps its token, the retrieval runs on the anonymized text, and the reply is deanonymized. A native postprocessor packages that into one line of wiring on an existing index.
 
 ## Text normalization
 
@@ -20,6 +28,30 @@ A detector sees the text exactly as written. Accents, casing, spacing, or OCR no
 ## Optional result cache
 
 The conversation memory caches each message's detections per thread, so resending a message inside a thread skips detection. There is no cache below the thread, so the same text sent under two different `thread_id` values is detected twice. An optional result cache keyed by text hash would let identical content skip detection regardless of thread, with a SQLAlchemy backend (aiosqlite for development, PostgreSQL for a shared deployment) as the persistent option beside the in-process one.
+
+## Presidio detector adapter
+
+`piighost` ships its own pluggable detectors, but Microsoft Presidio carries a broad catalog of recognizers and context enhancers. A Presidio detector adapter would wrap a Presidio `AnalyzerEngine` behind the `AnyDetector` port, so a caller reuses every Presidio recognizer inside a piighost pipeline while keeping piighost's own entity linking, conversation memory, and placeholder factories. Presidio finds the spans, piighost groups them, keeps a value's token stable across a thread, and restores it. The adapter would map each Presidio result's `entity_type` and offsets onto a `Detection`, the same shape the NER detectors already produce, and would need the `presidio-analyzer` package behind its own extra.
+
+## Wiring the streaming decoder
+
+`AsyncPlaceholderStreamDecoder` already reassembles a token split across server-sent-event chunks, but nothing wires it into the integrations yet. A streamed reply arrives in fragments, so `<<PER`{ .placeholder } may land in one chunk and `SON:1>>`{ .placeholder } in the next, and a naive restore leaves the user seeing the broken token. Wiring the decoder into the LangChain middleware, the Pydantic AI hooks, and the future proxy would let each of them deanonymize a stream on the fly, buffering only across a token boundary and emitting restored text as it goes. It finishes an existing piece rather than building a new one, and it is a prerequisite for streaming through the proxy.
+
+## Non-goals
+
+Some capabilities were considered and left out on purpose. The reasoning is recorded here so the boundary is explicit. A future need that answers the caveat could revisit any of them.
+
+- **Realistic surrogate placeholders (Faker).** A plausible fake reads naturally, but a finite fake pool collides. Two people can draw the same surrogate, and a fake can coincide with a real value, so the substitution is not reliably reversible. piighost keeps synthetic, collision-free tokens instead.
+- **Encrypting the value into the token.** Restoration reads the token-to-value map from the conversation memory, not a self-contained ciphertext token. Embedding ciphertext makes a long token the model has to echo back verbatim, which it does unreliably.
+- **Deterministic hashing of the value.** A keyed hash of a low-entropy value such as a name or an email is reversible by dictionary and leaks value equality across records. A value's token is already stable within a thread, and cross-corpus joins are not the target use case.
+- **Blocking requests or deleting PII.** piighost secures PII by detecting and anonymizing it. Whether to refuse a request or erase a value is the caller's policy, decided from the detections piighost surfaces, not enforced here.
+- **Value-transforming schemes, date shifting and format-preserving encryption.** piighost substitutes a detected span with a restorable token, not a transformed value. Date shifting sits outside that model, and the common FF3 and FF3-1 FPE schemes were withdrawn from the NIST standard.
+- **Quasi-identifier detection.** A value like an age, a ZIP, or an appointment date identifies no one alone but can re-identify in combination, Sweeney found ZIP plus date of birth plus sex is near-unique. piighost detects and tokenizes identifiable values, not re-identifying combinations, because the only responses, generalizing the value or swapping in a fake, both transform it and are already out of scope.
+- **Analytical privacy models (k-anonymity, l-diversity, t-closeness, differential privacy, synthetic data).** These protect a whole dataset released for analysis, generalizing or adding noise across every row at once. piighost protects a conversational stream one message at a time, and the generalization they rely on transforms the value, which is already out of scope.
+- **Per-label placeholder routing.** One pipeline applies one placeholder factory to every entity. Routing by label, a counter for names but a mask for card numbers, is mechanically small but lowers the pipeline's tag guarantee to the weakest factory in the set and breaks the recognizable-identity guarantee the middleware relies on to restore. The gain did not justify muddying the tag design.
+- **Multimodal de-identification.** piighost reads text. Detecting PII in an image or audio stream would mean OCR or transcription, then editing the pixels or samples, since a token cannot be placed back into an image the way it is into text. Redacting a region is a different problem with no reliable restoration, so it stays out of the text-substitution model.
+
+The shape-only regex, with no checksum validation, is another deliberate non-goal. See [Limitations](limitations.md).
 
 ## See also
 

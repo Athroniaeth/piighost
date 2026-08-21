@@ -42,10 +42,11 @@ def _build_pipeline() -> AnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     phone regex over the output, catching structured PII the detector missed.
     """
     guard_detector = RegexDetector({**GENERIC_PATTERNS, **US_PATTERNS})
+    ph_factory = LabelCounterPlaceholderFactory()
     return AnonymizationPipeline(
         ExactMatchDetector({"Emma Doe": "PERSON"}),
         ExactEntityLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        Anonymizer(ph_factory),
         guard=DetectorGuardRail(guard_detector),
     )
 
@@ -69,7 +70,8 @@ async def main() -> None:
 
     # 3. A guard is usable on its own, returning a verdict rather than raising.
     #    It flags the clear email but leaves the synthetic placeholder alone.
-    guard = DetectorGuardRail(RegexDetector(GENERIC_PATTERNS))
+    generic_detector = RegexDetector(GENERIC_PATTERNS)
+    guard = DetectorGuardRail(generic_detector)
     verdict = await guard.check("Reach <<PERSON:1>> at leaked@corp.com.")
     residual = [detection.text for detection in verdict.detections]
     print("standalone:    ", f"flagged={verdict.flagged}, residual={residual}")

@@ -47,12 +47,11 @@ class SpacyDetector(BaseNERDetector):
         detections: list[Detection] = []
         for entity in doc.ents:
             span = Span(entity.start_char, entity.end_char)
-            detections.append(
-                Detection(
-                    span=span,
-                    text=entity.text,
-                    label=entity.label_,
-                    confidence=1.0,
-                )
+            detection = Detection(
+                span=span,
+                text=entity.text,
+                label=entity.label_,
+                confidence=1.0,
             )
+            detections.append(detection)
         return detections

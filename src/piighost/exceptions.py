@@ -228,3 +228,13 @@ class ConfigValidationError(ConfigError):
     It wraps pydantic's ValidationError in the library's error family, so a
     caller catches ConfigError rather than a pydantic type.
     """
+
+
+class PIIGhostSecurityWarning(UserWarning):
+    """Warned when a persistent backend stores PII in clear without crypto.
+
+    A networked or shared store built without a hasher and cipher keeps PII
+    readable to anyone who reads the store. This warns rather than fails, so a
+    knowing plaintext setup still works while a forgotten one is loud. It is a
+    UserWarning, not a PIIGhostError, since it is a heads-up and not a failure.
+    """

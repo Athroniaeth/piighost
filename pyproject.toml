@@ -95,8 +95,13 @@ crypto = [
 mistral = [
     "mistralai>=1.0",
 ]
+sqlalchemy = [
+    "sqlalchemy[asyncio]>=2.0",
+    "aiosqlite>=0.19",
+    "asyncpg>=0.29",
+]
 all = [
-    "piighost[gliner2,redis,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral]",
+    "piighost[gliner2,redis,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy]",
 ]
 
 [build-system]
@@ -131,6 +136,9 @@ dev = [
     "opentelemetry-api>=1.30",
     "opentelemetry-sdk>=1.30",
     "rapidfuzz>=3.9",
+    "sqlalchemy[asyncio]>=2.0",
+    "aiosqlite>=0.19",
+    "asyncpg>=0.29",
 ]
 gliner2 = [
     "gliner2>=1.2.4",

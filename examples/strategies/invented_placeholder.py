@@ -61,10 +61,11 @@ class ScriptedChatModel(GenericFakeChatModel):
 
 def _build_agent(strategy: InventedPlaceholderStrategy) -> Any:
     """Attach the middleware under one invented-placeholder strategy to an agent."""
+    ph_factory = LabelCounterPlaceholderFactory()
     pipeline = ThreadAnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON"}),
         ExactEntityLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        Anonymizer(ph_factory),
         InMemoryConversationMemory(),
     )
     middleware = PIIAnonymizationMiddleware(pipeline, invented_strategy=strategy)

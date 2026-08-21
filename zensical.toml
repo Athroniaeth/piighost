@@ -48,6 +48,7 @@ nav = [
     { "Tool-call strategies" = "tool-call-strategies.md" },
     { "Observation" = "observation.md" },
     { "Security" = "security.md" },
+    { "Compliance" = "compliance.md" },
     { "Limitations" = "limitations.md" },
     { "Glossary" = "glossary.md" },
   ]},

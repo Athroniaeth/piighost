@@ -5,20 +5,25 @@ the dependency raises an ImportError pointing at the extra to install. The core
 conversation_memory package never imports it eagerly.
 
 Layout, per thread, with the message hashed into the key and the value
-encrypted, so a store leak reveals neither the message nor the PII:
+optionally encrypted, so a secure store leak reveals neither the message nor
+the PII:
 
-  {namespace}:{thread_id}:msg:{hash}  -> encrypt(json({role, detections}))
+  {namespace}:{thread_id}:msg:{hash}  -> [encrypt(]json({role, detections})[)]
   {namespace}:{thread_id}:index       -> [hash, ...] in first-seen order
 
 The thread_id stays clear as a key namespace so a thread can be enumerated and
 forgotten; the ordered index gives first-seen order that a key scan would not.
+Crypto is optional: pass both a hasher and a cipher to store securely, or
+neither to store in clear (a PIIGhostSecurityWarning is emitted). Passing
+exactly one is a misuse and raises ValueError.
 """
 
+import hashlib
 import importlib.util
 import json
 
 from piighost.crypto.cipher.base import AnyCipher
-from piighost.conversation_memory.base import Forgotten, MessageRole
+from piighost.conversation_memory.base import Forgotten, MessageRole, warn_plaintext
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
 
@@ -57,12 +62,13 @@ def _loads(data: bytes) -> tuple[MessageRole, list[Detection]]:
 
 
 class RedisConversationMemory:
-    """Persist each thread's message detections in Redis, hashed and encrypted.
+    """Persist each thread's message detections in Redis, optionally secured.
 
-    The message is hashed into the key by the injected hasher, and the
-    detections are encrypted by the injected cipher, so a leak of Redis exposes
-    neither the message nor the PII. Both are required: the backend exists to
-    persist securely. An optional TTL expires every written entry.
+    Pass both a hasher and a cipher to hash keys and encrypt values, so a
+    Redis leak exposes neither the message nor the PII. Pass neither to store
+    in clear (a PIIGhostSecurityWarning is emitted at construction). Passing
+    exactly one is a misuse and raises ValueError. An optional TTL expires
+    every written entry.
 
     Attributes:
         namespace: The key prefix isolating this application's keys.
@@ -71,17 +77,26 @@ class RedisConversationMemory:
     def __init__(
         self,
         client: Redis,
-        hasher: AnyHasher,
-        cipher: AnyCipher,
+        hasher: AnyHasher | None = None,
+        cipher: AnyCipher | None = None,
         namespace: str = _DEFAULT_NAMESPACE,
         ttl: int | None = None,
     ) -> None:
-        """Store the client, the hasher and cipher, and the namespace and TTL."""
+        """Store the client, the optional crypto, and the namespace and TTL.
+
+        A hasher keys each message and a cipher encrypts each value; pass both to
+        store securely, or neither to store in clear. Passing exactly one is a
+        misuse. Redis is a networked store, so a plaintext backend warns.
+        """
+        if (hasher is None) != (cipher is None):
+            raise ValueError("Provide both a hasher and a cipher, or neither")
         self._client = client
         self._hasher = hasher
         self._cipher = cipher
         self.namespace = namespace
         self._ttl = ttl
+        if hasher is None:
+            warn_plaintext("RedisConversationMemory")
 
     def _index_key(self, thread_id: str) -> str:
         """Return the key of a thread's first-seen order index."""
@@ -91,6 +106,20 @@ class RedisConversationMemory:
         """Return the key of one message's stored detections."""
         return f"{self.namespace}:{thread_id}:msg:{digest_message}"
 
+    def _digest(self, message: str) -> str:
+        """Key a message: the security hasher if set, else a plain SHA-256."""
+        if self._hasher is not None:
+            return self._hasher.hash(message)
+        return hashlib.sha256(message.encode()).hexdigest()
+
+    def _encrypt(self, data: bytes) -> bytes:
+        """Encrypt a value if a cipher is set, else pass it through in clear."""
+        return self._cipher.encrypt(data) if self._cipher is not None else data
+
+    def _decrypt(self, data: bytes) -> bytes:
+        """Decrypt a value if a cipher is set, else pass it through in clear."""
+        return self._cipher.decrypt(data) if self._cipher is not None else data
+
     async def remember(
         self,
         thread_id: str,
@@ -99,11 +128,11 @@ class RedisConversationMemory:
         role: MessageRole = MessageRole.USER,
     ) -> None:
         """Cache the detections found in a message, replacing any prior entry."""
-        digest_message = self._hasher.hash(message)
+        digest_message = self._digest(message)
         key = self._message_key(thread_id, digest_message)
         json_detections = _dumps(role, detections)
 
-        blob = self._cipher.encrypt(json_detections)
+        blob = self._encrypt(json_detections)
         is_new = not await self._client.exists(key)
 
         await self._client.set(key, blob, ex=self._ttl)
@@ -121,13 +150,13 @@ class RedisConversationMemory:
     ) -> list[Detection] | None:
         """Return a thread's detections, for one message or the whole thread."""
         if message is not None:
-            digest_message = self._hasher.hash(message)
+            digest_message = self._digest(message)
             key = self._message_key(thread_id, digest_message)
             blob = await self._client.get(key)
             if blob is None:
                 return None
             ciphertext = _as_bytes(blob)
-            json_detections = self._cipher.decrypt(ciphertext)
+            json_detections = self._decrypt(ciphertext)
             _, detections = _loads(json_detections)
             return detections
 
@@ -137,7 +166,7 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is not None:
                 ciphertext = _as_bytes(blob)
-                json_detections = self._cipher.decrypt(ciphertext)
+                json_detections = self._decrypt(ciphertext)
                 _, message_detections = _loads(json_detections)
                 detections.extend(message_detections)
 
@@ -153,7 +182,7 @@ class RedisConversationMemory:
             if blob is None:
                 continue
             ciphertext = _as_bytes(blob)
-            json_detections = self._cipher.decrypt(ciphertext)
+            json_detections = self._decrypt(ciphertext)
             role, detections = _loads(json_detections)
             for detection in detections:
                 provenance.setdefault(detection.text.casefold(), role)
@@ -173,7 +202,7 @@ class RedisConversationMemory:
             if blob is not None:
                 messages += 1
                 ciphertext = _as_bytes(blob)
-                json_detections = self._cipher.decrypt(ciphertext)
+                json_detections = self._decrypt(ciphertext)
                 _, loaded = _loads(json_detections)
                 detections += len(loaded)
             keys.append(key)

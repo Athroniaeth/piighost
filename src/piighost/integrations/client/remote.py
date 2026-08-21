@@ -188,17 +188,19 @@ class PIIGhostClient:
         )
 
     @staticmethod
-    def _entity_from_wire(entity: dict[str, object]) -> Entity:
+    def _detection_from_wire(detection: dict[str, object]) -> Detection:
+        """Rebuild a Detection from the server's detection preview wire shape."""
+        span = Span(cast(int, detection["start_pos"]), cast(int, detection["end_pos"]))
+        return Detection(
+            span=span,
+            text=cast(str, detection["text"]),
+            label=cast(str, detection["label"]),
+            confidence=cast(float, detection["confidence"]),
+        )
+
+    @classmethod
+    def _entity_from_wire(cls, entity: dict[str, object]) -> Entity:
         """Rebuild an Entity from the server's detection preview wire shape."""
         detections = cast("list[dict[str, object]]", entity["detections"])
-        return Entity(
-            detections=tuple(
-                Detection(
-                    span=Span(cast(int, d["start_pos"]), cast(int, d["end_pos"])),
-                    text=cast(str, d["text"]),
-                    label=cast(str, d["label"]),
-                    confidence=cast(float, d["confidence"]),
-                )
-                for d in detections
-            )
-        )
+        rebuilt = tuple(cls._detection_from_wire(detection) for detection in detections)
+        return Entity(detections=rebuilt)

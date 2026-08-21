@@ -34,6 +34,7 @@ _DEFAULT_PROMPT = (
     "Return each entity exactly as it appears in the text. Only extract "
     "entities that are actually present in the text."
 )
+"""System prompt used when no custom prompt is given, with a {labels} placeholder LangChain fills at format time."""
 
 
 def _make_schema(labels: list[str]) -> type[BaseModel]:
