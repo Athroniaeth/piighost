@@ -7,7 +7,7 @@ a helpful ImportError, while importing this package never pulls llama-index in.
 
 from typing import Any
 
-__all__ = ["PIINodeAnonymizer"]
+__all__ = ["PIINodeAnonymizer", "PIIQueryEngine"]
 
 
 def __getattr__(name: str) -> Any:
@@ -16,5 +16,10 @@ def __getattr__(name: str) -> Any:
         from piighost.integrations.llama_index.transform import PIINodeAnonymizer
 
         return PIINodeAnonymizer
+
+    if name == "PIIQueryEngine":
+        from piighost.integrations.llama_index.query_engine import PIIQueryEngine
+
+        return PIIQueryEngine
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
