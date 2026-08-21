@@ -22,12 +22,13 @@ from piighost.components.detector import (
 from piighost.components.detector.ner import (
     Gliner2Detector,
     Gliner2PiiDetector,
+    PresidioDetector,
     SpacyDetector,
     TransformersDetector,
 )
 ```
 
-Chaque détecteur NER a besoin de son propre extra (`gliner2`, `spacy`, `transformers`). `LLMDetector` a besoin de l'extra `llm` et d'un paquet fournisseur.
+Chaque détecteur NER a besoin de son propre extra (`gliner2`, `spacy`, `transformers`, `presidio`). `LLMDetector` a besoin de l'extra `llm` et d'un paquet fournisseur.
 
 ---
 
@@ -192,7 +193,7 @@ detector = LLMDetector(
 
 ## Détecteurs NER
 
-Les trois détecteurs adossés à un modèle étendent `BaseNERDetector`, qui gère la correspondance et le filtrage des labels (voir plus bas). Chacun a besoin de son propre extra et prend un modèle chargé ou un nom de modèle à charger.
+Les détecteurs adossés à un modèle étendent `BaseNERDetector`, qui gère la correspondance et le filtrage des labels (voir plus bas). Chacun a besoin de son propre extra et prend un modèle chargé ou un nom de modèle à charger, sauf `PresidioDetector`, qui prend un `AnalyzerEngine` construit.
 
 ### `Gliner2Detector`
 
@@ -271,6 +272,30 @@ TransformersDetector(
 | `labels` | `list[str] \| dict[str, str] \| None` | Les labels à mapper et filtrer, ou `None` pour garder chaque label natif |
 | `threshold` | `float` | Le score sous lequel une entité détectée est rejetée |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
+
+### `PresidioDetector`
+
+Enveloppe un `AnalyzerEngine` de Presidio pour réutiliser ses recognizers. A besoin de l'extra `presidio`. L'analyzer est injecté, car un moteur est assemblé d'un moteur NLP et d'un registre de recognizers, pas chargé depuis un nom. `labels` est optionnel, gardé natif quand il est omis. Une entité scorant sous `threshold` est écartée par Presidio.
+
+```python
+PresidioDetector(
+    analyzer: AnalyzerEngine,
+    labels: list[str] | dict[str, str] | None = None,
+    language: str = "en",
+    threshold: float = 0.0,
+    max_concurrency: int | None = None,
+)
+```
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `analyzer` | `AnalyzerEngine` | Un analyzer Presidio construit (requis) |
+| `labels` | `list[str] \| dict[str, str] \| None` | Les labels à mapper et filtrer, ou `None` pour garder chaque type natif |
+| `language` | `str` | Le code de langue passé à `analyze` |
+| `threshold` | `float` | Le score sous lequel une entité est écartée |
+| `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
+
+Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine` anglais par défaut de Presidio. Pour une autre langue ou des recognizers custom, construisez le moteur vous-même et utilisez `PresidioDetector` directement.
 
 ### Correspondance des labels
 
