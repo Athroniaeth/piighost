@@ -4,7 +4,7 @@ icon: lucide/list-checks
 
 # Roadmap
 
-Cette page liste ce qui reste en attente pour `piighost`. Tout ce que la réécriture v2 a livré est documenté dans le reste du site. Détecteurs enfichables, linking et résolution d'entités, placeholder factories, guard de PII résiduelle, mémoire de conversation Redis à valeurs chiffrées, configuration TOML et JSON, middleware LangChain, et observation OpenTelemetry.
+Cette page liste ce qui reste en attente pour `piighost` et les capacités écartées volontairement. Tout ce que la réécriture v2 a livré est documenté dans le reste du site. Détecteurs enfichables, linking et résolution d'entités, placeholder factories, guard de PII résiduelle, mémoire de conversation Redis à valeurs chiffrées, configuration TOML et JSON, middleware LangChain, et observation OpenTelemetry.
 
 !!! note "Comment lire cette page"
     Cette roadmap n'est pas un engagement de calendrier. Elle liste les items identifiés comme encore manquants, pas une promesse de les construire dans l'ordre.
@@ -19,10 +19,6 @@ Trois briques existent déjà pour ça. Le pipeline conversationnel anonymise et
 
 `piighost` s'intègre aujourd'hui à LangChain et Pydantic AI. LlamaIndex expose la dé-identification de PII comme un node postprocessor dans un pipeline RAG, donc une intégration piighost enroberait le pipeline conversationnel dans un `NodePostprocessor` qui anonymise les nodes retrouvés avant que le modèle ne les lise et restaure la réponse pour l'utilisateur. Elle suit la forme que `examples/langchain/rag.py` montre déjà à la main. Chaque chunk est anonymisé dans un thread corpus unique pour qu'une valeur garde son token, la retrieval tourne sur le texte anonymisé, et la réponse est désanonymisée. Un postprocessor natif emballe tout ça en une ligne de câblage sur un index existant.
 
-## Placeholder factory Faker
-
-La hiérarchie de tags de placeholder porte un axe de réalisme, mais aucune factory ne produit encore de valeur réaliste. Une factory Faker émettrait des valeurs qui ressemblent à du vrai, par exemple un nom plausible à la place de `Patrick`{ .pii }, plutôt qu'un token synthétique comme `<<PERSON:1>>`{ .placeholder }. Elle se range sous la branche qui préserve le label, pas sous celle qui préserve l'identité. Un pool Faker est fini, donc deux personnes distinctes peuvent tirer le même faux nom et une fausse valeur peut se confondre avec une vraie. C'est pourquoi la factory ne porte aucune garantie de restauration et se place à côté de la factory de masquage plutôt qu'à côté des factories à compteur et à hash. Voir [Placeholder factories](placeholder-factories.md) pour les axes de tags actuels.
-
 ## Normalisation de texte
 
 Un détecteur voit le texte exactement tel qu'il est écrit. Accents, casse, espacement ou bruit d'OCR peuvent cacher une valeur à une regex ou décaler les frontières d'un modèle NER. Un étage de normalisation tournerait avant la détection, en donnant au détecteur une forme nettoyée tout en gardant une carte d'offsets vers le texte d'origine, pour qu'un span trouvé sur le texte normalisé soit remonté sur le texte brut au moment du remplacement. La remontée d'offset est le point délicat, car une normalisation qui insère ou supprime des caractères ne s'aligne plus un pour un avec la source.
@@ -30,6 +26,18 @@ Un détecteur voit le texte exactement tel qu'il est écrit. Accents, casse, esp
 ## Cache de résultat optionnel
 
 La mémoire de conversation cache les détections de chaque message par thread, donc renvoyer un message dans un thread évite la détection. Il n'existe pas de cache sous le thread, donc le même texte envoyé sous deux `thread_id` différents est détecté deux fois. Un cache de résultat optionnel clé par hash de texte laisserait un contenu identique éviter la détection quel que soit le thread, avec un backend SQLAlchemy (aiosqlite pour le développement, PostgreSQL pour un déploiement partagé) comme option persistante à côté de celle en processus.
+
+## Hors périmètre
+
+Certaines capacités ont été envisagées puis écartées volontairement. Le raisonnement est consigné ici pour que la frontière soit explicite. Un besoin futur qui répond au caveat pourrait réexaminer chacune d'elles.
+
+- **Placeholders surrogates réalistes (Faker).** Un faux plausible se lit naturellement, mais un vivier de faux fini finit par collisionner. Deux personnes peuvent tirer le même surrogate, et un faux peut coïncider avec une vraie valeur, donc la substitution n'est pas restaurable de façon fiable. piighost garde plutôt des jetons synthétiques sans collision.
+- **Chiffrer la valeur dans le jeton.** La restauration lit la map jeton-vers-valeur depuis la mémoire de conversation, pas un chiffré autoportant. Embarquer le chiffré donne un jeton long que le modèle doit recracher mot pour mot, ce qu'il fait de façon peu fiable.
+- **Hachage déterministe de la valeur.** Un hash à clé d'une valeur à faible entropie comme un prénom ou un e-mail est réversible par dictionnaire et révèle l'égalité des valeurs entre enregistrements. Le jeton d'une valeur est déjà stable au sein d'un thread, et les jointures cross-corpus ne sont pas le cas d'usage visé.
+- **Bloquer des requêtes ou supprimer des PII.** piighost sécurise les PII en les détectant et en les anonymisant. Refuser une requête ou effacer une valeur relève de la politique de l'appelant, décidée à partir des détections que piighost expose, pas imposée ici.
+- **Schémas qui transforment la valeur, décalage de dates et chiffrement format-preserving.** piighost substitue un span détecté par un jeton restaurable, pas une valeur transformée. Le décalage de dates sort de ce modèle, et les schémas FPE courants FF3 et FF3-1 ont été retirés du standard NIST.
+
+La regex par forme seule, sans validation de checksum, est un autre hors-périmètre assumé. Voir [Limitations](limitations.md).
 
 ## Voir aussi
 
