@@ -11,11 +11,7 @@ This page tracks what is still pending for `piighost`, and the capabilities it d
 
 ## OpenAI-compatible proxy
 
-`piighost` de-identifies inside an agent framework today, through the LangChain middleware or the Pydantic AI hooks. A proxy would move that protection to the HTTP boundary. `piighost-api` would expose an OpenAI-compatible endpoint, so an application changes only its `base_url` and needs no other code. On each `/v1/chat/completions` call the proxy anonymizes the messages, forwards the anonymized request to the real provider, deanonymizes the reply, and returns it in the OpenAI shape, so the provider never receives `Patrick`{ .pii }, only `<<PERSON:1>>`{ .placeholder }. The same proxy fronts any OpenAI-compatible endpoint, such as Azure OpenAI or a self-hosted server.
-
-Three core pieces already exist for it. The conversation pipeline anonymizes and restores, the tool-boundary de-identification covers tool calls, and the streaming decoder rewrites a token split across server-sent-event chunks. The open questions are how a stateless request scopes its tokens, through a per-request thread or a thread-id header backed by the conversation memory, and how much of streaming and tool calls a first version covers.
-
-Beyond the OpenAI wire format, the same de-identification core could sit behind several provider protocols, an `/v1` OpenAI route, an Anthropic Messages route, a Bedrock route, each a thin adapter over the shared pipeline, so an application keeps its native SDK and only points at the proxy.
+The OpenAI-compatible proxy now lives in `piighost-api`, not in this library. It exposes an OpenAI-compatible endpoint under `/openai/v1`, so an application changes only its `base_url`, names the real upstream in a header, and the proxy anonymizes each request, forwards it, and deanonymizes the reply, so the provider never receives `Patrick`{ .pii }, only `<<PERSON:1>>`{ .placeholder }. The library supplies the building blocks it stands on. The conversation pipeline anonymizes and restores, the `AsyncPlaceholderStreamDecoder` rewrites a token split across server-sent-event chunks, and the tool-boundary de-identification covers tool calls. The library is not itself an HTTP proxy; that HTTP concern belongs to `piighost-api`.
 
 ## Text normalization
 
