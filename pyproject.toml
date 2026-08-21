@@ -95,13 +95,19 @@ crypto = [
 mistral = [
     "mistralai>=1.0",
 ]
+presidio = [
+    "presidio-analyzer>=2.2",
+]
+llama-index = [
+    "llama-index-core>=0.14",
+]
 sqlalchemy = [
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.19",
     "asyncpg>=0.29",
 ]
 all = [
-    "piighost[gliner2,redis,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy]",
+    "piighost[gliner2,redis,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy,presidio,llama-index]",
 ]
 
 [build-system]
@@ -142,6 +148,12 @@ dev = [
 ]
 gliner2 = [
     "gliner2>=1.2.4",
+]
+presidio = [
+    "presidio-analyzer>=2.2",
+]
+llama-index = [
+    "llama-index-core>=0.14",
 ]
 langchain = [
     "langchain>=1.2.13",

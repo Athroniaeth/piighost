@@ -22,6 +22,7 @@ from piighost.config.models.common import _ComponentConfig
 from piighost.config.models.detector_model import (
     Gliner2DetectorConfig,
     LLMDetectorConfig,
+    PresidioDetectorConfig,
     SpacyDetectorConfig,
     TransformersDetectorConfig,
 )
@@ -149,6 +150,7 @@ DetectorConfig = Annotated[
     | Gliner2DetectorConfig
     | SpacyDetectorConfig
     | TransformersDetectorConfig
+    | PresidioDetectorConfig
     | LLMDetectorConfig,
     Discriminator("type"),
 ]

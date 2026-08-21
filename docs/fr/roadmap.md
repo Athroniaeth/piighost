@@ -17,10 +17,6 @@ Trois briques existent déjà pour ça. Le pipeline conversationnel anonymise et
 
 Au-delà du format OpenAI, le même cœur de dé-identification pourrait se placer derrière plusieurs protocoles de fournisseur, une route OpenAI `/v1`, une route Anthropic Messages, une route Bedrock, chacune un mince adaptateur sur le pipeline partagé, pour qu'une application garde son SDK natif et ne pointe que vers le proxy.
 
-## Intégration LlamaIndex
-
-`piighost` s'intègre aujourd'hui à LangChain et Pydantic AI. LlamaIndex expose la dé-identification de PII comme un node postprocessor dans un pipeline RAG, donc une intégration piighost enroberait le pipeline conversationnel dans un `NodePostprocessor` qui anonymise les nodes retrouvés avant que le modèle ne les lise et restaure la réponse pour l'utilisateur. Elle suit la forme que `examples/langchain/rag.py` montre déjà à la main. Chaque chunk est anonymisé dans un thread corpus unique pour qu'une valeur garde son token, la retrieval tourne sur le texte anonymisé, et la réponse est désanonymisée. Un postprocessor natif emballe tout ça en une ligne de câblage sur un index existant.
-
 ## Normalisation de texte
 
 Un détecteur voit le texte exactement tel qu'il est écrit. Accents, casse, espacement ou bruit d'OCR peuvent cacher une valeur à une regex ou décaler les frontières d'un modèle NER. Un étage de normalisation tournerait avant la détection, en donnant au détecteur une forme nettoyée tout en gardant une carte d'offsets vers le texte d'origine, pour qu'un span trouvé sur le texte normalisé soit remonté sur le texte brut au moment du remplacement. La remontée d'offset est le point délicat, car une normalisation qui insère ou supprime des caractères ne s'aligne plus un pour un avec la source.
@@ -28,10 +24,6 @@ Un détecteur voit le texte exactement tel qu'il est écrit. Accents, casse, esp
 ## Cache de résultat optionnel
 
 La mémoire de conversation cache les détections de chaque message par thread, donc renvoyer un message dans un thread évite la détection. Il n'existe pas de cache sous le thread, donc le même texte envoyé sous deux `thread_id` différents est détecté deux fois. Un cache de résultat optionnel clé par hash de texte laisserait un contenu identique éviter la détection quel que soit le thread, avec un backend SQLAlchemy (aiosqlite pour le développement, PostgreSQL pour un déploiement partagé) comme option persistante à côté de celle en processus.
-
-## Adaptateur détecteur Presidio
-
-`piighost` fournit ses propres détecteurs enfichables, mais Microsoft Presidio embarque un large catalogue de recognizers et d'enrichisseurs de contexte. Un adaptateur détecteur Presidio envelopperait un `AnalyzerEngine` de Presidio derrière le port `AnyDetector`, pour qu'un appelant réutilise tous les recognizers Presidio dans un pipeline piighost tout en gardant le linking d'entités, la mémoire de conversation et les placeholder factories de piighost. Presidio trouve les spans, piighost les regroupe, garde le token d'une valeur stable au sein d'un thread, et le restaure. L'adaptateur mapperait l'`entity_type` et les offsets de chaque résultat Presidio sur une `Detection`, la forme que les détecteurs NER produisent déjà, et aurait besoin du paquet `presidio-analyzer` derrière son propre extra.
 
 ## Câblage du décodeur de streaming
 
