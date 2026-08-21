@@ -1,6 +1,6 @@
 [project]
 name = "piighost"
-version = "1.1.1"
+version = "1.2.0"
 description = "Composable PII anonymization pipeline for LLM agents, with a LangChain middleware and pluggable detectors (NER, regex, LLM, custom)."
 readme = "README.md"
 license = { text = "MIT" }
