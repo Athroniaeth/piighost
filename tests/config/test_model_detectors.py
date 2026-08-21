@@ -13,6 +13,7 @@ from piighost.config.models.detector import DetectorConfig
 from piighost.config.models.detector_model import (
     Gliner2DetectorConfig,
     LLMDetectorConfig,
+    PresidioDetectorConfig,
     SpacyDetectorConfig,
     TransformersDetectorConfig,
 )
@@ -46,6 +47,18 @@ class TestModelDetectorParsing:
         assert config.model == "dslim/bert-base-NER"
         assert config.threshold == 0.9
 
+    def test_presidio_parses_language_and_threshold(self) -> None:
+        """The presidio config parses labels, language, and threshold."""
+        config = PresidioDetectorConfig(
+            type="presidio",
+            labels={"NAME": "PERSON"},
+            language="fr",
+            threshold=0.3,
+        )
+        assert config.labels == {"NAME": "PERSON"}
+        assert config.language == "fr"
+        assert config.threshold == 0.3
+
     def test_llm_parses_prompt_and_provider(self) -> None:
         """The llm config parses model, labels, prompt, and provider."""
         config = LLMDetectorConfig(
@@ -61,6 +74,7 @@ _DISPATCH_CASES = [
     ({"type": "gliner2", "model": "m", "labels": ["A"]}, Gliner2DetectorConfig),
     ({"type": "spacy", "model": "m"}, SpacyDetectorConfig),
     ({"type": "transformers", "model": "m"}, TransformersDetectorConfig),
+    ({"type": "presidio"}, PresidioDetectorConfig),
     ({"type": "llm", "model": "m", "labels": ["A"]}, LLMDetectorConfig),
 ]
 """Each model detector payload paired with the config type it should dispatch to."""
