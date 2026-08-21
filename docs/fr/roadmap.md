@@ -11,11 +11,7 @@ Cette page liste ce qui reste en attente pour `piighost` et les capacités écar
 
 ## Proxy compatible OpenAI
 
-`piighost` dé-identifie aujourd'hui à l'intérieur d'un framework d'agent, via le middleware LangChain ou les hooks Pydantic AI. Un proxy déplacerait cette protection à la frontière HTTP. `piighost-api` exposerait un endpoint compatible OpenAI, une application ne change donc que son `base_url` et n'a besoin d'aucun autre code. À chaque appel `/v1/chat/completions`, le proxy anonymise les messages, relaie la requête anonymisée au vrai fournisseur, désanonymise la réponse, et la renvoie au format OpenAI, le fournisseur ne reçoit donc jamais `Patrick`{ .pii }, seulement `<<PERSON:1>>`{ .placeholder }. Le même proxy se place devant n'importe quel endpoint compatible OpenAI, comme Azure OpenAI ou un serveur auto-hébergé.
-
-Trois briques existent déjà pour ça. Le pipeline conversationnel anonymise et restaure, la dé-identification de la frontière des outils couvre les appels d'outils, et le décodeur de streaming réécrit un jeton coupé entre deux chunks server-sent-event. Les questions ouvertes sont la façon dont une requête sans état cadre ses jetons, via un thread par requête ou un header d'identifiant de thread adossé à la mémoire de conversation, et la part du streaming et des appels d'outils qu'une première version couvre.
-
-Au-delà du format OpenAI, le même cœur de dé-identification pourrait se placer derrière plusieurs protocoles de fournisseur, une route OpenAI `/v1`, une route Anthropic Messages, une route Bedrock, chacune un mince adaptateur sur le pipeline partagé, pour qu'une application garde son SDK natif et ne pointe que vers le proxy.
+Le proxy compatible OpenAI vit désormais dans `piighost-api`, pas dans cette bibliothèque. Il expose un endpoint compatible OpenAI sous `/openai/v1`, une application ne change donc que son `base_url`, nomme le vrai upstream dans un header, et le proxy anonymise chaque requête, la relaie, puis désanonymise la réponse, le fournisseur ne reçoit donc jamais `Patrick`{ .pii }, seulement `<<PERSON:1>>`{ .placeholder }. La bibliothèque fournit les briques sur lesquelles il s'appuie. Le pipeline conversationnel anonymise et restaure, l'`AsyncPlaceholderStreamDecoder` réécrit un jeton coupé entre deux chunks server-sent-event, et la dé-identification de la frontière des outils couvre les appels d'outils. La bibliothèque n'est pas elle-même un proxy HTTP ; cette affaire HTTP revient à `piighost-api`.
 
 ## Normalisation de texte
 
