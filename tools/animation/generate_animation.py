@@ -13,8 +13,15 @@ Colour states
   rest  (green)  the value restored on the way back
 """
 
-LOOP = 24.0
-FADE_OUT = 22.0
+# The chat is preceded by a short title card (INTRO seconds) and a system-prompt
+# bubble (SYS_GAP seconds) shown before the first user message. Both push the
+# original chat timeline later, so the loop and the fade-out grow by the same
+# offset and every relative timing is preserved.
+INTRO = 1.6
+SYS_GAP = 1.7
+OFFSET = INTRO + SYS_GAP
+LOOP = 24.0 + OFFSET
+FADE_OUT = 22.0 + OFFSET
 W = 760
 GAP_ROWS = 16.0
 
@@ -323,12 +330,17 @@ def draw_avatar(kind, x, y, C, tin):
 NAME_R, NAME_M = "Marie Dupont", "<<person:1>>"
 MAIL_R, MAIL_M = "marie.dupont@acme.fr", "<<email:1>>"
 
-T = dict(m1=0.9, s1=2.6, s2=2.95,
-         m2=4.7, s3=6.4,
-         m3=8.4,
-         m4=10.0,
-         m5=12.6,
-         m6=14.4, code=15.2, s4=17.0, ok=18.0)
+# Base timeline of the chat, before the title card and system bubble are
+# prepended. Every key is pushed later by OFFSET; the system bubble gets its
+# own slot right after the title card starts fading.
+_BASE = dict(m1=0.9, s1=2.6, s2=2.95,
+             m2=4.7, s3=6.4,
+             m3=8.4,
+             m4=10.0,
+             m5=12.6,
+             m6=14.4, code=15.2, s4=17.0)
+T = {"sys": round(INTRO + 0.6, 3)}
+T.update({k: round(v + OFFSET, 3) for k, v in _BASE.items()})
 
 # Quatre bulles tiennent dans le cadre. Les deux dernieres poussent les deux
 # premieres hors champ : la conversation defile comme dans une vraie interface.
@@ -345,7 +357,10 @@ LANGS = {
         ask="What's the first letter of my first name?",
         refuse="I can't, that name never reaches me.",
         request="Can you email me the summary?",
-        confirm="Sure, sending it now."),
+        confirm="Sure, sending it now.",
+        sys_tag="System prompt",
+        sys=("You are a support assistant. Every value that looks like",
+             "personal data is already a placeholder: never reveal a real one…")),
     "fr": dict(
         aria="Les valeurs PII sont remplacées par des placeholders avant d'atteindre "
              "le modèle, puis restaurées pour l'utilisateur et pour les appels d'outils",
@@ -354,7 +369,10 @@ LANGS = {
         ask="Quelle est la première lettre de mon prénom ?",
         refuse="Je ne peux pas, ce nom ne m'atteint jamais.",
         request="Peux-tu m'envoyer le résumé par email ?",
-        confirm="Bien sûr, je l'envoie."),
+        confirm="Bien sûr, je l'envoie.",
+        sys_tag="Prompt système",
+        sys=("Tu es un assistant support. Toute valeur ressemblant à une",
+             "donnée personnelle est déjà un placeholder : ne rien révéler…")),
 }
 
 
@@ -366,6 +384,9 @@ def make_rows(L):
     geometry is recomputed from the real glyph widths of the chosen strings.
     """
     return [
+        dict(role="system", tin="sys", states=("real", "mask"), swaps=[],
+             system_tag=L["sys_tag"],
+             lines=[[("t", L["sys"][0])], [("t", L["sys"][1])]]),
         dict(role="human", tin="m1", states=("real", "mask"), swaps=["s1", "s2"],
              lines=[[("t", L["greet_user"]), ("s", (NAME_R, NAME_M)),
                      ("t", L["email_intro"]), ("s", (MAIL_R, MAIL_M))]]),
@@ -412,21 +433,29 @@ def build(C, uid, rows, aria):
         # le redimensionnement suit la pastille qui change de largeur
         t_resize = (swaps[-1] if swaps else T["s4"]) if resize else None
         h = (len(r["lines"]) - 1) * 20 + 38 + (CODE_H + 2 if has_code else 0)
+        if r["role"] == "system":
+            h = 30 + len(r["lines"]) * 19 + 6
 
         if r["role"] == "ai":
             bx, ax, origin = 64.0, 24.0, "left"
-        else:
+        elif r["role"] == "human":
             bx, ax, origin = W - 64 - bw, W - 52.0, "right"
+        else:  # system : left-aligned banner (a system message), no avatar
+            bx, ax, origin = 24.0, None, "left"
 
-        add(draw_avatar("human" if r["role"] == "human" else "ai", ax, y + 5, C, tin))
+        if ax is not None:
+            add(draw_avatar("human" if r["role"] == "human" else "ai", ax, y + 5, C, tin))
 
         # ---- bulle (+ fond du bloc de code) : se retracte ou s'etire, bord oppose fixe
         if r["role"] == "human":
             shell = ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="13" fill="%s"/>'
                      % (bx, y, bw, h, C["userBg"]))
-        else:
+        elif r["role"] == "ai":
             shell = ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="13" fill="%s" '
                      'stroke="%s"/>' % (bx + .5, y + .5, bw, h, C["aiBg"], C["aiStroke"]))
+        else:  # system : muted instruction card
+            shell = ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="12" fill="%s" '
+                     'stroke="%s"/>' % (bx + .5, y + .5, bw, h, C["codeBg"], C["aiStroke"]))
         stretch = ['<g class="%s">%s</g>' % (cls_appear(tin), shell)]
 
         cy = y + CODE_TOP
@@ -440,26 +469,38 @@ def build(C, uid, rows, aria):
             block = '<g class="%s">%s</g>' % (cls_scale(t_resize, bw_b / bw, origin), block)
         add(block)
 
-        # ---- contenu : cale a gauche dans la bulle, il glisse si la bulle se retracte
-        slide = cls_slide(t_resize, delta) if (resize and r["role"] == "human") else None
-        buf = []
-        if slide:
-            _CAP[0] = buf
-        for i, ln in enumerate(r["lines"]):
-            render_line(bx + PAD_X, y + 23 + i * 20, ln, C, tin + 0.12, swaps, st)
-        if slide:
-            _CAP[0] = None
-            add('<g class="%s">%s</g>' % (slide, "".join(buf)))
+        # ---- contenu
+        if r["role"] == "system":
+            # a small tag, then the long prompt shown chunked (truncated with an
+            # ellipsis) : it stands for "there is much more, hidden here".
+            add('<g class="%s"><text x="%.1f" y="%.1f" font-family="%s" font-size="9.5" '
+                'letter-spacing="0.8" fill="%s">%s</text></g>'
+                % (cls_appear(tin), bx + PAD_X, y + 19, SANS, C["muted"],
+                   esc(r["system_tag"].upper())))
+            frags = []
+            for i, ln in enumerate(r["lines"]):
+                frags.append('<text x="%.1f" y="%.1f" font-family="%s" font-size="%s" '
+                             'fill="%s">%s</text>'
+                             % (bx + PAD_X, y + 39 + i * 18, SANS, FSM + 0.5, C["muted"],
+                                esc(ln[0][1])))
+            add('<g class="%s">%s</g>' % (cls_appear(tin), "".join(frags)))
+        else:
+            # cale a gauche dans la bulle, il glisse si la bulle se retracte
+            slide = cls_slide(t_resize, delta) if (resize and r["role"] == "human") else None
+            buf = []
+            if slide:
+                _CAP[0] = buf
+            for i, ln in enumerate(r["lines"]):
+                render_line(bx + PAD_X, y + 23 + i * 20, ln, C, tin + 0.12, swaps, st)
+            if slide:
+                _CAP[0] = None
+                add('<g class="%s">%s</g>' % (slide, "".join(buf)))
 
-        if has_code:
-            add('<g class="%s"><rect x="%.1f" y="%.1f" width="2.5" height="16" rx="1.25" '
-                'fill="%s"/></g>' % (code_cls, bx + 12, cy + 7, C["ai"]))
-            render_line(bx + 26, cy + 20, r["code"], C, T["code"] + 0.12,
-                        [T["s4"]], st, shift=True, fs_mono=FSC)
-            cw = line_w(r["code"], st, "b", FSC)
-            add('<g class="%s"><path d="M%.1f %.1f l3.6 3.6 l7.2 -8" fill="none" stroke="%s" '
-                'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>'
-                % (cls_appear(T["ok"], dy=0), bx + 26 + cw + 12, cy + 16, C["rest"]))
+            if has_code:
+                add('<g class="%s"><rect x="%.1f" y="%.1f" width="2.5" height="16" rx="1.25" '
+                    'fill="%s"/></g>' % (code_cls, bx + 12, cy + 7, C["ai"]))
+                render_line(bx + 26, cy + 20, r["code"], C, T["code"] + 0.12,
+                            [T["s4"]], st, shift=True, fs_mono=FSC)
 
         geom.append((y, h))
         y += h + GAP_ROWS
@@ -479,6 +520,28 @@ def build(C, uid, rows, aria):
 
     scroll = cls_scroll(steps)
 
+    # ---- carte de titre : le logo fantome (icone Lucide, comme la doc) et le
+    # mot-marque dans la police de la doc, en fondu vers le chat. Elle vit hors
+    # du masque de defilement, au-dessus du fil, et disparait une fois pour
+    # toutes des que le premier message arrive.
+    tn = _n("z")
+    KF.append("@keyframes %s{0%%,%s%%{opacity:1}%s%%,100%%{opacity:0}}"
+              % (tn, pc(INTRO - 0.2), pc(INTRO + 0.8)))
+    CL.append(".%s{animation:%s %ss linear infinite}" % (tn, tn, LOOP))
+    tfs, gi, gap = 36.0, 48.0, 17.0
+    ww = sum(_SADV.get(c, 0.55) for c in "piighost") * tfs * 1.005
+    tx = (W - (gi + gap + ww)) / 2
+    tcy = H / 2
+    ghost = ('<g transform="translate(%.1f,%.1f) scale(%.4f)" fill="none" stroke="%s" '
+             'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+             '<path d="M9 10h.01"/><path d="M15 10h.01"/>'
+             '<path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 '
+             '0-8-8z"/></g>' % (tx, tcy - gi / 2, gi / 24.0, C["text"]))
+    word = ('<text x="%.1f" y="%.1f" font-family="%s" font-size="%s" font-weight="500" '
+            'fill="%s">piighost</text>' % (tx + gi + gap, tcy + tfs * 0.33, SANS, tfs, C["text"]))
+    title = ('<g class="%s"><rect x="0" y="0" width="%d" height="%.0f" fill="%s"/>'
+             '%s%s</g>' % (tn, W, H, PAGE[uid], ghost, word))
+
     # Le message qui sort n'est pas encore entierement hors cadre quand le
     # suivant arrive : sans ce fondu on verrait une tranche de bulle coupee net
     # sur le bord superieur.
@@ -496,12 +559,13 @@ def build(C, uid, rows, aria):
            "g[class^='o'],g[class^='w']{display:none!important}"
            "g[class^='t']{transform:translateX(var(--dx))!important}"
            "g[class^='k']{transform:scaleX(var(--sx))!important}"
-           "g[class^='y']{transform:translateY(var(--dy))!important}}"
+           "g[class^='y']{transform:translateY(var(--dy))!important}"
+           "g[class^='z']{display:none!important}}"
            "</style>")
     body = '<g mask="url(#m%s)"><g class="%s">%s</g></g>' % (uid, scroll, "".join(OUT))
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %.0f" width="%d" '
-            'height="%.0f" role="img" aria-label="%s">%s%s%s</svg>'
-            % (W, H, W, H, esc(aria), defs, css, body))
+            'height="%.0f" role="img" aria-label="%s">%s%s%s%s</svg>'
+            % (W, H, W, H, esc(aria), defs, css, body, title))
 
 
 if __name__ == "__main__":
