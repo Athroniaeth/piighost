@@ -23,7 +23,7 @@ uv run examples/transformers/privacy_filter.py
 
 import asyncio
 
-from transformers import pipeline  # pyrefly: ignore[missing-import]
+from transformers import pipeline  # pyrefly: ignore[missing-import, missing-module-attribute]
 
 from piighost.components.detector.ner import TransformersDetector
 from piighost.pipeline import ThreadAnonymizationPipeline
@@ -40,7 +40,7 @@ LABELS = {
     "private_url": "URL",
     "private_date": "DATE",
     "account_number": "ACCOUNT_NUMBER",
-    "secret": "SECRET",
+    "secret": "SECRET",  # nosec B105  # a label mapping, not a secret
 }
 
 
