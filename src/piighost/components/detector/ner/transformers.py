@@ -45,8 +45,8 @@ class TransformersDetector(BaseNERDetector):
         """Store or build the pipeline, then set the labels and threshold."""
         super().__init__(labels, max_concurrency=max_concurrency)
         if isinstance(pipeline, str):
-            from transformers import (  # pyrefly: ignore[missing-import]
-                pipeline as hf_pipeline,
+            from transformers import (
+                pipeline as hf_pipeline,  # pyrefly: ignore[missing-import, missing-module-attribute]
             )
 
             pipeline = hf_pipeline("ner", model=pipeline)
