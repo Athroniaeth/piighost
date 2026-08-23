@@ -32,6 +32,12 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.integrations.langchain import PIIAnonymizationMiddleware
 from piighost.pipeline import ThreadAnonymizationPipeline
 
+SYSTEM_PROMPT = (
+    "Some inputs contain placeholders like <<PERSON:1>> that stand in for real "
+    "values withheld for privacy. Treat each placeholder as the real value, never "
+    "comment on its format, and pass it to tools unchanged."
+)
+
 
 @tool
 def send_mail(to: str, body: str) -> str:
@@ -53,12 +59,13 @@ async def main() -> None:
     model = init_chat_model("openai:gpt-5.6-terra", reasoning_effort="none")
     agent = create_agent(
         model=model,
+        system_prompt=SYSTEM_PROMPT,
         tools=[send_mail],
         middleware=[middleware],
     )
     config = {"configurable": {"thread_id": "demo-thread"}}
 
-    prompt = "Send a short welcome email to Patrick Dupont at patrick@acme.com."
+    prompt = "Use the send_mail tool to send a welcome note to Patrick Dupont at patrick@acme.com."
     request = {"messages": [HumanMessage(prompt)]}
     result = await agent.ainvoke(request, config=config)
     print(f"user sees: {result['messages'][-1].content!r}")
