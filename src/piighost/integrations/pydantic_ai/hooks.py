@@ -16,7 +16,7 @@ from typing_extensions import TypeVar
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
 from piighost.integrations._deidentify import TextDeidentifier
-from piighost.integrations.middleware.strategy import (
+from piighost.integrations.langchain.strategy import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,

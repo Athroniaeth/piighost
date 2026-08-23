@@ -1,16 +1,24 @@
-"""LangChain middleware for transparent PII anonymization.
+"""Deprecated alias for piighost.integrations.langchain.
 
-Needs the langchain optional dependency (pip install piighost[middleware]), so
-its module is imported lazily: reaching for a symbol without the extra raises a
-helpful ImportError, while importing this package never pulls langchain in.
+The LangChain middleware moved to piighost.integrations.langchain in 1.4.0. This
+module re-exports the same names so existing imports keep working, but importing
+it emits a DeprecationWarning. It will be removed in a future major release.
 """
 
+import warnings
 from typing import Any
 
-from piighost.integrations.middleware.strategy import (
+from piighost.integrations.langchain.strategy import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
+)
+
+warnings.warn(
+    "piighost.integrations.middleware is deprecated; import from "
+    "piighost.integrations.langchain instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
 __all__ = [
@@ -24,7 +32,7 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """Import the middleware on demand so its optional dependency stays optional."""
     if name == "PIIAnonymizationMiddleware":
-        from piighost.integrations.middleware.langchain import (
+        from piighost.integrations.langchain.middleware import (
             PIIAnonymizationMiddleware,
         )
 

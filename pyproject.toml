@@ -53,6 +53,9 @@ gliner2 = [
 redis = [
     "redis>=5",
 ]
+langchain = [
+    "langchain>=1.2",
+]
 middleware = [
     "langchain>=1.2",
 ]
@@ -107,7 +110,7 @@ sqlalchemy = [
     "asyncpg>=0.29",
 ]
 all = [
-    "piighost[gliner2,redis,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy,presidio,llama-index]",
+    "piighost[gliner2,redis,langchain,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy,presidio,llama-index]",
 ]
 
 [build-system]

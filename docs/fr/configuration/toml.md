@@ -503,4 +503,4 @@ Le même contenu en JSON, choisi par un suffixe `.json`, est équivalent. Une ta
 
 - [Interface en ligne de commande](../reference/cli.md) pour valider un fichier depuis le shell.
 - [Référence Détecteurs](../reference/detectors.md) pour le détecteur que chaque `type` construit.
-- [Référence Middleware](../reference/middleware.md) pour piloter un pipeline de thread dans un agent.
+- [Référence de l'intégration LangChain](../reference/langchain.md) pour piloter un pipeline de thread dans un agent.

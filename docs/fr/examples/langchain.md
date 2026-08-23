@@ -12,7 +12,7 @@ Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des
 Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [Middleware LangChain](../getting-started/langchain.md). Cette page en reprend la forme avec un vrai modèle et un system prompt.
 
 !!! note "Prérequis"
-    `piighost` installé avec les extras middleware et gliner2, `pip install piighost[middleware,gliner2]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
+    `piighost` installé avec les extras middleware et gliner2, `pip install piighost[langchain,gliner2]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
 
 ## 1. Construire le pipeline sur un détecteur GLiNER2
 
@@ -80,7 +80,7 @@ and you cannot reveal it.
 
 ```python
 from langchain.agents import create_agent
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
 )

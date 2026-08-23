@@ -7,7 +7,7 @@ icon: lucide/link
 Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour que le LLM ne voie jamais que des jetons, pendant que vos outils reçoivent les vraies valeurs. L'utilisateur écrit `Patrick habite à Paris.`{ .pii }, le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }, et un outil de recherche reçoit quand même le vrai `Patrick`{ .pii } pour faire son travail. Vous construisez le middleware au-dessus d'un `ThreadAnonymizationPipeline`, déclarez un outil, puis exécutez un tour.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra middleware, `pip install piighost[middleware]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). Le pipeline reprend les composants de la page [Pipeline conversationnel](conversation.md).
+    `piighost` installé avec l'extra middleware, `pip install piighost[langchain]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). Le pipeline reprend les composants de la page [Pipeline conversationnel](conversation.md).
 
 ## 1. Construire le pipeline de fil
 
@@ -55,7 +55,7 @@ def lookup_city(person: str) -> str:
 
 ```python
 from langchain.agents import create_agent
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
 )

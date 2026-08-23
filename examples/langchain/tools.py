@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["piighost[middleware]", "langchain-openai>=0.3", "python-dotenv>=1.0"]
+# dependencies = ["piighost[langchain]", "langchain-openai>=0.3", "python-dotenv>=1.0"]
 #
 # [tool.uv.sources]
 # piighost = { path = "../..", editable = true }
@@ -27,7 +27,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 
 from piighost.components.detector import ExactMatchDetector
-from piighost.integrations.middleware import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 

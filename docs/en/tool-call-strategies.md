@@ -125,7 +125,7 @@ One exception, `PASSTHROUGH`. Since the tool boundary is never crossed in clear 
 
 </div>
 
-All three are plain `Enum`s with no external dependency, importable from `piighost.integrations.middleware` without installing `langchain`.
+All three are plain `Enum`s with no external dependency, importable from `piighost.integrations.langchain` without installing `langchain`.
 
 ---
 
@@ -171,7 +171,7 @@ The strategies are closed `Enum`s, you do not extend them, you combine them at m
 ???+ example "Combining the three strategies at construction"
 
     ```python
-    from piighost.integrations.middleware import (
+    from piighost.integrations.langchain import (
         PIIAnonymizationMiddleware,
         ToolCallStrategy,
         InventedPlaceholderStrategy,

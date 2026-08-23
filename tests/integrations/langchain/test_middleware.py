@@ -16,15 +16,15 @@ from piighost.components.placeholder import (
 )
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
-from piighost.integrations.middleware.langchain import PIIAnonymizationMiddleware
+from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 from piighost.pipeline import AnyThreadPipeline, ThreadAnonymizationPipeline
 
-_MODULE = "piighost.integrations.middleware.langchain"
+_MODULE = "piighost.integrations.langchain.middleware"
 
 
 def _pipeline() -> ThreadAnonymizationPipeline:

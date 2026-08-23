@@ -2,14 +2,17 @@
 icon: lucide/blend
 ---
 
-# Middleware reference
+# LangChain middleware reference
 
-Module: `piighost.integrations.middleware`
+Module: `piighost.integrations.langchain`
+
+!!! note "Moved in 1.4.0"
+    This integration moved here from `piighost.integrations.middleware`. The old import path still works but emits a `DeprecationWarning`. Update imports to `piighost.integrations.langchain`.
 
 `PIIAnonymizationMiddleware` is a LangChain `AgentMiddleware` that de-identifies PII around the model and tool boundary of an agent. It reads the thread id from the LangGraph config, de-identifies messages before the model sees them, restores them after for display, and routes tool calls by a chosen strategy. All detection, token assignment, and replacement is delegated to a `ThreadAnonymizationPipeline`.
 
 ```python
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     PIIAnonymizationMiddleware,
@@ -17,7 +20,7 @@ from piighost.integrations.middleware import (
 )
 ```
 
-Needs the `middleware` extra (`pip install piighost[middleware]`), which pulls in `langchain`. Importing the package never pulls `langchain` in; the middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
+Needs the `middleware` extra (`pip install piighost[langchain]`), which pulls in `langchain`. Importing the package never pulls `langchain` in; the middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
 
 ---
 
@@ -102,7 +105,7 @@ Argument restoration recurses through nested `dict`, `list`, and `tuple` contain
 
 ## Strategies
 
-Plain enums in `piighost.integrations.middleware.strategy`, importable without `langchain`.
+Plain enums in `piighost.integrations.langchain.strategy`, importable without `langchain`.
 
 ### `ToolCallStrategy`
 
@@ -178,7 +181,7 @@ from langchain.agents import create_agent
 from langchain_core.tools import tool
 
 from piighost.config import load_thread_pipeline
-from piighost.integrations.middleware import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
 
 
 @tool

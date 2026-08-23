@@ -3323,6 +3323,9 @@ fuzzy = [
 gliner2 = [
     { name = "gliner2" },
 ]
+langchain = [
+    { name = "langchain" },
+]
 llama-index = [
     { name = "llama-index-core" },
 ]
@@ -3434,13 +3437,14 @@ requires-dist = [
     { name = "cryptography", marker = "extra == 'crypto'", specifier = ">=44" },
     { name = "gliner2", marker = "extra == 'gliner2'", specifier = ">=1.2" },
     { name = "httpx", marker = "extra == 'client'", specifier = ">=0.28" },
+    { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2" },
     { name = "langchain", marker = "extra == 'llm'", specifier = ">=1.2" },
     { name = "langchain", marker = "extra == 'middleware'", specifier = ">=1.2" },
     { name = "langchain-core", marker = "extra == 'llm'", specifier = ">=0.3" },
     { name = "llama-index-core", marker = "extra == 'llama-index'", specifier = ">=0.14" },
     { name = "mistralai", marker = "extra == 'mistral'", specifier = ">=1.0" },
     { name = "opentelemetry-api", marker = "extra == 'observation'", specifier = ">=1.30" },
-    { name = "piighost", extras = ["gliner2", "redis", "middleware", "pydantic-ai", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "config", "argon2", "crypto", "mistral", "sqlalchemy", "presidio", "llama-index"], marker = "extra == 'all'" },
+    { name = "piighost", extras = ["gliner2", "redis", "langchain", "middleware", "pydantic-ai", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "config", "argon2", "crypto", "mistral", "sqlalchemy", "presidio", "llama-index"], marker = "extra == 'all'" },
     { name = "presidio-analyzer", marker = "extra == 'presidio'", specifier = ">=2.2" },
     { name = "pydantic", marker = "extra == 'config'", specifier = ">=2.6" },
     { name = "pydantic-ai", marker = "extra == 'pydantic-ai'", specifier = ">=2.0" },
@@ -3456,7 +3460,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12" },
     { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'client'", specifier = ">=4.4" },
 ]
-provides-extras = ["gliner2", "redis", "middleware", "pydantic-ai", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "config", "argon2", "crypto", "mistral", "presidio", "llama-index", "sqlalchemy", "all"]
+provides-extras = ["gliner2", "redis", "langchain", "middleware", "pydantic-ai", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "config", "argon2", "crypto", "mistral", "presidio", "llama-index", "sqlalchemy", "all"]
 
 [package.metadata.requires-dev]
 config = [

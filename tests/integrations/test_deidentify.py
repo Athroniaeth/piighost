@@ -13,7 +13,7 @@ from piighost.components.placeholder import (
 from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
 from piighost.integrations._deidentify import TextDeidentifier
-from piighost.integrations.middleware.strategy import InventedPlaceholderStrategy
+from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
