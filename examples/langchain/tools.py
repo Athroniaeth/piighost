@@ -44,7 +44,7 @@ SYSTEM_PROMPT = (
 def send_mail(to: str, body: str) -> str:
     """Send an email to `to` with the given body."""
     print(f"[tool] send_mail received to={to!r}")
-    return f"Email sent to {to}."
+    return "Email successfully sent."
 
 
 async def main() -> None:
