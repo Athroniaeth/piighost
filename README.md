@@ -57,18 +57,66 @@ uv add 'piighost[langchain]'
 ```
 
 ```python
-from langchain.agents import create_agent
-from piighost.integrations.langchain import PIIAnonymizationMiddleware
+import asyncio
 
-# pipeline: a ThreadAnonymizationPipeline, see the conversation guide
-agent = create_agent(
-    model="openai:gpt-5.4",
-    tools=[send_email],
-    middleware=[PIIAnonymizationMiddleware(pipeline=pipeline)],
+from dotenv import load_dotenv
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import HumanMessage
+from langchain_core.tools import tool
+
+from piighost.components.detector import ExactMatchDetector
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
+from piighost.pipeline import ThreadAnonymizationPipeline
+
+SYSTEM_PROMPT = (
+    "Some inputs contain placeholders like <<PERSON:1>> that stand in for real "
+    "values withheld for privacy. Treat each placeholder as the real value, never "
+    "comment on its format, and pass it to tools unchanged."
 )
+
+
+@tool
+def send_mail(to: str, body: str) -> str:
+    """Send an email to `to` with the given body."""
+    print(f"[tool] send_mail received to={to!r}")
+    return "Email successfully sent."
+
+
+async def main() -> None:
+    load_dotenv()
+
+    labels = {"Patrick Dupont": "PERSON", "patrick@acme.com": "EMAIL"}
+    detector = ExactMatchDetector(labels)
+    pipeline = ThreadAnonymizationPipeline(detector)
+    middleware = PIIAnonymizationMiddleware(pipeline)
+    # gpt-5.6-terra is a reasoning model; reasoning_effort="none" lets it call
+    # function tools over chat/completions.
+    model = init_chat_model("openai:gpt-5.6-terra", reasoning_effort="none")
+    # The system prompt tells the model to treat placeholders as real values and
+    # pass them to tools unchanged, so it does not balk at the tokens.
+    agent = create_agent(
+        model=model,
+        system_prompt=SYSTEM_PROMPT,
+        tools=[send_mail],
+        middleware=[middleware],
+    )
+    config = {"configurable": {"thread_id": "demo-thread"}}
+
+    message = HumanMessage(
+        "Use the send_mail tool to send a welcome note to Patrick Dupont at patrick@acme.com."
+    )
+    result = await agent.ainvoke({"messages": [message]}, config=config)
+    print(f"user sees: {result['messages'][-1].content!r}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-For a real detector, the conversational pipeline and a full LangChain example, see the [Quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/) and the [LangChain integration](https://athroniaeth.github.io/piighost/examples/langchain/).
+This is the **LangChain** integration, but it is only one option. `piighost` also has connectors for [Pydantic AI](https://athroniaeth.github.io/piighost/examples/pydantic-ai/) and [LlamaIndex](https://athroniaeth.github.io/piighost/examples/llama-index/), and the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) exposes an OpenAI-compatible proxy so you can move de-identification to the HTTP boundary with only a `base_url` change.
+
+For a real detector and the conversational pipeline, see the [Quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/) and the [LangChain integration](https://athroniaeth.github.io/piighost/examples/langchain/).
 
 ## Documentation
 
