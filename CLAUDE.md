@@ -50,7 +50,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Middleware Integration
 
-`PIIAnonymizationMiddleware` (`integrations/middleware/langchain.py`) extends LangChain's `AgentMiddleware`:
+`PIIAnonymizationMiddleware` (`integrations/langchain/middleware.py`) extends LangChain's `AgentMiddleware`:
 - Reads `thread_id` from the LangGraph config; `require_thread_id` defaults to `True`, so a missing thread id raises instead of leaking into the shared default.
 - Anonymizes messages before the model sees them and deanonymizes for user display.
 - `ToolCallStrategy` (`INPUT` / `OUTPUT` / `FULL` / `PASSTHROUGH`) governs tool-call de- and re-anonymization; `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) handles tokens the model made up; `AssistantEntityStrategy` (`PRESERVE` / `ANONYMIZE` / `IGNORE`) handles values the assistant introduces.

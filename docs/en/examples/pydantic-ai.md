@@ -71,7 +71,7 @@ The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } 
 After deanonymization every issued token is back to its value, so a token still matching the grammar was invented by the model, whether by hallucination or prompt injection. `pii_hooks` takes an `invented_strategy` that decides what happens then. `RAISE` refuses it, the fail-closed default; `KEEP` leaves it; `DROP` removes it.
 
 ```python
-from piighost.integrations.middleware import InventedPlaceholderStrategy
+from piighost.integrations.langchain import InventedPlaceholderStrategy
 
 hooks = pii_hooks(
     pipeline,
@@ -85,7 +85,7 @@ hooks = pii_hooks(
 `pii_hooks` also de-identifies the tool boundary, governed by `tool_strategy`, the same enum the LangChain middleware uses. Under `FULL`, the default, a tool call's arguments are deanonymized before the tool runs, so a tool that needs `Patrick`{ .pii } gets it and not `<<PERSON:1>>`{ .placeholder }, and the tool's string result is re-anonymized before the model reads it, so the model keeps seeing tokens. `INPUT` deanonymizes only the arguments, `OUTPUT` re-anonymizes only the result, and `PASSTHROUGH` leaves both untouched.
 
 ```python
-from piighost.integrations.middleware import ToolCallStrategy
+from piighost.integrations.langchain import ToolCallStrategy
 
 hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
 ```
@@ -95,7 +95,7 @@ hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
 Not every value is user PII. When the model itself introduces a value from its world knowledge, tokenizing it would hide it from the model on the next turn and protect nothing of the user. `assistant_strategy` decides what happens to a value the assistant introduces, again the same enum the middleware uses. Under `PRESERVE`, the default, it stays in clear, so the model keeps its own knowledge of it and only known user PII is tokenized. `ANONYMIZE` tokenizes it anyway, and `IGNORE` skips the assistant's messages entirely, saving the detector.
 
 ```python
-from piighost.integrations.middleware import AssistantEntityStrategy
+from piighost.integrations.langchain import AssistantEntityStrategy
 
 hooks = pii_hooks(
     pipeline,

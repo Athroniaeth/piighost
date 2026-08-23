@@ -12,7 +12,7 @@ You want a working LangGraph agent where the LLM only ever sees tokens, a tool s
 For the minimal version with a stub detector, start with the [LangChain middleware](../getting-started/langchain.md) tutorial. This page is the same shape with a real model and a system prompt.
 
 !!! note "Prerequisites"
-    `piighost` installed with the middleware and gliner2 extras, `pip install piighost[middleware,gliner2]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The first run downloads the GLiNER2 weights, roughly 500 MB.
+    `piighost` installed with the middleware and gliner2 extras, `pip install piighost[langchain,gliner2]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The first run downloads the GLiNER2 weights, roughly 500 MB.
 
 ## 1. Build the pipeline over a GLiNER2 detector
 
@@ -80,7 +80,7 @@ and you cannot reveal it.
 
 ```python
 from langchain.agents import create_agent
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
 )

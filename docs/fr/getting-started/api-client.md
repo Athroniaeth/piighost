@@ -67,7 +67,7 @@ Comme `PIIGhostClient` implémente le port du pipeline de fil, il va partout où
 ```python
 from langchain.agents import create_agent
 from piighost.integrations.client import PIIGhostClient
-from piighost.integrations.middleware import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
 
 client = PIIGhostClient("http://localhost:8000")
 

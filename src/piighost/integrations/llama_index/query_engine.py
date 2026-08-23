@@ -15,7 +15,7 @@ from typing_extensions import TypeVar
 
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.integrations._deidentify import TextDeidentifier
-from piighost.integrations.middleware.strategy import InventedPlaceholderStrategy
+from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
 from piighost.pipeline import AnyThreadPipeline
 
 try:

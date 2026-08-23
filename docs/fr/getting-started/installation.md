@@ -35,7 +35,7 @@ Les détecteurs à modèle, le middleware et les backends optionnels sont des ex
 
     ```bash
     uv add 'piighost[gliner2]'     # détecteur GLiNER2 (NER)
-    uv add 'piighost[middleware]'  # middleware LangChain/LangGraph
+    uv add 'piighost[langchain]'  # middleware LangChain/LangGraph
     uv add 'piighost[all]'         # tous les extras
     ```
 
@@ -43,7 +43,7 @@ Les détecteurs à modèle, le middleware et les backends optionnels sont des ex
 
     ```bash
     pip install 'piighost[gliner2]'
-    pip install 'piighost[middleware]'
+    pip install 'piighost[langchain]'
     pip install 'piighost[all]'
     ```
 

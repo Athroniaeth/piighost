@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["piighost[middleware]"]
+# dependencies = ["piighost[langchain]"]
 #
 # [tool.uv.sources]
 # piighost = { path = "../..", editable = true }
@@ -37,8 +37,8 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.models import Detection
 from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.integrations.middleware import AssistantEntityStrategy
-from piighost.integrations.middleware.langchain import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import AssistantEntityStrategy
+from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 
 # The demo calls abefore_model directly, outside a LangGraph run, so no thread id
 # is in scope. require_thread_id=False routes every turn to the shared default

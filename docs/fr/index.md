@@ -63,7 +63,7 @@ Chaque page suit un rôle du [framework Diátaxis](https://diataxis.fr/), tutori
 
     - [Anonymizer](reference/anonymizer.md)
     - [Pipeline](reference/pipeline.md)
-    - [Middleware](reference/middleware.md)
+    - [LangChain](reference/langchain.md)
     - [Détecteurs](reference/detectors.md)
 
 -   :lucide-layers: __Concepts__

@@ -22,7 +22,7 @@ from piighost.components.linker import ExactEntityLinker  # noqa: E402
 from piighost.components.placeholder import LabelCounterPlaceholderFactory  # noqa: E402
 from piighost.conversation_memory import InMemoryConversationMemory  # noqa: E402
 from piighost.exceptions import InventedPlaceholderError  # noqa: E402
-from piighost.integrations.middleware import (  # noqa: E402
+from piighost.integrations.langchain import (  # noqa: E402
     AssistantEntityStrategy,
     ToolCallStrategy,
 )

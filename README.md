@@ -53,12 +53,12 @@ print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
 The middleware wraps a conversational pipeline and handles each agent turn. The LLM only sees placeholders, tools receive the real values, the user gets a clear-text reply.
 
 ```bash
-uv add 'piighost[middleware]'
+uv add 'piighost[langchain]'
 ```
 
 ```python
 from langchain.agents import create_agent
-from piighost.integrations.middleware import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
 
 # pipeline: a ThreadAnonymizationPipeline, see the conversation guide
 agent = create_agent(

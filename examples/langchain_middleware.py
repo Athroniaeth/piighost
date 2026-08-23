@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["piighost[middleware]"]
+# dependencies = ["piighost[langchain]"]
 #
 # [tool.uv.sources]
 # piighost = { path = "..", editable = true }
@@ -39,7 +39,7 @@ from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     PreservesLabeledIdentityOpaque,
 )
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
 )

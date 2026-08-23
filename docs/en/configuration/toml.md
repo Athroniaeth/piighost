@@ -503,4 +503,4 @@ The same content in JSON, chosen by a `.json` suffix, is equivalent: a table bec
 
 - [Command-line interface](../reference/cli.md) for validating a file from the shell.
 - [Detectors reference](../reference/detectors.md) for the detector each `type` builds.
-- [Middleware reference](../reference/middleware.md) for driving a thread pipeline in an agent.
+- [LangChain middleware reference](../reference/langchain.md) for driving a thread pipeline in an agent.

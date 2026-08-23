@@ -1,24 +1,16 @@
-"""Deprecated alias for piighost.integrations.langchain.
+"""LangChain middleware for transparent PII anonymization.
 
-The LangChain middleware moved to piighost.integrations.langchain in 1.4.0. This
-module re-exports the same names so existing imports keep working, but importing
-it emits a DeprecationWarning. It will be removed in a future major release.
+Needs the langchain optional dependency (pip install piighost[langchain]), so
+its module is imported lazily: reaching for a symbol without the extra raises a
+helpful ImportError, while importing this package never pulls langchain in.
 """
 
-import warnings
 from typing import Any
 
 from piighost.integrations.langchain.strategy import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
-)
-
-warnings.warn(
-    "piighost.integrations.middleware is deprecated; import from "
-    "piighost.integrations.langchain instead.",
-    DeprecationWarning,
-    stacklevel=2,
 )
 
 __all__ = [

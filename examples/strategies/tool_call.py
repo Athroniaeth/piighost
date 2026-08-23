@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["piighost[middleware]"]
+# dependencies = ["piighost[langchain]"]
 #
 # [tool.uv.sources]
 # piighost = { path = "../..", editable = true }
@@ -45,8 +45,8 @@ from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     PreservesLabeledIdentityOpaque,
 )
-from piighost.integrations.middleware import ToolCallStrategy
-from piighost.integrations.middleware.langchain import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import ToolCallStrategy
+from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 
 # What the tool received and what the wrapper handed back, filled per run so the
 # example can print them; a real deployment needs nothing like these.

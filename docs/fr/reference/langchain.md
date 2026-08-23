@@ -2,14 +2,17 @@
 icon: lucide/blend
 ---
 
-# Référence Middleware
+# Référence de l'intégration LangChain
 
-Module : `piighost.integrations.middleware`
+Module : `piighost.integrations.langchain`
+
+!!! note "Déplacé en 1.4.0"
+    Cette intégration vient de `piighost.integrations.middleware`. L'ancien chemin d'import fonctionne toujours mais émet un `DeprecationWarning`. Mettez à jour vos imports vers `piighost.integrations.langchain`.
 
 `PIIAnonymizationMiddleware` est un `AgentMiddleware` LangChain qui dé-identifie les PII autour de la frontière modèle et outils d'un agent. Il lit le thread id depuis la config LangGraph, dé-identifie les messages avant que le modèle ne les voie, les restaure ensuite pour l'affichage, et route les appels d'outil selon une stratégie choisie. Toute la détection, l'attribution des tokens et le remplacement sont délégués à un `ThreadAnonymizationPipeline`.
 
 ```python
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     AssistantEntityStrategy,
     InventedPlaceholderStrategy,
     PIIAnonymizationMiddleware,
@@ -17,7 +20,7 @@ from piighost.integrations.middleware import (
 )
 ```
 
-Nécessite l'extra `middleware` (`pip install piighost[middleware]`), qui tire `langchain`. Importer le paquet ne tire jamais `langchain`. La classe du middleware est importée à la demande, donc un extra manquant lève une `ImportError` nommant l'extra.
+Nécessite l'extra `middleware` (`pip install piighost[langchain]`), qui tire `langchain`. Importer le paquet ne tire jamais `langchain`. La classe du middleware est importée à la demande, donc un extra manquant lève une `ImportError` nommant l'extra.
 
 ---
 
@@ -102,7 +105,7 @@ La restauration des arguments descend dans les conteneurs `dict`, `list` et `tup
 
 ## Stratégies
 
-Des enums simples dans `piighost.integrations.middleware.strategy`, importables sans `langchain`.
+Des enums simples dans `piighost.integrations.langchain.strategy`, importables sans `langchain`.
 
 ### `ToolCallStrategy`
 
@@ -178,7 +181,7 @@ from langchain.agents import create_agent
 from langchain_core.tools import tool
 
 from piighost.config import load_thread_pipeline
-from piighost.integrations.middleware import PIIAnonymizationMiddleware
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
 
 
 @tool

@@ -7,7 +7,7 @@ icon: lucide/link
 You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM only ever sees tokens, while your tools receive the real values. The user writes `Patrick habite à Paris.`{ .pii }, the model reasons over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }, and a lookup tool still gets the real `Patrick`{ .pii } to do its job. You build the middleware over a `ThreadAnonymizationPipeline`, register a tool, and run one turn.
 
 !!! note "Prerequisites"
-    `piighost` installed with the middleware extra, `pip install piighost[middleware]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The pipeline reuses the components from [Conversational pipeline](conversation.md).
+    `piighost` installed with the middleware extra, `pip install piighost[langchain]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The pipeline reuses the components from [Conversational pipeline](conversation.md).
 
 ## 1. Build the thread pipeline
 
@@ -55,7 +55,7 @@ def lookup_city(person: str) -> str:
 
 ```python
 from langchain.agents import create_agent
-from piighost.integrations.middleware import (
+from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
 )
