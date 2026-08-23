@@ -20,6 +20,7 @@ uv run examples/langchain/base.py
 """
 
 import asyncio
+from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
@@ -37,7 +38,7 @@ async def main() -> None:
     starts with E. Its own answer to the second turn shows the anonymization
     held, without any extra instrumentation.
     """
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
     detector = ExactMatchDetector({"Emma": "PERSON"})
     pipeline = ThreadAnonymizationPipeline(detector)
     middleware = PIIAnonymizationMiddleware(pipeline)

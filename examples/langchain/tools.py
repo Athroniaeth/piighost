@@ -20,6 +20,7 @@ uv run examples/langchain/tools.py
 """
 
 import asyncio
+from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
@@ -40,7 +41,7 @@ def send_email(to: str, body: str) -> str:
 
 async def main() -> None:
     """Email someone the agent knows only as a token, showing the tool got the value."""
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
     detector = ExactMatchDetector({"Emma": "PERSON"})
     pipeline = ThreadAnonymizationPipeline(detector)
     middleware = PIIAnonymizationMiddleware(pipeline)
