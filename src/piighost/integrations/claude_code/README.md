@@ -19,14 +19,40 @@ Code `session_id` as the anonymization thread.
 The model never sees real PII, and tool actions (edits, commands) run on real
 values. Anonymization state lives server-side, keyed by the session id.
 
-## Known limitation
+## Tool outputs: a targeted field allowlist
+
+A `tool_response` is often structured, and only some of its fields carry
+model-facing text; the rest is metadata the tool and model need verbatim (file
+paths, urls, base64 image data, git shas, ids, line numbers, counts, flags).
+Anonymizing the whole thing would corrupt that metadata, so `hooks.py` keeps a
+per-tool allowlist of the dotted field paths that hold free text
+(`_TOOL_OUTPUT_TEXT_FIELDS`), derived from observed Claude Code results:
+
+| Tool | Anonymized fields |
+|------|-------------------|
+| `Bash` | `stdout`, `stderr` |
+| `Read` | `file.content` |
+| `Write` | `content`, `originalFile`, `structuredPatch[].lines[]` |
+| `Edit` | `oldString`, `newString`, `originalFile`, `structuredPatch[].lines[]` |
+| `Agent` | `content[].text` |
+| `WebFetch` | `result` |
+| `WebSearch` | `results[].content[].title` |
+| `ToolSearch` | `query` |
+
+A plain-string `tool_response` is anonymized whole. A tool not in the allowlist is
+passed through untouched, so its metadata is never mangled; run the capture logger
+(`python -m piighost.integrations.claude_code.capture`, writing to
+`PIIGHOST_HOOK_LOG`) to observe a new tool's shape and add its text fields.
+
+## Known limitations
 
 No Claude Code hook can rewrite the assistant's displayed reply, so Claude's chat
-text still shows tokens such as `<<PERSON:1>>`. Tool actions and written files
-are restored; only the prose you read is not.
+text still shows tokens such as `<<PERSON:1>>`. Tool actions and written files are
+restored; only the prose you read is not.
 
-Structured tool outputs (a `tool_response` that is not a plain string) are passed
-through untouched for now; only string outputs are anonymized.
+Anonymization runs one call per text leaf, so a large structured output (a long
+diff, say) makes several calls to piighost-api. Fine for a spike, worth batching
+later.
 
 ## Setup
 
