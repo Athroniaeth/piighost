@@ -108,13 +108,58 @@ def test_capture_appends_event_as_jsonl(
     assert json.loads(lines[0])["tool_response"] == {"file": {"a": 1}}
 
 
-async def test_non_string_tool_output_is_a_no_op() -> None:
-    """A structured tool output is passed through untouched for now."""
+async def test_post_tool_use_anonymizes_read_content_leaves_path() -> None:
+    """A Read result has file.content anonymized while file.filePath is left intact."""
     pipeline = _pipeline()
     event = {
         "hook_event_name": "PostToolUse",
         "session_id": "s1",
         "tool_name": "Read",
-        "tool_response": {"file": {"content": "Patrick"}},
+        "tool_response": {
+            "type": "text",
+            "file": {"filePath": "/home/Patrick/notes.txt", "content": "call Patrick"},
+        },
+    }
+    output = await handle_hook(event, pipeline)
+    assert output is not None
+    updated = output["hookSpecificOutput"]["updatedToolOutput"]
+    assert updated["file"]["content"] == "call <<PERSON:1>>"
+    # The path is metadata: left verbatim even though it contains the name.
+    assert updated["file"]["filePath"] == "/home/Patrick/notes.txt"
+
+
+async def test_post_tool_use_edit_anonymizes_text_leaves_metadata() -> None:
+    """An Edit result anonymizes diff text but leaves filePath and line numbers."""
+    pipeline = _pipeline()
+    event = {
+        "hook_event_name": "PostToolUse",
+        "session_id": "s1",
+        "tool_name": "Edit",
+        "tool_response": {
+            "filePath": "/repo/Patrick.py",
+            "oldString": "name = 'Patrick'",
+            "newString": "name = 'Alice'",
+            "structuredPatch": [
+                {"oldStart": 1, "newStart": 1, "lines": ["-Patrick", "+Alice"]}
+            ],
+        },
+    }
+    output = await handle_hook(event, pipeline)
+    assert output is not None
+    updated = output["hookSpecificOutput"]["updatedToolOutput"]
+    assert updated["oldString"] == "name = '<<PERSON:1>>'"
+    assert updated["structuredPatch"][0]["lines"][0] == "-<<PERSON:1>>"
+    assert updated["filePath"] == "/repo/Patrick.py"
+    assert updated["structuredPatch"][0]["oldStart"] == 1
+
+
+async def test_post_tool_use_unknown_tool_is_passthrough() -> None:
+    """A structured output from a tool not in the allowlist is passed through."""
+    pipeline = _pipeline()
+    event = {
+        "hook_event_name": "PostToolUse",
+        "session_id": "s1",
+        "tool_name": "mcp__some__thing",
+        "tool_response": {"payload": {"note": "Patrick"}},
     }
     assert await handle_hook(event, pipeline) is None
