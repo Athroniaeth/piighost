@@ -4,8 +4,15 @@ handle_hook takes any AnyThreadPipeline, so these drive it with a real local
 ThreadAnonymizationPipeline and an ExactMatchDetector, no server or httpx needed.
 """
 
+import io
+import json
+from pathlib import Path
+
+import pytest
+
 from piighost.components.detector import ExactMatchDetector
 from piighost.integrations.claude_code import handle_hook
+from piighost.integrations.claude_code.capture import capture
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
@@ -85,6 +92,20 @@ async def test_missing_field_is_a_no_op() -> None:
     pipeline = _pipeline()
     event = {"hook_event_name": "UserPromptSubmit", "session_id": "s1"}
     assert await handle_hook(event, pipeline) is None
+
+
+def test_capture_appends_event_as_jsonl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The capture logger appends the raw event as one JSON line, mutating nothing."""
+    log = tmp_path / "cap.jsonl"
+    monkeypatch.setenv("PIIGHOST_HOOK_LOG", str(log))
+    event = {"hook_event_name": "PostToolUse", "tool_response": {"file": {"a": 1}}}
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(event)))
+    capture()
+    lines = log.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["tool_response"] == {"file": {"a": 1}}
 
 
 async def test_non_string_tool_output_is_a_no_op() -> None:
