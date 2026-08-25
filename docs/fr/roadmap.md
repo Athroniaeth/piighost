@@ -9,13 +9,9 @@ Cette page liste ce qui reste en attente pour `piighost` et les capacités écar
 !!! note "Comment lire cette page"
     Cette roadmap n'est pas un engagement de calendrier. Elle liste les items identifiés comme encore manquants, pas une promesse de les construire dans l'ordre.
 
-## Proxy compatible OpenAI
+## ~~Proxy compatible OpenAI~~
 
-Le proxy compatible OpenAI vit désormais dans `piighost-api`, pas dans cette bibliothèque. Il expose un endpoint compatible OpenAI sous `/openai/v1`, une application ne change donc que son `base_url`, nomme le vrai upstream dans un header, et le proxy anonymise chaque requête, la relaie, puis désanonymise la réponse, le fournisseur ne reçoit donc jamais `Patrick`{ .pii }, seulement `<<PERSON:1>>`{ .placeholder }. La bibliothèque fournit les briques sur lesquelles il s'appuie. Le pipeline conversationnel anonymise et restaure, l'`AsyncPlaceholderStreamDecoder` réécrit un jeton coupé entre deux chunks server-sent-event, et la dé-identification de la frontière des outils couvre les appels d'outils. La bibliothèque n'est pas elle-même un proxy HTTP ; cette affaire HTTP revient à `piighost-api`.
-
-## Normalisation de texte
-
-Un détecteur voit le texte exactement tel qu'il est écrit. Accents, casse, espacement ou bruit d'OCR peuvent cacher une valeur à une regex ou décaler les frontières d'un modèle NER. Un étage de normalisation tournerait avant la détection, en donnant au détecteur une forme nettoyée tout en gardant une carte d'offsets vers le texte d'origine, pour qu'un span trouvé sur le texte normalisé soit remonté sur le texte brut au moment du remplacement. La remontée d'offset est le point délicat, car une normalisation qui insère ou supprime des caractères ne s'aligne plus un pour un avec la source.
+~~Livré dans `piighost-api` : un endpoint compatible OpenAI sous `/openai/v1` où une application ne change que son `base_url`, nomme le vrai upstream dans un header, et le proxy anonymise chaque requête, la relaie, puis désanonymise la réponse. L'affaire HTTP vit dans `piighost-api`, pas dans cette bibliothèque.~~
 
 ## Cache de résultat optionnel
 
@@ -24,6 +20,18 @@ La mémoire de conversation cache les détections de chaque message par thread, 
 ## Câblage du décodeur de streaming
 
 `AsyncPlaceholderStreamDecoder` réassemble déjà un token coupé entre deux chunks server-sent-event, mais rien ne le relie encore aux intégrations. Une réponse en streaming arrive en fragments, donc `<<PER`{ .placeholder } peut tomber dans un chunk et `SON:1>>`{ .placeholder } dans le suivant, et une restauration naïve laisse l'utilisateur voir le token cassé. Câbler le décodeur dans le middleware LangChain, les hooks Pydantic AI et le futur proxy laisserait chacun désanonymiser un flux à la volée, en ne tamponnant qu'au passage d'un token et en émettant le texte restauré au fil de l'eau. Cela finit une brique existante plutôt que d'en construire une neuve, et c'est un prérequis du streaming à travers le proxy.
+
+## Hub de configurations
+
+Un pipeline est entièrement décrit par un fichier TOML ou JSON, mais chaque utilisateur reconstruit cette description à la main. Un hub de configurations laisserait un utilisateur récupérer une configuration prête à l'emploi via un identifiant court et la lancer directement, comme un hub de prompts distribue des prompts. La bibliothèque a déjà les briques sur lesquelles il s'appuie, `load_config`, `load_pipeline` et `load_thread_pipeline` parsent et construisent un pipeline depuis un fichier. Ce qui manque est la distribution, un registre pour publier et récupérer une configuration par identifiant, l'épinglage de version à une release piighost, et une frontière de confiance, puisqu'une configuration est de la donnée déclarative et non du code. Un catalogue de configurations par métier, notaires, comptables, un défaut généraliste, grandirait par-dessus au fil du temps.
+
+## Intégration aux harness d'agents
+
+Le proxy compatible OpenAI de `piighost-api` dé-identifie déjà tout harness qui laisse une application changer son `base_url`. Un harness d'agent de code comme Claude Code parle l'API Messages d'Anthropic plutôt que la forme OpenAI, donc le couvrir suppose soit un endpoint proxy compatible Anthropic, soit les hooks propres au harness. La dé- et ré-anonymisation, le réassemblage du streaming et la gestion de la frontière des outils vivent déjà dans le pipeline conversationnel et le middleware, donc c'est surtout un nouvel adaptateur de transport devant le cœur existant plutôt qu'un nouveau travail d'anonymisation.
+
+## Application document locale dans le navigateur (WebAssembly)
+
+Une application web d'anonymisation de documents qui tourne entièrement dans le navigateur, pour qu'un professionnel réglementé dé-identifie un fichier client sans qu'aucune donnée ne quitte la machine, répond aux contraintes de confidentialité et de consentement remontées de façon répétée autour des données clients. Le moteur existe déjà, le site du projet fait tourner le vrai piighost dans le navigateur via Pyodide, avec détection GLiNER dans le navigateur, donc la bibliothèque elle-même n'a rien à réimplémenter. Ce qui reste est l'application autour, le parsing de documents côté client (PDF, DOCX) et l'OCR, une étape de revue où l'utilisateur valide ou complète l'anonymisation, et une étape de partage. C'est une application distincte bâtie sur la bibliothèque, pas une fonctionnalité de la bibliothèque.
 
 ## Hors périmètre
 
@@ -38,6 +46,7 @@ Certaines capacités ont été envisagées puis écartées volontairement. Le ra
 - **Modèles de confidentialité analytiques (k-anonymity, l-diversity, t-closeness, differential privacy, données synthétiques).** Ils protègent un jeu de données entier publié pour analyse, en généralisant ou en ajoutant du bruit sur toutes les lignes d'un coup. piighost protège un flux conversationnel un message à la fois, et la généralisation sur laquelle ils reposent transforme la valeur, ce qui est déjà hors périmètre.
 - **Routage de placeholder par type de label.** Un pipeline applique une seule placeholder factory à toutes les entités. Router selon le label, un counter pour les noms mais un masque pour les numéros de carte, est mécaniquement léger mais rabaisse la garantie de tag du pipeline à la factory la plus faible du lot et casse la garantie d'identité reconnaissable dont le middleware a besoin pour restaurer. Le gain ne justifiait pas de brouiller le design à base de tags.
 - **Dé-identification multimodale.** piighost lit du texte. Détecter des PII dans une image ou un flux audio supposerait de l'OCR ou de la transcription, puis d'éditer les pixels ou les échantillons, car un token ne se replace pas dans une image comme dans du texte. Caviarder une zone est un autre problème, sans restauration fiable, donc cela reste hors du modèle de substitution de texte.
+- **Journal d'audit inviolable.** Un journal append-only chaîné par hash des événements de dé- et ré-anonymisation, où une entrée supprimée ou modifiée devient détectable, est une fonctionnalité d'accountability pour un déploiement multi-utilisateur ou hébergé, pas pour la bibliothèque. Il revient à `piighost-api` ou `piighost-chat`, où existent un acteur, un magasin et une frontière de confiance. Le contrôle d'accès sur un sink append-only est la défense principale, et le chaînage n'ajoute de la valeur que si le custodian du magasin n'est pas de confiance ou si un tiers a besoin d'une preuve portable. La bibliothèque expose les événements ; les enregistrer de façon inviolable relève du déploiement.
 
 La regex par forme seule, sans validation de checksum, est un autre hors-périmètre assumé. Voir [Limitations](limitations.md).
 
