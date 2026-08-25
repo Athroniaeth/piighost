@@ -153,6 +153,22 @@ async def test_post_tool_use_edit_anonymizes_text_leaves_metadata() -> None:
     assert updated["structuredPatch"][0]["oldStart"] == 1
 
 
+def test_debug_record_is_compact() -> None:
+    """The optional debug record keeps the event name, tool, session, and output."""
+    from piighost.integrations.claude_code.runner import _debug_record
+
+    record = _debug_record(
+        {"hook_event_name": "PostToolUse", "tool_name": "Bash", "session_id": "s1"},
+        {"hookSpecificOutput": {"hookEventName": "PostToolUse"}},
+    )
+    assert record == {
+        "event": "PostToolUse",
+        "tool": "Bash",
+        "session_id": "s1",
+        "output": {"hookSpecificOutput": {"hookEventName": "PostToolUse"}},
+    }
+
+
 async def test_post_tool_use_unknown_tool_is_passthrough() -> None:
     """A structured output from a tool not in the allowlist is passed through."""
     pipeline = _pipeline()
