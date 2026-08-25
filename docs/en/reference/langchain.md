@@ -212,6 +212,38 @@ The pipeline must be a thread pipeline whose placeholder factory is delimited, s
 
 ---
 
+## Streaming
+
+The `abefore_model` and `aafter_model` hooks see the whole message, so a live display that streams the reply would show placeholders until it completes. For a token-by-token display, wrap `deanonymize_stream` around your own streaming loop. It buffers only a token split across chunks, restores each token once it completes, and applies `invented_strategy` per restored token.
+
+### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
+
+`source` is an async iterator of the model's text chunks; `thread_id` is the id you ran the agent with, since a manual stream loop is outside the LangGraph config the hooks read.
+
+```python
+config = {"configurable": {"thread_id": "conv-1"}}
+
+
+async def model_text():
+    async for chunk, _meta in agent.astream(
+        {"messages": [{"role": "user", "content": "Who is Patrick?"}]},
+        config,
+        stream_mode="messages",
+    ):
+        if isinstance(chunk.content, str):
+            yield chunk.content
+
+
+async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
+    print(restored, end="", flush=True)
+```
+
+A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display never shows a broken token.
+
+For another framework, the same restoration is one step lower: `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar, with `replace` a coroutine that deanonymizes one token.
+
+---
+
 ## See also
 
 - [Pipeline reference](pipeline.md) for the thread pipeline the middleware drives.

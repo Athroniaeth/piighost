@@ -17,9 +17,9 @@ Cette page liste ce qui reste en attente pour `piighost` et les capacités écar
 
 La mémoire de conversation cache les détections de chaque message par thread, donc renvoyer un message dans un thread évite la détection. Il n'existe pas de cache sous le thread, donc le même texte envoyé sous deux `thread_id` différents est détecté deux fois. Un cache de résultat optionnel clé par hash de texte laisserait un contenu identique éviter la détection quel que soit le thread, avec un backend SQLAlchemy (aiosqlite pour le développement, PostgreSQL pour un déploiement partagé) comme option persistante à côté de celle en processus.
 
-## Câblage du décodeur de streaming
+## ~~Câblage du décodeur de streaming~~
 
-`AsyncPlaceholderStreamDecoder` réassemble déjà un token coupé entre deux chunks server-sent-event, mais rien ne le relie encore aux intégrations. Une réponse en streaming arrive en fragments, donc `<<PER`{ .placeholder } peut tomber dans un chunk et `SON:1>>`{ .placeholder } dans le suivant, et une restauration naïve laisse l'utilisateur voir le token cassé. Câbler le décodeur dans le middleware LangChain, les hooks Pydantic AI et le futur proxy laisserait chacun désanonymiser un flux à la volée, en ne tamponnant qu'au passage d'un token et en émettant le texte restauré au fil de l'eau. Cela finit une brique existante plutôt que d'en construire une neuve, et c'est un prérequis du streaming à travers le proxy.
+~~Désormais câblé : `AsyncPlaceholderStreamDecoder` atteint les intégrations via `TextDeidentifier.deanonymize_stream`, exposé sur le middleware LangChain sous `deanonymize_stream` et utilisé par le proxy Anthropic dans `piighost-api`. Une app l'enveloppe autour de sa propre boucle de streaming pour désanonymiser une réponse à la volée, en ne tamponnant qu'au passage d'un token. Toute factory construit aussi le décodeur brut sur sa grammaire avec `async_stream_decoder`, pour un autre framework.~~
 
 ## Hub de configurations
 

@@ -9,6 +9,7 @@ restores known tokens, and the invented-placeholder policy is applied here, at
 the integration boundary, not inside the pipeline.
 """
 
+from collections.abc import AsyncIterator
 from typing import Any, Generic
 
 from typing_extensions import TypeVar
@@ -68,6 +69,32 @@ class TextDeidentifier(Generic[IdentityT]):
         """Deanonymize a text, then apply the invented-placeholder strategy."""
         restored = await self._pipeline.deanonymize(text, thread_id)
         return self._handle_invented(restored)
+
+    async def deanonymize_stream(
+        self, source: AsyncIterator[str], thread_id: str
+    ) -> AsyncIterator[str]:
+        """Deanonymize a stream of model text chunks on the fly.
+
+        Wraps the recognizer's async stream decoder: each chunk is fed in, a whole
+        token is restored through the pipeline as it completes, and only a token
+        split across chunks is buffered. The invented-placeholder strategy applies
+        per restored token, as in deanonymize. Yields restored text as it becomes
+        safe, then the buffered tail once the stream ends. Wrap it around an app's
+        own streaming loop, since the framework hooks only see the whole message.
+        """
+
+        async def replace(token: str) -> str:
+            restored = await self._pipeline.deanonymize(token, thread_id)
+            return self._handle_invented(restored)
+
+        decoder = self._recognizer.async_stream_decoder(replace)
+        async for chunk in source:
+            emitted = await decoder.feed(chunk)
+            if emitted:
+                yield emitted
+        tail = decoder.flush()
+        if tail:
+            yield tail
 
     async def deanonymize_value(self, value: Any, thread_id: str) -> Any:
         """Deanonymize the strings inside nested dict, list, and tuple containers.
