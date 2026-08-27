@@ -24,8 +24,8 @@ Dé-identifie un seul texte à travers les étages, dans l'ordre. Détecter les 
 ```python
 AnonymizationPipeline(
     detector: AnyDetector,
-    linker: AnyEntityLinker,
-    anonymizer: AnyAnonymizer,
+    linker: AnyEntityLinker | None = None,
+    anonymizer: AnyAnonymizer | None = None,
     overlap_resolver: AnyOverlapResolver | None = None,
     expander: AnyDetectionExpander | None = None,
     entity_resolver: AnyEntityResolver | None = None,
@@ -38,8 +38,8 @@ AnonymizationPipeline(
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
 | `detector` | `AnyDetector` | requis | Détecteur d'entités async |
-| `linker` | `AnyEntityLinker` | requis | Groupe les détections en entités |
-| `anonymizer` | `AnyAnonymizer` | requis | Moteur de remplacement et sa placeholder factory |
+| `linker` | `AnyEntityLinker \| None` | `None` | Groupe les détections en entités. Par défaut `ExactEntityLinker()` |
+| `anonymizer` | `AnyAnonymizer \| None` | `None` | Moteur de remplacement et sa placeholder factory. Par défaut `Anonymizer(LabelCounterPlaceholderFactory())` |
 | `overlap_resolver` | `AnyOverlapResolver \| None` | `None` | Résout les détections qui se chevauchent. Désactivé quand `None` |
 | `expander` | `AnyDetectionExpander \| None` | `None` | Ajoute les occurrences manquées d'une valeur détectée. Désactivé quand `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Réconcilie les entités en conflit. Désactivé quand `None` |
@@ -89,9 +89,9 @@ Le composant en plus est une mémoire de conversation, `memory`, le stockage par
 ```python
 ThreadAnonymizationPipeline(
     detector: AnyDetector,
-    linker: AnyEntityLinker,
-    anonymizer: AnyAnonymizer,
-    memory: AnyConversationMemory,
+    linker: AnyEntityLinker | None = None,
+    anonymizer: AnyAnonymizer | None = None,
+    memory: AnyConversationMemory | None = None,
     overlap_resolver: AnyOverlapResolver | None = None,
     expander: AnyDetectionExpander | None = None,
     entity_resolver: AnyEntityResolver | None = None,
@@ -105,7 +105,7 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `memory` | `AnyConversationMemory` | requis | Stockage par thread des détections de chaque message. `InMemoryConversationMemory` pour un seul processus, `RedisConversationMemory` pour un backend partagé |
+| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par thread des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus ; passez `RedisConversationMemory` pour un backend partagé |
 
 ### Méthodes
 
