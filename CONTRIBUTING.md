@@ -4,7 +4,7 @@ Thank you for your interest in contributing to PIIGhost! We welcome contribution
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.11+
 - [`uv`](https://docs.astral.sh/uv/) package manager
 - Git and a GitHub account
 
