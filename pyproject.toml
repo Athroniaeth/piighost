@@ -141,6 +141,7 @@ dev = [
     "pyrefly>=0.55.0",
     "zensical>=0.0.27",
     "commitizen>=4.13.9",
+    "pre-commit>=4.0",
     "pytest-asyncio>=0.25",
     "bandit>=1.9.4",
     "streamlit>=1.46",
