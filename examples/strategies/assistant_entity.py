@@ -70,7 +70,9 @@ def _content(message: BaseMessage) -> str:
     return content if isinstance(content, str) else str(content)
 
 
-def _middleware(strategy: EntityCreateByAssistantStrategy, detector: AnyDetector) -> Any:
+def _middleware(
+    strategy: EntityCreateByAssistantStrategy, detector: AnyDetector
+) -> Any:
     """Build the middleware over a fresh pipeline under one strategy."""
     ph_factory = LabelCounterPlaceholderFactory()
     pipeline = ThreadAnonymizationPipeline(
