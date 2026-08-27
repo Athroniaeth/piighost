@@ -36,6 +36,7 @@ nav = [
     { "Pipeline" = "reference/pipeline.md" },
     { "LangChain" = "reference/langchain.md" },
     { "Detectors" = "reference/detectors.md" },
+    { "Guard rails" = "reference/guard-rails.md" },
     { "CLI" = "reference/cli.md" },
     { "Configuration" = [
       { "TOML reference" = "configuration/toml.md" },
