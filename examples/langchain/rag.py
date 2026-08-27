@@ -21,7 +21,7 @@ anonymized text good enough for a demo; on a real corpus, embedding anonymized
 text trades some retrieval quality for privacy, and a durable thread backed by
 SqlAlchemyConversationMemory would replace the in-memory pipeline.
 
-It runs against openai:gpt-5.5 and OpenAI embeddings, so set an OPENAI_API_KEY in
+It runs against openai:gpt-5.6-terra and OpenAI embeddings, so set an OPENAI_API_KEY in
 the environment (copy .env.example to .env). Run with:
 uv run examples/langchain/rag.py
 """
@@ -81,7 +81,7 @@ async def main() -> None:
         "Answer the question using only the context.\n\n"
         f"Context:\n{context}\n\nQuestion: {anonymized_question}"
     )
-    llm = ChatOpenAI(model="gpt-5.5")
+    llm = ChatOpenAI(model="gpt-5.6-terra")
     reply = await llm.ainvoke(prompt)
     model_answer = str(reply.content)
 

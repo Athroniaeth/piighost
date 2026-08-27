@@ -13,7 +13,7 @@ so the model only ever works on placeholders, even across a multi-turn history,
 and deanonymizes the model's reply for the user. The thread id given here is a
 fixed string, but it can also be a callable over the run context.
 
-The agent runs against openai:gpt-5.5, so set an OPENAI_API_KEY in the
+The agent runs against openai:gpt-5.6-terra, so set an OPENAI_API_KEY in the
 environment (copy .env.example to .env). For a tool-calling agent, see tools.py
 beside this file. Run with:
 uv run examples/pydantic_ai/base.py
@@ -40,7 +40,7 @@ async def main() -> None:
     detector = ExactMatchDetector({"Emma": "PERSON"})
     pipeline = ThreadAnonymizationPipeline(detector)
     hooks = pii_hooks(pipeline, "demo-thread")
-    agent = Agent("openai:gpt-5.5", capabilities=[hooks])
+    agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
 
     first = await agent.run("Hi, I am Emma.")
     second = await agent.run(

@@ -183,7 +183,7 @@ Un `prompt` personnalisé doit contenir un placeholder `{labels}` et, selon le f
 from piighost.components.detector import LLMDetector
 
 detector = LLMDetector(
-    model="gpt-4o-mini",
+    model="gpt-5.6-terra",
     labels=["PERSON", "EMAIL"],
     provider="openai",
 )

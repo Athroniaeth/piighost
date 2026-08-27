@@ -72,7 +72,7 @@ from piighost.integrations.langchain import PIIAnonymizationMiddleware
 client = PIIGhostClient("http://localhost:8000")
 
 agent = create_agent(
-    model="openai:gpt-4o",
+    model="openai:gpt-5.6-terra",
     tools=[...],
     middleware=[PIIAnonymizationMiddleware(pipeline=client)],
 )

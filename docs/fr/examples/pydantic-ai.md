@@ -38,7 +38,7 @@ from pydantic_ai import Agent
 from piighost.integrations.pydantic_ai import pii_hooks
 
 hooks = pii_hooks(pipeline, "thread-42")
-agent = Agent("openai:gpt-5.5", capabilities=[hooks])
+agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
 ```
 
 ## 3. Lancer un tour
