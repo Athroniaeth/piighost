@@ -39,7 +39,7 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 ## Quickstart
 
 ```bash
-uv add piighost
+pip install piighost   # or: uv add piighost
 ```
 
 ### De-identify a text
@@ -64,7 +64,7 @@ print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
 The middleware wraps a conversational pipeline and handles each agent turn. The LLM only sees placeholders, tools receive the real values, the user gets a clear-text reply.
 
 ```bash
-uv add 'piighost[langchain]'
+pip install 'piighost[langchain]'   # or: uv add 'piighost[langchain]'
 ```
 
 ```python

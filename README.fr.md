@@ -39,7 +39,7 @@ Enfin, cette librairie garde la correspondance entre la valeur et son placeholde
 ## Démarrage rapide
 
 ```bash
-uv add piighost
+pip install piighost   # or: uv add piighost
 ```
 
 ### Dé-identifier un texte
@@ -64,7 +64,7 @@ print(result.text)  # Écris à <<PERSON:1>> à <<EMAIL:1>>.
 Le middleware enrobe un pipeline conversationnel et gère chaque tour d'agent. Le LLM ne voit que des placeholders, les outils reçoivent les vraies valeurs, l'utilisateur reçoit une réponse en clair.
 
 ```bash
-uv add 'piighost[langchain]'
+pip install 'piighost[langchain]'   # or: uv add 'piighost[langchain]'
 ```
 
 ```python
