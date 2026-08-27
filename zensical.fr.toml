@@ -38,6 +38,7 @@ nav = [
         { "LangChain" = "reference/langchain.md" },
         { "Détecteurs" = "reference/detectors.md" },
         { "Garde-fous" = "reference/guard-rails.md" },
+        { "Mémoire de conversation" = "reference/memory.md" },
         { "CLI" = "reference/cli.md" },
         { "Configuration" = [
             { "Référence TOML" = "configuration/toml.md" },
