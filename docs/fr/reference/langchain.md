@@ -212,6 +212,38 @@ Le pipeline doit être un pipeline de thread dont la factory de placeholders est
 
 ---
 
+## Streaming
+
+Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un affichage en direct qui streame la réponse montrerait les placeholders jusqu'à ce qu'elle se termine. Pour un affichage token par token, enveloppez `deanonymize_stream` autour de votre propre boucle de streaming. Il ne tamponne qu'un token coupé entre deux chunks, restaure chaque token dès qu'il est complet, et applique `invented_strategy` par token restauré.
+
+### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
+
+`source` est un itérateur asynchrone des chunks de texte du modèle ; `thread_id` est l'id avec lequel vous avez lancé l'agent, puisqu'une boucle de streaming manuelle est hors de la config LangGraph que lisent les hooks.
+
+```python
+config = {"configurable": {"thread_id": "conv-1"}}
+
+
+async def model_text():
+    async for chunk, _meta in agent.astream(
+        {"messages": [{"role": "user", "content": "Who is Patrick?"}]},
+        config,
+        stream_mode="messages",
+    ):
+        if isinstance(chunk.content, str):
+            yield chunk.content
+
+
+async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
+    print(restored, end="", flush=True)
+```
+
+Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre jamais de token cassé.
+
+Pour un autre framework, la même restauration est un cran plus bas : `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui désanonymise un token.
+
+---
+
 ## Voir aussi
 
 - [Référence Pipeline](pipeline.md) pour le pipeline de thread que le middleware pilote.
