@@ -223,16 +223,14 @@ extend-select = ["ANN"]
 ignore = ["ANN401"]
 
 [tool.pyrefly]
-# Legacy v1 examples under examples/legacy/ have bit-rotted against the rewrite
-# and live in their own environments (uv sub-project, PEP 723 inline metadata),
-# so their deps are absent from the main venv and would show spurious errors.
-# Scratch scripts under scripts/ reference removed APIs.
+# Scratch scripts under scripts/ reference removed APIs, and e2e/ scripts pull in
+# server deps absent from the main venv, so both would show spurious errors.
 project-excludes = [
-    "examples/legacy/**",
     ".claude/**",
     "scripts/**",
     "tools/**",
     "benchmarks/**",
+    "e2e/**",
     "dist/**",
     "site/**",
 ]
@@ -246,7 +244,7 @@ exclude_dirs = [
     "tests",
     "benchmarks",
     ".venv",
-    "examples/legacy",
+    "e2e",
     "site",
     "dist",
     "docs",
