@@ -36,6 +36,14 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 - **HTTP client and OpenTelemetry tracing** — an async client for the companion `piighost-api`, and per-stage spans with optional payload redaction.
 - **Typed and dependency-light** — ships `py.typed`, a minimal core, with everything heavy behind optional extras.
 
+## Why PIIGhost
+
+- **vs. plain regex or scrubbing** — regex alone misses names and shifts boundaries, and deleting or masking PII breaks the model's reasoning. PIIGhost keeps the text coherent with stable, reversible placeholders and restores the real values for the user and for tools.
+- **vs. Faker-style fake data** — a finite pool of fakes collides and can coincide with a real value, so it is not reliably reversible. PIIGhost uses synthetic, collision-free tokens instead. If you already rely on Presidio, it is available as a detector through the `presidio` extra.
+- **vs. analytical anonymization (k-anonymity, differential privacy)** — those protect a whole dataset by transforming it. PIIGhost protects a live conversation one message at a time and restores it, so your agent keeps working on real data behind the scenes.
+
+Built for LLM agents: the model only ever sees placeholders, while tools and the end user see the real values.
+
 ## Quickstart
 
 ```bash
