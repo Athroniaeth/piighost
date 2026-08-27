@@ -25,6 +25,17 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 > [!NOTE]
 > `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
+## Features
+
+- **Pluggable detectors** — regex catalogs (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), an LLM detector, plus exact-match, composite, and chunked detectors.
+- **Reversible, collision-free placeholders** — opaque tokens (`<<PERSON:1>>`), plus label-only, masked, and keyed-hash factories, kept stable across a whole conversation.
+- **Agent integrations** — LangChain middleware, Pydantic AI hooks, and LlamaIndex, with tool-boundary de-identification and token-by-token streaming restoration.
+- **Conversation memory** — in-process, Redis, or SQLAlchemy backends; the Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
+- **Guard rail** — re-check the model output for residual PII and refuse it (a detector, an LLM, or Mistral-backed moderation).
+- **TOML/JSON configuration** — build a full pipeline from a file, with a CLI to validate it and emit its schema.
+- **HTTP client and OpenTelemetry tracing** — an async client for the companion `piighost-api`, and per-stage spans with optional payload redaction.
+- **Typed and dependency-light** — ships `py.typed`, a minimal core, with everything heavy behind optional extras.
+
 ## Quickstart
 
 ```bash
