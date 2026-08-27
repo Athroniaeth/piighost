@@ -52,7 +52,7 @@ from llama_index.llms.openai import OpenAI
 
 from piighost.integrations.llama_index import PIIQueryEngine
 
-Settings.llm = OpenAI(model="gpt-5.5")
+Settings.llm = OpenAI(model="gpt-5.6-terra")
 engine = PIIQueryEngine(
     inner=index.as_query_engine(),
     pipeline=pipeline,

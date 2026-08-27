@@ -194,7 +194,7 @@ pipeline = load_thread_pipeline("pipeline.toml")
 middleware = PIIAnonymizationMiddleware(pipeline)
 
 agent = create_agent(
-    model="openai:gpt-5.4",
+    model="openai:gpt-5.6-terra",
     system_prompt="You are a helpful assistant. Treat placeholders as real values.",
     tools=[get_info],
     middleware=[middleware],

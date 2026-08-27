@@ -183,7 +183,7 @@ A custom `prompt` must contain a `{labels}` placeholder and, per LangChain's f-s
 from piighost.components.detector import LLMDetector
 
 detector = LLMDetector(
-    model="gpt-4o-mini",
+    model="gpt-5.6-terra",
     labels=["PERSON", "EMAIL"],
     provider="openai",
 )

@@ -53,7 +53,7 @@ async def main() -> None:
     """Stream one real reply and restore its placeholder tokens as they arrive."""
     pipeline = _build_pipeline()
     middleware = PIIAnonymizationMiddleware(pipeline)
-    model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    model = ChatOpenAI(model="gpt-5.6-terra", temperature=0)
     agent = create_agent(model=model, system_prompt=SYSTEM, middleware=[middleware])
 
     thread_id = "stream-1"
