@@ -123,6 +123,16 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/piighost"]
 
+[tool.hatch.build.targets.sdist]
+# Ship only what a source install needs; keep docs/, site/, e2e/, benchmarks/,
+# tools/, scripts/, publish/, and examples out of the source distribution.
+only-include = [
+    "src/piighost",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]
+
 [dependency-groups]
 dev = [
     "ruff>=0.15.5",
