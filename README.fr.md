@@ -36,6 +36,14 @@ Enfin, cette librairie garde la correspondance entre la valeur et son placeholde
 - **Client HTTP et tracing OpenTelemetry** — un client async pour `piighost-api`, et des spans par étape avec rédaction optionnelle des payloads.
 - **Typé et léger en dépendances** — fournit `py.typed`, un cœur minimal, tout le lourd derrière des extras optionnels.
 
+## Pourquoi PIIGhost
+
+- **vs. regex ou scrubbing simple** — la regex seule rate les noms et décale les frontières, et supprimer ou masquer les PII brise le raisonnement du modèle. PIIGhost garde le texte cohérent avec des placeholders stables et réversibles, et restaure les vraies valeurs pour l'utilisateur et les outils.
+- **vs. faux à la Faker** — un vivier fini de faux collisionne et peut coïncider avec une vraie valeur, donc il n'est pas restaurable de façon fiable. PIIGhost utilise plutôt des jetons synthétiques sans collision. Si vous dépendez déjà de Presidio, il est disponible comme détecteur via l'extra `presidio`.
+- **vs. anonymisation analytique (k-anonymity, differential privacy)** — celles-ci protègent un jeu de données entier en le transformant. PIIGhost protège une conversation en direct, message par message, et la restaure, donc votre agent continue de travailler sur les vraies données en coulisses.
+
+Pensé pour les agents LLM : le modèle ne voit que des placeholders, tandis que les outils et l'utilisateur final voient les vraies valeurs.
+
 ## Démarrage rapide
 
 ```bash
