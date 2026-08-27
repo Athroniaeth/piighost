@@ -16,10 +16,11 @@ needs a real streaming model, so run it with the OpenAI key from examples/.env:
 """
 
 import asyncio
+from collections.abc import AsyncIterator
 
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessageChunk, HumanMessage
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI  # pyrefly: ignore[missing-import]
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
@@ -68,7 +69,7 @@ async def main() -> None:
 
     raw: list[str] = []
 
-    async def model_text() -> object:
+    async def model_text() -> AsyncIterator[str]:
         """Yield the model's streamed text chunks, recording each raw one."""
         async for chunk, _meta in agent.astream(
             request, config, stream_mode="messages"
