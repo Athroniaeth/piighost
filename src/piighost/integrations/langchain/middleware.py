@@ -9,7 +9,7 @@ the extra to install.
 
 import importlib.util
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any, Generic
 
 from typing_extensions import TypeVar
@@ -182,6 +182,20 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
             return await self._deanonymize(content, thread_id)
 
         return await self._rewrite(state, (HumanMessage, AIMessage), restore)
+
+    def deanonymize_stream(
+        self, source: AsyncIterator[str], thread_id: str
+    ) -> AsyncIterator[str]:
+        """Deanonymize a streamed model reply on the fly, for an app's stream loop.
+
+        The before- and after-model hooks only see the whole message, so a live
+        display would show tokens until the reply completes. Wrap this around your
+        own streaming loop instead, for example agent.astream(..., stream_mode=
+        "messages"), to restore tokens as they arrive. Pass the same thread_id you
+        ran the agent with, since a manual stream loop is outside the LangGraph
+        config the hooks read.
+        """
+        return self._deid.deanonymize_stream(source, thread_id)
 
     async def awrap_tool_call(
         self,
