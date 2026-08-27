@@ -36,14 +36,22 @@ git checkout -b feature/your-feature-name
 uv sync
 ```
 
-### 3. Make Your Changes
+### 3. Install the Pre-commit Hooks (optional but recommended)
+
+The repository ships a [pre-commit](https://pre-commit.com/) config that mirrors the
+`make lint` gate (ruff format, ruff check) and validates commit messages with Commitizen:
+```bash
+uv run pre-commit install --hook-type pre-commit --hook-type commit-msg
+```
+
+### 4. Make Your Changes
 
 Follow the existing code style and patterns. Key conventions:
 - **Protocols** for every pipeline stage keep components swappable
 - **Frozen dataclasses** for data models (`Entity`, `Detection`, `Span`)
 - **`ExactMatchDetector`** in tests never load the real GLiNER2 model in CI
 
-### 4. Quality Assurance
+### 5. Quality Assurance
 
 Run all checks before submitting:
 
@@ -52,7 +60,7 @@ make lint         # Format (ruff), lint (ruff), type-check (pyrefly)
 uv run pytest     # Run tests
 ```
 
-### 5. Commit Your Changes
+### 6. Commit Your Changes
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) via Commitizen:
 ```bash
