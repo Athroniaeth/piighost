@@ -19,7 +19,7 @@ from piighost.conversation_memory import MessageRole
 from piighost.exceptions import MissingThreadIdError
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import (
-    AssistantEntityStrategy,
+    EntityCreateByAssistantStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
@@ -116,7 +116,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
         require_thread_id: bool = True,
         invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
-        assistant_strategy: AssistantEntityStrategy = AssistantEntityStrategy.PRESERVE,
+        assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
     ) -> None:
         """Store the pipeline, the strategies, and the thread-id policy.
 
@@ -152,7 +152,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         thread_id = _thread_id(self._require_thread_id)
         allowed: tuple[type[BaseMessage], ...] = (HumanMessage, AIMessage)
 
-        if self.assistant_strategy is AssistantEntityStrategy.IGNORE:
+        if self.assistant_strategy is EntityCreateByAssistantStrategy.IGNORE:
             # IGNORE skips assistant analysis entirely, so its messages are not
             # sent through anonymization at all, saving the detector.
             allowed = (HumanMessage,)
@@ -255,7 +255,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         """
         if not isinstance(message, AIMessage):
             return MessageRole.USER
-        if self.assistant_strategy is AssistantEntityStrategy.ANONYMIZE:
+        if self.assistant_strategy is EntityCreateByAssistantStrategy.ANONYMIZE:
             return MessageRole.USER
         return MessageRole.ASSISTANT
 

@@ -11,7 +11,7 @@ A value the model itself names, say a public figure like Napoleon, is not user
 PII. Anonymizing it would strip the model of its world knowledge of that entity.
 The provenance rule keys on a value's first occurrence in the thread: introduced
 by the assistant, it is left in clear; introduced by the user, it stays
-anonymized. AssistantEntityStrategy chooses the behavior:
+anonymized. EntityCreateByAssistantStrategy chooses the behavior:
 
   PRESERVE   leave assistant-introduced values in clear (default)
   ANONYMIZE  anonymize them like user PII
@@ -37,7 +37,7 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.models import Detection
 from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.integrations.langchain import AssistantEntityStrategy
+from piighost.integrations.langchain import EntityCreateByAssistantStrategy
 from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 
 # The demo calls abefore_model directly, outside a LangGraph run, so no thread id
@@ -70,7 +70,9 @@ def _content(message: BaseMessage) -> str:
     return content if isinstance(content, str) else str(content)
 
 
-def _middleware(strategy: AssistantEntityStrategy, detector: AnyDetector) -> Any:
+def _middleware(
+    strategy: EntityCreateByAssistantStrategy, detector: AnyDetector
+) -> Any:
     """Build the middleware over a fresh pipeline under one strategy."""
     ph_factory = LabelCounterPlaceholderFactory()
     pipeline = ThreadAnonymizationPipeline(
@@ -84,7 +86,7 @@ def _middleware(strategy: AssistantEntityStrategy, detector: AnyDetector) -> Any
     )
 
 
-async def _run_once(strategy: AssistantEntityStrategy) -> tuple[str, str, int]:
+async def _run_once(strategy: EntityCreateByAssistantStrategy) -> tuple[str, str, int]:
     """Run the assistant then user turn, returning both texts and detector calls."""
     detector = _CountingDetector(ExactMatchDetector({"Napoleon": "PERSON"}))
     middleware = _middleware(strategy, detector)
@@ -111,9 +113,9 @@ async def main() -> None:
     print(f"{'-' * 10}  {'-' * 24}  {'-' * 26}  {'-' * 13}")
 
     strategies = [
-        AssistantEntityStrategy.PRESERVE,
-        AssistantEntityStrategy.ANONYMIZE,
-        AssistantEntityStrategy.IGNORE,
+        EntityCreateByAssistantStrategy.PRESERVE,
+        EntityCreateByAssistantStrategy.ANONYMIZE,
+        EntityCreateByAssistantStrategy.IGNORE,
     ]
     for strategy in strategies:
         assistant_seen, user_seen, calls = await _run_once(strategy)
