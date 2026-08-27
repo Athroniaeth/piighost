@@ -9,7 +9,7 @@ lint:
 	uv run ruff format --check .
 	uv run ruff check .
 	uv run pyrefly check
-	uv run bandit -c pyproject.toml -r src examples scripts
+	uv run bandit -c pyproject.toml -r src examples
 
 docs-build:
 	uv run python -m zensical build

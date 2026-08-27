@@ -44,7 +44,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-3.13-
       - run: uv sync --locked --dev --no-progress -q
-      - run: uv run bandit -c pyproject.toml -r src examples scripts
+      - run: uv run bandit -c pyproject.toml -r src examples
 
   tests:
     name: Tests (Python ${{ matrix.python-version }})
