@@ -23,7 +23,7 @@ from piighost.components.placeholder import LabelCounterPlaceholderFactory  # no
 from piighost.conversation_memory import InMemoryConversationMemory  # noqa: E402
 from piighost.exceptions import InventedPlaceholderError  # noqa: E402
 from piighost.integrations.langchain import (  # noqa: E402
-    AssistantEntityStrategy,
+    EntityCreateByAssistantStrategy,
     ToolCallStrategy,
 )
 from piighost.integrations.pydantic_ai import pii_hooks  # noqa: E402
@@ -179,7 +179,9 @@ class TestTools:
 
 
 class TestAssistantStrategy:
-    async def _seen_on_second_turn(self, strategy: AssistantEntityStrategy) -> str:
+    async def _seen_on_second_turn(
+        self, strategy: EntityCreateByAssistantStrategy
+    ) -> str:
         """Let the assistant introduce Emma, then read what turn two shows the model."""
         seen: list[str] = []
         state = {"calls": 0}
@@ -199,17 +201,19 @@ class TestAssistantStrategy:
 
     async def test_preserve_keeps_the_assistant_value_clear(self) -> None:
         """PRESERVE leaves a user reference to an assistant-introduced value in clear."""
-        seen = await self._seen_on_second_turn(AssistantEntityStrategy.PRESERVE)
+        seen = await self._seen_on_second_turn(EntityCreateByAssistantStrategy.PRESERVE)
         assert "what about Emma" in seen
 
     async def test_anonymize_treats_the_assistant_value_as_pii(self) -> None:
         """ANONYMIZE tokenizes a value the assistant introduced."""
-        seen = await self._seen_on_second_turn(AssistantEntityStrategy.ANONYMIZE)
+        seen = await self._seen_on_second_turn(
+            EntityCreateByAssistantStrategy.ANONYMIZE
+        )
         assert "what about <<PERSON:1>>" in seen
         assert "Emma" not in seen
 
     async def test_ignore_leaves_the_assistant_message_unanalyzed(self) -> None:
         """IGNORE skips the assistant text, so the user reference tokenizes fresh."""
-        seen = await self._seen_on_second_turn(AssistantEntityStrategy.IGNORE)
+        seen = await self._seen_on_second_turn(EntityCreateByAssistantStrategy.IGNORE)
         assert "It is Emma" in seen
         assert "what about <<PERSON:1>>" in seen

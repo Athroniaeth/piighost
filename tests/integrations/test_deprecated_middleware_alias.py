@@ -31,7 +31,7 @@ class TestDeprecatedMiddlewareAlias:
 
     def test_old_enums_are_the_new_objects(self) -> None:
         from piighost.integrations.langchain import (
-            AssistantEntityStrategy,
+            EntityCreateByAssistantStrategy,
             InventedPlaceholderStrategy,
             ToolCallStrategy,
         )
@@ -39,7 +39,7 @@ class TestDeprecatedMiddlewareAlias:
         old = _reimport(_OLD)
         assert old.ToolCallStrategy is ToolCallStrategy
         assert old.InventedPlaceholderStrategy is InventedPlaceholderStrategy
-        assert old.AssistantEntityStrategy is AssistantEntityStrategy
+        assert old.EntityCreateByAssistantStrategy is EntityCreateByAssistantStrategy
 
     def test_old_strategy_submodule_reexports(self) -> None:
         from piighost.integrations.langchain.strategy import ToolCallStrategy

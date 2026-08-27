@@ -8,7 +8,7 @@ icon: lucide/wrench
 
 - **`ToolCallStrategy`** décide ce qui franchit la frontière outil, dans les deux directions. Défaut `FULL`.
 - **`InventedPlaceholderStrategy`** décide du sort d'un token que le pipeline n'a jamais émis, apparu dans une réponse ou un argument désanonymisé. Défaut `RAISE`.
-- **`AssistantEntityStrategy`** décide du sort d'une valeur dont la première occurrence dans le thread vient de l'assistant. Défaut `PRESERVE`.
+- **`EntityCreateByAssistantStrategy`** décide du sort d'une valeur dont la première occurrence dans le thread vient de l'assistant. Défaut `PRESERVE`.
 
 !!! note "Une entité, un token, sur tout le fil"
 
@@ -64,9 +64,9 @@ Après désanonymisation, tout token émis par le pipeline a été remplacé par
 
 Cette détection n'est possible que parce que la factory est retrouvable, ce qui est garanti par le tag `PreservesRecognizableIdentity` que le middleware exige.
 
-### `AssistantEntityStrategy` : la valeur venue de l'assistant
+### `EntityCreateByAssistantStrategy` : la valeur venue de l'assistant
 
-La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une PII utilisateur, l'anonymiser prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite.
+La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une PII utilisateur, l'anonymiser prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
 
 | Stratégie | Effet | Quand l'utiliser |
 |---|---|---|
@@ -121,7 +121,7 @@ Une seule exception, `PASSTHROUGH`. Comme la frontière outil n'est jamais trave
 |---|---|---|---|
 | `ToolCallStrategy` | `INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH` | `FULL` | ce qui franchit la frontière outil, dans chaque direction |
 | `InventedPlaceholderStrategy` | `KEEP`, `DROP`, `RAISE` | `RAISE` | le sort d'un token que le pipeline n'a jamais émis |
-| `AssistantEntityStrategy` | `PRESERVE`, `ANONYMIZE`, `IGNORE` | `PRESERVE` | le sort d'une valeur introduite par l'assistant, par provenance |
+| `EntityCreateByAssistantStrategy` | `PRESERVE`, `ANONYMIZE`, `IGNORE` | `PRESERVE` | le sort d'une valeur introduite par l'assistant, par provenance |
 
 </div>
 
@@ -150,7 +150,7 @@ Pour `ToolCallStrategy`.
 - `OUTPUT` quand l'outil reçoit des identifiants opaques mais peut renvoyer des PII.
 - `PASSTHROUGH` quand la confidentialité prime, ou quand l'outil est conçu pour travailler sur des tokens.
 
-Pour les deux autres, gardez les défauts sauf raison contraire. Passez `InventedPlaceholderStrategy` à `DROP` pour nettoyer une sortie utilisateur sans lever, ou à `KEEP` pour tolérer un faux token. Passez `AssistantEntityStrategy` à `ANONYMIZE` si même les valeurs citées par l'assistant doivent être protégées, ou à `IGNORE` pour économiser le détecteur quand l'assistant n'introduit jamais de PII.
+Pour les deux autres, gardez les défauts sauf raison contraire. Passez `InventedPlaceholderStrategy` à `DROP` pour nettoyer une sortie utilisateur sans lever, ou à `KEEP` pour tolérer un faux token. Passez `EntityCreateByAssistantStrategy` à `ANONYMIZE` si même les valeurs citées par l'assistant doivent être protégées, ou à `IGNORE` pour économiser le détecteur quand l'assistant n'introduit jamais de PII.
 
 ---
 
@@ -175,14 +175,14 @@ Les stratégies sont des `Enum` fermées, on ne les étend pas, on les combine �
         PIIAnonymizationMiddleware,
         ToolCallStrategy,
         InventedPlaceholderStrategy,
-        AssistantEntityStrategy,
+        EntityCreateByAssistantStrategy,
     )
 
     middleware = PIIAnonymizationMiddleware(
         pipeline,  # tokens PreservesRecognizableIdentity, sinon UnrecognizableFactoryError
         tool_strategy=ToolCallStrategy.FULL,
         invented_strategy=InventedPlaceholderStrategy.DROP,
-        assistant_strategy=AssistantEntityStrategy.PRESERVE,
+        assistant_strategy=EntityCreateByAssistantStrategy.PRESERVE,
         require_thread_id=True,
     )
     ```
