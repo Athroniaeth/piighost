@@ -25,6 +25,17 @@ Enfin, cette librairie garde la correspondance entre la valeur et son placeholde
 > [!NOTE]
 > `piighost` fait de la **dé-identification réversible**. Comme la correspondance entre une valeur et son placeholder est conservée pour pouvoir restaurer les données, il s'agit d'une pseudonymisation au sens du RGPD, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
+## Fonctionnalités
+
+- **Détecteurs enfichables** — catalogues regex (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), un détecteur LLM, plus exact-match, composite et chunked.
+- **Placeholders réversibles et sans collision** — jetons opaques (`<<PERSON:1>>`), plus des factories label-only, masque, et hash à clé, stables sur toute une conversation.
+- **Intégrations agents** — middleware LangChain, hooks Pydantic AI, et LlamaIndex, avec dé-identification à la frontière des outils et restauration en streaming token par token.
+- **Mémoire de conversation** — backends in-process, Redis, ou SQLAlchemy ; le backend Redis peut chiffrer les valeurs au repos (AES-GCM) et hacher les clés (Argon2id).
+- **Guard rail** — revérifie la sortie du modèle pour des PII résiduelles et la refuse (un détecteur, un LLM, ou une modération via Mistral).
+- **Configuration TOML/JSON** — construit un pipeline complet depuis un fichier, avec un CLI pour le valider et émettre son schéma.
+- **Client HTTP et tracing OpenTelemetry** — un client async pour `piighost-api`, et des spans par étape avec rédaction optionnelle des payloads.
+- **Typé et léger en dépendances** — fournit `py.typed`, un cœur minimal, tout le lourd derrière des extras optionnels.
+
 ## Démarrage rapide
 
 ```bash
