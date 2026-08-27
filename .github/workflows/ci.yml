@@ -66,4 +66,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-${{ matrix.python-version }}-
       - run: uv sync --locked --dev --no-progress -q
-      - run: uv run pytest
+      - run: uv run pytest --cov=piighost --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.13'
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
