@@ -283,7 +283,7 @@ protecting nothing of the user.
 The memory therefore records the role of each value's first occurrence,
 `MessageRole.USER` or `MessageRole.ASSISTANT`. A value whose first occurrence comes from
 a model message is left in clear, because it is not user PII. The middleware controls
-this behavior through `AssistantEntityStrategy`, preserve, de-identify anyway, or ignore
+this behavior through `EntityCreateByAssistantStrategy`, preserve, de-identify anyway, or ignore
 the model's messages.
 
 ---

@@ -295,7 +295,7 @@ suivant, sans rien protéger de l'utilisateur.
 La mémoire enregistre donc le rôle de la première occurrence de chaque valeur,
 `MessageRole.USER` ou `MessageRole.ASSISTANT`. Une valeur dont la première occurrence
 vient d'un message du modèle est laissée en clair, car elle n'est pas une PII
-utilisateur. Le middleware règle ce comportement par `AssistantEntityStrategy`,
+utilisateur. Le middleware règle ce comportement par `EntityCreateByAssistantStrategy`,
 préserver, dé-identifier quand même, ou ignorer les messages du modèle.
 
 ---

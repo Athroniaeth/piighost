@@ -8,13 +8,13 @@ helpful ImportError, while importing this package never pulls langchain in.
 from typing import Any
 
 from piighost.integrations.langchain.strategy import (
-    AssistantEntityStrategy,
+    EntityCreateByAssistantStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
 
 __all__ = [
-    "AssistantEntityStrategy",
+    "EntityCreateByAssistantStrategy",
     "InventedPlaceholderStrategy",
     "PIIAnonymizationMiddleware",
     "ToolCallStrategy",
@@ -22,12 +22,18 @@ __all__ = [
 
 
 def __getattr__(name: str) -> Any:
-    """Import the middleware on demand so its optional dependency stays optional."""
+    """Import the middleware on demand, and serve the deprecated strategy alias."""
     if name == "PIIAnonymizationMiddleware":
         from piighost.integrations.langchain.middleware import (
             PIIAnonymizationMiddleware,
         )
 
         return PIIAnonymizationMiddleware
+
+    if name == "AssistantEntityStrategy":
+        # Reaching through strategy emits its rename DeprecationWarning.
+        from piighost.integrations.langchain.strategy import AssistantEntityStrategy
+
+        return AssistantEntityStrategy
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

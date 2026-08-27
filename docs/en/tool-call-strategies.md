@@ -8,7 +8,7 @@ icon: lucide/wrench
 
 - **`ToolCallStrategy`** decides what crosses the tool boundary, in both directions. Default `FULL`.
 - **`InventedPlaceholderStrategy`** decides the fate of a token the pipeline never issued, surfacing in a response or a deanonymised argument. Default `RAISE`.
-- **`AssistantEntityStrategy`** decides the fate of a value whose first occurrence in the thread came from the assistant. Default `PRESERVE`.
+- **`EntityCreateByAssistantStrategy`** decides the fate of a value whose first occurrence in the thread came from the assistant. Default `PRESERVE`.
 
 !!! note "One entity, one token, across the whole thread"
 
@@ -64,9 +64,9 @@ After deanonymisation, every token the pipeline issued has been replaced by its 
 
 This detection is possible only because the factory is findable, which the tag `PreservesRecognizableIdentity` that the middleware requires guarantees.
 
-### `AssistantEntityStrategy`: the value that came from the assistant
+### `EntityCreateByAssistantStrategy`: the value that came from the assistant
 
-The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not user PII, anonymising it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself.
+The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not user PII, anonymising it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
 
 | Strategy | Effect | When to use |
 |---|---|---|
@@ -121,7 +121,7 @@ One exception, `PASSTHROUGH`. Since the tool boundary is never crossed in clear 
 |---|---|---|---|
 | `ToolCallStrategy` | `INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH` | `FULL` | what crosses the tool boundary, in each direction |
 | `InventedPlaceholderStrategy` | `KEEP`, `DROP`, `RAISE` | `RAISE` | the fate of a token the pipeline never issued |
-| `AssistantEntityStrategy` | `PRESERVE`, `ANONYMIZE`, `IGNORE` | `PRESERVE` | the fate of a value introduced by the assistant, by provenance |
+| `EntityCreateByAssistantStrategy` | `PRESERVE`, `ANONYMIZE`, `IGNORE` | `PRESERVE` | the fate of a value introduced by the assistant, by provenance |
 
 </div>
 
@@ -150,7 +150,7 @@ For `ToolCallStrategy`.
 - `OUTPUT` when the tool receives opaque identifiers but may return PII.
 - `PASSTHROUGH` when privacy outweighs functionality, or when the tool is engineered to work on tokens.
 
-For the other two, keep the defaults unless you have a reason not to. Set `InventedPlaceholderStrategy` to `DROP` to clean a user-facing output without raising, or to `KEEP` to tolerate a fake token. Set `AssistantEntityStrategy` to `ANONYMIZE` if even values the assistant cited must be protected, or to `IGNORE` to save the detector when the assistant never introduces PII.
+For the other two, keep the defaults unless you have a reason not to. Set `InventedPlaceholderStrategy` to `DROP` to clean a user-facing output without raising, or to `KEEP` to tolerate a fake token. Set `EntityCreateByAssistantStrategy` to `ANONYMIZE` if even values the assistant cited must be protected, or to `IGNORE` to save the detector when the assistant never introduces PII.
 
 ---
 
@@ -175,14 +175,14 @@ The strategies are closed `Enum`s, you do not extend them, you combine them at m
         PIIAnonymizationMiddleware,
         ToolCallStrategy,
         InventedPlaceholderStrategy,
-        AssistantEntityStrategy,
+        EntityCreateByAssistantStrategy,
     )
 
     middleware = PIIAnonymizationMiddleware(
         pipeline,  # PreservesRecognizableIdentity tokens, else UnrecognizableFactoryError
         tool_strategy=ToolCallStrategy.FULL,
         invented_strategy=InventedPlaceholderStrategy.DROP,
-        assistant_strategy=AssistantEntityStrategy.PRESERVE,
+        assistant_strategy=EntityCreateByAssistantStrategy.PRESERVE,
         require_thread_id=True,
     )
     ```

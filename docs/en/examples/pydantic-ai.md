@@ -95,12 +95,12 @@ hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
 Not every value is user PII. When the model itself introduces a value from its world knowledge, tokenizing it would hide it from the model on the next turn and protect nothing of the user. `assistant_strategy` decides what happens to a value the assistant introduces, again the same enum the middleware uses. Under `PRESERVE`, the default, it stays in clear, so the model keeps its own knowledge of it and only known user PII is tokenized. `ANONYMIZE` tokenizes it anyway, and `IGNORE` skips the assistant's messages entirely, saving the detector.
 
 ```python
-from piighost.integrations.langchain import AssistantEntityStrategy
+from piighost.integrations.langchain import EntityCreateByAssistantStrategy
 
 hooks = pii_hooks(
     pipeline,
     "thread-42",
-    assistant_strategy=AssistantEntityStrategy.ANONYMIZE,
+    assistant_strategy=EntityCreateByAssistantStrategy.ANONYMIZE,
 )
 ```
 

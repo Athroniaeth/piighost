@@ -17,7 +17,7 @@ from piighost.components.placeholder import (
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
 from piighost.integrations.langchain import (
-    AssistantEntityStrategy,
+    EntityCreateByAssistantStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
@@ -278,7 +278,7 @@ class TestInventedPlaceholders:
 
 class TestAssistantProvenance:
     def _middleware(
-        self, monkeypatch: pytest.MonkeyPatch, strategy: AssistantEntityStrategy
+        self, monkeypatch: pytest.MonkeyPatch, strategy: EntityCreateByAssistantStrategy
     ) -> Any:
         """Build the middleware under an assistant-entity strategy."""
         module = importlib.import_module(_MODULE)
@@ -303,7 +303,9 @@ class TestAssistantProvenance:
     ) -> None:
         """Under PRESERVE, a user reference to an assistant value stays in clear."""
         pytest.importorskip("langchain")
-        middleware = self._middleware(monkeypatch, AssistantEntityStrategy.PRESERVE)
+        middleware = self._middleware(
+            monkeypatch, EntityCreateByAssistantStrategy.PRESERVE
+        )
         assert await self._assistant_then_user(middleware) == "what about Emma"
 
     async def test_anonymize_treats_assistant_value_as_pii(
@@ -311,7 +313,9 @@ class TestAssistantProvenance:
     ) -> None:
         """Under ANONYMIZE, an assistant-introduced value is anonymized."""
         pytest.importorskip("langchain")
-        middleware = self._middleware(monkeypatch, AssistantEntityStrategy.ANONYMIZE)
+        middleware = self._middleware(
+            monkeypatch, EntityCreateByAssistantStrategy.ANONYMIZE
+        )
         assert await self._assistant_then_user(middleware) == "what about <<PERSON:1>>"
 
     async def test_ignore_does_not_analyze_assistant_messages(
@@ -321,7 +325,9 @@ class TestAssistantProvenance:
         pytest.importorskip("langchain")
         from langchain_core.messages import AIMessage
 
-        middleware = self._middleware(monkeypatch, AssistantEntityStrategy.IGNORE)
+        middleware = self._middleware(
+            monkeypatch, EntityCreateByAssistantStrategy.IGNORE
+        )
         update = await middleware.abefore_model(
             {"messages": [AIMessage("It is Emma")]}, None
         )

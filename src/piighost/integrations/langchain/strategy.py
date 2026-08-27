@@ -5,7 +5,9 @@ module so they can be imported and referenced, for example by the config loader,
 without installing langchain.
 """
 
+import warnings
 from enum import Enum
+from typing import Any
 
 
 class ToolCallStrategy(Enum):
@@ -48,7 +50,7 @@ class InventedPlaceholderStrategy(Enum):
     RAISE = "raise"
 
 
-class AssistantEntityStrategy(Enum):
+class EntityCreateByAssistantStrategy(Enum):
     """How the middleware treats entities the assistant introduces.
 
     A value's provenance is the role of its first occurrence in the thread. A
@@ -58,8 +60,29 @@ class AssistantEntityStrategy(Enum):
     - PRESERVE: leave assistant-introduced values in clear.
     - ANONYMIZE: anonymize them like user PII.
     - IGNORE: do not analyze assistant messages at all, saving the detector.
+
+    Formerly named AssistantEntityStrategy, which stays importable as a deprecated
+    alias.
     """
 
     PRESERVE = "preserve"
     ANONYMIZE = "anonymize"
     IGNORE = "ignore"
+
+
+_RENAMED_STRATEGIES = {"AssistantEntityStrategy": EntityCreateByAssistantStrategy}
+"""Deprecated strategy names mapped to their current class."""
+
+
+def __getattr__(name: str) -> Any:
+    """Return a renamed strategy under its old name, warning that it is deprecated."""
+    renamed = _RENAMED_STRATEGIES.get(name)
+    if renamed is not None:
+        warnings.warn(
+            f"{name} is deprecated and renamed to {renamed.__name__}; "
+            f"import {renamed.__name__} instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return renamed
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
