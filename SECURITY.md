@@ -4,8 +4,10 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.7.x   | ✅ Yes    |
-| 0.6.x   | ✅ Yes    |
+| 1.4.x   | ✅ Yes    |
+| < 1.4   | ❌ No     |
+
+The 0.x line is no longer supported. Security fixes land on the current 1.x line.
 
 ## Reporting a Vulnerability
 
@@ -23,11 +25,12 @@ We aim to acknowledge reports within **48 hours** and provide an initial assessm
 
 ## Security Considerations
 
-PIIGhost handles potentially sensitive PII data. Key design decisions:
+PIIGhost handles potentially sensitive PII. Key design decisions:
 
-- **Anonymization is local** : PII is detected and replaced before being sent to any LLM or external service
-- **SHA-256 keyed placeholder store** : placeholders are deterministically derived, not stored in plaintext
-- **No logging of raw PII** : the library itself does not log entity values
-- **Frozen dataclasses** : immutable data models prevent accidental mutation of sensitive data
+- **De-identification is local**: PII is detected and replaced with placeholder tokens before any message reaches an LLM or external service.
+- **Reversible pseudonymization, not hashing**: the default placeholders are opaque, collision-free tokens such as `<<PERSON:1>>`. The token-to-value map is held in the conversation memory (in-process, Redis, or SQLAlchemy), not embedded in the token. A hashed placeholder factory exists as an option, but it is not the default.
+- **Optional encryption at rest**: the Redis backend can encrypt stored values with AES-GCM and hash the storage keys with Argon2id (the `crypto` and `argon2` extras, keyed by `PIIGHOST_CIPHER_KEY`). It is off by default; enable it for a shared backend.
+- **No logging of raw PII**: the library does not log entity values, and the OpenTelemetry observation layer can tokenize span payloads so traces stay safe for a PII-untrusted backend.
+- **Frozen dataclasses**: the data models are immutable.
 
-> **Note**: PIIGhost anonymizes PII before LLM calls but does not encrypt data at rest. Ensure your cache backend is appropriately secured in production.
+> **Note**: de-identification protects PII from the model, not the store. Encryption at rest is available for the Redis backend but off by default, so secure your memory backend appropriately in production.
