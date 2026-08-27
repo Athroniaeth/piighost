@@ -17,7 +17,7 @@ from piighost.components.placeholder.tags import PreservesRecognizableIdentity
 from piighost.conversation_memory import MessageRole
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import (
-    AssistantEntityStrategy,
+    EntityCreateByAssistantStrategy,
     InventedPlaceholderStrategy,
     ToolCallStrategy,
 )
@@ -50,7 +50,7 @@ def pii_hooks(
     thread_id: Callable[[RunContext[Any]], str] | str,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-    assistant_strategy: AssistantEntityStrategy = AssistantEntityStrategy.PRESERVE,
+    assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
 ) -> Hooks:
     """Build a Pydantic AI capability that de-identifies PII around the model.
 
@@ -82,8 +82,8 @@ def pii_hooks(
     deid = TextDeidentifier(pipeline, invented_strategy)
     deanonymize_args = tool_strategy in (ToolCallStrategy.INPUT, ToolCallStrategy.FULL)
     anonymize_result = tool_strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
-    skip_assistant = assistant_strategy is AssistantEntityStrategy.IGNORE
-    if assistant_strategy is AssistantEntityStrategy.ANONYMIZE:
+    skip_assistant = assistant_strategy is EntityCreateByAssistantStrategy.IGNORE
+    if assistant_strategy is EntityCreateByAssistantStrategy.ANONYMIZE:
         assistant_role = MessageRole.USER
     else:
         assistant_role = MessageRole.ASSISTANT

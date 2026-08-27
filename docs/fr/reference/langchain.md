@@ -13,7 +13,7 @@ Module : `piighost.integrations.langchain`
 
 ```python
 from piighost.integrations.langchain import (
-    AssistantEntityStrategy,
+    EntityCreateByAssistantStrategy,
     InventedPlaceholderStrategy,
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
@@ -46,7 +46,7 @@ PIIAnonymizationMiddleware(
     tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
     require_thread_id: bool = True,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
-    assistant_strategy: AssistantEntityStrategy = AssistantEntityStrategy.PRESERVE,
+    assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
 )
 ```
 
@@ -56,7 +56,7 @@ PIIAnonymizationMiddleware(
 | `tool_strategy` | `ToolCallStrategy` | Comment les deux directions d'un appel d'outil sont traitées |
 | `require_thread_id` | `bool` | Si un thread id absent lève, plutôt que de retomber sur un thread partagé |
 | `invented_strategy` | `InventedPlaceholderStrategy` | Comment un token que le pipeline n'a jamais émis est traité après restauration |
-| `assistant_strategy` | `AssistantEntityStrategy` | Comment les valeurs introduites par l'assistant sont traitées |
+| `assistant_strategy` | `EntityCreateByAssistantStrategy` | Comment les valeurs introduites par l'assistant sont traitées |
 
 Le pipeline doit exposer un reconnaisseur de tokens délimités via `pipeline.recognizer`, pour qu'un token inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte au type-checking pour les appelants typés.
 
@@ -68,7 +68,7 @@ Le pipeline doit exposer un reconnaisseur de tokens délimités via `pipeline.re
 
 ### `abefore_model(state, runtime) -> dict | None`
 
-Dé-identifie les messages utilisateur et modèle avant que le modèle ne les voie. Chaque message passe par `pipeline.anonymize()` sous le rôle que son type porte. Un `ToolMessage` n'est jamais réécrit ici, seulement dans l'enveloppe d'outil. Sous `AssistantEntityStrategy.IGNORE`, le contenu d'un `AIMessage` est ignoré entièrement.
+Dé-identifie les messages utilisateur et modèle avant que le modèle ne les voie. Chaque message passe par `pipeline.anonymize()` sous le rôle que son type porte. Un `ToolMessage` n'est jamais réécrit ici, seulement dans l'enveloppe d'outil. Sous `EntityCreateByAssistantStrategy.IGNORE`, le contenu d'un `AIMessage` est ignoré entièrement.
 
 Renvoie `{"messages": [...]}` quand un message change, `None` sinon.
 
@@ -132,9 +132,9 @@ Comment un token que le pipeline n'a jamais émis est traité. Après restaurati
 
 `RAISE` est la valeur par défaut.
 
-### `AssistantEntityStrategy`
+### `EntityCreateByAssistantStrategy`
 
-Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une PII utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité.
+Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une PII utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
 
 | Valeur | Effet |
 |--------|-------|
