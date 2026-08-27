@@ -41,7 +41,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/Athroniaeth/piighost"
-Documentation = "https://github.com/Athroniaeth/piighost#readme"
+Documentation = "https://athroniaeth.github.io/piighost/"
+Repository = "https://github.com/Athroniaeth/piighost"
 Issues = "https://github.com/Athroniaeth/piighost/issues"
 Changelog = "https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"
 
