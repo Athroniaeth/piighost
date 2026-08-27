@@ -71,6 +71,20 @@ Now the turn-2 case resolves the other way: worker B reads `Patrick -> <<PERSON:
 
 The Redis memory also encrypts each stored value and hashes each key, and reads its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deploy a production pipeline](deployment.md), and every `[memory]` key is in the [configuration reference](configuration/toml.md).
 
+A SQL database is the other shared store. `type = "sqlalchemy"` gives the same cross-worker consistency backed by PostgreSQL (or any async SQLAlchemy driver), which suits a stack that already runs a relational database and wants the token mapping to survive restarts durably. It reads the database URL from `PIIGHOST_DATABASE_URL` and takes the same optional hasher and cipher as Redis.
+
+```toml
+[memory]
+type = "sqlalchemy"
+url_env = "PIIGHOST_DATABASE_URL"
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
 ## Align with LangGraph
 
 The same trap hits LangGraph's `checkpointer`. `MemorySaver` is process-local, `PostgresSaver` and `RedisSaver` are shared. If your agent already runs a shared saver behind the load balancer, run the `piighost` memory on the same infrastructure. A `thread_id` that has a checkpointed state then also has its token mapping reachable, on any worker.

@@ -71,6 +71,20 @@ Le cas du tour 2 se résout maintenant dans l'autre sens. Le worker B lit `Patri
 
 La mémoire Redis chiffre aussi chaque valeur stockée et hache chaque clé, et lit son pepper et sa clé de cipher dans l'environnement. Ces secrets et la mise en place complète sont traités dans [Déployer un pipeline en production](deployment.md), et chaque clé `[memory]` est dans la [référence de configuration](configuration/toml.md).
 
+Une base SQL est l'autre store partagé. `type = "sqlalchemy"` offre la même cohérence entre workers, adossée à PostgreSQL (ou n'importe quel driver SQLAlchemy async), ce qui convient à une stack qui exécute déjà une base relationnelle et veut que la correspondance des tokens survive durablement aux redémarrages. Il lit l'URL de la base dans `PIIGHOST_DATABASE_URL` et prend le même hacheur et le même cipher optionnels que Redis.
+
+```toml
+[memory]
+type = "sqlalchemy"
+url_env = "PIIGHOST_DATABASE_URL"
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
 ## S'aligner sur LangGraph
 
 Le même piège frappe le `checkpointer` de LangGraph. `MemorySaver` est local au processus, `PostgresSaver` et `RedisSaver` sont partagés. Si votre agent fait déjà tourner un saver partagé derrière le load balancer, faites tourner la mémoire de `piighost` sur la même infrastructure. Un `thread_id` qui a un état checkpointé a alors aussi son mapping de tokens joignable, sur n'importe quel worker.

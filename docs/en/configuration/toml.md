@@ -434,6 +434,32 @@ type = "argon2"
 type = "aesgcm"
 ```
 
+### `type = "sqlalchemy"`
+
+A durable, multi-worker store backed by any SQLAlchemy-supported database (SQLite, PostgreSQL, ...). It reads the database URL from an environment variable rather than the config file, so the URL and its password stay out of version control. An optional hasher and cipher protect the stored values exactly as they do for Redis.
+
+| Key | Type | Default | Meaning |
+|-----|------|---------|---------|
+| `url_env` | `str` | `PIIGHOST_DATABASE_URL` | The environment variable holding the async database URL |
+| `table_name` | `str` | `piighost_conversation_messages` | The table storing per-thread messages |
+| `[memory.hasher]` | hasher | | Optional. The hasher keying each message |
+| `[memory.cipher]` | cipher | | Optional. The cipher encrypting each value |
+
+The URL must use an async driver, for example `postgresql+asyncpg://...` or `sqlite+aiosqlite://...`. A missing environment variable raises `ConfigError` at build time. Call `await memory.create_schema()` once at startup to create the table.
+
+```toml
+[memory]
+type = "sqlalchemy"
+url_env = "PIIGHOST_DATABASE_URL"
+table_name = "piighost_conversation_messages"
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
 ---
 
 ## Full example
