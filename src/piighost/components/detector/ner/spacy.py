@@ -16,8 +16,8 @@ if importlib.util.find_spec("spacy") is None:
         "Install it with: pip install piighost[spacy]"
     )
 
-import spacy  # pyrefly: ignore[missing-import]  # noqa: E402
-from spacy.language import Language  # pyrefly: ignore[missing-import]  # noqa: E402
+import spacy  # pyrefly: ignore[missing-import]
+from spacy.language import Language  # pyrefly: ignore[missing-import]
 
 
 class SpacyDetector(BaseNERDetector):

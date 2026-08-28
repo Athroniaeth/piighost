@@ -6,6 +6,7 @@ it without the dependency raises an ImportError pointing at the extra.
 """
 
 import importlib.util
+from typing import ClassVar
 
 from piighost.components.detector.ner.base import BaseNERDetector
 from piighost.models import Detection, Span
@@ -16,7 +17,7 @@ if importlib.util.find_spec("gliner2") is None:
         "Install it with: pip install piighost[gliner2]"
     )
 
-from gliner2 import GLiNER2  # pyrefly: ignore[missing-import]  # noqa: E402
+from gliner2 import GLiNER2  # pyrefly: ignore[missing-import]
 
 
 class Gliner2Detector(BaseNERDetector):
@@ -81,7 +82,7 @@ class Gliner2PiiDetector(Gliner2Detector):
     DEFAULT_MODEL = "fastino/gliner2-privacy-filter-PII-multi"
     """The GLiNER2 model fine-tuned for PII, loaded when no model is given."""
 
-    DEFAULT_LABELS = {
+    DEFAULT_LABELS: ClassVar[dict[str, str]] = {
         "PERSON": "person",
         "EMAIL": "email address",
         "PHONE": "phone number",

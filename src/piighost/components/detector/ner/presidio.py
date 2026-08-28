@@ -17,7 +17,9 @@ if importlib.util.find_spec("presidio_analyzer") is None:
         "Install it with: pip install piighost[presidio]"
     )
 
-from presidio_analyzer import AnalyzerEngine  # pyrefly: ignore[missing-import]  # noqa: E402
+from presidio_analyzer import (  # pyrefly: ignore[missing-import]
+    AnalyzerEngine,
+)
 
 
 class PresidioDetector(BaseNERDetector):

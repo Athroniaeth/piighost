@@ -31,18 +31,18 @@ from langchain_core.outputs import ChatResult
 from langchain_core.tools import tool
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     PreservesLabeledIdentityOpaque,
 )
+from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
 )
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 # The messages the model was given on each call. It lets the example show that
 # the model only ever saw placeholders; a real model needs nothing like it.

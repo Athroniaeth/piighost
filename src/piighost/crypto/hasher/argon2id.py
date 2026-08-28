@@ -17,7 +17,7 @@ if importlib.util.find_spec("argon2") is None:
         "Install it with: pip install piighost[argon2]"
     )
 
-import argon2.low_level  # noqa: E402  (guarded optional import)
+import argon2.low_level
 
 _SALT_LENGTH = 16
 """Salt length in bytes for the pepper-derived salt, the argon2 default."""

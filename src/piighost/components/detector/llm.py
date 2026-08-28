@@ -20,9 +20,9 @@ if importlib.util.find_spec("langchain_core") is None:
         "Install it with: pip install piighost[llm]"
     )
 
-from langchain_core.language_models import BaseChatModel  # noqa: E402
-from langchain_core.prompts import ChatPromptTemplate  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
+from langchain_core.language_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 

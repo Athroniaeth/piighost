@@ -71,7 +71,7 @@ class Span:
         text. A shift that would push start below zero raises via the
         constructor, surfacing the bug rather than silently clamping.
         """
-        return Span(
+        return type(self)(
             self.start + offset,
             self.end + offset,
         )

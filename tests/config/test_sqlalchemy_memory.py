@@ -4,9 +4,9 @@ import pytest
 
 pytest.importorskip("sqlalchemy")
 
-from piighost.config.models.memory import SqlAlchemyMemoryConfig  # noqa: E402
-from piighost.conversation_memory import SqlAlchemyConversationMemory  # noqa: E402
-from piighost.exceptions import ConfigError  # noqa: E402
+from piighost.config.models.memory import SqlAlchemyMemoryConfig
+from piighost.conversation_memory import SqlAlchemyConversationMemory
+from piighost.exceptions import ConfigError
 
 
 class TestBuild:

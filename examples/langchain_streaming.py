@@ -74,10 +74,13 @@ async def main() -> None:
         async for chunk, _meta in agent.astream(
             request, config, stream_mode="messages"
         ):
-            if isinstance(chunk, AIMessageChunk) and isinstance(chunk.content, str):
-                if chunk.content:
-                    raw.append(chunk.content)
-                    yield chunk.content
+            if (
+                isinstance(chunk, AIMessageChunk)
+                and isinstance(chunk.content, str)
+                and chunk.content
+            ):
+                raw.append(chunk.content)
+                yield chunk.content
 
     print("restored, streamed token by token:\n")
     async for piece in middleware.deanonymize_stream(model_text(), thread_id):

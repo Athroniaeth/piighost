@@ -20,7 +20,7 @@ if importlib.util.find_spec("typer") is None:
         "The piighost CLI requires typer. Install it with: pip install piighost[config]"
     )
 
-import typer  # noqa: E402
+import typer
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 

@@ -11,4 +11,4 @@ from piighost.components.anonymizer.base import (
 )
 from piighost.components.anonymizer.span import Anonymizer
 
-__all__ = ["Anonymization", "AnyAnonymizer", "Anonymizer", "BaseAnonymizer"]
+__all__ = ["Anonymization", "Anonymizer", "AnyAnonymizer", "BaseAnonymizer"]

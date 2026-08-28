@@ -11,12 +11,10 @@ from piighost.components.anonymizer import Anonymizer
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
 from piighost.components.detector.base import AnyDetector
 from piighost.components.entity_resolver.base import AnyEntityResolver
-from piighost.exceptions import PIIRemainingError
 from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail, GuardVerdict
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.linker.base import AnyEntityLinker
-from piighost.models import Detection, Entity
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.components.override.base import AnyDetectionOverride
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
@@ -26,6 +24,8 @@ from piighost.components.placeholder.base import (
 )
 from piighost.components.placeholder.tags import PlaceholderPreservation
 from piighost.conversation_memory.base import Forgotten, MessageRole
+from piighost.exceptions import PIIRemainingError
+from piighost.models import Detection, Entity
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
 
 PreservationT = TypeVar(

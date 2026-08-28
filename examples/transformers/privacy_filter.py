@@ -23,7 +23,9 @@ uv run examples/transformers/privacy_filter.py
 
 import asyncio
 
-from transformers import pipeline  # pyrefly: ignore[missing-import, missing-module-attribute]
+from transformers import (
+    pipeline,  # pyrefly: ignore[missing-import, missing-module-attribute]
+)
 
 from piighost.components.detector.ner import TransformersDetector
 from piighost.pipeline import ThreadAnonymizationPipeline
