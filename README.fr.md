@@ -70,7 +70,7 @@ print(result.text)  # Écris à <<PERSON:1>> à <<EMAIL:1>>.
 
 ### Conversations et agents (LangChain)
 
-Le middleware enrobe un pipeline conversationnel et gère chaque tour d'agent. Le LLM ne voit que des placeholders, les outils reçoivent les vraies valeurs, l'utilisateur reçoit une réponse en clair.
+Le middleware enrobe un pipeline conversationnel et gère chaque tour d'agent pour vous, si bien que la même dé-identification s'applique sans rien changer à la logique de votre agent.
 
 ```bash
 pip install 'piighost[langchain]'   # or: uv add 'piighost[langchain]'
