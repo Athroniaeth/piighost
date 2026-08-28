@@ -14,7 +14,7 @@ if importlib.util.find_spec("pydantic_settings") is None:
         "Install it with: pip install piighost[config]"
     )
 
-from piighost.config.settings import (  # noqa: E402
+from piighost.config.settings import (
     PipelineConfig,
     load_config,
     load_pipeline,

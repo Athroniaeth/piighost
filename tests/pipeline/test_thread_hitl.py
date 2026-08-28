@@ -3,13 +3,18 @@
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.components.placeholder import (
+    LabelCounterPlaceholderFactory,
+    PreservesLabeledIdentityOpaque,
+)
 from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.models import Detection, Span
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
-def _pipeline(detector: AnyDetector | None = None) -> ThreadAnonymizationPipeline:
+def _pipeline(
+    detector: AnyDetector | None = None,
+) -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Build a thread pipeline over a counter factory and in-memory backend."""
     return ThreadAnonymizationPipeline(
         detector or ExactMatchDetector({"Paris": "LOCATION"}),

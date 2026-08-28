@@ -57,6 +57,9 @@ piighost = "piighost.cli:main"
 [project.optional-dependencies]
 gliner2 = [
     "gliner2>=1.2",
+    # gliner2 2.0 imports peft on its inference import path but only declares it
+    # under its own extras, so pull it in explicitly to keep the detector usable.
+    "peft>=0.10,<1",
 ]
 redis = [
     "redis>=5",
@@ -171,6 +174,9 @@ dev = [
 ]
 gliner2 = [
     "gliner2>=1.2.4",
+    # See the [project.optional-dependencies] gliner2 note: peft is imported by
+    # gliner2 2.0 but only declared under its extras.
+    "peft>=0.10,<1",
 ]
 presidio = [
     "presidio-analyzer>=2.2",
@@ -218,8 +224,11 @@ show_missing = true
 
 [tool.ruff]
 # tools/ holds self-contained dev scripts (the animation generator), not
-# library code, so they are exempt from the strict annotation lint.
-extend-exclude = ["tools"]
+# library code, so they are exempt from the strict annotation lint. docs/ and
+# .claude/ are Markdown prose whose fenced Python blocks are hand-aligned for
+# readability; ruff 0.16 reformats code in Markdown, which would flatten that
+# alignment, so keep them out of ruff's scope.
+extend-exclude = ["tools", "docs", ".claude"]
 
 [tool.ruff.lint]
 # Typing is mandatory: flake8-annotations (ANN) flags any missing argument or

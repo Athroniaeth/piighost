@@ -30,7 +30,10 @@ import asyncio
 
 from dotenv import load_dotenv
 from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings  # pyrefly: ignore[missing-import]
+from langchain_openai import (  # pyrefly: ignore[missing-import]
+    ChatOpenAI,
+    OpenAIEmbeddings,
+)
 
 from piighost.components.detector import ExactMatchDetector
 from piighost.pipeline import ThreadAnonymizationPipeline

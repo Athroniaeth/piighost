@@ -68,8 +68,8 @@ class TestUsableWhenInstalled:
     def test_empty_pepper_is_rejected(self) -> None:
         """Argon2Hasher inherits the fail-closed empty-pepper guard."""
         pytest.importorskip("argon2")
-        from piighost.exceptions import EmptyPepperError
         from piighost.crypto.hasher import Argon2Hasher
+        from piighost.exceptions import EmptyPepperError
 
         with pytest.raises(EmptyPepperError):
             Argon2Hasher("")

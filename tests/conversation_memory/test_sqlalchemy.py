@@ -7,16 +7,16 @@ import pytest
 
 pytest.importorskip("sqlalchemy")
 
-import pytest_asyncio  # noqa: E402
-from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine
 
-from piighost.components.detector import ExactMatchDetector  # noqa: E402
-from piighost.conversation_memory import (  # noqa: E402
+from piighost.components.detector import ExactMatchDetector
+from piighost.conversation_memory import (
     AnyConversationMemory,
     SqlAlchemyConversationMemory,
 )
-from piighost.conversation_memory.base import MessageRole  # noqa: E402
-from piighost.exceptions import PIIGhostSecurityWarning  # noqa: E402
+from piighost.conversation_memory.base import MessageRole
+from piighost.exceptions import PIIGhostSecurityWarning
 
 _AES_KEY = b"0123456789abcdef0123456789abcdef"
 """A 32-byte key, the AES-256 size."""

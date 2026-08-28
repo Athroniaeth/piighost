@@ -17,7 +17,7 @@ if importlib.util.find_spec("transformers") is None:
         "Install it with: pip install piighost[transformers]"
     )
 
-from transformers.pipelines.token_classification import (  # pyrefly: ignore[missing-import]  # noqa: E402
+from transformers.pipelines.token_classification import (  # pyrefly: ignore[missing-import]
     TokenClassificationPipeline,
 )
 
@@ -49,7 +49,7 @@ class TransformersDetector(BaseNERDetector):
                 pipeline as hf_pipeline,  # pyrefly: ignore[missing-import, missing-module-attribute]
             )
 
-            pipeline = hf_pipeline("ner", model=pipeline)
+            pipeline = hf_pipeline("token-classification", model=pipeline)
         self.pipeline = pipeline
         self.threshold = threshold
 

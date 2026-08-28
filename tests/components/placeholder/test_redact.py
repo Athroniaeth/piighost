@@ -1,11 +1,11 @@
 """Tests for the RedactPlaceholderFactory."""
 
-from piighost.models import Detection, Entity, Span
 from piighost.components.placeholder import (
     AnyPlaceholderFactory,
     RedactPlaceholderFactory,
 )
 from piighost.components.placeholder.tags import PreservesNothing
+from piighost.models import Detection, Entity, Span
 
 REDACT_TOKEN = PreservesNothing("<<REDACT>>")
 """The default redaction token, rebuilt here to assert the mapping."""
