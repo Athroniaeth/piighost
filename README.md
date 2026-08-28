@@ -26,37 +26,22 @@ The mapping between a value and its placeholder also sticks around for the whole
 > [!NOTE]
 > `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
-## Features
-
-- **Pluggable detectors:** regex catalogs (generic, US, EU, FR), NER with GLiNER2, spaCy or Transformers, and an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits long text that overruns a model's context window).
-- **Reversible, collision-free placeholders:** opaque tokens like `<<PERSON:1>>`, plus label-only, masked, and keyed-hash factories, all stable across a whole conversation.
-- **Agent integrations:** LangChain middleware, Pydantic AI hooks, and LlamaIndex, with de-identification right at the tool boundary and token-by-token streaming restoration.
-- **Conversation memory:** in-process, Redis, or SQLAlchemy backends. The Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
-- **Guard rail:** re-check the model's output for any PII that slipped through and refuse it, backed by a detector, an LLM, or Mistral moderation.
-- **TOML/JSON configuration:** build a whole pipeline from one file, with a CLI to validate it and print its schema.
-- **HTTP client and OpenTelemetry tracing:** an async client for the companion `piighost-api`, and per-stage spans you can view in any OpenTelemetry backend like Langfuse or Jaeger, with optional payload redaction.
-- **Typed and dependency-light:** ships `py.typed` and a minimal core, with everything heavy tucked behind optional extras.
-
 ## Why PIIGhost
 
 Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what PIIGhost is.
 
-| Capability | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
-|---|---|---|---|---|---|---|
-| **Detection** | regex / NER / LLM | NER + regex + rules + checksum | regex + validators | ML/NER | ML + infoTypes | regex + NER |
-| **PII handling** | reversible token (cache/DB) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
-| **Transparent restore for the user** | ✅ | ⚠️ manual (`decrypt`) | ❌ | ❌ | ⚠️ re-id via API | ✅ |
-| **Consistent across a conversation** | ✅ per thread | ❌ | ❌ | ❌ | ✅ deterministic | ✅ per session |
-| **Tool boundary** (tool gets the real value, LLM gets the token) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Streaming** (token-by-token restore) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Configurable post-detection stages** (linking, fuzzy, expansion, guard) | ✅ | ⚠️ operators only | ❌ | ❌ | ⚠️ transforms | ❌ |
-| **Unit processed** | text / conversation | text | text / conversation | text / documents | text / dataset | text / conversation |
-| **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
-| **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
+**What PIIGhost adds on top:**
 
-This table is not neutral: the rows are the things PIIGhost was built to do, so it naturally comes out ahead. It is here to show what most other tools leave out, not to declare a winner.
+- **Pluggable detectors:** regex catalogs (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits text that overruns a model's context window), and you keep the one you trust (Presidio plugs in through an extra).
+- **Reversible, transparent tokens:** each value becomes a stable id like `<<PERSON:1>>` and is put back automatically, so the end user reads `john.doe@example.com` and never sees a token; label-only, masked, and keyed-hash factories are available too.
+- **Consistent across a conversation:** the same value keeps the same token for the whole thread, backed by in-process, Redis, or SQLAlchemy memory (Redis and SQL can encrypt values at rest and hash keys).
+- **Agent integrations with a tool boundary:** LangChain middleware, Pydantic AI hooks, and LlamaIndex; the tool receives the real value while the model sees only the token, with token-by-token streaming restoration.
+- **A customizable staged pipeline:** detect, link, resolve overlaps, expand, anonymize, and an optional guard rail that refuses a reply with residual PII (a detector, an LLM, or Mistral moderation); swap in fuzzy matching to tolerate typos or add your own stage.
+- **Config-driven and self-hostable:** build a whole pipeline from a TOML/JSON file with a CLI to validate it, run it in your process, or as a service through the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) (OpenAI- and Anthropic-compatible proxies).
+- **Typed and observable:** ships `py.typed` and a minimal core with everything heavy behind extras, plus OpenTelemetry per-stage spans (viewable in Langfuse or Jaeger) with optional payload redaction.
+- **Scope, live text and conversations:** PIIGhost protects a running conversation message by message, not a static dataset.
 
-Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore.
+For how it stacks up against Presidio, LangChain, the cloud APIs, and others, see [How PIIGhost compares](https://athroniaeth.github.io/piighost/comparison/).
 
 ### Limitations and trade-offs
 
@@ -160,6 +145,9 @@ For a real detector and the conversational pipeline, see the [Quickstart](https:
 
 **[Full documentation](https://athroniaeth.github.io/piighost/)**
 
+<details>
+<summary>Browse the docs by section</summary>
+
 - **Get started**
     - [installation](https://athroniaeth.github.io/piighost/getting-started/installation/)
     - [quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/)
@@ -179,6 +167,8 @@ For a real detector and the conversational pipeline, see the [Quickstart](https:
     - [architecture](https://athroniaeth.github.io/piighost/architecture/)
     - [placeholder factories](https://athroniaeth.github.io/piighost/placeholder-factories/)
     - [security](https://athroniaeth.github.io/piighost/security/)
+
+</details>
 
 ## Project
 
