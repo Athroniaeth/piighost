@@ -41,22 +41,19 @@ The mapping between a value and its placeholder also sticks around for the whole
 
 Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what PIIGhost is.
 
-| Capability | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
-|---|---|---|---|---|---|---|
-| **Detection** | regex / NER / LLM | NER + regex + rules + checksum | regex + validators | ML/NER | ML + infoTypes | regex + NER |
-| **PII handling** | reversible token (cache/DB) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
-| **Transparent restore for the user** | ✅ | ⚠️ manual (`decrypt`) | ❌ | ❌ | ⚠️ re-id via API | ✅ |
-| **Consistent across a conversation** | ✅ per thread | ❌ | ❌ | ❌ | ✅ deterministic | ✅ per session |
-| **Tool boundary** (tool gets the real value, LLM gets the token) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Streaming** (token-by-token restore) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Configurable post-detection stages** (linking, fuzzy, expansion, guard) | ✅ | ⚠️ operators only | ❌ | ❌ | ⚠️ transforms | ❌ |
-| **Unit processed** | text / conversation | text | text / conversation | text / documents | text / dataset | text / conversation |
-| **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
-| **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
+**What PIIGhost adds on top:**
 
-This table is not neutral: the rows are the things PIIGhost was built to do, so it naturally comes out ahead. It is here to show what most other tools leave out, not to declare a winner.
+- **Pluggable detectors:** compose regex catalogs, NER (GLiNER2, spaCy, Transformers), and an LLM detector, and keep the one you already trust (Presidio plugs in through an extra).
+- **Reversible tokens:** each value becomes a stable id like `<<PERSON:1>>`, backed by a cache rather than encryption embedded in the token.
+- **Transparent restoration:** the real value is put back automatically, so the end user reads `john.doe@example.com` and never sees a token.
+- **Consistent across a conversation:** the same value keeps the same token for the whole thread, so the model can track who is who.
+- **Agent tool boundary:** the tool receives the real value while the model only ever sees the token.
+- **Streaming restoration:** replies are restored token by token as the model streams.
+- **A customizable staged pipeline:** detect, link, resolve overlaps, expand, anonymize, and an optional guard rail, so you can swap in fuzzy matching to tolerate typos or add your own stage.
+- **Scope, live text and conversations:** PIIGhost protects a running conversation message by message, not a static dataset.
+- **Self-hosted:** runs inside your process, or as a service through the companion [piighost-api](https://github.com/Athroniaeth/piighost-api), which builds its whole pipeline from a config file.
 
-Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore.
+For how it stacks up against Presidio, LangChain, the cloud APIs, and others, see [How PIIGhost compares](https://athroniaeth.github.io/piighost/comparison/).
 
 ### Limitations and trade-offs
 
