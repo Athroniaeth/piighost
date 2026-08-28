@@ -1,6 +1,6 @@
 [project]
 name = "piighost"
-version = "1.4.0"
+version = "1.5.0"
 description = "Composable, reversible PII de-identification pipeline for LLM agents, with a LangChain middleware and pluggable detectors (NER, regex, LLM, custom)."
 readme = "README.md"
 license = "MIT"
