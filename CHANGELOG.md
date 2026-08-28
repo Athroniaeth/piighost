@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.5.0 (2026-08-28)
+
+### Feat
+
+- expose piighost.__version__ from installed distribution metadata
+- **integrations**: rename AssistantEntityStrategy to EntityCreateByAssistantStrategy
+- **integrations**: optional debug log for the Claude Code hook runner
+- **integrations**: targeted per-tool field anonymization for Claude Code tool outputs
+- **integrations**: add capture logger to discover Claude Code tool-output shapes
+- **integrations**: Claude Code hooks integration for PII de-identification
+- **integrations**: stream deanonymization via TextDeidentifier.deanonymize_stream
+
+### Fix
+
+- **examples**: type the streaming example's async generator and guard the optional import for the lint gate
+
 ## 1.4.0 (2026-08-23)
 
 ### Feat
