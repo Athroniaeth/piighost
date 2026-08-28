@@ -1,17 +1,18 @@
 # PIIGhost
 
 [![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg)](https://codecov.io/gh/Athroniaeth/piighost)
 [![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
 [![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
-`piighost` is a Python library that keeps PII (personally identifiable information) from reaching a language model, while keeping the application fully functional.
+`piighost` is a Python library that keeps PII (personally identifiable information) from ever reaching a language model, without getting in the way of what your app needs to do.
 
-The library spots PII with detectors (regex, NER, or another LLM) and replaces each value with a stable placeholder, for example `john.doe@example.com` becomes `<<EMAIL:1>>`. The model only ever works on de-identified text. When the LLM returns placeholders, `piighost` puts the real values back in place, the end user sees `john.doe@example.com` and never notices the de-identification. The same mechanism protects tool-using agents. A tool that needs the real address receives it in clear, while the LLM that decides to call it still sees only `<<EMAIL:1>>`.
+It spots PII with detectors (regex, NER, or another LLM) and swaps each value for a stable placeholder, so `john.doe@example.com` becomes `<<EMAIL:1>>` and the model only ever works on de-identified text. When the LLM answers with those placeholders, `piighost` puts the real values back, so the end user reads `john.doe@example.com` and never notices a thing. Tool-using agents get the same treatment. A tool that genuinely needs the real address receives it in clear, while the LLM that decided to call it still sees only `<<EMAIL:1>>`.
 
-Finally, the library keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com` shows up again three messages later, the placeholder stays `<<EMAIL:1>>`, so the model can follow the thread.
+The mapping between a value and its placeholder also sticks around for the whole conversation. If `john.doe@example.com` comes up again three messages later, it stays `<<EMAIL:1>>`, so the model can still follow the thread.
 
 <p align="center">
   <picture>
@@ -25,10 +26,49 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 > [!NOTE]
 > `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
 
+## Features
+
+- **Pluggable detectors:** regex catalogs (generic, US, EU, FR), NER with GLiNER2, spaCy or Transformers, and an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits long text that overruns a model's context window).
+- **Reversible, collision-free placeholders:** opaque tokens like `<<PERSON:1>>`, plus label-only, masked, and keyed-hash factories, all stable across a whole conversation.
+- **Agent integrations:** LangChain middleware, Pydantic AI hooks, and LlamaIndex, with de-identification right at the tool boundary and token-by-token streaming restoration.
+- **Conversation memory:** in-process, Redis, or SQLAlchemy backends. The Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
+- **Guard rail:** re-check the model's output for any PII that slipped through and refuse it, backed by a detector, an LLM, or Mistral moderation.
+- **TOML/JSON configuration:** build a whole pipeline from one file, with a CLI to validate it and print its schema.
+- **HTTP client and OpenTelemetry tracing:** an async client for the companion `piighost-api`, and per-stage spans you can view in any OpenTelemetry backend like Langfuse or Jaeger, with optional payload redaction.
+- **Typed and dependency-light:** ships `py.typed` and a minimal core, with everything heavy tucked behind optional extras.
+
+## Why PIIGhost
+
+Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what PIIGhost is.
+
+| Capability | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
+|---|---|---|---|---|---|---|
+| **Detection** | regex / NER / LLM | NER + regex + rules + checksum | regex + validators | ML/NER | ML + infoTypes | regex + NER |
+| **PII handling** | reversible token (cache/DB) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
+| **Transparent restore for the user** | ✅ | ⚠️ manual (`decrypt`) | ❌ | ❌ | ⚠️ re-id via API | ✅ |
+| **Consistent across a conversation** | ✅ per thread | ❌ | ❌ | ❌ | ✅ deterministic | ✅ per session |
+| **Tool boundary** (tool gets the real value, LLM gets the token) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Streaming** (token-by-token restore) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| **Configurable post-detection stages** (linking, fuzzy, expansion, guard) | ✅ | ⚠️ operators only | ❌ | ❌ | ⚠️ transforms | ❌ |
+| **Unit processed** | text / conversation | text | text / conversation | text / documents | text / dataset | text / conversation |
+| **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
+| **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
+
+This table is not neutral: the rows are the things PIIGhost was built to do, so it naturally comes out ahead. It is here to show what most other tools leave out, not to declare a winner.
+
+Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore.
+
+### Limitations and trade-offs
+
+- **The token does not embed the encrypted value, on purpose.** Unlike a format-preserving encryption token (where the ciphertext *is* the token, e.g. Google DLP), PIIGhost uses an id (`<<PERSON:1>>`) backed by a cache. The reason: a token that carries the ciphertext can be captured today and cracked in 20 years ("harvest now, decrypt later", the quantum threat to classical crypto), whereas an id reveals nothing on its own. In return, you need a cache to hold the token-to-value mapping, so a memory backend to deploy, share across workers, and persist in production.
+- **That cache stores the real values, so reversibility is pseudonymisation, not anonymisation (GDPR).** The real values stay stored for the duration of the conversation. The library gives you the means to protect them (AES-GCM encryption of the values, Argon2id hashing of the keys), but the database architecture itself must be secured in production once you use Redis or PostgreSQL.
+- **No dataset anonymization.** No k-anonymity, l-diversity, differential privacy, or tabular data. PIIGhost protects live text and conversations, not a whole dataset; for that, see ARX, Amnesia, or Google DLP.
+- **No checksum validation (Luhn / IBAN / NIR), by choice.** The `RegexDetector` matches on shape alone so it never lets a real value mangled by OCR leak (a checksum would reject it and it would pass in clear). In exchange, it sometimes flags a string that only looks like PII, which costs nothing beyond one extra token.
+
 ## Quickstart
 
 ```bash
-uv add piighost
+pip install piighost   # or: uv add piighost
 ```
 
 ### De-identify a text
@@ -50,16 +90,15 @@ print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
 
 ### Conversations and agents (LangChain)
 
-The middleware wraps a conversational pipeline and handles each agent turn. The LLM only sees placeholders, tools receive the real values, the user gets a clear-text reply.
+The middleware wraps a conversational pipeline and handles every agent turn for you, so the same de-identification applies without any change to your agent logic.
 
 ```bash
-uv add 'piighost[langchain]'
+pip install 'piighost[langchain]'   # or: uv add 'piighost[langchain]'
 ```
 
 ```python
 import asyncio
 
-from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
@@ -84,8 +123,7 @@ def send_mail(to: str, body: str) -> str:
 
 
 async def main() -> None:
-    load_dotenv()
-
+    # This example calls OpenAI, so set OPENAI_API_KEY in your environment first.
     labels = {"Patrick Dupont": "PERSON", "patrick@acme.com": "EMAIL"}
     detector = ExactMatchDetector(labels)
     pipeline = ThreadAnonymizationPipeline(detector)
@@ -114,7 +152,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-This is the **LangChain** integration, but it is only one option. `piighost` also has connectors for [Pydantic AI](https://athroniaeth.github.io/piighost/examples/pydantic-ai/) and [LlamaIndex](https://athroniaeth.github.io/piighost/examples/llama-index/), and the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) exposes an OpenAI-compatible proxy so you can move de-identification to the HTTP boundary with only a `base_url` change.
+This is the **LangChain** integration, but it is only one option. `piighost` also has connectors for [Pydantic AI](https://athroniaeth.github.io/piighost/examples/pydantic-ai/) and [LlamaIndex](https://athroniaeth.github.io/piighost/examples/llama-index/), and the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) exposes OpenAI- and Anthropic-compatible proxies, so you can move de-identification to the HTTP boundary with only a base URL change.
 
 For a real detector and the conversational pipeline, see the [Quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/) and the [LangChain integration](https://athroniaeth.github.io/piighost/examples/langchain/).
 

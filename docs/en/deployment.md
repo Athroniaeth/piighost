@@ -88,6 +88,28 @@ Two protections combine on every write, both keyed by a secret the store never h
 
 The `thread_id` stays in the clear as a key namespace, which is what lets a whole thread be enumerated and forgotten with `forget_thread`. The threat model and the backend comparison are in [Security](security.md).
 
+## Use a SQL database instead
+
+If your stack already runs PostgreSQL, `type = "sqlalchemy"` gives the same durable, multi-worker store over any async SQLAlchemy driver. Install `piighost[config,sqlalchemy,crypto,argon2]`, and point the config at an environment variable for the URL so the password stays out of the file.
+
+```toml title="pipeline.toml"
+[memory]
+type = "sqlalchemy"
+url_env = "PIIGHOST_DATABASE_URL"
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
+```bash
+export PIIGHOST_DATABASE_URL="postgresql+asyncpg://user:pass@db.internal/piighost"
+```
+
+The URL must use an async driver (`postgresql+asyncpg://...`, `sqlite+aiosqlite://...`). Create the table once at startup with `await pipeline.memory.create_schema()`. The hasher and cipher protect the stored values exactly as they do for Redis.
+
 ## See also
 
 - [Configuration reference](configuration/toml.md): every section and component `type`, TOML and JSON.

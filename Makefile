@@ -1,5 +1,5 @@
 # Load environment variables from .env file if it exists
-.PHONY: format lint docs-build docs docs-watch docs-watch-fr
+.PHONY: format lint test docs-build docs docs-watch docs-watch-fr
 
 format:
 	uv run ruff format .
@@ -9,7 +9,10 @@ lint:
 	uv run ruff format --check .
 	uv run ruff check .
 	uv run pyrefly check
-	uv run bandit -c pyproject.toml -r src examples scripts
+	uv run bandit -c pyproject.toml -r src examples
+
+test:
+	uv run pytest
 
 docs-build:
 	uv run python -m zensical build

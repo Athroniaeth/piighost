@@ -24,8 +24,8 @@ De-identify a single text through the stages, in order: detect the PII, resolve 
 ```python
 AnonymizationPipeline(
     detector: AnyDetector,
-    linker: AnyEntityLinker,
-    anonymizer: AnyAnonymizer,
+    linker: AnyEntityLinker | None = None,
+    anonymizer: AnyAnonymizer | None = None,
     overlap_resolver: AnyOverlapResolver | None = None,
     expander: AnyDetectionExpander | None = None,
     entity_resolver: AnyEntityResolver | None = None,
@@ -38,8 +38,8 @@ AnonymizationPipeline(
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `detector` | `AnyDetector` | required | Async entity detector |
-| `linker` | `AnyEntityLinker` | required | Groups detections into entities |
-| `anonymizer` | `AnyAnonymizer` | required | Replacement engine and its placeholder factory |
+| `linker` | `AnyEntityLinker \| None` | `None` | Groups detections into entities. Defaults to `ExactEntityLinker()` |
+| `anonymizer` | `AnyAnonymizer \| None` | `None` | Replacement engine and its placeholder factory. Defaults to `Anonymizer(LabelCounterPlaceholderFactory())` |
 | `overlap_resolver` | `AnyOverlapResolver \| None` | `None` | Resolves overlapping detections. Disabled when `None` |
 | `expander` | `AnyDetectionExpander \| None` | `None` | Adds missed occurrences of a detected value. Disabled when `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Reconciles conflicting entities. Disabled when `None` |
@@ -89,9 +89,9 @@ The extra component is a conversation memory, `memory`, the per-thread store of 
 ```python
 ThreadAnonymizationPipeline(
     detector: AnyDetector,
-    linker: AnyEntityLinker,
-    anonymizer: AnyAnonymizer,
-    memory: AnyConversationMemory,
+    linker: AnyEntityLinker | None = None,
+    anonymizer: AnyAnonymizer | None = None,
+    memory: AnyConversationMemory | None = None,
     overlap_resolver: AnyOverlapResolver | None = None,
     expander: AnyDetectionExpander | None = None,
     entity_resolver: AnyEntityResolver | None = None,
@@ -105,7 +105,7 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `memory` | `AnyConversationMemory` | required | Per-thread store of each message's detections. `InMemoryConversationMemory` for a single process, `RedisConversationMemory` for a shared backend |
+| `memory` | `AnyConversationMemory \| None` | `None` | Per-thread store of each message's detections. Defaults to `InMemoryConversationMemory()` for a single process; pass `RedisConversationMemory` for a shared backend |
 
 ### Methods
 

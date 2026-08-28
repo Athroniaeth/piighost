@@ -13,7 +13,7 @@ icon: lucide/download
 
 Le socle n'a aucune dépendance optionnelle. Il suffit pour un pipeline local qui dé-identifie par regex ou par valeurs connues, sans modèle ni réseau.
 
-Installez-le avec `uv`. Si vous êtes un boomeur, `pip` marche aussi.
+Installez-le avec `uv`, ou avec `pip`.
 
 === "uv"
 

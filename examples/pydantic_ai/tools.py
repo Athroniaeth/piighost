@@ -14,7 +14,7 @@ real recipient, and the tool's result is re-anonymized before it returns to the
 model. The tool prints what it actually received, so you can see it got Emma
 while the model only ever handled the token.
 
-The agent runs against openai:gpt-5.5, so set an OPENAI_API_KEY in the
+The agent runs against openai:gpt-5.6-terra, so set an OPENAI_API_KEY in the
 environment (copy .env.example to .env). Run with:
 uv run examples/pydantic_ai/tools.py
 """
@@ -42,7 +42,7 @@ async def main() -> None:
     pipeline = ThreadAnonymizationPipeline(detector)
     hooks = pii_hooks(pipeline, "demo-thread")
     agent = Agent(
-        "openai:gpt-5.5",
+        "openai:gpt-5.6-terra",
         tools=[send_email],
         capabilities=[hooks],
     )
