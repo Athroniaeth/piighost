@@ -1,11 +1,28 @@
 name: CI
 
 on:
+  # A release (release.yml) calls this workflow directly, so it always runs the
+  # full gate regardless of what changed.
   workflow_call:
+  # Documentation-only changes skip verification: the workflow runs unless every
+  # changed file matches one of these patterns. This list mirrors the paths
+  # allowlist in docs.yml (its inverse).
   pull_request:
     branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "zensical.toml"
+      - "zensical.fr.toml"
+      - "LICENSE"
   push:
     branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "zensical.toml"
+      - "zensical.fr.toml"
+      - "LICENSE"
 
 permissions:
   contents: read
