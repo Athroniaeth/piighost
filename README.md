@@ -175,7 +175,7 @@ For a real detector and the conversational pipeline, see the [Quickstart](https:
 - **Community**: [Discord](https://discord.gg/vFg9GHQR2s) to get help, report bugs, request features, and discuss de-identification
 - **Contributing**: [contribution guide](https://athroniaeth.github.io/piighost/community/contributing/) and [report a bug](https://athroniaeth.github.io/piighost/community/bug-reports/)
 - **Ecosystem**:
-    - **[Presentation site](https://piighost.athroniaeth.cloud)**: an overview of the project
+    - **[Presentation site](https://piighost.athroniaeth.cloud/?utm_source=github&utm_medium=readme&utm_campaign=piighost)**: an overview of the project
     - **[piighost-api](https://github.com/Athroniaeth/piighost-api)**: the inference API server
     - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)**: an example chat interface with human-in-the-loop
 - **License**: [MIT](LICENSE)
