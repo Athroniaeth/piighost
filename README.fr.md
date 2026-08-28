@@ -79,7 +79,6 @@ pip install 'piighost[langchain]'   # or: uv add 'piighost[langchain]'
 ```python
 import asyncio
 
-from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
@@ -104,8 +103,7 @@ def send_mail(to: str, body: str) -> str:
 
 
 async def main() -> None:
-    load_dotenv()
-
+    # This example calls OpenAI, so set OPENAI_API_KEY in your environment first.
     labels = {"Patrick Dupont": "PERSON", "patrick@acme.com": "EMAIL"}
     detector = ExactMatchDetector(labels)
     pipeline = ThreadAnonymizationPipeline(detector)
