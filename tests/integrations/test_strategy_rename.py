@@ -18,7 +18,7 @@ def test_deprecated_alias_warns_and_returns_the_renamed_enum() -> None:
 
 def test_deprecated_alias_on_the_package_warns() -> None:
     """The alias is also served, with the warning, from the langchain package."""
-    import piighost.integrations.langchain as langchain
+    from piighost.integrations import langchain
 
     with pytest.warns(DeprecationWarning, match="EntityCreateByAssistantStrategy"):
         strategy = langchain.AssistantEntityStrategy

@@ -1,8 +1,8 @@
 """Mask placeholder factory: keep a leading fragment, star out the rest."""
 
-from piighost.models import Entity
 from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.components.placeholder.tags import PreservesShape
+from piighost.models import Entity
 
 
 class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]):

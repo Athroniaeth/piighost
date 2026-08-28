@@ -26,8 +26,8 @@ def _make() -> tuple[Any, Any]:
     pytest.importorskip("cryptography")
     fakeredis = pytest.importorskip("fakeredis.aioredis")
 
-    from piighost.crypto.cipher import AesGcmCipher
     from piighost.conversation_memory import RedisConversationMemory
+    from piighost.crypto.cipher import AesGcmCipher
     from piighost.crypto.hasher import Sha256Hasher
 
     client = fakeredis.FakeRedis()

@@ -68,9 +68,8 @@ class TestOtelTracer:
     ) -> None:
         """A parentless span names its trace; a child span never does."""
         tracer = get_tracer()
-        with tracer.span("piighost.root"):
-            with tracer.span("piighost.child"):
-                pass
+        with tracer.span("piighost.root"), tracer.span("piighost.child"):
+            pass
 
         spans = {span.name: span for span in exporter.get_finished_spans()}
         root_attributes = spans["piighost.root"].attributes

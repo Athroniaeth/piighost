@@ -1,11 +1,11 @@
 """Label placeholder factory: one token per label, revealing the type."""
 
-from piighost.models import Entity
 from piighost.components.placeholder.base import (
     AnyPlaceholderFactory,
     BaseDelimitedPlaceholderFactory,
 )
 from piighost.components.placeholder.tags import PreservesLabel
+from piighost.models import Entity
 
 
 class LabelPlaceholderFactory(

@@ -1,11 +1,11 @@
 """Tests for the MaskPlaceholderFactory."""
 
-from piighost.models import Detection, Entity, Span
 from piighost.components.placeholder import (
     AnyPlaceholderFactory,
     MaskPlaceholderFactory,
 )
 from piighost.components.placeholder.tags import PreservesShape
+from piighost.models import Detection, Entity, Span
 
 
 def _entity(start: int, end: int, text: str, label: str = "PERSON") -> Entity:

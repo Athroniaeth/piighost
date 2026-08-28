@@ -22,8 +22,8 @@ import hashlib
 import importlib.util
 import json
 
-from piighost.crypto.cipher.base import AnyCipher
 from piighost.conversation_memory.base import Forgotten, MessageRole, warn_plaintext
+from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
 
@@ -33,7 +33,7 @@ if importlib.util.find_spec("redis") is None:
         "Install it with: pip install piighost[redis]"
     )
 
-from redis.asyncio import Redis  # noqa: E402
+from redis.asyncio import Redis
 
 _DEFAULT_NAMESPACE = "piighost"
 """Default key prefix isolating this library's keys in a shared Redis."""

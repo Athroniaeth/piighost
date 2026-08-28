@@ -29,9 +29,9 @@ if importlib.util.find_spec("pydantic_ai") is None:
         "Install it with: pip install piighost[pydantic-ai]"
     )
 
-from pydantic_ai import ModelRequestContext, RunContext  # noqa: E402
-from pydantic_ai.capabilities import Hooks, ValidatedToolArgs  # noqa: E402
-from pydantic_ai.messages import (  # noqa: E402
+from pydantic_ai import ModelRequestContext, RunContext
+from pydantic_ai.capabilities import Hooks, ValidatedToolArgs
+from pydantic_ai.messages import (
     ModelResponse,
     TextPart,
     ToolCallPart,

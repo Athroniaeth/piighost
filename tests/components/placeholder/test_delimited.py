@@ -2,7 +2,6 @@
 
 import pytest
 
-from piighost.models import Detection, Entity, Span
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     LabelHashPlaceholderFactory,
@@ -10,6 +9,7 @@ from piighost.components.placeholder import (
     RedactPlaceholderFactory,
 )
 from piighost.components.placeholder.base import AnyPlaceholderFactory
+from piighost.models import Detection, Entity, Span
 
 
 def _entity(text: str, label: str = "PERSON") -> Entity:

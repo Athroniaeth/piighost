@@ -2,8 +2,8 @@
 
 import pytest
 
-from piighost.exceptions import EmptyPepperError
 from piighost.crypto.hasher import AnyHasher, Sha256Hasher
+from piighost.exceptions import EmptyPepperError
 
 _PEPPER = "pepper-secret"
 
