@@ -54,14 +54,14 @@ Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs
 | **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
 | **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
 
-Notes: **LangChain PII** is the Python `PIIMiddleware` here; the JS `piiRedactionMiddleware` is reversible but does not stream. **Cloud** groups AWS Comprehend and Azure AI Language (Azure has a Conversation mode for *detection*, but no restore). At a glance, PIIGhost is the only column that is ✅ on transparent restore, conversation consistency, tool boundary, streaming, and an LLM detector, while staying self-hostable and OSS.
+Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore. Read down the PIIGhost column and it stays ✅ across transparent restore, conversation consistency, the tool boundary, streaming, and an LLM detector, without leaving your own infrastructure.
 
 ### Limitations and trade-offs
 
-- **The token does not embed the encrypted value, on purpose.** Unlike a format-preserving encryption token (where the ciphertext *is* the token, e.g. Google DLP), PIIGhost uses an id (`<<PERSON:1>>`) backed by a cache. The reason: a token that carries the ciphertext can be captured today and cracked in 20 years ("harvest now, decrypt later", the quantum threat to classical crypto), whereas an id reveals nothing on its own. The accepted consequence: you need a cache to hold the token-to-value mapping, so a memory backend to deploy, share across workers, and persist in production.
+- **The token does not embed the encrypted value, on purpose.** Unlike a format-preserving encryption token (where the ciphertext *is* the token, e.g. Google DLP), PIIGhost uses an id (`<<PERSON:1>>`) backed by a cache. The reason: a token that carries the ciphertext can be captured today and cracked in 20 years ("harvest now, decrypt later", the quantum threat to classical crypto), whereas an id reveals nothing on its own. In return, you need a cache to hold the token-to-value mapping, so a memory backend to deploy, share across workers, and persist in production.
 - **That cache stores the real values, so reversibility is pseudonymisation, not anonymisation (GDPR).** The real values stay stored for the duration of the conversation. The library gives you the means to protect them (AES-GCM encryption of the values, Argon2id hashing of the keys), but the database architecture itself must be secured in production once you use Redis or PostgreSQL.
 - **No dataset anonymization.** No k-anonymity, l-diversity, differential privacy, or tabular data. PIIGhost protects live text and conversations, not a whole dataset; for that, see ARX, Amnesia, or Google DLP.
-- **No checksum validation (Luhn / IBAN / NIR), by choice.** The `RegexDetector` matches on shape alone so it never lets a real value mangled by OCR leak (a checksum would reject it and it would pass in clear). The accepted trade-off: some shape-level false positives, which are benign (one extra token).
+- **No checksum validation (Luhn / IBAN / NIR), by choice.** The `RegexDetector` matches on shape alone so it never lets a real value mangled by OCR leak (a checksum would reject it and it would pass in clear). In exchange, it sometimes flags a string that only looks like PII, which costs nothing beyond one extra token.
 
 ## Quickstart
 
