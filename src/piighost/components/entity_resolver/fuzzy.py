@@ -20,7 +20,7 @@ if importlib.util.find_spec("rapidfuzz") is None:
         "Install it with: pip install piighost[fuzzy]"
     )
 
-from rapidfuzz.distance import JaroWinkler  # noqa: E402
+from rapidfuzz.distance import JaroWinkler
 
 _DEFAULT_THRESHOLD = 0.85
 """Minimum similarity for two values to read as one, on a 0 to 1 scale.

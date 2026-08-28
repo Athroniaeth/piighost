@@ -3,13 +3,16 @@
 import pytest
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.components.guard import DetectorGuardRail
-from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.components.detector import AnyDetector, ExactMatchDetector
+from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import (
+    LabelCounterPlaceholderFactory,
+    PreservesLabeledIdentityOpaque,
+)
+from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
 from piighost.models import Detection
 from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 
 
 class _CountingDetector:
@@ -28,7 +31,7 @@ class _CountingDetector:
 def _pipeline(
     detector: AnyDetector | None = None,
     memory: InMemoryConversationMemory | None = None,
-) -> ThreadAnonymizationPipeline:
+) -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Build a thread pipeline over a counter factory and in-memory backend."""
     return ThreadAnonymizationPipeline(
         detector or ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),

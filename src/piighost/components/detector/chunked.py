@@ -4,7 +4,7 @@ from dataclasses import replace
 
 from piighost.components.detector.base import AnyDetector
 from piighost.models import Detection
-from piighost.text import RecursiveCharacterTextSplitter, AnySplitter
+from piighost.text import AnySplitter, RecursiveCharacterTextSplitter
 
 
 class ChunkedDetector:

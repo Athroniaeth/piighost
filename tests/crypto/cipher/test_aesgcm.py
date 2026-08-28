@@ -1,10 +1,9 @@
 """Tests for the AES-GCM cipher and its optional-dependency guard."""
 
-from typing import Any
-
 import importlib
 import importlib.util
 import sys
+from typing import Any
 
 import pytest
 

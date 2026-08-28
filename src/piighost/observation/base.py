@@ -24,7 +24,7 @@ class AnyObservationSpan(Protocol):
         """Record the observation's output payload."""
         ...
 
-    def set_attribute(self, key: str, value: str | int | float | bool) -> None:
+    def set_attribute(self, key: str, value: str | float | bool) -> None:
         """Record one scalar attribute on the observation."""
         ...
 
@@ -43,15 +43,15 @@ class NoOpSpan:
 
     def set_input(self, value: Any) -> None:
         """Discard the input payload."""
-        return None
+        return
 
     def set_output(self, value: Any) -> None:
         """Discard the output payload."""
-        return None
+        return
 
-    def set_attribute(self, key: str, value: str | int | float | bool) -> None:
+    def set_attribute(self, key: str, value: str | float | bool) -> None:
         """Discard the attribute."""
-        return None
+        return
 
 
 class NoOpTracer:

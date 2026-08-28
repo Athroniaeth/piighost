@@ -36,17 +36,17 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.models import Detection
-from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     PreservesLabeledIdentityOpaque,
 )
+from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.integrations.langchain import ToolCallStrategy
 from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
+from piighost.models import Detection
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 # What the tool received and what the wrapper handed back, filled per run so the
 # example can print them; a real deployment needs nothing like these.
