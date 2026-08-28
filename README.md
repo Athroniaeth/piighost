@@ -28,20 +28,19 @@ The mapping between a value and its placeholder also sticks around for the whole
 
 ## Features
 
-- **Pluggable detectors.** Regex catalogs (generic, US, EU, FR), NER with GLiNER2, spaCy or Transformers, an LLM detector, and exact-match, composite, and chunked detectors on top.
-- **Reversible, collision-free placeholders.** Opaque tokens like `<<PERSON:1>>`, plus label-only, masked, and keyed-hash factories, all stable across a whole conversation.
-- **Agent integrations.** LangChain middleware, Pydantic AI hooks, and LlamaIndex, with de-identification right at the tool boundary and token-by-token streaming restoration.
-- **Conversation memory.** In-process, Redis, or SQLAlchemy backends. The Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
-- **Guard rail.** Re-check the model's output for any PII that slipped through and refuse it, backed by a detector, an LLM, or Mistral moderation.
-- **TOML/JSON configuration.** Build a whole pipeline from one file, with a CLI to validate it and print its schema.
-- **HTTP client and OpenTelemetry tracing.** An async client for the companion `piighost-api`, and per-stage spans with optional payload redaction.
-- **Typed and dependency-light.** Ships `py.typed` and a minimal core, with everything heavy tucked behind optional extras.
+- **Pluggable detectors:** regex catalogs (generic, US, EU, FR), NER with GLiNER2, spaCy or Transformers, and an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits long text that overruns a model's context window).
+- **Reversible, collision-free placeholders:** opaque tokens like `<<PERSON:1>>`, plus label-only, masked, and keyed-hash factories, all stable across a whole conversation.
+- **Agent integrations:** LangChain middleware, Pydantic AI hooks, and LlamaIndex, with de-identification right at the tool boundary and token-by-token streaming restoration.
+- **Conversation memory:** in-process, Redis, or SQLAlchemy backends. The Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
+- **Guard rail:** re-check the model's output for any PII that slipped through and refuse it, backed by a detector, an LLM, or Mistral moderation.
+- **TOML/JSON configuration:** build a whole pipeline from one file, with a CLI to validate it and print its schema.
+- **HTTP client and OpenTelemetry tracing:** an async client for the companion `piighost-api`, and per-stage spans you can view in any OpenTelemetry backend like Langfuse or Jaeger, with optional payload redaction.
+- **Typed and dependency-light:** ships `py.typed` and a minimal core, with everything heavy tucked behind optional extras.
 
 ## Why PIIGhost
 
-- **Against plain regex or scrubbing.** Regex on its own misses names and shifts boundaries, and deleting or masking PII breaks the model's reasoning. PIIGhost keeps the text coherent with stable, reversible placeholders, then restores the real values for the user and for tools.
-- **Against Faker-style fake data.** A finite pool of fakes collides, and a fake can land on a real value, so you can't reliably reverse it. PIIGhost uses synthetic, collision-free tokens instead. Already using Presidio? It plugs in as a detector through the `presidio` extra.
-- **Against analytical anonymization (k-anonymity, differential privacy).** Those protect a whole dataset by transforming it. PIIGhost protects a live conversation one message at a time and puts the real data back, so your agent keeps working behind the scenes.
+- **Against plain regex or scrubbing:** regex on its own misses names and shifts boundaries, and deleting or masking PII breaks the model's reasoning. PIIGhost keeps the text coherent with stable, reversible placeholders, then restores the real values for the user and for tools.
+- **Against Faker-style fake data:** a finite pool of fakes collides, and a fake can land on a real value, so you can't reliably reverse it. PIIGhost uses synthetic, collision-free tokens instead. Already using Presidio? It plugs in as a detector through the `presidio` extra.
 
 Built for LLM agents: the model only ever sees placeholders, while tools and the end user see the real values.
 
@@ -132,7 +131,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-This is the **LangChain** integration, but it is only one option. `piighost` also has connectors for [Pydantic AI](https://athroniaeth.github.io/piighost/examples/pydantic-ai/) and [LlamaIndex](https://athroniaeth.github.io/piighost/examples/llama-index/), and the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) exposes an OpenAI-compatible proxy so you can move de-identification to the HTTP boundary with only a `base_url` change.
+This is the **LangChain** integration, but it is only one option. `piighost` also has connectors for [Pydantic AI](https://athroniaeth.github.io/piighost/examples/pydantic-ai/) and [LlamaIndex](https://athroniaeth.github.io/piighost/examples/llama-index/), and the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) exposes OpenAI- and Anthropic-compatible proxies, so you can move de-identification to the HTTP boundary with only a base URL change.
 
 For a real detector and the conversational pipeline, see the [Quickstart](https://athroniaeth.github.io/piighost/getting-started/quickstart/) and the [LangChain integration](https://athroniaeth.github.io/piighost/examples/langchain/).
 
