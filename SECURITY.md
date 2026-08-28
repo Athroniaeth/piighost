@@ -4,10 +4,11 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.4.x   | ✅ Yes    |
-| < 1.4   | ❌ No     |
+| Latest 1.x minor | ✅ Yes    |
+| Older 1.x minors | ❌ No     |
+| 0.x     | ❌ No     |
 
-The 0.x line is no longer supported. Security fixes land on the current 1.x line.
+Security fixes land on the latest released 1.x minor. Older minors and the 0.x line are no longer supported, so upgrade to the current release to receive fixes.
 
 ## Reporting a Vulnerability
 
