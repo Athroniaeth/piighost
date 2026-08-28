@@ -47,6 +47,7 @@ nav = [
     ] },
     { "Concepts" = [
         { "Pourquoi dé-identifier ?" = "why-anonymize.md" },
+        { "Comment PIIGhost se compare" = "comparison.md" },
         { "Architecture" = "architecture.md" },
         { "Conception du pipeline" = "conception.md" },
         { "Placeholder factories" = "placeholder-factories.md" },

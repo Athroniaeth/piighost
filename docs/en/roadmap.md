@@ -25,9 +25,11 @@ The conversation memory caches each message's detections per thread, so resendin
 
 A pipeline is fully described by a TOML or JSON file, but every user rebuilds that description by hand. A configuration hub would let a user pull a ready-to-use configuration by a short identifier and run it directly, the way a prompt hub distributes prompts. The library already has the pieces it stands on, `load_config`, `load_pipeline`, and `load_thread_pipeline` parse and build a pipeline from a file. The missing part is distribution, a registry to publish and fetch a configuration by identifier, version pinning to a piighost release, and a trust boundary, since a configuration is declarative data rather than code. A catalogue of per-profession configurations, notaries, accountants, a general-purpose default, would grow on top of it over time.
 
+This is planned as a separate project rather than part of the `piighost` core, since it is a distribution service, not a pipeline concern.
+
 ## ~~Agent-harness integration~~
 
-~~Now shipped for Claude Code through its hook system: `piighost.integrations.claude_code` anonymizes the prompt and tool outputs and restores tool inputs, driving a thin client to `piighost-api`. See [De-identify Claude Code with hooks](examples/claude-code.md). The OpenAI-compatible proxy in `piighost-api` still covers any harness that lets an application change its `base_url`; an Anthropic-compatible proxy endpoint remains a possible future transport beside the hooks, reusing the same de- and re-anonymization, streaming reassembly, and tool-boundary handling already in the core.~~
+~~Now shipped for Claude Code through its hook system: `piighost.integrations.claude_code` anonymizes the prompt and tool outputs and restores tool inputs, driving a thin client to `piighost-api`. See [De-identify Claude Code with hooks](examples/claude-code.md). The OpenAI-compatible proxy in `piighost-api` still covers any harness that lets an application change its `base_url`; an Anthropic-compatible proxy endpoint also ships in `piighost-api` for harnesses that speak Anthropic's Messages API, beside the hooks, reusing the same de- and re-anonymization, streaming reassembly, and tool-boundary handling already in the core.~~
 
 ## Local in-browser document app (WebAssembly)
 
