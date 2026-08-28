@@ -44,8 +44,7 @@ La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy 
 **Ce que PIIGhost ajoute par-dessus :**
 
 - **Détecteurs enfichables :** composez des catalogues regex, du NER (GLiNER2, spaCy, Transformers), et un détecteur LLM, et gardez celui que vous connaissez déjà (Presidio se branche via un extra).
-- **Jetons réversibles :** chaque valeur devient un id stable comme `<<PERSON:1>>`, adossé à un cache plutôt qu'à du chiffrement embarqué dans le jeton.
-- **Restauration transparente :** la vraie valeur est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton.
+- **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>`, et la vraie valeur est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton.
 - **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, donc le modèle sait qui est qui.
 - **Frontière d'outils :** l'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton.
 - **Restauration en streaming :** les réponses sont restaurées token par token au fil du flux.

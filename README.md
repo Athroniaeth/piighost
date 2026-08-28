@@ -44,8 +44,7 @@ Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs
 **What PIIGhost adds on top:**
 
 - **Pluggable detectors:** compose regex catalogs, NER (GLiNER2, spaCy, Transformers), and an LLM detector, and keep the one you already trust (Presidio plugs in through an extra).
-- **Reversible tokens:** each value becomes a stable id like `<<PERSON:1>>`, backed by a cache rather than encryption embedded in the token.
-- **Transparent restoration:** the real value is put back automatically, so the end user reads `john.doe@example.com` and never sees a token.
+- **Reversible, transparent tokens:** each value becomes a stable id like `<<PERSON:1>>`, and the real value is put back automatically, so the end user reads `john.doe@example.com` and never sees a token.
 - **Consistent across a conversation:** the same value keeps the same token for the whole thread, so the model can track who is who.
 - **Agent tool boundary:** the tool receives the real value while the model only ever sees the token.
 - **Streaming restoration:** replies are restored token by token as the model streams.
