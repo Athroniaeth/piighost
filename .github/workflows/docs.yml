@@ -1,9 +1,17 @@
 name: Documentation
 
 on:
+  # Only rebuild and redeploy the site when documentation actually changes; a
+  # code-only push to master no longer triggers a Pages deploy. This paths
+  # allowlist mirrors the paths-ignore list in ci.yml (its inverse).
   push:
     branches:
       - master
+    paths:
+      - "**/*.md"
+      - "docs/**"
+      - "zensical.toml"
+      - "zensical.fr.toml"
 
 permissions:
   contents: read
