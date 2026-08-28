@@ -64,6 +64,7 @@ redis = [
 langchain = [
     "langchain>=1.2",
 ]
+# Alias of `langchain`, kept for back-compat. Prefer `piighost[langchain]`.
 middleware = [
     "langchain>=1.2",
 ]
