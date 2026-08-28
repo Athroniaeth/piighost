@@ -41,7 +41,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "typing-extensions>=4.12",
+    "typing-extensions>=4.16.0",
 ]
 
 [project.urls]
