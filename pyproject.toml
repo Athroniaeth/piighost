@@ -3,7 +3,8 @@ name = "piighost"
 version = "1.4.0"
 description = "Composable, reversible PII de-identification pipeline for LLM agents, with a LangChain middleware and pluggable detectors (NER, regex, LLM, custom)."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Athroniaeth" },
 ]
@@ -27,7 +28,6 @@ keywords = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
