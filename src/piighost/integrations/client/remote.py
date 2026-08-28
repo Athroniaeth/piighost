@@ -26,7 +26,7 @@ if importlib.util.find_spec("httpx") is None:
         "Install it with: pip install piighost[client]"
     )
 
-import httpx  # noqa: E402
+import httpx
 
 
 class PIIGhostClient:

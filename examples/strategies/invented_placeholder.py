@@ -31,16 +31,16 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.exceptions import InventedPlaceholderError
-from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.exceptions import InventedPlaceholderError
 from piighost.integrations.langchain import (
     InventedPlaceholderStrategy,
     PIIAnonymizationMiddleware,
 )
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 # The reply the fake model returns: it echoes the token for Emma and invents a
 # second one the pipeline never issued.

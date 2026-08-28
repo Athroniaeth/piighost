@@ -9,11 +9,13 @@ import pytest
 
 pytest.importorskip("llama_index")
 
-from llama_index.core.schema import TextNode  # pyrefly: ignore[missing-import]  # noqa: E402
+from llama_index.core.schema import (  # pyrefly: ignore[missing-import]
+    TextNode,
+)
 
-from piighost.components.detector import ExactMatchDetector  # noqa: E402
-from piighost.integrations.llama_index import PIINodeAnonymizer  # noqa: E402
-from piighost.pipeline import ThreadAnonymizationPipeline  # noqa: E402
+from piighost.components.detector import ExactMatchDetector
+from piighost.integrations.llama_index import PIINodeAnonymizer
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 
 def _pipeline() -> ThreadAnonymizationPipeline:

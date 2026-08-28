@@ -15,7 +15,9 @@ from pydantic import ConfigDict
 from piighost.pipeline import AnyThreadPipeline
 
 try:
-    from llama_index.core.schema import TransformComponent  # pyrefly: ignore[missing-import]
+    from llama_index.core.schema import (  # pyrefly: ignore[missing-import]
+        TransformComponent,
+    )
 except ImportError as exc:
     raise ImportError(
         "The LlamaIndex integration requires the llama-index package. "

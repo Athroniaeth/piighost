@@ -15,7 +15,7 @@ if importlib.util.find_spec("mistralai") is None:
         "Install it with: pip install piighost[mistral]"
     )
 
-from mistralai.client import Mistral  # noqa: E402
+from mistralai.client import Mistral
 
 _DEFAULT_MODEL = "mistral-moderation-latest"
 """The Mistral moderation model the guard queries by default."""

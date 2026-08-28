@@ -1,7 +1,7 @@
 """Confidence overlap resolver: keep the most confident where spans overlap."""
 
-from piighost.models import Detection, Span
 from piighost.components.overlap_resolver.base import BaseOverlapResolver
+from piighost.models import Detection, Span
 
 
 def _by_confidence(detection: Detection) -> tuple[float, Span]:

@@ -16,9 +16,9 @@ if importlib.util.find_spec("langchain_core") is None:
         "Install it with: pip install piighost[llm]"
     )
 
-from langchain_core.language_models import BaseChatModel  # noqa: E402
+from langchain_core.language_models import BaseChatModel
 
-from piighost.components.detector.llm import LLMDetector  # noqa: E402
+from piighost.components.detector.llm import LLMDetector
 
 _GUARD_PROMPT = (
     "You are auditing text that has already been anonymized. Your job is to "

@@ -31,14 +31,14 @@ from typing import Any
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
-from piighost.models import Detection
-from piighost.pipeline import ThreadAnonymizationPipeline
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.integrations.langchain import EntityCreateByAssistantStrategy
 from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
+from piighost.models import Detection
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 # The demo calls abefore_model directly, outside a LangGraph run, so no thread id
 # is in scope. require_thread_id=False routes every turn to the shared default

@@ -32,7 +32,7 @@ class TestConstruction:
         """Assigning to a field raises because the dataclass is frozen."""
         entity = Entity(detections=(_detection(0, 4),))
         with pytest.raises(dataclasses.FrozenInstanceError):
-            setattr(entity, "detections", ())
+            setattr(entity, "detections", ())  # noqa: B010  # dynamic set: the frozen guard must raise, a direct assignment would not type-check
 
     def test_no_instance_dict(self) -> None:
         """A frozen slotted instance has no __dict__."""

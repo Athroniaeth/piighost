@@ -6,28 +6,28 @@ import pytest
 
 pytest.importorskip("pydantic_ai")
 
-from pydantic_ai import Agent  # noqa: E402
-from pydantic_ai.messages import (  # noqa: E402
+from pydantic_ai import Agent
+from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
     TextPart,
     ToolCallPart,
     UserPromptPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel  # noqa: E402
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from piighost.components.anonymizer import Anonymizer  # noqa: E402
-from piighost.components.detector import ExactMatchDetector  # noqa: E402
-from piighost.components.linker import ExactEntityLinker  # noqa: E402
-from piighost.components.placeholder import LabelCounterPlaceholderFactory  # noqa: E402
-from piighost.conversation_memory import InMemoryConversationMemory  # noqa: E402
-from piighost.exceptions import InventedPlaceholderError  # noqa: E402
-from piighost.integrations.langchain import (  # noqa: E402
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.linker import ExactEntityLinker
+from piighost.components.placeholder import LabelCounterPlaceholderFactory
+from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.exceptions import InventedPlaceholderError
+from piighost.integrations.langchain import (
     EntityCreateByAssistantStrategy,
     ToolCallStrategy,
 )
-from piighost.integrations.pydantic_ai import pii_hooks  # noqa: E402
-from piighost.pipeline import ThreadAnonymizationPipeline  # noqa: E402
+from piighost.integrations.pydantic_ai import pii_hooks
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 
 def _pipeline() -> ThreadAnonymizationPipeline:
