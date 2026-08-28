@@ -8,7 +8,7 @@ on:
   # changed file matches one of these patterns. This list mirrors the paths
   # allowlist in docs.yml (its inverse).
   pull_request:
-    branches: [master]
+    branches: [master, develop]
     paths-ignore:
       - "**/*.md"
       - "docs/**"
@@ -16,7 +16,7 @@ on:
       - "zensical.fr.toml"
       - "LICENSE"
   push:
-    branches: [master]
+    branches: [master, develop]
     paths-ignore:
       - "**/*.md"
       - "docs/**"
