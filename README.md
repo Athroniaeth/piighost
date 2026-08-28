@@ -8,11 +8,11 @@
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
-`piighost` is a Python library that keeps PII (personally identifiable information) from reaching a language model, while keeping the application fully functional.
+`piighost` is a Python library that keeps PII (personally identifiable information) from ever reaching a language model, without getting in the way of what your app needs to do.
 
-The library spots PII with detectors (regex, NER, or another LLM) and replaces each value with a stable placeholder, for example `john.doe@example.com` becomes `<<EMAIL:1>>`. The model only ever works on de-identified text. When the LLM returns placeholders, `piighost` puts the real values back in place, the end user sees `john.doe@example.com` and never notices the de-identification. The same mechanism protects tool-using agents. A tool that needs the real address receives it in clear, while the LLM that decides to call it still sees only `<<EMAIL:1>>`.
+It spots PII with detectors (regex, NER, or another LLM) and swaps each value for a stable placeholder, so `john.doe@example.com` becomes `<<EMAIL:1>>` and the model only ever works on de-identified text. When the LLM answers with those placeholders, `piighost` puts the real values back, so the end user reads `john.doe@example.com` and never notices a thing. Tool-using agents get the same treatment. A tool that genuinely needs the real address receives it in clear, while the LLM that decided to call it still sees only `<<EMAIL:1>>`.
 
-Finally, the library keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com` shows up again three messages later, the placeholder stays `<<EMAIL:1>>`, so the model can follow the thread.
+The mapping between a value and its placeholder also sticks around for the whole conversation. If `john.doe@example.com` comes up again three messages later, it stays `<<EMAIL:1>>`, so the model can still follow the thread.
 
 <p align="center">
   <picture>
@@ -28,20 +28,20 @@ Finally, the library keeps the mapping between a value and its placeholder acros
 
 ## Features
 
-- **Pluggable detectors** — regex catalogs (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), an LLM detector, plus exact-match, composite, and chunked detectors.
-- **Reversible, collision-free placeholders** — opaque tokens (`<<PERSON:1>>`), plus label-only, masked, and keyed-hash factories, kept stable across a whole conversation.
-- **Agent integrations** — LangChain middleware, Pydantic AI hooks, and LlamaIndex, with tool-boundary de-identification and token-by-token streaming restoration.
-- **Conversation memory** — in-process, Redis, or SQLAlchemy backends; the Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
-- **Guard rail** — re-check the model output for residual PII and refuse it (a detector, an LLM, or Mistral-backed moderation).
-- **TOML/JSON configuration** — build a full pipeline from a file, with a CLI to validate it and emit its schema.
-- **HTTP client and OpenTelemetry tracing** — an async client for the companion `piighost-api`, and per-stage spans with optional payload redaction.
-- **Typed and dependency-light** — ships `py.typed`, a minimal core, with everything heavy behind optional extras.
+- **Pluggable detectors.** Regex catalogs (generic, US, EU, FR), NER with GLiNER2, spaCy or Transformers, an LLM detector, and exact-match, composite, and chunked detectors on top.
+- **Reversible, collision-free placeholders.** Opaque tokens like `<<PERSON:1>>`, plus label-only, masked, and keyed-hash factories, all stable across a whole conversation.
+- **Agent integrations.** LangChain middleware, Pydantic AI hooks, and LlamaIndex, with de-identification right at the tool boundary and token-by-token streaming restoration.
+- **Conversation memory.** In-process, Redis, or SQLAlchemy backends. The Redis backend can encrypt values at rest (AES-GCM) and hash keys (Argon2id).
+- **Guard rail.** Re-check the model's output for any PII that slipped through and refuse it, backed by a detector, an LLM, or Mistral moderation.
+- **TOML/JSON configuration.** Build a whole pipeline from one file, with a CLI to validate it and print its schema.
+- **HTTP client and OpenTelemetry tracing.** An async client for the companion `piighost-api`, and per-stage spans with optional payload redaction.
+- **Typed and dependency-light.** Ships `py.typed` and a minimal core, with everything heavy tucked behind optional extras.
 
 ## Why PIIGhost
 
-- **vs. plain regex or scrubbing** — regex alone misses names and shifts boundaries, and deleting or masking PII breaks the model's reasoning. PIIGhost keeps the text coherent with stable, reversible placeholders and restores the real values for the user and for tools.
-- **vs. Faker-style fake data** — a finite pool of fakes collides and can coincide with a real value, so it is not reliably reversible. PIIGhost uses synthetic, collision-free tokens instead. If you already rely on Presidio, it is available as a detector through the `presidio` extra.
-- **vs. analytical anonymization (k-anonymity, differential privacy)** — those protect a whole dataset by transforming it. PIIGhost protects a live conversation one message at a time and restores it, so your agent keeps working on real data behind the scenes.
+- **Against plain regex or scrubbing.** Regex on its own misses names and shifts boundaries, and deleting or masking PII breaks the model's reasoning. PIIGhost keeps the text coherent with stable, reversible placeholders, then restores the real values for the user and for tools.
+- **Against Faker-style fake data.** A finite pool of fakes collides, and a fake can land on a real value, so you can't reliably reverse it. PIIGhost uses synthetic, collision-free tokens instead. Already using Presidio? It plugs in as a detector through the `presidio` extra.
+- **Against analytical anonymization (k-anonymity, differential privacy).** Those protect a whole dataset by transforming it. PIIGhost protects a live conversation one message at a time and puts the real data back, so your agent keeps working behind the scenes.
 
 Built for LLM agents: the model only ever sees placeholders, while tools and the end user see the real values.
 
