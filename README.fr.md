@@ -175,7 +175,7 @@ Pour un vrai détecteur et le pipeline conversationnel, voir le [Quickstart](htt
 - **Communauté** : [Discord](https://discord.gg/vFg9GHQR2s) pour obtenir de l'aide, signaler des bugs, proposer des fonctionnalités et échanger sur la dé-identification
 - **Contribuer** : [guide de contribution](https://athroniaeth.github.io/piighost/fr/community/contributing/) et [signaler un bug](https://athroniaeth.github.io/piighost/fr/community/bug-reports/)
 - **Écosystème** :
-    - **[Site de présentation](https://piighost.athroniaeth.cloud)** : une vue d'ensemble du projet
+    - **[Site de présentation](https://piighost.athroniaeth.cloud/?utm_source=github&utm_medium=readme&utm_campaign=piighost)** : une vue d'ensemble du projet
     - **[piighost-api](https://github.com/Athroniaeth/piighost-api)** : le serveur d'API d'inférence
     - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)** : un exemple d'interface de chat avec HITL
 - **Licence** : [MIT](LICENSE)
