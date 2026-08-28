@@ -54,7 +54,9 @@ La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy 
 | **Auto-hébergé (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
 | **Licence** | MIT | MIT | MIT | Commercial | Commercial | MIT |
 
-Notes : ici, **LangChain PII** désigne le `PIIMiddleware` Python. Le `piiRedactionMiddleware` JS fait le compromis inverse, réversible mais sans streaming. **Cloud** regroupe AWS Comprehend et Azure AI Language, et le mode Conversation d'Azure ne fait que détecter, il ne restaure pas. Si vous lisez la colonne PIIGhost, c'est la seule qui reste ✅ sur restauration transparente, cohérence conversation, frontière outils, streaming et détecteur LLM, sans sortir de votre infrastructure.
+Ce tableau n'est pas neutre. Ses lignes sont ce pour quoi PIIGhost a été conçu, donc il en ressort forcément bien. Il sert à montrer ce que les outils moyens ne couvrent pas, pas à désigner un gagnant.
+
+Notes : ici, **LangChain PII** désigne le `PIIMiddleware` Python. Le `piiRedactionMiddleware` JS fait le compromis inverse, réversible mais sans streaming. **Cloud** regroupe AWS Comprehend et Azure AI Language, et le mode Conversation d'Azure ne fait que détecter, il ne restaure pas.
 
 ### Limites et partis pris
 

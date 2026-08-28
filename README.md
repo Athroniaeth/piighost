@@ -54,7 +54,9 @@ Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs
 | **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
 | **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
 
-Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore. Read down the PIIGhost column and it stays ✅ across transparent restore, conversation consistency, the tool boundary, streaming, and an LLM detector, without leaving your own infrastructure.
+This table is not neutral: the rows are the things PIIGhost was built to do, so it naturally comes out ahead. It is here to show what most other tools leave out, not to declare a winner.
+
+Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore.
 
 ### Limitations and trade-offs
 
