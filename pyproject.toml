@@ -1,7 +1,7 @@
 [project]
 name = "piighost"
 version = "1.5.0"
-description = "Composable, reversible PII de-identification pipeline for LLM agents, with a LangChain middleware and pluggable detectors (NER, regex, LLM, custom)."
+description = "Protect personal data (PII) in your LLM prompts. piighost hides sensitive values from the model, then restores the real values in the response, so tools and the user still get the real data. Pluggable detectors (regex, NER, LLM), LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
