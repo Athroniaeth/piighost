@@ -34,7 +34,7 @@ jobs:
       - run: uv sync --locked --dev --no-progress -q
       - run: uv run zensical build --clean
       - run: uv run zensical build -f zensical.fr.toml
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - uses: actions/deploy-pages@v4
