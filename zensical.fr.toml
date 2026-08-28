@@ -1,7 +1,7 @@
 [project]
 site_name = "PIIGhost"
 site_url = "https://athroniaeth.github.io/piighost/fr/"
-site_description = "Protégez les données personnelles (PII) de vos prompts LLM sans casser votre application. Détecteurs regex, NER et LLM enfichables, intégrations LangChain et Pydantic AI, et un proxy compatible OpenAI et Anthropic."
+site_description = "Gardez les données personnelles (PII) hors de votre LLM pendant que les outils et l'utilisateur reçoivent les vraies valeurs. Détecteurs regex, NER et LLM enfichables, intégrations LangChain et Pydantic AI, et un proxy compatible OpenAI et Anthropic."
 site_author = "PIIGhost"
 copyright = "Copyright &copy; 2026 contributeurs PIIGhost"
 repo_url = "https://github.com/Athroniaeth/piighost"

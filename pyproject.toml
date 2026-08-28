@@ -1,7 +1,7 @@
 [project]
 name = "piighost"
 version = "1.5.0"
-description = "Protect personal data (PII) in your LLM prompts without breaking the app. piighost hides sensitive values from the model, then restores the real values in the response. Pluggable detectors (regex, NER, LLM), LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
+description = "Keep personal data (PII) out of your LLM while tools and the user still get the real values. piighost hides sensitive values from the model, then restores them in the response. Pluggable detectors (regex, NER, LLM), LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
