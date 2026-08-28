@@ -26,6 +26,7 @@ nav = [
         { "Intégration LangChain" = "examples/langchain.md" },
         { "Intégration Pydantic AI" = "examples/pydantic-ai.md" },
         { "Intégration LlamaIndex" = "examples/llama-index.md" },
+        { "Hooks Claude Code" = "examples/claude-code.md" },
         { "Détecteurs prêts à l'emploi" = "examples/detectors.md" },
         { "Étendre PIIGhost" = "extending.md" },
         { "Tests" = "examples/testing.md" },
