@@ -1,11 +1,11 @@
 """Tests for the span-replacement Anonymizer."""
 
 from piighost.components.anonymizer import Anonymizer, AnyAnonymizer
-from piighost.models import Detection, Entity, Span
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     RedactPlaceholderFactory,
 )
+from piighost.models import Detection, Entity, Span
 
 
 def _detection(start: int, end: int, text: str, label: str = "PERSON") -> Detection:

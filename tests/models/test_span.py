@@ -39,7 +39,7 @@ class TestImmutability:
         """Assigning to a field raises because the dataclass is frozen."""
         s = Span(0, 5)
         with pytest.raises(dataclasses.FrozenInstanceError):
-            setattr(s, "start", 1)
+            setattr(s, "start", 1)  # noqa: B010  # dynamic set: the frozen guard must raise, a direct assignment would not type-check
 
     def test_uses_slots(self) -> None:
         """The class defines __slots__ for start and end."""

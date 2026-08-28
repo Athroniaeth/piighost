@@ -1,11 +1,11 @@
 """Redact placeholder factory: one constant token for every entity."""
 
-from piighost.models import Entity
 from piighost.components.placeholder.base import (
     AnyPlaceholderFactory,
     BaseDelimitedPlaceholderFactory,
 )
 from piighost.components.placeholder.tags import PreservesNothing
+from piighost.models import Entity
 
 
 class RedactPlaceholderFactory(

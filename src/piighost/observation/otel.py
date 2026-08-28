@@ -23,7 +23,7 @@ if importlib.util.find_spec("opentelemetry") is None:
         "Install it with: pip install piighost[observation]"
     )
 
-from opentelemetry import trace  # noqa: E402
+from opentelemetry import trace
 
 _INPUT_KEY = "langfuse.observation.input"
 """The span attribute Langfuse maps to the observation's input."""
@@ -71,7 +71,7 @@ class OtelSpan:
         """Record the output payload under the Langfuse output attribute."""
         self._span.set_attribute(_OUTPUT_KEY, _as_attribute(value))
 
-    def set_attribute(self, key: str, value: str | int | float | bool) -> None:
+    def set_attribute(self, key: str, value: str | float | bool) -> None:
         """Record one scalar attribute as-is."""
         self._span.set_attribute(key, value)
 

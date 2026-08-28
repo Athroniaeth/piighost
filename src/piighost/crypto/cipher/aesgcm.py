@@ -16,7 +16,7 @@ if importlib.util.find_spec("cryptography") is None:
         "Install it with: pip install piighost[crypto]"
     )
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM  # noqa: E402
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 _NONCE_LENGTH = 12
 """AES-GCM nonce length in bytes, the 96-bit size the mode is defined for, prepended to each ciphertext."""

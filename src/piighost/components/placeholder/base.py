@@ -8,7 +8,6 @@ from typing import Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
 
-from piighost.models import Entity
 from piighost.components.placeholder.streaming import (
     DEFAULT_PREFIX,
     DEFAULT_SUFFIX,
@@ -20,6 +19,7 @@ from piighost.components.placeholder.tags import (
     PlaceholderPreservation,
     PreservesLabeledIdentityOpaque,
 )
+from piighost.models import Entity
 
 PreservationT_co = TypeVar(
     "PreservationT_co",

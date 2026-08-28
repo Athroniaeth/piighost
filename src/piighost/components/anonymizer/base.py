@@ -7,9 +7,9 @@ from typing import Generic, Protocol, runtime_checkable
 
 from typing_extensions import TypeVar
 
-from piighost.models import Entity
 from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.components.placeholder.tags import PlaceholderPreservation
+from piighost.models import Entity
 
 PreservationT_co = TypeVar(
     "PreservationT_co",

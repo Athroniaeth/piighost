@@ -29,7 +29,7 @@ if importlib.util.find_spec("sqlalchemy") is None:
         "Install it with: pip install piighost[sqlalchemy]"
     )
 
-from sqlalchemy import (  # noqa: E402
+from sqlalchemy import (
     Column,
     Integer,
     LargeBinary,
@@ -43,7 +43,7 @@ from sqlalchemy import (  # noqa: E402
     select,
     update,
 )
-from sqlalchemy.ext.asyncio import AsyncEngine  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 _DEFAULT_TABLE = "piighost_conversation_messages"
 """Default table name holding every thread's message detections."""

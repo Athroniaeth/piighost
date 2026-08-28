@@ -1,11 +1,11 @@
 """Tests for the ConfidenceOverlapResolver."""
 
-from piighost.models import Detection, Span
 from piighost.components.overlap_resolver import (
     AnyOverlapResolver,
     BaseOverlapResolver,
     ConfidenceOverlapResolver,
 )
+from piighost.models import Detection, Span
 
 
 def _detection(start: int, end: int, label: str, confidence: float) -> Detection:
