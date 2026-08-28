@@ -1,23 +1,12 @@
-<h1 align="center">PIIGhost</h1>
+# PIIGhost
 
-<p align="center"><em>Keep PII out of your LLM, and keep your app working.</em></p>
-
-<p align="center">
-<a href="https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml"><img src="https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-<a href="https://codecov.io/gh/Athroniaeth/piighost"><img src="https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg" alt="codecov"></a>
-<a href="https://pypi.org/project/piighost/"><img src="https://img.shields.io/pypi/v/piighost.svg" alt="PyPI version"></a>
-<a href="https://pypi.org/project/piighost/"><img src="https://img.shields.io/pypi/pyversions/piighost.svg" alt="Python versions"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
-<a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: bandit"></a>
-<a href="https://discord.gg/vFg9GHQR2s"><img src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&amp;logoColor=white" alt="Discord"></a>
-</p>
-
-<p align="center">
-<a href="https://athroniaeth.github.io/piighost/"><b>Docs</b></a> ·
-<a href="https://athroniaeth.github.io/piighost/comparison/"><b>Comparison</b></a> ·
-<a href="https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"><b>Changelog</b></a> ·
-<a href="https://discord.gg/vFg9GHQR2s"><b>Discord</b></a>
-</p>
+[![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg)](https://codecov.io/gh/Athroniaeth/piighost)
+[![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
+[![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
 `piighost` is a Python library that keeps PII (personally identifiable information) from ever reaching a language model, without getting in the way of what your app needs to do.
 
