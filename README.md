@@ -41,18 +41,27 @@ The mapping between a value and its placeholder also sticks around for the whole
 
 Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what PIIGhost is.
 
-**What already exists, and PIIGhost builds on:**
+| Capability | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
+|---|---|---|---|---|---|---|
+| **Detection** | regex / NER / LLM | NER + regex + rules + checksum | regex + validators | ML/NER | ML + infoTypes | regex + NER |
+| **PII handling** | reversible token (cache/DB) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
+| **Transparent restore for the user** | ✅ | ⚠️ manual (`decrypt`) | ❌ | ❌ | ⚠️ re-id via API | ✅ |
+| **Consistent across a conversation** | ✅ per thread | ❌ | ❌ | ❌ | ✅ deterministic | ✅ per session |
+| **Tool boundary** (tool gets the real value, LLM gets the token) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Streaming** (token-by-token restore) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| **Configurable post-detection stages** (linking, fuzzy, expansion, guard) | ✅ | ⚠️ operators only | ❌ | ❌ | ⚠️ transforms | ❌ |
+| **Unit processed** | text / conversation | text | text / conversation | text / documents | text / dataset | text / conversation |
+| **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
+| **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
 
-- **Detectors (Presidio, GLiNER, spaCy, regex):** they find PII, and they're good at it. PIIGhost wraps them as pluggable detectors instead of replacing them, so you keep the one you trust (Presidio ships as an extra).
-- **Redaction and masking (`[REDACTED]`, `j***@mail.com`):** safe but lossy. The model loses the information it needs to answer, and the original is gone.
-- **Faker-style substitution:** swaps in fake data, but a finite pool collides and a fake can equal a real value, so it is not reliably reversible.
+Notes: **LangChain PII** is the Python `PIIMiddleware` here; the JS `piiRedactionMiddleware` is reversible but does not stream. **Cloud** groups AWS Comprehend and Azure AI Language (Azure has a Conversation mode for *detection*, but no restore). At a glance, PIIGhost is the only column that is ✅ on transparent restore, conversation consistency, tool boundary, streaming, and an LLM detector, while staying self-hostable and OSS.
 
-**What PIIGhost adds on top:**
+### Limitations and trade-offs
 
-- **Reversible by design:** values map to stable, collision-free tokens (`<<PERSON:1>>`) and come back for the user and for tools, so nothing is lost.
-- **Consistent across a conversation:** the same value keeps the same token for the whole thread, so the model can still track who is who.
-- **Agent-aware:** at the tool boundary the LLM sees the token while the tool receives the real value, and streamed replies are restored token by token.
-- **A full pipeline, not a single function:** detect, link, resolve overlaps, anonymize, and an optional guard rail that rejects a reply if any PII slipped through.
+- **The token does not embed the encrypted value, on purpose.** Unlike a format-preserving encryption token (where the ciphertext *is* the token, e.g. Google DLP), PIIGhost uses an id (`<<PERSON:1>>`) backed by a cache. The reason: a token that carries the ciphertext can be captured today and cracked in 20 years ("harvest now, decrypt later", the quantum threat to classical crypto), whereas an id reveals nothing on its own. The accepted consequence: you need a cache to hold the token-to-value mapping, so a memory backend to deploy, share across workers, and persist in production.
+- **That cache stores the real values, so reversibility is pseudonymisation, not anonymisation (GDPR).** The real values stay stored for the duration of the conversation. The library gives you the means to protect them (AES-GCM encryption of the values, Argon2id hashing of the keys), but the database architecture itself must be secured in production once you use Redis or PostgreSQL.
+- **No dataset anonymization.** No k-anonymity, l-diversity, differential privacy, or tabular data. PIIGhost protects live text and conversations, not a whole dataset; for that, see ARX, Amnesia, or Google DLP.
+- **No checksum validation (Luhn / IBAN / NIR), by choice.** The `RegexDetector` matches on shape alone so it never lets a real value mangled by OCR leak (a checksum would reject it and it would pass in clear). The accepted trade-off: some shape-level false positives, which are benign (one extra token).
 
 ## Quickstart
 
