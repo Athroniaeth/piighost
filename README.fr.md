@@ -1,12 +1,23 @@
-# PIIGhost
+<h1 align="center">PIIGhost</h1>
 
-[![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg)](https://codecov.io/gh/Athroniaeth/piighost)
-[![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
-[![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
-[![Discord](https://img.shields.io/badge/Discord-rejoindre-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
+<p align="center"><em>Gardez les PII hors de votre LLM, sans casser votre application.</em></p>
+
+<p align="center">
+<a href="https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml"><img src="https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="https://codecov.io/gh/Athroniaeth/piighost"><img src="https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg" alt="codecov"></a>
+<a href="https://pypi.org/project/piighost/"><img src="https://img.shields.io/pypi/v/piighost.svg" alt="PyPI version"></a>
+<a href="https://pypi.org/project/piighost/"><img src="https://img.shields.io/pypi/pyversions/piighost.svg" alt="Python versions"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
+<a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: bandit"></a>
+<a href="https://discord.gg/vFg9GHQR2s"><img src="https://img.shields.io/badge/Discord-rejoindre-5865F2?logo=discord&amp;logoColor=white" alt="Discord"></a>
+</p>
+
+<p align="center">
+<a href="https://athroniaeth.github.io/piighost/fr/"><b>Docs</b></a> ·
+<a href="https://athroniaeth.github.io/piighost/fr/comparison/"><b>Comparaison</b></a> ·
+<a href="https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"><b>Changelog</b></a> ·
+<a href="https://discord.gg/vFg9GHQR2s"><b>Discord</b></a>
+</p>
 
 `piighost` est une librairie Python qui empêche les PII (données personnelles identifiables) d'atteindre un modèle de langage, sans jamais gêner ce que votre application doit en faire.
 
@@ -26,31 +37,20 @@ La correspondance entre une valeur et son placeholder tient aussi sur toute la c
 > [!NOTE]
 > `piighost` fait de la **dé-identification réversible**. Comme la correspondance entre une valeur et son placeholder est conservée pour pouvoir restaurer les données, il s'agit d'une pseudonymisation au sens du RGPD, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
-## Fonctionnalités
-
-- **Détecteurs enfichables :** catalogues regex (generic, US, EU, FR), NER avec GLiNER2, spaCy ou Transformers, et un détecteur LLM, plus les détecteurs exact-match, composite et chunked (le chunking découpe les longs textes qui dépassent la fenêtre de contexte d'un modèle).
-- **Placeholders réversibles et sans collision :** des jetons opaques comme `<<PERSON:1>>`, plus des factories label-only, masque, et hash à clé, tous stables sur toute une conversation.
-- **Intégrations agents :** middleware LangChain, hooks Pydantic AI, et LlamaIndex, avec la dé-identification juste à la frontière des outils et une restauration en streaming token par token.
-- **Mémoire de conversation :** backends in-process, Redis, ou SQLAlchemy. Le backend Redis peut chiffrer les valeurs au repos (AES-GCM) et hacher les clés (Argon2id).
-- **Guard rail :** revérifie la sortie du modèle pour toute PII passée entre les mailles et la refuse, avec un détecteur, un LLM, ou la modération Mistral.
-- **Configuration TOML/JSON :** construit tout un pipeline depuis un seul fichier, avec un CLI pour le valider et afficher son schéma.
-- **Client HTTP et tracing OpenTelemetry :** un client async pour le compagnon `piighost-api`, et des spans par étape visibles dans n'importe quel backend OpenTelemetry comme Langfuse ou Jaeger, avec rédaction optionnelle des payloads.
-- **Typé et léger en dépendances :** fournit `py.typed` et un cœur minimal, avec tout le lourd rangé derrière des extras optionnels.
-
 ## Pourquoi PIIGhost
 
 La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy et les catalogues regex repèrent très bien les entités dans un texte. Le difficile, pour un agent LLM, c'est tout ce qui vient après. Remplacer les valeurs sans casser le raisonnement du modèle, garder une valeur associée à un seul token sur toute une conversation, donner la vraie valeur aux outils pendant que le modèle ne voit que le token, et réinjecter les originaux dans la réponse. Cette orchestration, c'est PIIGhost.
 
 **Ce que PIIGhost ajoute par-dessus :**
 
-- **Détecteurs enfichables :** composez des catalogues regex, du NER (GLiNER2, spaCy, Transformers), et un détecteur LLM, et gardez celui que vous connaissez déjà (Presidio se branche via un extra).
-- **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>`, et la vraie valeur est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton.
-- **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, donc le modèle sait qui est qui.
-- **Frontière d'outils :** l'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton.
-- **Restauration en streaming :** les réponses sont restaurées token par token au fil du flux.
-- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, anonymisation, et un guard rail optionnel, pour brancher un appariement fuzzy tolérant aux fautes ou ajouter votre propre étape.
+- **Détecteurs enfichables :** catalogues regex (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), un détecteur LLM, plus les détecteurs exact-match, composite et chunked (le chunking découpe le texte qui dépasse la fenêtre de contexte d'un modèle), et vous gardez celui que vous connaissez (Presidio se branche via un extra).
+- **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>` et est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton. Les factories label-only, masque et hash à clé sont aussi disponibles.
+- **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, adossé à une mémoire in-process, Redis ou SQLAlchemy (Redis et SQL peuvent chiffrer les valeurs au repos et hacher les clés).
+- **Intégrations agents avec frontière d'outils :** middleware LangChain, hooks Pydantic AI, et LlamaIndex. L'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton, avec une restauration en streaming token par token.
+- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, anonymisation, et un guard rail optionnel qui refuse une réponse contenant une PII résiduelle (un détecteur, un LLM, ou la modération Mistral). Branchez un appariement fuzzy tolérant aux fautes ou ajoutez votre propre étape.
+- **Piloté par config et auto-hébergeable :** construisez tout un pipeline depuis un fichier TOML/JSON avec un CLI pour le valider, exécutez-le dans votre process, ou comme service via le compagnon [piighost-api](https://github.com/Athroniaeth/piighost-api) (proxys compatibles OpenAI et Anthropic).
+- **Typé et observable :** fournit `py.typed` et un cœur minimal avec tout le lourd derrière des extras, plus des spans OpenTelemetry par étape (visibles dans Langfuse ou Jaeger) avec rédaction optionnelle des payloads.
 - **Périmètre, texte et conversations en direct :** PIIGhost protège une conversation en cours, message par message, pas un dataset figé.
-- **Auto-hébergé :** tourne dans votre process, ou comme service via le compagnon [piighost-api](https://github.com/Athroniaeth/piighost-api), qui construit tout son pipeline depuis un fichier de config.
 
 Pour voir comment il se situe face à Presidio, LangChain, les API cloud et d'autres, voir [Comment PIIGhost se compare](https://athroniaeth.github.io/piighost/fr/comparison/).
 
@@ -156,6 +156,9 @@ Pour un vrai détecteur et le pipeline conversationnel, voir le [Quickstart](htt
 
 **[Documentation complète](https://athroniaeth.github.io/piighost/fr/)**
 
+<details>
+<summary>Parcourir la doc par section</summary>
+
 - **Démarrer**
     - [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/)
     - [quickstart](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/)
@@ -175,6 +178,8 @@ Pour un vrai détecteur et le pipeline conversationnel, voir le [Quickstart](htt
     - [architecture](https://athroniaeth.github.io/piighost/fr/architecture/)
     - [placeholder factories](https://athroniaeth.github.io/piighost/fr/placeholder-factories/)
     - [sécurité](https://athroniaeth.github.io/piighost/fr/security/)
+
+</details>
 
 ## Projet
 
