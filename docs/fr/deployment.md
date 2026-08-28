@@ -88,6 +88,28 @@ Deux protections se combinent à chaque écriture, toutes deux clées par un sec
 
 Le `thread_id` reste en clair comme namespace de clé, ce qui permet d'énumérer et d'oublier tout un thread avec `forget_thread`. Le modèle de menace et la comparaison des backends sont dans [Sécurité](security.md).
 
+## Utiliser une base SQL à la place
+
+Si votre stack exécute déjà PostgreSQL, `type = "sqlalchemy"` offre le même store durable et multi-worker sur n'importe quel driver SQLAlchemy async. Installez `piighost[config,sqlalchemy,crypto,argon2]`, et pointez la config vers une variable d'environnement pour l'URL, afin que le mot de passe reste hors du fichier.
+
+```toml title="pipeline.toml"
+[memory]
+type = "sqlalchemy"
+url_env = "PIIGHOST_DATABASE_URL"
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
+```bash
+export PIIGHOST_DATABASE_URL="postgresql+asyncpg://user:pass@db.internal/piighost"
+```
+
+L'URL doit utiliser un driver async (`postgresql+asyncpg://...`, `sqlite+aiosqlite://...`). Créez la table une fois au démarrage avec `await pipeline.memory.create_schema()`. Le hacheur et le cipher protègent les valeurs stockées exactement comme pour Redis.
+
 ## Voir aussi
 
 - [Référence de configuration](configuration/toml.md) : chaque section et chaque `type` de composant, en TOML et en JSON.

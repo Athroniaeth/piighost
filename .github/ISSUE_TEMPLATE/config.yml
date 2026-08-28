@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discord
+    url: https://discord.gg/vFg9GHQR2s
+    about: Ask for help, share ideas, and discuss de-identification with the community.
+  - name: 🗨️ GitHub Discussions
+    url: https://github.com/Athroniaeth/piighost/discussions
+    about: Open-ended questions and design discussions.

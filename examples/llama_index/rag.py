@@ -20,7 +20,7 @@ corpus and retrieval works, then deanonymizes the answer for the user. OpenAI on
 ever handled tokens like <<PERSON:1>>, never Patrick or Paris.
 
 An ExactMatchDetector keeps the demo deterministic. It runs against OpenAI
-embeddings and gpt-5.5, so set an OPENAI_API_KEY in the environment (copy
+embeddings and gpt-5.6-terra, so set an OPENAI_API_KEY in the environment (copy
 .env.example to .env). Run with:
 uv run examples/llama_index/rag.py
 """
@@ -58,7 +58,7 @@ def main() -> None:
     pipeline = ThreadAnonymizationPipeline(detector)
 
     Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
-    Settings.llm = OpenAI(model="gpt-5.5")
+    Settings.llm = OpenAI(model="gpt-5.6-terra")
 
     # Ingest: the anonymizer runs before embedding, so the embedding provider
     # only ever sees tokens, and a value keeps one token across the corpus.

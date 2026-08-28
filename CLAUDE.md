@@ -89,7 +89,6 @@ Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/
 ## Examples
 
 - `examples/`: standalone PEP 723 inline-metadata scripts (`anonymize_basic.py`, `thread_conversation.py`, `guard_rail.py`, `langchain_middleware.py`, `placeholder_styles.py`, plus `strategies/`, `observation/`, `config/`), run with `uv run <script>`.
-- `examples/legacy/`: pre-rewrite examples kept for reference, excluded from lint and type checking.
 
 New examples should be PEP 723 scripts, not uv sub-projects.
 

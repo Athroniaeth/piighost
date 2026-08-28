@@ -61,7 +61,7 @@ from piighost.integrations.langchain import (
 )
 
 agent = create_agent(
-    model="openai:gpt-4o",
+    model="openai:gpt-5.6-terra",
     tools=[lookup_city],
     middleware=[
         PIIAnonymizationMiddleware(

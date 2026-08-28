@@ -13,7 +13,7 @@ icon: lucide/download
 
 The core has no optional dependency. It is enough for a local pipeline that de-identifies by regex or by known values, with no model and no network.
 
-Install it with `uv`. If you are a boomer, `pip` works too.
+Install it with `uv`, or with `pip`.
 
 === "uv"
 

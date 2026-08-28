@@ -1,27 +1,34 @@
 [project]
 name = "piighost"
 version = "1.4.0"
-description = "Composable PII anonymization pipeline for LLM agents, with a LangChain middleware and pluggable detectors (NER, regex, LLM, custom)."
+description = "Composable, reversible PII de-identification pipeline for LLM agents, with a LangChain middleware and pluggable detectors (NER, regex, LLM, custom)."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Athroniaeth" },
 ]
 keywords = [
     "pii",
     "anonymization",
+    "de-identification",
+    "pseudonymization",
     "nlp",
     "ner",
     "langchain",
     "langgraph",
     "gliner",
+    "presidio",
+    "spacy",
+    "llm",
     "privacy",
     "ai",
     "agents",
 ]
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -39,7 +46,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/Athroniaeth/piighost"
-Documentation = "https://github.com/Athroniaeth/piighost#readme"
+Documentation = "https://athroniaeth.github.io/piighost/"
+Repository = "https://github.com/Athroniaeth/piighost"
 Issues = "https://github.com/Athroniaeth/piighost/issues"
 Changelog = "https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"
 
@@ -56,6 +64,7 @@ redis = [
 langchain = [
     "langchain>=1.2",
 ]
+# Alias of `langchain`, kept for back-compat. Prefer `piighost[langchain]`.
 middleware = [
     "langchain>=1.2",
 ]
@@ -120,6 +129,16 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/piighost"]
 
+[tool.hatch.build.targets.sdist]
+# Ship only what a source install needs; keep docs/, site/, e2e/, benchmarks/,
+# tools/, scripts/, publish/, and examples out of the source distribution.
+only-include = [
+    "src/piighost",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]
+
 [dependency-groups]
 dev = [
     "ruff>=0.15.5",
@@ -128,6 +147,7 @@ dev = [
     "pyrefly>=0.55.0",
     "zensical>=0.0.27",
     "commitizen>=4.13.9",
+    "pre-commit>=4.0",
     "pytest-asyncio>=0.25",
     "bandit>=1.9.4",
     "streamlit>=1.46",
@@ -209,16 +229,14 @@ extend-select = ["ANN"]
 ignore = ["ANN401"]
 
 [tool.pyrefly]
-# Legacy v1 examples under examples/legacy/ have bit-rotted against the rewrite
-# and live in their own environments (uv sub-project, PEP 723 inline metadata),
-# so their deps are absent from the main venv and would show spurious errors.
-# Scratch scripts under scripts/ reference removed APIs.
+# Scratch scripts under scripts/ reference removed APIs, and e2e/ scripts pull in
+# server deps absent from the main venv, so both would show spurious errors.
 project-excludes = [
-    "examples/legacy/**",
     ".claude/**",
     "scripts/**",
     "tools/**",
     "benchmarks/**",
+    "e2e/**",
     "dist/**",
     "site/**",
 ]
@@ -232,7 +250,7 @@ exclude_dirs = [
     "tests",
     "benchmarks",
     ".venv",
-    "examples/legacy",
+    "e2e",
     "site",
     "dist",
     "docs",
