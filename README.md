@@ -39,10 +39,20 @@ The mapping between a value and its placeholder also sticks around for the whole
 
 ## Why PIIGhost
 
-- **Against plain regex or scrubbing:** regex on its own misses names and shifts boundaries, and deleting or masking PII breaks the model's reasoning. PIIGhost keeps the text coherent with stable, reversible placeholders, then restores the real values for the user and for tools.
-- **Against Faker-style fake data:** a finite pool of fakes collides, and a fake can land on a real value, so you can't reliably reverse it. PIIGhost uses synthetic, collision-free tokens instead. Already using Presidio? It plugs in as a detector through the `presidio` extra.
+Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what PIIGhost is.
 
-Built for LLM agents: the model only ever sees placeholders, while tools and the end user see the real values.
+**What already exists, and PIIGhost builds on:**
+
+- **Detectors (Presidio, GLiNER, spaCy, regex):** they find PII, and they're good at it. PIIGhost wraps them as pluggable detectors instead of replacing them, so you keep the one you trust (Presidio ships as an extra).
+- **Redaction and masking (`[REDACTED]`, `j***@mail.com`):** safe but lossy. The model loses the information it needs to answer, and the original is gone.
+- **Faker-style substitution:** swaps in fake data, but a finite pool collides and a fake can equal a real value, so it is not reliably reversible.
+
+**What PIIGhost adds on top:**
+
+- **Reversible by design:** values map to stable, collision-free tokens (`<<PERSON:1>>`) and come back for the user and for tools, so nothing is lost.
+- **Consistent across a conversation:** the same value keeps the same token for the whole thread, so the model can still track who is who.
+- **Agent-aware:** at the tool boundary the LLM sees the token while the tool receives the real value, and streamed replies are restored token by token.
+- **A full pipeline, not a single function:** detect, link, resolve overlaps, anonymize, and an optional guard rail that rejects a reply if any PII slipped through.
 
 ## Quickstart
 

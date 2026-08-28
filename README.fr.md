@@ -39,10 +39,20 @@ La correspondance entre une valeur et son placeholder tient aussi sur toute la c
 
 ## Pourquoi PIIGhost
 
-- **Face à la regex ou au scrubbing simple :** la regex seule rate les noms et décale les frontières, et supprimer ou masquer les PII brise le raisonnement du modèle. PIIGhost garde le texte cohérent avec des placeholders stables et réversibles, puis restaure les vraies valeurs pour l'utilisateur et les outils.
-- **Face aux faux à la Faker :** un vivier fini de faux finit par collisionner, et un faux peut tomber sur une vraie valeur, donc rien n'est restaurable de façon fiable. PIIGhost utilise plutôt des jetons synthétiques sans collision. Vous dépendez déjà de Presidio ? Il se branche comme détecteur via l'extra `presidio`.
+La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy et les catalogues regex repèrent très bien les entités dans un texte. Le difficile, pour un agent LLM, c'est tout ce qui vient après. Remplacer les valeurs sans casser le raisonnement du modèle, garder une valeur associée à un seul token sur toute une conversation, donner la vraie valeur aux outils pendant que le modèle ne voit que le token, et réinjecter les originaux dans la réponse. Cette orchestration, c'est PIIGhost.
 
-Pensé pour les agents LLM : le modèle ne voit que des placeholders, tandis que les outils et l'utilisateur final voient les vraies valeurs.
+**Ce qui existe déjà, et sur quoi PIIGhost s'appuie :**
+
+- **Détecteurs (Presidio, GLiNER, spaCy, regex) :** ils repèrent les PII, et ils le font bien. PIIGhost les enveloppe comme détecteurs enfichables au lieu de les remplacer, donc vous gardez celui que vous connaissez (Presidio est fourni comme extra).
+- **Rédaction et masquage (`[REDACTED]`, `j***@mail.com`) :** sûr mais destructeur. Le modèle perd l'information dont il a besoin pour répondre, et l'original est perdu.
+- **Substitution à la Faker :** injecte de fausses données, mais un vivier fini collisionne et un faux peut égaler une vraie valeur, donc rien n'est restaurable de façon fiable.
+
+**Ce que PIIGhost ajoute par-dessus :**
+
+- **Réversible par conception :** les valeurs correspondent à des tokens stables et sans collision (`<<PERSON:1>>`) et reviennent pour l'utilisateur et pour les outils, donc rien n'est perdu.
+- **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, donc le modèle sait toujours qui est qui.
+- **Pensé pour les agents :** à la frontière des outils, le LLM voit le token pendant que l'outil reçoit la vraie valeur, et les réponses en streaming sont restaurées token par token.
+- **Un pipeline complet, pas une simple fonction :** détection, liaison, résolution des chevauchements, anonymisation, et un guard rail optionnel qui refuse une réponse si une PII est passée.
 
 ## Démarrage rapide
 
