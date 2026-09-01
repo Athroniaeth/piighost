@@ -107,6 +107,24 @@ class InvalidKeyLengthError(CipherError):
     """Raised when a cipher is built with a key of an unsupported length."""
 
 
+class AnonymizerError(PIIGhostError):
+    """Base class for errors raised by an anonymizer.
+
+    Catch this to handle any anonymizer failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class OverlappingSpansError(AnonymizerError):
+    """Raised when the anonymizer is handed detections whose spans overlap.
+
+    The span-replacement anonymizer rewrites the text in one left-to-right pass
+    and assumes disjoint spans, which the overlap-resolver stage guarantees. If
+    two spans still overlap it fails closed here rather than splice a clear
+    fragment of one detection into the middle of another.
+    """
+
+
 class GuardError(PIIGhostError):
     """Base class for errors raised by a guard rail.
 

@@ -3,7 +3,7 @@
 import pytest
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
+from piighost.components.detector import CompositeDetector, ExactMatchDetector
 from piighost.components.entity_resolver import MergeEntityResolver
 from piighost.components.expander import WordBoundaryExpander
 from piighost.components.guard import DetectorGuardRail
@@ -42,6 +42,24 @@ class TestAnonymize:
         )
         result = await pipeline.anonymize("Emma met Liam")
         assert result.text == "<<PERSON:1>> met <<PERSON:2>>"
+
+    async def test_overlapping_detections_are_resolved_by_default(self) -> None:
+        """Overlapping detections are reconciled without an explicit resolver.
+
+        The overlap resolver is on by default, so a composite whose children
+        overlap yields a single token and never leaks a clear fragment of the
+        losing detection.
+        """
+        person = ExactMatchDetector({"Patrick Dupont": "PERSON"})
+        org = ExactMatchDetector({"Dupo": "ORG"})
+        detector = CompositeDetector([person, org])
+        pipeline = AnonymizationPipeline(
+            detector,
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+        )
+        result = await pipeline.anonymize("Call Patrick Dupont today.")
+        assert result.text == "Call <<PERSON:1>> today."
 
     async def test_repeats_group_into_one_token(self) -> None:
         """A value seen twice links to one entity and one token."""

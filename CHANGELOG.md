@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **integrations**: stop mutating the AIMessage tool_calls in the LangChain middleware, so deanonymized tool arguments no longer persist in the LangGraph state nor reach the model on the next turn
 - **integrations**: anonymize list/block message content (the Anthropic and multimodal default) and structured (dict/list) tool results, in both the LangChain and Pydantic AI integrations, which previously flowed to the model in clear
+- **pipeline**: resolve overlapping detections by default (`ConfidenceOverlapResolver`), which was intended from the start; unresolved overlaps previously corrupted the output and leaked a clear fragment of the losing detection. A true tie now keeps the first detector in order, and `Anonymizer.render` raises `OverlappingSpansError` if any overlap survives to it
 
 ## 1.4.0 (2026-08-23)
 

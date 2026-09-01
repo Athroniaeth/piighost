@@ -36,11 +36,16 @@ class TestSpanTree:
     async def test_emits_root_and_stage_spans_in_finish_order(
         self, exporter: InMemorySpanExporter
     ) -> None:
-        """One run emits detect, link, render, then the root, and nothing else."""
+        """One run emits detect, overlap, link, render, then the root, only.
+
+        The overlap stage is on by default, so its span appears even without an
+        explicit resolver.
+        """
         await _pipeline().anonymize("Hi Emma!")
         names = [span.name for span in exporter.get_finished_spans()]
         assert names == [
             "piighost.detect",
+            "piighost.overlap",
             "piighost.link",
             "piighost.render",
             "piighost.anonymize",
@@ -56,7 +61,12 @@ class TestSpanTree:
         assert root.parent is None
         root_context = root.context
         assert root_context is not None
-        for name in ("piighost.detect", "piighost.link", "piighost.render"):
+        for name in (
+            "piighost.detect",
+            "piighost.overlap",
+            "piighost.link",
+            "piighost.render",
+        ):
             parent = spans[name].parent
             assert parent is not None
             assert parent.span_id == root_context.span_id

@@ -15,6 +15,7 @@ from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail, GuardVerdict
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.linker.base import AnyEntityLinker
+from piighost.components.overlap_resolver import ConfidenceOverlapResolver
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.components.override.base import AnyDetectionOverride
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
@@ -143,7 +144,9 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             ExactEntityLinker.
         anonymizer: The anonymizer that replaces entities with tokens. Defaults
             to an Anonymizer with a LabelCounterPlaceholderFactory.
-        overlap_resolver: The resolver for overlapping detections, or None.
+        overlap_resolver: The resolver for overlapping detections. Defaults to a
+            ConfidenceOverlapResolver, since the render stage assumes disjoint
+            spans.
         expander: The expander for missed occurrences, or None.
         entity_resolver: The resolver for entity conflicts, or None.
         guard: The guard re-checking the output, or None.
@@ -162,12 +165,14 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
     ) -> None:
-        """Store the stage components, the optional ones defaulting to disabled.
+        """Store the stage components, most optional ones defaulting to disabled.
 
         Only the detector is required. Omitting linker builds an ExactEntityLinker,
-        and omitting anonymizer builds an Anonymizer with a
-        LabelCounterPlaceholderFactory, so the smallest pipeline is
-        AnonymizationPipeline(detector).
+        omitting anonymizer builds an Anonymizer with a
+        LabelCounterPlaceholderFactory, and omitting overlap_resolver builds a
+        ConfidenceOverlapResolver, so the smallest pipeline is
+        AnonymizationPipeline(detector). The expand, entity-resolve, guard, and
+        override stages stay disabled when omitted.
 
         observation_redactor controls the observation payloads: None, the
         default, traces the clear text and detection values, so traces double as
@@ -186,7 +191,12 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             "AnyAnonymizer[PreservationT]", Anonymizer(default_factory)
         )
         self.anonymizer = anonymizer or default_anonymizer
-        self.overlap_resolver = overlap_resolver
+        # The overlap resolver defaults on: the render stage assumes disjoint
+        # spans, so leaving overlaps unresolved would corrupt the output and leak
+        # a clear fragment of a losing detection. Pass a resolver to change the
+        # rule; there is no supported way to disable the stage.
+        default_overlap_resolver = ConfidenceOverlapResolver()
+        self.overlap_resolver = overlap_resolver or default_overlap_resolver
         self.expander = expander
         self.entity_resolver = entity_resolver
         self.guard = guard

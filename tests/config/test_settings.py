@@ -163,9 +163,14 @@ class TestOptionalStagesWiring:
         assert isinstance(pipeline.override, DetectionOverride)
 
     def test_omitted_stages_are_none(self, tmp_path: Path) -> None:
-        """A config without a stage leaves that pipeline stage disabled."""
+        """A config without a stage leaves that pipeline stage disabled.
+
+        The overlap resolver is the exception, it defaults to a
+        ConfidenceOverlapResolver as in the constructor, since the render stage
+        assumes disjoint spans.
+        """
         pipeline = load_pipeline(_write(tmp_path, _VALID_TOML))
-        assert pipeline.overlap_resolver is None
+        assert isinstance(pipeline.overlap_resolver, ConfidenceOverlapResolver)
         assert pipeline.expander is None
         assert pipeline.entity_resolver is None
         assert pipeline.guard is None
