@@ -39,6 +39,18 @@ The middleware restores PII for display. After `aafter_model`, each message's co
 
 Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware deanonymizes a tool argument only for the tool run, on a fresh request, and never writes the deanonymized value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not PII.
 
+## Token injection in user input
+
+A token restores to a value by looking like one the pipeline issued. A user who
+types `<<PERSON:2>>`{ .placeholder } into the input could otherwise have it
+restored to the second entity's value, reading a value that is not theirs. The
+anonymizer neutralizes any token the user typed before it renders the text,
+splicing an invisible character into the delimiter so the run no longer matches
+the token grammar. Only the literal runs between detected entities are
+neutralized, never the tokens the pipeline splices in, so a real token still
+restores and an injected one does not. The behaviour is on by default and can be
+turned off with `escape_existing_tokens=False` on the `Anonymizer`.
+
 ## The mapping is cleartext PII
 
 Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link, held by the `ConversationMemory`, contains cleartext PII. It is the system's most sensitive asset, and it must be protected as such.

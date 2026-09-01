@@ -3,8 +3,15 @@
 from collections.abc import Mapping
 
 from piighost.components.anonymizer.base import BaseAnonymizer, PreservationT
+from piighost.components.placeholder.base import (
+    AnyPlaceholderFactory,
+    BaseDelimitedPlaceholderFactory,
+)
 from piighost.exceptions import OverlappingSpansError
 from piighost.models import Entity
+
+_ZERO_WIDTH_SPACE = "\u200b"
+"""Invisible character spliced into a user-typed token to break its grammar."""
 
 
 class Anonymizer(BaseAnonymizer[PreservationT]):
@@ -16,6 +23,22 @@ class Anonymizer(BaseAnonymizer[PreservationT]):
     another edit still needs.
     """
 
+    def __init__(
+        self,
+        ph_factory: AnyPlaceholderFactory[PreservationT],
+        escape_existing_tokens: bool = True,
+    ) -> None:
+        """Store the factory and whether to neutralize user-typed tokens.
+
+        escape_existing_tokens defaults to True so a token a user typed in the
+        input, such as <<PERSON:2>>, is broken before it can masquerade as one
+        the factory issued and hijack another entity's value at restoration. It
+        only applies when the factory emits a recognizable delimited grammar.
+        Pass False to leave the input verbatim.
+        """
+        super().__init__(ph_factory)
+        self._escape_existing_tokens = escape_existing_tokens
+
     def render(
         self,
         text: str,
@@ -23,6 +46,10 @@ class Anonymizer(BaseAnonymizer[PreservationT]):
         tokens: Mapping[Entity, str],
     ) -> str:
         """Return text with each entity's spans replaced by its given token.
+
+        Only the literal runs between entity spans are neutralized, never the
+        tokens spliced in, and offsets are untouched, so the entity spans still
+        line up.
 
         Raises:
             OverlappingSpansError: If two spans overlap. The one-pass rewrite
@@ -42,9 +69,27 @@ class Anonymizer(BaseAnonymizer[PreservationT]):
                     f"Overlapping spans at offset {span.start} (previous edit ended "
                     f"at {cursor}); the overlap-resolver stage must run first."
                 )
-            pieces.append(text[cursor : span.start])
+            pieces.append(self._neutralize(text[cursor : span.start]))
             pieces.append(token)
             cursor = span.end
 
-        pieces.append(text[cursor:])
+        pieces.append(self._neutralize(text[cursor:]))
         return "".join(pieces)
+
+    def _neutralize(self, run: str) -> str:
+        """Break any token the user typed in a literal run of the input.
+
+        A zero-width space is spliced after the first character of each match, so
+        the delimiters no longer line up and the run cannot be restored as a real
+        token. Left untouched when escaping is off or the factory has no
+        recognizable grammar.
+        """
+        factory = self.factory
+        if not self._escape_existing_tokens or not isinstance(
+            factory, BaseDelimitedPlaceholderFactory
+        ):
+            return run
+        return factory.token_pattern.sub(
+            lambda match: match.group()[0] + _ZERO_WIDTH_SPACE + match.group()[1:],
+            run,
+        )

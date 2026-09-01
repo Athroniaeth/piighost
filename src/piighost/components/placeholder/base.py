@@ -9,8 +9,10 @@ from typing import Protocol, runtime_checkable
 from typing_extensions import TypeVar
 
 from piighost.components.placeholder.streaming import (
+    DEFAULT_INNER,
     DEFAULT_PREFIX,
     DEFAULT_SUFFIX,
+    IDENTIFIED_INNER,
     AsyncPlaceholderStreamDecoder,
     PlaceholderStreamDecoder,
     compile_token_pattern,
@@ -81,6 +83,14 @@ class BaseDelimitedPlaceholderFactory:
         suffix: The closing delimiter wrapped around every token.
     """
 
+    _inner_pattern: str = DEFAULT_INNER
+    """Regex for the inner form this factory's tokens carry between delimiters.
+
+    Defaults to a label with an optional identifier. A subclass whose tokens take
+    a narrower shape overrides it, so recognition matches only what it emits and
+    rejects arbitrary delimited content.
+    """
+
     def __init__(
         self, prefix: str = DEFAULT_PREFIX, suffix: str = DEFAULT_SUFFIX
     ) -> None:
@@ -96,10 +106,11 @@ class BaseDelimitedPlaceholderFactory:
     def token_pattern(self) -> re.Pattern[str]:
         """A regex matching this factory's tokens, capturing the inner form.
 
-        It follows the current delimiters, so a factory built with custom ones
-        finds exactly the tokens it emits.
+        It follows the current delimiters and the factory's inner grammar, so a
+        factory built with custom delimiters finds exactly the tokens it emits and
+        does not match arbitrary delimited content.
         """
-        return compile_token_pattern(self.prefix, self.suffix)
+        return compile_token_pattern(self.prefix, self.suffix, self._inner_pattern)
 
     def find_tokens(self, text: str) -> list[str]:
         """Return every placeholder token occurring in the text, in order."""
@@ -111,7 +122,9 @@ class BaseDelimitedPlaceholderFactory:
         The decoder keeps tokens whole across streamed fragments and rewrites
         each with replace, a plain callback for a synchronous stream.
         """
-        return PlaceholderStreamDecoder(replace, self.prefix, self.suffix)
+        return PlaceholderStreamDecoder(
+            replace, self.prefix, self.suffix, self._inner_pattern
+        )
 
     def async_stream_decoder(
         self, replace: Callable[[str], Awaitable[str]]
@@ -122,7 +135,9 @@ class BaseDelimitedPlaceholderFactory:
         fragments and awaits replace for each completed token, so a coroutine
         deanonymization, local or remote, can drive streaming restoration.
         """
-        return AsyncPlaceholderStreamDecoder(replace, self.prefix, self.suffix)
+        return AsyncPlaceholderStreamDecoder(
+            replace, self.prefix, self.suffix, self._inner_pattern
+        )
 
 
 class BaseCounterPlaceholderFactory(
@@ -138,6 +153,9 @@ class BaseCounterPlaceholderFactory(
     the ordinal shows as a plain number or an opaque hash. Every entity gets a
     distinct token, hence the shared tag PreservesLabeledIdentityOpaque.
     """
+
+    _inner_pattern: str = IDENTIFIED_INNER
+    """These tokens always carry a label and a colon-separated identifier."""
 
     def create(
         self, entities: list[Entity]

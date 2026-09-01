@@ -65,6 +65,33 @@ class TestAnonymize:
         assert result.text == "nothing here"
         assert result.tokens == {}
 
+    def test_user_typed_token_cannot_hijack_a_restore(self) -> None:
+        """A token a user typed is neutralized, so it cannot leak another value.
+
+        Without this, a user who writes <<PERSON:2>> would see it restored to the
+        second entity's value at deanonymization, an injection vector.
+        """
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        emma = _entity([(0, 4)], "Emma")
+        bob = _entity([(24, 27)], "Bob")
+        text = "Emma wrote <<PERSON:2>> Bob"
+        result = anonymizer.anonymize(text, [emma, bob])
+        # Only Bob's real token remains; the typed one is broken.
+        assert result.text.count("<<PERSON:2>>") == 1
+        restored = anonymizer.deanonymize(result.text, result.tokens)
+        assert restored.count("Bob") == 1
+
+    def test_escaping_can_be_disabled(self) -> None:
+        """With escaping off, a typed token is left intact (opt-out)."""
+        anonymizer = Anonymizer(
+            LabelCounterPlaceholderFactory(), escape_existing_tokens=False
+        )
+        emma = _entity([(0, 4)], "Emma")
+        bob = _entity([(24, 27)], "Bob")
+        text = "Emma wrote <<PERSON:2>> Bob"
+        result = anonymizer.anonymize(text, [emma, bob])
+        assert result.text.count("<<PERSON:2>>") == 2
+
     def test_overlapping_spans_raise(self) -> None:
         """Overlapping entity spans fail closed rather than corrupt the text.
 
@@ -130,3 +157,29 @@ class TestDeanonymize:
         anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
         result = anonymizer.anonymize("Emma met Liam", [emma, liam])
         assert anonymizer.deanonymize(result.text, result.tokens) == "Emma met Liam"
+
+    def test_no_prefix_collision_when_one_token_prefixes_another(self) -> None:
+        """A token that prefixes another (e.g. [PERSON:1 vs [PERSON:10) is safe.
+
+        With an empty suffix, sequential replacement of [PERSON:1 would corrupt
+        [PERSON:10 and [PERSON:11. The longest match must win, in one pass.
+        """
+        factory = LabelCounterPlaceholderFactory(prefix="[", suffix="")
+        anonymizer = Anonymizer(factory)
+        entities = [_entity([(i, i + 1)], f"VALUE_{i}_END") for i in range(1, 12)]
+        tokens = anonymizer.create(entities)
+        text = " ".join(str(tokens[entity]) for entity in entities)
+        restored = anonymizer.deanonymize(text, tokens)
+        assert restored == " ".join(entity.text for entity in entities)
+
+    def test_restored_value_holding_a_token_is_not_resubstituted(self) -> None:
+        """A restored value that itself looks like a token is left as is.
+
+        Restoration is one pass: a value spliced in for one token is never
+        rescanned for another token.
+        """
+        weird = _entity([(0, 12)], "<<PERSON:2>>")
+        bob = _entity([(20, 23)], "Bob")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        tokens = anonymizer.create([weird, bob])
+        assert anonymizer.deanonymize("<<PERSON:1>>", tokens) == "<<PERSON:2>>"

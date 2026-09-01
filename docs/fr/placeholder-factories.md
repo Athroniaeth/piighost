@@ -283,6 +283,8 @@ Cette substitution n'est non ambiguë **que si chaque entité a un token unique*
 
 `PIIAnonymizationMiddleware` reproduit la contrainte au runtime. À la construction, il demande au pipeline un *recognizer*, l'objet qui sait retrouver ses propres tokens. Une factory délimitée est son propre recognizer, une factory sans grammaire, comme un masque, n'en a pas et le middleware lève `UnrecognizableFactoryError`. Cela rattrape les pipelines non typés ou distants qui auraient contourné le type-checker.
 
+La grammaire du recognizer est bornée, ce n'est pas « n'importe quoi entre les délimiteurs ». La forme interne est un label, puis éventuellement un deux-points et un identifiant : `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. Un label commence par une lettre ou un underscore, puis lettres, chiffres, underscores, espaces ou tirets, si bien qu'un label en plusieurs mots émis par un détecteur, comme `date of birth`, reste reconnu. L'identifiant après le deux-points est alphanumérique, un ordinal ou un digest hexadécimal. Un contenu délimité arbitraire n'est pas un token, donc un décalage C++ `cout << x >> y` ou un passage markdown ne déclenche jamais le garde-fou des tokens inventés, et une réponse en streaming qui ouvre `<<` sans le refermer est relâchée plutôt que bufferisée indéfiniment.
+
 Voir [Stratégies d'appel outil](tool-call-strategies.md) pour la seule échappatoire, `ToolCallStrategy.PASSTHROUGH`, qui ne traverse jamais la frontière outil en clair.
 
 ---
