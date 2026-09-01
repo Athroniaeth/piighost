@@ -47,6 +47,15 @@ class TestModelDetectorParsing:
         assert config.model == "dslim/bert-base-NER"
         assert config.threshold == 0.9
 
+    def test_transformers_aggregation_strategy_defaults_to_simple(self) -> None:
+        """The aggregation strategy defaults to simple and is overridable."""
+        default = TransformersDetectorConfig(type="transformers", model="m")
+        assert default.aggregation_strategy == "simple"
+        custom = TransformersDetectorConfig(
+            type="transformers", model="m", aggregation_strategy="max"
+        )
+        assert custom.aggregation_strategy == "max"
+
     def test_presidio_parses_language_and_threshold(self) -> None:
         """The presidio config parses labels, language, and threshold."""
         config = PresidioDetectorConfig(

@@ -109,17 +109,18 @@ detector = CompositeDetector([email_detector, person_detector])
 
 ## `ExactMatchDetector`
 
-Trouve les occurrences de valeurs littérales configurées. Il parcourt le texte pour chaque valeur et émet une détection par occurrence à une confiance de 1.0. Il ne porte aucun modèle et aucune dépendance optionnelle, ce qui en fait le détecteur de choix pour exercer le pipeline dans les tests.
+Trouve les occurrences en mot entier de valeurs littérales configurées. Il parcourt le texte pour chaque valeur et émet une détection par occurrence à une confiance de 1.0. La correspondance se fait sur des frontières de mot, donc une valeur ne se déclenche pas à l'intérieur d'un mot plus long (`Ann`{ .pii } ne correspond pas dans `Anne`{ .pii }), et elle est insensible à la casse par défaut, donc une valeur correspond quelle que soit sa casse tandis que la détection garde le texte tel qu'il apparaît. Il ne porte aucun modèle et aucune dépendance optionnelle, ce qui en fait le détecteur de choix pour exercer le pipeline dans les tests.
 
 ### Constructeur
 
 ```python
-ExactMatchDetector(values: dict[str, str])
+ExactMatchDetector(values: dict[str, str], case_sensitive: bool = False)
 ```
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
 | `values` | `dict[str, str]` | Correspondance d'une valeur littérale vers le label de PII à émettre pour elle (requis) |
+| `case_sensitive` | `bool` | Si la correspondance respecte la casse. `False` par défaut |
 
 ```python
 from piighost.components.detector import ExactMatchDetector
