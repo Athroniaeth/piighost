@@ -39,6 +39,19 @@ Le middleware restaure la PII pour l'affichage. Après `aafter_model`, le conten
 
 Les appels d'outils sont traités différemment. Les `tool_calls` d'un `AIMessage` restent tokenisés dans l'état. Le middleware ne dé-anonymise un argument d'outil que pour l'exécution de l'outil, sur une requête neuve, et ne réécrit jamais la valeur dé-anonymisée dans l'état, si bien que le checkpointer ne persiste jamais de valeur en clair dans un appel d'outil. Un résultat d'outil conservé comme `ToolMessage` reste lui aussi tokenisé dans l'état, une UI qui affiche les sorties d'outils depuis l'état voit donc des tokens, pas de la PII.
 
+## Injection de token dans l'entrée utilisateur
+
+Un token est restauré en une valeur parce qu'il ressemble à un token émis par le
+pipeline. Un utilisateur qui tape `<<PERSON:2>>`{ .placeholder } dans l'entrée
+pourrait sinon le voir restauré en la valeur de la deuxième entité, et lire une
+valeur qui n'est pas la sienne. L'anonymiseur neutralise tout token tapé par
+l'utilisateur avant le rendu, en insérant un caractère invisible dans le
+délimiteur pour que la chaîne ne corresponde plus à la grammaire des tokens.
+Seules les portions littérales entre les entités détectées sont neutralisées,
+jamais les tokens que le pipeline insère, si bien qu'un vrai token est toujours
+restauré et un token injecté ne l'est pas. Le comportement est actif par défaut
+et se désactive avec `escape_existing_tokens=False` sur l'`Anonymizer`.
+
 ## Le mapping est de la PII en clair
 
 La réversibilité a un prix. Pour restaurer `jean@mail.com`{ .pii } à partir de `<<EMAIL:1>>`{ .placeholder }, `piighost` garde le lien entre les deux. Ce lien, porté par la `ConversationMemory`, contient de la PII en clair. C'est l'actif le plus sensible du système, et il faut le protéger comme tel.

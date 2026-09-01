@@ -62,6 +62,20 @@ class TestFeed:
         decoder = PlaceholderStreamDecoder(_replace())
         assert decoder.feed("just words") == "just words"
 
+    def test_stray_open_delimiter_is_released_not_held_forever(self) -> None:
+        """A << that never closes is released once it can no longer be a token.
+
+        The buffer is bounded, so a stray << (a C++ shift, a truncated stream)
+        does not hold the rest of the stream hostage until flush.
+        """
+        decoder = PlaceholderStreamDecoder(_replace())
+        first = decoder.feed("cout << ")
+        rest = decoder.feed("x" * 300)
+        out = first + rest
+        assert "cout << " in out
+        assert "x" * 300 in out
+        assert decoder.flush() == ""
+
 
 class TestFromFactory:
     def test_factory_builds_a_matching_decoder(self) -> None:
