@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **anonymizer**: deanonymize in a single regex pass, longest token first, so a token that prefixes another (e.g. `[PERSON:1` vs `[PERSON:10` with an empty suffix) no longer corrupts restoration and a restored value that looks like a token is never rescanned
 - **placeholder**: bound the token grammar to a label with an optional identifier instead of any `<<...>>` run, so a C++ shift or markdown no longer trips the invented-token guard, and bound the streaming buffer so a stray unclosed `<<` is released rather than held until flush
 - **anonymizer**: neutralize a token a user typed in the input (`escape_existing_tokens`, on by default), so it cannot masquerade as an issued token and restore another entity's value
+- **detector**: `ExactMatchDetector` now matches on word boundaries (no `Ann` inside `Anne`) and is case-insensitive by default (`case_sensitive` to opt out)
+- **detector**: `TransformersDetector` loads its pipeline with `aggregation_strategy` (default `simple`), so sub-word tokens are grouped into whole entities instead of emitted piecemeal
+- **detector**: NER detectors accept `max_chars` with `auto_chunk` (default on), so a text longer than the model context is chunked and remapped rather than silently truncated, or raises `TextTooLongError` when chunking is off
+- **detector**: `LLMDetector` wraps the source text in tags and instructs the model to treat it as data, not instructions, and exposes `confidence` for arbitration against a NER detector
+- **guard**: `LLMGuardRail` accepts `prefix`/`suffix`, so the default prompt's placeholder examples match the pipeline's real delimiters instead of a hardcoded `<<LABEL:N>>`
 
 ## 1.4.0 (2026-08-23)
 

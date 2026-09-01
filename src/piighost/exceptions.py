@@ -79,6 +79,15 @@ class LabelMappingError(DetectorError):
     """
 
 
+class TextTooLongError(DetectorError):
+    """Raised when a text exceeds a NER detector's max_chars with chunking off.
+
+    A model that silently truncates a text longer than its context would leave the
+    tail unscanned and its PII in clear. With auto_chunk disabled, the detector
+    fails closed here rather than scan only a prefix.
+    """
+
+
 class HasherError(PIIGhostError):
     """Base class for errors raised while constructing a hasher.
 

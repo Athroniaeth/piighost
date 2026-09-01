@@ -12,8 +12,12 @@ from collections.abc import Callable
 from dataclasses import replace
 from typing import Any
 
-from piighost.exceptions import LabelMappingError
+from piighost.exceptions import LabelMappingError, TextTooLongError
 from piighost.models import Detection
+from piighost.text import AnySplitter, RecursiveCharacterTextSplitter
+
+_DEFAULT_CHUNK_OVERLAP = 100
+"""Default chunk overlap, in characters, capped below the chunk size."""
 
 
 class BaseNERDetector(ABC):
@@ -34,18 +38,46 @@ class BaseNERDetector(ABC):
         self,
         labels: list[str] | dict[str, str] | None,
         max_concurrency: int | None = None,
+        max_chars: int | None = None,
+        auto_chunk: bool = True,
+        splitter: AnySplitter | None = None,
     ) -> None:
-        """Normalize labels, build the reverse lookup, and set concurrency."""
+        """Normalize labels, build the reverse lookup, and set the run policy.
+
+        max_chars bounds the text a single inference sees, guarding against a
+        model that would silently truncate a longer text and leave its tail
+        unscanned. When a text exceeds it and auto_chunk is set (the default), the
+        text is split into overlapping chunks scanned separately and remapped;
+        otherwise a TextTooLongError is raised. splitter overrides the default
+        RecursiveCharacterTextSplitter sized to max_chars.
+        """
         self._label_map = self._normalize(labels)
         self._reverse_map = self._build_reverse(self._label_map)
         self._infer_semaphore = (
             asyncio.Semaphore(max_concurrency) if max_concurrency else None
         )
+        self._max_chars = max_chars
+        self._auto_chunk = auto_chunk
+        self._splitter = self._resolve_splitter(splitter, max_chars)
+
+    @staticmethod
+    def _resolve_splitter(
+        splitter: AnySplitter | None, max_chars: int | None
+    ) -> AnySplitter | None:
+        """Return the splitter to chunk with, sized to max_chars when built here."""
+        if splitter is not None:
+            return splitter
+        if max_chars is None:
+            return None
+        overlap = min(_DEFAULT_CHUNK_OVERLAP, max_chars // 4)
+        return RecursiveCharacterTextSplitter(
+            chunk_size=max_chars, chunk_overlap=overlap
+        )
 
     async def detect(self, text: str) -> list[Detection]:
         """Detect via the subclass hook, then map and filter the labels."""
         detections: list[Detection] = []
-        for detection in await self._raw_detect(text):
+        for detection in await self._gather_raw(text):
             label = self._resolve_label(detection.label)
             if label is None:
                 continue
@@ -53,6 +85,31 @@ class BaseNERDetector(ABC):
                 detection = replace(detection, label=label)
             detections.append(detection)
         return detections
+
+    async def _gather_raw(self, text: str) -> list[Detection]:
+        """Return raw detections, scanning whole or chunking an over-long text.
+
+        A text within max_chars, or with no limit set, is scanned in one pass.
+        A longer text is chunked when auto_chunk is on, each chunk scanned and
+        its spans shifted back onto the original text, exact duplicates from the
+        overlap dropped; otherwise it raises TextTooLongError.
+        """
+        if self._max_chars is None or len(text) <= self._max_chars:
+            return await self._raw_detect(text)
+
+        if not self._auto_chunk or self._splitter is None:
+            raise TextTooLongError(
+                f"Text of {len(text)} characters exceeds max_chars="
+                f"{self._max_chars} and auto_chunk is disabled; enable auto_chunk "
+                "or pre-chunk the text."
+            )
+
+        remapped: list[Detection] = []
+        for chunk in self._splitter.split(text):
+            for detection in await self._raw_detect(chunk.text):
+                shifted = detection.span.shift(chunk.start)
+                remapped.append(replace(detection, span=shifted))
+        return list(dict.fromkeys(remapped))
 
     @abstractmethod
     async def _raw_detect(self, text: str) -> list[Detection]:

@@ -20,17 +20,29 @@ from langchain_core.language_models import BaseChatModel
 
 from piighost.components.detector.llm import LLMDetector
 
-_GUARD_PROMPT = (
-    "You are auditing text that has already been anonymized. Your job is to "
-    "find Personally Identifiable Information (PII) that is still present in "
-    "clear form, despite the anonymization step.\n\n"
-    "Extract clear-form entities matching these labels:\n"
-    "{labels}\n\n"
-    "Tokens of the form <<LABEL:NUMBER>> or <<LABEL:HEX>> (for example "
-    "<<PERSON:1>>, <<LOCATION:a3f9>>) are placeholders, not PII; never flag "
-    "them. Only flag entities that appear in the text in clear form. If no "
-    "clear-form PII remains, return an empty list."
-)
+
+def _guard_prompt(prefix: str, suffix: str) -> str:
+    """Build the guard prompt, its placeholder examples in the given delimiters.
+
+    The examples of what not to flag follow the delimiters the pipeline actually
+    emits, so a pipeline built with custom delimiters is described correctly. The
+    {labels} placeholder stays literal for LangChain to fill at format time.
+    """
+    hint = (
+        f"Tokens of the form {prefix}LABEL:NUMBER{suffix} or "
+        f"{prefix}LABEL:HEX{suffix} (for example {prefix}PERSON:1{suffix}, "
+        f"{prefix}LOCATION:a3f9{suffix}) are placeholders, not PII; never flag them."
+    )
+    return (
+        "You are auditing text that has already been anonymized. Your job is to "
+        "find Personally Identifiable Information (PII) that is still present in "
+        "clear form, despite the anonymization step.\n\n"
+        "Extract clear-form entities matching these labels:\n"
+        "{labels}\n\n"
+        + hint
+        + " Only flag entities that appear in the text in clear form. If no "
+        "clear-form PII remains, return an empty list."
+    )
 
 
 class LLMGuardRail:
@@ -39,7 +51,9 @@ class LLMGuardRail:
     It wraps an LLMDetector configured with a guard prompt that tells the model
     to ignore placeholders and flag only residual clear-form PII, then reports a
     verdict. A str model is loaded like LLMDetector's; a loaded instance is used
-    as-is. A custom prompt must contain a {labels} placeholder.
+    as-is. A custom prompt must contain a {labels} placeholder. When no custom
+    prompt is given, the default prompt's placeholder examples follow prefix and
+    suffix, so they match the delimiters the pipeline emits.
     """
 
     def __init__(
@@ -48,12 +62,14 @@ class LLMGuardRail:
         labels: list[str] | dict[str, str],
         prompt: str | None = None,
         provider: str | None = None,
+        prefix: str = "<<",
+        suffix: str = ">>",
     ) -> None:
         """Build the internal LLMDetector with the guard prompt."""
         self._detector = LLMDetector(
             model=model,
             labels=labels,
-            prompt=prompt or _GUARD_PROMPT,
+            prompt=prompt or _guard_prompt(prefix, suffix),
             provider=provider,
         )
 

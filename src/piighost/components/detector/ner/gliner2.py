@@ -38,9 +38,16 @@ class Gliner2Detector(BaseNERDetector):
         labels: list[str] | dict[str, str],
         threshold: float = 0.5,
         max_concurrency: int | None = None,
+        max_chars: int | None = None,
+        auto_chunk: bool = True,
     ) -> None:
         """Store or load the model, then set the labels and threshold."""
-        super().__init__(labels, max_concurrency=max_concurrency)
+        super().__init__(
+            labels,
+            max_concurrency=max_concurrency,
+            max_chars=max_chars,
+            auto_chunk=auto_chunk,
+        )
         self.model = GLiNER2.from_pretrained(model) if isinstance(model, str) else model
         self.threshold = threshold
 
@@ -109,6 +116,8 @@ class Gliner2PiiDetector(Gliner2Detector):
         labels: list[str] | dict[str, str] | None = None,
         threshold: float = 0.5,
         max_concurrency: int | None = None,
+        max_chars: int | None = None,
+        auto_chunk: bool = True,
     ) -> None:
         """Default the model and labels to the PII preset, then delegate."""
         resolved_model = model if model is not None else self.DEFAULT_MODEL
@@ -118,4 +127,6 @@ class Gliner2PiiDetector(Gliner2Detector):
             resolved_labels,
             threshold=threshold,
             max_concurrency=max_concurrency,
+            max_chars=max_chars,
+            auto_chunk=auto_chunk,
         )
