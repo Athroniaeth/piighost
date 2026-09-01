@@ -9,6 +9,7 @@ pytest.importorskip("pydantic_ai")
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
     ModelMessage,
+    ModelRequest,
     ModelResponse,
     TextPart,
     ToolCallPart,
@@ -66,6 +67,61 @@ class TestAroundTheModel:
         result = await agent.run("Hi Emma")
         assert seen[-1] == "Hi <<PERSON:1>>"
         assert result.output == "Hello Emma"
+
+
+class TestBlockContent:
+    async def test_sequence_user_content_is_anonymized(self) -> None:
+        """A user prompt whose content is a sequence of strings is anonymized.
+
+        The sequence form is the multimodal default; its string parts must not
+        slip past the anonymizer in clear.
+        """
+        seen: list[str] = []
+
+        def model_fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            for message in messages:
+                for part in message.parts:
+                    seen.append(repr(getattr(part, "content", "")))
+            return ModelResponse(parts=[TextPart(content="ok")])
+
+        hooks = pii_hooks(_pipeline(), "t1")
+        agent = Agent(FunctionModel(model_fn), capabilities=[hooks])
+        history = [ModelRequest(parts=[UserPromptPart(content=["I am Emma"])])]
+        await agent.run("hello", message_history=history)
+
+        dumped = " ".join(seen)
+        assert "Emma" not in dumped
+        assert "<<PERSON:1>>" in dumped
+
+
+class TestStructuredToolResult:
+    async def test_dict_tool_result_is_anonymized(self) -> None:
+        """A tool returning a dict has its string values re-anonymized under FULL."""
+        seen: list[str] = []
+        state = {"calls": 0}
+
+        def get_contact() -> dict[str, str]:
+            return {"name": "Emma", "note": "call Emma"}
+
+        def model_fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            state["calls"] += 1
+            for message in messages:
+                for part in message.parts:
+                    seen.append(repr(getattr(part, "content", "")))
+            if state["calls"] == 1:
+                return ModelResponse(
+                    parts=[ToolCallPart(tool_name="get_contact", args={})]
+                )
+            return ModelResponse(parts=[TextPart(content="ok")])
+
+        hooks = pii_hooks(_pipeline(), "t1")
+        agent = Agent(
+            FunctionModel(model_fn), tools=[get_contact], capabilities=[hooks]
+        )
+        await agent.run("who is it?")
+
+        # The model sees the tool result tokenized on the second call, never Emma.
+        assert "Emma" not in " ".join(seen)
 
 
 class TestMultiTurn:

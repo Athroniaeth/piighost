@@ -33,6 +33,12 @@ Two things therefore coexist at all times. The de-identified text, which can tra
     - **Fallible detectors**: a detector is best-effort. A PII it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
     - **Upstream application logs**: `piighost` never logs raw PII, but your application might. Audit your own logging, tracing, and error reporting before claiming compliance.
 
+## The LangGraph state after the model turn
+
+The middleware restores PII for display. After `aafter_model`, each message's content holds the real values again, so the user sees `jean@mail.com`{ .pii } and not `<<EMAIL:1>>`{ .placeholder }. That restored content lives in the LangGraph state, and a checkpointer that persists the state persists cleartext PII in the message content. This is intended, the state is your display surface, but it means the checkpointer store holds sensitive data and must be protected like the mapping itself.
+
+Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware deanonymizes a tool argument only for the tool run, on a fresh request, and never writes the deanonymized value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not PII.
+
 ## The mapping is cleartext PII
 
 Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link, held by the `ConversationMemory`, contains cleartext PII. It is the system's most sensitive asset, and it must be protected as such.

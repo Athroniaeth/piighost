@@ -33,6 +33,12 @@ Deux choses coexistent donc à tout moment. Le texte dé-identifié, qui peut ci
     - **Détecteurs faillibles** : un détecteur est au mieux. Une PII qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
     - **Journaux applicatifs en amont** : `piighost` ne journalise jamais de PII brute, mais votre application peut le faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
 
+## L'état LangGraph après le tour du modèle
+
+Le middleware restaure la PII pour l'affichage. Après `aafter_model`, le contenu de chaque message porte à nouveau les vraies valeurs, l'utilisateur voit `jean@mail.com`{ .pii } et non `<<EMAIL:1>>`{ .placeholder }. Ce contenu restauré vit dans l'état LangGraph, et un checkpointer qui persiste l'état persiste de la PII en clair dans le contenu des messages. C'est voulu, l'état est votre surface d'affichage, mais cela signifie que le store du checkpointer contient des données sensibles et doit être protégé comme le mapping lui-même.
+
+Les appels d'outils sont traités différemment. Les `tool_calls` d'un `AIMessage` restent tokenisés dans l'état. Le middleware ne dé-anonymise un argument d'outil que pour l'exécution de l'outil, sur une requête neuve, et ne réécrit jamais la valeur dé-anonymisée dans l'état, si bien que le checkpointer ne persiste jamais de valeur en clair dans un appel d'outil. Un résultat d'outil conservé comme `ToolMessage` reste lui aussi tokenisé dans l'état, une UI qui affiche les sorties d'outils depuis l'état voit donc des tokens, pas de la PII.
+
 ## Le mapping est de la PII en clair
 
 La réversibilité a un prix. Pour restaurer `jean@mail.com`{ .pii } à partir de `<<EMAIL:1>>`{ .placeholder }, `piighost` garde le lien entre les deux. Ce lien, porté par la `ConversationMemory`, contient de la PII en clair. C'est l'actif le plus sensible du système, et il faut le protéger comme tel.
