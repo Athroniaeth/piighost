@@ -261,20 +261,24 @@ restored = pipeline.deanonymize(result.text, result.tokens)
 ```
 
 The constructor takes only the detector, the linker, and the anonymizer as mandatory.
-The optional stages come as keyword arguments.
+The other stages come as keyword arguments.
 
 ```python
 AnonymizationPipeline(
     detector,
     linker,
     anonymizer,
-    overlap_resolver=None,   # AnyOverlapResolver
+    overlap_resolver=None,   # AnyOverlapResolver, defaults to ConfidenceOverlapResolver
     expander=None,           # AnyDetectionExpander
     entity_resolver=None,    # AnyEntityResolver
     guard=None,              # AnyGuardRail
     override=None,           # AnyDetectionOverride
 )
 ```
+
+Omitting `overlap_resolver`, or passing `None`, builds a `ConfidenceOverlapResolver`,
+since the render stage needs disjoint spans. The expand, entity-resolve, guard, and
+override stages stay disabled when `None`.
 
 ---
 

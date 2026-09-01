@@ -1,10 +1,13 @@
 """Tests for the span-replacement Anonymizer."""
 
+import pytest
+
 from piighost.components.anonymizer import Anonymizer, AnyAnonymizer
 from piighost.components.placeholder import (
     LabelCounterPlaceholderFactory,
     RedactPlaceholderFactory,
 )
+from piighost.exceptions import OverlappingSpansError
 from piighost.models import Detection, Entity, Span
 
 
@@ -61,6 +64,19 @@ class TestAnonymize:
         result = Anonymizer(RedactPlaceholderFactory()).anonymize("nothing here", [])
         assert result.text == "nothing here"
         assert result.tokens == {}
+
+    def test_overlapping_spans_raise(self) -> None:
+        """Overlapping entity spans fail closed rather than corrupt the text.
+
+        The render loop assumes disjoint spans (the overlap-resolver stage cleans
+        them upstream). If two spans overlap here it raises instead of splicing a
+        clear fragment of one detection into the middle of another.
+        """
+        first = _entity([(0, 8)], "Patrick", "PERSON")
+        second = _entity([(4, 12)], "Dupont", "COMPANY")
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        with pytest.raises(OverlappingSpansError):
+            anonymizer.anonymize("Patrick Dupont xx", [first, second])
 
 
 class TestDeanonymize:
