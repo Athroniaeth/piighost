@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fix
+
+- **integrations**: stop mutating the AIMessage tool_calls in the LangChain middleware, so deanonymized tool arguments no longer persist in the LangGraph state nor reach the model on the next turn
+- **integrations**: anonymize list/block message content (the Anthropic and multimodal default) and structured (dict/list) tool results, in both the LangChain and Pydantic AI integrations, which previously flowed to the model in clear
+
 ## 1.4.0 (2026-08-23)
 
 ### Feat
