@@ -159,7 +159,7 @@ Pour un vrai détecteur et le pipeline conversationnel, voir le [Quickstart](htt
     - [détecteurs prêts à l'emploi](https://athroniaeth.github.io/piighost/fr/examples/detectors/)
 - **Référence**
     - [pipeline](https://athroniaeth.github.io/piighost/fr/reference/pipeline/)
-    - [middleware](https://athroniaeth.github.io/piighost/fr/reference/middleware/)
+    - [middleware](https://athroniaeth.github.io/piighost/fr/reference/langchain/)
     - [détecteurs](https://athroniaeth.github.io/piighost/fr/reference/detectors/)
     - [CLI](https://athroniaeth.github.io/piighost/fr/reference/cli/)
 - **Concepts**
