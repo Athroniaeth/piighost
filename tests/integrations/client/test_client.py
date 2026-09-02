@@ -238,3 +238,23 @@ class TestLifecycle:
         await client.aclose()
         assert http.is_closed is False
         await http.aclose()
+
+
+class TestClientConfiguration:
+    async def test_url_client_carries_timeout_and_headers(self) -> None:
+        """A URL-built client applies the given timeout and static headers."""
+        client = PIIGhostClient(
+            "http://api",
+            timeout=12.5,
+            headers={"Authorization": "Bearer token"},
+        )
+        assert client._client.headers["Authorization"] == "Bearer token"
+        assert client._client.timeout.read == 12.5
+        await client.aclose()
+
+    async def test_retries_build_a_retrying_transport(self) -> None:
+        """Passing retries builds the client over a retrying HTTP transport."""
+        client = PIIGhostClient("http://api", retries=3)
+        assert client._owns_client is True
+        assert isinstance(client._client._transport, httpx.AsyncHTTPTransport)
+        await client.aclose()
