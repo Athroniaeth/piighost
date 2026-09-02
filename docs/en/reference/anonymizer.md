@@ -37,12 +37,13 @@ Replaces each entity's spans with the token a factory assigns it. It edits the s
 ### Constructor
 
 ```python
-Anonymizer(ph_factory: AnyPlaceholderFactory)
+Anonymizer(ph_factory: AnyPlaceholderFactory, escape_existing_tokens: bool = True)
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `ph_factory` | `AnyPlaceholderFactory` | The placeholder factory that assigns a token to each entity (required) |
+| `escape_existing_tokens` | `bool` | Neutralizes tokens the user typed in the input so they cannot masquerade as factory tokens and hijack a value at restoration. Only applies when the factory emits a recognizable delimited grammar. Defaults to `True` |
 
 The factory is exposed afterwards as the `factory` property.
 
@@ -80,6 +81,10 @@ tokens = anonymizer.create([entity])
 #### `render(text, entities, tokens) -> str`
 
 Returns `text` with each entity's spans replaced by its given token. Used by the thread pipeline to render one message against tokens assigned over the whole thread.
+
+With `escape_existing_tokens` on and a delimited factory, `render` neutralizes any token the user typed in the literal runs between entity spans by splicing a zero-width space into it, so it cannot be restored as a real token. The entity spans and their offsets are untouched.
+
+Raises `OverlappingSpansError` when two spans overlap. The overlap-resolver stage must run first, so an overlap here fails closed rather than splice a clear fragment of one detection into another.
 
 ```python
 rendered = anonymizer.render("Patrick is nice", [entity], tokens)

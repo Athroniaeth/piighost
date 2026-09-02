@@ -118,9 +118,12 @@ C'est l'exception assumée à la règle du template systématique.
 ## Les étapes du pipeline
 
 `BaseAnonymizationPipeline` enchaîne les étapes de la détection au texte
-dé-identifié. Trois étapes sont obligatoires, la détection, le linking et
-l'anonymisation. Les autres sont optionnelles et se comportent en passe-plat quand
-elles ne sont pas fournies.
+dé-identifié. Seul le détecteur est un argument obligatoire du constructeur. Le
+linking, l'anonymisation et la résolution des chevauchements tournent toujours et
+retombent sur des composants intégrés par défaut quand on les omet, un
+`ExactEntityLinker`, un `Anonymizer` doté d'une `LabelCounterPlaceholderFactory` et
+un `ConfidenceOverlapResolver`. Les étapes override, expand, entity-resolve et guard
+se comportent en passe-plat quand elles ne sont pas fournies.
 
 ```mermaid
 flowchart LR
@@ -266,8 +269,9 @@ restored = pipeline.deanonymize(result.text, result.tokens)
 # restored -> "Patrick habite à Paris."
 ```
 
-Le constructeur ne prend que le détecteur, le linker et l'anonymiseur en obligatoire.
-Les autres étapes arrivent en argument nommé.
+Le constructeur n'exige que le détecteur. Le linker et l'anonymiseur retombent par
+défaut sur `ExactEntityLinker` et un `Anonymizer` doté d'une
+`LabelCounterPlaceholderFactory`. Les autres étapes arrivent en argument nommé.
 
 ```python
 AnonymizationPipeline(

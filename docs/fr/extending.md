@@ -21,7 +21,7 @@ flowchart LR
     A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-*Le pipeline injecte un composant par port. Seuls detector, linker et anonymizer sont requis, les autres sont désactivés par défaut.*
+*Le pipeline injecte un composant par port. Seul le détecteur est requis, le linker, l'anonymiseur et le résolveur de chevauchements retombent sur des composants intégrés, et seules les étapes expand, entity-resolve, guard et override sont désactivées par défaut.*
 { .figure-caption }
 
 Les ports vivent dans le `base.py` de chaque composant, sous `piighost.components.*`. Les modèles de données qu'ils échangent vivent dans `piighost.models`.
@@ -127,7 +127,7 @@ Plutôt que d'implémenter `resolve` de zéro, sous-classez `BaseOverlapResolver
             return [max(conflicting, key=lambda d: d.span.length)]
     ```
 
-Le `ConfidenceOverlapResolver` intégré garde plutôt la détection de plus haute confiance. L'étape est optionnelle. Ne passez aucun `overlap_resolver` et les détections chevauchantes filent droit vers le linker.
+Le `ConfidenceOverlapResolver` intégré garde plutôt la détection de plus haute confiance. Le résolveur de chevauchements est toujours actif. Omettez-le et le pipeline installe un `ConfidenceOverlapResolver`. Passez le vôtre pour changer la règle. Il n'y a aucun moyen supporté de le désactiver, car le rendu suppose des spans disjoints et lève sinon `OverlappingSpansError`.
 
 ---
 
@@ -208,7 +208,7 @@ Sous-classez `BaseEntityResolver`. Il regroupe les entités qui partagent une d�
 
 - `MergeEntityResolver` fusionne les entités qui partagent une détection, par union-find.
 - `SeparateEntityResolver` les garde séparées, en donnant chaque détection partagée à une entité.
-- `FuzzyEntityResolver` fusionne les entités aux valeurs proches (nécessite l'extra `rapidfuzz`).
+- `FuzzyEntityResolver` fusionne les entités aux valeurs proches (nécessite l'extra `fuzzy`).
 
 L'étape est optionnelle.
 

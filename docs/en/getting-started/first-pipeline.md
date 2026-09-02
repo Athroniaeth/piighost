@@ -105,7 +105,7 @@ Each occurrence of `Patrick`{ .pii } receives the same `<<PERSON:1>>`{ .placehol
 
 ## How it works
 
-`AnonymizationPipeline` runs three mandatory stages. The detector finds the PII, the linker groups the occurrences of the same value into one entity, the anonymizer replaces each entity with the token from its factory. Optional stages exist (overlap resolution, missed-occurrence expansion, entity merging), all disabled by default, which is enough for a first pipeline.
+`AnonymizationPipeline` runs three mandatory stages. The detector finds the PII, the linker groups the occurrences of the same value into one entity, the anonymizer replaces each entity with the token from its factory. Optional stages exist (missed-occurrence expansion, entity merging), disabled by default, while overlap resolution runs by default. Only the detector is strictly required to construct, which is enough for a first pipeline.
 
 ## What's next
 
