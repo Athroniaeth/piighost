@@ -8,21 +8,24 @@ from piighost.models import Detection, Span
 class RegexDetector:
     """Detector that finds PII by matching regex patterns, one per label.
 
-    Each pattern is compiled once at construction. detect emits one detection
-    per non-overlapping match, at a flat confidence of 1.0. It carries no
-    checksum validator and no optional dependency, so it stays cheap and matches
-    on shape alone. A structured value mangled by OCR is kept rather than
-    dropped, because dropping a real value would leak it.
+    Each pattern is compiled once at construction, under re.ASCII, so the shape
+    classes match ASCII only: \\d is 0-9, not a Unicode digit shape such as an
+    Arabic-Indic numeral, since a PII format uses ASCII digits and matching a
+    look-alike would flag non-PII. detect emits one detection per non-overlapping
+    match, at a flat confidence of 1.0. It carries no checksum validator and no
+    optional dependency, so it stays cheap and matches on shape alone. A
+    structured value mangled by OCR is kept rather than dropped, because dropping
+    a real value would leak it.
 
     Attributes:
         patterns: Mapping of PII label to the regex pattern string to match.
     """
 
     def __init__(self, patterns: dict[str, str]) -> None:
-        """Compile every configured pattern, keyed by its label."""
+        """Compile every configured pattern under re.ASCII, keyed by its label."""
         self.patterns = patterns
         self._compiled: dict[str, re.Pattern[str]] = {
-            label: re.compile(pattern) for label, pattern in patterns.items()
+            label: re.compile(pattern, re.ASCII) for label, pattern in patterns.items()
         }
 
     async def detect(self, text: str) -> list[Detection]:
