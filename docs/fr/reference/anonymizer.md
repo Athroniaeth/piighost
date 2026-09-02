@@ -37,12 +37,13 @@ Remplace les spans de chaque entité par le token qu'une factory lui assigne. Il
 ### Constructeur
 
 ```python
-Anonymizer(ph_factory: AnyPlaceholderFactory)
+Anonymizer(ph_factory: AnyPlaceholderFactory, escape_existing_tokens: bool = True)
 ```
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
 | `ph_factory` | `AnyPlaceholderFactory` | La placeholder factory qui assigne un token à chaque entité (requis) |
+| `escape_existing_tokens` | `bool` | Neutralise les tokens saisis par l'utilisateur dans l'entrée pour qu'ils ne puissent pas se faire passer pour des tokens de la factory et détourner une valeur à la restauration. Ne s'applique que quand la factory émet une grammaire délimitée reconnaissable. Vaut `True` par défaut |
 
 La factory est exposée ensuite via la propriété `factory`.
 
@@ -80,6 +81,10 @@ tokens = anonymizer.create([entity])
 #### `render(text, entities, tokens) -> str`
 
 Renvoie `text` avec les spans de chaque entité remplacés par le token donné. Utilisé par le pipeline de thread pour rendre un message contre des tokens assignés sur tout le thread.
+
+Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout token saisi par l'utilisateur dans les portions littérales entre les spans d'entités, en y insérant un espace de largeur nulle, pour qu'il ne puisse pas être restauré comme un vrai token. Les spans d'entités et leurs offsets restent intacts.
+
+Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de résolution des chevauchements doit s'exécuter d'abord, donc un chevauchement ici préfère échouer plutôt que d'introduire un fragment en clair d'une détection dans une autre.
 
 ```python
 rendered = anonymizer.render("Patrick is nice", [entity], tokens)

@@ -27,8 +27,8 @@ from piighost.components.placeholder import (
 )
 from piighost.pipeline import AnonymizationPipeline
 
-text = "Contact Emma at emma@example.com."
-detector = ExactMatchDetector({"Emma": "PERSON", "emma@example.com": "EMAIL"})
+text = "Contact Emma at hello@example.com."
+detector = ExactMatchDetector({"Emma": "PERSON", "hello@example.com": "EMAIL"})
 
 factories: dict[str, AnyPlaceholderFactory] = {
     "redact": RedactPlaceholderFactory(),

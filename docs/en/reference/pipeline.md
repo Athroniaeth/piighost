@@ -17,7 +17,7 @@ Both return an [`Anonymization`](anonymizer.md#anonymization), the de-identified
 
 Module: `piighost.pipeline`
 
-De-identify a single text through the stages, in order: detect the PII, resolve overlapping spans, expand missed occurrences, link detections into entities, resolve entity conflicts, replace with tokens, and re-check with a guard. Each `anonymize()` call is independent.
+De-identify a single text through the stages, in order: detect the PII, apply the server override, resolve overlapping spans, expand missed occurrences, link detections into entities, resolve entity conflicts, replace with tokens, and re-check with a guard. Each `anonymize()` call is independent.
 
 ### Constructor
 
@@ -32,6 +32,7 @@ AnonymizationPipeline(
     guard: AnyGuardRail | None = None,
     observation_redactor: AnyPlaceholderFactory | None = None,
     override: AnyDetectionOverride | None = None,
+    trace_clear_text: bool = False,
 )
 ```
 
@@ -44,8 +45,9 @@ AnonymizationPipeline(
 | `expander` | `AnyDetectionExpander \| None` | `None` | Adds missed occurrences of a detected value. Disabled when `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Reconciles conflicting entities. Disabled when `None` |
 | `guard` | `AnyGuardRail \| None` | `None` | Re-checks the output for residual PII. Disabled when `None` |
-| `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory replacing clear values in observation payloads. `None` traces the clear text, so traces double as annotation datasets |
+| `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory replacing clear values in observation payloads. `None` traces the clear text, so traces double as annotation datasets. With a live tracer and no redactor, the constructor emits a `PIIGhostSecurityWarning` unless `trace_clear_text=True` acknowledges it |
 | `override` | `AnyDetectionOverride \| None` | `None` | Server whitelist and blacklist imposed on every detection set. Disabled when `None` |
+| `trace_clear_text` | `bool` | `False` | Acknowledge clear-text observation tracing to suppress the security warning when no `observation_redactor` is set |
 
 !!! note "Components are protocols"
     `AnyDetector`, `AnyEntityLinker`, `AnyAnonymizer`, `AnyOverlapResolver`, `AnyDetectionExpander`, `AnyEntityResolver`, `AnyGuardRail`, `AnyDetectionOverride`. Any implementation of the protocol is accepted. See [Extending PIIGhost](../extending.md).
@@ -98,6 +100,7 @@ ThreadAnonymizationPipeline(
     guard: AnyGuardRail | None = None,
     observation_redactor: AnyPlaceholderFactory | None = None,
     override: AnyDetectionOverride | None = None,
+    trace_clear_text: bool = False,
 )
 ```
 
@@ -143,6 +146,10 @@ Returns the text with every token from the thread replaced by its value. The thr
 reply = await pipeline.deanonymize("Message sent to <<PERSON:2>>.", thread_id="user-A")
 # reply == "Message sent to Marie."
 ```
+
+#### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
+
+Returns the thread's placeholder-to-value map, derived from the cache, so a caller can resolve a whole stream at once instead of deanonymizing token by token. A token the thread never issued is absent from the map.
 
 #### `forget_thread(thread_id) -> Forgotten` *(async)*
 

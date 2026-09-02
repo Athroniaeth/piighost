@@ -11,7 +11,7 @@ A thread pipeline keeps one placeholder per value for the length of a conversati
 
 ## Why one process is not enough
 
-`InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment. Nothing survives a restart and nothing is shared across processes.
+`InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment. Nothing survives a restart and nothing is shared across processes. It can be bounded with `max_threads` and `ttl` to cap its growth, though a multi-worker deployment still needs a shared backend.
 
 The problem appears the moment a load balancer routes the same `thread_id` to more than one worker. Each worker holds its own memory, and these memories do not talk to each other. A value tokenized as `<<PERSON:1>>`{ .placeholder } on worker A is unknown to worker B, which numbers it fresh.
 
@@ -69,7 +69,7 @@ pipeline = load_thread_pipeline("pipeline.toml")
 
 Now the turn-2 case resolves the other way: worker B reads `Patrick -> <<PERSON:1>>`{ .placeholder } straight from Redis and keeps it, because the store worker A wrote to is the store worker B reads from. Any worker that picks up the conversation reproduces the same token for the same value.
 
-The Redis memory also encrypts each stored value and hashes each key, and reads its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deploy a production pipeline](deployment.md), and every `[memory]` key is in the [configuration reference](configuration/toml.md).
+The Redis backend can encrypt each stored value and hash each key. That protection is opt-in and all-or-nothing, so the config shown above, which sets both a hasher and a cipher, gets it, reading its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deploy a production pipeline](deployment.md), and every `[memory]` key is in the [configuration reference](configuration/toml.md).
 
 A SQL database is the other shared store. `type = "sqlalchemy"` gives the same cross-worker consistency backed by PostgreSQL (or any async SQLAlchemy driver), which suits a stack that already runs a relational database and wants the token mapping to survive restarts durably. It reads the database URL from `PIIGHOST_DATABASE_URL` and takes the same optional hasher and cipher as Redis.
 

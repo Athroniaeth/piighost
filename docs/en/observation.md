@@ -66,8 +66,12 @@ flowchart TD
 The root span records the input text and the final anonymized text. `detect`
 records the detections and their count. `link` records the entities. `render`
 records the anonymized text and the token count. `guard` records whether it
-flagged and the labels it saw. The thread pipeline emits the same tree from its
-own `anonymize`, and a `piighost.deanonymize` span when it restores a text.
+flagged and the labels it saw. The thread pipeline differs. It runs overlap
+resolution and expansion inside `_detect` and entity resolution inside
+`_thread_tokens`, so none of those get a span of their own, leaving `detect`,
+`link`, and `render` under the root. The root and `detect` spans also carry a
+`cache_hit` attribute and a `langfuse.session.id`. It emits a
+`piighost.deanonymize` span when it restores a text.
 
 Spans nest under whatever span is current when `anonymize` is called. Open one
 application-level span around a conversation and every pipeline call renders
