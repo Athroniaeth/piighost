@@ -1,5 +1,6 @@
 """Anonymization pipeline: chain the stages from detection to anonymized text."""
 
+import warnings
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, nullcontext
 from dataclasses import replace
@@ -25,7 +26,7 @@ from piighost.components.placeholder.base import (
 )
 from piighost.components.placeholder.tags import PlaceholderPreservation
 from piighost.conversation_memory.base import Forgotten, MessageRole
-from piighost.exceptions import PIIRemainingError
+from piighost.exceptions import PIIGhostSecurityWarning, PIIRemainingError
 from piighost.models import Detection, Entity
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
 
@@ -164,6 +165,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         guard: AnyGuardRail | None = None,
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
+        trace_clear_text: bool = False,
     ) -> None:
         """Store the stage components, most optional ones defaulting to disabled.
 
@@ -178,8 +180,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         default, traces the clear text and detection values, so traces double as
         annotation datasets; a placeholder factory replaces those values with its
         tokens, making traces safe for a PII-untrusted backend but unusable as
-        datasets. override imposes the server's whitelist and blacklist on every
-        detection set, trumping the detector and any corrected set.
+        datasets. With no redactor and a live tracer, clear-text tracing warns
+        unless trace_clear_text is set to acknowledge it. override imposes the
+        server's whitelist and blacklist on every detection set, trumping the
+        detector and any corrected set.
         """
         self.detector = detector
         self.linker = linker or ExactEntityLinker()
@@ -203,6 +207,21 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         self.observation_redactor = observation_redactor
         self.override = override
         self._tracer = get_tracer()
+        # Nudge only when clear-text tracing would actually record somewhere: a
+        # payload with no redactor set, and a tracer that is really exporting.
+        if (
+            observation_redactor is None
+            and not trace_clear_text
+            and self._tracer.is_active()
+        ):
+            warnings.warn(
+                "Observation traces carry clear text and PII because no "
+                "observation_redactor is set. Pass a placeholder factory to "
+                "tokenize trace payloads, or trace_clear_text=True to keep clear "
+                "text knowingly.",
+                PIIGhostSecurityWarning,
+                stacklevel=2,
+            )
 
     def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
         """Resolve overlapping detections, or pass them through when disabled."""

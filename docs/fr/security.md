@@ -31,6 +31,7 @@ Deux choses coexistent donc à tout moment. Le texte dé-identifié, qui peut ci
     - **Placeholders inventés par le LLM** : si le LLM fabrique un placeholder qui n'a jamais été émis, `piighost` ne peut pas le rattacher à une valeur puisqu'il n'est dans aucun mapping. Le middleware refuse par défaut ces jetons (`InventedPlaceholderError`). Voir [Limites](limitations.md).
     - **Ré-identification par le contexte** : un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. « Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants » désigne une personne sans nommer sa PII. Le détecteur ne voit que des tokens, pas cette inférence.
     - **Détecteurs faillibles** : un détecteur est au mieux. Une PII qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
+    - **Valeurs introduites par l'assistant sous PRESERVE** : avec le défaut `AssistantEntityStrategy.PRESERVE`, une valeur que le modèle a lui-même introduite reste en clair pour tout le fil, puisque le modèle la connaît déjà, et elle reste en clair même quand un message utilisateur ultérieur la reprend, car le fil date la valeur à sa première occurrence. Utilisez `ANONYMIZE` pour tokeniser aussi les valeurs introduites par l'assistant.
     - **Journaux applicatifs en amont** : `piighost` ne journalise jamais de PII brute, mais votre application peut le faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
 
 ## L'état LangGraph après le tour du modèle
@@ -152,7 +153,7 @@ pipeline = AnonymizationPipeline(
 )
 ```
 
-N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le redactor d'observation est indépendant de la factory qui sert à la dé-identification réelle, donc on peut afficher du `<<PERSON:1>>`{ .placeholder } côté trace tout en envoyant un autre schéma de placeholder au LLM. Laisser `observation_redactor` à `None` trace le texte en clair, à réserver à un backend de confiance.
+N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le redactor d'observation est indépendant de la factory qui sert à la dé-identification réelle, donc on peut afficher du `<<PERSON:1>>`{ .placeholder } côté trace tout en envoyant un autre schéma de placeholder au LLM. Laisser `observation_redactor` à `None` trace le texte en clair, à réserver à un backend de confiance. Ce défaut est traité comme un choix explicite. Avec un tracer provider réellement configuré et sans redactor, le pipeline avertit une fois que ses traces portent de la PII en clair, et `trace_clear_text=True` l'assume et tait l'avertissement.
 
 ## Décisions de conception qui soutiennent le modèle de menaces
 

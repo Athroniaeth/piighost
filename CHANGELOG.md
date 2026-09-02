@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Feat
+
+- **observation**: treat clear-text tracing as an explicit choice. With a tracer provider actually configured and no `observation_redactor`, the pipeline warns once that its traces carry clear PII; `trace_clear_text=True` acknowledges it and silences the warning. Non-breaking: the default still traces clear text. Added `AnyObservationTracer.is_active()` so the nudge fires only when spans really record
+
+### Documentation
+
+- **security**: document the threat-model boundaries the hardening surfaced, the LangGraph state and checkpointer holding restored PII while tool_calls stay tokenized, user-typed token injection and its neutralization, values the assistant introduces staying clear under `PRESERVE`, and NER truncation of over-long text; note them in `SECURITY.md` with a pointer to the full model
+
 ### Fix
 
 - **integrations**: stop mutating the AIMessage tool_calls in the LangChain middleware, so deanonymized tool arguments no longer persist in the LangGraph state nor reach the model on the next turn
