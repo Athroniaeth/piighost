@@ -79,6 +79,19 @@ print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
 
 Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur de `user-42` garde son token, et un autre `thread_id` ne la voit jamais, ce qui isole deux utilisateurs. En coulisses le pipeline hache le message en une clé Redis et stocke les détections chiffrées, si bien qu'une fuite du disque Redis ne révèle ni le message ni la PII.
 
+## Borner le store in-process
+
+Le `InMemoryConversationMemory` par défaut garde chaque fil dans un dict local au processus. Sans borne, un processus de longue durée qui n'appelle jamais `forget_thread` croît sans limite à mesure que de nouveaux fils arrivent. Fixez `max_threads` pour plafonner le nombre de fils gardés, en évinçant le moins récemment utilisé au-delà, et `ttl` pour expirer un fil ce nombre de secondes après sa dernière écriture, retiré paresseusement au prochain accès.
+
+```toml title="pipeline.toml"
+[memory]
+type = "in_memory"
+max_threads = 10000
+ttl = 3600
+```
+
+Pour un déploiement durable ou multi-worker, utilisez plutôt un backend persistant, et oubliez un fil avec `forget_thread` à la fin de sa conversation.
+
 ## Comment le store protège la donnée
 
 Deux protections se combinent à chaque écriture, toutes deux clées par un secret que le store ne détient jamais.
