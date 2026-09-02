@@ -11,7 +11,7 @@ from piighost.components.placeholder import (
     PreservesLabeledIdentityOpaque,
 )
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
-from piighost.models import Detection
+from piighost.models import Detection, Entity
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
@@ -26,6 +26,18 @@ class _CountingDetector:
         """Count the call and delegate to the wrapped detector."""
         self.calls += 1
         return await self.inner.detect(text)
+
+
+class _CountingResolver:
+    """An entity resolver that counts its calls and passes entities through."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def resolve(self, entities: list[Entity]) -> list[Entity]:
+        """Count the call and return the entities unchanged."""
+        self.calls += 1
+        return entities
 
 
 def _pipeline(
@@ -216,3 +228,36 @@ class TestProvenance:
         )
         with pytest.raises(PIIRemainingError):
             await pipeline.anonymize("Liam is here", "t1", MessageRole.ASSISTANT)
+
+
+class TestThreadTokenMemoization:
+    def _memo_pipeline(
+        self, resolver: _CountingResolver
+    ) -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
+        """Build a thread pipeline whose entity resolver counts its calls."""
+        return ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            entity_resolver=resolver,
+        )
+
+    async def test_repeated_calls_reuse_the_thread_token_map(self) -> None:
+        """Once the thread state is fixed, its token map is derived only once."""
+        resolver = _CountingResolver()
+        pipeline = self._memo_pipeline(resolver)
+        await pipeline.anonymize("Hi Emma", "t1")
+        assert resolver.calls == 1
+        await pipeline.deanonymize("<<PERSON:1>>", "t1")
+        await pipeline.deanonymize("<<PERSON:1>>", "t1")
+        await pipeline.thread_token_map("t1")
+        assert resolver.calls == 1
+
+    async def test_a_new_message_refreshes_the_map(self) -> None:
+        """A message that changes the thread's detections recomputes the map."""
+        resolver = _CountingResolver()
+        pipeline = self._memo_pipeline(resolver)
+        await pipeline.anonymize("Hi Emma", "t1")
+        await pipeline.anonymize("and Liam", "t1")
+        assert resolver.calls == 2

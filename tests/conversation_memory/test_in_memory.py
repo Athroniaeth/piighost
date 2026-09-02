@@ -141,6 +141,47 @@ class TestEncapsulation:
         assert await memory.get_detections("t1", "m1") == [emma]
 
 
+class TestBounding:
+    async def test_reading_an_unknown_thread_creates_no_entry(self) -> None:
+        """A read of an unknown thread does not evict a real one (no phantom entry)."""
+        memory = InMemoryConversationMemory(max_threads=1)
+        emma = _detection("Emma")
+        await memory.remember("t1", "m1", [emma])
+        # A read of a never-written thread must not count as a thread.
+        assert await memory.get_detections("ghost") == []
+        assert await memory.get_provenance("ghost") == {}
+        assert await memory.get_detections("t1") == [emma]
+
+    async def test_max_threads_evicts_least_recently_used(self) -> None:
+        """Past max_threads, the least recently used thread is dropped."""
+        memory = InMemoryConversationMemory(max_threads=2)
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        await memory.remember("t2", "m1", [_detection("Liam")])
+        await memory.remember("t3", "m1", [_detection("Noah")])
+        assert await memory.get_detections("t1") == []
+        assert await memory.get_detections("t2") == [_detection("Liam")]
+        assert await memory.get_detections("t3") == [_detection("Noah")]
+
+    async def test_access_refreshes_recency(self) -> None:
+        """Reading a thread marks it recently used, sparing it from eviction."""
+        memory = InMemoryConversationMemory(max_threads=2)
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        await memory.remember("t2", "m1", [_detection("Liam")])
+        await memory.get_detections("t1")  # t1 is now most recent
+        await memory.remember("t3", "m1", [_detection("Noah")])
+        assert await memory.get_detections("t1") == [_detection("Emma")]
+        assert await memory.get_detections("t2") == []
+
+    async def test_ttl_expires_a_thread_lazily(self) -> None:
+        """A thread older than the ttl is dropped on the next access."""
+        clock = {"now": 1000.0}
+        memory = InMemoryConversationMemory(ttl=60.0, time_source=lambda: clock["now"])
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        clock["now"] = 1070.0  # 70s later, past the 60s ttl
+        assert await memory.get_detections("t1") == []
+        assert await memory.get_detections("t1", "m1") is None
+
+
 class TestProvenance:
     async def test_records_the_role_of_a_first_occurrence(self) -> None:
         """A value's provenance is the role of the message that first held it."""

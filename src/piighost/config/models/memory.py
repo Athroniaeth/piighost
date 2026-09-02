@@ -11,15 +11,24 @@ from piighost.conversation_memory.base import AnyConversationMemory
 
 
 class InMemoryConfig(_ComponentConfig):
-    """Config for the in-memory conversation memory, a process-local store."""
+    """Config for the in-memory conversation memory, a process-local store.
+
+    Attributes:
+        max_threads: The most threads to keep, evicting the least recently used
+            beyond it, or None for no bound.
+        ttl: The seconds a thread lives after its last write, expired lazily on
+            the next access, or None to keep it until eviction or forget.
+    """
 
     type: Literal["in_memory"]
+    max_threads: int | None = Field(default=None, ge=1)
+    ttl: float | None = Field(default=None, gt=0)
 
     def build(self) -> AnyConversationMemory:
-        """Build an InMemoryConversationMemory."""
+        """Build an InMemoryConversationMemory with the configured bounds."""
         from piighost.conversation_memory import InMemoryConversationMemory
 
-        return InMemoryConversationMemory()
+        return InMemoryConversationMemory(max_threads=self.max_threads, ttl=self.ttl)
 
 
 class RedisMemoryConfig(_ComponentConfig):

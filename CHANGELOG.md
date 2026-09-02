@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **detector**: `LLMDetector` wraps the source text in tags and instructs the model to treat it as data, not instructions, and exposes `confidence` for arbitration against a NER detector
 - **guard**: `LLMGuardRail` accepts `prefix`/`suffix`, so the default prompt's placeholder examples match the pipeline's real delimiters instead of a hardcoded `<<LABEL:N>>`
 
+### Performance
+
+- **pipeline**: memoize the thread-token map by the thread content it derives from, so rewriting a long history or resolving a stream token by token no longer relinks and re-resolves the whole thread each call (was quadratic with `FuzzyEntityResolver`)
+- **memory**: the Redis backend reads a whole thread in one `MGET` instead of one `GET` per message, makes `remember` atomic under a `WATCH` (so concurrent first writes cannot duplicate the index digest), and drops expired digests from the index opportunistically
+- **memory**: `InMemoryConversationMemory` no longer creates a phantom entry when reading an unknown thread, and gains `max_threads` (LRU eviction) and `ttl` (lazy expiry) to bound its growth; exposed on `InMemoryConfig`
+- **detector**: `ChunkedDetector` scans its chunks concurrently with `asyncio.gather`, so an I/O-bound detector overlaps its calls
+
 ## 1.4.0 (2026-08-23)
 
 ### Feat
