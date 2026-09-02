@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Feat
 
 - **api**: re-export the core building blocks from the package root, so `from piighost import AnonymizationPipeline, RegexDetector, Detection, PIIGhostError` works; resolved lazily per name, so the facade never imports an optional extra
+- **client**: `PIIGhostClient` accepts `timeout`, `headers` (for example an auth token), and `retries` when built from a base URL. The detection wire format was verified against piighost-api and left unchanged: the server's detect preview uses `start_pos`/`end_pos` and its corrected endpoint accepts `Detection.to_dict()` (`start`/`end`); the two are deliberate, not a mismatch
 - **observation**: treat clear-text tracing as an explicit choice. With a tracer provider actually configured and no `observation_redactor`, the pipeline warns once that its traces carry clear PII; `trace_clear_text=True` acknowledges it and silences the warning. Non-breaking: the default still traces clear text. Added `AnyObservationTracer.is_active()` so the nudge fires only when spans really record
 
 ### Documentation

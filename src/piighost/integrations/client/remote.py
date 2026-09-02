@@ -8,7 +8,7 @@ raises an ImportError pointing at the extra.
 
 import importlib.util
 import urllib.parse
-from typing import Self, cast
+from typing import Any, Self, cast
 
 from piighost.components.anonymizer.base import Anonymization
 from piighost.components.placeholder.base import BaseDelimitedPlaceholderFactory
@@ -48,15 +48,29 @@ class PIIGhostClient:
         self,
         client: "httpx.AsyncClient | str",
         recognizer: BaseDelimitedPlaceholderFactory | None = None,
+        *,
+        timeout: float | None = None,
+        headers: dict[str, str] | None = None,
+        retries: int = 0,
     ) -> None:
         """Store or build the HTTP client and the token recognizer.
 
         A str is a base URL: the client builds and owns its AsyncClient, closed
-        by aclose or the context manager. An injected AsyncClient is used as-is
-        and never closed here, it belongs to the caller.
+        by aclose or the context manager. timeout bounds each request, headers
+        carry static headers such as an Authorization token, and retries retries a
+        connection error that many times. An injected AsyncClient is used as-is
+        and never closed here, it belongs to the caller, so timeout, headers, and
+        retries are configured on that client instead and ignored here.
         """
         if isinstance(client, str):
-            self._client = httpx.AsyncClient(base_url=client)
+            kwargs: dict[str, Any] = {"base_url": client}
+            if timeout is not None:
+                kwargs["timeout"] = timeout
+            if headers is not None:
+                kwargs["headers"] = headers
+            if retries:
+                kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries)
+            self._client = httpx.AsyncClient(**kwargs)
             self._owns_client = True
         else:
             self._client = client
@@ -189,7 +203,14 @@ class PIIGhostClient:
 
     @staticmethod
     def _detection_from_wire(detection: dict[str, object]) -> Detection:
-        """Rebuild a Detection from the server's detection preview wire shape."""
+        """Rebuild a Detection from the server's detection preview wire shape.
+
+        The two directions use two deliberate server schemas: a detection the
+        server returns (a detect preview) is read here with start_pos and end_pos,
+        while a corrected detection the client sends is Detection.to_dict() with
+        start and end, which the server's corrected endpoint accepts. Keep both as
+        they are; they are not a single format to unify.
+        """
         span = Span(cast(int, detection["start_pos"]), cast(int, detection["end_pos"]))
         return Detection(
             span=span,
