@@ -23,7 +23,12 @@ from piighost.pipeline import AnonymizationPipeline
 
 
 def _pipeline(**kwargs: Any) -> AnonymizationPipeline:
-    """Build a base pipeline knowing one name, extra stages via kwargs."""
+    """Build a base pipeline knowing one name, extra stages via kwargs.
+
+    These tests trace clear text on purpose, so they acknowledge it with
+    trace_clear_text unless a case overrides it.
+    """
+    kwargs.setdefault("trace_clear_text", True)
     return AnonymizationPipeline(
         ExactMatchDetector({"Emma": "PERSON"}),
         ExactEntityLinker(),
@@ -196,3 +201,46 @@ class TestRedaction:
         output = str(attributes["langfuse.observation.output"])
         assert "Emma" not in output
         assert "REDACT" in output
+
+
+class TestClearTextTracingWarning:
+    def _bare(self, **kwargs: Any) -> AnonymizationPipeline:
+        """Build a pipeline without the helper's trace_clear_text acknowledgment."""
+        return AnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            **kwargs,
+        )
+
+    def test_warns_without_a_redactor_or_acknowledgment(self) -> None:
+        """Clear-text tracing with a live tracer warns when not acknowledged."""
+        import warnings
+
+        from piighost.exceptions import PIIGhostSecurityWarning
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            self._bare()
+        assert any(issubclass(w.category, PIIGhostSecurityWarning) for w in caught)
+
+    def test_silent_when_acknowledged(self) -> None:
+        """Acknowledging clear-text tracing with trace_clear_text is silent."""
+        import warnings
+
+        from piighost.exceptions import PIIGhostSecurityWarning
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", PIIGhostSecurityWarning)
+            self._bare(trace_clear_text=True)
+
+    def test_silent_with_a_redactor(self) -> None:
+        """A configured observation redactor traces no clear text, so it is silent."""
+        import warnings
+
+        from piighost.components.placeholder import LabelPlaceholderFactory
+        from piighost.exceptions import PIIGhostSecurityWarning
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", PIIGhostSecurityWarning)
+            self._bare(observation_redactor=LabelPlaceholderFactory())

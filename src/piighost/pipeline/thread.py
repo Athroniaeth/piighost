@@ -57,6 +57,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         guard: AnyGuardRail | None = None,
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
+        trace_clear_text: bool = False,
     ) -> None:
         """Store the stage components and the per-thread conversation memory.
 
@@ -76,6 +77,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             guard,
             observation_redactor,
             override,
+            trace_clear_text,
         )
         self.memory = memory
         # Memoize the thread-token map by the content it derives from, so
