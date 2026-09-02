@@ -68,7 +68,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Optional Dependencies
 
-Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `middleware`, `config`, `fuzzy`, `redis`, `crypto`, `argon2`, `mistral`, `client`, `observation`, `all`. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/test_optional_dependencies.py` enforces this. Keep new optional features behind the same pattern.
+Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `middleware`, `config`, `fuzzy`, `redis`, `crypto`, `argon2`, `mistral`, `client`, `observation`, `all`. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/regression/test_imports.py` enforces this. Keep new optional features behind the same pattern.
 
 ### Design Patterns
 
@@ -84,7 +84,7 @@ Config coupling is **one-way**: `config/` imports and builds the core components
 
 ## Documentation
 
-Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/fr/`, with nav declared in `zensical.toml` (EN) and `zensical.fr.toml` (FR). Built with Zensical. When touching one language, update the other, and keep the code blocks byte-identical between them.
+Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/fr/`, with nav declared in `zensical.toml` (EN) and `zensical.fr.toml` (FR). Built with Zensical. When touching one language, update the other, and keep the code blocks in sync between them (identical code; only prose and comments translate).
 
 ## Examples
 
