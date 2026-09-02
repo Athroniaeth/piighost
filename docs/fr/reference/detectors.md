@@ -58,7 +58,7 @@ Chaque détecteur renvoie une liste de `Detection`, un dataclass gelé qui porte
 
 ## `RegexDetector`
 
-Trouve les PII en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0.
+Trouve les PII en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car un format de PII utilise des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0.
 
 Il ne porte aucun validateur de somme de contrôle, donc il correspond sur la forme seule. Une valeur structurée abîmée par un OCR est conservée plutôt que rejetée, car rejeter une vraie valeur reviendrait à la laisser fuiter.
 
@@ -158,7 +158,7 @@ detector = ChunkedDetector(spacy_detector)
 
 ## `LLMDetector`
 
-Détecte les PII avec un modèle de chat LangChain via une sortie structurée. A besoin de l'extra `llm` et d'un paquet fournisseur. On demande au modèle d'extraire des paires `(text, label)` contre un schéma dont le champ label est contraint aux labels configurés. Chaque valeur extraite est ensuite localisée dans le texte source par recherche sur frontière de mot, donc une valeur inventée par le modèle mais absente du texte ne donne rien. `labels` est requis, puisque le schéma en est construit.
+Détecte les PII avec un modèle de chat LangChain via une sortie structurée. A besoin de l'extra `llm` et d'un paquet fournisseur. On demande au modèle d'extraire des paires `(text, label)` contre un schéma dont le champ label est contraint aux labels configurés. Chaque valeur extraite est ensuite localisée dans le texte source par recherche sur frontière de mot, donc une valeur inventée par le modèle mais absente du texte ne donne rien. `labels` est requis, puisque le schéma en est construit. Le texte source est enveloppé dans des balises `<text_to_analyze>` et le prompt système ordonne au modèle de traiter le contenu balisé comme des données, jamais comme des instructions, donc une tentative d'injection de prompt dans le texte ne peut pas orienter l'extraction.
 
 ### Constructeur
 
@@ -168,6 +168,7 @@ LLMDetector(
     labels: list[str] | dict[str, str],
     prompt: str | None = None,
     provider: str | None = None,
+    confidence: float = 1.0,
 )
 ```
 
@@ -177,6 +178,7 @@ LLMDetector(
 | `labels` | `list[str] \| dict[str, str]` | Les labels à extraire, liste ou map `{emitted: internal}` (requis) |
 | `prompt` | `str \| None` | Un prompt système personnalisé, ou `None` pour celui par défaut |
 | `provider` | `str \| None` | Le fournisseur passé à `init_chat_model` quand `model` est un nom |
+| `confidence` | `float` | Confiance portée sur chaque détection, 1.0 par défaut, pour qu'un détecteur LLM puisse être départagé face à un détecteur NER à la résolution des chevauchements |
 
 Un `prompt` personnalisé doit contenir un placeholder `{labels}` et, selon le format f-string de LangChain, doubler toute autre accolade littérale en `{{` ou `}}`.
 
@@ -206,6 +208,8 @@ Gliner2Detector(
     labels: list[str] | dict[str, str],
     threshold: float = 0.5,
     max_concurrency: int | None = None,
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
 )
 ```
 
@@ -215,6 +219,8 @@ Gliner2Detector(
 | `labels` | `list[str] \| dict[str, str]` | Les labels à interroger, liste ou map `{emitted: internal}` (requis) |
 | `threshold` | `float` | La confiance à partir de laquelle une entité est conservée |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
+| `max_chars` | `int \| None` | Limite en caractères vue par une seule inférence, ou `None` pour aucune limite |
+| `auto_chunk` | `bool` | Si un texte plus long que `max_chars` est découpé et reprojeté, sinon lève `TextTooLongError` |
 
 ### `Gliner2PiiDetector`
 
@@ -226,6 +232,8 @@ Gliner2PiiDetector(
     labels: list[str] | dict[str, str] | None = None,
     threshold: float = 0.5,
     max_concurrency: int | None = None,
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
 )
 ```
 
@@ -235,6 +243,8 @@ Gliner2PiiDetector(
 | `labels` | `list[str] \| dict[str, str] \| None` | Les labels à interroger, ou `None` pour la map de labels PII préréglée |
 | `threshold` | `float` | La confiance à partir de laquelle une entité est conservée |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
+| `max_chars` | `int \| None` | Limite en caractères vue par une seule inférence, ou `None` pour aucune limite |
+| `auto_chunk` | `bool` | Si un texte plus long que `max_chars` est découpé et reprojeté, sinon lève `TextTooLongError` |
 
 ### `SpacyDetector`
 
@@ -264,6 +274,9 @@ TransformersDetector(
     labels: list[str] | dict[str, str] | None = None,
     threshold: float = 0.0,
     max_concurrency: int | None = None,
+    aggregation_strategy: str = "simple",
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
 )
 ```
 
@@ -273,6 +286,9 @@ TransformersDetector(
 | `labels` | `list[str] \| dict[str, str] \| None` | Les labels à mapper et filtrer, ou `None` pour garder chaque label natif |
 | `threshold` | `float` | Le score sous lequel une entité détectée est rejetée |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
+| `aggregation_strategy` | `str` | Comment les sous-tokens sont regroupés en entités entières, appliqué seulement à la construction depuis un nom de modèle. Un pipeline injecté garde la sienne. `"simple"` par défaut |
+| `max_chars` | `int \| None` | Limite en caractères vue par une seule inférence, ou `None` pour aucune limite |
+| `auto_chunk` | `bool` | Si un texte plus long que `max_chars` est découpé et reprojeté, sinon lève `TextTooLongError` |
 
 ### `PresidioDetector`
 
@@ -297,6 +313,10 @@ PresidioDetector(
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
 
 Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine` anglais par défaut de Presidio. Pour une autre langue ou des recognizers custom, construisez le moteur vous-même et utilisez `PresidioDetector` directement.
+
+### Gestion des textes longs
+
+`Gliner2Detector` et `TransformersDetector` prennent `max_chars` avec `auto_chunk` (défaut `True`). Un texte plus long que `max_chars` est découpé en morceaux qui se chevauchent, scannés séparément, puis reprojetés sur le texte original. Avec `auto_chunk` désactivé, un texte au-delà de la limite lève `TextTooLongError` à la place. `max_chars` vaut `None` par défaut, donc il n'y a pas de limite et le texte entier est scanné en une passe. `SpacyDetector` et `PresidioDetector` ne les exposent pas.
 
 ### Correspondance des labels
 
