@@ -75,3 +75,30 @@ class TestRecognition:
     def test_no_token_yields_no_match(self) -> None:
         """Plain text carries no tokens."""
         assert LabelCounterPlaceholderFactory().find_tokens("nothing here") == []
+
+    def test_arbitrary_delimited_content_is_not_a_token(self) -> None:
+        """Stray << >> around non-token content is not matched (C++, markdown).
+
+        The old .+? grammar treated any <<...>> as a token, so C++ shifts and
+        markdown tripped the invented-token guard. The inner form is now bounded.
+        """
+        factory = LabelCounterPlaceholderFactory()
+        assert factory.find_tokens("cout << x >> y") == []
+        assert factory.find_tokens("a << b >> c") == []
+        assert factory.find_tokens("shift <<= 2 and >>= 1") == []
+
+    def test_real_token_forms_stay_recognized(self) -> None:
+        """The counter, hash, label, and redact token shapes still match."""
+        counter = LabelCounterPlaceholderFactory()
+        assert counter.find_tokens("<<PERSON:1>>") == ["<<PERSON:1>>"]
+        hasher = LabelHashPlaceholderFactory()
+        assert hasher.find_tokens("<<PERSON:6b86b273>>") == ["<<PERSON:6b86b273>>"]
+        label = LabelPlaceholderFactory()
+        assert label.find_tokens("<<PERSON>>") == ["<<PERSON>>"]
+        redact = RedactPlaceholderFactory()
+        assert redact.find_tokens("<<REDACT>>") == ["<<REDACT>>"]
+
+    def test_multi_word_label_with_spaces_is_recognized(self) -> None:
+        """A label carrying spaces, as an LLM detector may emit, still matches."""
+        counter = LabelCounterPlaceholderFactory()
+        assert counter.find_tokens("<<date of birth:1>>") == ["<<date of birth:1>>"]

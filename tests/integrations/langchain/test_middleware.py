@@ -112,12 +112,78 @@ class TestWhenInstalled:
         )
         assert update is None
 
+    async def test_before_model_anonymizes_block_content(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A message whose content is a list of text blocks is anonymized too.
+
+        The block form is the Anthropic default and the multimodal shape; it must
+        not slip past the anonymizer in clear.
+        """
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage
+
+        middleware = self._middleware(monkeypatch)
+        blocks: list[dict[Any, Any] | str] = [{"type": "text", "text": "Hi Emma"}]
+        state = {"messages": [HumanMessage(content=blocks)]}
+        update = await middleware.abefore_model(state, None)
+        assert update["messages"][0].content == [
+            {"type": "text", "text": "Hi <<PERSON:1>>"}
+        ]
+
+    async def test_block_content_leaves_non_text_blocks_untouched(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An image or non-text block passes through unchanged."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage
+
+        middleware = self._middleware(monkeypatch)
+        blocks: list[dict[Any, Any] | str] = [
+            {"type": "text", "text": "Hi Emma"},
+            {"type": "image_url", "image_url": {"url": "http://x/y.png"}},
+        ]
+        state = {"messages": [HumanMessage(content=blocks)]}
+        update = await middleware.abefore_model(state, None)
+        assert update["messages"][0].content == [
+            {"type": "text", "text": "Hi <<PERSON:1>>"},
+            {"type": "image_url", "image_url": {"url": "http://x/y.png"}},
+        ]
+
+    async def test_after_model_deanonymizes_block_content(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A reply whose content is text blocks is restored block by block."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import AIMessage, HumanMessage
+
+        middleware = self._middleware(monkeypatch)
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        blocks: list[dict[Any, Any] | str] = [
+            {"type": "text", "text": "Hello <<PERSON:1>>"}
+        ]
+        reply = {"messages": [AIMessage(content=blocks)]}
+        await middleware.aafter_model(reply, None)
+        assert reply["messages"][0].content == [{"type": "text", "text": "Hello Emma"}]
+
 
 class _FakeRequest:
-    """A minimal stand-in for a langgraph ToolCallRequest."""
+    """A minimal stand-in for a langgraph ToolCallRequest.
+
+    It mirrors the real request's immutable override: override returns a new
+    request with the given tool_call, leaving this one untouched, so a test can
+    assert the middleware never mutates the original in place.
+    """
 
     def __init__(self, args: dict[str, str]) -> None:
         self.tool_call = {"name": "t", "args": args, "id": "c1", "type": "tool_call"}
+
+    def override(self, **overrides: Any) -> "_FakeRequest":
+        """Return a new request with the given attributes replaced."""
+        clone = _FakeRequest(self.tool_call["args"])
+        clone.tool_call = overrides.get("tool_call", self.tool_call)
+        return clone
 
 
 class TestToolCalls:
@@ -170,6 +236,67 @@ class TestToolCalls:
         args, content = await self._run(monkeypatch, strategy)
         assert args["name"] == arg_seen
         assert content == response_out
+
+    async def test_output_anonymizes_block_tool_message_content(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A tool result whose content is a list of text blocks is anonymized."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=ToolCallStrategy.OUTPUT
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        async def handler(request: Any) -> object:
+            blocks: list[dict[Any, Any] | str] = [
+                {"type": "text", "text": "Contact Emma"}
+            ]
+            return ToolMessage(content=blocks, tool_call_id="c1")
+
+        request = _FakeRequest({"name": "<<PERSON:1>>"})
+        response = await middleware.awrap_tool_call(request, handler)
+        assert response.content == [{"type": "text", "text": "Contact <<PERSON:1>>"}]
+
+    async def test_before_model_reanonymizes_clear_tool_call_args(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A clear PII value left in an AIMessage's tool_calls is re-anonymized.
+
+        Defense in depth: the model only sees tokens, so its tool_calls should
+        already be tokenized, but if a clear value slips into tool_calls it must
+        not reach the model on the next turn.
+        """
+        pytest.importorskip("langchain")
+        from langchain_core.messages import AIMessage, HumanMessage
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(_pipeline())
+        # Seed the thread so Emma maps to <<PERSON:1>>.
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        message = AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "send",
+                    "id": "c1",
+                    "type": "tool_call",
+                    "args": {"to": "Emma"},
+                }
+            ],
+        )
+        state = {"messages": [message]}
+        update = await middleware.abefore_model(state, None)
+        assert update["messages"][0].tool_calls[0]["args"] == {"to": "<<PERSON:1>>"}
 
     async def test_before_model_never_rewrites_a_tool_message(
         self, monkeypatch: pytest.MonkeyPatch

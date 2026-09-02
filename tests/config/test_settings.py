@@ -6,8 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from piighost.components.anonymizer import Anonymizer
 from piighost.components.entity_resolver import MergeEntityResolver
 from piighost.components.expander import WordBoundaryExpander
+from piighost.components.linker import ExactEntityLinker
 from piighost.components.overlap_resolver import ConfidenceOverlapResolver
 from piighost.components.override import DetectionOverride
 from piighost.config import PipelineConfig, load_config, load_pipeline
@@ -162,10 +164,26 @@ class TestOptionalStagesWiring:
         assert isinstance(pipeline.entity_resolver, MergeEntityResolver)
         assert isinstance(pipeline.override, DetectionOverride)
 
+    def test_detector_only_config_defaults_linker_and_anonymizer(
+        self, tmp_path: Path
+    ) -> None:
+        """A config with only a detector builds the default linker and anonymizer."""
+        minimal = (
+            '[detector]\ntype = "regex"\npatterns = { EMAIL = "[a-z]+@[a-z.]+" }\n'
+        )
+        pipeline = load_pipeline(_write(tmp_path, minimal))
+        assert isinstance(pipeline.linker, ExactEntityLinker)
+        assert isinstance(pipeline.anonymizer, Anonymizer)
+
     def test_omitted_stages_are_none(self, tmp_path: Path) -> None:
-        """A config without a stage leaves that pipeline stage disabled."""
+        """A config without a stage leaves that pipeline stage disabled.
+
+        The overlap resolver is the exception, it defaults to a
+        ConfidenceOverlapResolver as in the constructor, since the render stage
+        assumes disjoint spans.
+        """
         pipeline = load_pipeline(_write(tmp_path, _VALID_TOML))
-        assert pipeline.overlap_resolver is None
+        assert isinstance(pipeline.overlap_resolver, ConfidenceOverlapResolver)
         assert pipeline.expander is None
         assert pipeline.entity_resolver is None
         assert pipeline.guard is None

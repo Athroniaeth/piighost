@@ -137,18 +137,22 @@ async def test_post_tool_use_edit_anonymizes_text_leaves_metadata() -> None:
         "tool_name": "Edit",
         "tool_response": {
             "filePath": "/repo/Patrick.py",
-            "oldString": "name = 'Patrick'",
-            "newString": "name = 'Alice'",
+            "oldString": 'name = "Patrick"',
+            "newString": 'name = "Alice"',
             "structuredPatch": [
-                {"oldStart": 1, "newStart": 1, "lines": ["-Patrick", "+Alice"]}
+                {
+                    "oldStart": 1,
+                    "newStart": 1,
+                    "lines": ['-name = "Patrick"', '+name = "Alice"'],
+                }
             ],
         },
     }
     output = await handle_hook(event, pipeline)
     assert output is not None
     updated = output["hookSpecificOutput"]["updatedToolOutput"]
-    assert updated["oldString"] == "name = '<<PERSON:1>>'"
-    assert updated["structuredPatch"][0]["lines"][0] == "-<<PERSON:1>>"
+    assert updated["oldString"] == 'name = "<<PERSON:1>>"'
+    assert updated["structuredPatch"][0]["lines"][0] == '-name = "<<PERSON:1>>"'
     assert updated["filePath"] == "/repo/Patrick.py"
     assert updated["structuredPatch"][0]["oldStart"] == 1
 

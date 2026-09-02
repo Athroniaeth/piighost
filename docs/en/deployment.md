@@ -79,6 +79,19 @@ print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
 
 The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token, and a different `thread_id` never sees it, so two users stay isolated. Behind the scenes the pipeline hashes the message into a Redis key and stores the detections encrypted, so a leak of the Redis disk reveals neither the message nor the PII.
 
+## Bound the in-memory store
+
+The default `InMemoryConversationMemory` keeps every thread in a process-local dict. Left unbounded, a long-lived process that never calls `forget_thread` grows without limit as new threads arrive. Set `max_threads` to cap how many threads are kept, evicting the least recently used beyond it, and `ttl` to expire a thread that many seconds after its last write, dropped lazily on the next access.
+
+```toml title="pipeline.toml"
+[memory]
+type = "in_memory"
+max_threads = 10000
+ttl = 3600
+```
+
+For a durable or multi-worker deployment, use a persistent backend instead, and forget a thread with `forget_thread` when its conversation ends.
+
 ## How the store protects the data
 
 Two protections combine on every write, both keyed by a secret the store never holds.

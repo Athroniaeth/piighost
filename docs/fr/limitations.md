@@ -16,6 +16,12 @@ Une PII non détectée n'est pas dé-identifiée. C'est un enjeu d'ingénierie, 
 
 **Mitigation** : chaîner un détecteur NER et un `RegexDetector` via le `CompositeDetector`, pour couvrir à la fois le texte libre et les formats structurés. Charger un modèle NER spécifique à la locale pour une meilleure précision. Voir [Étendre PIIGhost](extending.md).
 
+## Un modèle peut tronquer un texte plus long que son contexte
+
+Un modèle NER a une longueur d'entrée maximale. Un texte plus long est tronqué par le modèle, et la fin tronquée n'est jamais analysée, sa PII passe donc en clair. Rien ne vous avertit par défaut.
+
+**Mitigation** : fixer `max_chars` sur le détecteur NER à la longueur d'entrée sûre du modèle. Avec `auto_chunk` activé (le défaut), un texte plus long est découpé en morceaux chevauchants analysés séparément puis recollés, si bien que la fin est couverte. Avec `auto_chunk` désactivé, un texte trop long lève `TextTooLongError` plutôt que d'être analysé en partie. Pour de très longues entrées, envelopper le détecteur dans un `ChunkedDetector`.
+
 ## La couverture linguistique dépend du modèle
 
 L'ensemble des langues qu'un détecteur NER peut couvrir est fixé par le modèle branché. La couverture varie d'un modèle à l'autre, et toutes les langues ne sont pas supportées avec la même précision. Avant de déployer sur une nouvelle locale, lisez la fiche du modèle et exécutez un petit jeu de validation.

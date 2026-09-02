@@ -49,6 +49,16 @@ class TestResolve:
         company = _detection(0, 8, "COMPANY", 0.9)
         assert ConfidenceOverlapResolver().resolve([person, company]) == [company]
 
+    def test_true_tie_keeps_the_first_detector(self) -> None:
+        """On a same-span, same-confidence tie, the first detector in order wins.
+
+        The list is passed in detector order (a CompositeDetector concatenates
+        its children in order), so the earliest detector's detection is kept.
+        """
+        first = _detection(0, 5, "LOCATION", 1.0)
+        second = _detection(0, 5, "PERSON", 1.0)
+        assert ConfidenceOverlapResolver().resolve([first, second]) == [first]
+
     def test_result_is_in_position_order(self) -> None:
         """The kept detections are returned sorted by position."""
         first = _detection(0, 4, "PERSON", 0.5)

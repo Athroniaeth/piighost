@@ -283,6 +283,8 @@ That substitution is unambiguous **only if every entity maps to a unique token**
 
 `PIIAnonymizationMiddleware` mirrors that constraint at runtime. At construction, it asks the pipeline for a *recognizer*, the object that knows how to find its own tokens. A delimited factory is its own recognizer, a factory with no grammar, such as a mask, has none and the middleware raises `UnrecognizableFactoryError`. This catches untyped or remote pipelines that bypassed the type-checker.
 
+The recognizer's grammar is bounded, not "anything between the delimiters". The inner form is a label, then an optional colon and identifier: `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. A label starts with a letter or underscore, then letters, digits, underscores, spaces, or hyphens, so a multi-word label a detector emits, such as `date of birth`, still fits. The identifier after the colon is alphanumeric, an ordinal or a hex digest. Arbitrary delimited content is not a token, so a C++ shift `cout << x >> y` or a markdown run never trips the invented-token guard, and a streaming reply that opens `<<` without closing it is released rather than buffered indefinitely.
+
 See [Tool-call strategies](tool-call-strategies.md) for the only escape hatch, `ToolCallStrategy.PASSTHROUGH`, where the tool boundary is never crossed in clear text.
 
 ---

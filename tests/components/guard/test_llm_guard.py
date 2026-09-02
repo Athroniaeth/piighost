@@ -59,6 +59,31 @@ class _FakeChatModel:
         return _FakeStructured(self._result)
 
 
+class _CapturingStructured:
+    """A structured stand-in that records the messages it is given."""
+
+    def __init__(self, result: object, sink: list[object]) -> None:
+        self._result = result
+        self._sink = sink
+
+    async def ainvoke(self, messages: object, **kwargs: object) -> object:
+        self._sink.append(messages)
+        return self._result
+
+
+class _CapturingModel:
+    """A chat-model stand-in whose structured output records its input."""
+
+    def __init__(self, result: object, sink: list[object]) -> None:
+        self._result = result
+        self._sink = sink
+
+    def with_structured_output(
+        self, schema: object, **kwargs: object
+    ) -> _CapturingStructured:
+        return _CapturingStructured(self._result, self._sink)
+
+
 class TestConformance:
     def test_satisfies_the_port(self) -> None:
         """LLMGuardRail built on an injected model is an AnyGuardRail."""
@@ -98,30 +123,6 @@ class TestCheck:
         from piighost.components.guard import LLMGuardRail
 
         captured: list[object] = []
-
-        class _CapturingStructured:
-            """A structured stand-in that records the messages it is given."""
-
-            def __init__(self, result: object, sink: list[object]) -> None:
-                self._result = result
-                self._sink = sink
-
-            async def ainvoke(self, messages: object, **kwargs: object) -> object:
-                self._sink.append(messages)
-                return self._result
-
-        class _CapturingModel:
-            """A chat-model stand-in whose structured output records its input."""
-
-            def __init__(self, result: object, sink: list[object]) -> None:
-                self._result = result
-                self._sink = sink
-
-            def with_structured_output(
-                self, schema: object, **kwargs: object
-            ) -> _CapturingStructured:
-                return _CapturingStructured(self._result, self._sink)
-
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
         guard = LLMGuardRail(
             model=_CapturingModel(result, captured),
@@ -134,3 +135,21 @@ class TestCheck:
         messages = cast("list[BaseMessage]", captured[0])
         system_message = messages[0]
         assert "Sentinel audit instruction" in str(system_message.content)
+
+    async def test_placeholder_hint_follows_custom_delimiters(self) -> None:
+        """The default prompt's placeholder examples match the given delimiters."""
+        pytest.importorskip("langchain_core")
+        from piighost.components.guard import LLMGuardRail
+
+        captured: list[object] = []
+        guard = LLMGuardRail(
+            model=_CapturingModel(_FakeExtraction([]), captured),
+            labels=["PERSON"],
+            prefix="[[",
+            suffix="]]",
+        )
+        await guard.check("check this")
+        messages = cast("list[BaseMessage]", captured[0])
+        system_prompt = str(messages[0].content)
+        assert "[[PERSON:1]]" in system_prompt
+        assert "<<PERSON:1>>" not in system_prompt

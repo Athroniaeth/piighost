@@ -46,3 +46,27 @@ class TestDetect:
         detections = await detector.detect("a.b but not axb")
         assert len(detections) == 1
         assert detections[0].span == Span(0, 3)
+
+    async def test_matches_only_whole_words(self) -> None:
+        """A configured value glued inside a longer word is not matched.
+
+        "Ann" must not fire inside "Anne", which the old substring scan did.
+        """
+        detector = ExactMatchDetector({"Ann": "PERSON"})
+        assert await detector.detect("Anne went home") == []
+
+    async def test_is_case_insensitive_by_default(self) -> None:
+        """A value matches regardless of case, and the detection keeps the cased text."""
+        detector = ExactMatchDetector({"emma": "PERSON"})
+        detections = await detector.detect("Hi Emma!")
+        assert len(detections) == 1
+        assert detections[0].span == Span(3, 7)
+        assert detections[0].text == "Emma"
+
+    async def test_case_sensitive_when_requested(self) -> None:
+        """With case_sensitive, only the exact casing matches."""
+        detector = ExactMatchDetector({"emma": "PERSON"}, case_sensitive=True)
+        assert await detector.detect("Hi Emma!") == []
+        detections = await detector.detect("hi emma!")
+        assert len(detections) == 1
+        assert detections[0].text == "emma"

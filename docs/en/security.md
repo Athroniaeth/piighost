@@ -31,7 +31,26 @@ Two things therefore coexist at all times. The de-identified text, which can tra
     - **LLM-invented placeholders**: if the LLM fabricates a placeholder that was never emitted, `piighost` cannot map it back to a value since it is in no mapping. The middleware refuses such tokens by default (`InventedPlaceholderError`). See [Limitations](limitations.md).
     - **Re-identification from context**: a placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
     - **Fallible detectors**: a detector is best-effort. A PII it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
+    - **Assistant-introduced values under PRESERVE**: with the default `AssistantEntityStrategy.PRESERVE`, a value the model itself introduced stays in clear for the whole thread, since the model already knows it, and it stays clear even when a later user message repeats it, because the thread dates the value to its first occurrence. Use `ANONYMIZE` to tokenize values the assistant introduces too.
     - **Upstream application logs**: `piighost` never logs raw PII, but your application might. Audit your own logging, tracing, and error reporting before claiming compliance.
+
+## The LangGraph state after the model turn
+
+The middleware restores PII for display. After `aafter_model`, each message's content holds the real values again, so the user sees `jean@mail.com`{ .pii } and not `<<EMAIL:1>>`{ .placeholder }. That restored content lives in the LangGraph state, and a checkpointer that persists the state persists cleartext PII in the message content. This is intended, the state is your display surface, but it means the checkpointer store holds sensitive data and must be protected like the mapping itself.
+
+Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware deanonymizes a tool argument only for the tool run, on a fresh request, and never writes the deanonymized value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not PII.
+
+## Token injection in user input
+
+A token restores to a value by looking like one the pipeline issued. A user who
+types `<<PERSON:2>>`{ .placeholder } into the input could otherwise have it
+restored to the second entity's value, reading a value that is not theirs. The
+anonymizer neutralizes any token the user typed before it renders the text,
+splicing an invisible character into the delimiter so the run no longer matches
+the token grammar. Only the literal runs between detected entities are
+neutralized, never the tokens the pipeline splices in, so a real token still
+restores and an injected one does not. The behaviour is on by default and can be
+turned off with `escape_existing_tokens=False` on the `Anonymizer`.
 
 ## The mapping is cleartext PII
 
@@ -133,7 +152,7 @@ pipeline = AnonymizationPipeline(
 )
 ```
 
-Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend.
+Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend. That default is treated as an explicit choice: with a tracer provider actually configured and no redactor, the pipeline warns once that its traces carry clear PII, and `trace_clear_text=True` acknowledges it and silences the warning.
 
 ## Design decisions that back the threat model
 

@@ -48,15 +48,21 @@ class BaseOverlapResolver(ABC):
         return sorted(kept)
 
     def _conflict_groups(self, detections: list[Detection]) -> list[list[Detection]]:
-        """Cluster detections so each overlaps at least one other in its group."""
-        groups: list[list[Detection]] = []
+        """Cluster detections so each overlaps at least one other in its group.
 
-        for detection in detections:
-            merged = [detection]
+        Each returned group is in the input order of its detections. That order
+        carries the detector order (a CompositeDetector concatenates its children
+        in order), so a subclass that reduces a group with a stable sort keeps the
+        earliest detector's detection on a true tie.
+        """
+        groups: list[list[tuple[int, Detection]]] = []
+
+        for index, detection in enumerate(detections):
+            merged = [(index, detection)]
             overlapping = [
                 group
                 for group in groups
-                if any(detection.overlaps(member) for member in group)
+                if any(detection.overlaps(member) for _, member in group)
             ]
 
             for group in overlapping:
@@ -65,7 +71,7 @@ class BaseOverlapResolver(ABC):
 
             groups.append(merged)
 
-        return groups
+        return [[detection for _, detection in sorted(group)] for group in groups]
 
     @abstractmethod
     def _reduce(self, conflicting: list[Detection]) -> list[Detection]:

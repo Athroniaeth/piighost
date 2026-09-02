@@ -30,8 +30,12 @@ PIIGhost handles potentially sensitive PII. Key design decisions:
 
 - **De-identification is local**: PII is detected and replaced with placeholder tokens before any message reaches an LLM or external service.
 - **Reversible pseudonymization, not hashing**: the default placeholders are opaque, collision-free tokens such as `<<PERSON:1>>`. The token-to-value map is held in the conversation memory (in-process, Redis, or SQLAlchemy), not embedded in the token. A hashed placeholder factory exists as an option, but it is not the default.
-- **Optional encryption at rest**: the Redis backend can encrypt stored values with AES-GCM and hash the storage keys with Argon2id (the `crypto` and `argon2` extras, keyed by `PIIGHOST_CIPHER_KEY`). It is off by default; enable it for a shared backend.
+- **Optional encryption at rest**: the Redis and SQLAlchemy backends can encrypt stored values with AES-GCM and hash the storage keys (HMAC-SHA256 by default, or Argon2id), the `crypto` extra keyed by `PIIGHOST_CIPHER_KEY` and `PIIGHOST_HASH_PEPPER`. It is off by default; enable it for a shared or durable backend.
 - **No logging of raw PII**: the library does not log entity values, and the OpenTelemetry observation layer can tokenize span payloads so traces stay safe for a PII-untrusted backend.
 - **Frozen dataclasses**: the data models are immutable.
 
-> **Note**: de-identification protects PII from the model, not the store. Encryption at rest is available for the Redis backend but off by default, so secure your memory backend appropriately in production.
+> **Note**: de-identification protects PII from the model, not the store. Encryption at rest is available for the Redis and SQLAlchemy backends but off by default, so secure your memory backend appropriately in production.
+
+### What PIIGhost does not protect
+
+De-identification has a defined scope, and several risks sit outside it: process-memory compromise, an unencrypted persistent store, re-identification from surrounding context, fallible detectors, values the assistant introduces under the default `PRESERVE` strategy, and clear-text observation traces. The full threat model, with mitigations, is documented at [Security](https://athroniaeth.github.io/piighost/security/) and [Limitations](https://athroniaeth.github.io/piighost/limitations/).

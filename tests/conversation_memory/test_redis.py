@@ -1,5 +1,6 @@
 """Tests for the Redis conversation memory backend and its dependency guard."""
 
+import asyncio
 import importlib
 import importlib.util
 import sys
@@ -65,6 +66,37 @@ class TestConformance:
 
         memory, _ = _make()
         assert isinstance(memory, AnyConversationMemory)
+
+
+class TestBatchingAndAtomicity:
+    async def test_union_reads_in_a_single_mget(self) -> None:
+        """The whole-thread read batches every message key into one MGET."""
+        memory, client = _make()
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        await memory.remember("t1", "m2", [_detection("Liam")])
+
+        calls = {"mget": 0}
+        original = client.mget
+
+        async def counting_mget(*args: Any, **kwargs: Any) -> Any:
+            calls["mget"] += 1
+            return await original(*args, **kwargs)
+
+        client.mget = counting_mget
+        union = await memory.get_detections("t1")
+        assert union == [_detection("Emma"), _detection("Liam")]
+        assert calls["mget"] == 1
+
+    async def test_concurrent_identical_remembers_do_not_duplicate(self) -> None:
+        """Twenty concurrent first writes of one message append its digest once."""
+        memory, client = _make()
+        emma = _detection("Emma")
+        await asyncio.gather(
+            *(memory.remember("t1", "I am Emma", [emma]) for _ in range(20))
+        )
+        assert await memory.get_detections("t1") == [emma]
+        index = await client.lrange("piighost:t1:index", 0, -1)
+        assert len(index) == 1
 
 
 class TestGetDetections:
