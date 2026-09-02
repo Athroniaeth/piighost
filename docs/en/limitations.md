@@ -68,7 +68,7 @@ The middleware catches a neighbouring case, the invented placeholder. If the LLM
 
 `InMemoryConversationMemory` keeps the mapping thread by thread in a process-local dictionary. Nothing survives a restart, nothing is shared across processes. As soon as you scale horizontally, two workers have two memories and two independent placeholder spaces, so the same entity can get two different tokens depending on which worker handles it.
 
-**Mitigation**: configure `RedisConversationMemory` to share the mapping across workers and make it survive a restart. That backend encrypts the values and hashes the keys. See [Security](security.md) and [Deployment](deployment.md).
+**Mitigation**: configure `RedisConversationMemory` to share the mapping across workers and make it survive a restart. That backend can encrypt the values and hash the keys (opt-in, all-or-nothing). The in-memory backend can be bounded with `max_threads` and `ttl` to cap its growth in a long-lived process. See [Security](security.md) and [Deployment](deployment.md).
 
 ## A thread isolates the mapping
 

@@ -73,10 +73,12 @@ LLMGuardRail(
     labels: list[str] | dict[str, str],
     prompt: str | None = None,
     provider: str | None = None,
+    prefix: str = "<<",
+    suffix: str = ">>",
 )
 ```
 
-Un modèle `str` est chargé comme celui de `LLMDetector` ; une instance déjà chargée est utilisée telle quelle. Un `prompt` personnalisé doit contenir un placeholder `{labels}`. Requiert `piighost[llm]`.
+Un modèle `str` est chargé comme celui de `LLMDetector` ; une instance déjà chargée est utilisée telle quelle. Un `prompt` personnalisé doit contenir un placeholder `{labels}`. Quand aucun prompt personnalisé n'est fourni, `prefix` et `suffix` (par défaut `<<` et `>>`) façonnent les exemples de placeholder du prompt par défaut pour qu'ils correspondent aux délimiteurs que le pipeline émet. Requiert `piighost[llm]`.
 
 ## `ModerationGuardRail`
 

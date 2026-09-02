@@ -11,7 +11,7 @@ You will use `PIIGhostClient` as a drop-in remote thread pipeline. It implements
 
 ## 1. Open a client
 
-Pass a base URL as a string and the client builds and owns its `httpx.AsyncClient`, closed when the context manager exits. The default token grammar matches the standard `LabelCounterPlaceholderFactory` a `piighost` server emits, so `<<PERSON:1>>`{ .placeholder } is recognized as a token.
+Pass a base URL as a string and the client builds and owns its `httpx.AsyncClient`, closed when the context manager exits. You can bound each request with `timeout`, attach static `headers` such as an Authorization token, and retry a connection error `retries` times, without building your own client. The default token grammar matches the standard `LabelCounterPlaceholderFactory` a `piighost` server emits, so `<<PERSON:1>>`{ .placeholder } is recognized as a token.
 
 ```python
 import asyncio
@@ -20,7 +20,12 @@ from piighost.integrations.client import PIIGhostClient
 
 
 async def main() -> None:
-    async with PIIGhostClient("http://localhost:8000") as client:
+    async with PIIGhostClient(
+        "http://localhost:8000",
+        timeout=10.0,
+        headers={"Authorization": "Bearer ..."},
+        retries=2,
+    ) as client:
         ...
 
 
@@ -84,7 +89,7 @@ agent = create_agent(
 
 The `recognizer` property lets the middleware find a token grammar even on a remote pipeline, so its invented-placeholder check still works. If your server is configured with a non-standard grammar, pass a matching factory as `recognizer=` when you build the client.
 
-If you manage your own `httpx.AsyncClient`, for shared connection pooling or custom headers, pass it instead of a URL. The client uses it as-is and never closes it, since it belongs to you. Otherwise call `await client.aclose()`, or use the `async with` form which closes it for you.
+If you manage your own `httpx.AsyncClient`, for shared connection pooling, pass it instead of a URL. A timeout, static headers, or connection retries no longer require building your own client, since `timeout`, `headers`, and `retries` handle them on a base URL. The client uses an injected client as-is and never closes it, since it belongs to you. Otherwise call `await client.aclose()`, or use the `async with` form which closes it for you.
 
 ## What's next
 

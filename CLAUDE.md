@@ -46,7 +46,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Conversation Layer
 
-`ThreadAnonymizationPipeline` (`pipeline/thread.py`) extends the base pipeline to keep a value's token stable across a whole thread, assigning tokens over the union of every message's detections. `conversation_memory/` holds the memory port plus `InMemoryConversationMemory` and a Redis backend (`redis_backend.py`, `redis` extra); the Redis backend optionally encrypts stored values with AES-GCM and hashes the storage keys with Argon2id (`crypto/`, `crypto` / `argon2` extras, keyed by `PIIGHOST_CIPHER_KEY`). `thread_id` propagates via a ContextVar (default `"default"`); `require_thread_id` refuses the shared default. `forget_thread(thread_id)` purges a conversation. There is no result cache (no aiocache, no SQLAlchemy cache).
+`ThreadAnonymizationPipeline` (`pipeline/thread.py`) extends the base pipeline to keep a value's token stable across a whole thread, assigning tokens over the union of every message's detections. `conversation_memory/` holds the memory port plus `InMemoryConversationMemory`, a Redis backend (`redis_backend.py`, `redis` extra), and `SqlAlchemyConversationMemory` (`sqlalchemy_backend.py`, `sqlalchemy` extra); the Redis backend optionally encrypts stored values with AES-GCM and hashes the storage keys with Argon2id (`crypto/`, `crypto` / `argon2` extras, keyed by `PIIGHOST_CIPHER_KEY`). `thread_id` propagates via a ContextVar (default `"default"`); `require_thread_id` refuses the shared default. `forget_thread(thread_id)` purges a conversation. There is no result cache (no aiocache, no SQLAlchemy cache).
 
 ### Middleware Integration
 

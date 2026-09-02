@@ -11,7 +11,7 @@ Un pipeline de thread garde un placeholder par valeur pour toute la durée d'une
 
 ## Pourquoi un seul processus ne suffit pas
 
-`InMemoryConversationMemory` garde les détections de chaque thread dans un dictionnaire qui vit dans un seul processus. Elle convient au développement, aux tests, et à un déploiement mono-processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus.
+`InMemoryConversationMemory` garde les détections de chaque thread dans un dictionnaire qui vit dans un seul processus. Elle convient au développement, aux tests, et à un déploiement mono-processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Elle peut être bornée avec `max_threads` et `ttl` pour plafonner sa croissance, mais un déploiement multi-worker a toujours besoin d'un backend partagé.
 
 Le problème apparaît dès qu'un load balancer route le même `thread_id` vers plus d'un worker. Chaque worker tient sa propre mémoire, et ces mémoires ne se parlent pas. Une valeur tokenisée en `<<PERSON:1>>`{ .placeholder } sur le worker A est inconnue du worker B, qui la numérote à neuf.
 
@@ -69,7 +69,7 @@ pipeline = load_thread_pipeline("pipeline.toml")
 
 Le cas du tour 2 se résout maintenant dans l'autre sens. Le worker B lit `Patrick -> <<PERSON:1>>`{ .placeholder } directement dans Redis et le garde, parce que le store où le worker A a écrit est le store que le worker B lit. Tout worker qui reprend la conversation reproduit le même token pour la même valeur.
 
-La mémoire Redis chiffre aussi chaque valeur stockée et hache chaque clé, et lit son pepper et sa clé de cipher dans l'environnement. Ces secrets et la mise en place complète sont traités dans [Déployer un pipeline en production](deployment.md), et chaque clé `[memory]` est dans la [référence de configuration](configuration/toml.md).
+Le backend Redis peut chiffrer chaque valeur stockée et hacher chaque clé. Cette protection est optionnelle et tout ou rien, donc la config montrée ci-dessus, qui définit à la fois un hacheur et un cipher, en bénéficie, et lit son pepper et sa clé de cipher dans l'environnement. Ces secrets et la mise en place complète sont traités dans [Déployer un pipeline en production](deployment.md), et chaque clé `[memory]` est dans la [référence de configuration](configuration/toml.md).
 
 Une base SQL est l'autre store partagé. `type = "sqlalchemy"` offre la même cohérence entre workers, adossée à PostgreSQL (ou n'importe quel driver SQLAlchemy async), ce qui convient à une stack qui exécute déjà une base relationnelle et veut que la correspondance des tokens survive durablement aux redémarrages. Il lit l'URL de la base dans `PIIGHOST_DATABASE_URL` et prend le même hacheur et le même cipher optionnels que Redis.
 

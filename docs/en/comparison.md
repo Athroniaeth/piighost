@@ -9,7 +9,7 @@ This table is not neutral: the rows are the capabilities PIIGhost was built for,
 | Capability | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
 |---|---|---|---|---|---|---|
 | **Detection** | regex / NER / LLM | NER + regex + rules + checksum | regex + validators | ML/NER | ML + infoTypes | regex + NER |
-| **PII handling** | reversible token (cache/DB) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
+| **PII handling** | reversible token (memory/Redis) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
 | **Transparent restore for the user** | ✅ | ⚠️ manual (`decrypt`) | ❌ | ❌ | ⚠️ re-id via API | ✅ |
 | **Consistent across a conversation** | ✅ per thread | ❌ | ❌ | ❌ | ✅ deterministic | ✅ per session |
 | **Tool boundary** (tool gets the real value, LLM gets the token) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |

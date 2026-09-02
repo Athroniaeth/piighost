@@ -35,7 +35,7 @@ Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs l
 | 14. URLs | Yes | regex `URL` |
 | 15. Adresses IP | Yes | regex `IPV4`, `Gliner2PiiDetector` (`IP_ADDRESS`); l'IPv6 demande un pattern custom |
 | 16. Identifiants biométriques | No | hors texte, hors périmètre |
-| 17. Photographies plein visage et images comparables | No | multimodal, un [hors-périmètre](roadmap.md) |
+| 17. Photographies plein visage et images comparables | No | multimodal, un [hors-périmètre](roadmap.md#hors-perimetre) |
 | 18. Tout autre numéro ou code identifiant unique | Custom | un pattern `RegexDetector` ou le `LLMDetector`; `TAX_ID`, `CRYPTO`, `API_KEY` sont aussi couverts par `Gliner2PiiDetector` |
 
 </div>
