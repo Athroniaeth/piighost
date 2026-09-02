@@ -41,15 +41,33 @@ class TransformersDetector(BaseNERDetector):
         labels: list[str] | dict[str, str] | None = None,
         threshold: float = 0.0,
         max_concurrency: int | None = None,
+        aggregation_strategy: str = "simple",
+        max_chars: int | None = None,
+        auto_chunk: bool = True,
     ) -> None:
-        """Store or build the pipeline, then set the labels and threshold."""
-        super().__init__(labels, max_concurrency=max_concurrency)
+        """Store or build the pipeline, then set the labels and threshold.
+
+        A str pipeline is loaded with the given aggregation_strategy, so sub-word
+        tokens are grouped into whole entities with a span and an aggregated
+        score. The default, "simple", suits most NER models. It applies only when
+        building from a name; a pipeline passed in keeps its own strategy.
+        """
+        super().__init__(
+            labels,
+            max_concurrency=max_concurrency,
+            max_chars=max_chars,
+            auto_chunk=auto_chunk,
+        )
         if isinstance(pipeline, str):
             from transformers import (
                 pipeline as hf_pipeline,  # pyrefly: ignore[missing-import, missing-module-attribute]
             )
 
-            pipeline = hf_pipeline("token-classification", model=pipeline)
+            pipeline = hf_pipeline(
+                "token-classification",
+                model=pipeline,
+                aggregation_strategy=aggregation_strategy,
+            )
         self.pipeline = pipeline
         self.threshold = threshold
 

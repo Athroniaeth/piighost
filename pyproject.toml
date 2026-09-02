@@ -76,7 +76,6 @@ pydantic-ai = [
 ]
 client = [
     "httpx>=0.28",
-    "typing-extensions>=4.4; python_version < '3.11'",
 ]
 spacy = [
     "spacy>=3.7",
@@ -99,7 +98,6 @@ config = [
     "pydantic>=2.6",
     "pydantic-settings>=2.0",
     "typer>=0.12",
-    "tomli>=2.0; python_version < '3.11'",
 ]
 argon2 = [
     "argon2-cffi>=23.1",
@@ -157,7 +155,6 @@ dev = [
     "pydantic>=2.6",
     "pydantic-settings>=2.0",
     "typer>=0.12",
-    "tomli>=2.0; python_version < '3.11'",
     "argon2-cffi>=23.1",
     "cryptography>=44",
     "redis>=5",
@@ -208,13 +205,18 @@ config = [
     "pydantic>=2.6",
     "pydantic-settings>=2.0",
     "typer>=0.12",
-    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not integration' -p no:anyio -p no:faker -p no:langsmith_plugin -p no:opik"
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# The observation conftest sets a global tracer provider for the whole session,
+# so the clear-text tracing nudge fires for every pipeline built without a
+# redactor. Silence that one message here; its own tests assert it explicitly.
+filterwarnings = [
+    "ignore:Observation traces carry clear text:UserWarning",
+]
 markers = [
     "integration: tests that load heavy optional dependencies (torch, transformers, gliner2, spacy). Deselected by default.",
 ]

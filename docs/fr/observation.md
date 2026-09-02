@@ -120,6 +120,15 @@ valeurs en clair ont disparu.
 
 </div>
 
+Le traçage en clair reste le défaut, pour que les traces gardent leur valeur d'annotation, mais c'est un choix explicite. Sans redactor et avec un tracer provider réellement configuré, le pipeline avertit une fois à la construction que ses traces portent de la PII en clair. Passez `trace_clear_text=True` pour l'assumer et taire l'avertissement, ou un `observation_redactor` pour caviarder les payloads.
+
+```python
+pipeline = AnonymizationPipeline(
+    detector=detector,
+    trace_clear_text=True,  # I know traces carry clear PII, ship them to a trusted backend only
+)
+```
+
 ## La corrélation avec un backend est de la configuration de déploiement, pas du code de la lib
 
 `piighost` émet des spans OpenTelemetry standard et s'arrête là. Il ne fournit

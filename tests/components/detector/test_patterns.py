@@ -110,6 +110,19 @@ class TestTrueNegatives:
         assert await _detect(label, value) == []
 
 
+class TestUnicodeDigits:
+    async def test_unicode_digits_do_not_match_ascii_digit_patterns(self) -> None:
+        """A digit pattern matches ASCII digits only, not Unicode digit shapes.
+
+        Arabic-Indic digits share the shape but are not the ASCII 0-9 a PII
+        format uses, so matching them would flag non-PII.
+        """
+        detector = RegexDetector({"CODE": r"\b\d{4}\b"})
+        arabic_indic = "٠١٢٣"  # Arabic-Indic 0 1 2 3
+        assert await detector.detect(arabic_indic) == []
+        assert await detector.detect("0123") != []
+
+
 class TestResilience:
     @pytest.mark.parametrize(("label", "value"), RESILIENCE_VALUES)
     @pytest.mark.parametrize("wrapper", RESILIENCE_WRAPPERS)

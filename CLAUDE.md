@@ -27,11 +27,11 @@ Each pipeline stage is a package under `src/piighost/components/` whose `base.py
 
 ### Anonymization Pipeline
 
-`AnonymizationPipeline` (`pipeline/base.py`, extends `BaseAnonymizationPipeline`) runs the stages in order. Only the detector is required: the linker defaults to `ExactEntityLinker` and the anonymizer to `Anonymizer(LabelCounterPlaceholderFactory())`, and the overlap, expand, entity-resolve, override, and guard stages default to disabled.
+`AnonymizationPipeline` (`pipeline/base.py`, extends `BaseAnonymizationPipeline`) runs the stages in order. Only the detector is required: the linker defaults to `ExactEntityLinker`, the anonymizer to `Anonymizer(LabelCounterPlaceholderFactory())`, and the overlap resolver to `ConfidenceOverlapResolver` (the render stage assumes disjoint spans); the expand, entity-resolve, override, and guard stages default to disabled.
 
 1. **Detect**: `AnyDetector` (`components/detector/base.py`). `RegexDetector` (prebuilt pattern catalogs in `components/detector/patterns/`: generic, us, eu, fr; no checksum validators, so it matches on shape alone and never drops an OCR-mangled value), `ExactMatchDetector` (tests), `CompositeDetector` (runs several concurrently), `ChunkedDetector` (overlapping-chunk splitting for long text), and the model detectors `Gliner2Detector` / `SpacyDetector` / `TransformersDetector` (extend `BaseNERDetector` for label mapping) plus `LLMDetector` (LangChain structured output).
 2. **Override** (optional): `AnyDetectionOverride` (`components/override/`) imposes a server whitelist and blacklist on every detection set.
-3. **Resolve overlaps** (optional): `AnyOverlapResolver` / `ConfidenceOverlapResolver` keeps the highest-confidence detection when spans overlap.
+3. **Resolve overlaps** (on by default): `AnyOverlapResolver` / `ConfidenceOverlapResolver` keeps the highest-confidence detection when spans overlap, breaking a true tie (same confidence and span) in favor of the first detector in order. `Anonymizer.render` raises `OverlappingSpansError` if any overlap survives to it.
 4. **Expand** (optional): `AnyDetectionExpander` / `WordBoundaryExpander` adds missed occurrences.
 5. **Link**: `AnyEntityLinker` / `ExactEntityLinker` groups detections that share a value and label into an `Entity`.
 6. **Resolve entities** (optional): `AnyEntityResolver` / `MergeEntityResolver` (union-find) or `FuzzyEntityResolver` (Jaro-Winkler, `fuzzy` extra).
@@ -68,7 +68,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Optional Dependencies
 
-Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `middleware`, `config`, `fuzzy`, `redis`, `crypto`, `argon2`, `mistral`, `client`, `observation`, `all`. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/test_optional_dependencies.py` enforces this. Keep new optional features behind the same pattern.
+Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `middleware`, `config`, `fuzzy`, `redis`, `crypto`, `argon2`, `mistral`, `client`, `observation`, `all`. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/regression/test_imports.py` enforces this. Keep new optional features behind the same pattern.
 
 ### Design Patterns
 
@@ -84,7 +84,7 @@ Config coupling is **one-way**: `config/` imports and builds the core components
 
 ## Documentation
 
-Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/fr/`, with nav declared in `zensical.toml` (EN) and `zensical.fr.toml` (FR). Built with Zensical. When touching one language, update the other, and keep the code blocks byte-identical between them.
+Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/fr/`, with nav declared in `zensical.toml` (EN) and `zensical.fr.toml` (FR). Built with Zensical. When touching one language, update the other, and keep the code blocks in sync between them (identical code; only prose and comments translate).
 
 ## Examples
 

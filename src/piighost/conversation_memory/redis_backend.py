@@ -34,6 +34,7 @@ if importlib.util.find_spec("redis") is None:
     )
 
 from redis.asyncio import Redis
+from redis.exceptions import WatchError
 
 _DEFAULT_NAMESPACE = "piighost"
 """Default key prefix isolating this library's keys in a shared Redis."""
@@ -127,21 +128,33 @@ class RedisConversationMemory:
         detections: list[Detection],
         role: MessageRole = MessageRole.USER,
     ) -> None:
-        """Cache the detections found in a message, replacing any prior entry."""
+        """Cache the detections found in a message, replacing any prior entry.
+
+        The write is atomic under a WATCH on the message key, so the digest is
+        appended to the index only when the message is new, and two concurrent
+        first writes of the same message cannot both append it. A concurrent
+        change to the key retries the transaction.
+        """
         digest_message = self._digest(message)
         key = self._message_key(thread_id, digest_message)
-        json_detections = _dumps(role, detections)
+        index_key = self._index_key(thread_id)
+        blob = self._encrypt(_dumps(role, detections))
 
-        blob = self._encrypt(json_detections)
-        is_new = not await self._client.exists(key)
-
-        await self._client.set(key, blob, ex=self._ttl)
-
-        if is_new:
-            index_key = self._index_key(thread_id)
-            await self._client.rpush(index_key, digest_message)
-            if self._ttl is not None:
-                await self._client.expire(index_key, self._ttl)
+        while True:
+            async with self._client.pipeline(transaction=True) as pipe:
+                try:
+                    await pipe.watch(key)
+                    is_new = not await pipe.exists(key)
+                    pipe.multi()
+                    pipe.set(key, blob, ex=self._ttl)
+                    if is_new:
+                        pipe.rpush(index_key, digest_message)
+                        if self._ttl is not None:
+                            pipe.expire(index_key, self._ttl)
+                    await pipe.execute()
+                    return
+                except WatchError:
+                    continue
 
     async def get_detections(
         self,
@@ -155,35 +168,20 @@ class RedisConversationMemory:
             blob = await self._client.get(key)
             if blob is None:
                 return None
-            ciphertext = _as_bytes(blob)
-            json_detections = self._decrypt(ciphertext)
-            _, detections = _loads(json_detections)
+            _, detections = _loads(self._decrypt(_as_bytes(blob)))
             return detections
 
-        detections: list[Detection] = []
-        for digest_message in await self._digests(thread_id):
-            key = self._message_key(thread_id, digest_message)
-            blob = await self._client.get(key)
-            if blob is not None:
-                ciphertext = _as_bytes(blob)
-                json_detections = self._decrypt(ciphertext)
-                _, message_detections = _loads(json_detections)
-                detections.extend(message_detections)
-
-        return detections
+        return [
+            detection
+            for _, _, message_detections in await self._read_all(thread_id)
+            for detection in message_detections
+        ]
 
     async def get_provenance(self, thread_id: str) -> dict[str, MessageRole]:
         """Return the first-occurrence role of every value in the thread."""
         provenance: dict[str, MessageRole] = {}
 
-        for digest_message in await self._digests(thread_id):
-            key = self._message_key(thread_id, digest_message)
-            blob = await self._client.get(key)
-            if blob is None:
-                continue
-            ciphertext = _as_bytes(blob)
-            json_detections = self._decrypt(ciphertext)
-            role, detections = _loads(json_detections)
+        for _, role, detections in await self._read_all(thread_id):
             for detection in detections:
                 provenance.setdefault(detection.text.casefold(), role)
 
@@ -191,24 +189,44 @@ class RedisConversationMemory:
 
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""
-        index_key = self._index_key(thread_id)
-        keys = [index_key]
-        messages = 0
-        detections = 0
+        records = await self._read_all(thread_id)
+        messages = len(records)
+        detections = sum(len(loaded) for _, _, loaded in records)
 
-        for digest in await self._digests(thread_id):
-            key = self._message_key(thread_id, digest)
-            blob = await self._client.get(key)
-            if blob is not None:
-                messages += 1
-                ciphertext = _as_bytes(blob)
-                json_detections = self._decrypt(ciphertext)
-                _, loaded = _loads(json_detections)
-                detections += len(loaded)
-            keys.append(key)
-
+        keys = [self._index_key(thread_id)]
+        keys.extend(self._message_key(thread_id, digest) for digest, _, _ in records)
         await self._client.delete(*keys)
         return Forgotten(messages=messages, detections=detections)
+
+    async def _read_all(
+        self, thread_id: str
+    ) -> list[tuple[str, MessageRole, list[Detection]]]:
+        """Read every present message of a thread in one MGET, in first-seen order.
+
+        The index digests are deduplicated, so a digest appended twice by a race
+        is read once, and a digest whose message key has expired is dropped from
+        the index opportunistically, so the index does not grow without bound.
+        """
+        digests = list(dict.fromkeys(await self._digests(thread_id)))
+        if not digests:
+            return []
+
+        keys = [self._message_key(thread_id, digest) for digest in digests]
+        blobs = await self._client.mget(keys)
+
+        records: list[tuple[str, MessageRole, list[Detection]]] = []
+        stale: list[str] = []
+        for digest, blob in zip(digests, blobs, strict=True):
+            if blob is None:
+                stale.append(digest)
+                continue
+            role, detections = _loads(self._decrypt(_as_bytes(blob)))
+            records.append((digest, role, detections))
+
+        for digest in stale:
+            await self._client.lrem(self._index_key(thread_id), 0, digest)
+
+        return records
 
     async def _digests(self, thread_id: str) -> list[str]:
         """Return a thread's message hashes in first-seen order."""

@@ -116,6 +116,30 @@ class TextDeidentifier(Generic[IdentityT]):
             return tuple(items) if isinstance(value, tuple) else items
         return value
 
+    async def anonymize_value(
+        self, value: Any, thread_id: str, role: MessageRole = MessageRole.USER
+    ) -> Any:
+        """Anonymize the strings inside nested dict, list, and tuple containers.
+
+        The mirror of deanonymize_value, for a structured tool result or a set of
+        tool-call arguments. It walks the structure and anonymizes every string it
+        holds, leaving other values untouched, so the model keeps seeing
+        placeholders rather than clear PII that slipped into a container.
+        """
+        if isinstance(value, str):
+            return await self.anonymize(value, thread_id, role)
+        if isinstance(value, dict):
+            return {
+                key: await self.anonymize_value(item, thread_id, role)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            items = [
+                await self.anonymize_value(item, thread_id, role) for item in value
+            ]
+            return tuple(items) if isinstance(value, tuple) else items
+        return value
+
     def _handle_invented(self, text: str) -> str:
         """Apply the invented-placeholder strategy to already deanonymized text.
 

@@ -62,12 +62,15 @@ class TransformersDetectorConfig(_ComponentConfig):
     labels: list[str] | dict[str, str] | None = None
     threshold: float = Field(default=0.0, ge=0.0, le=1.0)
     max_concurrency: int | None = Field(default=None, ge=1)
+    aggregation_strategy: str = "simple"
 
     def build(self) -> AnyDetector:
         """Build a TransformersDetector from the named model.
 
         The model field is passed to the detector's pipeline parameter, which
-        accepts a model name and builds the token-classification pipeline.
+        accepts a model name and builds the token-classification pipeline with the
+        given aggregation_strategy, so sub-word tokens are grouped into whole
+        entities.
         """
         from piighost.components.detector.ner.transformers import TransformersDetector
 
@@ -76,6 +79,7 @@ class TransformersDetectorConfig(_ComponentConfig):
             labels=self.labels,
             threshold=self.threshold,
             max_concurrency=self.max_concurrency,
+            aggregation_strategy=self.aggregation_strategy,
         )
 
 

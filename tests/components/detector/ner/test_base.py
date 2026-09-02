@@ -8,8 +8,9 @@ import pytest
 
 from piighost.components.detector import AnyDetector
 from piighost.components.detector.ner import BaseNERDetector
-from piighost.exceptions import LabelMappingError
+from piighost.exceptions import LabelMappingError, TextTooLongError
 from piighost.models import Detection, Span
+from piighost.text import find_all_word_boundary
 
 
 class _FakeNERDetector(BaseNERDetector):
@@ -26,6 +27,27 @@ class _FakeNERDetector(BaseNERDetector):
 
     async def _raw_detect(self, text: str) -> list[Detection]:
         return self._raw
+
+
+class _MarkerNERDetector(BaseNERDetector):
+    """A BaseNERDetector that flags a marker word, recording each text seen.
+
+    It detects the marker at its offset within whatever text it is handed, so a
+    test can check both that a long text was chunked and that the resulting spans
+    are remapped back onto the original text.
+    """
+
+    def __init__(self, marker: str = "SECRET", **kwargs: object) -> None:
+        super().__init__(None, **kwargs)  # type: ignore[arg-type]
+        self._marker = marker
+        self.seen: list[str] = []
+
+    async def _raw_detect(self, text: str) -> list[Detection]:
+        self.seen.append(text)
+        return [
+            Detection(span=span, text=self._marker, label="PERSON", confidence=0.9)
+            for span in find_all_word_boundary(text, self._marker, 0)
+        ]
 
 
 def _det(label: str, confidence: float = 0.9) -> Detection:
@@ -76,6 +98,37 @@ class TestLabelMapping:
         detector = _FakeNERDetector([], labels={"PERSON": "per", "COMPANY": "org"})
         assert detector.internal_labels == ["per", "org"]
         assert detector.external_labels == ["PERSON", "COMPANY"]
+
+
+class TestMaxChars:
+    async def test_short_text_is_not_chunked(self) -> None:
+        """A text within max_chars is scanned whole, in one pass."""
+        detector = _MarkerNERDetector(max_chars=1000)
+        await detector.detect("a short SECRET here")
+        assert detector.seen == ["a short SECRET here"]
+
+    async def test_long_text_is_chunked_and_offsets_remapped(self) -> None:
+        """A text over max_chars is chunked, and spans map back to the original."""
+        detector = _MarkerNERDetector(max_chars=20, auto_chunk=True)
+        text = ("filler word " * 8) + "SECRET"
+        detections = await detector.detect(text)
+        assert len(detector.seen) > 1
+        assert len(detections) == 1
+        span = detections[0].span
+        assert text[span.start : span.end] == "SECRET"
+
+    async def test_long_text_raises_when_auto_chunk_is_off(self) -> None:
+        """Over max_chars with chunking off fails closed rather than truncate."""
+        detector = _MarkerNERDetector(max_chars=20, auto_chunk=False)
+        with pytest.raises(TextTooLongError):
+            await detector.detect("x " * 100)
+
+    async def test_no_limit_by_default(self) -> None:
+        """Without max_chars, a long text is scanned whole."""
+        detector = _MarkerNERDetector()
+        text = "z " * 500 + "SECRET"
+        await detector.detect(text)
+        assert detector.seen == [text]
 
 
 class TestRunBlocking:
