@@ -21,18 +21,52 @@ DEFAULT_PREFIX = "<<"
 DEFAULT_SUFFIX = ">>"
 """Default closing delimiter wrapped around a placeholder token."""
 
+LABEL_INNER = r"[A-Za-z_][A-Za-z0-9_ -]*"
+"""Inner form of a label-only token, such as PERSON or date of birth.
 
-def compile_token_pattern(prefix: str, suffix: str) -> re.Pattern[str]:
+A label starts with a letter or underscore, then letters, digits, underscores,
+spaces, or hyphens, so a multi-word label an LLM or NER detector emits still fits.
+"""
+
+IDENTIFIED_INNER = LABEL_INNER + r":[A-Za-z0-9]+"
+"""Inner form of a label-plus-identifier token, such as PERSON:1 or PERSON:a1b2.
+
+The identifier after the colon is an ordinal (counter factory) or a hex digest
+(hash factory), both alphanumeric.
+"""
+
+DEFAULT_INNER = LABEL_INNER + r"(?::[A-Za-z0-9]+)?"
+"""Inner form accepting a label with an optional identifier.
+
+The permissive default for a delimited factory that does not narrow it further,
+matching both <<PERSON>> and <<PERSON:1>> while still rejecting arbitrary content
+between the delimiters, such as a C++ shift or a markdown run.
+"""
+
+MAX_TOKEN_LENGTH = 128
+"""Upper bound, in characters, on how far a token's opening can sit from the end.
+
+A real token is at most this long, so a streaming decoder never holds back more
+than this many trailing characters. An opening delimiter older than this cannot
+still be completing a token, so it is released rather than buffered indefinitely.
+"""
+
+
+def compile_token_pattern(
+    prefix: str, suffix: str, inner: str = DEFAULT_INNER
+) -> re.Pattern[str]:
     """Compile the regex matching delimited tokens, capturing the inner form.
 
-    It matches the delimiters around a non-empty, non-greedy inner run, so it
-    recognizes tokens structurally without validating the inner shape. Shared by
-    the factory recognition helpers and the stream decoders so the three never
-    diverge on the token grammar.
+    It matches the delimiters around the inner run, capturing it, so it
+    recognizes tokens by shape. The inner run defaults to a bounded grammar (a
+    label with an optional identifier); a factory whose tokens take a different
+    shape passes its own, for example a label-only or a label-plus-identifier
+    form. Shared by the factory recognition helpers and the stream decoders so
+    the three never diverge on the token grammar.
     """
     regex_prefix = re.escape(prefix)
     regex_suffix = re.escape(suffix)
-    return re.compile(regex_prefix + r"(.+?)" + regex_suffix)
+    return re.compile(regex_prefix + "(" + inner + ")" + regex_suffix)
 
 
 class _Segment(NamedTuple):
@@ -51,11 +85,15 @@ def _held_length(buffer: str, prefix: str) -> int:
     """Return how many trailing chars could still grow into a token.
 
     Assumes the buffer holds no complete token, the split having drained them
-    first. A full opening delimiter with no close holds everything from it on;
-    otherwise a trailing fragment of the opening delimiter is held so a delimiter
-    split across fragments still lines up.
+    first. An opening delimiter within the last MAX_TOKEN_LENGTH characters, with
+    no close, holds everything from it on, since more characters could still
+    complete a token. An opening older than that cannot still be completing a
+    token, so it is not held, guarding against a stray delimiter buffering the
+    whole stream. Otherwise a trailing fragment of the opening delimiter is held
+    so a delimiter split across fragments still lines up.
     """
-    opening = buffer.find(prefix)
+    window_start = max(0, len(buffer) - MAX_TOKEN_LENGTH)
+    opening = buffer.find(prefix, window_start)
     if opening != -1:
         return len(buffer) - opening
 
@@ -122,12 +160,13 @@ class PlaceholderStreamDecoder:
         replace: Callable[[str], str],
         prefix: str = DEFAULT_PREFIX,
         suffix: str = DEFAULT_SUFFIX,
+        inner: str = DEFAULT_INNER,
     ) -> None:
-        """Store the delimiters and the per-token replacement callback."""
+        """Store the delimiters, the inner grammar, and the replacement callback."""
         self.prefix = prefix
         self.suffix = suffix
         self._replace = replace
-        self._pattern = compile_token_pattern(prefix, suffix)
+        self._pattern = compile_token_pattern(prefix, suffix, inner)
         self._buffer = ""
 
     def feed(self, chunk: str) -> str:
@@ -171,12 +210,13 @@ class AsyncPlaceholderStreamDecoder:
         replace: Callable[[str], Awaitable[str]],
         prefix: str = DEFAULT_PREFIX,
         suffix: str = DEFAULT_SUFFIX,
+        inner: str = DEFAULT_INNER,
     ) -> None:
-        """Store the delimiters and the awaitable per-token replacement callback."""
+        """Store the delimiters, inner grammar, and awaitable replacement callback."""
         self.prefix = prefix
         self.suffix = suffix
         self._replace = replace
-        self._pattern = compile_token_pattern(prefix, suffix)
+        self._pattern = compile_token_pattern(prefix, suffix, inner)
         self._buffer = ""
 
     async def feed(self, chunk: str) -> str:

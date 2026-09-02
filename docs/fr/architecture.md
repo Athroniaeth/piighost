@@ -267,20 +267,24 @@ restored = pipeline.deanonymize(result.text, result.tokens)
 ```
 
 Le constructeur ne prend que le détecteur, le linker et l'anonymiseur en obligatoire.
-Les étapes optionnelles arrivent en argument nommé.
+Les autres étapes arrivent en argument nommé.
 
 ```python
 AnonymizationPipeline(
     detector,
     linker,
     anonymizer,
-    overlap_resolver=None,   # AnyOverlapResolver
+    overlap_resolver=None,   # AnyOverlapResolver, ConfidenceOverlapResolver par défaut
     expander=None,           # AnyDetectionExpander
     entity_resolver=None,    # AnyEntityResolver
     guard=None,              # AnyGuardRail
     override=None,           # AnyDetectionOverride
 )
 ```
+
+Omettre `overlap_resolver`, ou passer `None`, construit un `ConfidenceOverlapResolver`,
+car l'étape de rendu a besoin de spans disjoints. Les étapes expand, entity-resolve,
+guard et override restent désactivées quand elles valent `None`.
 
 ---
 

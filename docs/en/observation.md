@@ -111,6 +111,15 @@ serve as an annotation dataset, since the clear values are gone.
 
 </div>
 
+Clear-text tracing stays the default so traces keep their annotation value, but it is treated as an explicit choice. With no redactor set and a tracer provider actually configured, the pipeline warns once at construction that its traces carry clear PII. Pass `trace_clear_text=True` to acknowledge it and silence the warning, or an `observation_redactor` to scrub the payloads.
+
+```python
+pipeline = AnonymizationPipeline(
+    detector=detector,
+    trace_clear_text=True,  # I know traces carry clear PII, ship them to a trusted backend only
+)
+```
+
 ## Backend correlation is deployment config, not lib code
 
 `piighost` emits standard OpenTelemetry spans and stops there. It ships no

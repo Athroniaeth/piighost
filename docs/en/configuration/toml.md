@@ -89,9 +89,9 @@ The top-level keys of a `PipelineConfig`.
 |---------|----------|---------|
 | `name` | no | An optional pipeline name, a top-level scalar overridable by `PIIGHOST_NAME` |
 | `[detector]` | yes | The detect stage |
-| `[linker]` | yes | The entity linker |
-| `[anonymizer]` | yes | The render stage, built on a placeholder factory |
-| `[overlap_resolver]` | no | Resolves overlapping detections |
+| `[linker]` | no | The entity linker; defaults to `ExactEntityLinker` |
+| `[anonymizer]` | no | The render stage; defaults to an `Anonymizer` with a label-counter factory |
+| `[overlap_resolver]` | no | Resolves overlapping detections; defaults to `ConfidenceOverlapResolver` |
 | `[expander]` | no | Re-finds missed occurrences of a detected value |
 | `[entity_resolver]` | no | Clusters entities that refer to the same thing |
 | `[guard]` | no | Re-checks the output for residual PII |

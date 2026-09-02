@@ -64,8 +64,10 @@ class PipelineConfig(BaseSettings):
         name: An optional name for the pipeline, a top-level scalar an env var
             can override.
         detector: The detector stage configuration.
-        linker: The entity linker configuration.
-        anonymizer: The anonymizer configuration.
+        linker: The entity linker configuration, or None for the default
+            ExactEntityLinker.
+        anonymizer: The anonymizer configuration, or None for the default
+            Anonymizer with a LabelCounterPlaceholderFactory.
         overlap_resolver: The optional overlapping-detection resolver stage.
         expander: The optional missed-occurrence expander stage.
         entity_resolver: The optional entity-conflict resolver stage.
@@ -83,8 +85,8 @@ class PipelineConfig(BaseSettings):
 
     name: str | None = None
     detector: DetectorConfig
-    linker: LinkerConfig
-    anonymizer: AnonymizerConfig
+    linker: LinkerConfig | None = None
+    anonymizer: AnonymizerConfig | None = None
     overlap_resolver: OverlapResolverConfig | None = None
     expander: ExpanderConfig | None = None
     entity_resolver: EntityResolverConfig | None = None
@@ -117,8 +119,8 @@ class PipelineConfig(BaseSettings):
         AnonymizationPipeline.
         """
         detector = self.detector.build()
-        linker = self.linker.build()
-        anonymizer = self.anonymizer.build()
+        linker = self.linker.build() if self.linker else None
+        anonymizer = self.anonymizer.build() if self.anonymizer else None
         overlap_resolver = (
             self.overlap_resolver.build() if self.overlap_resolver else None
         )

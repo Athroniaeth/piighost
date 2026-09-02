@@ -109,17 +109,18 @@ detector = CompositeDetector([email_detector, person_detector])
 
 ## `ExactMatchDetector`
 
-Finds occurrences of configured literal values. It scans the text for each value and emits one detection per occurrence at confidence 1.0. It carries no model and no optional dependency, which makes it the detector of choice for exercising the pipeline in tests.
+Finds whole-word occurrences of configured literal values. It scans the text for each value and emits one detection per occurrence at confidence 1.0. Matching is on word boundaries, so a value does not fire inside a longer word (`Ann`{ .pii } does not match inside `Anne`{ .pii }), and case-insensitive by default, so a value matches whatever its casing while the detection keeps the text as it appears. It carries no model and no optional dependency, which makes it the detector of choice for exercising the pipeline in tests.
 
 ### Constructor
 
 ```python
-ExactMatchDetector(values: dict[str, str])
+ExactMatchDetector(values: dict[str, str], case_sensitive: bool = False)
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `values` | `dict[str, str]` | Mapping of literal value to the PII label to emit for it (required) |
+| `case_sensitive` | `bool` | Whether matching respects case. `False` by default |
 
 ```python
 from piighost.components.detector import ExactMatchDetector

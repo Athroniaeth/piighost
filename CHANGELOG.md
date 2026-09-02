@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Feat
+
+- **cli**: add `piighost anonymize [TEXT|-]` reading an argument or stdin, with `--config` for a config file, `--api` for a remote piighost-api, `--thread-id`, and `--json` for the text plus detections. The typer app is now built lazily, so running the CLI without typer prints a short install hint to stderr instead of a traceback
+- **config**: `linker` and `anonymizer` are optional in `PipelineConfig`, defaulting to `ExactEntityLinker` and an `Anonymizer` with a label-counter factory, so a detector-only config builds a full pipeline
+- **api**: re-export the core building blocks from the package root, so `from piighost import AnonymizationPipeline, RegexDetector, Detection, PIIGhostError` works; resolved lazily per name, so the facade never imports an optional extra
+- **client**: `PIIGhostClient` accepts `timeout`, `headers` (for example an auth token), and `retries` when built from a base URL. The detection wire format was verified against piighost-api and left unchanged: the server's detect preview uses `start_pos`/`end_pos` and its corrected endpoint accepts `Detection.to_dict()` (`start`/`end`); the two are deliberate, not a mismatch
+- **observation**: treat clear-text tracing as an explicit choice. With a tracer provider actually configured and no `observation_redactor`, the pipeline warns once that its traces carry clear PII; `trace_clear_text=True` acknowledges it and silences the warning. Non-breaking: the default still traces clear text. Added `AnyObservationTracer.is_active()` so the nudge fires only when spans really record
+
+### Documentation
+
+- **security**: document the threat-model boundaries the hardening surfaced, the LangGraph state and checkpointer holding restored PII while tool_calls stay tokenized, user-typed token injection and its neutralization, values the assistant introduces staying clear under `PRESERVE`, and NER truncation of over-long text; note them in `SECURITY.md` with a pointer to the full model
+
+### Fix
+
+- **integrations**: stop mutating the AIMessage tool_calls in the LangChain middleware, so deanonymized tool arguments no longer persist in the LangGraph state nor reach the model on the next turn
+- **integrations**: anonymize list/block message content (the Anthropic and multimodal default) and structured (dict/list) tool results, in both the LangChain and Pydantic AI integrations, which previously flowed to the model in clear
+- **pipeline**: resolve overlapping detections by default (`ConfidenceOverlapResolver`), which was intended from the start; unresolved overlaps previously corrupted the output and leaked a clear fragment of the losing detection. A true tie now keeps the first detector in order, and `Anonymizer.render` raises `OverlappingSpansError` if any overlap survives to it
+- **anonymizer**: deanonymize in a single regex pass, longest token first, so a token that prefixes another (e.g. `[PERSON:1` vs `[PERSON:10` with an empty suffix) no longer corrupts restoration and a restored value that looks like a token is never rescanned
+- **placeholder**: bound the token grammar to a label with an optional identifier instead of any `<<...>>` run, so a C++ shift or markdown no longer trips the invented-token guard, and bound the streaming buffer so a stray unclosed `<<` is released rather than held until flush
+- **anonymizer**: neutralize a token a user typed in the input (`escape_existing_tokens`, on by default), so it cannot masquerade as an issued token and restore another entity's value
+- **detector**: `ExactMatchDetector` now matches on word boundaries (no `Ann` inside `Anne`) and is case-insensitive by default (`case_sensitive` to opt out)
+- **detector**: `TransformersDetector` loads its pipeline with `aggregation_strategy` (default `simple`), so sub-word tokens are grouped into whole entities instead of emitted piecemeal
+- **detector**: NER detectors accept `max_chars` with `auto_chunk` (default on), so a text longer than the model context is chunked and remapped rather than silently truncated, or raises `TextTooLongError` when chunking is off
+- **detector**: `LLMDetector` wraps the source text in tags and instructs the model to treat it as data, not instructions, and exposes `confidence` for arbitration against a NER detector
+- **guard**: `LLMGuardRail` accepts `prefix`/`suffix`, so the default prompt's placeholder examples match the pipeline's real delimiters instead of a hardcoded `<<LABEL:N>>`
+- **detector**: `RegexDetector` compiles its patterns under `re.ASCII`, so `\d` and the other shape classes match ASCII only; a Unicode digit look-alike (an Arabic-Indic numeral) no longer matches an ASCII-digit PII pattern
+
+### Performance
+
+- **pipeline**: memoize the thread-token map by the thread content it derives from, so rewriting a long history or resolving a stream token by token no longer relinks and re-resolves the whole thread each call (was quadratic with `FuzzyEntityResolver`)
+- **memory**: the Redis backend reads a whole thread in one `MGET` instead of one `GET` per message, makes `remember` atomic under a `WATCH` (so concurrent first writes cannot duplicate the index digest), and drops expired digests from the index opportunistically
+- **memory**: `InMemoryConversationMemory` no longer creates a phantom entry when reading an unknown thread, and gains `max_threads` (LRU eviction) and `ttl` (lazy expiry) to bound its growth; exposed on `InMemoryConfig`
+- **detector**: `ChunkedDetector` scans its chunks concurrently with `asyncio.gather`, so an I/O-bound detector overlaps its calls
+
 ## 1.4.0 (2026-08-23)
 
 ### Feat

@@ -1,5 +1,6 @@
 """Anonymizer abstractions: the port and its span-replacement result."""
 
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -171,13 +172,24 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
         return Anonymization(text=rendered, tokens=tokens)
 
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
-        """Return the text with every known token replaced by its entity value."""
+        """Return the text with every known token replaced by its entity value.
+
+        The replacement is a single regex pass over an alternation of the tokens,
+        longest first. Longest-first avoids a token that prefixes another (for
+        example [PERSON:1 and [PERSON:10 with an empty suffix) restoring the
+        shorter one inside the longer, and a single pass never rescans a value it
+        just spliced in, so a restored value that itself looks like a token is
+        left untouched.
+        """
         values = {token: entity.text for entity, token in tokens.items()}
+        if not values:
+            return text
 
-        for token, value in values.items():
-            text = text.replace(token, value)
-
-        return text
+        alternation = "|".join(
+            re.escape(token) for token in sorted(values, key=len, reverse=True)
+        )
+        pattern = re.compile(alternation)
+        return pattern.sub(lambda match: values[match.group(0)], text)
 
     @abstractmethod
     def render(

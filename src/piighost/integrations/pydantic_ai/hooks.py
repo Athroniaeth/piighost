@@ -94,6 +94,25 @@ def pii_hooks(
             return thread_id
         return thread_id(ctx)
 
+    async def anonymize_content(content: Any, thread: str, role: MessageRole) -> Any:
+        """Anonymize a content that is a string or a sequence of strings.
+
+        The sequence form is the multimodal default. Only the string elements are
+        anonymized and the sequence is rebuilt, leaving image and other non-text
+        elements untouched, so a block form never slips past in clear.
+        """
+        if isinstance(content, str):
+            return await deid.anonymize(content, thread, role)
+        if isinstance(content, (list, tuple)):
+            items = [
+                await deid.anonymize(item, thread, role)
+                if isinstance(item, str)
+                else item
+                for item in content
+            ]
+            return items if isinstance(content, list) else tuple(items)
+        return content
+
     hooks = Hooks()
 
     @hooks.on.before_model_request
@@ -104,16 +123,12 @@ def pii_hooks(
         current_thread = resolve_thread_id(ctx)
         for message in request_context.messages:
             for part in message.parts:
-                if isinstance(part, UserPromptPart) and isinstance(part.content, str):
-                    part.content = await deid.anonymize(
+                if isinstance(part, UserPromptPart):
+                    part.content = await anonymize_content(
                         part.content, current_thread, MessageRole.USER
                     )
-                elif (
-                    not skip_assistant
-                    and isinstance(part, TextPart)
-                    and isinstance(part.content, str)
-                ):
-                    part.content = await deid.anonymize(
+                elif not skip_assistant and isinstance(part, TextPart):
+                    part.content = await anonymize_content(
                         part.content, current_thread, assistant_role
                     )
         return request_context
@@ -155,10 +170,14 @@ def pii_hooks(
         args: ValidatedToolArgs,
         result: Any,
     ) -> Any:
-        """Re-anonymize the tool result so the model keeps seeing placeholders."""
-        if not anonymize_result or not isinstance(result, str):
+        """Re-anonymize the tool result so the model keeps seeing placeholders.
+
+        The result is walked recursively, so a structured result, a dict or list
+        of strings, is re-anonymized too, not only a plain string one.
+        """
+        if not anonymize_result:
             return result
         current_thread = resolve_thread_id(ctx)
-        return await deid.anonymize(result, current_thread)
+        return await deid.anonymize_value(result, current_thread)
 
     return hooks

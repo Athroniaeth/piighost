@@ -2,41 +2,42 @@
 
 import re
 
-from piighost.models import Detection, Span
+from piighost.models import Detection
+from piighost.text import find_all_word_boundary
 
 
 class ExactMatchDetector:
     """Detector that finds occurrences of configured literal values.
 
     It scans the text for each configured value and emits one detection per
-    occurrence, with confidence 1.0. It carries no model, so it is cheap and
-    needs no optional dependency, which makes it the detector of choice for
+    whole-word occurrence, with confidence 1.0. Matching is on word boundaries,
+    so a value does not fire inside a longer word (no "Ann" inside "Anne"), and
+    case-insensitive by default, so a value matches whatever its casing while the
+    detection keeps the text as it appears. It carries no model, so it is cheap
+    and needs no optional dependency, which makes it the detector of choice for
     exercising the pipeline in tests.
 
     Attributes:
         values: Mapping of literal value to the PII label to emit for it.
+        case_sensitive: Whether matching respects case. False by default.
     """
 
-    def __init__(self, values: dict[str, str]) -> None:
-        """Store the mapping of literal value to PII label."""
+    def __init__(self, values: dict[str, str], case_sensitive: bool = False) -> None:
+        """Store the value-to-label mapping and the case-sensitivity policy."""
         self.values = values
+        self.case_sensitive = case_sensitive
 
     async def detect(self, text: str) -> list[Detection]:
-        """Return one detection per occurrence of each configured value."""
+        """Return one detection per whole-word occurrence of each value."""
+        flags = re.NOFLAG if self.case_sensitive else re.IGNORECASE
         detections: list[Detection] = []
         for value, label in self.values.items():
-            # re.finditer yields every non-overlapping match with its offsets;
-            # re.escape keeps value literal so regex metacharacters do not apply.
-            needle = re.escape(value)
-
-            for match in re.finditer(needle, text):
-                start = match.start()
-                end = match.end()
-
-                span = Span(start, end)
+            for span in find_all_word_boundary(text, value, flags):
+                # Keep the matched text as it appears, which may differ in case
+                # from the configured value, so replacement stays exact.
                 detection = Detection(
                     span=span,
-                    text=value,
+                    text=span.extract(text),
                     label=label,
                     confidence=1.0,
                 )

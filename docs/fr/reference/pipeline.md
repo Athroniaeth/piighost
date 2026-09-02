@@ -40,7 +40,7 @@ AnonymizationPipeline(
 | `detector` | `AnyDetector` | requis | Détecteur d'entités async |
 | `linker` | `AnyEntityLinker \| None` | `None` | Groupe les détections en entités. Par défaut `ExactEntityLinker()` |
 | `anonymizer` | `AnyAnonymizer \| None` | `None` | Moteur de remplacement et sa placeholder factory. Par défaut `Anonymizer(LabelCounterPlaceholderFactory())` |
-| `overlap_resolver` | `AnyOverlapResolver \| None` | `None` | Résout les détections qui se chevauchent. Désactivé quand `None` |
+| `overlap_resolver` | `AnyOverlapResolver \| None` | `None` | Résout les détections qui se chevauchent. Par défaut `ConfidenceOverlapResolver()`, car l'étape de rendu a besoin de spans disjoints |
 | `expander` | `AnyDetectionExpander \| None` | `None` | Ajoute les occurrences manquées d'une valeur détectée. Désactivé quand `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Réconcilie les entités en conflit. Désactivé quand `None` |
 | `guard` | `AnyGuardRail \| None` | `None` | Revérifie la sortie pour de la PII résiduelle. Désactivé quand `None` |

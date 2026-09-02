@@ -37,6 +37,15 @@ class AnyObservationTracer(Protocol):
         """Open a span with the given name and yield its handle."""
         ...
 
+    def is_active(self) -> bool:
+        """Whether spans this tracer opens actually record anywhere.
+
+        False when nothing consumes the spans, so a caller can skip work that
+        only matters once traces are recorded, such as warning that a payload
+        would carry clear text.
+        """
+        ...
+
 
 class NoOpSpan:
     """A span handle that records nothing."""
@@ -61,3 +70,7 @@ class NoOpTracer:
     def span(self, name: str) -> Iterator[NoOpSpan]:
         """Yield an inert span handle."""
         yield NoOpSpan()
+
+    def is_active(self) -> bool:
+        """Never active: it records nothing."""
+        return False
