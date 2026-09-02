@@ -101,6 +101,11 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "EmptyPepperError"),
     ("piighost.exceptions", "CipherError"),
     ("piighost.exceptions", "InvalidKeyLengthError"),
+    ("piighost.exceptions", "AnonymizerError"),
+    ("piighost.exceptions", "OverlappingSpansError"),
+    ("piighost.exceptions", "DetectorError"),
+    ("piighost.exceptions", "LabelMappingError"),
+    ("piighost.exceptions", "TextTooLongError"),
     ("piighost.exceptions", "GuardError"),
     ("piighost.exceptions", "PIIRemainingError"),
     ("piighost.exceptions", "MiddlewareError"),
@@ -117,9 +122,52 @@ PUBLIC_API: list[tuple[str, str]] = [
 ]
 
 
+# Core symbols the package root re-exports lazily, resolved to their home module.
+FACADE_EXPORTS: list[tuple[str, str]] = [
+    ("piighost.pipeline", "AnonymizationPipeline"),
+    ("piighost.pipeline", "ThreadAnonymizationPipeline"),
+    ("piighost.components.anonymizer", "Anonymizer"),
+    ("piighost.components.detector", "ExactMatchDetector"),
+    ("piighost.components.detector", "RegexDetector"),
+    ("piighost.components.detector", "CompositeDetector"),
+    ("piighost.components.detector", "ChunkedDetector"),
+    ("piighost.components.placeholder", "LabelCounterPlaceholderFactory"),
+    ("piighost.components.placeholder", "LabelHashPlaceholderFactory"),
+    ("piighost.models", "Detection"),
+    ("piighost.models", "Entity"),
+    ("piighost.models", "Span"),
+    ("piighost.exceptions", "PIIGhostError"),
+]
+
+
 def test_package_imports() -> None:
     """Check that the top-level package name has not changed."""
     assert piighost.__name__ == "piighost"
+
+
+@pytest.mark.parametrize(("module", "name"), FACADE_EXPORTS)
+def test_facade_reexports_core_symbol(module: str, name: str) -> None:
+    """The package root exposes each core symbol, identical to its home module's."""
+    home = importlib.import_module(module)
+    assert getattr(piighost, name) is getattr(home, name)
+
+
+def test_facade_lists_its_exports_in_dir() -> None:
+    """Every facade name is discoverable through dir(piighost)."""
+    listed = set(dir(piighost))
+    assert {name for _, name in FACADE_EXPORTS} <= listed
+
+
+def test_facade_rejects_an_unknown_attribute() -> None:
+    """An attribute the facade does not export raises AttributeError."""
+    with pytest.raises(AttributeError):
+        piighost.NotAThing  # noqa: B018
+
+
+def test_facade_all_matches_the_lazy_exports() -> None:
+    """__all__ stays in sync with the lazily re-exported names, plus __version__."""
+    exported = set(piighost.__all__) - {"__version__"}
+    assert exported == set(piighost._LAZY_EXPORTS)
 
 
 @pytest.mark.parametrize(("module", "name"), PUBLIC_API)

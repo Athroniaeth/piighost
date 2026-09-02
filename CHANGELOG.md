@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Feat
 
+- **api**: re-export the core building blocks from the package root, so `from piighost import AnonymizationPipeline, RegexDetector, Detection, PIIGhostError` works; resolved lazily per name, so the facade never imports an optional extra
 - **observation**: treat clear-text tracing as an explicit choice. With a tracer provider actually configured and no `observation_redactor`, the pipeline warns once that its traces carry clear PII; `trace_clear_text=True` acknowledges it and silences the warning. Non-breaking: the default still traces clear text. Added `AnyObservationTracer.is_active()` so the nudge fires only when spans really record
 
 ### Documentation
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **detector**: NER detectors accept `max_chars` with `auto_chunk` (default on), so a text longer than the model context is chunked and remapped rather than silently truncated, or raises `TextTooLongError` when chunking is off
 - **detector**: `LLMDetector` wraps the source text in tags and instructs the model to treat it as data, not instructions, and exposes `confidence` for arbitration against a NER detector
 - **guard**: `LLMGuardRail` accepts `prefix`/`suffix`, so the default prompt's placeholder examples match the pipeline's real delimiters instead of a hardcoded `<<LABEL:N>>`
+- **detector**: `RegexDetector` compiles its patterns under `re.ASCII`, so `\d` and the other shape classes match ASCII only; a Unicode digit look-alike (an Arabic-Indic numeral) no longer matches an ASCII-digit PII pattern
 
 ### Performance
 
