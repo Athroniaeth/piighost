@@ -16,6 +16,12 @@ A PII that is not detected is not de-identified. This is an engineering concern,
 
 **Mitigation**: chain a NER detector and a `RegexDetector` through the `CompositeDetector`, to cover both free-form text and structured formats. Load a locale-specific NER model for better accuracy. See [Extending PIIGhost](extending.md).
 
+## A model can truncate a text longer than its context
+
+A NER model has a maximum input length. A text longer than that is truncated by the model, and the truncated tail is never scanned, so its PII passes in cleartext. Nothing warns you by default.
+
+**Mitigation**: set `max_chars` on the NER detector to the model's safe input length. With `auto_chunk` on (the default), a longer text is split into overlapping chunks scanned separately and remapped, so the tail is covered. With `auto_chunk` off, an over-long text raises `TextTooLongError` rather than being scanned in part. For very long inputs, wrap the detector in a `ChunkedDetector`.
+
 ## Language coverage is model-dependent
 
 The set of languages a NER detector can cover is fixed by the model you plug in. Coverage varies from model to model, and not every language is supported equally. Before deploying on a new locale, read the model card and run a small validation set.

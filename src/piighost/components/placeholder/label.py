@@ -4,6 +4,7 @@ from piighost.components.placeholder.base import (
     AnyPlaceholderFactory,
     BaseDelimitedPlaceholderFactory,
 )
+from piighost.components.placeholder.streaming import LABEL_INNER
 from piighost.components.placeholder.tags import PreservesLabel
 from piighost.models import Entity
 
@@ -18,6 +19,9 @@ class LabelPlaceholderFactory(
     person collapses to <<PERSON>>, which cannot be reversed, hence the tag
     PreservesLabel.
     """
+
+    _inner_pattern: str = LABEL_INNER
+    """These tokens carry a bare label, with no colon-separated identifier."""
 
     def create(self, entities: list[Entity]) -> dict[Entity, PreservesLabel]:
         """Return a label-naming token for every entity."""

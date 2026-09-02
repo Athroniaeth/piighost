@@ -1,5 +1,6 @@
 """Thread-aware anonymization pipeline: tokens stay consistent across a thread."""
 
+from collections import OrderedDict
 from collections.abc import Mapping
 
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
@@ -22,6 +23,9 @@ from piighost.conversation_memory.base import (
 from piighost.conversation_memory.memory import InMemoryConversationMemory
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
+
+_TOKEN_MEMO_MAX = 256
+"""How many thread-token maps to memoize before evicting the least recently used."""
 
 
 class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
@@ -53,6 +57,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         guard: AnyGuardRail | None = None,
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
+        trace_clear_text: bool = False,
     ) -> None:
         """Store the stage components and the per-thread conversation memory.
 
@@ -72,8 +77,17 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             guard,
             observation_redactor,
             override,
+            trace_clear_text,
         )
         self.memory = memory
+        # Memoize the thread-token map by the content it derives from, so
+        # rewriting every message of a long history in one turn, or resolving a
+        # stream token by token, does not relink and re-resolve the whole thread
+        # each time. Keyed on the union and provenance actually read, so a change
+        # from any writer yields a new key; bounded, evicting least recently used.
+        self._token_memo: OrderedDict[
+            tuple[object, ...], Mapping[Entity, PreservationT]
+        ] = OrderedDict()
 
     @property
     def recognizer(self) -> BaseDelimitedPlaceholderFactory | None:
@@ -241,11 +255,27 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         An entity whose value was first introduced by the assistant is left out,
         so it gets no token and stays in clear, unless the override's whitelist
         forces it under the FORCE strategy.
+
+        The result is memoized by the union and provenance it derives from, so
+        repeated calls within a turn skip relinking and re-resolving the whole
+        thread. The reads still happen, so a change from any writer produces a new
+        key and a fresh computation.
         """
         union = await self.memory.get_detections(thread_id) or []
+        provenance = await self.memory.get_provenance(thread_id)
+
+        key = (
+            thread_id,
+            tuple(union),
+            tuple(sorted(provenance.items(), key=lambda item: item[0])),
+        )
+        cached = self._token_memo.get(key)
+        if cached is not None:
+            self._token_memo.move_to_end(key)
+            return cached
+
         entities = self.linker.link(union)
         thread_entities = self._resolve_entities(entities)
-        provenance = await self.memory.get_provenance(thread_id)
 
         anonymizable = []
         for entity in thread_entities:
@@ -254,4 +284,10 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             )
             if not introduced_by_assistant or await self._forces_value(entity.text):
                 anonymizable.append(entity)
-        return self.anonymizer.create(anonymizable)
+
+        tokens = self.anonymizer.create(anonymizable)
+        self._token_memo[key] = tokens
+        self._token_memo.move_to_end(key)
+        while len(self._token_memo) > _TOKEN_MEMO_MAX:
+            self._token_memo.popitem(last=False)
+        return tokens

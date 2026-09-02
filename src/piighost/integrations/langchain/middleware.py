@@ -10,7 +10,7 @@ the extra to install.
 import importlib.util
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
-from typing import Any, Generic
+from typing import Any, Generic, cast
 
 from typing_extensions import TypeVar
 
@@ -34,8 +34,10 @@ if importlib.util.find_spec("langchain") is None:
 from langchain.agents.middleware import AgentMiddleware, AgentState
 from langchain_core.messages import (
     AIMessage,
+    AnyMessage,
     BaseMessage,
     HumanMessage,
+    ToolCall,
     ToolMessage,
 )
 from langgraph.config import get_config
@@ -167,7 +169,14 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
             role = self._message_role(message)
             return await self._anonymize(content, thread_id, role)
 
-        return await self._rewrite(state, allowed, anonymize)
+        messages = state["messages"]
+        changed = await self._rewrite_content(messages, allowed, anonymize)
+        # Defense in depth: a model that only saw tokens should emit tokenized
+        # tool_calls, but a clear value that slipped into them must not reach the
+        # model next turn. Skip it under IGNORE, which analyzes no assistant text.
+        if AIMessage in allowed:
+            changed = await self._reanonymize_tool_calls(messages, thread_id) or changed
+        return {"messages": messages} if changed else None
 
     async def aafter_model(
         self,
@@ -181,7 +190,13 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
             """Deanonymize one message's content for display."""
             return await self._deanonymize(content, thread_id)
 
-        return await self._rewrite(state, (HumanMessage, AIMessage), restore)
+        messages = state["messages"]
+        # Only content is restored for display; tool_calls stay tokenized in the
+        # state, so the checkpointer never persists clear PII in a tool call.
+        changed = await self._rewrite_content(
+            messages, (HumanMessage, AIMessage), restore
+        )
+        return {"messages": messages} if changed else None
 
     def deanonymize_stream(
         self, source: AsyncIterator[str], thread_id: str
@@ -213,39 +228,127 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         anonymize_output = strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
 
         if deanonymize_input:
-            call = request.tool_call
-            call["args"] = await self._deid.deanonymize_value(call["args"], thread_id)
+            # Never mutate request.tool_call: it is the same dict LangGraph keeps
+            # in the AIMessage.tool_calls of the state, so mutating it would leave
+            # the deanonymized values in the state and feed them back to the model
+            # on the next turn. Build a new call and a new request instead.
+            deanonymized = await self._deid.deanonymize_value(
+                request.tool_call["args"], thread_id
+            )
+            new_call = cast("ToolCall", {**request.tool_call, "args": deanonymized})
+            request = request.override(tool_call=new_call)
 
         response = await handler(request)
 
-        if anonymize_output and (
-            isinstance(response, ToolMessage) and isinstance(response.content, str)
-        ):
-            response.content = await self._anonymize(response.content, thread_id)
+        if anonymize_output and isinstance(response, ToolMessage):
+
+            async def anonymize(_message: BaseMessage, content: str) -> str:
+                """Anonymize one tool-result string under the user role."""
+                return await self._anonymize(content, thread_id)
+
+            new_content, changed = await self._transform_content(
+                response, response.content, anonymize
+            )
+            if changed:
+                response.content = new_content
 
         return response
 
-    async def _rewrite(
+    async def _rewrite_content(
         self,
-        state: AgentState,
+        messages: list[AnyMessage],
         allowed: tuple[type[BaseMessage], ...],
         transform: Callable[[BaseMessage, str], Awaitable[str]],
-    ) -> dict[str, Any] | None:
-        """Apply transform to each allowed message's text, in place."""
+    ) -> bool:
+        """Apply transform to each allowed message's content, in place.
+
+        Content is either a plain string or a list of content blocks, the latter
+        being the Anthropic and multimodal default. A string is transformed whole;
+        a block list has each text block's text transformed and is rebuilt, so a
+        block form never slips past in clear. Returns whether anything changed.
+        """
         changed = False
-        messages = state["messages"]
 
         for message in messages:
-            content = message.content
-            if not isinstance(message, allowed) or not isinstance(content, str):
+            if not isinstance(message, allowed):
                 continue
 
-            rewritten = await transform(message, content)
-            if rewritten != content:
+            content = message.content
+            rewritten, message_changed = await self._transform_content(
+                message, content, transform
+            )
+            if message_changed:
                 message.content = rewritten
                 changed = True
 
-        return {"messages": messages} if changed else None
+        return changed
+
+    async def _transform_content(
+        self,
+        message: BaseMessage,
+        content: Any,
+        transform: Callable[[BaseMessage, str], Awaitable[str]],
+    ) -> tuple[Any, bool]:
+        """Transform a message's content, string or block list, without mutating.
+
+        A string is transformed directly. A block list has each text block's text
+        transformed and the list rebuilt, leaving image and other non-text blocks
+        untouched. Anything else is returned unchanged.
+        """
+        if isinstance(content, str):
+            rewritten = await transform(message, content)
+            return rewritten, rewritten != content
+
+        if isinstance(content, list):
+            new_blocks: list[Any] = []
+            changed = False
+            for block in content:
+                if (
+                    isinstance(block, dict)
+                    and block.get("type") == "text"
+                    and isinstance(block.get("text"), str)
+                ):
+                    rewritten = await transform(message, block["text"])
+                    if rewritten != block["text"]:
+                        block = {**block, "text": rewritten}
+                        changed = True
+                new_blocks.append(block)
+            return new_blocks, changed
+
+        return content, False
+
+    async def _reanonymize_tool_calls(
+        self, messages: list[AnyMessage], thread_id: str
+    ) -> bool:
+        """Re-anonymize the arguments of every AIMessage's tool_calls, in place.
+
+        The arguments are rebuilt rather than mutated, so the stored tool_calls
+        keep their tokens and no clear value reaches the model on the next turn.
+        Returns whether anything changed.
+        """
+        changed = False
+
+        for message in messages:
+            if not isinstance(message, AIMessage) or not message.tool_calls:
+                continue
+
+            role = self._message_role(message)
+            new_tool_calls: list[ToolCall] = []
+            message_changed = False
+            for call in message.tool_calls:
+                args = call.get("args")
+                new_args = await self._deid.anonymize_value(args, thread_id, role)
+                if new_args != args:
+                    new_tool_calls.append(cast("ToolCall", {**call, "args": new_args}))
+                    message_changed = True
+                else:
+                    new_tool_calls.append(call)
+
+            if message_changed:
+                message.tool_calls = new_tool_calls
+                changed = True
+
+        return changed
 
     def _message_role(self, message: BaseMessage) -> MessageRole:
         """Return the provenance role a message contributes.

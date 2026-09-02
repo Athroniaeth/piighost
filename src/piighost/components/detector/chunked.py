@@ -1,5 +1,6 @@
 """Chunked detector: run any detector over a long text via overlapping chunks."""
 
+import asyncio
 from dataclasses import replace
 
 from piighost.components.detector.base import AnyDetector
@@ -33,13 +34,22 @@ class ChunkedDetector:
         self._splitter = splitter or RecursiveCharacterTextSplitter()
 
     async def detect(self, text: str) -> list[Detection]:
-        """Detect across chunks, remap offsets, and drop exact duplicates."""
+        """Detect across chunks, remap offsets, and drop exact duplicates.
+
+        The chunks are scanned concurrently, so an I/O-bound detector such as the
+        LLM one overlaps its calls. A local-model detector still bounds its own
+        concurrency through its max_concurrency, so this does not oversubscribe it.
+        """
+        chunks = self._splitter.split(text)
+        results = await asyncio.gather(
+            *(self._detector.detect(chunk.text) for chunk in chunks)
+        )
+
         detections: list[Detection] = []
-        for chunk in self._splitter.split(text):
-            for detection in await self._detector.detect(chunk.text):
+        for chunk, chunk_detections in zip(chunks, results, strict=True):
+            for detection in chunk_detections:
                 span = detection.span.shift(chunk.start)
-                remapped = replace(detection, span=span)
-                detections.append(remapped)
+                detections.append(replace(detection, span=span))
         # dict.fromkeys drops the strictly identical detections the overlap
         # produces, order preserved. Label conflicts and differing confidences
         # are kept for the span-conflict stage.

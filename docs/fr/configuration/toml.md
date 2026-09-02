@@ -89,9 +89,9 @@ Les clés de premier niveau d'un `PipelineConfig`.
 |---------|---------|---------------|
 | `name` | non | Un nom de pipeline optionnel, un scalaire de premier niveau surchargeable par `PIIGHOST_NAME` |
 | `[detector]` | oui | L'étage de détection |
-| `[linker]` | oui | Le linker d'entités |
-| `[anonymizer]` | oui | L'étage de rendu, construit sur une factory de placeholders |
-| `[overlap_resolver]` | non | Résout les détections qui se chevauchent |
+| `[linker]` | non | Le linker d'entités ; par défaut `ExactEntityLinker` |
+| `[anonymizer]` | non | L'étage de rendu ; par défaut un `Anonymizer` avec une factory label-counter |
+| `[overlap_resolver]` | non | Résout les détections qui se chevauchent ; par défaut `ConfidenceOverlapResolver` |
 | `[expander]` | non | Retrouve les occurrences manquées d'une valeur détectée |
 | `[entity_resolver]` | non | Regroupe les entités qui désignent la même chose |
 | `[guard]` | non | Revérifie la sortie pour une PII résiduelle |

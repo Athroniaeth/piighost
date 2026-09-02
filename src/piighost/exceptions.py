@@ -79,6 +79,15 @@ class LabelMappingError(DetectorError):
     """
 
 
+class TextTooLongError(DetectorError):
+    """Raised when a text exceeds a NER detector's max_chars with chunking off.
+
+    A model that silently truncates a text longer than its context would leave the
+    tail unscanned and its PII in clear. With auto_chunk disabled, the detector
+    fails closed here rather than scan only a prefix.
+    """
+
+
 class HasherError(PIIGhostError):
     """Base class for errors raised while constructing a hasher.
 
@@ -105,6 +114,24 @@ class CipherError(PIIGhostError):
 
 class InvalidKeyLengthError(CipherError):
     """Raised when a cipher is built with a key of an unsupported length."""
+
+
+class AnonymizerError(PIIGhostError):
+    """Base class for errors raised by an anonymizer.
+
+    Catch this to handle any anonymizer failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class OverlappingSpansError(AnonymizerError):
+    """Raised when the anonymizer is handed detections whose spans overlap.
+
+    The span-replacement anonymizer rewrites the text in one left-to-right pass
+    and assumes disjoint spans, which the overlap-resolver stage guarantees. If
+    two spans still overlap it fails closed here rather than splice a clear
+    fragment of one detection into the middle of another.
+    """
 
 
 class GuardError(PIIGhostError):

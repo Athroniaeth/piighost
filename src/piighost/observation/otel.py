@@ -91,6 +91,19 @@ class OtelTracer:
         self._lock = threading.Lock()
         self._last_start_ns = 0
 
+    def is_active(self) -> bool:
+        """Whether a real SDK tracer provider is configured to record spans.
+
+        With no provider set, the OTel API is a no-op, so spans record nowhere.
+        Recording needs opentelemetry-sdk installed and a TracerProvider set,
+        which is what an application does to export traces.
+        """
+        try:
+            from opentelemetry.sdk.trace import TracerProvider
+        except ImportError:
+            return False
+        return isinstance(trace.get_tracer_provider(), TracerProvider)
+
     def _paced_start_ns(self) -> int:
         """Return the current time, at least one floor after the last start."""
         with self._lock:

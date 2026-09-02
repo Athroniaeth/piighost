@@ -1,12 +1,30 @@
 """Tests for the ChunkedDetector."""
 
+import asyncio
+
 from piighost.components.detector import (
     AnyDetector,
     ChunkedDetector,
     ExactMatchDetector,
 )
-from piighost.models import Span
+from piighost.models import Detection, Span
 from piighost.text import RecursiveCharacterTextSplitter
+
+
+class _ConcurrencyProbe:
+    """A detector recording the peak number of overlapping detect calls."""
+
+    def __init__(self) -> None:
+        self.current = 0
+        self.peak = 0
+
+    async def detect(self, text: str) -> list[Detection]:
+        """Track concurrency across a yield point, returning no detections."""
+        self.current += 1
+        self.peak = max(self.peak, self.current)
+        await asyncio.sleep(0)
+        self.current -= 1
+        return []
 
 
 class TestConformance:
@@ -55,3 +73,14 @@ class TestDetect:
         detections = await detector.detect("xx aa bb xx cc")
         spans = sorted(detection.span for detection in detections)
         assert spans == [Span(0, 2), Span(9, 11)]
+
+
+class TestConcurrency:
+    async def test_chunks_are_scanned_concurrently(self) -> None:
+        """Several chunks overlap in flight rather than running one after another."""
+        probe = _ConcurrencyProbe()
+        detector = ChunkedDetector(
+            probe, RecursiveCharacterTextSplitter(chunk_size=10, chunk_overlap=2)
+        )
+        await detector.detect("aaaa bbbb cccc dddd eeee ffff gggg")
+        assert probe.peak > 1

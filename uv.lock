@@ -3467,12 +3467,10 @@ requires-dist = [
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5" },
     { name = "spacy", marker = "extra == 'spacy'", specifier = ">=3.7" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'sqlalchemy'", specifier = ">=2.0" },
-    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'config'", specifier = ">=2.0" },
     { name = "torch", marker = "extra == 'transformers'", specifier = ">=2.0" },
     { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.40" },
     { name = "typer", marker = "extra == 'config'", specifier = ">=0.12" },
     { name = "typing-extensions", specifier = ">=4.16.0" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11' and extra == 'client'", specifier = ">=4.4" },
 ]
 provides-extras = ["gliner2", "redis", "langchain", "middleware", "pydantic-ai", "client", "spacy", "transformers", "llm", "observation", "fuzzy", "config", "argon2", "crypto", "mistral", "presidio", "llama-index", "sqlalchemy", "all"]
 
@@ -3480,7 +3478,6 @@ provides-extras = ["gliner2", "redis", "langchain", "middleware", "pydantic-ai",
 config = [
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pydantic-settings", specifier = ">=2.0" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
     { name = "typer", specifier = ">=0.12" },
 ]
 dev = [
@@ -3508,7 +3505,6 @@ dev = [
     { name = "ruff", specifier = ">=0.15.5" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "streamlit", specifier = ">=1.46" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
     { name = "typer", specifier = ">=0.12" },
     { name = "zensical", specifier = ">=0.0.27" },
 ]
