@@ -115,8 +115,11 @@ is the deliberate exception to the always-template rule.
 ## The pipeline stages
 
 `BaseAnonymizationPipeline` chains the stages from detection to de-identified text.
-Three stages are mandatory, detection, linking, and anonymization. The others are
-optional and behave as pass-throughs when they are not provided.
+Only the detector is a required constructor argument. Linking, anonymization, and
+overlap resolution always run, falling back to built-in defaults when omitted, an
+`ExactEntityLinker`, an `Anonymizer` with a `LabelCounterPlaceholderFactory`, and a
+`ConfidenceOverlapResolver`. The override, expand, entity-resolve, and guard stages
+are pass-throughs when not provided.
 
 ```mermaid
 flowchart LR
@@ -260,7 +263,8 @@ restored = pipeline.deanonymize(result.text, result.tokens)
 # restored -> "Patrick habite à Paris."
 ```
 
-The constructor takes only the detector, the linker, and the anonymizer as mandatory.
+The constructor requires only the detector; the linker and anonymizer default to
+`ExactEntityLinker` and an `Anonymizer` with a `LabelCounterPlaceholderFactory`.
 The other stages come as keyword arguments.
 
 ```python

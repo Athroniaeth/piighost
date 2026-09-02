@@ -68,7 +68,7 @@ Le middleware détecte un cas voisin, le placeholder inventé. Si le LLM fabriqu
 
 `InMemoryConversationMemory` garde le mapping thread par thread dans un dictionnaire du processus. Rien ne survit à un redémarrage, rien n'est partagé entre processus. Dès que vous passez à l'échelle horizontalement, deux workers ont deux mémoires et deux espaces de placeholders indépendants, donc la même entité peut recevoir deux tokens différents selon le worker qui la traite.
 
-**Mitigation** : configurer `RedisConversationMemory` pour partager le mapping entre workers et le faire survivre à un redémarrage. Ce backend chiffre les valeurs et hache les clés. Voir [Sécurité](security.md) et [Déploiement](deployment.md).
+**Mitigation** : configurer `RedisConversationMemory` pour partager le mapping entre workers et le faire survivre à un redémarrage. Ce backend peut chiffrer les valeurs et hacher les clés (optionnel, tout ou rien). Le backend en mémoire peut être borné avec `max_threads` et `ttl` pour limiter sa croissance dans un processus de longue durée. Voir [Sécurité](security.md) et [Déploiement](deployment.md).
 
 ## Un thread isole le mapping
 

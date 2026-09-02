@@ -120,8 +120,8 @@ Recognizer
 Tag de préservation de placeholder
 :   Type fantôme sur une placeholder factory qui énonce ce que ses tokens
     préservent : `PreservesNothing`, `PreservesLabel`, `PreservesIdentity` ou
-    `PreservesLabeledIdentity`. Le middleware exige `PreservesIdentity` pour
-    pouvoir restaurer les valeurs, et rejette une factory qui ne le fournit pas,
+    `PreservesLabeledIdentity`. Le middleware exige `PreservesRecognizableIdentity`
+    pour pouvoir restaurer les valeurs, et rejette une factory qui ne le fournit pas,
     au moment de la vérification de types.
 
 Pepper
