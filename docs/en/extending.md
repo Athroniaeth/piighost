@@ -21,7 +21,7 @@ flowchart LR
     A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-*The pipeline injects one component per port. Only detector, linker, and anonymizer are required; the others default to disabled.*
+*The pipeline injects one component per port. Only the detector is required; the linker, anonymizer, and overlap resolver default to built-ins, and only the expand, entity-resolve, guard, and override stages default to disabled.*
 { .figure-caption }
 
 The ports live in each component's `base.py`, under `piighost.components.*`. The data models they exchange live in `piighost.models`.
@@ -127,7 +127,7 @@ Rather than implement `resolve` from scratch, subclass `BaseOverlapResolver`. It
             return [max(conflicting, key=lambda d: d.span.length)]
     ```
 
-The built-in `ConfidenceOverlapResolver` keeps the highest-confidence detection instead. The stage is optional: pass no `overlap_resolver` and overlapping detections flow straight to the linker.
+The built-in `ConfidenceOverlapResolver` keeps the highest-confidence detection instead. The overlap resolver is always on. Omit it and the pipeline installs a `ConfidenceOverlapResolver`; pass your own to change the rule. There is no supported way to disable it, since render assumes disjoint spans and raises `OverlappingSpansError` otherwise.
 
 ---
 
@@ -208,7 +208,7 @@ Subclass `BaseEntityResolver`. It clusters entities that share a detection into 
 
 - `MergeEntityResolver` merges entities that share a detection, by union-find.
 - `SeparateEntityResolver` keeps them apart, giving each shared detection to one entity.
-- `FuzzyEntityResolver` merges entities with similar values (needs the `rapidfuzz` extra).
+- `FuzzyEntityResolver` merges entities with similar values (needs the `fuzzy` extra).
 
 The stage is optional.
 

@@ -208,7 +208,7 @@ Le détecteur `llm` lit l'identifiant de son fournisseur depuis la variable d'en
 
 ## `[linker]`
 
-Discriminé sur `type`. Requis.
+Optionnel. Par défaut `ExactEntityLinker`. Discriminé sur `type`.
 
 | `type` | Signification |
 |--------|---------------|
@@ -223,7 +223,7 @@ type = "exact"
 
 ## `[anonymizer]`
 
-L'étage de rendu. Requis. Il porte une table `[anonymizer.placeholder]` qui choisit la factory de placeholders, discriminée sur `type`.
+Optionnel. Par défaut un `Anonymizer` avec une factory label-counter. Quand il est présent, il porte une table `[anonymizer.placeholder]` qui choisit la factory de placeholders, discriminée sur `type`.
 
 <div class="wide-table" markdown="1">
 
@@ -384,6 +384,11 @@ Optionnel. Sa présence fait du pipeline un `ThreadAnonymizationPipeline` qui ga
 
 Un stockage local au processus, perdu au redémarrage et non partagé entre workers.
 
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `max_threads` | `int` | `None` | Plafond de threads gardés, éviction LRU au-delà (au moins 1) |
+| `ttl` | `float` | `None` | Expire un thread inactif paresseusement au prochain accès, en secondes (supérieur à 0) |
+
 ```toml
 [memory]
 type = "in_memory"
@@ -398,8 +403,10 @@ Un stockage persistant et multi-worker. Chaque valeur stockée est indexée par 
 | `url` | `str` | | L'URL de connexion Redis (requis) |
 | `namespace` | `str` | `piighost` | Le préfixe de clé isolant les clés de cette librairie |
 | `ttl` | `int` | `None` | Secondes de vie d'un message stocké, ou omis pour garder jusqu'à l'éviction |
-| `[memory.hasher]` | hacheur | | Le hacheur qui indexe chaque message (requis) |
-| `[memory.cipher]` | cipher | | Le cipher qui chiffre chaque valeur (requis) |
+| `[memory.hasher]` | hacheur | | Optionnel (les deux ou aucun). Le hacheur qui indexe chaque message |
+| `[memory.cipher]` | cipher | | Optionnel (les deux ou aucun). Le cipher qui chiffre chaque valeur |
+
+Configurez les deux, `[memory.hasher]` et `[memory.cipher]`, ou aucun. Sans aucun, le backend stocke la correspondance en clair et émet un avertissement. Avec un seul, `build()` lève `ConfigError`.
 
 Le hacheur, `[memory.hasher]`, est discriminé sur `type`.
 

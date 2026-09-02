@@ -36,10 +36,12 @@ Le pipeline pilote ces méthodes pour vous. Vous appelez la mémoire directement
 ## `InMemoryConversationMemory`
 
 ```python
-InMemoryConversationMemory()
+InMemoryConversationMemory(max_threads: int | None = None, ttl: float | None = None)
 ```
 
 Un cache par thread local au processus dans un dict. Il convient au développement, aux tests et aux déploiements mono-processus. Rien ne survit à un redémarrage et rien n'est partagé entre workers, donc derrière un load balancer deux workers numérotent la même valeur différemment. Il ne requiert aucun extra et c'est le défaut quand un `ThreadAnonymizationPipeline` est construit sans mémoire.
+
+Laissé non défini, le store grossit sans limite jusqu'à ce que `forget_thread` soit appelé, donc bornez-le ou oubliez des threads dans un processus longue durée. `max_threads` évince le thread le moins récemment utilisé. `ttl` fait expirer un thread inactif, paresseusement, au prochain accès.
 
 ## `RedisConversationMemory`
 

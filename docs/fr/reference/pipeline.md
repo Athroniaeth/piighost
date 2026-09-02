@@ -17,7 +17,7 @@ Les deux renvoient une [`Anonymization`](anonymizer.md#anonymization), le texte 
 
 Module : `piighost.pipeline`
 
-Dé-identifie un seul texte à travers les étages, dans l'ordre. Détecter les PII, résoudre les spans qui se chevauchent, retrouver les occurrences manquées, grouper les détections en entités, résoudre les conflits d'entités, remplacer par des tokens, puis revérifier avec un guard. Chaque appel à `anonymize()` est indépendant.
+Dé-identifie un seul texte à travers les étages, dans l'ordre. Détecter les PII, appliquer l'override du serveur, résoudre les spans qui se chevauchent, retrouver les occurrences manquées, grouper les détections en entités, résoudre les conflits d'entités, remplacer par des tokens, puis revérifier avec un guard. Chaque appel à `anonymize()` est indépendant.
 
 ### Constructeur
 
@@ -32,6 +32,7 @@ AnonymizationPipeline(
     guard: AnyGuardRail | None = None,
     observation_redactor: AnyPlaceholderFactory | None = None,
     override: AnyDetectionOverride | None = None,
+    trace_clear_text: bool = False,
 )
 ```
 
@@ -44,8 +45,9 @@ AnonymizationPipeline(
 | `expander` | `AnyDetectionExpander \| None` | `None` | Ajoute les occurrences manquées d'une valeur détectée. Désactivé quand `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Réconcilie les entités en conflit. Désactivé quand `None` |
 | `guard` | `AnyGuardRail \| None` | `None` | Revérifie la sortie pour de la PII résiduelle. Désactivé quand `None` |
-| `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory remplaçant les valeurs en clair dans les payloads d'observation. `None` trace le texte en clair, ce qui permet aux traces de servir de jeux d'annotation |
+| `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory remplaçant les valeurs en clair dans les payloads d'observation. `None` trace le texte en clair, ce qui permet aux traces de servir de jeux d'annotation. Avec un tracer actif et sans redactor, le constructeur émet un `PIIGhostSecurityWarning` sauf si `trace_clear_text=True` l'acquitte |
 | `override` | `AnyDetectionOverride \| None` | `None` | Whitelist et blacklist du serveur imposées à chaque ensemble de détections. Désactivé quand `None` |
+| `trace_clear_text` | `bool` | `False` | Acquitte le traçage en clair de l'observation pour supprimer l'avertissement de sécurité quand aucun `observation_redactor` n'est défini |
 
 !!! note "Les composants sont des protocoles"
     `AnyDetector`, `AnyEntityLinker`, `AnyAnonymizer`, `AnyOverlapResolver`, `AnyDetectionExpander`, `AnyEntityResolver`, `AnyGuardRail`, `AnyDetectionOverride`. Toute implémentation du protocole est acceptée. Voir [Étendre PIIGhost](../extending.md).
@@ -98,6 +100,7 @@ ThreadAnonymizationPipeline(
     guard: AnyGuardRail | None = None,
     observation_redactor: AnyPlaceholderFactory | None = None,
     override: AnyDetectionOverride | None = None,
+    trace_clear_text: bool = False,
 )
 ```
 
@@ -143,6 +146,10 @@ Renvoie le texte avec chaque token du thread remplacé par sa valeur. Les tokens
 reply = await pipeline.deanonymize("Message sent to <<PERSON:2>>.", thread_id="user-A")
 # reply == "Message sent to Marie."
 ```
+
+#### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
+
+Renvoie la correspondance placeholder vers valeur du thread, dérivée du cache, pour qu'un appelant puisse résoudre tout un flux d'un coup plutôt que de désanonymiser token par token. Un token que le thread n'a jamais émis est absent de la correspondance.
 
 #### `forget_thread(thread_id) -> Forgotten` *(async)*
 

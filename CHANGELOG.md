@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - **security**: document the threat-model boundaries the hardening surfaced, the LangGraph state and checkpointer holding restored PII while tool_calls stay tokenized, user-typed token injection and its neutralization, values the assistant introduces staying clear under `PRESERVE`, and NER truncation of over-long text; note them in `SECURITY.md` with a pointer to the full model
+- **readme**: fix the stale reference/middleware link (now reference/langchain) and the CLAUDE.md test-path reference
 
 ### Fix
 

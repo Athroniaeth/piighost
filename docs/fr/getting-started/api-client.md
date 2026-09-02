@@ -11,7 +11,7 @@ Vous allez utiliser `PIIGhostClient` comme un pipeline de fil distant, interchan
 
 ## 1. Ouvrir un client
 
-Passez une URL de base sous forme de chaîne et le client construit et possède son `httpx.AsyncClient`, fermé à la sortie du gestionnaire de contexte. La grammaire de jetons par défaut correspond à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`, si bien que `<<PERSON:1>>`{ .placeholder } est reconnu comme un jeton.
+Passez une URL de base sous forme de chaîne et le client construit et possède son `httpx.AsyncClient`, fermé à la sortie du gestionnaire de contexte. Vous pouvez borner chaque requête avec `timeout`, joindre des en-têtes statiques via `headers` comme un token Authorization, et relancer une erreur de connexion `retries` fois, sans construire votre propre client. La grammaire de jetons par défaut correspond à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`, si bien que `<<PERSON:1>>`{ .placeholder } est reconnu comme un jeton.
 
 ```python
 import asyncio
@@ -20,7 +20,12 @@ from piighost.integrations.client import PIIGhostClient
 
 
 async def main() -> None:
-    async with PIIGhostClient("http://localhost:8000") as client:
+    async with PIIGhostClient(
+        "http://localhost:8000",
+        timeout=10.0,
+        headers={"Authorization": "Bearer ..."},
+        retries=2,
+    ) as client:
         ...
 
 
@@ -84,7 +89,7 @@ agent = create_agent(
 
 La propriété `recognizer` laisse le middleware retrouver une grammaire de jetons même sur un pipeline distant, si bien que sa vérification des jetons inventés fonctionne encore. Si votre serveur est configuré avec une grammaire non standard, passez une fabrique correspondante en `recognizer=` à la construction du client.
 
-Si vous gérez votre propre `httpx.AsyncClient`, pour un pool de connexions partagé ou des en-têtes personnalisés, passez-le à la place d'une URL. Le client l'utilise tel quel et ne le ferme jamais, puisqu'il vous appartient. Sinon appelez `await client.aclose()`, ou utilisez la forme `async with` qui le ferme pour vous.
+Si vous gérez votre propre `httpx.AsyncClient`, pour un pool de connexions partagé, passez-le à la place d'une URL. Un timeout, des en-têtes statiques ou des relances de connexion ne demandent plus votre propre client, puisque `timeout`, `headers` et `retries` s'en chargent sur une URL de base. Le client utilise l'instance injectée telle quelle et ne la ferme jamais, puisqu'elle vous appartient. Sinon appelez `await client.aclose()`, ou utilisez la forme `async with` qui le ferme pour vous.
 
 ## Et ensuite
 

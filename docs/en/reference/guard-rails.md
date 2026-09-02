@@ -73,10 +73,12 @@ LLMGuardRail(
     labels: list[str] | dict[str, str],
     prompt: str | None = None,
     provider: str | None = None,
+    prefix: str = "<<",
+    suffix: str = ">>",
 )
 ```
 
-A `str` model is loaded like `LLMDetector`'s; a loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. Requires `piighost[llm]`.
+A `str` model is loaded like `LLMDetector`'s; a loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. Requires `piighost[llm]`.
 
 ## `ModerationGuardRail`
 

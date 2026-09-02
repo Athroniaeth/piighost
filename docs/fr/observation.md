@@ -72,8 +72,12 @@ flowchart TD
 Le span racine enregistre le texte d'entrée et le texte anonymisé final.
 `detect` enregistre les détections et leur nombre. `link` enregistre les
 entités. `render` enregistre le texte anonymisé et le nombre de tokens. `guard`
-enregistre s'il a levé un drapeau et les labels vus. Le pipeline de thread émet
-le même arbre depuis son propre `anonymize`, et un span `piighost.deanonymize`
+enregistre s'il a levé un drapeau et les labels vus. Le pipeline de thread
+diffère. Il exécute la résolution de chevauchement et l'expansion dans
+`_detect` et la résolution d'entités dans `_thread_tokens`, si bien qu'aucune de
+ces étapes n'obtient de span propre, laissant `detect`, `link` et `render` sous
+la racine. Le span racine et le span `detect` portent aussi un attribut
+`cache_hit` et un `langfuse.session.id`. Il émet un span `piighost.deanonymize`
 quand il restaure un texte.
 
 Les spans s'imbriquent sous le span courant au moment de l'appel `anonymize`.

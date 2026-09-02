@@ -58,7 +58,7 @@ Each detector returns a list of `Detection`, a frozen dataclass carrying where t
 
 ## `RegexDetector`
 
-Finds PII by matching one regex pattern per label. Each pattern is compiled once at construction. `detect` emits one detection per non-overlapping match at a flat confidence of 1.0.
+Finds PII by matching one regex pattern per label. Each pattern is compiled once at construction, under `re.ASCII`, so `\d` and the other shape classes match ASCII only. A Unicode digit look-alike such as an Arabic-Indic numeral does not match, since a PII format uses ASCII digits. `detect` emits one detection per non-overlapping match at a flat confidence of 1.0.
 
 It carries no checksum validator, so it matches on shape alone. A structured value mangled by OCR is kept rather than dropped, because dropping a real value would leak it.
 
@@ -158,7 +158,7 @@ detector = ChunkedDetector(spacy_detector)
 
 ## `LLMDetector`
 
-Detects PII with a LangChain chat model via structured output. Needs the `llm` extra plus a provider package. The model is asked to extract `(text, label)` pairs against a schema whose label field is constrained to the configured labels. Each extracted value is then located in the source text by word-boundary search, so a value the model invented but absent from the text yields nothing. `labels` is required, since the schema is built from it.
+Detects PII with a LangChain chat model via structured output. Needs the `llm` extra plus a provider package. The model is asked to extract `(text, label)` pairs against a schema whose label field is constrained to the configured labels. Each extracted value is then located in the source text by word-boundary search, so a value the model invented but absent from the text yields nothing. `labels` is required, since the schema is built from it. The source text is wrapped in `<text_to_analyze>` tags and the system prompt instructs the model to treat the tagged content as data, never as instructions, so a prompt-injection attempt inside the text cannot steer the extraction.
 
 ### Constructor
 
@@ -168,6 +168,7 @@ LLMDetector(
     labels: list[str] | dict[str, str],
     prompt: str | None = None,
     provider: str | None = None,
+    confidence: float = 1.0,
 )
 ```
 
@@ -177,6 +178,7 @@ LLMDetector(
 | `labels` | `list[str] \| dict[str, str]` | The labels to extract, list or `{emitted: internal}` map (required) |
 | `prompt` | `str \| None` | A custom system prompt, or `None` for the default |
 | `provider` | `str \| None` | The provider passed to `init_chat_model` when `model` is a name |
+| `confidence` | `float` | Confidence carried on every detection, default 1.0, so an LLM detector can be scored against a NER one at overlap resolution |
 
 A custom `prompt` must contain a `{labels}` placeholder and, per LangChain's f-string format, double any other literal curly brace as `{{` or `}}`.
 
@@ -206,6 +208,8 @@ Gliner2Detector(
     labels: list[str] | dict[str, str],
     threshold: float = 0.5,
     max_concurrency: int | None = None,
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
 )
 ```
 
@@ -215,6 +219,8 @@ Gliner2Detector(
 | `labels` | `list[str] \| dict[str, str]` | The labels to query, list or `{emitted: internal}` map (required) |
 | `threshold` | `float` | The confidence at or above which an entity is kept |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
+| `max_chars` | `int \| None` | Character bound a single inference sees, or `None` for no bound |
+| `auto_chunk` | `bool` | Whether a text longer than `max_chars` is chunked and remapped, else raises `TextTooLongError` |
 
 ### `Gliner2PiiDetector`
 
@@ -226,6 +232,8 @@ Gliner2PiiDetector(
     labels: list[str] | dict[str, str] | None = None,
     threshold: float = 0.5,
     max_concurrency: int | None = None,
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
 )
 ```
 
@@ -235,6 +243,8 @@ Gliner2PiiDetector(
 | `labels` | `list[str] \| dict[str, str] \| None` | The labels to query, or `None` for the preset PII label map |
 | `threshold` | `float` | The confidence at or above which an entity is kept |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
+| `max_chars` | `int \| None` | Character bound a single inference sees, or `None` for no bound |
+| `auto_chunk` | `bool` | Whether a text longer than `max_chars` is chunked and remapped, else raises `TextTooLongError` |
 
 ### `SpacyDetector`
 
@@ -264,6 +274,9 @@ TransformersDetector(
     labels: list[str] | dict[str, str] | None = None,
     threshold: float = 0.0,
     max_concurrency: int | None = None,
+    aggregation_strategy: str = "simple",
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
 )
 ```
 
@@ -273,6 +286,9 @@ TransformersDetector(
 | `labels` | `list[str] \| dict[str, str] \| None` | The labels to map and filter, or `None` to keep every native label |
 | `threshold` | `float` | The score below which a detected entity is dropped |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
+| `aggregation_strategy` | `str` | How sub-word tokens are grouped into whole entities, applied only when building from a model name. An injected pipeline keeps its own. Defaults to `"simple"` |
+| `max_chars` | `int \| None` | Character bound a single inference sees, or `None` for no bound |
+| `auto_chunk` | `bool` | Whether a text longer than `max_chars` is chunked and remapped, else raises `TextTooLongError` |
 
 ### `PresidioDetector`
 
@@ -297,6 +313,10 @@ PresidioDetector(
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
 
 From a config, the `presidio` detector type builds Presidio's default English `AnalyzerEngine`. For another language or custom recognizers, construct the engine yourself and use `PresidioDetector` directly.
+
+### Long-text handling
+
+`Gliner2Detector` and `TransformersDetector` take `max_chars` with `auto_chunk` (default `True`). A text longer than `max_chars` is split into overlapping chunks, scanned separately, and remapped back onto the original text. With `auto_chunk` off, a text over the bound raises `TextTooLongError` instead. `max_chars` defaults to `None`, so there is no bound and the whole text is scanned in one pass. `SpacyDetector` and `PresidioDetector` do not expose these.
 
 ### Label mapping
 

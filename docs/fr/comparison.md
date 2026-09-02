@@ -9,7 +9,7 @@ Ce tableau n'est pas neutre. Ses lignes sont les capacités pour lesquelles PIIG
 | Capacité | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
 |---|---|---|---|---|---|---|
 | **Détection** | regex / NER / LLM | NER + regex + règles + checksum | regex + validateurs | ML/NER | ML + infoTypes | regex + NER |
-| **Traitement de la PII** | jeton réversible (cache / BDD) | masque / jeton | masque / hash | masque | jeton crypto (sans état) | jeton réversible (vault) |
+| **Traitement de la PII** | jeton réversible (mémoire / Redis) | masque / jeton | masque / hash | masque | jeton crypto (sans état) | jeton réversible (vault) |
 | **Restauration transparente pour l'utilisateur** | ✅ | ⚠️ manuel (`decrypt`) | ❌ | ❌ | ⚠️ ré-id par API | ✅ |
 | **Cohérent sur toute la conversation** | ✅ par thread | ❌ | ❌ | ❌ | ✅ déterministe | ✅ par session |
 | **Frontière outils** (l'outil reçoit la vraie valeur, le LLM le jeton) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |

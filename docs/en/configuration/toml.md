@@ -208,7 +208,7 @@ The `llm` detector reads its provider credential from the provider's own environ
 
 ## `[linker]`
 
-Discriminated on `type`. Required.
+Optional. Defaults to `ExactEntityLinker`. Discriminated on `type`.
 
 | `type` | Meaning |
 |--------|---------|
@@ -223,7 +223,7 @@ type = "exact"
 
 ## `[anonymizer]`
 
-The render stage. Required. It carries one `[anonymizer.placeholder]` table selecting the placeholder factory, discriminated on `type`.
+Optional. Defaults to an `Anonymizer` with a label-counter factory. When present it carries one `[anonymizer.placeholder]` table selecting the placeholder factory, discriminated on `type`.
 
 <div class="wide-table" markdown="1">
 
@@ -384,6 +384,11 @@ Optional. Its presence makes the pipeline a `ThreadAnonymizationPipeline` keepin
 
 A process-local store, lost on restart and not shared across workers.
 
+| Key | Type | Default | Meaning |
+|-----|------|---------|---------|
+| `max_threads` | `int` | `None` | Cap on kept threads, LRU eviction beyond it (at least 1) |
+| `ttl` | `float` | `None` | Expire an idle thread lazily on next access, in seconds (greater than 0) |
+
 ```toml
 [memory]
 type = "in_memory"
@@ -398,8 +403,10 @@ A persistent, multi-worker store. Each stored value is keyed by a hasher and enc
 | `url` | `str` | | The Redis connection URL (required) |
 | `namespace` | `str` | `piighost` | The key prefix isolating this library's keys |
 | `ttl` | `int` | `None` | Seconds a stored message lives, or omitted to keep until eviction |
-| `[memory.hasher]` | hasher | | The hasher keying each message (required) |
-| `[memory.cipher]` | cipher | | The cipher encrypting each value (required) |
+| `[memory.hasher]` | hasher | | Optional (both or neither). The hasher keying each message |
+| `[memory.cipher]` | cipher | | Optional (both or neither). The cipher encrypting each value |
+
+Configure both `[memory.hasher]` and `[memory.cipher]`, or neither. With neither, the backend stores the mapping in clear and warns; with exactly one, `build()` raises `ConfigError`.
 
 The hasher, `[memory.hasher]`, is discriminated on `type`.
 

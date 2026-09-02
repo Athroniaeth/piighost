@@ -115,8 +115,8 @@ Recognizer
 Placeholder preservation tag
 :   A phantom type on a placeholder factory that states what its tokens preserve:
     `PreservesNothing`, `PreservesLabel`, `PreservesIdentity`, or
-    `PreservesLabeledIdentity`. The middleware requires `PreservesIdentity` so it
-    can restore values, and rejects a factory that does not, at type-check time.
+    `PreservesLabeledIdentity`. The middleware requires `PreservesRecognizableIdentity`
+    so it can restore values, and rejects a factory that does not, at type-check time.
 
 Pepper
 :   A secret that keys a hasher, read from the `PIIGHOST_HASH_PEPPER` environment
