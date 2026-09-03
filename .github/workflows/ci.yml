@@ -14,6 +14,7 @@ on:
       - "docs/**"
       - "zensical.toml"
       - "zensical.fr.toml"
+      - "overrides/**"
       - "LICENSE"
   push:
     branches: [master, develop]
@@ -22,6 +23,7 @@ on:
       - "docs/**"
       - "zensical.toml"
       - "zensical.fr.toml"
+      - "overrides/**"
       - "LICENSE"
 
 permissions:

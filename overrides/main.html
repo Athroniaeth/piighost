@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{#-
+  Inject OpenPanel analytics into the document <head>.
+  Self-hosted instance, cookieless by default. The op1.js SDK is loaded
+  first-party from the dashboard domain (adblocker-resistant), and events
+  are sent to the dedicated API subdomain via apiUrl.
+-#}
+{% block extrahead %}
+  {{ super() }}
+  <script>
+    window.op=window.op||function(){var n=[];return new Proxy(function(){arguments.length&&n.push([].slice.call(arguments))},{get:function(t,r){return"q"===r?n:function(){n.push([r].concat([].slice.call(arguments)))}} ,has:function(t,r){return"q"===r}}) }();
+    window.op('init', {
+      apiUrl: 'https://opapi.athroniaeth.cloud',
+      clientId: 'e4c21b73-ebd4-41d5-93a9-6b670281edff',
+      trackScreenViews: true,
+      trackOutgoingLinks: true,
+      trackAttributes: true,
+    });
+  </script>
+  <script src="https://opdashboard.athroniaeth.cloud/op1.js" defer async></script>
+{% endblock %}
