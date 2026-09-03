@@ -69,6 +69,7 @@ nav = [
 
 [project.theme]
 language = "fr"
+custom_dir = "overrides"
 icon.logo = "lucide/ghost"
 features = [
     "announce.dismiss",
