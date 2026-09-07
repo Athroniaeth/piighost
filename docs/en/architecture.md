@@ -433,3 +433,5 @@ coroutines without risk.
   they preserve
 - [Tool-call strategies](tool-call-strategies.md), the detail of `awrap_tool_call`
 - [Extending PIIGhost](extending.md), plugging your own adapter behind a port
+- [Data models reference](reference/models.md), the fields, methods and validation of
+  `Detection`, `Entity`, `Span` and `Chunk`

@@ -158,10 +158,17 @@ class PIIRemainingError(GuardError):
 
 
 class MiddlewareError(PIIGhostError):
-    """Base class for errors raised by the anonymization middleware.
+    """Base class for errors raised at an integration's text boundary.
 
-    Catch this to handle any middleware failure at once, or catch one of its
-    subclasses to react to a specific violation.
+    The name predates the Pydantic AI and LlamaIndex integrations. Two of the
+    subclasses, UnrecognizableFactoryError and InventedPlaceholderError, are
+    raised by the TextDeidentifier those integrations share with the LangChain
+    middleware, so they reach any caller that de-identifies text through an
+    integration. Only MissingThreadIdError is specific to the LangChain
+    middleware.
+
+    Catch this to handle any of them at once, or catch one of its subclasses to
+    react to a specific violation.
     """
 
 
@@ -258,10 +265,16 @@ class ConfigValidationError(ConfigError):
 
 
 class PIIGhostSecurityWarning(UserWarning):
-    """Warned when a persistent backend stores PII in clear without crypto.
+    """Warned when a setup keeps PII readable where it does not have to be.
 
-    A networked or shared store built without a hasher and cipher keeps PII
-    readable to anyone who reads the store. This warns rather than fails, so a
-    knowing plaintext setup still works while a forgotten one is loud. It is a
-    UserWarning, not a PIIGhostError, since it is a heads-up and not a failure.
+    Two situations raise it.
+
+    - A persistent backend built without a hasher and a cipher keeps stored PII
+      readable to anyone who reads the store.
+    - A pipeline whose tracer is exporting without an observation redactor
+      records the clear text and its PII in the span payloads.
+
+    Both warn rather than fail, so a knowing plaintext setup still works while a
+    forgotten one is loud. It is a UserWarning, not a PIIGhostError, since it is
+    a heads-up and not a failure.
     """

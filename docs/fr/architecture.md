@@ -444,3 +444,5 @@ entre coroutines sans risque.
   qu'elles préservent
 - [Stratégies d'appel outil](tool-call-strategies.md), le détail de `awrap_tool_call`
 - [Étendre PIIGhost](extending.md), brancher son propre adaptateur derrière un port
+- [Référence des modèles de données](reference/models.md), les champs, méthodes et
+  validations de `Detection`, `Entity`, `Span` et `Chunk`

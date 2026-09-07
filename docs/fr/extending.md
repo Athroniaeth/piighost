@@ -30,7 +30,7 @@ Les ports vivent dans le `base.py` de chaque composant, sous `piighost.component
 from piighost.models import Detection, Entity, Span
 ```
 
-Une `Detection` est un `Span(start, end)` portant `text`, `label` et une `confidence` dans l'intervalle 0 à 1. Une `Entity` regroupe les détections qui partagent une valeur, et en dérive son `label`, son `text` et ses `spans`.
+Une `Detection` est un `Span(start, end)` portant `text`, `label` et une `confidence` dans l'intervalle 0 à 1. Une `Entity` regroupe les détections qui partagent une valeur, et en dérive son `label`, son `text` et ses `spans`. Voir la [référence des modèles de données](reference/models.md) pour chaque champ, méthode et erreur de validation.
 
 ---
 
