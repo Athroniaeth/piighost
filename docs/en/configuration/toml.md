@@ -8,7 +8,7 @@ A configuration file describes a whole pipeline declaratively. `piighost` reads 
 from piighost.config import load_config, load_pipeline, load_thread_pipeline
 ```
 
-The `config` extra is required (`pip install piighost[config]`), which pulls in `pydantic-settings`. Unknown keys are rejected, so a typo fails validation rather than being ignored.
+The `config` extra is required (`pip install piighost[config]`), which pulls in `pydantic-settings`. Unknown keys are rejected, so a typo fails validation rather than being ignored. A component `type` can need an extra of its own, named in the Extra column of the table that documents it.
 
 ---
 
@@ -37,7 +37,7 @@ thread = load_thread_pipeline("thread.toml")     # has [memory]
 
 ## File format
 
-The suffix picks the parser: `.json` is read as JSON, anything else as TOML. The two formats carry the same schema. A section is a TOML table or a JSON object.
+The suffix picks the parser. A `.json` suffix is read as JSON, compared without regard to case, and anything else as TOML. The two formats carry the same schema. A section is a TOML table or a JSON object.
 
 ```toml
 [detector]
@@ -63,7 +63,14 @@ type = "redact"
 
 ## Environment overrides
 
-Top-level scalars accept an override from an environment variable prefixed `PIIGHOST_`. The only top-level scalar is `name`, so `PIIGHOST_NAME` overrides the `name` key. Overrides layer above the file, so an environment value wins over the file value.
+Every top-level key accepts an override from an environment variable prefixed `PIIGHOST_`, whether it holds a scalar or a whole section. `PIIGHOST_NAME` overrides the `name` scalar, and `PIIGHOST_DETECTOR` overrides the `[detector]` section with a JSON object, rejected as a validation error when it is not valid JSON. Overrides layer above the file key by key, so an environment value wins over the file value and the keys it leaves out keep theirs.
+
+```bash
+export PIIGHOST_NAME="local-en"
+export PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'
+```
+
+No nested delimiter is configured, so a variable such as `PIIGHOST_DETECTOR__TYPE` names no field, and it is ignored without an error rather than reaching the `type` key. A section is overridden by its JSON object only.
 
 Secrets are never read from the file. Each is read from its own environment variable at build time, and a missing one raises `ConfigError` from `build()`.
 
@@ -74,6 +81,7 @@ Secrets are never read from the file. Each is read from its own environment vari
 | Hash pepper | `PIIGHOST_HASH_PEPPER` | any non-empty string | `[memory.hasher]` |
 | Cipher key | `PIIGHOST_CIPHER_KEY` | base64 of 16, 24, or 32 bytes | `[memory.cipher]` |
 | Moderation key | `MISTRAL_API_KEY` | Mistral API key | `[guard]` type `moderation` |
+| Database URL | the `url_env` value, `PIIGHOST_DATABASE_URL` by default | an async SQLAlchemy URL | `[memory]` type `sqlalchemy` |
 
 </div>
 
@@ -109,12 +117,12 @@ Discriminated on `type`. Required.
 
 ### `type = "regex"`
 
-Matches PII by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time.
+Matches PII by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and a shape class stops at the first non-ASCII character. A value such as `prénom@corp.com`{ .pii } is therefore matched from `nom` onwards.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
 | `patterns` | `dict[str, str]` | `{}` | Inline label-to-regex mapping |
-| `catalogs` | `list[str]` | `[]` | Prebuilt catalogs, among `generic`, `us`, `eu`, `fr` |
+| `catalogs` | `list[str]` | `[]` | Prebuilt catalogs, only `generic`, `us`, `eu`, `fr`, any other name failing validation |
 
 ```toml
 [detector]
@@ -181,7 +189,7 @@ model = "en_core_web_sm"
 
 ### Model-backed detectors
 
-Each needs an extra and a model. `labels` accepts a list or an `{emitted: internal}` map. `max_concurrency` caps concurrent inferences, or `None` for unbounded.
+Each needs its own extra, and every one but `presidio` needs a model. `labels` accepts a list or an `{emitted: internal}` map. `max_concurrency` caps concurrent inferences, or `None` for unbounded.
 
 <div class="wide-table" markdown="1">
 
@@ -189,7 +197,8 @@ Each needs an extra and a model. `labels` accepts a list or an `{emitted: intern
 |--------|-------|------|
 | `gliner2` | `gliner2` | `model` (required), `labels` (required), `threshold` (default `0.5`), `max_concurrency` |
 | `spacy` | `spacy` | `model` (required), `labels`, `max_concurrency` |
-| `transformers` | `transformers` | `model` (required), `labels`, `threshold` (default `0.0`), `max_concurrency` |
+| `transformers` | `transformers` | `model` (required), `labels`, `threshold` (default `0.0`), `aggregation_strategy` (default `simple`), `max_concurrency` |
+| `presidio` | `presidio` | `labels`, `language` (default `en`), `threshold` (default `0.0`) |
 | `llm` | `llm` | `model` (required), `labels` (required), `prompt`, `provider` |
 
 </div>
@@ -202,13 +211,17 @@ labels = ["PERSON", "LOCATION"]
 threshold = 0.5
 ```
 
+The `transformers` detector passes `aggregation_strategy` to its token-classification pipeline, which groups sub-word tokens into whole entities.
+
+The `presidio` detector takes no `model` key, since the config path builds Presidio's default English `AnalyzerEngine` with its default recognizers. Another language, a custom recognizer, or a custom NLP engine is the programmatic path, constructing the engine and passing it to `PresidioDetector`.
+
 The `llm` detector reads its provider credential from the provider's own environment variable, never from the file.
 
 ---
 
 ## `[linker]`
 
-Optional. Defaults to `ExactEntityLinker`. Discriminated on `type`.
+Optional. Defaults to `ExactEntityLinker`. One linker exists, so `type` names it rather than discriminating a union.
 
 | `type` | Meaning |
 |--------|---------|
@@ -232,8 +245,8 @@ Optional. Defaults to an `Anonymizer` with a label-counter factory. When present
 | `redact` | `<<REDACT>>`{ .placeholder } | |
 | `label` | `<<PERSON>>`{ .placeholder } | |
 | `label_counter` | `<<PERSON:1>>`{ .placeholder } | |
-| `label_hash` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | `hash_length` (default `8`) |
-| `mask` | `P***`{ .placeholder } | `visible` (default `1`), `mask_char` (default `*`) |
+| `label_hash` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | `hash_length` (default `8`, at least 1) |
+| `mask` | `P***`{ .placeholder } | `visible` (default `1`, 0 or more), `mask_char` (default `*`, exactly one character) |
 
 </div>
 
@@ -248,7 +261,7 @@ The middleware needs a delimited factory, so `redact`, `label`, `label_counter`,
 
 ## `[overlap_resolver]`
 
-Optional. Discriminated on `type`.
+Optional in the file, but the stage runs either way. Omitting the section builds a `ConfidenceOverlapResolver`, and there is no supported way to disable the stage, since the render stage assumes disjoint spans. One resolver exists, so `type` names it rather than discriminating a union.
 
 | `type` | Meaning |
 |--------|---------|
@@ -263,7 +276,7 @@ type = "confidence"
 
 ## `[expander]`
 
-Optional. Discriminated on `type`.
+Optional, and disabled when omitted. One expander exists, so `type` names it rather than discriminating a union.
 
 | `type` | Keys | Meaning |
 |--------|------|---------|
@@ -281,11 +294,11 @@ case_sensitive = false
 
 Optional. Discriminated on `type`.
 
-| `type` | Keys | Meaning |
-|--------|------|---------|
-| `merge` | | Unions entities that share detections |
-| `separate` | | Keeps every entity distinct |
-| `fuzzy` | `threshold` (default `0.85`) | Clusters entities at or above a Jaro-Winkler similarity |
+| `type` | Extra | Keys | Meaning |
+|--------|-------|------|---------|
+| `merge` | | | Unions entities that share detections |
+| `separate` | | | Keeps every entity distinct |
+| `fuzzy` | `fuzzy` | `threshold` (default `0.85`) | Clusters entities at or above a Jaro-Winkler similarity |
 
 ```toml
 [entity_resolver]
@@ -298,6 +311,12 @@ threshold = 0.85
 ## `[guard]`
 
 Optional. Discriminated on `type`. Re-checks the de-identified output for residual PII and refuses it when PII remains.
+
+| `type` | Extra | Re-checks with |
+|--------|-------|----------------|
+| `detector` | | A detector re-run on the output |
+| `llm` | `llm` | A chat model prompted to find residual PII |
+| `moderation` | `mistral` | A Mistral moderation model scoring the output |
 
 ### `type = "detector"`
 
@@ -344,7 +363,7 @@ Optional. Forces detections through a whitelist and vetoes them through a blackl
 |-----|--------|---------|---------|
 | `[override.whitelist]` | detector | | A detector whose hits are forced into the set |
 | `[override.blacklist]` | detector | | A detector whose hits invalidate detections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `exact` | How a blacklist hit invalidates: same span and label, same casefolded value, or any overlapping span |
+| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | How a blacklist hit invalidates, same casefolded value, same span and label, or any overlapping span |
 | `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a whitelist hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
 | `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
 
@@ -374,11 +393,19 @@ Optional. A placeholder factory config, same `type` values as `[anonymizer.place
 type = "label"
 ```
 
+Omitting the section traces the clear text and the detection values, and a live tracer then emits a `PIIGhostSecurityWarning`. The pipeline's `trace_clear_text` flag, which silences that warning, has no key in a configuration file, so a file-built pipeline cannot acknowledge clear-text tracing. Passing `trace_clear_text=True` to the pipeline is the programmatic path.
+
 ---
 
 ## `[memory]`
 
 Optional. Its presence makes the pipeline a `ThreadAnonymizationPipeline` keeping per-thread state. Discriminated on `type`.
+
+| `type` | Extra | Store |
+|--------|-------|-------|
+| `in_memory` | | Process-local, lost on restart |
+| `redis` | `redis` | Persistent, shared across workers |
+| `sqlalchemy` | `sqlalchemy` | Durable, in a SQL database |
 
 ### `type = "in_memory"`
 
@@ -396,7 +423,7 @@ type = "in_memory"
 
 ### `type = "redis"`
 
-A persistent, multi-worker store. Each stored value is keyed by a hasher and encrypted by a cipher.
+A persistent, multi-worker store, optionally keying each stored message with a hasher and encrypting each stored value with a cipher.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
@@ -412,18 +439,18 @@ The hasher, `[memory.hasher]`, is discriminated on `type`.
 
 <div class="wide-table" markdown="1">
 
-| `type` | Keys | Meaning |
-|--------|------|---------|
-| `sha256` | | HMAC-SHA256, a fast keyed digest |
-| `argon2` | `time_cost` (default `2`), `memory_cost` (default `19456`), `parallelism` (default `1`), `hash_length` (default `32`) | Argon2id, a slow memory-hard digest |
+| `type` | Extra | Keys | Meaning |
+|--------|-------|------|---------|
+| `sha256` | | | HMAC-SHA256, a fast keyed digest |
+| `argon2` | `argon2` | `time_cost` (default `2`), `memory_cost` (default `19456`), `parallelism` (default `1`), `hash_length` (default `32`) | Argon2id, a slow memory-hard digest |
 
 </div>
 
 The cipher, `[memory.cipher]`, has one type.
 
-| `type` | Meaning |
-|--------|---------|
-| `aesgcm` | AES-GCM authenticated encryption of stored values |
+| `type` | Extra | Meaning |
+|--------|-------|---------|
+| `aesgcm` | `crypto` | AES-GCM authenticated encryption of stored values |
 
 The hasher reads its pepper from `PIIGHOST_HASH_PEPPER` and the cipher reads its base64 key from `PIIGHOST_CIPHER_KEY`, both at build time. A missing or malformed value raises `ConfigError`.
 
@@ -449,8 +476,10 @@ A durable, multi-worker store backed by any SQLAlchemy-supported database (SQLit
 |-----|------|---------|---------|
 | `url_env` | `str` | `PIIGHOST_DATABASE_URL` | The environment variable holding the async database URL |
 | `table_name` | `str` | `piighost_conversation_messages` | The table storing per-thread messages |
-| `[memory.hasher]` | hasher | | Optional. The hasher keying each message |
-| `[memory.cipher]` | cipher | | Optional. The cipher encrypting each value |
+| `[memory.hasher]` | hasher | | Optional (both or neither). The hasher keying each message |
+| `[memory.cipher]` | cipher | | Optional (both or neither). The cipher encrypting each value |
+
+Configure both `[memory.hasher]` and `[memory.cipher]`, or neither, exactly as for Redis. With neither, the backend stores the mapping in clear and warns. With exactly one, `build()` raises `ConfigError`.
 
 The URL must use an async driver, for example `postgresql+asyncpg://...` or `sqlite+aiosqlite://...`. A missing environment variable raises `ConfigError` at build time. Call `await memory.create_schema()` once at startup to create the table.
 
@@ -471,21 +500,13 @@ type = "aesgcm"
 
 ## Full example
 
-A stateless pipeline pulling a catalog, adding one inline pattern, and enabling several optional stages.
+The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a catalog, adding one inline pattern, and enabling several optional stages. The file itself carries the same keys with a comment on each stage.
 
 ```toml
-name = "local-en"
-
 [detector]
 type = "regex"
 catalogs = ["generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
-
-[linker]
-type = "exact"
-
-[anonymizer.placeholder]
-type = "label_counter"
 
 [overlap_resolver]
 type = "confidence"
@@ -496,6 +517,12 @@ type = "word_boundary"
 [entity_resolver]
 type = "fuzzy"
 threshold = 0.85
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "label_counter"
 
 [override.whitelist]
 type = "regex"
@@ -512,7 +539,7 @@ patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
 type = "label"
 ```
 
-The same content in JSON, chosen by a `.json` suffix, is equivalent: a table becomes an object, an inline table becomes a nested object, and an array of tables becomes an array of objects.
+The same content in JSON, chosen by a `.json` suffix, is equivalent. A table becomes an object, an inline table becomes a nested object, and an array of tables becomes an array of objects.
 
 ---
 
@@ -534,6 +561,7 @@ The same content in JSON, chosen by a `.json` suffix, is equivalent: a table bec
 
 ## See also
 
+- `examples/config/` in the repository for six runnable files, `detector_only.toml`, `minimal.toml`, `minimal.json`, `pipeline.toml`, `thread_redis.toml` and `thread_sqlalchemy.toml`, all six loaded by `examples/config/run.py`.
 - [Command-line interface](../reference/cli.md) for validating a file from the shell.
 - [Detectors reference](../reference/detectors.md) for the detector each `type` builds.
 - [LangChain middleware reference](../reference/langchain.md) for driving a thread pipeline in an agent.
