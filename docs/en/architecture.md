@@ -115,7 +115,7 @@ is the deliberate exception to the always-template rule.
 ## The pipeline stages
 
 `BaseAnonymizationPipeline` chains the stages from detection to de-identified text.
-Only the detector is a required constructor argument. Linking, anonymization, and
+Only the detector is a required constructor argument. Linking, de-identification, and
 overlap resolution always run, falling back to built-in defaults when omitted, an
 `ExactEntityLinker`, an `Anonymizer` with a `LabelCounterPlaceholderFactory`, and a
 `ConfidenceOverlapResolver`. The override, expand, entity-resolve, and guard stages
@@ -236,7 +236,7 @@ emits `<<PERSON>>`{ .placeholder }, `LabelCounterPlaceholderFactory` emits
 ## The single-text pipeline
 
 `AnonymizationPipeline` handles an isolated text. It detects, applies the optional
-stages that are present, groups into entities, anonymizes, then passes the output to
+stages that are present, groups into entities, de-identifies, then passes the output to
 the guard rail. Its `deanonymize` method takes the token-to-entity mapping produced by
 `anonymize` and restores the values.
 
@@ -263,7 +263,7 @@ restored = pipeline.deanonymize(result.text, result.tokens)
 # restored -> "Patrick habite à Paris."
 ```
 
-The constructor requires only the detector; the linker and anonymizer default to
+The constructor requires only the detector. The linker and anonymizer default to
 `ExactEntityLinker` and an `Anonymizer` with a `LabelCounterPlaceholderFactory`.
 The other stages come as keyword arguments.
 
@@ -308,7 +308,7 @@ dropped = await thread_pipeline.forget_thread("t-42")
 - The `thread_id` is **mandatory**, there is no shared default thread, so two callers
   cannot fall into the same thread and leak each other's PII.
 - `deanonymize` rebuilds the thread's tokens from memory, so **any** text carrying those
-  tokens is restored, including a model reply the pipeline never anonymized.
+  tokens is restored, including a model reply the pipeline never de-identified.
 - `forget_thread` erases a thread's whole memory and reports how much was dropped, for
   the right to erasure.
 

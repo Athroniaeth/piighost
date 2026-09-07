@@ -8,7 +8,7 @@ tags:
 
 Module : `piighost.components.guard`
 
-Un garde-fou est le dernier étage, optionnel, du pipeline. Il revérifie le texte anonymisé pour des PII résiduelles et, s'il en trouve, fait lever `PIIRemainingError` au pipeline plutôt que de renvoyer une fuite. Chaque garde-fou satisfait le port `AnyGuardRail`, un `async def check(self, text: str) -> GuardVerdict`, et renvoie un `GuardVerdict` indiquant si des PII semblent subsister et comment il le sait. Contrairement aux autres étages, les garde-fous ne partagent aucun template `Base*` : ils diffèrent par tout leur mécanisme de vérification, réexécuter un détecteur local ou appeler une API externe, il n'y a donc pas de squelette commun.
+Un garde-fou est le dernier étage, optionnel, du pipeline. Il revérifie le texte dé-identifié pour des PII résiduelles et, s'il en trouve, fait lever `PIIRemainingError` au pipeline plutôt que de renvoyer une fuite. Chaque garde-fou satisfait le port `AnyGuardRail`, un `async def check(self, text: str) -> GuardVerdict`, et renvoie un `GuardVerdict` indiquant si des PII semblent subsister et comment il le sait. Contrairement aux autres étages, les garde-fous ne partagent aucun template `Base*` : ils diffèrent par tout leur mécanisme de vérification, réexécuter un détecteur local ou appeler une API externe, il n'y a donc pas de squelette commun.
 
 Le garde-fou classifie, il ne décide pas. Il rapporte un verdict, et le pipeline transforme un verdict signalé en exception, laissant à votre code le choix de la réaction.
 
@@ -22,7 +22,7 @@ from piighost.components.guard import (
 
 ## Brancher un garde-fou dans un pipeline
 
-`AnonymizationPipeline` prend un argument `guard` optionnel, désactivé par défaut. Une fois défini, le garde-fou s'exécute sur la sortie rendue après anonymisation, et le pipeline lève `PIIRemainingError` si le garde-fou signale quelque chose d'inattendu.
+`AnonymizationPipeline` prend un argument `guard` optionnel, désactivé par défaut. Une fois défini, le garde-fou s'exécute sur la sortie rendue après dé-identification, et le pipeline lève `PIIRemainingError` si le garde-fou signale quelque chose d'inattendu.
 
 ```python
 from piighost.components.anonymizer import Anonymizer
@@ -55,13 +55,13 @@ La version exécutable est [`examples/guard_rail.py`](https://github.com/Athroni
 
 ## `DetectorGuardRail`
 
-Réexécute un détecteur sur la sortie anonymisée et signale tout ce qu'il y trouve encore, en portant les détections résiduelles sur le verdict.
+Réexécute un détecteur sur la sortie dé-identifiée et signale tout ce qu'il y trouve encore, en portant les détections résiduelles sur le verdict.
 
 ```python
 DetectorGuardRail(detector: AnyDetector)
 ```
 
-Cela n'a de valeur qu'avec un détecteur différent de celui du pipeline : réexécuter le même ne trouve rien, puisque le pipeline a déjà anonymisé tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie anonymisée, rattrape ce que le détecteur primaire a manqué. Les placeholders synthétiques n'ont pas la forme de PII, donc un détecteur conçu pour de vraies PII les laisse tranquilles. Il ne requiert aucun extra.
+Cela n'a de valeur qu'avec un détecteur différent de celui du pipeline, réexécuter le même ne trouve rien, puisque le pipeline a déjà dé-identifié tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie dé-identifiée, rattrape ce que le détecteur primaire a manqué. Les placeholders synthétiques n'ont pas la forme de PII, donc un détecteur conçu pour de vraies PII les laisse tranquilles. Il ne requiert aucun extra.
 
 ## `LLMGuardRail`
 
@@ -78,7 +78,7 @@ LLMGuardRail(
 )
 ```
 
-Un modèle `str` est chargé comme celui de `LLMDetector` ; une instance déjà chargée est utilisée telle quelle. Un `prompt` personnalisé doit contenir un placeholder `{labels}`. Quand aucun prompt personnalisé n'est fourni, `prefix` et `suffix` (par défaut `<<` et `>>`) façonnent les exemples de placeholder du prompt par défaut pour qu'ils correspondent aux délimiteurs que le pipeline émet. Requiert `piighost[llm]`.
+Un modèle `str` est chargé comme celui de `LLMDetector`. Une instance déjà chargée est utilisée telle quelle. Un `prompt` personnalisé doit contenir un placeholder `{labels}`. Quand aucun prompt personnalisé n'est fourni, `prefix` et `suffix` (par défaut `<<` et `>>`) façonnent les exemples de placeholder du prompt par défaut pour qu'ils correspondent aux délimiteurs que le pipeline émet. Requiert `piighost[llm]`.
 
 ## `ModerationGuardRail`
 

@@ -108,7 +108,7 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `memory` | `AnyConversationMemory \| None` | `None` | Per-thread store of each message's detections. Defaults to `InMemoryConversationMemory()` for a single process; pass `RedisConversationMemory` for a shared backend |
+| `memory` | `AnyConversationMemory \| None` | `None` | Per-thread store of each message's detections. Defaults to `InMemoryConversationMemory()` for a single process, pass `RedisConversationMemory` for a shared backend |
 
 ### Methods
 
@@ -116,7 +116,7 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 Detects the message's entities, records them in `thread_id`'s memory, then de-identifies using tokens assigned over the whole thread. The token of a value stays the same from one message to the next.
 
-The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's PII. `role` dates the values the message introduces: a value first introduced by the assistant is left in clear, since it is not user PII.
+The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's PII. `role` dates the values the message introduces, a value first introduced by the assistant is left in clear, since it is not user PII.
 
 **Raises** `PIIRemainingError` when a configured guard flags PII left in the output.
 
@@ -149,7 +149,7 @@ reply = await pipeline.deanonymize("Message sent to <<PERSON:2>>.", thread_id="u
 
 #### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
 
-Returns the thread's placeholder-to-value map, derived from the cache, so a caller can resolve a whole stream at once instead of deanonymizing token by token. A token the thread never issued is absent from the map.
+Returns the thread's placeholder-to-value map, derived from the cache, so a caller can resolve a whole stream at once instead of restoring token by token. A token the thread never issued is absent from the map.
 
 #### `forget_thread(thread_id) -> Forgotten` *(async)*
 
@@ -182,7 +182,7 @@ class AnyPipeline(Protocol[PreservationT_co]):
 
 ### `AnyThreadPipeline`
 
-A thread-scoped pipeline, local or remote. It de-identifies each message of a thread, re-de-identifies a corrected message, deanonymizes any text carrying the thread's tokens, forgets a thread wholesale, and exposes the grammar of its tokens.
+A thread-scoped pipeline, local or remote. It de-identifies each message of a thread, re-de-identifies a corrected message, restores any text carrying the thread's tokens, forgets a thread wholesale, and exposes the grammar of its tokens.
 
 ```python
 class AnyThreadPipeline(Protocol[PreservationT_co]):

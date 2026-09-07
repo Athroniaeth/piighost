@@ -8,7 +8,7 @@ tags:
 
 Module : `piighost.conversation_memory`
 
-Une mémoire de conversation stocke, par thread, les détections trouvées dans chaque message. Un `ThreadAnonymizationPipeline` lit ce store pour garder un seul placeholder par valeur sur toute une conversation : un nom vu tôt se relit comme le même token plus tard, à n'importe quel tour. Chaque backend satisfait le port `AnyConversationMemory`, donc le pipeline traite un dict en mémoire et une base partagée de la même façon.
+Une mémoire de conversation stocke, par thread, les détections trouvées dans chaque message. Un `ThreadAnonymizationPipeline` lit ce store pour garder un seul placeholder par valeur sur toute une conversation, un nom vu tôt se relit comme le même token plus tard, à n'importe quel tour. Chaque backend satisfait le port `AnyConversationMemory`, donc le pipeline traite un dict en mémoire et une base partagée de la même façon.
 
 ```python
 from piighost.conversation_memory import (
@@ -18,7 +18,7 @@ from piighost.conversation_memory import (
 )
 ```
 
-`RedisConversationMemory` et `SqlAlchemyConversationMemory` sont exposés paresseusement : importer l'un sans son extra installé lève `ImportError` avec la commande d'installation.
+`RedisConversationMemory` et `SqlAlchemyConversationMemory` sont exposés paresseusement, importer l'un sans son extra installé lève `ImportError` avec la commande d'installation.
 
 ## Le port `AnyConversationMemory`
 

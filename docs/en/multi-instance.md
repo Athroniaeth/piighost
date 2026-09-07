@@ -67,7 +67,7 @@ from piighost.config import load_thread_pipeline
 pipeline = load_thread_pipeline("pipeline.toml")
 ```
 
-Now the turn-2 case resolves the other way: worker B reads `Patrick -> <<PERSON:1>>`{ .placeholder } straight from Redis and keeps it, because the store worker A wrote to is the store worker B reads from. Any worker that picks up the conversation reproduces the same token for the same value.
+Now the turn-2 case resolves the other way, worker B reads `Patrick -> <<PERSON:1>>`{ .placeholder } straight from Redis and keeps it, because the store worker A wrote to is the store worker B reads from. Any worker that picks up the conversation reproduces the same token for the same value.
 
 The Redis backend can encrypt each stored value and hash each key. That protection is opt-in and all-or-nothing, so the config shown above, which sets both a hasher and a cipher, gets it, reading its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deploy a production pipeline](deployment.md), and every `[memory]` key is in the [configuration reference](configuration/toml.md).
 

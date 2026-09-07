@@ -12,7 +12,7 @@ The anonymizer is the render stage of a pipeline. It takes the linked entities a
 
 ## `Anonymization`
 
-The result of anonymizing a text. The rewritten text paired with the token each entity was replaced with. A frozen dataclass.
+The result of de-identifying a text. The rewritten text paired with the token each entity was replaced with. A frozen dataclass.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -26,13 +26,13 @@ class Anonymization(Generic[PreservationT_co]):
 | `text` | `str` | The text with every entity occurrence replaced by its token |
 | `tokens` | `Mapping[Entity, str]` | The token each entity was replaced with |
 
-The mapping is typed by what the factory preserves, so a caller can reverse it to deanonymize only when the tokens preserve identity.
+The mapping is typed by what the factory preserves, so a caller can reverse it to restore only when the tokens preserve identity.
 
 ---
 
 ## `Anonymizer`
 
-Replaces each entity's spans with the token a factory assigns it. It edits the spans left to right in one pass, which stays correct because upstream stages leave them non-overlapping, so no edit shifts an offset another edit still needs. Stateless: no internal state between calls.
+Replaces each entity's spans with the token a factory assigns it. It edits the spans left to right in one pass, which stays correct because upstream stages leave them non-overlapping, so no edit shifts an offset another edit still needs. Stateless, no internal state between calls.
 
 ### Constructor
 

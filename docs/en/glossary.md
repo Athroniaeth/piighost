@@ -25,7 +25,7 @@ Anonymization
     the value.
 
 Placeholder
-:   The token that replaces a PII in the anonymized text, for example
+:   The token that replaces a PII in the de-identified text, for example
     `<<PERSON:1>>`{ .placeholder } or `<<EMAIL:1>>`{ .placeholder }. What a
     placeholder looks like is decided by a placeholder factory.
 
@@ -87,7 +87,7 @@ Entity resolver
     `SeparateEntityResolver` leaves each group as is.
 
 Guard rail
-:   A component that re-checks the anonymized text for PII the pipeline missed. It
+:   A component that re-checks the de-identified text for PII the pipeline missed. It
     runs after replacement and raises if a residual PII remains. A guard can
     re-run a detector (`DetectorGuardRail`) or query an LLM (`LLMGuardRail`).
 

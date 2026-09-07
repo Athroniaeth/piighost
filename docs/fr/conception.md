@@ -5,9 +5,9 @@ icon: lucide/blocks
 # Conception du pipeline
 
 Une fois admis qu'il faut dé-identifier (voir [Pourquoi dé-identifier ?](why-anonymize.md)),
-reste le comment. Cette page le construit pas à pas. On part de la première brique,
-détecter les données sensibles, et on ajoute une contrainte à la fois. Chaque composant
-du pipeline apparaît parce qu'une contrainte précédente l'a rendu nécessaire. À la fin,
+reste le comment. La construction ci-dessous se fait pas à pas, à partir de la première
+brique, détecter les données sensibles, en ajoutant une contrainte à la fois. Chaque
+composant du pipeline apparaît parce qu'une contrainte précédente l'a rendu nécessaire. À la fin,
 l'ordre des étapes et les choix techniques ne sont plus arbitraires, ils découlent du
 problème.
 
@@ -17,8 +17,8 @@ problème.
     suppression irréversible, par exemple avec `RedactPlaceholderFactory`.
 
 !!! note "Pour la vue d'ensemble"
-    Cette page explique le pourquoi. Pour la carte des couches et l'API de chaque
-    composant, voir [Architecture](architecture.md).
+    Pour la carte des couches et l'API de chaque composant, voir
+    [Architecture](architecture.md).
 
 ---
 
@@ -72,9 +72,9 @@ serait un token constant, le même pour tout, comme `<<REDACT>>`{ .placeholder }
 l'enrichit avec le type, `<<PERSON>>`{ .placeholder } ou `<<EMAIL>>`{ .placeholder }.
 
 Pourquoi est-ce utile. Parce que le modèle qui lit le texte dé-identifié a besoin du
-type pour raisonner. « Contacte `<<PERSON>>`{ .placeholder } à
-`<<EMAIL>>`{ .placeholder } » reste exploitable, « Contacte `<<REDACT>>`{ .placeholder }
-à `<<REDACT>>`{ .placeholder } » ne l'est plus.
+type pour raisonner. "Contacte `<<PERSON>>`{ .placeholder } à
+`<<EMAIL>>`{ .placeholder }" reste exploitable, "Contacte `<<REDACT>>`{ .placeholder }
+à `<<REDACT>>`{ .placeholder }" ne l'est plus.
 
 La placeholder factory (`AnyPlaceholderFactory`) décide de la forme du token. Elle prend
 une entité et rend son token. C'est elle qu'on change pour passer de
@@ -96,7 +96,7 @@ Patrick écrit à Marie  →  <<PERSON:1>> écrit à <<PERSON:2>>
 `<<PERSON:2>>`{ .placeholder }. Le compteur distingue les individus du même type.
 
 Mais une même personne apparaît souvent plusieurs fois, parfois orthographiée
-différemment (« Patrick », « patrick »). Toutes ces occurrences doivent partager le même
+différemment (`Patrick`{ .pii }, `patrick`{ .pii }). Toutes ces occurrences doivent partager le même
 token. Une détection isolée ne suffit donc pas. Il faut une notion au-dessus, l'entité,
 qui regroupe toutes les détections désignant la même PII.
 
@@ -142,7 +142,7 @@ complet n'en a pas besoin.
 
 Dès qu'on combine des détecteurs, ou qu'un détecteur trouve plusieurs candidats sur la
 même zone, des détections se chevauchent. Exemple classique, un NER propose `LOCATION`
-sur « Paris » et un autre `PERSON` sur la même position, ou deux modèles donnent des
+sur `Paris`{ .pii } et un autre `PERSON` sur la même position, ou deux modèles donnent des
 bornes légèrement différentes.
 
 Si on laissait passer ces chevauchements jusqu'au remplacement, on produirait des tokens
@@ -171,7 +171,7 @@ occurrences ratées, puis on groupe en entités, et on résout les identités en
 ## Étape 6, fusionner les entités équivalentes, le résolveur d'entités
 
 Après le linking, deux entités peuvent encore désigner la même personne, par exemple
-« Patrick » et « Patric » (faute de frappe), ou provenir de détecteurs différents qui
+`Patrick`{ .pii } et `Patric`{ .pii } (faute de frappe), ou provenir de détecteurs différents qui
 partagent une détection. Les réconcilier évite de donner deux tokens à une seule
 personne.
 
@@ -200,16 +200,16 @@ suppose des spans non chevauchants, ce que l'étape 5 garantit.
 
 ---
 
-## Étape 8, revenir en arrière, la déanonymisation
+## Étape 8, revenir en arrière, la restauration
 
 Dé-identifier ne sert que si l'on peut restaurer les vraies valeurs pour l'utilisateur.
 Pour cela il faut savoir que `<<PERSON:1>>`{ .placeholder } valait `Patrick`{ .pii }.
-L'anonymisation d'un texte rend justement ce mapping, une entité par token émis.
+La dé-identification d'un texte rend justement ce mapping, une entité par token émis.
 
 La restauration remplace, dans un texte, chaque token connu par la valeur de son entité.
 Elle ne se limite pas au texte que le pipeline a produit. Le modèle génère souvent une
-réponse nouvelle contenant un token, par exemple « Bien sûr,
-`<<PERSON:1>>`{ .placeholder } ! ». Cette phrase n'a jamais été produite par le pipeline,
+réponse nouvelle contenant un token, par exemple "Bien sûr,
+`<<PERSON:1>>`{ .placeholder } !". Cette phrase n'a jamais été produite par le pipeline,
 mais comme on connaît le couple token vers valeur, on remplace le token dans n'importe
 quel texte.
 
@@ -218,7 +218,7 @@ flowchart LR
     IN["texte porteur de tokens"] --> D["deanonymize :\nremplace chaque token connu\npar la valeur de son entité"] --> OUT["texte restauré"]
 ```
 
-*La déanonymisation remplace les tokens connus par leur valeur, dans n'importe quel
+*La restauration remplace les tokens connus par leur valeur, dans n'importe quel
 texte.*
 { .figure-caption }
 

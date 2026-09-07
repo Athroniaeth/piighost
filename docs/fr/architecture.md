@@ -119,7 +119,7 @@ C'est l'exception assumée à la règle du template systématique.
 
 `BaseAnonymizationPipeline` enchaîne les étapes de la détection au texte
 dé-identifié. Seul le détecteur est un argument obligatoire du constructeur. Le
-linking, l'anonymisation et la résolution des chevauchements tournent toujours et
+linking, la dé-identification et la résolution des chevauchements tournent toujours et
 retombent sur des composants intégrés par défaut quand on les omet, un
 `ExactEntityLinker`, un `Anonymizer` doté d'une `LabelCounterPlaceholderFactory` et
 un `ConfidenceOverlapResolver`. Les étapes override, expand, entity-resolve et guard
@@ -242,7 +242,7 @@ Les factories fournies vont du moins au plus informatif. `RedactPlaceholderFacto
 ## Le pipeline mono-texte
 
 `AnonymizationPipeline` traite un texte isolé. Il détecte, applique les étapes
-optionnelles présentes, groupe en entités, anonymise, puis passe la sortie au
+optionnelles présentes, groupe en entités, dé-identifie, puis passe la sortie au
 garde-fou. Sa méthode `deanonymize` reçoit le mapping token vers entité produit par
 `anonymize` et restaure les valeurs.
 
@@ -315,7 +315,7 @@ dropped = await thread_pipeline.forget_thread("t-42")
   deux appelants ne peuvent pas tomber dans le même thread et fuiter leurs PII.
 - `deanonymize` reconstruit les tokens du thread depuis la mémoire, donc **n'importe
   quel** texte porteur de ces tokens est restauré, y compris une réponse du modèle que
-  le pipeline n'a jamais anonymisée.
+  le pipeline n'a jamais dé-identifiée.
 - `forget_thread` efface toute la mémoire d'un thread et rend le compte de ce qui a été
   supprimé, pour le droit à l'oubli.
 

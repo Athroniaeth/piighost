@@ -4,16 +4,16 @@ icon: lucide/link
 
 # Keep PII out of a LlamaIndex RAG pipeline
 
-You want a LlamaIndex RAG where neither the embedding provider nor the LLM ever sees PII. `piighost` gives you two components: `PIINodeAnonymizer`, an ingestion transform that anonymizes each node before it is embedded, and `PIIQueryEngine`, a wrapper that anonymizes the query and restores the answer. Both share one thread pipeline, so a value keeps the same token across the corpus and the query.
+You want a LlamaIndex RAG where neither the embedding provider nor the LLM ever sees PII. `piighost` gives you two components: `PIINodeAnonymizer`, an ingestion transform that de-identifies each node before it is embedded, and `PIIQueryEngine`, a wrapper that de-identifies the query and restores the answer. Both share one thread pipeline, so a value keeps the same token across the corpus and the query.
 
-For the same idea orchestrated by hand over a plain RAG flow, see the `examples/langchain/rag.py` script; this page packages it as reusable LlamaIndex objects.
+For the same idea orchestrated by hand over a plain RAG flow, see the `examples/langchain/rag.py` script. This page packages it as reusable LlamaIndex objects.
 
 !!! note "Prerequisites"
     `piighost` installed with the llama-index extra, `pip install piighost[llama-index]`, plus `llama-index-embeddings-openai` and `llama-index-llms-openai` and an `OPENAI_API_KEY`.
 
 ## 1. Build the thread pipeline
 
-The pipeline anonymizes and restores over a corpus thread. Here an `ExactMatchDetector` keeps the example deterministic; swap in a model detector for real text.
+The pipeline de-identifies and restores over a corpus thread. Here an `ExactMatchDetector` keeps the example deterministic. Swap in a model detector for real text.
 
 ```python
 from piighost.components.detector import ExactMatchDetector
@@ -24,7 +24,7 @@ detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
 pipeline = ThreadAnonymizationPipeline(detector)
 ```
 
-## 2. Anonymize at ingestion, before embedding
+## 2. De-identify at ingestion, before embedding
 
 Put `PIINodeAnonymizer` in the transformations before the embedding model, so the index is built on tokens and the embedding provider never sees PII.
 
@@ -45,7 +45,7 @@ index = VectorStoreIndex.from_documents(
 
 ## 3. Wrap the query engine
 
-`PIIQueryEngine` anonymizes the query into the same thread, so retrieval matches the anonymized corpus, and deanonymizes the answer for the user.
+`PIIQueryEngine` de-identifies the query into the same thread, so retrieval matches the de-identified corpus, and restores the answer for the user.
 
 ```python
 from llama_index.llms.openai import OpenAI
@@ -62,7 +62,7 @@ answer = engine.query("Where does Patrick live?")
 print(answer.response)
 ```
 
-The LLM answered over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }; the user sees `Patrick`{ .pii } and `Paris`{ .pii } restored. Retrieval runs on the anonymized space, which trades some quality for keeping PII out of the embedding call.
+The LLM answered over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }. The user sees `Patrick`{ .pii } and `Paris`{ .pii } restored. Retrieval runs on the de-identified space, which trades some quality for keeping PII out of the embedding call.
 
 ## See also
 

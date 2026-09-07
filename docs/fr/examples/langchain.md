@@ -7,9 +7,9 @@ tags:
 
 # Construire un agent LangChain avec un vrai détecteur
 
-Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des jetons, où un outil reçoit quand même les vraies valeurs dont il a besoin, et où la détection tourne sur un vrai modèle NER plutôt que sur une liste de valeurs figée. Cette page assemble cet agent de bout en bout. Un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, un system prompt qui apprend au modèle à traiter les jetons comme des données, et un outil qui cherche une personne par son nom.
+Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des jetons, où un outil reçoit quand même les vraies valeurs dont il a besoin, et où la détection tourne sur un vrai modèle NER plutôt que sur une liste de valeurs figée. L'assemblage ci-dessous va de bout en bout, un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, un system prompt qui apprend au modèle à traiter les jetons comme des données, et un outil qui cherche une personne par son nom.
 
-Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [Middleware LangChain](../getting-started/langchain.md). Cette page en reprend la forme avec un vrai modèle et un system prompt.
+Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [Middleware LangChain](../getting-started/langchain.md). La suite en reprend la forme avec un vrai modèle et un system prompt.
 
 !!! note "Prérequis"
     `piighost` installé avec les extras middleware et gliner2, `pip install piighost[langchain,gliner2]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
@@ -45,7 +45,7 @@ pipeline = ThreadAnonymizationPipeline(
 
 ## 2. Déclarer un outil qui a besoin de la vraie valeur
 
-Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas de `<<PERSON:1>>`{ .placeholder }. Écrivez-le contre les vraies valeurs. Sous `ToolCallStrategy.FULL`, le middleware restaure l'argument avant l'appel et ré-anonymise le résultat après.
+Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas de `<<PERSON:1>>`{ .placeholder }. Écrivez-le contre les vraies valeurs. Sous `ToolCallStrategy.FULL`, le middleware restaure l'argument avant l'appel, puis dé-identifie le résultat.
 
 ```python
 from langchain.tools import tool
@@ -76,7 +76,7 @@ and you cannot reveal it.
 
 ## 4. Enrober le pipeline et créer l'agent
 
-`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` dé-identifie les arguments de l'outil à l'entrée et anonymise le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
+`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` restaure les arguments de l'outil à l'entrée et dé-identifie le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
 
 ```python
 from langchain.agents import create_agent
@@ -128,7 +128,7 @@ Patrick lives in Paris.
 GLiNER2 marque `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, chaque frontière du tour substitue une direction.
 
 - `abefore_model` fait passer le message dans `pipeline.anonymize`, si bien que le LLM reçoit `Where does <<PERSON:1>> live?`.
-- Le modèle appelle `lookup_city(person="<<PERSON:1>>")`. Sous `ToolCallStrategy.FULL`, `awrap_tool_call` dé-identifie l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis ré-anonymise le résultat texte de l'outil.
+- Le modèle appelle `lookup_city(person="<<PERSON:1>>")`. Sous `ToolCallStrategy.FULL`, `awrap_tool_call` dé-identifie l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis dé-identifie à nouveau le résultat texte de l'outil.
 - `aafter_model` dé-identifie la réponse pour l'utilisateur.
 
 Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape.

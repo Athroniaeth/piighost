@@ -218,7 +218,7 @@ Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un a
 
 ### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
 
-`source` est un itérateur asynchrone des chunks de texte du modèle ; `thread_id` est l'id avec lequel vous avez lancé l'agent, puisqu'une boucle de streaming manuelle est hors de la config LangGraph que lisent les hooks.
+`source` est un itérateur asynchrone des chunks de texte du modèle. `thread_id` est l'id avec lequel vous avez lancé l'agent, puisqu'une boucle de streaming manuelle est hors de la config LangGraph que lisent les hooks.
 
 ```python
 config = {"configurable": {"thread_id": "conv-1"}}
@@ -240,7 +240,7 @@ async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
 
 Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre jamais de token cassé.
 
-Pour un autre framework, la même restauration est un cran plus bas : `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui désanonymise un token.
+Pour un autre framework, la même restauration est un cran plus bas, `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui restaure un token.
 
 ---
 

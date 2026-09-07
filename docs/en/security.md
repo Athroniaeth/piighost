@@ -19,7 +19,7 @@ Two things therefore coexist at all times. The de-identified text, which can tra
 
 !!! success "Within the protection scope"
     - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real PII. Even if the provider logs the request, no sensitive data leaks to it.
-    - **Tool-call leakage**: the middleware deanonymizes tool arguments just before execution, then re-anonymizes results before they go back to the LLM. The real values never flow through the LLM's visible context.
+    - **Tool-call leakage**: the middleware restores tool arguments just before execution, then de-identifies the results before they go back to the LLM. The real values never flow through the LLM's visible context.
     - **Cross-message drift**: the `ConversationMemory` links variants (`Patrick`{ .pii } and `patrick`{ .pii } group by `(text.casefold(), label)`), so the same entity keeps the same placeholder across the whole conversation. The LLM never sees the same PII under two different masks.
     - **Theft of a stolen persistent store**: a persistent backend (Redis or SQL) can encrypt every stored value and hash the key, so a store leak reveals neither the message nor the PII. See below.
 
@@ -27,7 +27,7 @@ Two things therefore coexist at all times. The de-identified text, which can tra
 
 !!! danger "Outside the protection scope"
     - **Process memory compromise**: the mapping from `placeholder` to original value lives in RAM for the duration of processing. An attacker who reads process memory recovers the cleartext PII, whatever the backend.
-    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing; it serves development and single-process use. A persistent backend built without crypto stores its values in clear, so a disk theft exposes the PII. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
+    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing, it serves development and single-process use. A persistent backend built without crypto stores its values in clear, so a disk theft exposes the PII. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
     - **LLM-invented placeholders**: if the LLM fabricates a placeholder that was never emitted, `piighost` cannot map it back to a value since it is in no mapping. The middleware refuses such tokens by default (`InventedPlaceholderError`). See [Limitations](limitations.md).
     - **Re-identification from context**: a placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
     - **Fallible detectors**: a detector is best-effort. A PII it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
@@ -38,7 +38,7 @@ Two things therefore coexist at all times. The de-identified text, which can tra
 
 The middleware restores PII for display. After `aafter_model`, each message's content holds the real values again, so the user sees `jean@mail.com`{ .pii } and not `<<EMAIL:1>>`{ .placeholder }. That restored content lives in the LangGraph state, and a checkpointer that persists the state persists cleartext PII in the message content. This is intended, the state is your display surface, but it means the checkpointer store holds sensitive data and must be protected like the mapping itself.
 
-Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware deanonymizes a tool argument only for the tool run, on a fresh request, and never writes the deanonymized value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not PII.
+Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware restores a tool argument only for the tool run, on a fresh request, and never writes the restored value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not PII.
 
 ## Token injection in user input
 
@@ -152,7 +152,7 @@ pipeline = AnonymizationPipeline(
 )
 ```
 
-Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend. That default is treated as an explicit choice: with a tracer provider actually configured and no redactor, the pipeline warns once that its traces carry clear PII, and `trace_clear_text=True` acknowledges it and silences the warning.
+Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend. That default is treated as an explicit choice. With a tracer provider actually configured and no redactor, the pipeline warns once that its traces carry clear PII, and `trace_clear_text=True` acknowledges it and silences the warning.
 
 ## Design decisions that back the threat model
 

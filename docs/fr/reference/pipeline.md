@@ -108,7 +108,7 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par thread des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus ; passez `RedisConversationMemory` pour un backend partagé |
+| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par thread des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus, passez `RedisConversationMemory` pour un backend partagé |
 
 ### Méthodes
 
@@ -149,7 +149,7 @@ reply = await pipeline.deanonymize("Message sent to <<PERSON:2>>.", thread_id="u
 
 #### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
 
-Renvoie la correspondance placeholder vers valeur du thread, dérivée du cache, pour qu'un appelant puisse résoudre tout un flux d'un coup plutôt que de désanonymiser token par token. Un token que le thread n'a jamais émis est absent de la correspondance.
+Renvoie la correspondance placeholder vers valeur du thread, dérivée du cache, pour qu'un appelant puisse résoudre tout un flux d'un coup plutôt que de restaurer token par token. Un token que le thread n'a jamais émis est absent de la correspondance.
 
 #### `forget_thread(thread_id) -> Forgotten` *(async)*
 
@@ -182,7 +182,7 @@ class AnyPipeline(Protocol[PreservationT_co]):
 
 ### `AnyThreadPipeline`
 
-Un pipeline scopé par thread, local ou distant. Il dé-identifie chaque message d'un thread, redé-identifie un message corrigé, désanonymise tout texte portant les tokens du thread, oublie un thread en entier, et expose la grammaire de ses tokens.
+Un pipeline scopé par thread, local ou distant. Il dé-identifie chaque message d'un thread, redé-identifie un message corrigé, restaure tout texte portant les tokens du thread, oublie un thread en entier, et expose la grammaire de ses tokens.
 
 ```python
 class AnyThreadPipeline(Protocol[PreservationT_co]):

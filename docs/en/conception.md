@@ -5,9 +5,9 @@ icon: lucide/blocks
 # Pipeline design
 
 Once you accept that you need to de-identify (see [Why de-identify?](why-anonymize.md)),
-the question that remains is how. This page builds it step by step. We start from the
-first brick, detecting sensitive data, and add one constraint at a time. Each component
-of the pipeline appears because a previous constraint made it necessary. By the end, the
+the question that remains is how. The build below goes step by step, from the first
+brick, detecting sensitive data, adding one constraint at a time. Each component of the
+pipeline appears because a previous constraint made it necessary. By the end, the
 order of the stages and the technical choices are no longer arbitrary, they follow from
 the problem.
 
@@ -17,8 +17,8 @@ the problem.
     irreversible removal, for example with `RedactPlaceholderFactory`.
 
 !!! note "For the overview"
-    This page explains the why. For the map of the layers and the API of each component,
-    see [Architecture](architecture.md).
+    For the map of the layers and the API of each component, see
+    [Architecture](architecture.md).
 
 ---
 
@@ -192,10 +192,10 @@ assumes non-overlapping spans, which step 5 guarantees.
 
 ---
 
-## Step 8, going back, deanonymization
+## Step 8, going back, restoration
 
 De-identifying is only useful if you can restore the real values for the user. For that
-you must know that `<<PERSON:1>>`{ .placeholder } was `Patrick`{ .pii }. Anonymizing a
+you must know that `<<PERSON:1>>`{ .placeholder } was `Patrick`{ .pii }. De-identifying a
 text returns exactly that mapping, one entity per emitted token.
 
 Restoration replaces, in a text, each known token with the value of its entity. It is
@@ -209,7 +209,7 @@ flowchart LR
     IN["texte porteur de tokens"] --> D["deanonymize :\nremplace chaque token connu\npar la valeur de son entité"] --> OUT["texte restauré"]
 ```
 
-*Deanonymization replaces known tokens with their value, in any text.*
+*Restoration replaces known tokens with their value, in any text.*
 { .figure-caption }
 
 Restoration is unambiguous only if the tokens preserve identity. Two entities sharing a

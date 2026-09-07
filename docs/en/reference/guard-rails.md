@@ -8,7 +8,7 @@ tags:
 
 Module: `piighost.components.guard`
 
-A guard rail is the pipeline's last, optional stage. It re-checks the anonymized text for residual PII and, when it finds any, makes the pipeline raise `PIIRemainingError` instead of returning a leak. Every guard satisfies the `AnyGuardRail` port, an `async def check(self, text: str) -> GuardVerdict`, and returns a `GuardVerdict` carrying whether PII seems to remain and how it knows. Unlike the other stages, guards share no `Base*` template: they differ by their whole checking mechanism, re-running a local detector versus calling an external API, so there is no shared skeleton.
+A guard rail is the pipeline's last, optional stage. It re-checks the de-identified text for residual PII and, when it finds any, makes the pipeline raise `PIIRemainingError` instead of returning a leak. Every guard satisfies the `AnyGuardRail` port, an `async def check(self, text: str) -> GuardVerdict`, and returns a `GuardVerdict` carrying whether PII seems to remain and how it knows. Unlike the other stages, guards share no `Base*` template, they differ by their whole checking mechanism, re-running a local detector versus calling an external API, so there is no shared skeleton.
 
 The guard classifies, it does not decide. It reports a verdict, and the pipeline turns a flagged verdict into an exception, leaving the choice of how to react to your code.
 
@@ -22,7 +22,7 @@ from piighost.components.guard import (
 
 ## Wire a guard into a pipeline
 
-`AnonymizationPipeline` takes an optional `guard` argument, disabled by default. When set, the guard runs on the rendered output after anonymization, and the pipeline raises `PIIRemainingError` if the guard flags anything unexpected.
+`AnonymizationPipeline` takes an optional `guard` argument, disabled by default. When set, the guard runs on the rendered output after de-identification, and the pipeline raises `PIIRemainingError` if the guard flags anything unexpected.
 
 ```python
 from piighost.components.anonymizer import Anonymizer
@@ -55,13 +55,13 @@ The runnable version is [`examples/guard_rail.py`](https://github.com/Athroniaet
 
 ## `DetectorGuardRail`
 
-Re-runs a detector on the anonymized output and flags whatever it still finds, carrying the residual detections on the verdict.
+Re-runs a detector on the de-identified output and flags whatever it still finds, carrying the residual detections on the verdict.
 
 ```python
 DetectorGuardRail(detector: AnyDetector)
 ```
 
-This only adds value with a detector different from the pipeline's: re-running the same one finds nothing, since the pipeline already anonymized everything it detects. A stronger or complementary detector, run as a cheap second pass over the short anonymized output, catches what the primary detector missed. The synthetic placeholders are not PII-shaped, so a detector meant for real PII leaves them alone. It needs no optional extra.
+This only adds value with a detector different from the pipeline's, re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. The synthetic placeholders are not PII-shaped, so a detector meant for real PII leaves them alone. It needs no optional extra.
 
 ## `LLMGuardRail`
 
@@ -78,7 +78,7 @@ LLMGuardRail(
 )
 ```
 
-A `str` model is loaded like `LLMDetector`'s; a loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. Requires `piighost[llm]`.
+A `str` model is loaded like `LLMDetector`'s. A loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. Requires `piighost[llm]`.
 
 ## `ModerationGuardRail`
 

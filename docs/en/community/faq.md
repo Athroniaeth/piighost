@@ -5,7 +5,7 @@ icon: lucide/message-circle-question
 # FAQ
 
 ??? question "Is it really necessary to de-identify PII before calling an LLM?"
-    Yes, and this holds regardless of `piighost`. The stakes (exfiltration to providers, legal requisition, training on conversations, GDPR compliance, data leaks) are covered in [Why de-identify?](../why-anonymize.md). The page is library-agnostic: it explains why the problem exists before justifying a solution like `piighost`.
+    Yes, and this holds regardless of `piighost`. The stakes (exfiltration to providers, legal requisition, training on conversations, GDPR compliance, data leaks) are covered in [Why de-identify?](../why-anonymize.md). The page is library-agnostic, it explains why the problem exists before justifying a solution like `piighost`.
 
 ??? question "Which languages are supported?"
     It depends entirely on the detector you plug in. The pipeline itself is language-agnostic. With a `gliner2` detector and a multilingual GLiNER2 model, you get about 100 languages out of the box. With a `spacy` detector, whatever spaCy supports. With a `regex` detector, language is irrelevant. See [Extending PIIGhost](../extending.md) for the detector catalogue.
@@ -38,7 +38,7 @@ icon: lucide/message-circle-question
     The tool-call strategy of `PIIAnonymizationMiddleware` exposes four modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). The right choice depends on whether the tool may emit new PII and how strict the privacy boundary needs to be. See [Tool-call strategies](../tool-call-strategies.md) for the trade-offs and the decision tree, and [Placeholder factories](../placeholder-factories.md) for the factory constraint, the middleware needs an identity-preserving, recognizable placeholder factory.
 
 ??? question "What happens if the LLM hallucinates a PII that was not in the input?"
-    It is **not** de-identified by `piighost`: entity linking works on detections coming from the input, not on invented values. A residual-PII guard can re-check the output and refuse it, see the guard section of the [configuration reference](../configuration/toml.md) and [Limitations](../limitations.md).
+    It is **not** de-identified by `piighost`. Entity linking works on detections coming from the input, not on invented values. A residual-PII guard can re-check the output and refuse it, see the guard section of the [configuration reference](../configuration/toml.md) and [Limitations](../limitations.md).
 
 ??? question "Is the conversation memory shared across threads?"
     No. The memory is scoped by `thread_id`. Two parallel conversations never see each other's tokens, preventing cross-user leaks. The `thread_id` is extracted automatically from the LangGraph config.
@@ -50,7 +50,7 @@ icon: lucide/message-circle-question
     Yes. The stateless and thread pipelines are usable standalone, without the middleware. See [Basic usage](../examples/basic.md).
 
 ??? question "Does `piighost` encrypt stored data?"
-    The Redis conversation memory does: it encrypts every stored value with AES-GCM and hashes every key, reading its pepper and cipher key from the environment. The in-RAM memory encrypts nothing and is for development only. See [Security](../security.md) for the at-rest threat model.
+    The Redis conversation memory does, it encrypts every stored value with AES-GCM and hashes every key, reading its pepper and cipher key from the environment. The in-RAM memory encrypts nothing and is for development only. See [Security](../security.md) for the at-rest threat model.
 
 ??? question "How do I trace what the pipeline does?"
     Through OpenTelemetry. The pipeline emits a span per stage to whatever OTel `TracerProvider` your application configured, and does no backend correlation itself, that is deployment OTel configuration. See [Observation](../observation.md). The `observation` extra is required.

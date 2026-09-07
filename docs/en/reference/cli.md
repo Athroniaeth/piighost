@@ -2,7 +2,7 @@
 
 Module: `piighost.cli`
 
-`piighost` is a small command-line tool that validates and inspects a pipeline configuration and anonymizes text from the shell. It is installed as a console entry point with the `config` extra.
+`piighost` is a small command-line tool that validates and inspects a pipeline configuration and de-identifies text from the shell. It is installed as a console entry point with the `config` extra.
 
 ```bash
 pip install "piighost[config]"
@@ -54,7 +54,7 @@ Point an editor at `schema.json` for autocompletion and inline validation of a c
 
 ## `piighost anonymize`
 
-Anonymizes a text and prints the result. The text is an argument, or `-` to read stdin. By default it runs a generic `RegexDetector`; `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
+De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default it runs a generic `RegexDetector`. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -73,11 +73,11 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 
 | Option | Description |
 |--------|-------------|
-| `TEXT` | The text to anonymize, or `-` to read stdin |
+| `TEXT` | The text to de-identify, or `-` to read stdin |
 | `--config PATH` | A pipeline config file (TOML or JSON) |
 | `--api URL` | Base URL of a `piighost-api` server, used through the HTTP client |
 | `--thread-id ID` | Thread id for the API or a thread-scoped config (default `default`) |
-| `--json` | Print the anonymized text and the detections as JSON |
+| `--json` | Print the de-identified text and the detections as JSON |
 
 `--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`.
 

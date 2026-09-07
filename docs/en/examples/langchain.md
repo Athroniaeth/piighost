@@ -7,16 +7,16 @@ tags:
 
 # Build a LangChain agent with a real detector
 
-You want a working LangGraph agent where the LLM only ever sees tokens, a tool still receives the real values it needs, and detection runs on a real NER model instead of a fixed value list. This page assembles that agent end to end: a GLiNER2 detector, a `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, a system prompt that teaches the model to treat tokens as data, and a tool that looks a person up by name.
+You want a working LangGraph agent where the LLM only ever sees tokens, a tool still receives the real values it needs, and detection runs on a real NER model instead of a fixed value list. The assembly below runs end to end, a GLiNER2 detector, a `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, a system prompt that teaches the model to treat tokens as data, and a tool that looks a person up by name.
 
-For the minimal version with a stub detector, start with the [LangChain middleware](../getting-started/langchain.md) tutorial. This page is the same shape with a real model and a system prompt.
+For the minimal version with a stub detector, start with the [LangChain middleware](../getting-started/langchain.md) tutorial. What follows is the same shape with a real model and a system prompt.
 
 !!! note "Prerequisites"
     `piighost` installed with the middleware and gliner2 extras, `pip install piighost[langchain,gliner2]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The first run downloads the GLiNER2 weights, roughly 500 MB.
 
 ## 1. Build the pipeline over a GLiNER2 detector
 
-`Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction; pass `labels` to tell it which entity types to query. The anonymizer uses `LabelCounterPlaceholderFactory`, which emits the delimited `<<PERSON:1>>`{ .placeholder } the middleware can find again.
+`Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction. Pass `labels` to tell it which entity types to query. The anonymizer uses `LabelCounterPlaceholderFactory`, which emits the delimited `<<PERSON:1>>`{ .placeholder } the middleware can find again.
 
 ```python
 from piighost.components.anonymizer import Anonymizer
@@ -45,7 +45,7 @@ pipeline = ThreadAnonymizationPipeline(
 
 ## 2. Declare a tool that needs the real value
 
-A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>`{ .placeholder }. Write it against real values. Under `ToolCallStrategy.FULL`, the middleware restores the argument before the call and re-anonymizes the result after.
+A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>`{ .placeholder }. Write it against real values. Under `ToolCallStrategy.FULL`, the middleware restores the argument before the call, then de-identifies the result.
 
 ```python
 from langchain.tools import tool
@@ -76,7 +76,7 @@ and you cannot reveal it.
 
 ## 4. Wrap the pipeline and create the agent
 
-`PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` deanonymizes the tool arguments on the way in and anonymizes the tool result on the way out, so the tool works on real values while the model still only sees tokens.
+`PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` restores the tool arguments on the way in and de-identifies the tool result on the way out, so the tool works on real values while the model still only sees tokens.
 
 ```python
 from langchain.agents import create_agent
@@ -117,7 +117,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The reply is deanonymized for display, so it reads with the real values:
+The reply is restored for display, so it reads with the real values:
 
 ```text
 Patrick lives in Paris.
@@ -128,8 +128,8 @@ Patrick lives in Paris.
 `GLiNER2` flags `Patrick`{ .pii } as `PERSON` in the incoming message. From there each boundary of the turn substitutes one direction:
 
 - `abefore_model` sends the message through `pipeline.anonymize`, so the LLM receives `Where does <<PERSON:1>> live?`.
-- The model calls `lookup_city(person="<<PERSON:1>>")`. Under `ToolCallStrategy.FULL`, `awrap_tool_call` deanonymizes the argument to `Patrick`{ .pii } before running the tool, then re-anonymizes the tool's string result.
-- `aafter_model` deanonymizes the reply for the user.
+- The model calls `lookup_city(person="<<PERSON:1>>")`. Under `ToolCallStrategy.FULL`, `awrap_tool_call` restores the argument to `Patrick`{ .pii } before running the tool, then de-identifies the tool's string result.
+- `aafter_model` restores the reply for the user.
 
 The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step.
 

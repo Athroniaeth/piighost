@@ -26,7 +26,7 @@ class Anonymization(Generic[PreservationT_co]):
 | `text` | `str` | Le texte avec chaque occurrence d'entité remplacée par son token |
 | `tokens` | `Mapping[Entity, str]` | Le token qui a remplacé chaque entité |
 
-La correspondance est typée par ce que la factory préserve, donc un appelant peut l'inverser pour désanonymiser seulement quand les tokens préservent l'identité.
+La correspondance est typée par ce que la factory préserve, donc un appelant peut l'inverser pour restaurer seulement quand les tokens préservent l'identité.
 
 ---
 

@@ -51,7 +51,7 @@ def lookup_city(person: str) -> str:
 
 ## 3. Enrober le pipeline dans le middleware
 
-`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` dé-identifie les arguments de l'outil à l'entrée et anonymise le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
+`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` restaure les arguments de l'outil à l'entrée et dé-identifie le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
 
 ```python
 from langchain.agents import create_agent
@@ -99,7 +99,7 @@ Patrick habite à Paris.
 
 ## Comment ça marche
 
-Le middleware est un adaptateur mince autour du pipeline. Avant l'appel du modèle, `abefore_model` fait passer chaque message dans `pipeline.anonymize`, si bien que le LLM reçoit `Où habite <<PERSON:1>> ?` au lieu du vrai nom. Quand le modèle appelle `lookup_city` avec `person="<<PERSON:1>>"`, `awrap_tool_call` sous `ToolCallStrategy.FULL` dé-identifie l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis ré-anonymise le résultat texte de l'outil. Après l'appel du modèle, `aafter_model` dé-identifie la réponse pour l'utilisateur. Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape du tour.
+Le middleware est un adaptateur mince autour du pipeline. Avant l'appel du modèle, `abefore_model` fait passer chaque message dans `pipeline.anonymize`, si bien que le LLM reçoit `Où habite <<PERSON:1>> ?` au lieu du vrai nom. Quand le modèle appelle `lookup_city` avec `person="<<PERSON:1>>"`, `awrap_tool_call` sous `ToolCallStrategy.FULL` dé-identifie l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis dé-identifie à nouveau le résultat texte de l'outil. Après l'appel du modèle, `aafter_model` dé-identifie la réponse pour l'utilisateur. Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape du tour.
 
 Deux valeurs par défaut méritent d'être connues. `require_thread_id=True` fait échouer un appel sans identifiant de fil, plutôt que de router toutes les conversations dans un seul fil partagé et de fuiter les jetons entre elles. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuse un jeton qui apparaît dans la réponse du modèle mais que le pipeline n'a jamais émis, qu'il soit halluciné ou injecté.
 

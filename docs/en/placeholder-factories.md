@@ -4,7 +4,7 @@ icon: lucide/replace
 
 # Placeholder factories
 
-A *placeholder* is the synthetic token that takes the place of a detected PII before the text reaches the LLM. Instead of sending `Patrick lives in Paris`{ .pii } to the LLM, the pipeline sends `<<PERSON:1>>`{ .placeholder } `lives in`  `<<LOCATION:1>>`{ .placeholder }. The original values stay in the conversation memory; the LLM never sees them.
+A *placeholder* is the synthetic token that takes the place of a detected PII before the text reaches the LLM. Instead of sending `Patrick lives in Paris`{ .pii } to the LLM, the pipeline sends `<<PERSON:1>>`{ .placeholder } `lives in`  `<<LOCATION:1>>`{ .placeholder }. The original values stay in the conversation memory. The LLM never sees them.
 
 !!! note "Why the name placeholder factory"
 
@@ -197,7 +197,7 @@ classDiagram
     PreservesLabeledIdentityRealistic <|-- PreservesLabeledIdentityHashed
 ```
 
-*Preservation tag hierarchy. Each node carries an example token; the abstract nodes are intersections between axes.*
+*Preservation tag hierarchy. Each node carries an example token, the abstract nodes are intersections between axes.*
 { .figure-caption }
 
 `PreservesLabeledIdentity` inherits from both `PreservesLabel` and `PreservesIdentity`. This expresses the *A is a B but not every B is an A* relation, every `PreservesLabeledIdentity` is also a `PreservesLabel` and a `PreservesIdentity`, but the reverse is false. `PreservesShape` extends `PreservesLabel`, a masked token implies the label through its format but does not guarantee uniqueness, so it stays a sibling of identity. Each tag is a subclass of `str`, so a token is a real string that carries its preservation level in its own type.
@@ -273,7 +273,7 @@ The preservation tag exists so this choice is visible to the type-checker, not b
 
 ## Why `PIIAnonymizationMiddleware` requires a findable identity
 
-The middleware operates on three boundaries, **input messages** (LLM in), **output messages** (LLM out), and **tool calls**. The first two rely on the conversation memory; the tool calls do not.
+The middleware operates on three boundaries, **input messages** (LLM in), **output messages** (LLM out), and **tool calls**. The first two rely on the conversation memory. The tool calls do not.
 
 **Input and output messages.** When `abefore_model` de-identifies a message, the pipeline records the entity-to-token mapping. The reply from the LLM is restored by reading that mapping in reverse. This works for any factory, whether or not tokens collide.
 

@@ -4,11 +4,11 @@ icon: lucide/eye
 
 # Observation
 
-`piighost` émet une trace OpenTelemetry à chaque anonymisation. Chaque appel
+`piighost` émet une trace OpenTelemetry à chaque dé-identification. Chaque appel
 ouvre un span racine et un span enfant par étape du pipeline. On voit ainsi où
 une PII a été détectée, comment elle a été liée, quel token l'a remplacée et si
 le guard rail a laissé passer. Le traçage est optionnel et n'est jamais requis
-pour anonymiser.
+pour dé-identifier.
 
 !!! note
     Les payloads des traces portent par défaut les valeurs de PII en clair, donc
@@ -40,7 +40,7 @@ n'enregistre rien et ne coûte rien, donc le pipeline émet ses spans sans
 condition, sans garde autour de chaque appel. Contrairement aux autres
 dépendances optionnelles, un extra manquant dégrade vers le tracer no-op au lieu
 de lever une exception, parce que le traçage ne doit jamais bloquer
-l'anonymisation.
+le dé-identification.
 
 Un span est un gestionnaire de contexte qui porte un payload d'entrée, un
 payload de sortie et des attributs scalaires. L'imbrication est implicite. Un
@@ -66,12 +66,12 @@ flowchart TD
     A --> I[piighost.guard]
 ```
 
-*L'arbre des spans d'une anonymisation. Les étapes optionnelles n'apparaissent que si elles sont configurées.*
+*L'arbre des spans d'une dé-identification. Les étapes optionnelles n'apparaissent que si elles sont configurées.*
 { .figure-caption }
 
-Le span racine enregistre le texte d'entrée et le texte anonymisé final.
+Le span racine enregistre le texte d'entrée et le texte dé-identifié final.
 `detect` enregistre les détections et leur nombre. `link` enregistre les
-entités. `render` enregistre le texte anonymisé et le nombre de tokens. `guard`
+entités. `render` enregistre le texte dé-identifié et le nombre de tokens. `guard`
 enregistre s'il a levé un drapeau et les labels vus. Le pipeline de thread
 diffère. Il exécute la résolution de chevauchement et l'expansion dans
 `_detect` et la résolution d'entités dans `_thread_tokens`, si bien qu'aucune de

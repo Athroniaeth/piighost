@@ -4,9 +4,9 @@ icon: lucide/scale
 
 # Comment PIIGhost se compare
 
-Ce tableau n'est pas neutre. Ses lignes sont les capacités pour lesquelles PIIGhost a été conçu, donc il en ressort forcément bien. Il sert à montrer ce que les outils moyens ne couvrent pas, pas à désigner un gagnant. Pour un travail que PIIGhost ne vise pas, comme publier un jeu de données entier, un outil de k-anonymity est le bon choix.
+Ce tableau n'est pas neutre. Ses lignes sont les capacités pour lesquelles `piighost` a été conçu, donc il en ressort forcément bien. Il sert à montrer ce que les outils moyens ne couvrent pas, pas à désigner un gagnant. Pour un travail que `piighost` ne vise pas, comme publier un jeu de données entier, un outil de k-anonymity est le bon choix.
 
-| Capacité | **PIIGhost** | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
+| Capacité | `piighost` | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
 |---|---|---|---|---|---|---|
 | **Détection** | regex / NER / LLM | NER + regex + règles + checksum | regex + validateurs | ML/NER | ML + infoTypes | regex + NER |
 | **Traitement de la PII** | jeton réversible (mémoire / Redis) | masque / jeton | masque / hash | masque | jeton crypto (sans état) | jeton réversible (vault) |
@@ -23,4 +23,4 @@ Notes : ici, **LangChain PII** désigne le `PIIMiddleware` Python. Le `piiRedact
 
 Les modèles de détection seule (spaCy, GLiNER, Piiranha) et les anonymiseurs de dataset (ARX, Amnesia) sont d'une autre catégorie. Les premiers ne font que repérer les PII, les seconds transforment un jeu de données tabulaire entier avec de la k-anonymity ou de la differential privacy, donc ils ne dé-identifient pas une conversation en direct.
 
-Voir [Limites](limitations.md) pour ce que PIIGhost ne fait pas et les partis pris derrière ces choix.
+Voir [Limites](limitations.md) pour ce que `piighost` ne fait pas et les partis pris derrière ces choix.

@@ -8,11 +8,18 @@
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Discord](https://img.shields.io/badge/Discord-rejoindre-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
-`piighost` est une librairie Python qui empêche les PII (données personnelles identifiables) d'atteindre un modèle de langage, sans jamais gêner ce que votre application doit en faire.
+`piighost` est une librairie Python qui permet de protéger vos données personnelles (PII) dans les conversations avec les LLM via de la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
 
-Elle repère les PII grâce à des détecteurs (regex, NER, ou un autre LLM) et remplace chaque valeur par un placeholder stable, si bien que `john.doe@example.com` devient `<<EMAIL:1>>` et que le modèle ne travaille que sur du texte dé-identifié. Quand le LLM répond avec ces placeholders, `piighost` réinjecte les vraies valeurs, et l'utilisateur final lit `john.doe@example.com` sans se rendre compte de rien. Les agents outillés ont droit au même traitement. Un outil qui a réellement besoin de la vraie adresse la reçoit en clair, alors que le LLM qui a décidé de l'appeler ne voit toujours que `<<EMAIL:1>>`.
+Cette dé-identification repère les PII grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le token qui prend sa place. Par exemple :
 
-La correspondance entre une valeur et son placeholder tient aussi sur toute la conversation. Si `john.doe@example.com` revient trois messages plus tard, il reste `<<EMAIL:1>>`, ce qui permet au modèle de suivre le fil.
+- `John Doe` devient `<<PERSON:1>>`
+- `john.doe@example.com` devient `<<EMAIL:1>>`
+
+Ce placeholder reste le même d'un message à l'autre avec le pipeline conversationnel, qui garde la correspondance entre une valeur et son placeholder sur toute la conversation. Si `john.doe@example.com` réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`, ce qui permet au LLM de suivre le fil.
+
+Le LLM ne reçoit donc que du texte dé-identifié. Quand il retourne des placeholders, par exemple en répondant `Bonjour <<PERSON:1>>`, `piighost` les remplace par les vraies valeurs. L'utilisateur voit `John Doe` et ne voit jamais la dé-identification.
+
+La même mécanique protège les agents qui appellent des outils. Avec le middleware LangChain, un outil qui a besoin de la vraie adresse mail la reçoit en clair, alors que le LLM qui la fournit n'écrit que `<<EMAIL:1>>`.
 
 <p align="center">
   <picture>
@@ -24,30 +31,30 @@ La correspondance entre une valeur et son placeholder tient aussi sur toute la c
 *Le LLM ne voit que des placeholders. L'outil reçoit la vraie adresse, l'utilisateur reçoit une réponse en clair, et le code de l'agent ne change pas.*
 
 > [!NOTE]
-> `piighost` fait de la **dé-identification réversible**. Comme la correspondance entre une valeur et son placeholder est conservée pour pouvoir restaurer les données, il s'agit d'une pseudonymisation au sens du RGPD, pas d'une anonymisation définitive. Les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
+> Cette correspondance conservée fait de la dé-identification une pseudonymisation au sens du RGPD, pas une anonymisation définitive. Avec le pipeline conversationnel, les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
 ## Pourquoi PIIGhost
 
-La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy et les catalogues regex repèrent très bien les entités dans un texte. Le difficile, pour un agent LLM, c'est tout ce qui vient après. Remplacer les valeurs sans casser le raisonnement du modèle, garder une valeur associée à un seul token sur toute une conversation, donner la vraie valeur aux outils pendant que le modèle ne voit que le token, et réinjecter les originaux dans la réponse. Cette orchestration, c'est PIIGhost.
+La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy et les catalogues regex repèrent très bien les entités dans un texte. Le difficile, pour un agent LLM, c'est tout ce qui vient après. Remplacer les valeurs sans casser le raisonnement du modèle, garder une valeur associée à un seul token sur toute une conversation, donner la vraie valeur aux outils pendant que le modèle ne voit que le token, et réinjecter les originaux dans la réponse. Cette orchestration, c'est `piighost`.
 
-**Ce que PIIGhost ajoute par-dessus :**
+**Ce que `piighost` ajoute par-dessus :**
 
 - **Détecteurs enfichables :** catalogues regex (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), un détecteur LLM, plus les détecteurs exact-match, composite et chunked (le chunking découpe le texte qui dépasse la fenêtre de contexte d'un modèle), et vous gardez celui que vous connaissez (Presidio se branche via un extra).
 - **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>` et est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton. Les factories label-only, masque et hash à clé sont aussi disponibles.
 - **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, adossé à une mémoire in-process, Redis ou SQLAlchemy (Redis et SQL peuvent chiffrer les valeurs au repos et hacher les clés).
 - **Intégrations agents avec frontière d'outils :** middleware LangChain, hooks Pydantic AI, et LlamaIndex. L'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton, avec une restauration en streaming token par token.
-- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, anonymisation, et un guard rail optionnel qui refuse une réponse contenant une PII résiduelle (un détecteur, un LLM, ou la modération Mistral). Branchez un appariement fuzzy tolérant aux fautes ou ajoutez votre propre étape.
+- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, dé-identification, et un guard rail optionnel qui refuse une réponse contenant une PII résiduelle (un détecteur, un LLM, ou la modération Mistral). Branchez un appariement fuzzy tolérant aux fautes ou ajoutez votre propre étape.
 - **Piloté par config et auto-hébergeable :** construisez tout un pipeline depuis un fichier TOML/JSON avec un CLI pour le valider, exécutez-le dans votre process, ou comme service via le compagnon [piighost-api](https://github.com/Athroniaeth/piighost-api) (proxys compatibles OpenAI et Anthropic).
 - **Typé et observable :** fournit `py.typed` et un cœur minimal avec tout le lourd derrière des extras, plus des spans OpenTelemetry par étape (visibles dans Langfuse ou Jaeger) avec rédaction optionnelle des payloads.
-- **Périmètre, texte et conversations en direct :** PIIGhost protège une conversation en cours, message par message, pas un dataset figé.
+- **Périmètre, texte et conversations en direct :** `piighost` protège une conversation en cours, message par message, pas un dataset figé.
 
 Pour voir comment il se situe face à Presidio, LangChain, les API cloud et d'autres, voir [Comment PIIGhost se compare](https://athroniaeth.github.io/piighost/fr/comparison/).
 
 ### Limites et partis pris
 
-- **Le jeton n'embarque pas la valeur chiffrée, par choix.** Contrairement à un jeton à chiffrement à format préservé (où le chiffré *est* le jeton, ex. Google DLP), PIIGhost utilise un id (`<<PERSON:1>>`) adossé à un cache. La raison : un jeton qui contient le chiffré peut être capté aujourd'hui et cassé dans 20 ans (« harvest now, decrypt later », la menace de l'informatique quantique sur le chiffrement classique), alors qu'un id ne révèle rien en soi. En retour, il faut un cache pour garder la correspondance jeton-valeur, donc une mémoire à déployer, partager entre workers et persister en production.
+- **Le jeton n'embarque pas la valeur chiffrée, par choix.** Contrairement à un jeton à chiffrement à format préservé (où le chiffré *est* le jeton, ex. Google DLP), `piighost` utilise un id (`<<PERSON:1>>`) adossé à un cache. La raison : un jeton qui contient le chiffré peut être capté aujourd'hui et cassé dans 20 ans ("harvest now, decrypt later", la menace de l'informatique quantique sur le chiffrement classique), alors qu'un id ne révèle rien en soi. En retour, il faut un cache pour garder la correspondance jeton-valeur, donc une mémoire à déployer, partager entre workers et persister en production.
 - **Ce cache stocke les vraies valeurs, donc la réversibilité est de la pseudonymisation, pas de l'anonymisation (RGPD).** Les données réelles restent stockées le temps de la conversation. La lib fournit de quoi les protéger (chiffrement AES-GCM des valeurs, hachage Argon2id des clés), mais l'architecture de base de données elle-même doit être sécurisée en production dès qu'on utilise Redis ou PostgreSQL.
-- **Pas d'anonymisation de dataset.** Ni k-anonymity, ni l-diversité, ni differential privacy, ni données tabulaires. PIIGhost protège du texte et des conversations en direct, pas un jeu de données entier. Pour ça, voir ARX, Amnesia, ou Google DLP.
+- **Pas d'anonymisation de dataset.** Ni k-anonymity, ni l-diversité, ni differential privacy, ni données tabulaires. `piighost` protège du texte et des conversations en direct, pas un jeu de données entier. Pour ça, voir ARX, Amnesia, ou Google DLP.
 - **Pas de validation par checksum (Luhn / IBAN / NIR), par choix.** Le `RegexDetector` matche sur la forme seule pour ne jamais laisser fuiter une valeur réelle abîmée par l'OCR (un checksum la rejetterait et elle passerait en clair). En échange, il repère parfois une chaîne qui a la forme d'une PII sans en être une, ce qui ne coûte qu'un jeton de trop.
 
 ## Démarrage rapide

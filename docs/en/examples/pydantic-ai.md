@@ -15,7 +15,7 @@ The capability covers the messages, the user prompt and the model's own replies,
 
 ## 1. Build the pipeline over a GLiNER2 detector
 
-`Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction; pass `labels` to tell it which entity types to query. Only the detector is required, since the thread pipeline defaults its linker, its anonymizer, and an in-memory conversation store. The default anonymizer emits the delimited `<<PERSON:1>>`{ .placeholder } that `pii_hooks` can find again.
+`Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction. Pass `labels` to tell it which entity types to query. Only the detector is required, since the thread pipeline defaults its linker, its anonymizer, and an in-memory conversation store. The default anonymizer emits the delimited `<<PERSON:1>>`{ .placeholder } that `pii_hooks` can find again.
 
 ```python
 from piighost.components.detector.ner import Gliner2Detector
@@ -31,7 +31,7 @@ pipeline = ThreadAnonymizationPipeline(detector)
 
 ## 2. Attach the capability to the agent
 
-`pii_hooks` takes the pipeline and a thread id, then returns a Pydantic AI capability. Register it with `capabilities=[...]`. The thread id scopes the tokens, so a value keeps one token for the whole conversation. It is a fixed string here; pass a callable over the run context, for example `lambda ctx: ctx.deps.thread_id`, to read it per run.
+`pii_hooks` takes the pipeline and a thread id, then returns a Pydantic AI capability. Register it with `capabilities=[...]`. The thread id scopes the tokens, so a value keeps one token for the whole conversation. It is a fixed string here, pass a callable over the run context, for example `lambda ctx: ctx.deps.thread_id`, to read it per run.
 
 ```python
 from pydantic_ai import Agent
@@ -43,7 +43,7 @@ agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
 
 ## 3. Run one turn
 
-The capability anonymizes the prompt before the model reads it and deanonymizes the reply for display, so the model works on `<<PERSON:1>>`{ .placeholder } while you read `Patrick`{ .pii }.
+The capability de-identifies the prompt before the model reads it and restores the reply for display, so the model works on `<<PERSON:1>>`{ .placeholder } while you read `Patrick`{ .pii }.
 
 ```python
 import asyncio
@@ -61,14 +61,14 @@ asyncio.run(main())
 
 `GLiNER2` flags `Patrick`{ .pii } as `PERSON` in the incoming message. From there the capability substitutes one direction at each side of the model call:
 
-- `before_model_request` sends every user and assistant text through `pipeline.anonymize`, so the model receives `Where does <<PERSON:1>> live?`. It rewrites the assistant texts too, so a value restored for display on an earlier turn is re-anonymized before the next model call and never leaks back into the history.
+- `before_model_request` sends every user and assistant text through `pipeline.anonymize`, so the model receives `Where does <<PERSON:1>> live?`. It rewrites the assistant texts too, so a value restored for display on an earlier turn is de-identified again before the next model call and never leaks back into the history.
 - `after_model_request` sends the reply through `pipeline.deanonymize`, so you read the real value.
 
 The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every turn.
 
 ## Tokens the model invents
 
-After deanonymization every issued token is back to its value, so a token still matching the grammar was invented by the model, whether by hallucination or prompt injection. `pii_hooks` takes an `invented_strategy` that decides what happens then. `RAISE` refuses it, the fail-closed default; `KEEP` leaves it; `DROP` removes it.
+After restoration every issued token is back to its value, so a token still matching the grammar was invented by the model, whether by hallucination or prompt injection. `pii_hooks` takes an `invented_strategy` that decides what happens then. `RAISE` refuses it, the fail-closed default. `KEEP` leaves it. `DROP` removes it.
 
 ```python
 from piighost.integrations.langchain import InventedPlaceholderStrategy
@@ -82,7 +82,7 @@ hooks = pii_hooks(
 
 ## Tool calls
 
-`pii_hooks` also de-identifies the tool boundary, governed by `tool_strategy`, the same enum the LangChain middleware uses. Under `FULL`, the default, a tool call's arguments are deanonymized before the tool runs, so a tool that needs `Patrick`{ .pii } gets it and not `<<PERSON:1>>`{ .placeholder }, and the tool's string result is re-anonymized before the model reads it, so the model keeps seeing tokens. `INPUT` deanonymizes only the arguments, `OUTPUT` re-anonymizes only the result, and `PASSTHROUGH` leaves both untouched.
+`pii_hooks` also covers the tool boundary, governed by `tool_strategy`, the same enum the LangChain middleware uses. Under `FULL`, the default, a tool call's arguments are restored before the tool runs, so a tool that needs `Patrick`{ .pii } gets it and not `<<PERSON:1>>`{ .placeholder }, and the tool's string result is de-identified again before the model reads it, so the model keeps seeing tokens. `INPUT` restores only the arguments, `OUTPUT` de-identifies again only the result, and `PASSTHROUGH` leaves both untouched.
 
 ```python
 from piighost.integrations.langchain import ToolCallStrategy

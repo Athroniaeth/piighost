@@ -2,7 +2,7 @@
 
 Module : `piighost.cli`
 
-`piighost` est un petit outil en ligne de commande qui valide et inspecte une configuration de pipeline et anonymise du texte depuis le shell. Il est installé comme point d'entrée console avec l'extra `config`.
+`piighost` est un petit outil en ligne de commande qui valide et inspecte une configuration de pipeline et dé-identifie du texte depuis le shell. Il est installé comme point d'entrée console avec l'extra `config`.
 
 ```bash
 pip install "piighost[config]"
@@ -54,7 +54,7 @@ Pointez un éditeur vers `schema.json` pour l'autocomplétion et la validation e
 
 ## `piighost anonymize`
 
-Anonymise un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut elle lance un `RegexDetector` générique ; `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
+Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut elle lance un `RegexDetector` générique. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -73,11 +73,11 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 
 | Option | Description |
 |--------|-------------|
-| `TEXT` | Le texte à anonymiser, ou `-` pour lire stdin |
+| `TEXT` | Le texte à dé-identifier, ou `-` pour lire stdin |
 | `--config PATH` | Un fichier de config de pipeline (TOML ou JSON) |
 | `--api URL` | URL de base d'un serveur `piighost-api`, utilisé via le client HTTP |
 | `--thread-id ID` | Thread id pour l'API ou une config à mémoire (défaut `default`) |
-| `--json` | Imprime le texte anonymisé et les détections en JSON |
+| `--json` | Imprime le texte dé-identifié et les détections en JSON |
 
 `--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`.
 

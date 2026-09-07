@@ -48,9 +48,9 @@ The placeholder factory decides what distinguishes two entities. Some families l
 
 **Mitigation**: see [Placeholder factories](placeholder-factories.md) for the full taxonomy and the choice by use case.
 
-## Deanonymization is only reliable under identity
+## Restoration is only reliable under identity
 
-Restoring a value from a placeholder assumes the placeholder identifies a unique entity. An identity-preserving factory (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) guarantees that a token always lands on the same value. A collapsing factory (redact, label, mask) does not, so deanonymization becomes ambiguous or impossible.
+Restoring a value from a placeholder assumes the placeholder identifies a unique entity. An identity-preserving factory (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) guarantees that a token always lands on the same value. A collapsing factory (redact, label, mask) does not, so restorations becomes ambiguous or impossible.
 
 The `PIIAnonymizationMiddleware` enforces this constraint at the type level. It requires a `PreservesRecognizableIdentity` factory, that is a token unique per entity and findable in text. A factory that does not meet that contract is rejected at construction (`UnrecognizableFactoryError`). The tool-call boundary relies on string replacement, so it needs unique tokens to stay reversible.
 

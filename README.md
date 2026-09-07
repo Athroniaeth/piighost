@@ -8,46 +8,53 @@
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
-`piighost` is a Python library that keeps PII (personally identifiable information) from ever reaching a language model, without getting in the way of what your app needs to do.
+`piighost` is a Python library that protects your personal data (PII) in conversations with LLMs through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
-It spots PII with detectors (regex, NER, or another LLM) and swaps each value for a stable placeholder, so `john.doe@example.com` becomes `<<EMAIL:1>>` and the model only ever works on de-identified text. When the LLM answers with those placeholders, `piighost` puts the real values back, so the end user reads `john.doe@example.com` and never notices a thing. Tool-using agents get the same treatment. A tool that genuinely needs the real address receives it in clear, while the LLM that decided to call it still sees only `<<EMAIL:1>>`.
+This de-identification spots PII with pluggable detectors (regex, NER, LLM) and replaces each value with a placeholder, the token that takes its place. For example:
 
-The mapping between a value and its placeholder also sticks around for the whole conversation. If `john.doe@example.com` comes up again three messages later, it stays `<<EMAIL:1>>`, so the model can still follow the thread.
+- `John Doe` becomes `<<PERSON:1>>`
+- `john.doe@example.com` becomes `<<EMAIL:1>>`
+
+This placeholder stays the same from one message to the next with the conversational pipeline, which keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com` reappears three messages later, the placeholder is still `<<EMAIL:1>>`, which lets the LLM follow the thread.
+
+The LLM therefore only receives de-identified text. When it returns placeholders, for example by answering `Hello <<PERSON:1>>`, `piighost` replaces them with the real values. The user sees `John Doe` and never sees the de-identification.
+
+The same mechanism protects agents that call tools. With the LangChain middleware, a tool that needs the real email address receives it in clear, while the LLM that supplies it only writes `<<EMAIL:1>>`.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-dark.gif">
-    <img alt="A user chats with an agent: PII values are replaced by placeholders before reaching the model and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
+    <img alt="A user chats with an agent, PII values are replaced by placeholders before reaching the LLM and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
   </picture>
 </p>
 
 *The LLM only sees placeholders. The tool receives the real address, the user gets a clear-text reply, and your agent code stays the same.*
 
 > [!NOTE]
-> `piighost` performs **reversible de-identification**. Because the mapping between a value and its placeholder is kept so the data can be restored, this is pseudonymisation under the GDPR, not permanent anonymisation. The real values stay stored for the duration of the conversation and must be protected accordingly.
+> This retained mapping makes the de-identification a pseudonymization under the GDPR, not a definitive anonymization. With the conversational pipeline, the real values stay stored for the duration of the conversation and must be protected accordingly.
 
 ## Why PIIGhost
 
-Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what PIIGhost is.
+Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs all find entities in text, and they do it well. The hard part for an LLM agent is everything after detection: swapping values without wrecking the model's reasoning, keeping one value mapped to one token across a conversation, handing tools the real value while the model sees only the token, and putting the originals back in the reply. That orchestration is what `piighost` is.
 
-**What PIIGhost adds on top:**
+**What `piighost` adds on top:**
 
 - **Pluggable detectors:** regex catalogs (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits text that overruns a model's context window), and you keep the one you trust (Presidio plugs in through an extra).
-- **Reversible, transparent tokens:** each value becomes a stable id like `<<PERSON:1>>` and is put back automatically, so the end user reads `john.doe@example.com` and never sees a token; label-only, masked, and keyed-hash factories are available too.
+- **Reversible, transparent tokens:** each value becomes a stable id like `<<PERSON:1>>` and is put back automatically, so the end user reads `john.doe@example.com` and never sees a token. Label-only, masked, and keyed-hash factories are available too.
 - **Consistent across a conversation:** the same value keeps the same token for the whole thread, backed by in-process, Redis, or SQLAlchemy memory (Redis and SQL can encrypt values at rest and hash keys).
-- **Agent integrations with a tool boundary:** LangChain middleware, Pydantic AI hooks, and LlamaIndex; the tool receives the real value while the model sees only the token, with token-by-token streaming restoration.
-- **A customizable staged pipeline:** detect, link, resolve overlaps, expand, anonymize, and an optional guard rail that refuses a reply with residual PII (a detector, an LLM, or Mistral moderation); swap in fuzzy matching to tolerate typos or add your own stage.
+- **Agent integrations with a tool boundary:** LangChain middleware, Pydantic AI hooks, and LlamaIndex. The tool receives the real value while the model sees only the token, with token-by-token streaming restoration.
+- **A customizable staged pipeline:** detect, link, resolve overlaps, expand, de-identify, and an optional guard rail that refuses a reply with residual PII (a detector, an LLM, or Mistral moderation). Swap in fuzzy matching to tolerate typos or add your own stage.
 - **Config-driven and self-hostable:** build a whole pipeline from a TOML/JSON file with a CLI to validate it, run it in your process, or as a service through the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) (OpenAI- and Anthropic-compatible proxies).
 - **Typed and observable:** ships `py.typed` and a minimal core with everything heavy behind extras, plus OpenTelemetry per-stage spans (viewable in Langfuse or Jaeger) with optional payload redaction.
-- **Scope, live text and conversations:** PIIGhost protects a running conversation message by message, not a static dataset.
+- **Scope, live text and conversations:** `piighost` protects a running conversation message by message, not a static dataset.
 
 For how it stacks up against Presidio, LangChain, the cloud APIs, and others, see [How PIIGhost compares](https://athroniaeth.github.io/piighost/comparison/).
 
 ### Limitations and trade-offs
 
-- **The token does not embed the encrypted value, on purpose.** Unlike a format-preserving encryption token (where the ciphertext *is* the token, e.g. Google DLP), PIIGhost uses an id (`<<PERSON:1>>`) backed by a cache. The reason: a token that carries the ciphertext can be captured today and cracked in 20 years ("harvest now, decrypt later", the quantum threat to classical crypto), whereas an id reveals nothing on its own. In return, you need a cache to hold the token-to-value mapping, so a memory backend to deploy, share across workers, and persist in production.
-- **That cache stores the real values, so reversibility is pseudonymisation, not anonymisation (GDPR).** The real values stay stored for the duration of the conversation. The library gives you the means to protect them (AES-GCM encryption of the values, Argon2id hashing of the keys), but the database architecture itself must be secured in production once you use Redis or PostgreSQL.
-- **No dataset anonymization.** No k-anonymity, l-diversity, differential privacy, or tabular data. PIIGhost protects live text and conversations, not a whole dataset; for that, see ARX, Amnesia, or Google DLP.
+- **The token does not embed the encrypted value, on purpose.** Unlike a format-preserving encryption token (where the ciphertext *is* the token, e.g. Google DLP), `piighost` uses an id (`<<PERSON:1>>`) backed by a cache. The reason: a token that carries the ciphertext can be captured today and cracked in 20 years ("harvest now, decrypt later", the quantum threat to classical crypto), whereas an id reveals nothing on its own. In return, you need a cache to hold the token-to-value mapping, so a memory backend to deploy, share across workers, and persist in production.
+- **That cache stores the real values, so reversibility is pseudonymization, not anonymization (GDPR).** The real values stay stored for the duration of the conversation. The library gives you the means to protect them (AES-GCM encryption of the values, Argon2id hashing of the keys), but the database architecture itself must be secured in production once you use Redis or PostgreSQL.
+- **No dataset anonymization.** No k-anonymity, l-diversity, differential privacy, or tabular data. `piighost` protects live text and conversations, not a whole dataset. For that, see ARX, Amnesia, or Google DLP.
 - **No checksum validation (Luhn / IBAN / NIR), by choice.** The `RegexDetector` matches on shape alone so it never lets a real value mangled by OCR leak (a checksum would reject it and it would pass in clear). In exchange, it sometimes flags a string that only looks like PII, which costs nothing beyond one extra token.
 
 ## Quickstart

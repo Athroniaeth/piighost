@@ -20,7 +20,7 @@ from piighost.integrations.langchain import (
 )
 ```
 
-Needs the `middleware` extra (`pip install piighost[langchain]`), which pulls in `langchain`. Importing the package never pulls `langchain` in; the middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
+Needs the `middleware` extra (`pip install piighost[langchain]`), which pulls in `langchain`. Importing the package never pulls `langchain` in. The middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
 
 ---
 
@@ -90,7 +90,7 @@ Restores the user and model messages for display through `pipeline.deanonymize()
 
 Routes the tool call by `tool_strategy`. When the strategy de-identifies input, the tool arguments are restored to real values before the tool runs. When it de-identifies output, a string tool response is passed through `pipeline.anonymize()` after the tool runs. `PASSTHROUGH` touches neither.
 
-Argument restoration recurses through nested `dict`, `list`, and `tuple` containers. Only `str` leaves are restored; other types pass through unchanged.
+Argument restoration recurses through nested `dict`, `list`, and `tuple` containers. Only `str` leaves are restored, other types pass through unchanged.
 
 ```python
 # model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
@@ -218,7 +218,7 @@ The `abefore_model` and `aafter_model` hooks see the whole message, so a live di
 
 ### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
 
-`source` is an async iterator of the model's text chunks; `thread_id` is the id you ran the agent with, since a manual stream loop is outside the LangGraph config the hooks read.
+`source` is an async iterator of the model's text chunks. `thread_id` is the id you ran the agent with, since a manual stream loop is outside the LangGraph config the hooks read.
 
 ```python
 config = {"configurable": {"thread_id": "conv-1"}}
@@ -240,7 +240,7 @@ async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
 
 A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display never shows a broken token.
 
-For another framework, the same restoration is one step lower: `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar, with `replace` a coroutine that deanonymizes one token.
+For another framework, the same restoration is one step lower, `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar, with `replace` a coroutine that restores one token.
 
 ---
 

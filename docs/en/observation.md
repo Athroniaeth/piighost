@@ -4,10 +4,10 @@ icon: lucide/eye
 
 # Observation
 
-`piighost` emits an OpenTelemetry trace for every anonymization. Each call opens
+`piighost` emits an OpenTelemetry trace for every de-identification. Each call opens
 a root span and one child span per pipeline stage, so you can see where a PII was
 detected, how it was linked, which token replaced it, and whether the guard
-passed. Tracing is optional and never required for anonymization to run.
+passed. Tracing is optional and never required for de-identification to run.
 
 !!! note
     Trace payloads carry the clear PII values by default, so a trace doubles as
@@ -35,7 +35,7 @@ extra is installed, and a no-op tracer otherwise. The no-op tracer records
 nothing and costs nothing, so the pipeline emits spans unconditionally without a
 guard around each call. Unlike the other optional dependencies, a missing extra
 degrades to the no-op tracer instead of raising, because tracing must never
-block anonymization.
+block de-identification.
 
 A span is a context manager that carries an input payload, an output payload,
 and scalar attributes. Nesting is implicit, a span opened inside another span
@@ -60,12 +60,12 @@ flowchart TD
     A --> I[piighost.guard]
 ```
 
-*The span tree of one anonymization. Optional stages appear only when configured.*
+*The span tree of one de-identification. Optional stages appear only when configured.*
 { .figure-caption }
 
-The root span records the input text and the final anonymized text. `detect`
+The root span records the input text and the final de-identified text. `detect`
 records the detections and their count. `link` records the entities. `render`
-records the anonymized text and the token count. `guard` records whether it
+records the de-identified text and the token count. `guard` records whether it
 flagged and the labels it saw. The thread pipeline differs. It runs overlap
 resolution and expansion inside `_detect` and entity resolution inside
 `_thread_tokens`, so none of those get a span of their own, leaving `detect`,

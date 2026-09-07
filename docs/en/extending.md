@@ -21,7 +21,7 @@ flowchart LR
     A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-*The pipeline injects one component per port. Only the detector is required; the linker, anonymizer, and overlap resolver default to built-ins, and only the expand, entity-resolve, guard, and override stages default to disabled.*
+*The pipeline injects one component per port. Only the detector is required. The linker, anonymizer, and overlap resolver default to built-ins, and only the expand, entity-resolve, guard, and override stages default to disabled.*
 { .figure-caption }
 
 The ports live in each component's `base.py`, under `piighost.components.*`. The data models they exchange live in `piighost.models`.
@@ -127,7 +127,7 @@ Rather than implement `resolve` from scratch, subclass `BaseOverlapResolver`. It
             return [max(conflicting, key=lambda d: d.span.length)]
     ```
 
-The built-in `ConfidenceOverlapResolver` keeps the highest-confidence detection instead. The overlap resolver is always on. Omit it and the pipeline installs a `ConfidenceOverlapResolver`; pass your own to change the rule. There is no supported way to disable it, since render assumes disjoint spans and raises `OverlappingSpansError` otherwise.
+The built-in `ConfidenceOverlapResolver` keeps the highest-confidence detection instead. The overlap resolver is always on. Omit it and the pipeline installs a `ConfidenceOverlapResolver`. Pass your own to change the rule. There is no supported way to disable it, since render assumes disjoint spans and raises `OverlappingSpansError` otherwise.
 
 ---
 
@@ -223,7 +223,7 @@ class AnyPlaceholderFactory(Protocol[PreservationT_co]):
     def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT_co]: ...
 ```
 
-A token is an instance of the tag, which is a `str` subclass, so it is a real string that carries its preservation level in its own type. `create` must be deterministic: the same entities yield the same tokens on every call, because the pipeline calls it more than once per run.
+A token is an instance of the tag, which is a `str` subclass, so it is a real string that carries its preservation level in its own type. `create` must be deterministic, the same entities yield the same tokens on every call, because the pipeline calls it more than once per run.
 
 ???+ example "Bracket label factory"
 
@@ -244,7 +244,7 @@ A token is an instance of the tag, which is a `str` subclass, so it is a real st
             }
     ```
 
-`PreservesLabel` says the token reveals the type but not a unique identity, so this factory suits one-shot redaction, not the middleware. For a token the middleware can deanonymize and find again, tag it `PreservesRecognizableIdentity` (or a sub-tag such as `PreservesLabeledIdentityOpaque`) and use a delimited grammar like `<<PERSON:1>>`{ .placeholder }. To wrap an inner form in delimiters without writing the wrapping yourself, subclass `BaseDelimitedPlaceholderFactory`. See [Placeholder factories](placeholder-factories.md) for the full tag taxonomy and worked examples.
+`PreservesLabel` says the token reveals the type but not a unique identity, so this factory suits one-shot redaction, not the middleware. For a token the middleware can restore and find again, tag it `PreservesRecognizableIdentity` (or a sub-tag such as `PreservesLabeledIdentityOpaque`) and use a delimited grammar like `<<PERSON:1>>`{ .placeholder }. To wrap an inner form in delimiters without writing the wrapping yourself, subclass `BaseDelimitedPlaceholderFactory`. See [Placeholder factories](placeholder-factories.md) for the full tag taxonomy and worked examples.
 
 ### Usage
 
@@ -259,14 +259,14 @@ anonymizer = Anonymizer(factory)
 
 ## A custom guard rail
 
-A guard rail re-checks the anonymized output for residual PII. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
+A guard rail re-checks the de-identified output for residual PII. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
 
 ```python
 class AnyGuardRail(Protocol):
     async def check(self, text: str) -> GuardVerdict: ...
 ```
 
-`check` sees only the anonymized text. The placeholders it carries are clearly synthetic, so a check meant for real PII does not mistake them for it.
+`check` sees only the de-identified text. The placeholders it carries are clearly synthetic, so a check meant for real PII does not mistake them for it.
 
 ???+ example "Flag a residual @ sign"
 
@@ -281,7 +281,7 @@ class AnyGuardRail(Protocol):
             return GuardVerdict(flagged="@" in text)
     ```
 
-The built-in `DetectorGuardRail` re-runs a detector and reports the residual detections. The stage is optional: pass no `guard` and the output is returned unchecked.
+The built-in `DetectorGuardRail` re-runs a detector and reports the residual detections. The stage is optional. Pass no `guard` and the output is returned unchecked.
 
 ### Usage
 

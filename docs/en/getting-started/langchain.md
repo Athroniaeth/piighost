@@ -51,7 +51,7 @@ def lookup_city(person: str) -> str:
 
 ## 3. Wrap the pipeline in the middleware
 
-`PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` deanonymizes the tool arguments on the way in and anonymizes the tool result on the way out, so the tool works on real values while the model still only sees tokens.
+`PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` restores the tool arguments on the way in and de-identifies the tool result on the way out, so the tool works on real values while the model still only sees tokens.
 
 ```python
 from langchain.agents import create_agent
@@ -91,7 +91,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The final message is deanonymized for display, so the answer reads with the real values:
+The final message is restored for display, so the answer reads with the real values:
 
 ```text
 Patrick habite à Paris.
@@ -99,7 +99,7 @@ Patrick habite à Paris.
 
 ## How it works
 
-The middleware is a thin adapter around the pipeline. Before the model call, `abefore_model` sends each message through `pipeline.anonymize`, so the LLM receives `Où habite <<PERSON:1>> ?` instead of the raw name. When the model calls `lookup_city` with `person="<<PERSON:1>>"`, `awrap_tool_call` under `ToolCallStrategy.FULL` deanonymizes the argument to `Patrick`{ .pii } before running the tool, then re-anonymizes the tool's string result. After the model call, `aafter_model` deanonymizes the reply for the user. The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step of the turn.
+The middleware is a thin adapter around the pipeline. Before the model call, `abefore_model` sends each message through `pipeline.anonymize`, so the LLM receives `Où habite <<PERSON:1>> ?` instead of the raw name. When the model calls `lookup_city` with `person="<<PERSON:1>>"`, `awrap_tool_call` under `ToolCallStrategy.FULL` restores the argument to `Patrick`{ .pii } before running the tool, then de-identifies the tool's string result. After the model call, `aafter_model` restores the reply for the user. The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step of the turn.
 
 Two defaults are worth knowing. `require_thread_id=True` makes a call without a thread id raise, rather than routing every conversation into one shared thread and leaking tokens across them. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuses a token that surfaces in the model's reply but was never issued by the pipeline, whether hallucinated or injected.
 

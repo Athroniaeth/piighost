@@ -6,11 +6,11 @@ tags:
 
 # Test a pipeline without models
 
-You want to assert what a pipeline produces without downloading an NER model or reaching the network. `ExactMatchDetector` gives you that: you tell it which literal values map to which label, and it finds their occurrences with a plain regex. The rest of the pipeline runs unchanged, so a test exercises real linking, resolution, and anonymization against a detector whose output you control.
+You want to assert what a pipeline produces without downloading an NER model or reaching the network. `ExactMatchDetector` gives you that. You tell it which literal values map to which label, and it finds their occurrences with a plain regex. The rest of the pipeline runs unchanged, so a test exercises real linking, resolution, and de-identification against a detector whose output you control.
 
 Use this to test a pipeline you assembled, or a custom component you wrote, against `<<PERSON:1>>`{ .placeholder } rather than a model's guess.
 
-## Assert one anonymized string
+## Assert one de-identified string
 
 Build a pipeline with `ExactMatchDetector`, run it on a text, and compare `result.text` to the expected output.
 

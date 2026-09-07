@@ -48,9 +48,9 @@ La factory de placeholder décide de ce qui distingue deux entités. Certaines f
 
 **Mitigation** : voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète et le choix par usage.
 
-## La désanonymisation n'est fiable que sous identité
+## La restauration n'est fiable que sous identité
 
-Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Une factory qui préserve l'identité (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) garantit qu'un token retombe toujours sur la même valeur. Une factory qui les confond (redact, label, masque) ne le garantit pas, donc la désanonymisation devient ambiguë ou impossible.
+Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Une factory qui préserve l'identité (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) garantit qu'un token retombe toujours sur la même valeur. Une factory qui les confond (redact, label, masque) ne le garantit pas, donc la restauration devient ambiguë ou impossible.
 
 Le middleware `PIIAnonymizationMiddleware` impose cette contrainte au niveau du type. Il exige une factory `PreservesRecognizableIdentity`, c'est-à-dire un token unique par entité et reconnaissable dans un texte. Une factory qui ne remplit pas ce contrat est refusée à la construction (`UnrecognizableFactoryError`). La frontière d'appel d'outil s'appuie sur du remplacement de chaîne, elle a besoin de tokens uniques pour rester réversible.
 

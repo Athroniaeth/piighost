@@ -4,18 +4,18 @@ icon: lucide/terminal
 
 # De-identify Claude Code with hooks
 
-Claude Code speaks Anthropic's Messages API, not the OpenAI shape, so you cannot point it at the OpenAI-compatible proxy. Instead, `piighost` plugs into Claude Code's own hook system: small commands the harness runs at fixed points in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code.
+Claude Code speaks Anthropic's Messages API, not the OpenAI shape, so you cannot point it at the OpenAI-compatible proxy. Instead, `piighost` plugs into Claude Code's own hook system, small commands the harness runs at fixed points in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code.
 
 Three hooks cover a turn:
 
-- **`UserPromptSubmit`** anonymizes your prompt before the model reads it.
-- **`PostToolUse`** anonymizes a tool's output before the model reads it.
+- **`UserPromptSubmit`** de-identifies your prompt before the model reads it.
+- **`PostToolUse`** de-identifies a tool's output before the model reads it.
 - **`PreToolUse`** restores the real values in a tool's input before the tool runs.
 
 So the model only ever sees placeholders like `<<PERSON:1>>`, while the tools that actually run (Bash, Read, Edit, ...) receive the real values. The Claude Code `session_id` is used as the de-identification thread, so a value keeps the same token for the whole session.
 
 !!! note "Prerequisites"
-    `piighost` installed with the client extra, `pip install piighost[client]`, and a running [`piighost-api`](https://github.com/Athroniaeth/piighost-api) server. The hook is a thin client: it forwards each event to the API, which owns the pipeline and the conversation memory.
+    `piighost` installed with the client extra, `pip install piighost[client]`, and a running [`piighost-api`](https://github.com/Athroniaeth/piighost-api) server. The hook is a thin client, it forwards each event to the API, which owns the pipeline and the conversation memory.
 
 ## Wire the hooks
 
@@ -60,7 +60,7 @@ Each hook invocation runs `python -m piighost.integrations.claude_code`. It read
 }
 ```
 
-The same snippet ships as `settings.template.json` inside the integration package. Run `claude` as usual; the hooks fire automatically.
+The same snippet ships as `settings.template.json` inside the integration package. Run `claude` as usual. The hooks fire automatically.
 
 ## Point it at your server
 
@@ -70,17 +70,17 @@ The hook talks to `piighost-api` at `http://localhost:8000` by default. Override
 export PIIGHOST_API_URL="https://piighost.internal:8000"
 ```
 
-To watch what the hook does, set `PIIGHOST_HOOK_LOG` to a file path; the runner appends one JSON record per event (the event, the tool, the session id, and the mutation it returned):
+To watch what the hook does, set `PIIGHOST_HOOK_LOG` to a file path. The runner appends one JSON record per event (the event, the tool, the session id, and the mutation it returned):
 
 ```bash
 export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 ```
 
-## Which fields get anonymized
+## Which fields get de-identified
 
-A prompt and a tool input are plain enough to de-identify wholesale, but a tool's output is a structured object where only some fields hold model-facing text. The `PostToolUse` hook therefore anonymizes a per-tool allowlist of text fields rather than the whole payload, so it never mangles a path, an exit code, or a line number:
+A prompt and a tool input are plain enough to de-identify wholesale, but a tool's output is a structured object where only some fields hold model-facing text. The `PostToolUse` hook therefore de-identifies a per-tool allowlist of text fields rather than the whole payload, so it never mangles a path, an exit code, or a line number:
 
-| Tool | Anonymized fields |
+| Tool | De-identified fields |
 |------|-------------------|
 | `Bash` | `stdout`, `stderr` |
 | `Read` | `file.content` |

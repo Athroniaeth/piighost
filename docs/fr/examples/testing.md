@@ -6,11 +6,11 @@ tags:
 
 # Tester un pipeline sans modèle
 
-Vous voulez vérifier ce que produit un pipeline sans télécharger de modèle NER ni accéder au réseau. `ExactMatchDetector` vous le permet. Vous lui indiquez quelles valeurs littérales correspondent à quel label, et il trouve leurs occurrences avec une simple regex. Le reste du pipeline s'exécute sans changement, si bien qu'un test exerce la vraie liaison, la vraie résolution et la vraie anonymisation contre un détecteur dont vous maîtrisez la sortie.
+Vous voulez vérifier ce que produit un pipeline sans télécharger de modèle NER ni accéder au réseau. `ExactMatchDetector` vous le permet. Vous lui indiquez quelles valeurs littérales correspondent à quel label, et il trouve leurs occurrences avec une simple regex. Le reste du pipeline s'exécute sans changement, si bien qu'un test exerce la vraie liaison, la vraie résolution et la vraie dé-identification contre un détecteur dont vous maîtrisez la sortie.
 
 Servez-vous-en pour tester un pipeline que vous avez assemblé, ou un composant que vous avez écrit, contre `<<PERSON:1>>`{ .placeholder } plutôt que contre la prédiction d'un modèle.
 
-## Vérifier une chaîne anonymisée
+## Vérifier une chaîne dé-identifiée
 
 Construisez un pipeline avec `ExactMatchDetector`, exécutez-le sur un texte, puis comparez `result.text` à la sortie attendue.
 

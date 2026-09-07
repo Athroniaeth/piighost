@@ -7,7 +7,7 @@ icon: lucide/wrench
 `PIIAnonymizationMiddleware` travaille sur deux canaux, le canal LLM et le canal outil, qui n'offrent pas les mêmes garanties de fiabilité. Trois stratégies pilotent son comportement, une par décision indépendante que le middleware doit prendre.
 
 - **`ToolCallStrategy`** décide ce qui franchit la frontière outil, dans les deux directions. Défaut `FULL`.
-- **`InventedPlaceholderStrategy`** décide du sort d'un token que le pipeline n'a jamais émis, apparu dans une réponse ou un argument désanonymisé. Défaut `RAISE`.
+- **`InventedPlaceholderStrategy`** décide du sort d'un token que le pipeline n'a jamais émis, apparu dans une réponse ou un argument restauré. Défaut `RAISE`.
 - **`EntityCreateByAssistantStrategy`** décide du sort d'une valeur dont la première occurrence dans le thread vient de l'assistant. Défaut `PRESERVE`.
 
 !!! note "Une entité, un token, sur tout le fil"
@@ -33,28 +33,28 @@ Les deux directions retombent donc sur du **remplacement de chaîne brut**.
 
 Le remplacement brut n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le token `<<PERSON>>`{ .placeholder }, impossible de savoir laquelle restaurer dans les arguments. C'est la raison structurelle pour laquelle le middleware n'accepte que des factories dont les tokens préservent une identité retrouvable. Voir [Placeholder factories](placeholder-factories.md).
 
-Le middleware agit seulement dans le wrapper d'outil, jamais sur la réponse stockée ensuite. Les arguments sont désanonymisés récursivement à travers les `dict`, `list` et `tuple` imbriqués, les autres conteneurs passent tels quels.
+Le middleware agit seulement dans le wrapper d'outil, jamais sur la réponse stockée ensuite. Les arguments sont restaurés récursivement à travers les `dict`, `list` et `tuple` imbriqués, les autres conteneurs passent tels quels.
 
 ### `ToolCallStrategy` : ce qui franchit la frontière outil
 
-Les deux directions d'un appel d'outil sont indépendantes. `INPUT` désanonymise les arguments pour que l'outil reçoive de la vraie donnée. `OUTPUT` anonymise la réponse de l'outil pour protéger toute PII qu'elle renvoie. `FULL` fait les deux. `PASSTHROUGH` ne touche à rien.
+Les deux directions d'un appel d'outil sont indépendantes. `INPUT` restaure les arguments pour que l'outil reçoive de la vraie donnée. `OUTPUT` dé-identifie la réponse de l'outil pour protéger toute PII qu'elle renvoie. `FULL` fait les deux. `PASSTHROUGH` ne touche à rien.
 
 | Stratégie | L'outil voit | Réponse vers le LLM | Quand l'utiliser |
 |---|---|---|---|
-| `INPUT` | les vraies valeurs (arguments désanonymisés) | telle quelle, non anonymisée | outils dont la réponse est connue sans PII |
-| `OUTPUT` | les tokens | ré-anonymisée par le pipeline | outils qui reçoivent des identifiants opaques mais peuvent renvoyer des PII |
-| `FULL` (défaut) | les vraies valeurs (arguments désanonymisés) | ré-anonymisée par le pipeline | outils qui lisent des PII et peuvent en renvoyer de nouvelles (BDD, CRM, recherche) |
+| `INPUT` | les vraies valeurs (arguments restaurés) | telle quelle, non dé-identifiée | outils dont la réponse est connue sans PII |
+| `OUTPUT` | les tokens | dé-identifiée par le pipeline | outils qui reçoivent des identifiants opaques mais peuvent renvoyer des PII |
+| `FULL` (défaut) | les vraies valeurs (arguments restaurés) | dé-identifiée par le pipeline | outils qui lisent des PII et peuvent en renvoyer de nouvelles (BDD, CRM, recherche) |
 | `PASSTHROUGH` | les tokens | telle quelle | outils qui ne doivent jamais voir de PII, ou qui n'en ont pas besoin |
 
-`FULL` est symétrique, on désanonymise les arguments puis on passe la réponse par `pipeline.anonymize()`, qui re-détecte et ré-anonymise. Toute nouvelle PII renvoyée par l'outil devient un token avant que le LLM ne la voie, au prix d'une passe de détection par appel.
+`FULL` est symétrique, on restaure les arguments puis on passe la réponse par `pipeline.anonymize()`, qui re-détecte et dé-identifie. Toute nouvelle PII renvoyée par l'outil devient un token avant que le LLM ne la voie, au prix d'une passe de détection par appel.
 
-`INPUT` désanonymise seulement l'entrée et laisse la réponse brute, à réserver aux outils dont la sortie est connue sans PII, un lookup d'identifiant interne, un drapeau de statut, une valeur numérique. `OUTPUT` fait l'inverse, il laisse les arguments sous forme de tokens et n'anonymise que la réponse.
+`INPUT` restaure seulement l'entrée et laisse la réponse brute, à réserver aux outils dont la sortie est connue sans PII, un lookup d'identifiant interne, un drapeau de statut, une valeur numérique. `OUTPUT` fait l'inverse, il laisse les arguments sous forme de tokens et ne dé-identifie que la réponse.
 
 `PASSTHROUGH` est la frontière de confidentialité la plus stricte, les outils n'observent jamais de PII. L'outil reçoit la chaîne de tokens telle quelle et sa réponse est transmise sans réécriture. Utile quand les outils de l'agent travaillent sur des identifiants opaques, ou quand l'outil est lui-même la couche LLM-facing d'un autre système de dé-identification. C'est le seul mode qui tolère une factory `PreservesLabel`, `PreservesShape` ou `PreservesNothing`, puisque la frontière outil n'est jamais traversée en clair l'exigence d'unicité disparaît. On ne peut toujours pas brancher une telle factory directement sur `PIIAnonymizationMiddleware`, le type-checker la rejette, l'échappatoire est d'utiliser le pipeline brut hors du middleware.
 
 ### `InventedPlaceholderStrategy` : le token que le modèle a inventé
 
-Après désanonymisation, tout token émis par le pipeline a été remplacé par sa valeur. Si une chaîne matche encore la grammaire des tokens, c'est que le modèle l'a inventée, par hallucination ou par injection. Le modèle a pu produire un `<<PERSON:9>>`{ .placeholder } qui ne correspond à aucune entité connue.
+Après restauration, tout token émis par le pipeline a été remplacé par sa valeur. Si une chaîne matche encore la grammaire des tokens, c'est que le modèle l'a inventée, par hallucination ou par injection. Le modèle a pu produire un `<<PERSON:9>>`{ .placeholder } qui ne correspond à aucune entité connue.
 
 | Stratégie | Effet | Quand l'utiliser |
 |---|---|---|
@@ -66,7 +66,7 @@ Cette détection n'est possible que parce que la factory est retrouvable, ce qui
 
 ### `EntityCreateByAssistantStrategy` : la valeur venue de l'assistant
 
-La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une PII utilisateur, l'anonymiser prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
+La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une PII utilisateur, la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
 
 | Stratégie | Effet | Quand l'utiliser |
 |---|---|---|
@@ -80,7 +80,7 @@ La *provenance* d'une valeur est le rôle de sa première occurrence dans le thr
 
 Les stratégies ci-dessus ne sont pas des types fantômes, ce sont des `Enum` passées à la construction du middleware. La contrainte de type porte sur la *factory* du pipeline, pas sur les stratégies.
 
-Le middleware est générique sur un tag `PreservesRecognizableIdentity`, l'intersection de l'axe *Identity* (le token est unique par entité) et de l'axe *Recognizable* (le token porte une grammaire délimitée que la factory sait retrouver). L'unicité rend la désanonymisation par remplacement de chaîne non ambiguë. La retrouvabilité rend possible la détection d'un token inventé, donc `InventedPlaceholderStrategy`.
+Le middleware est générique sur un tag `PreservesRecognizableIdentity`, l'intersection de l'axe *Identity* (le token est unique par entité) et de l'axe *Recognizable* (le token porte une grammaire délimitée que la factory sait retrouver). L'unicité rend la restauration par remplacement de chaîne non ambiguë. La retrouvabilité rend possible la détection d'un token inventé, donc `InventedPlaceholderStrategy`.
 
 ```mermaid
 classDiagram

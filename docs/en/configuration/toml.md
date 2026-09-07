@@ -89,15 +89,15 @@ The top-level keys of a `PipelineConfig`.
 |---------|----------|---------|
 | `name` | no | An optional pipeline name, a top-level scalar overridable by `PIIGHOST_NAME` |
 | `[detector]` | yes | The detect stage |
-| `[linker]` | no | The entity linker; defaults to `ExactEntityLinker` |
-| `[anonymizer]` | no | The render stage; defaults to an `Anonymizer` with a label-counter factory |
-| `[overlap_resolver]` | no | Resolves overlapping detections; defaults to `ConfidenceOverlapResolver` |
+| `[linker]` | no | The entity linker, defaults to `ExactEntityLinker` |
+| `[anonymizer]` | no | The render stage, defaults to an `Anonymizer` with a label-counter factory |
+| `[overlap_resolver]` | no | Resolves overlapping detections, defaults to `ConfidenceOverlapResolver` |
 | `[expander]` | no | Re-finds missed occurrences of a detected value |
 | `[entity_resolver]` | no | Clusters entities that refer to the same thing |
 | `[guard]` | no | Re-checks the output for residual PII |
 | `[override]` | no | Forces or vetoes detections via a whitelist and a blacklist |
 | `[observation_redactor]` | no | A placeholder factory redacting trace payloads |
-| `[memory]` | no | The conversation memory; its presence makes a thread pipeline |
+| `[memory]` | no | The conversation memory, its presence makes a thread pipeline |
 
 </div>
 
@@ -297,7 +297,7 @@ threshold = 0.85
 
 ## `[guard]`
 
-Optional. Discriminated on `type`. Re-checks the anonymized output for residual PII and refuses it when PII remains.
+Optional. Discriminated on `type`. Re-checks the de-identified output for residual PII and refuses it when PII remains.
 
 ### `type = "detector"`
 
@@ -346,7 +346,7 @@ Optional. Forces detections through a whitelist and vetoes them through a blackl
 | `[override.blacklist]` | detector | | A detector whose hits invalidate detections |
 | `blacklist_strategy` | `exact`, `value`, `overlap` | `exact` | How a blacklist hit invalidates: same span and label, same casefolded value, or any overlapping span |
 | `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a whitelist hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
-| `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Who wins when the two lists contradict; `raise` refuses the collision with `ConflictingOverrideError` |
+| `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
 
 </div>
 
@@ -406,7 +406,7 @@ A persistent, multi-worker store. Each stored value is keyed by a hasher and enc
 | `[memory.hasher]` | hasher | | Optional (both or neither). The hasher keying each message |
 | `[memory.cipher]` | cipher | | Optional (both or neither). The cipher encrypting each value |
 
-Configure both `[memory.hasher]` and `[memory.cipher]`, or neither. With neither, the backend stores the mapping in clear and warns; with exactly one, `build()` raises `ConfigError`.
+Configure both `[memory.hasher]` and `[memory.cipher]`, or neither. With neither, the backend stores the mapping in clear and warns. With exactly one, `build()` raises `ConfigError`.
 
 The hasher, `[memory.hasher]`, is discriminated on `type`.
 

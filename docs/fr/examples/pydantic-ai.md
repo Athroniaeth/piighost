@@ -43,7 +43,7 @@ agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
 
 ## 3. Lancer un tour
 
-La capability anonymise le prompt avant que le modèle ne le lise et désanonymise la réponse pour l'affichage, le modèle travaille donc sur `<<PERSON:1>>`{ .placeholder } pendant que vous lisez `Patrick`{ .pii }.
+La capability dé-identifie le prompt avant que le modèle ne le lise et restaure la réponse pour l'affichage, le modèle travaille donc sur `<<PERSON:1>>`{ .placeholder } pendant que vous lisez `Patrick`{ .pii }.
 
 ```python
 import asyncio
@@ -61,14 +61,14 @@ asyncio.run(main())
 
 `GLiNER2` repère `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, la capability substitue un sens de chaque côté de l'appel au modèle :
 
-- `before_model_request` fait passer chaque texte utilisateur et assistant par `pipeline.anonymize`, le modèle reçoit donc `Where does <<PERSON:1>> live?`. Elle réécrit aussi les textes de l'assistant, une valeur restaurée pour l'affichage à un tour précédent est donc ré-anonymisée avant l'appel suivant et ne refuit jamais dans l'historique.
+- `before_model_request` fait passer chaque texte utilisateur et assistant par `pipeline.anonymize`, le modèle reçoit donc `Where does <<PERSON:1>> live?`. Elle réécrit aussi les textes de l'assistant, une valeur restaurée pour l'affichage à un tour précédent est donc dé-identifiée à nouveau avant l'appel suivant et ne refuit jamais dans l'historique.
 - `after_model_request` fait passer la réponse par `pipeline.deanonymize`, vous lisez donc la vraie valeur.
 
 Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque tour.
 
 ## Les jetons que le modèle invente
 
-Après la désanonymisation, chaque jeton émis est revenu à sa valeur, un jeton qui suit encore la grammaire a donc été inventé par le modèle, par hallucination ou par injection de prompt. `pii_hooks` prend un `invented_strategy` qui décide de ce qui se passe alors. `RAISE` le refuse, le défaut fail-closed ; `KEEP` le laisse ; `DROP` le retire.
+Après la restauration, chaque jeton émis est revenu à sa valeur, un jeton qui suit encore la grammaire a donc été inventé par le modèle, par hallucination ou par injection de prompt. `pii_hooks` prend un `invented_strategy` qui décide de ce qui se passe alors. `RAISE` le refuse, le défaut fail-closed. `KEEP` le laisse. `DROP` le retire.
 
 ```python
 from piighost.integrations.langchain import InventedPlaceholderStrategy
@@ -82,7 +82,7 @@ hooks = pii_hooks(
 
 ## Appels d'outils
 
-`pii_hooks` dé-identifie aussi la frontière des outils, pilotée par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont désanonymisés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est ré-anonymisé avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne désanonymise que les arguments, `OUTPUT` ne ré-anonymise que le résultat, et `PASSTHROUGH` ne touche à rien.
+`pii_hooks` traite aussi la frontière des outils, pilotée par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont restaurés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est ré-dé-identifié avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne restaure que les arguments, `OUTPUT` ne dé-identifie à nouveau que le résultat, et `PASSTHROUGH` ne touche à rien.
 
 ```python
 from piighost.integrations.langchain import ToolCallStrategy
