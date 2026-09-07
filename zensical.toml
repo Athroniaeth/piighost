@@ -17,6 +17,7 @@ nav = [
     { "Quickstart" = "getting-started/quickstart.md" },
     { "First pipeline" = "getting-started/first-pipeline.md" },
     { "Conversational pipeline" = "getting-started/conversation.md" },
+    { "Configuration file" = "getting-started/configuration.md" },
     { "LangChain middleware" = "getting-started/langchain.md" },
     { "Remote client" = "getting-started/api-client.md" },
   ]},
@@ -27,6 +28,7 @@ nav = [
     { "LlamaIndex integration" = "examples/llama-index.md" },
     { "Claude Code hooks" = "examples/claude-code.md" },
     { "Pre-built detectors" = "examples/detectors.md" },
+    { "Override lists" = "examples/overrides.md" },
     { "Extending PIIGhost" = "extending.md" },
     { "Testing" = "examples/testing.md" },
     { "Deployment" = "deployment.md" },
@@ -35,10 +37,12 @@ nav = [
   { "Reference" = [
     { "Anonymizer" = "reference/anonymizer.md" },
     { "Pipeline" = "reference/pipeline.md" },
+    { "Data models" = "reference/models.md" },
     { "LangChain" = "reference/langchain.md" },
     { "Detectors" = "reference/detectors.md" },
     { "Guard rails" = "reference/guard-rails.md" },
     { "Conversation memory" = "reference/memory.md" },
+    { "Exceptions" = "reference/errors.md" },
     { "CLI" = "reference/cli.md" },
     { "Configuration" = [
       { "TOML reference" = "configuration/toml.md" },
@@ -61,6 +65,7 @@ nav = [
     { "Contributing" = "community/contributing.md" },
     { "Code of conduct" = "community/code-of-conduct.md" },
     { "Bug reports" = "community/bug-reports.md" },
+    { "Versions and upgrades" = "community/upgrading.md" },
     { "Roadmap" = "roadmap.md" },
     { "FAQ" = "community/faq.md" },
   ]},
@@ -82,7 +87,6 @@ features = [
   "content.tooltips",
   "header.autohide",
   "navigation.footer",
-  "navigation.indexes",
   "navigation.instant",
   "navigation.instant.prefetch",
   "navigation.path",
@@ -168,6 +172,8 @@ LangChain = "langchain"
 Middleware = "middleware"
 Detector = "detector"
 Regex = "regex"
+Guard = "guard"
+Memory = "memory"
 Advanced = "advanced"
 Testing = "testing"
 
@@ -178,6 +184,8 @@ pydantic-ai = "lucide/bot"
 middleware = "lucide/blend"
 detector = "lucide/scan-search"
 regex = "lucide/regex"
+guard = "lucide/shield-check"
+memory = "lucide/database"
 advanced = "lucide/rocket"
 testing = "lucide/flask-conical"
 

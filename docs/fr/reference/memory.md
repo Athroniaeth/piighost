@@ -1,7 +1,7 @@
 ---
 icon: lucide/database
 tags:
-  - Memory
+  - Mémoire
 ---
 
 # Référence de la mémoire de conversation

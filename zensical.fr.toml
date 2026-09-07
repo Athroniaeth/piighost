@@ -18,6 +18,7 @@ nav = [
         { "Quickstart" = "getting-started/quickstart.md" },
         { "Premier pipeline" = "getting-started/first-pipeline.md" },
         { "Pipeline conversationnel" = "getting-started/conversation.md" },
+        { "Fichier de configuration" = "getting-started/configuration.md" },
         { "Middleware LangChain" = "getting-started/langchain.md" },
         { "Client distant" = "getting-started/api-client.md" },
     ] },
@@ -28,6 +29,7 @@ nav = [
         { "Intégration LlamaIndex" = "examples/llama-index.md" },
         { "Hooks Claude Code" = "examples/claude-code.md" },
         { "Détecteurs prêts à l'emploi" = "examples/detectors.md" },
+        { "Listes d'override" = "examples/overrides.md" },
         { "Étendre PIIGhost" = "extending.md" },
         { "Tests" = "examples/testing.md" },
         { "Déploiement" = "deployment.md" },
@@ -36,10 +38,12 @@ nav = [
     { "Référence" = [
         { "Anonymizer" = "reference/anonymizer.md" },
         { "Pipeline" = "reference/pipeline.md" },
+        { "Modèles de données" = "reference/models.md" },
         { "LangChain" = "reference/langchain.md" },
         { "Détecteurs" = "reference/detectors.md" },
         { "Garde-fous" = "reference/guard-rails.md" },
         { "Mémoire de conversation" = "reference/memory.md" },
+        { "Exceptions" = "reference/errors.md" },
         { "CLI" = "reference/cli.md" },
         { "Configuration" = [
             { "Référence TOML" = "configuration/toml.md" },
@@ -62,6 +66,7 @@ nav = [
         { "Contribuer" = "community/contributing.md" },
         { "Code de conduite" = "community/code-of-conduct.md" },
         { "Signaler un bug" = "community/bug-reports.md" },
+        { "Versions et migrations" = "community/upgrading.md" },
         { "Roadmap" = "roadmap.md" },
         { "FAQ" = "community/faq.md" },
     ] },
@@ -83,7 +88,6 @@ features = [
     "content.tooltips",
     "header.autohide",
     "navigation.footer",
-    "navigation.indexes",
     "navigation.instant",
     "navigation.instant.prefetch",
     "navigation.path",
@@ -159,6 +163,8 @@ LangChain = "langchain"
 Middleware = "middleware"
 "Détecteur" = "detecteur"
 Regex = "regex"
+"Garde-fou" = "garde-fou"
+"Mémoire" = "memoire"
 "Avancé" = "avance"
 Tests = "tests"
 
@@ -169,6 +175,8 @@ pydantic-ai = "lucide/bot"
 middleware = "lucide/blend"
 detecteur = "lucide/scan-search"
 regex = "lucide/regex"
+garde-fou = "lucide/shield-check"
+memoire = "lucide/database"
 avance = "lucide/rocket"
 tests = "lucide/flask-conical"
 

@@ -1,7 +1,7 @@
 ---
 icon: lucide/shield-check
 tags:
-  - Guard
+  - Garde-fou
 ---
 
 # Référence des garde-fous
