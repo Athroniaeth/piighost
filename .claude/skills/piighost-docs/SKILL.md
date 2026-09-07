@@ -590,6 +590,29 @@ Légende :
 
 Both light and dark themes are styled in `extra.css` via `[data-md-color-scheme="slate"]` selectors.
 
+## Extend a page before adding one
+
+A new page is the last resort, not the first move. Before creating one, find the page that already owns the reader's question and check whether the content belongs there. Two pages that answer one question force the reader to hold both, and the shared facts diverge at the first rename.
+
+Diagnostic: write the question the reader is asking. If the existing page answers a question the new content is a part of, extend it. If the new content answers a genuinely different question, it is its own page.
+
+- « Sur quoi puis-je m'appuyer, et qu'est-ce qui va disparaître » is one question. The API stability lists and the deprecated-names table live on `community/upgrading.md` together.
+- « Comment j'installe » and « comment je déploie en production » are two questions, so `getting-started/installation.md` and `deployment.md` are two pages.
+
+When the content does warrant its own page, move the overlapping section out of the old page rather than copying it. Never leave the same table on two pages.
+
+## Keep the API stability lists current
+
+`community/upgrading.md` classifies the public surface as Stable, Experimental, or Deprecated. It is the only page that tells an integrator what they can build on, so it goes stale silently.
+
+Update it when:
+
+- a new integration or a new LLM-backed component ships, it starts in **Experimental** with a one-line reason that names what is unsettled, not just the label;
+- an experimental surface has held its shape across a few minors, it moves to **Stable**;
+- a name is deprecated, it joins the deprecated-names table with the release that deprecated it and whether reaching it warns.
+
+The Stable list mirrors `piighost.__all__` plus the ports, the models, the config entrypoints, the CLI commands and the LangChain integration. Read those from the source, do not recall them.
+
 ## Nav updates
 
 Both `zensical.toml` (EN) and `zensical.fr.toml` (FR) carry a `nav = [...]` array. Always update **both**. The file paths stay the same since `docs_dir` differs per file:
@@ -665,6 +688,8 @@ Run this before calling a page done. It exists because an editor applying the ru
 - [ ] Every capability stated without a condition holds with the **default configuration**. If it needs a specific component, the condition is stated and linked.
 - [ ] Every component, integration and extra named on the page exists in `src/piighost/`, the OpenAI and Anthropic connector excepted, which is served by `piighost-api` and only ever named as an ecosystem capability.
 - [ ] Every internal link resolves, and points at the page that actually covers what the sentence promises.
+- [ ] A new page does not repeat a section that already lives elsewhere. If it does, extend the existing page instead.
+- [ ] A new integration or LLM-backed component is classified in the API stability lists of `community/upgrading.md`.
 
 **Whole-page consistency** (the ones a paragraph-by-paragraph pass misses)
 
