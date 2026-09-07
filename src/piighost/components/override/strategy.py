@@ -21,11 +21,14 @@ class WhitelistStrategy(Enum):
 class BlacklistStrategy(Enum):
     """How a blacklist detection invalidates an already-detected one.
 
-    EXACT, the default, invalidates only a detection with the identical span
-    and label, the most predictable rule. VALUE invalidates every detection
-    carrying the same casefolded text, positions and labels ignored, the
-    classic never-anonymize-this-value list. OVERLAP invalidates any detection
-    overlapping a blacklisted span, labels ignored, the most aggressive rule.
+    VALUE, the default, invalidates every detection carrying the same
+    casefolded text, positions and labels ignored, the classic
+    never-anonymize-this-value list. It is the default because a blacklist
+    names a value, and the label a caller writes beside it is a guess about
+    what the primary detector will emit. EXACT invalidates only a detection
+    with the identical span and label, the narrow rule to pick when the label
+    is the point. OVERLAP invalidates any detection overlapping a blacklisted
+    span, labels ignored, the most aggressive rule.
     """
 
     EXACT = "exact"

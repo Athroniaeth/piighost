@@ -25,7 +25,7 @@ class OverrideConfig(_ComponentConfig):
 
     whitelist: DetectorConfig | None = None
     blacklist: DetectorConfig | None = None
-    blacklist_strategy: BlacklistStrategy = BlacklistStrategy.EXACT
+    blacklist_strategy: BlacklistStrategy = BlacklistStrategy.VALUE
     whitelist_strategy: WhitelistStrategy = WhitelistStrategy.RESPECT_PROVENANCE
     conflict_strategy: OverrideConflictStrategy = (
         OverrideConflictStrategy.WHITELIST_WINS

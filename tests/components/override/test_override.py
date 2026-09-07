@@ -67,7 +67,8 @@ class TestBlacklistStrategies:
         """EXACT invalidates a detection with the same span and label."""
         primary = [_detection(6, 11, "Paris", label="LOCATION")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
+            blacklist_strategy=BlacklistStrategy.EXACT,
         )
         assert await override.apply("Visit Paris", primary) == []
 
@@ -75,9 +76,18 @@ class TestBlacklistStrategies:
         """EXACT leaves a detection whose label differs from the blacklist's."""
         primary = [_detection(6, 11, "Paris", label="PERSON")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
+            blacklist_strategy=BlacklistStrategy.EXACT,
         )
         assert await override.apply("Visit Paris", primary) == primary
+
+    async def test_value_is_the_default_and_ignores_the_label(self) -> None:
+        """The default strategy clears a value whatever label the blacklist gives it."""
+        primary = [_detection(6, 11, "Paris", label="PERSON")]
+        override = DetectionOverride(
+            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+        )
+        assert await override.apply("Visit Paris", primary) == []
 
     async def test_value_removes_the_value_everywhere(self) -> None:
         """VALUE invalidates every detection of the value, labels ignored."""

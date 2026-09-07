@@ -83,7 +83,7 @@ class TestOverrideConfig:
         assert isinstance(override, DetectionOverride)
         assert isinstance(override.blacklist, RegexDetector)
         assert override.whitelist is None
-        assert override.blacklist_strategy is BlacklistStrategy.EXACT
+        assert override.blacklist_strategy is BlacklistStrategy.VALUE
         assert override.whitelist_strategy is WhitelistStrategy.RESPECT_PROVENANCE
         assert override.conflict_strategy is OverrideConflictStrategy.WHITELIST_WINS
 
