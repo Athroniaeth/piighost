@@ -8,6 +8,7 @@ importing it without the dependency raises an ImportError pointing at the extra.
 
 import importlib.util
 import logging
+import re
 from enum import Enum
 
 from piighost.components.detector.ner.base import BaseNERDetector
@@ -51,6 +52,26 @@ _INJECTION_GUARD = (
 
 _HUMAN_TEMPLATE = f"{_TEXT_OPEN}\n{{text}}\n{_TEXT_CLOSE}"
 """Human message wrapping the source text in tags around the {text} value."""
+
+_DATA_TAG_PATTERN = re.compile(
+    f"{re.escape(_TEXT_OPEN)}|{re.escape(_TEXT_CLOSE)}", re.IGNORECASE
+)
+"""Matches either data tag, in any case, so neither can close the data region
+from inside the source text."""
+
+
+def _escape_data_tag(match: re.Match[str]) -> str:
+    """Escape the leading angle bracket of a matched data tag."""
+    return match.group().replace("<", "&lt;")
+
+
+def _neutralize_data_tags(text: str) -> tuple[str, int]:
+    """Escape every data tag in a text, returning the copy and how many were found.
+
+    The escaped form is ordinary text, so it survives any provider-side
+    normalization that would silently strip an invisible separator.
+    """
+    return _DATA_TAG_PATTERN.subn(_escape_data_tag, text)
 
 
 def _make_schema(labels: list[str]) -> type[BaseModel]:
@@ -100,6 +121,8 @@ class LLMDetector(BaseNERDetector):
         The source text is wrapped in tags in the human message and the system
         prompt is told to treat the tagged content as data, not instructions, so a
         text carrying "ignore previous instructions" cannot steer the extraction.
+        A data tag inside the source text is escaped before the text is sent, so
+        the region cannot be closed from within.
         confidence is carried on every detection, so an LLM detector can be scored
         against a NER one at the overlap-resolution stage.
         """
@@ -117,12 +140,27 @@ class LLMDetector(BaseNERDetector):
         )
 
     async def _raw_detect(self, text: str) -> list[Detection]:
-        """Extract via the model, then locate each value in the source text."""
+        """Extract via the model, then locate each value in the source text.
+
+        The copy sent to the model has its data tags escaped, so a source text
+        carrying a closing tag cannot end the data region and have the rest read
+        as instructions. Only that copy is escaped; values are located in the
+        untouched source text, so the spans stay aligned with the caller's text.
+        """
         if not text:
             return []
 
+        tagged_text, tag_count = _neutralize_data_tags(text)
+        if tag_count:
+            logger.warning(
+                "LLMDetector source text carried %d data tag(s); they were "
+                "escaped before reaching the model. This can be a prompt "
+                "injection attempt.",
+                tag_count,
+            )
+
         messages = self._prompt_template.format_messages(
-            labels=", ".join(self.internal_labels), text=text
+            labels=", ".join(self.internal_labels), text=tagged_text
         )
         result = await self._structured.ainvoke(messages)
 
