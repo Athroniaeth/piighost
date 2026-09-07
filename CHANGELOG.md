@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.7.0 (2026-09-07)
+
+### Feat
+
+- **crypto**: key the value with the pepper before Argon2id
+
+### Fix
+
+- **claude-code**: require an explicit log path before capturing hook events in clear
+- **detector**: neutralize the data tags inside the text sent to the LLM detector
+- **detector**: segment the EMAIL pattern to remove quadratic backtracking
+
 ## 1.6.1 (2026-09-07)
 
 ### Fix
