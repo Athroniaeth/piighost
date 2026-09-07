@@ -25,11 +25,13 @@ def _reimport(name: str) -> Any:
 
 class TestDeprecatedMiddlewareAlias:
     def test_importing_the_old_package_warns(self) -> None:
+        """Importing the old package emits a DeprecationWarning naming the new one."""
         sys.modules.pop(_OLD, None)
         with pytest.warns(DeprecationWarning, match=_NEW):
             importlib.import_module(_OLD)
 
     def test_old_enums_are_the_new_objects(self) -> None:
+        """The three strategy enums reached through the old path are the new objects."""
         from piighost.integrations.langchain import (
             EntityCreateByAssistantStrategy,
             InventedPlaceholderStrategy,
@@ -42,6 +44,7 @@ class TestDeprecatedMiddlewareAlias:
         assert old.EntityCreateByAssistantStrategy is EntityCreateByAssistantStrategy
 
     def test_old_strategy_submodule_reexports(self) -> None:
+        """The old strategy submodule re-exports the current strategy objects."""
         from piighost.integrations.langchain.strategy import ToolCallStrategy
 
         sys.modules.pop(_OLD, None)
@@ -49,6 +52,7 @@ class TestDeprecatedMiddlewareAlias:
         assert old_strategy.ToolCallStrategy is ToolCallStrategy
 
     def test_new_import_does_not_warn(self, recwarn: pytest.WarningsRecorder) -> None:
+        """Importing the current package emits no deprecation warning."""
         _reimport(_NEW)
         messages = [str(w.message) for w in recwarn]
         assert not any("is deprecated" in m for m in messages)

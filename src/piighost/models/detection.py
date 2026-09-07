@@ -9,8 +9,9 @@ from piighost.models.span import Span
 
 @dataclass(frozen=True, slots=True, order=True)
 class Detection:
-    """A single PII detection, a span carrying a label, a confidence, and the
-    matched text.
+    """A single PII detection.
+
+    A span carrying a label, a confidence, and the matched text.
 
     Ordered by (span, text, label, confidence) so detections sort by position
     first, which the span-conflict stage relies on.
@@ -31,6 +32,7 @@ class Detection:
     confidence: float
 
     def __post_init__(self) -> None:
+        """Reject a confidence outside [0, 1], which no scorer should produce."""
         if not 0.0 <= self.confidence <= 1.0:
             raise ConfidenceError(
                 f"Detection confidence must be in [0, 1], got {self.confidence}"

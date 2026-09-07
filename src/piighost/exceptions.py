@@ -28,9 +28,10 @@ class NegativeSpanStartError(SpanError):
 
 
 class SpanOrderingError(SpanError):
-    """Raised when a Span's end is not strictly greater than its start, which
-    describes an empty range (end equals start) or a reversed one (end below
-    start).
+    """Raised when a Span's end is not strictly greater than its start.
+
+    Such a span describes an empty range (end equals start) or a reversed one
+    (end below start).
     """
 
 
@@ -153,6 +154,7 @@ class PIIRemainingError(GuardError):
     def __init__(
         self, message: str, detections: "list[Detection] | None" = None
     ) -> None:
+        """Carry the residual detections alongside the message, empty when absent."""
         self.detections = detections or []
         super().__init__(message)
 
@@ -184,6 +186,7 @@ class InventedPlaceholderError(MiddlewareError):
     """
 
     def __init__(self, message: str, tokens: list[str]) -> None:
+        """Carry the invented tokens alongside the message."""
         self.tokens = tokens
         super().__init__(message)
 
@@ -237,6 +240,7 @@ class RemoteError(ClientError):
     """
 
     def __init__(self, message: str, status_code: int) -> None:
+        """Carry the HTTP status the server returned alongside the message."""
         self.status_code = status_code
         super().__init__(message)
 

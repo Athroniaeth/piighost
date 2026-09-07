@@ -36,8 +36,11 @@ class TestHash:
         assert bytes.fromhex(digest)
 
     def test_matches_hmac_sha256_not_a_plain_concatenation(self) -> None:
-        """The digest is HMAC-SHA256(pepper, value), a golden value that a
-        length-extension-prone sha256(pepper + value) would not reproduce."""
+        """The digest is HMAC-SHA256(pepper, value), not sha256(pepper + value).
+
+        The golden value below is what HMAC produces, and a length-extension-prone
+        plain concatenation would not reproduce it.
+        """
         expected = "a767b681d7020278e0e8e5cc3d394b8cc443d444e6e1930aec25fa364ae21f19"
         assert Sha256Hasher(_PEPPER).hash("Emma") == expected
 

@@ -28,6 +28,7 @@ class Entity:
     detections: tuple[Detection, ...]
 
     def __post_init__(self) -> None:
+        """Reject an empty detection set or detections that disagree on the label."""
         if not self.detections:
             raise EmptyEntityError("An Entity needs at least one detection")
 
