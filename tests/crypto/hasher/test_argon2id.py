@@ -1,5 +1,6 @@
 """Tests for the Argon2id hasher and its optional-dependency guard."""
 
+import hashlib
 import importlib
 import importlib.util
 import sys
@@ -80,6 +81,30 @@ class TestUsableWhenInstalled:
         from piighost.crypto.hasher import Argon2Hasher
 
         assert len(Argon2Hasher("pepper-secret", hash_length=16).hash("Emma")) == 32
+
+    def test_the_pepper_keys_the_value_not_only_the_salt(self) -> None:
+        """The digest differs from a bare Argon2id over the same value and salt.
+
+        The salt alone carried the pepper before this change, and Argon2 treats a
+        salt as public, so the value is now HMAC-ed under the pepper first.
+        """
+        pytest.importorskip("argon2")
+        import argon2.low_level
+
+        from piighost.crypto.hasher import Argon2Hasher, argon2id
+
+        pepper = "pepper-secret"
+        salt = hashlib.sha256(pepper.encode()).digest()[: argon2id._SALT_LENGTH]
+        unkeyed = argon2.low_level.hash_secret_raw(
+            secret=b"Emma",
+            salt=salt,
+            time_cost=argon2id._DEFAULT_TIME_COST,
+            memory_cost=argon2id._DEFAULT_MEMORY_COST,
+            parallelism=argon2id._DEFAULT_PARALLELISM,
+            hash_len=argon2id._DEFAULT_HASH_LENGTH,
+            type=argon2.low_level.Type.ID,
+        )
+        assert Argon2Hasher(pepper).hash("Emma") != unkeyed.hex()
 
     def test_cost_parameters_change_the_digest(self) -> None:
         """A different Argon2 cost yields a different digest for the same input."""

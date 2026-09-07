@@ -40,6 +40,28 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PII
 
 Run your test suite with `python -W error::DeprecationWarning` to fail on any deprecated name left in a code base. The current surface is listed in the [LangChain reference](../reference/langchain.md).
 
+## Argon2 digests changed
+
+`Argon2Hasher` now runs the value through HMAC-SHA256 under the pepper before Argon2id hashes it, so a digest is no longer the one an earlier release produced. Nothing in the API changed, but every key already stored under the old digest becomes unreachable.
+
+This concerns a Redis or SQLAlchemy conversation memory built with `type = "argon2"`. A deployment on `sha256`, or with no hasher at all, is unaffected.
+
+Stored entries are orphaned rather than corrupted. The pipeline finds nothing under the new key, treats the message as never seen, and re-detects it, so an in-flight thread restarts its token numbering and the same value can land on a different number than the one the model has been reading.
+
+Purge the store as part of the upgrade, before restarting the application:
+
+```bash
+# Redis, the whole database backing the conversation memory
+redis-cli -n 0 FLUSHDB
+```
+
+```sql
+-- SQLAlchemy, the conversation memory table (its default name)
+TRUNCATE TABLE piighost_conversation_messages;
+```
+
+An entry left behind expires on its own when a `ttl` is configured. Without one it stays forever, so purging is the only way to reclaim the space.
+
 ## Coming from 0.x
 
 Every release before 1.0.0 exposed a different API, so a 0.x code base is ported by rewriting its setup rather than by renaming imports. What changed:
