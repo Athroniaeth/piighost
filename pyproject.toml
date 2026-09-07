@@ -236,8 +236,23 @@ extend-exclude = ["tools", "docs", ".claude"]
 # Typing is mandatory: flake8-annotations (ANN) flags any missing argument or
 # return annotation, in src and tests alike. ANN401 stays off, so an explicit
 # Any is allowed where a type genuinely cannot be narrowed.
-extend-select = ["ANN"]
-ignore = ["ANN401"]
+#
+# Docstrings are mandatory too: pydocstyle (D) enforces the presence and the shape
+# the code-style skill asks for on every module, class, function and constant.
+# D403 (first word capitalised) is off because it contradicts that skill: a test
+# docstring states the invariant starting with the identifier under test, in its
+# real case ("end is the start offset plus the text length").
+extend-select = ["ANN", "D"]
+ignore = ["ANN401", "D403"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# A Test* class is a grouping container the skill's test skeleton requires, not an
+# API surface, so it carries no docstring of its own. The requirement holds for the
+# test functions inside it, which D102 still enforces, and D101 stays on for src.
+"tests/**" = ["D101"]
 
 [tool.pyrefly]
 # Scratch scripts under scripts/ reference removed APIs, and e2e/ scripts pull in

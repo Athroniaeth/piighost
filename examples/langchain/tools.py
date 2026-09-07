@@ -48,6 +48,7 @@ def send_mail(to: str, body: str) -> str:
 
 
 async def main() -> None:
+    """Run one agent turn and show the tool receiving the real recipient."""
     load_dotenv()
 
     labels = {"Patrick Dupont": "PERSON", "patrick@acme.com": "EMAIL"}

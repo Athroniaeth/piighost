@@ -6,10 +6,10 @@ from piighost.models import Detection, Span
 
 
 class RegexDetector:
-    """Detector that finds PII by matching regex patterns, one per label.
+    r"""Detector that finds PII by matching regex patterns, one per label.
 
     Each pattern is compiled once at construction, under re.ASCII, so the shape
-    classes match ASCII only: \\d is 0-9, not a Unicode digit shape such as an
+    classes match ASCII only: \d is 0-9, not a Unicode digit shape such as an
     Arabic-Indic numeral, since a PII format uses ASCII digits and matching a
     look-alike would flag non-PII. detect emits one detection per non-overlapping
     match, at a flat confidence of 1.0. It carries no checksum validator and no
