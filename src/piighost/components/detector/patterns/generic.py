@@ -7,8 +7,15 @@ than dropped.
 """
 
 GENERIC_PATTERNS: dict[str, str] = {
-    # Simplified RFC 5322, tight enough to avoid matching everything with an "@".
-    "EMAIL": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+    # Simplified RFC 5322, tight enough to avoid matching everything with an
+    # "@". The lookbehind pins a match to the start of a local-part run, so an
+    # adversarial "a.a.a..." cannot restart the scan at every character, and the
+    # domain is segmented label by label so "." is never both a class member and
+    # a separator. Both guards keep the scan linear instead of quadratic.
+    "EMAIL": (
+        r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@"
+        r"(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}"
+    ),
     # Plain http(s) URL. The final character class excludes trailing sentence
     # punctuation, so a URL ending a sentence does not swallow the "." or ",".
     "URL": r"https?://[^\s<>\"']*[^\s<>\"'.,;:!?)\]]",

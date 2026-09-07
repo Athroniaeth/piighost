@@ -372,6 +372,8 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 
 </div>
 
+Every catalog pattern is tested against catastrophic backtracking, so an adversarial input cannot turn a scan into a denial of service.
+
 The `GENERIC_PATTERNS` labels are country-agnostic. The others are prefixed (`US_`, `FR_`) so they do not collide when catalogs are merged. `EU_PATTERNS` carries the ISO 13616 IBAN shared across member states. For country-specific numbers, use a per-country catalog.
 
 ### Pulling catalogs from a config
