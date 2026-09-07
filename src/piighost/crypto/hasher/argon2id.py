@@ -7,6 +7,7 @@ eagerly, so piighost stays usable with the stdlib Sha256Hasher alone.
 """
 
 import hashlib
+import hmac
 import importlib.util
 
 from piighost.crypto.hasher.base import BaseHasher
@@ -42,9 +43,15 @@ class Argon2Hasher(BaseHasher):
     even if the pepper itself leaks, at a cost that rules it out for a hot path.
     It is the interchangeable high-security alternative to the fast Sha256Hasher.
 
+    The pepper keys the digest twice over. The value is first HMAC-SHA256'd under
+    the pepper, and that keyed digest is what Argon2id hashes, so the pepper enters
+    through a standard keyed PRF rather than through the salt alone. argon2-cffi
+    does not expose Argon2's own key parameter, hence the HMAC.
+
     Determinism comes from a fixed salt: Argon2 randomizes its salt by design, so
     here the salt is derived from the pepper, making the same value hash the same
-    way while an attacker without the pepper cannot reproduce it.
+    way. The salt is not the security boundary though, since Argon2 treats a salt
+    as public, which is why the HMAC above carries the keying.
 
     The cost parameters are constructor knobs so a deployment can tune the
     time and memory hardness; they default to the OWASP low-memory profile.
@@ -67,10 +74,15 @@ class Argon2Hasher(BaseHasher):
         self._hash_length = hash_length
 
     def _digest(self, value: str) -> bytes:
-        """Return Argon2id of the value, salted by a digest of the pepper."""
+        """Return Argon2id of the pepper-keyed value, salted by a digest of the pepper.
+
+        Handing an attacker the salt is not enough to recompute a digest, because
+        the message Argon2id sees is already keyed by the pepper.
+        """
         salt = hashlib.sha256(self._pepper).digest()[:_SALT_LENGTH]
+        keyed_value = hmac.new(self._pepper, value.encode(), hashlib.sha256).digest()
         return argon2.low_level.hash_secret_raw(
-            secret=value.encode(),
+            secret=keyed_value,
             salt=salt,
             time_cost=self._time_cost,
             memory_cost=self._memory_cost,

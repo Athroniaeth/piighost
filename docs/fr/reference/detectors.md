@@ -372,6 +372,8 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 
 </div>
 
+Chaque pattern de catalogue est testé contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
+
 Les labels de `GENERIC_PATTERNS` ne dépendent d'aucun pays. Les autres sont préfixés (`US_`, `FR_`) pour ne pas se confondre quand les catalogues sont fusionnés. `EU_PATTERNS` porte l'IBAN ISO 13616 partagé entre les États membres. Pour des numéros propres à un pays, utilisez un catalogue par pays.
 
 ### Tirer les catalogues depuis une config

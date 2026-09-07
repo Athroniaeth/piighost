@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PIIGhost is a composable PII de-identification pipeline for LLM agents. It detects, anonymizes, and deanonymizes sensitive entities using pluggable detectors (regex, GLiNER2, spaCy, Transformers, LLM), with a LangChain middleware for LangGraph agents, TOML/JSON-driven configuration, and an HTTP client for the companion `piighost-api` server. The design is hexagonal: every stage is a port (an `Any*` runtime_checkable Protocol) with a `Base*` template ABC, and configuration couples to the core in one direction only.
+PIIGhost is a composable PII de-identification pipeline for LLM agents. It detects, anonymizes, and deanonymizes sensitive entities using pluggable detectors (regex, GLiNER2, spaCy, Transformers, LLM), with integrations for LangChain/LangGraph, Pydantic AI, LlamaIndex and Claude Code hooks, TOML/JSON-driven configuration, and an HTTP client for the companion `piighost-api` server. The design is hexagonal: every stage is a port (an `Any*` runtime_checkable Protocol) with a `Base*` template ABC, and configuration couples to the core in one direction only.
 
 ## Development Commands
 
@@ -29,7 +29,7 @@ Each pipeline stage is a package under `src/piighost/components/` whose `base.py
 
 `AnonymizationPipeline` (`pipeline/base.py`, extends `BaseAnonymizationPipeline`) runs the stages in order. Only the detector is required: the linker defaults to `ExactEntityLinker`, the anonymizer to `Anonymizer(LabelCounterPlaceholderFactory())`, and the overlap resolver to `ConfidenceOverlapResolver` (the render stage assumes disjoint spans); the expand, entity-resolve, override, and guard stages default to disabled.
 
-1. **Detect**: `AnyDetector` (`components/detector/base.py`). `RegexDetector` (prebuilt pattern catalogs in `components/detector/patterns/`: generic, us, eu, fr; no checksum validators, so it matches on shape alone and never drops an OCR-mangled value), `ExactMatchDetector` (tests), `CompositeDetector` (runs several concurrently), `ChunkedDetector` (overlapping-chunk splitting for long text), and the model detectors `Gliner2Detector` / `SpacyDetector` / `TransformersDetector` (extend `BaseNERDetector` for label mapping) plus `LLMDetector` (LangChain structured output).
+1. **Detect**: `AnyDetector` (`components/detector/base.py`). `RegexDetector` (prebuilt pattern catalogs in `components/detector/patterns/`: generic, us, eu, fr; no checksum validators, so it matches on shape alone and never drops an OCR-mangled value), `ExactMatchDetector` (tests), `CompositeDetector` (runs several concurrently), `ChunkedDetector` (overlapping-chunk splitting for long text), and the model detectors `Gliner2Detector` / `SpacyDetector` / `TransformersDetector` / `PresidioDetector` (`components/detector/ner/`, extend `BaseNERDetector` for label mapping) plus `LLMDetector` (LangChain structured output).
 2. **Override** (optional): `AnyDetectionOverride` (`components/override/`) imposes a server whitelist and blacklist on every detection set.
 3. **Resolve overlaps** (on by default): `AnyOverlapResolver` / `ConfidenceOverlapResolver` keeps the highest-confidence detection when spans overlap, breaking a true tie (same confidence and span) in favor of the first detector in order. `Anonymizer.render` raises `OverlappingSpansError` if any overlap survives to it.
 4. **Expand** (optional): `AnyDetectionExpander` / `WordBoundaryExpander` adds missed occurrences.
@@ -42,23 +42,31 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Placeholder Factories & Preservation Tags
 
-`components/placeholder/tags.py` defines a phantom-type hierarchy (a `str` subclass) describing what a token preserves: label (`<PERSON>` vs `[REDACT]`), identity (`<<PERSON:1>>` uniquely identifies), realism (Opaque / Hashed), and shape (masks like `j***@mail.com`). Pipelines are generic on this tag. Factories in `components/placeholder/`: `RedactPlaceholderFactory`, `LabelPlaceholderFactory`, `MaskPlaceholderFactory`, `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`), `LabelHashPlaceholderFactory` (pepper via `PIIGHOST_HASH_PEPPER`). The middleware requires a token that preserves recognizable identity (`PreservesRecognizableIdentity`) so it can find and restore it. There is no Faker factory.
+`components/placeholder/tags.py` defines a phantom-type hierarchy (a `str` subclass) describing what a token preserves: label (`<PERSON>` vs `[REDACT]`), identity (`<<PERSON:1>>` uniquely identifies), realism (Opaque / Hashed), and shape (masks like `j***@mail.com`). Pipelines are generic on this tag. Factories in `components/placeholder/`: `RedactPlaceholderFactory`, `LabelPlaceholderFactory`, `MaskPlaceholderFactory`, `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`), `LabelHashPlaceholderFactory` (pepper via `PIIGHOST_HASH_PEPPER`). The middleware requires a token that preserves recognizable identity (`PreservesRecognizableIdentity`) so it can find and restore it. There is no Faker factory. `placeholder/streaming.py` holds the sync and async decoders that keep a token whole across streamed fragments, so `<<PER` then `SON:1>>` is rewritten once rather than corrupted.
 
 ### Conversation Layer
 
 `ThreadAnonymizationPipeline` (`pipeline/thread.py`) extends the base pipeline to keep a value's token stable across a whole thread, assigning tokens over the union of every message's detections. `conversation_memory/` holds the memory port plus `InMemoryConversationMemory`, a Redis backend (`redis_backend.py`, `redis` extra), and `SqlAlchemyConversationMemory` (`sqlalchemy_backend.py`, `sqlalchemy` extra); the Redis backend optionally encrypts stored values with AES-GCM and hashes the storage keys with Argon2id (`crypto/`, `crypto` / `argon2` extras, keyed by `PIIGHOST_CIPHER_KEY`). `thread_id` propagates via a ContextVar (default `"default"`); `require_thread_id` refuses the shared default. `forget_thread(thread_id)` purges a conversation. There is no result cache (no aiocache, no SQLAlchemy cache).
 
-### Middleware Integration
+### Framework Integrations
 
 `PIIAnonymizationMiddleware` (`integrations/langchain/middleware.py`) extends LangChain's `AgentMiddleware`:
 - Reads `thread_id` from the LangGraph config; `require_thread_id` defaults to `True`, so a missing thread id raises instead of leaking into the shared default.
 - Anonymizes messages before the model sees them and deanonymizes for user display.
-- `ToolCallStrategy` (`INPUT` / `OUTPUT` / `FULL` / `PASSTHROUGH`) governs tool-call de- and re-anonymization; `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) handles tokens the model made up; `AssistantEntityStrategy` (`PRESERVE` / `ANONYMIZE` / `IGNORE`) handles values the assistant introduces.
+- `ToolCallStrategy` (`INPUT` / `OUTPUT` / `FULL` / `PASSTHROUGH`) governs tool-call de- and re-anonymization; `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) handles tokens the model made up; `EntityCreateByAssistantStrategy` (`PRESERVE` / `ANONYMIZE` / `IGNORE`, formerly `AssistantEntityStrategy`, still importable as a deprecated alias) handles values the assistant introduces.
 - Requires a pipeline whose tokens are recognizable (`pipeline.recognizer`), else raises at construction.
 
 ### Configuration & CLI
 
-`config/` builds a full pipeline from a TOML or JSON file via pydantic-settings. `PipelineConfig` and each component config carry a `build()` method (no builder registry, no `from_config` classmethods); `load_config`, `load_pipeline`, and `load_thread_pipeline` combine parsing and building. Secrets are read from the environment only (`PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `MISTRAL_API_KEY`), raising `ConfigError` at build time when missing. The `piighost` CLI (`cli/`) exposes `validate <file>` and `schema`.
+`config/` builds a full pipeline from a TOML or JSON file via pydantic-settings. `PipelineConfig` and each component config carry a `build()` method (no builder registry, no `from_config` classmethods); `load_config`, `load_pipeline`, and `load_thread_pipeline` combine parsing and building. Secrets are read from the environment only (`PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `MISTRAL_API_KEY`), raising `ConfigError` at build time when missing. The `piighost` CLI (`cli/`) exposes `validate <file>`, `schema`, and `anonymize` (a text argument or stdin, through a config file, a remote `--api`, or a default generic regex detector). The typer app is built lazily, so importing `cli/` never requires typer.
+
+### Other Integrations
+
+- `integrations/pydantic_ai/`: `pii_hooks`, a Pydantic AI capability that anonymizes user and assistant text and deanonymizes the reply (`pydantic-ai` extra).
+- `integrations/llama_index/`: `PIINodeAnonymizer`, an ingestion transform that anonymizes node text before embedding, and `PIIQueryEngine`, a wrapper that anonymizes the query and deanonymizes the answer (`llama-index` extra).
+- `integrations/claude_code/`: `handle_hook` (pure, core-only) plus a `run` entrypoint driven by `python -m piighost.integrations.claude_code`, wiring piighost into Claude Code's hook lifecycle keyed by the session id (`client` extra for the runner).
+- `integrations/_deidentify.py`: `TextDeidentifier`, the framework-agnostic anonymize/deanonymize/invented-placeholder logic the LangChain and Pydantic AI integrations share so they cannot drift.
+- `integrations/middleware/`: a deprecated alias of `integrations/langchain/`, emitting a `DeprecationWarning`.
 
 ### Other Components
 
@@ -68,7 +76,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Optional Dependencies
 
-Nearly everything beyond the core is an extra (`pyproject.toml`): `gliner2`, `spacy`, `transformers`, `llm`, `middleware`, `config`, `fuzzy`, `redis`, `crypto`, `argon2`, `mistral`, `client`, `observation`, `all`. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/regression/test_imports.py` enforces this. Keep new optional features behind the same pattern.
+Nearly everything beyond the core is an extra (`pyproject.toml` `[project.optional-dependencies]`): `gliner2`, `redis`, `langchain`, `middleware`, `pydantic-ai`, `client`, `spacy`, `transformers`, `llm`, `observation`, `fuzzy`, `config`, `argon2`, `crypto`, `mistral`, `presidio`, `llama-index`, `sqlalchemy`, `all`. `middleware` is a back-compat alias of `langchain`; prefer `langchain`. `all` pulls every other extra. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/regression/test_imports.py` enforces this. Keep new optional features behind the same pattern.
 
 ### Design Patterns
 
@@ -76,9 +84,11 @@ Config coupling is **one-way**: `config/` imports and builds the core components
 
 ## Conventions
 
-- **Commits**: Conventional Commits via Commitizen (`feat:`, `fix:`, `refactor:`, etc.); releases via `cz bump`
-- **Type checking**: PyReFly (not mypy); `make lint` is a blocking gate, `make format` auto-fixes
-- **Formatting/linting**: Ruff; security lint via Bandit
+Code conventions live in `.claude/skills/piighost-code-style/SKILL.md`, documentation conventions in `.claude/skills/piighost-docs/SKILL.md`. Read the relevant one before writing code or docs; this file does not restate them. The tooling they assume is in the Development Commands block above.
+
+What no skill owns:
+
+- **Commits**: Conventional Commits via Commitizen (`feat:`, `fix:`, `refactor:`, etc.), see `CONTRIBUTING.md`; releases via `cz bump`, reserved for the maintainer
 - **Package manager**: uv (not pip)
 - **Python**: 3.11+
 
@@ -88,7 +98,7 @@ Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/
 
 ## Examples
 
-- `examples/`: standalone PEP 723 inline-metadata scripts (`anonymize_basic.py`, `thread_conversation.py`, `guard_rail.py`, `langchain_middleware.py`, `placeholder_styles.py`, plus `strategies/`, `observation/`, `config/`), run with `uv run <script>`.
+- `examples/`: standalone PEP 723 inline-metadata scripts (`anonymize_basic.py`, `thread_conversation.py`, `guard_rail.py`, `langchain_middleware.py`, `langchain_streaming.py`, `placeholder_styles.py`, plus `config/`, `langchain/`, `llama_index/`, `observation/`, `pydantic_ai/`, `strategies/`, `transformers/`), run with `uv run <script>`.
 
 New examples should be PEP 723 scripts, not uv sub-projects.
 

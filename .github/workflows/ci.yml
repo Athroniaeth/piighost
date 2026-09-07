@@ -7,6 +7,9 @@ on:
   # Documentation-only changes skip verification: the workflow runs unless every
   # changed file matches one of these patterns. This list mirrors the paths
   # allowlist in docs.yml (its inverse).
+  #
+  # The audit job scans the whole lockfile, every extra and every dependency
+  # group, not just the runtime core.
   pull_request:
     branches: [master, develop]
     paths-ignore:
@@ -65,10 +68,25 @@ jobs:
       - run: uv sync --locked --dev --no-progress -q
       - run: uv run bandit -c pyproject.toml -r src examples
 
+  audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+      - run: uv export --locked --no-hashes --no-emit-project --all-extras --all-groups -o requirements-audit.txt
+      # nltk has no fixed release for this file-sandbox bypass. It arrives via
+      # llama-index-core and PIIGhost never reaches the affected parsers, so the
+      # advisory is acknowledged rather than blocking. Drop the ignore once nltk
+      # ships a fix.
+      - run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off --ignore-vuln PYSEC-2026-3740
+
   tests:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    needs: [lint, security]
+    needs: [lint, security, audit]
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]

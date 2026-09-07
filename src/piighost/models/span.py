@@ -36,6 +36,7 @@ class Span:
     end: int
 
     def __post_init__(self) -> None:
+        """Reject a negative start and a range whose end is not past its start."""
         if self.start < 0:
             raise NegativeSpanStartError(f"Span start must be >= 0, got {self.start}")
 
@@ -50,6 +51,7 @@ class Span:
         return self.end - self.start
 
     def __len__(self) -> int:
+        """Number of characters the span covers, so len(span) works."""
         return self.length
 
     def overlaps(self, other: Self) -> bool:
