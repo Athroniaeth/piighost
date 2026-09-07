@@ -106,3 +106,20 @@ code.pii,
 [data-md-color-scheme="slate"] .md-typeset .sec-legend.c-green  { color: #86efac; }
 [data-md-color-scheme="slate"] .md-typeset .sec-legend.c-yellow { color: #fcd34d; }
 [data-md-color-scheme="slate"] .md-typeset .sec-legend.c-red    { color: #fca5a5; }
+
+/* Tighter list rhythm.
+   The theme leaves 0.5em between items, which reads as a gap on the short
+   scannable lists this site uses (link lists, option lists, definitions).
+   The card grid keeps its own spacing, its rule is more specific. */
+.md-typeset ol li,
+.md-typeset ul li {
+  margin-bottom: 0.25em;
+}
+
+.md-typeset ol li ol,
+.md-typeset ol li ul,
+.md-typeset ul li ol,
+.md-typeset ul li ul {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
