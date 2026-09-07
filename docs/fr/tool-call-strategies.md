@@ -78,7 +78,7 @@ La *provenance* d'une valeur est le rôle de sa première occurrence dans le thr
 
 ## Tags de préservation
 
-Les stratégies ci-dessus ne sont pas des types fantômes, ce sont des `Enum` passées à la construction du middleware. La contrainte de type porte sur la *factory* du pipeline, pas sur les stratégies.
+Les stratégies ci-dessus sont des `Enum` passées à la construction du middleware. La contrainte de type porte sur la *factory* du pipeline, pas sur les stratégies.
 
 Le middleware est générique sur un tag `PreservesRecognizableIdentity`, l'intersection de l'axe *Identity* (le token est unique par entité) et de l'axe *Recognizable* (le token porte une grammaire délimitée que la factory sait retrouver). L'unicité rend la restauration par remplacement de chaîne non ambiguë. La retrouvabilité rend possible la détection d'un token inventé, donc `InventedPlaceholderStrategy`.
 

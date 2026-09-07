@@ -78,7 +78,7 @@ The *provenance* of a value is the role of its first occurrence in the thread. A
 
 ## Preservation tags
 
-The strategies above are not phantom types, they are `Enum`s passed at middleware construction. The type constraint is on the pipeline's *factory*, not on the strategies.
+The strategies above are `Enum`s passed at middleware construction. The type constraint is on the pipeline's *factory*, not on the strategies.
 
 The middleware is generic on a `PreservesRecognizableIdentity` tag, the intersection of the *Identity* axis (the token is unique per entity) and the *Recognizable* axis (the token carries a delimited grammar the factory can find again). Uniqueness makes the string-replacement deanonymisation unambiguous. Findability makes it possible to detect an invented token, hence `InventedPlaceholderStrategy`.
 

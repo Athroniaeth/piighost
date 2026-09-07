@@ -20,15 +20,19 @@ A PII that is not detected is not de-identified. This is an engineering concern,
 
 A NER model has a maximum input length. A text longer than that is truncated by the model, and the truncated tail is never scanned, so its PII passes in cleartext. Nothing warns you by default.
 
+The limit belongs to the model, not to the pipeline. It applies to any de-identification backed by a NER model, and `piighost` ships the means to work around it rather than live with it.
+
 **Mitigation**: set `max_chars` on the NER detector to the model's safe input length. With `auto_chunk` on (the default), a longer text is split into overlapping chunks scanned separately and remapped, so the tail is covered. With `auto_chunk` off, an over-long text raises `TextTooLongError` rather than being scanned in part. For very long inputs, wrap the detector in a `ChunkedDetector`.
 
 ## Language coverage is model-dependent
 
 The set of languages a NER detector can cover is fixed by the model you plug in. Coverage varies from model to model, and not every language is supported equally. Before deploying on a new locale, read the model card and run a small validation set.
 
+Here too the limit belongs to the model, not to the pipeline. A pattern detector does not have it, an IBAN or an email address has the same shape in every language.
+
 **Mitigation**: load a locale-specific model, or combine several detectors through the `CompositeDetector`.
 
-## No checksum validation, by design
+## No checksum validation (deliberate)
 
 `RegexDetector` matches on shape alone. It verifies no checksum, no Luhn on cards, no IBAN check key, no NIR check key. This is deliberate.
 
@@ -36,11 +40,11 @@ A structured value can arrive mangled by OCR, one character misread. A checksum 
 
 The trade-off is that `RegexDetector` can match strings that have the shape of a PII without being one (a digit run that looks like a card). The cost of such a false positive is benign, one extra token. The cost of the opposite false negative would be a leak.
 
-**Mitigation**: refine the patterns if shape-level false positives disturb a precise workload. Do not reintroduce a checksum filter upstream of text that may come from OCR.
+**Mitigation**: refine the patterns if shape-level false positives disturb a precise workload. Do not reintroduce a checksum filter upstream of text that may come from OCR. If your inputs are typed and never go through OCR, the trade-off flips and you can write your own detector with checksum validation, the `AnyDetector` port is open. See [Extending PIIGhost](extending.md).
 
 ## Placeholders can collide depending on the factory
 
-The placeholder factory decides what distinguishes two entities. Some families let two different values land on the same token.
+The placeholder factory decides what distinguishes two entities. Some families produce the same output for two different inputs.
 
 - `RedactPlaceholderFactory` collapses every PII to `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` collapses every PII of one label to `<<PERSON>>`{ .placeholder }. Neither family distinguishes entities, so neither is reversible.
 - `MaskPlaceholderFactory` keeps a fragment of the value, `j***@mail.com`{ .placeholder }. Two similarly shaped values can collide on one mask, and a mask can also collide with a real value in a tool response.
@@ -50,7 +54,20 @@ The placeholder factory decides what distinguishes two entities. Some families l
 
 ## Restoration is only reliable under identity
 
-Restoring a value from a placeholder assumes the placeholder identifies a unique entity. An identity-preserving factory (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) guarantees that a token always lands on the same value. A collapsing factory (redact, label, mask) does not, so restorations becomes ambiguous or impossible.
+Restoring a value from a placeholder assumes the placeholder identifies a unique entity. Two properties combine in the token. **Typing** says which kind of PII it is, a person, a location, an email. **Identity** says which one it is among those of the same kind. Each factory carries a preservation tag that declares what its token keeps of the two.
+
+| Factory | Preservation tag | Token emitted | Typing | Identity | Restoration |
+|---|---|---|---|---|---|
+| `RedactPlaceholderFactory` | `PreservesNothing` | `<<REDACT>>`{ .placeholder } | no | no | impossible |
+| `LabelPlaceholderFactory` | `PreservesLabel` | `<<PERSON>>`{ .placeholder } | yes | no | impossible |
+| `MaskPlaceholderFactory` | `PreservesShape` | `j***@mail.com`{ .placeholder } | yes | partial | ambiguous |
+| `LabelCounterPlaceholderFactory` | `PreservesLabeledIdentityOpaque` | `<<PERSON:1>>`{ .placeholder } | yes | yes | reliable |
+| `LabelHashPlaceholderFactory` | `PreservesLabeledIdentityOpaque` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | yes | yes | reliable |
+
+On `Patrick and Marie live in Paris`{ .pii }, the difference shows immediately.
+
+- With `LabelPlaceholderFactory`, both people become the same `<<PERSON>>`{ .placeholder }. The type is there, the identity is not, so nothing says which of the two tokens was `Patrick`{ .pii }.
+- With `LabelCounterPlaceholderFactory`, `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder } and `Marie`{ .pii } becomes `<<PERSON:2>>`{ .placeholder }. Each token lands on a single value, restoration is unambiguous.
 
 The `PIIAnonymizationMiddleware` enforces this constraint at the type level. It requires a `PreservesRecognizableIdentity` factory, that is a token unique per entity and findable in text. A factory that does not meet that contract is rejected at construction (`UnrecognizableFactoryError`). The tool-call boundary relies on string replacement, so it needs unique tokens to stay reversible.
 

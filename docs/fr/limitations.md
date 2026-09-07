@@ -20,15 +20,19 @@ Une PII non détectée n'est pas dé-identifiée. C'est un enjeu d'ingénierie, 
 
 Un modèle NER a une longueur d'entrée maximale. Un texte plus long est tronqué par le modèle, et la fin tronquée n'est jamais analysée, sa PII passe donc en clair. Rien ne vous avertit par défaut.
 
+La limite est celle du modèle, pas du pipeline. Elle s'impose à toute dé-identification adossée à un modèle NER, et `piighost` fournit de quoi la contourner plutôt que de la subir.
+
 **Mitigation** : fixer `max_chars` sur le détecteur NER à la longueur d'entrée sûre du modèle. Avec `auto_chunk` activé (le défaut), un texte plus long est découpé en morceaux chevauchants analysés séparément puis recollés, si bien que la fin est couverte. Avec `auto_chunk` désactivé, un texte trop long lève `TextTooLongError` plutôt que d'être analysé en partie. Pour de très longues entrées, envelopper le détecteur dans un `ChunkedDetector`.
 
 ## La couverture linguistique dépend du modèle
 
 L'ensemble des langues qu'un détecteur NER peut couvrir est fixé par le modèle branché. La couverture varie d'un modèle à l'autre, et toutes les langues ne sont pas supportées avec la même précision. Avant de déployer sur une nouvelle locale, lisez la fiche du modèle et exécutez un petit jeu de validation.
 
+Là encore, la limite est celle du modèle, pas du pipeline. Un détecteur à motif ne la connaît pas, un IBAN ou une adresse mail a la même forme dans toutes les langues.
+
 **Mitigation** : charger un modèle spécifique à la locale, ou combiner plusieurs détecteurs via le `CompositeDetector`.
 
-## Pas de validation par checksum, par choix
+## Pas de validation par checksum (volontaire)
 
 `RegexDetector` matche sur la forme seule. Il ne vérifie aucun checksum, pas de Luhn sur les cartes, pas de clé IBAN, pas de clé NIR. C'est délibéré.
 
@@ -36,11 +40,11 @@ Une valeur structurée peut arriver déformée par de l'OCR, un caractère lu de
 
 La contrepartie est que `RegexDetector` peut détecter des chaînes qui ont la forme d'une PII sans en être une (une suite de chiffres qui ressemble à une carte). Le coût d'un tel faux positif est bénin, un token de plus. Le coût du faux négatif inverse serait une fuite.
 
-**Mitigation** : affiner les motifs si les faux positifs de forme gênent une charge précise. Ne pas réintroduire de filtre par checksum en amont d'un texte qui peut venir d'OCR.
+**Mitigation** : affiner les motifs si les faux positifs de forme gênent une charge précise. Ne pas réintroduire de filtre par checksum en amont d'un texte qui peut venir d'OCR. Si vos entrées sont saisies au clavier et ne passent jamais par de l'OCR, le compromis s'inverse et vous pouvez écrire votre propre détecteur avec validation par checksum, le port `AnyDetector` est ouvert. Voir [Étendre PIIGhost](extending.md).
 
 ## Les placeholders peuvent se confondre selon la factory
 
-La factory de placeholder décide de ce qui distingue deux entités. Certaines familles laissent deux valeurs différentes retomber sur le même token.
+La factory de placeholder décide de ce qui distingue deux entités. Certaines familles produisent la même sortie pour deux entrées différentes.
 
 - `RedactPlaceholderFactory` ramène toute PII sur `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` ramène toute PII d'un même label sur `<<PERSON>>`{ .placeholder }. Ces deux familles ne distinguent pas les entités, donc elles ne sont pas réversibles.
 - `MaskPlaceholderFactory` garde un fragment de la valeur, `j***@mail.com`{ .placeholder }. Deux valeurs de forme voisine peuvent se confondre sur un même masque, et un masque peut aussi se confondre avec une vraie valeur dans une réponse d'outil.
@@ -50,7 +54,20 @@ La factory de placeholder décide de ce qui distingue deux entités. Certaines f
 
 ## La restauration n'est fiable que sous identité
 
-Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Une factory qui préserve l'identité (`LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`) garantit qu'un token retombe toujours sur la même valeur. Une factory qui les confond (redact, label, masque) ne le garantit pas, donc la restauration devient ambiguë ou impossible.
+Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Deux propriétés se combinent dans le token. Le **typage** dit de quelle sorte de PII il s'agit, personne, lieu, email. L'**identité** dit de laquelle il s'agit parmi celles du même type. Chaque factory porte un tag de préservation qui déclare ce que son token garde des deux.
+
+| Factory | Tag de préservation | Token émis | Typage | Identité | Restauration |
+|---|---|---|---|---|---|
+| `RedactPlaceholderFactory` | `PreservesNothing` | `<<REDACT>>`{ .placeholder } | non | non | impossible |
+| `LabelPlaceholderFactory` | `PreservesLabel` | `<<PERSON>>`{ .placeholder } | oui | non | impossible |
+| `MaskPlaceholderFactory` | `PreservesShape` | `j***@mail.com`{ .placeholder } | oui | partielle | ambiguë |
+| `LabelCounterPlaceholderFactory` | `PreservesLabeledIdentityOpaque` | `<<PERSON:1>>`{ .placeholder } | oui | oui | fiable |
+| `LabelHashPlaceholderFactory` | `PreservesLabeledIdentityOpaque` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | oui | oui | fiable |
+
+Sur `Patrick et Marie habitent à Paris`{ .pii }, la différence se voit tout de suite.
+
+- Avec `LabelPlaceholderFactory`, les deux personnes deviennent le même `<<PERSON>>`{ .placeholder }. Le type est là, l'identité non, donc rien ne dit lequel des deux tokens valait `Patrick`{ .pii }.
+- Avec `LabelCounterPlaceholderFactory`, `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } et `Marie`{ .pii } devient `<<PERSON:2>>`{ .placeholder }. Chaque token retombe sur une seule valeur, la restauration est sans ambiguïté.
 
 Le middleware `PIIAnonymizationMiddleware` impose cette contrainte au niveau du type. Il exige une factory `PreservesRecognizableIdentity`, c'est-à-dire un token unique par entité et reconnaissable dans un texte. Une factory qui ne remplit pas ce contrat est refusée à la construction (`UnrecognizableFactoryError`). La frontière d'appel d'outil s'appuie sur du remplacement de chaîne, elle a besoin de tokens uniques pour rester réversible.
 

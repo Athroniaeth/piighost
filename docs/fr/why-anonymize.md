@@ -12,7 +12,7 @@ Le constat qui justifie de dé-identifier les données personnelles avant qu'ell
 !!! abstract "Résumé"
     Quand vous envoyez du texte à un LLM en cloud, chez un provider tiers, vous ne contrôlez plus qui le lit, combien de temps il est conservé, ni sous quelle juridiction il retombe. Ces données peuvent être récupérées et croisées avec d'autres pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire. La dé-identification **avant envoi** est une protection qui ne dépend ni du provider, ni d'une promesse, ni de la sécurité de son infrastructure, ni d'une décision politique future.
 
-La réflexion se construit en trois temps. D'abord, **comment un LLM en cloud fonctionne techniquement** et **pourquoi la promesse contractuelle d'un provider ne suffit pas**. Ensuite, **le cadre juridique** qui s'applique à ces services, et ses zones grises. Enfin, **ce que la dé-identification change concrètement**, ses usages obligatoires et ses limites.
+La réflexion se construit en trois temps. D'abord, **comment un LLM en cloud fonctionne techniquement** et **pourquoi la promesse contractuelle d'un provider de ne pas exploiter la donnée ne suffit pas**. Ensuite, **le cadre juridique** qui s'applique à ces services, et ses zones grises. Enfin, **ce que la dé-identification change concrètement**, les cas où elle est avantageuse et ce qu'elle ne résout pas.
 
 ---
 
@@ -183,16 +183,16 @@ Le choix du provider continue de compter pour beaucoup de choses : latence, coû
 
 ## Les obligations sectorielles et les choix déjà faits
 
-### Quand c'est une obligation légale
+### Quand la confidentialité est une obligation légale
 
-Dans plusieurs professions, l'envoi de données personnelles à un LLM non souverain n'est pas un choix d'opportunité, c'est une impossibilité réglementaire.
+Dans plusieurs professions, l'envoi de données personnelles à un LLM non souverain est une impossibilité réglementaire.
 
 - **Finance** : MiFID II, secret bancaire, obligations de confidentialité client.
 - **Avocats** : secret professionnel absolu (article 66-5 de la loi du 31 décembre 1971). Une consultation client envoyée brute et nominative à un LLM américain peut constituer une faute déontologique. Les guides récents du `CNB` exigent au minimum une dé-identification, le consentement client et le choix d'un provider adéquat.
 - **Médecine** : secret médical (article L.1110-4 du Code de la santé publique en France), HIPAA aux États-Unis. Un dossier patient ne peut pas transiter par un service tiers sans garanties techniques lourdes (hébergeur certifié `HDS`, `DPO`, etc.).
 - **Défense et secteurs stratégiques** : régimes spécifiques (classification, `CUI` (*Controlled Unclassified Information*) aux US, `Diffusion Restreinte` en France). Le croisement potentiel entre l'accès légal du gouvernement américain et des intérêts stratégiques (énergie, défense, technologie) rend ce risque non-théorique.
 
-Dans ces secteurs, la dé-identification avant envoi n'est pas une bonne pratique, c'est un prérequis de conformité.
+Dans ces secteurs, la dé-identification avant envoi est ce qui rend l'usage possible.
 
 ### Ce que les grandes entreprises ont déjà décidé
 

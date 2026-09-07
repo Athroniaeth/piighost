@@ -12,7 +12,7 @@ The case for de-identifying personal data before it reaches an LLM holds **indep
 !!! abstract "Summary"
     When you send text to a cloud LLM, run by a third-party provider, you no longer control who reads it, how long it is retained, or under which jurisdiction it falls. That data can be collected and cross-referenced with other sources for mass surveillance, political profiling, or advertising targeting. De-identification **before sending** is a protection that depends neither on the provider, nor on a promise, nor on the security of their infrastructure, nor on a future political decision.
 
-The argument builds in three steps. First, **how a cloud LLM works technically** and **why a provider's contractual promise is not enough**. Next, **the legal framework** that applies to these services, and its grey areas. Finally, **what de-identification concretely changes**, its mandatory uses and its limits.
+The argument builds in three steps. First, **how a cloud LLM works technically** and **why a provider's contractual promise not to exploit the data is not enough**. Next, **the legal framework** that applies to these services, and its grey areas. Finally, **what de-identification concretely changes**, the cases where it is advantageous, and what it does not solve.
 
 ---
 
@@ -183,16 +183,16 @@ The choice of provider still matters for many things: latency, cost, model quali
 
 ## Sectoral obligations and choices already made
 
-### When it is a legal obligation
+### When confidentiality is a legal obligation
 
-In several professions, sending personal data to a non-sovereign LLM is not a matter of convenience, it is a regulatory impossibility.
+In several professions, sending personal data to a non-sovereign LLM is a regulatory impossibility.
 
 - **Finance**: MiFID II, banking secrecy, client-confidentiality obligations.
 - **Lawyers**: absolute professional secrecy (article 66-5 of the French law of 31 December 1971). A client consultation sent raw and identifiable to a US LLM can amount to a deontological fault. Recent `CNB` guidelines require at minimum de-identification, client consent, and an appropriate provider.
 - **Medicine**: medical secrecy (article L.1110-4 of the French Public Health Code), HIPAA in the United States. A patient record cannot transit through a third-party service without heavy technical guarantees (`HDS`-certified hosting, `DPO`, etc.).
 - **Defense and strategic sectors**: specific regimes (classification, `CUI` (*Controlled Unclassified Information*) in the US, `Diffusion Restreinte` in France). The potential intersection of US government legal access and strategic interests (energy, defense, technology) makes this risk non-theoretical.
 
-In these sectors, de-identification before sending is not a best practice, it is a compliance prerequisite.
+In these sectors, de-identification before sending is what makes the use possible.
 
 ### What large companies have already decided
 
