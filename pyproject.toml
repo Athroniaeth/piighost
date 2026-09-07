@@ -151,7 +151,6 @@ dev = [
     "pre-commit>=4.0",
     "pytest-asyncio>=0.25",
     "bandit>=1.9.4",
-    "streamlit>=1.46",
     "pydantic>=2.6",
     "pydantic-settings>=2.0",
     "typer>=0.12",
