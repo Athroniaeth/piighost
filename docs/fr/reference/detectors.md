@@ -323,7 +323,7 @@ Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine`
 `BaseNERDetector` normalise l'argument `labels` en une map externe vers interne, puis mappe et filtre les détections produites par le modèle. Il distingue le label qu'un modèle utilise nativement du label émis dans `Detection.label`.
 
 - Une liste, `["PERSON", "LOCATION"]`, mappe chaque label vers lui-même.
-- Une map, `{"PER": "PERSON"}`, ne garde que les détections dont le label natif est une clé et réétiquette chacune vers sa valeur. Un label natif absent de la map est rejeté.
+- Une map, `{"PERSON": "PER"}`, prend le label émis comme clé et le label natif du modèle comme valeur, donc une détection que le modèle étiquette `PER` est émise en `PERSON`. Un label natif absent des valeurs de la map est rejeté.
 - `None` ou une map vide n'applique aucune correspondance, donc chaque détection est gardée avec le label donné par le modèle.
 
 Deux labels externes mappant vers un même label interne lèvent `LabelMappingError`, car la recherche inverse serait ambiguë.
@@ -333,7 +333,7 @@ from piighost.components.detector.ner import TransformersDetector
 
 detector = TransformersDetector(
     pipeline="dslim/bert-base-NER",
-    labels={"PER": "PERSON", "LOC": "LOCATION"},
+    labels={"PERSON": "PER", "LOCATION": "LOC"},
 )
 ```
 
@@ -395,3 +395,4 @@ INTERNAL_ID = "EMP-\\d{6}"
 - [Détecteurs prêts à l'emploi](../examples/detectors.md) pour composer les catalogues en pratique.
 - [Configuration TOML](../configuration/toml.md) pour la construction déclarative.
 - [Étendre PIIGhost](../extending.md) pour écrire son propre détecteur.
+- [Référence des modèles de données](models.md) pour la forme complète d'une `Detection`.

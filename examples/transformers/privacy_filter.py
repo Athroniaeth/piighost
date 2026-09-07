@@ -14,8 +14,9 @@ wraps it as a piighost TransformersDetector and runs a full anonymize then
 restore over a thread, with no network beyond the one-time weight download. The
 Hugging Face pipeline is built here with aggregation_strategy, so a whole entity
 comes back as one span instead of per-subtoken fragments, and trust_remote_code,
-because the model ships a custom architecture. The labels map renames the
-model's native labels to piighost's and drops the rest.
+because the model ships a custom architecture. In the labels map, each key is the
+label piighost emits and each value is the model's native label, so a native
+label the map does not list is dropped.
 
 The first run downloads the model weights. Run with:
 uv run examples/transformers/privacy_filter.py
@@ -35,14 +36,14 @@ THREAD = "demo"
 TEXT = "Email Alice Johnson at alice.johnson@example.com or call 415-555-0142."
 
 LABELS = {
-    "private_person": "PERSON",
-    "private_email": "EMAIL",
-    "private_phone": "PHONE",
-    "private_address": "ADDRESS",
-    "private_url": "URL",
-    "private_date": "DATE",
-    "account_number": "ACCOUNT_NUMBER",
-    "secret": "SECRET",  # nosec B105  # a label mapping, not a secret
+    "PERSON": "private_person",
+    "EMAIL": "private_email",
+    "PHONE": "private_phone",
+    "ADDRESS": "private_address",
+    "URL": "private_url",
+    "DATE": "private_date",
+    "ACCOUNT_NUMBER": "account_number",
+    "SECRET": "secret",  # nosec B105  # a label mapping, not a secret
 }
 
 

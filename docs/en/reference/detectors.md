@@ -323,7 +323,7 @@ From a config, the `presidio` detector type builds Presidio's default English `A
 `BaseNERDetector` normalizes the `labels` argument into an external-to-internal map, then maps and filters the detections the model produces. It distinguishes the label a model uses natively from the label emitted in `Detection.label`.
 
 - A list, `["PERSON", "LOCATION"]`, maps each label to itself.
-- A map, `{"PER": "PERSON"}`, keeps only detections whose native label is a key and relabels each to its value. A native label absent from the map is dropped.
+- A map, `{"PERSON": "PER"}`, takes the emitted label as its key and the model's native label as its value, so a detection the model labels `PER` is emitted as `PERSON`. A native label absent from the map values is dropped.
 - `None` or an empty map applies no mapping, so every detection is kept with the label the model gave it.
 
 Two external labels mapping to one internal label raise `LabelMappingError`, since the reverse lookup would be ambiguous.
@@ -333,7 +333,7 @@ from piighost.components.detector.ner import TransformersDetector
 
 detector = TransformersDetector(
     pipeline="dslim/bert-base-NER",
-    labels={"PER": "PERSON", "LOC": "LOCATION"},
+    labels={"PERSON": "PER", "LOCATION": "LOC"},
 )
 ```
 
@@ -395,3 +395,4 @@ INTERNAL_ID = "EMP-\\d{6}"
 - [Pre-built detectors](../examples/detectors.md) for composing catalogs in practice.
 - [TOML configuration](../configuration/toml.md) for the declarative build.
 - [Extending PIIGhost](../extending.md) for writing your own detector.
+- [Data models reference](models.md) for the full shape of a `Detection`.

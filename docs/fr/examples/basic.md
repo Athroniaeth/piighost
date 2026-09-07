@@ -107,7 +107,7 @@ from piighost.components.placeholder import (
     LabelPlaceholderFactory,
 )
 
-# Deterministic hash, one opaque token per value: <<PERSON:a1b2c3d4>>
+# Opaque token, a sha256 of label:ordinal and never of the value: <<PERSON:a1b2c3d4>>
 hash_factory = LabelHashPlaceholderFactory()
 Anonymizer(hash_factory)
 

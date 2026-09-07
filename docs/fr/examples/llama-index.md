@@ -68,3 +68,4 @@ Le LLM a répondu sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .place
 
 - [Intégration LangChain](langchain.md) : dé-identifier un agent LangChain avec le middleware.
 - [Roadmap](../roadmap.md) : ce qui est prévu par ailleurs.
+- Le script exécutable est dans `examples/llama_index/rag.py`.
