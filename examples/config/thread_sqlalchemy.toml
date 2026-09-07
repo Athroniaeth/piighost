@@ -1,0 +1,39 @@
+# A thread pipeline stored in a SQL database through SQLAlchemy.
+#
+# The database URL is read from an environment variable, never from this file,
+# so the password stays out of version control. Any async driver works:
+#   export PIIGHOST_DATABASE_URL="sqlite+aiosqlite:///./piighost.db"
+#   export PIIGHOST_DATABASE_URL="postgresql+asyncpg://user:pass@localhost/piighost"
+#
+# The hash pepper and the cipher key are secrets read from the environment too:
+#   export PIIGHOST_HASH_PEPPER="any non-empty string"
+#   export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"   # 16, 24, or 32 bytes
+#
+# Load it, then create the table once at startup:
+#   from piighost.config import load_thread_pipeline
+#   pipeline = load_thread_pipeline("examples/config/thread_sqlalchemy.toml")
+#   await pipeline.memory.create_schema()
+
+[detector]
+type = "regex"
+catalogs = ["generic"]
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "label_counter"
+
+# A configured memory turns this into a thread pipeline, keeping per-thread state.
+[memory]
+type = "sqlalchemy"
+url_env = "PIIGHOST_DATABASE_URL"
+table_name = "piighost_conversation_messages"
+
+# The hasher keys each message into its storage key; the pepper comes from the env.
+[memory.hasher]
+type = "argon2"
+
+# The cipher encrypts each stored value; the base64 key comes from the env.
+[memory.cipher]
+type = "aesgcm"

@@ -9,10 +9,12 @@ from piighost.config import load_config
 _CONFIG_DIR = Path(__file__).resolve().parents[2] / "examples" / "config"
 
 _PIPELINE_CONFIGS = [
+    "detector_only.toml",
     "minimal.toml",
     "minimal.json",
     "pipeline.toml",
     "thread_redis.toml",
+    "thread_sqlalchemy.toml",
 ]
 
 

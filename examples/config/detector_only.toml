@@ -1,0 +1,14 @@
+# The smallest config that builds a pipeline: a detector and nothing else.
+#
+# The linker, the anonymizer and the overlap resolver fall back to their
+# defaults, so the token is <<EMAIL:1>>, numbered per label.
+#
+# Validate it from the shell:
+#   piighost validate examples/config/detector_only.toml
+# Load it in Python:
+#   from piighost.config import load_pipeline
+#   pipeline = load_pipeline("examples/config/detector_only.toml")
+
+[detector]
+type = "regex"
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
