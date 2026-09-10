@@ -89,8 +89,11 @@ A prompt and a tool input are plain enough to de-identify wholesale, but a tool'
 | `Agent` | message text |
 | `WebFetch` | `result` |
 | `WebSearch` | result titles |
+| `ToolSearch` | `query` |
 
-A tool that is not in the list, or an output whose shape is unexpected, passes through untouched.
+!!! warning "The allowlist fails open"
+
+    A tool that is not in the list, or an output whose shape is unexpected, passes through untouched, so its text reaches the model in clear. `Grep` is the notable gap: its matches are lines of the files it searched, and the list does not cover it yet. Until it does, either keep `Grep` out of the session or extend the list as described below.
 
 ## Discover a new tool's shape
 

@@ -29,6 +29,8 @@ flowchart LR
     PIIGhostError --> DetectorError
     DetectorError --> LabelMappingError
     DetectorError --> TextTooLongError
+    PIIGhostError --> TextError
+    TextError --> EmptyFragmentError
     PIIGhostError --> AnonymizerError
     AnonymizerError --> OverlappingSpansError
     PIIGhostError --> OverrideError
@@ -53,7 +55,7 @@ flowchart LR
 *The `PIIGhostError` tree, each grouping class to the left of the errors it covers.*
 { .figure-caption }
 
-Of the thirty-one error classes, nineteen are raised by a component and twelve exist only to be caught. `ConfigError` counts on both sides, a grouping class that is also raised on its own.
+Of the thirty-three error classes, twenty are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, a grouping class that is also raised on its own.
 
 ## Data models
 
@@ -79,6 +81,16 @@ Module: `piighost.components.detector.ner`. `DetectorError` groups two failures 
 | `TextTooLongError` | `BaseNERDetector`, on detection | a text exceeds `max_chars` while `auto_chunk` is off, so a prefix-only scan is refused |
 
 Both are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern the second.
+
+## Text helpers
+
+Module: `piighost.text`. `TextError` groups the failures of the word-boundary helpers and carries one subclass.
+
+| Exception | Raised by | Raised when |
+|-----------|-----------|-------------|
+| `EmptyFragmentError` | `boundary_wrap`, `find_all_word_boundary`, and `ExactMatchDetector.__init__` | the fragment searched for is empty, which would match at every position of the text |
+
+An empty fragment would yield zero-width spans a `Span` refuses, so the failure would otherwise surface as a `SpanOrderingError` far from its cause. `ExactMatchDetector` checks its configured values at construction, so a config typo fails at load rather than on the first message. `LLMDetector` does not raise it, because a model's output is untrusted, so a blank extracted value is dropped with a warning instead.
 
 ## Anonymizer
 

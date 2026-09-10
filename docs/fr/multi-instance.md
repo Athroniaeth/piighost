@@ -85,6 +85,24 @@ type = "argon2"
 type = "aesgcm"
 ```
 
+## Borner le mémo de tokens sur chaque worker
+
+Une mémoire partagée règle la numérotation, mais chaque worker mémoïse aussi la carte de tokens qu'il dérive, indexée sur l'état du thread qu'il a lu. Ce mémo garde les valeurs du thread en clair, et `forget_thread` n'atteint que le mémo du processus où il tourne. Une demande d'effacement routée vers le worker A laisse donc la copie du worker B debout jusqu'à ce que sa borne de taille l'évince.
+
+Rien de périmé n'est jamais servi : la clé du mémo porte l'union relue du store, que l'effacement a vidée, donc le worker B recalcule et ne trouve rien. Le problème est la rétention, pas la correction. `token_memo_ttl` la borne sans aucun message inter-worker à perdre :
+
+```toml
+token_memo_ttl = 300.0
+
+[memory]
+type = "redis"
+url = "redis://localhost:6379/0"
+```
+
+C'est un scalaire de premier niveau, il se place donc au-dessus de la première section. Cinq minutes est un point de départ raisonnable, assez long pour qu'une conversation vivante continue de toucher le mémo, assez court pour que les valeurs d'un thread oublié ne s'attardent pas.
+
+Le balayage suit le trafic du worker où il tourne, une entrée tombe à la prochaine dérivation d'une carte de tokens par ce worker, pas sur une horloge. Un worker qui devient inactif juste après un effacement garde donc sa copie jusqu'à sa requête suivante, ou jusqu'à la fin du processus. Borner cela demanderait une tâche de fond, qu'une librairie n'a pas à lancer, donc le TTL borne les workers actifs et la durée de vie du processus borne les inactifs. Laissée vide, une entrée vit jusqu'à ce que 256 autres la poussent dehors, ce qui sur un worker peu sollicité peut durer.
+
 ## S'aligner sur LangGraph
 
 Le même piège frappe le `checkpointer` de LangGraph. `MemorySaver` est local au processus, `PostgresSaver` et `RedisSaver` sont partagés. Si votre agent fait déjà tourner un saver partagé derrière le load balancer, faites tourner la mémoire de `piighost` sur la même infrastructure. Un `thread_id` qui a un état checkpointé a alors aussi son mapping de tokens joignable, sur n'importe quel worker.

@@ -92,6 +92,8 @@ Route l'appel d'outil selon `tool_strategy`. Quand la stratégie dé-identifie l
 
 La restauration des arguments descend dans les conteneurs `dict`, `list` et `tuple` imbriqués. Seules les feuilles `str` sont restaurées, les autres types passent inchangés.
 
+La réponse est dé-identifiée quelle que soit la forme renvoyée par l'outil, son `ToolMessage` directement ou un `Command` dont la mise à jour d'état le porte, la forme qu'utilise un outil qui écrit aussi dans l'état. Une mise à jour d'état est parcourue comme une correspondance de clés d'état ou comme une séquence de paires clé-valeur, chacune portant un message ou une séquence de messages, donc les quatre formes que LangGraph accepte sont couvertes. Un contenu fait d'une liste de blocs de texte est traité comme une chaîne simple, bloc par bloc.
+
 ```python
 # model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
 #                       restore args
