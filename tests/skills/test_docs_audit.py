@@ -87,6 +87,26 @@ _PARITY_CASES: dict[str, tuple[str | None, str | None, str | None]] = {
 }
 """EN body and FR body of one page, mapped to the finding marker, or None."""
 
+_LINK_CASES: dict[str, tuple[str, str | None]] = {
+    "link to a missing page": ("See [the page](missing.md).\n", "lien mort"),
+    "link to the page itself": ("See [this page](page.md).\n", None),
+    "external link": ("See [the site](https://example.com/x.md).\n", None),
+    "bare anchor": ("See [the section](#somewhere).\n", None),
+    "anchor on a missing page": ("See [it](missing.md#top).\n", "lien mort"),
+    "link inside a fenced block": ("```md\n[x](missing.md)\n```\n", None),
+}
+"""Body of a single page, mapped to the finding marker it must produce, or None."""
+
+_NAV_CASES: dict[str, tuple[str, str | None]] = {
+    "page declared in the nav": ('[project]\nnav = [{ "Page" = "page.md" }]\n', None),
+    "page absent from the nav": ("[project]\nnav = []\n", "absent du nav"),
+    "nav entry with no page": (
+        '[project]\nnav = [{ "Page" = "page.md" }, { "Gone" = "gone.md" }]\n',
+        "page absente",
+    ),
+}
+"""A zensical config, mapped to the finding marker a lone page.md must produce."""
+
 
 @pytest.fixture(scope="module")
 def audit() -> ModuleType:
@@ -188,6 +208,70 @@ class TestParity:
         findings: list[str] = []
         audit.parity(findings)
         _assert_marker(findings, marker)
+
+
+class TestLinks:
+    @pytest.mark.parametrize(
+        ("body", "marker"), _LINK_CASES.values(), ids=list(_LINK_CASES)
+    )
+    def test_flags_a_dead_link_and_spares_a_live_one(
+        self,
+        audit: ModuleType,
+        body: str,
+        marker: str | None,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A relative link with no target is reported, a resolvable one is not."""
+        _prepare_tree(tmp_path, monkeypatch)
+        _write_page(tmp_path, "en", body)
+        findings: list[str] = []
+        audit.links(findings)
+        _assert_marker(findings, marker)
+
+
+class TestNav:
+    @pytest.mark.parametrize(
+        ("config", "marker"), _NAV_CASES.values(), ids=list(_NAV_CASES)
+    )
+    def test_flags_a_nav_out_of_sync_with_the_pages(
+        self,
+        audit: ModuleType,
+        config: str,
+        marker: str | None,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A page missing from the nav, or a nav entry with no page, is reported."""
+        _prepare_tree(tmp_path, monkeypatch)
+        _write_page(tmp_path, "en", "# Title\n")
+        (tmp_path / "zensical.toml").write_text(config, encoding="utf-8")
+        findings: list[str] = []
+        audit.nav(findings)
+        _assert_marker(findings, marker)
+
+    def test_an_include_needs_no_nav_entry(
+        self, audit: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An includes/ page is pulled in by a snippet, so the nav never lists it."""
+        _prepare_tree(tmp_path, monkeypatch)
+        include = tmp_path / "docs" / "en" / "includes" / "abbreviations.md"
+        include.parent.mkdir(parents=True, exist_ok=True)
+        include.write_text("*[PII]: Personally Identifiable Information\n", "utf-8")
+        (tmp_path / "zensical.toml").write_text("[project]\nnav = []\n", "utf-8")
+        findings: list[str] = []
+        audit.nav(findings)
+        assert findings == []
+
+    def test_a_missing_config_is_skipped(
+        self, audit: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Without a nav config the check stays silent, so other checks still run."""
+        _prepare_tree(tmp_path, monkeypatch)
+        _write_page(tmp_path, "en", "# Title\n")
+        findings: list[str] = []
+        audit.nav(findings)
+        assert findings == []
 
 
 class TestGate:
