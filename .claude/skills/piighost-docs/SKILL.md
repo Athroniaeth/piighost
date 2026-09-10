@@ -389,13 +389,13 @@ uv run zensical build -f zensical.fr.toml  # build FR site (output: site/fr/)
 
 **Always rebuild both sites after a doc change.** CI (`.github/workflows/docs.yml`) runs both in production, so a broken FR build will only surface there if you forget locally.
 
-The mechanical rules, the terminology and the EN/FR parity are checked by a script that ships with this skill:
+The mechanical rules, the terminology, the EN/FR parity, the internal links and the nav are checked by a script that ships with this skill:
 
 ```bash
 python3 .claude/skills/piighost-docs/scripts/audit.py   # exits non-zero on any finding
 ```
 
-It reads prose only, so an identifier such as `Anonymizer` or `deanonymize` never trips a prose rule. It is deliberately conservative on the apposition colon: a lead-in label of four words or fewer, an enumeration of two or more comma-separated items, and two coordinated alternatives are all left alone. A finding is a real violation, not a style opinion, so drive it to zero rather than arguing with it. It does not judge voice. Diátaxis mode fit, chaining, the running example and the padding tails are still yours to read.
+It reads prose only, so an identifier such as `Anonymizer` or `deanonymize` never trips a prose rule. Beyond style it resolves every relative markdown link against the tree and compares each language's pages with its `nav` array both ways, so a moved page shows up as a dead link on one side and an orphan nav entry on the other. An `includes/` page is exempt from the nav check, being pulled in by a snippet. It is deliberately conservative on the apposition colon: a lead-in label of four words or fewer, an enumeration of two or more comma-separated items, and two coordinated alternatives are all left alone. A finding is a real violation, not a style opinion, so drive it to zero rather than arguing with it. It does not judge voice. Diátaxis mode fit, chaining, the running example and the padding tails are still yours to read.
 
 For iteration, use the dev server:
 
@@ -629,7 +629,7 @@ Both `zensical.toml` (EN) and `zensical.fr.toml` (FR) carry a `nav = [...]` arra
 ]},
 ```
 
-Use French labels in the FR config, EN labels in the EN config. Group the nav by Diátaxis bucket.
+Use French labels in the FR config, EN labels in the EN config. Group the nav by Diátaxis bucket. A page left out of one of the two navs is invisible on that site, which `scripts/audit.py` reports both ways, so run it after adding or moving a page.
 
 ## EN ↔ FR sync rules
 
@@ -687,7 +687,7 @@ Run this before calling a page done. It exists because an editor applying the ru
 
 - [ ] Every capability stated without a condition holds with the **default configuration**. If it needs a specific component, the condition is stated and linked.
 - [ ] Every component, integration and extra named on the page exists in `src/piighost/`, the OpenAI and Anthropic connector excepted, which is served by `piighost-api` and only ever named as an ecosystem capability.
-- [ ] Every internal link resolves, and points at the page that actually covers what the sentence promises.
+- [ ] Every internal link points at the page that actually covers what the sentence promises. That it resolves at all is the audit script's job, not yours.
 - [ ] A new page does not repeat a section that already lives elsewhere. If it does, extend the existing page instead.
 - [ ] A new integration or LLM-backed component is classified in the API stability lists of `community/upgrading.md`.
 
@@ -721,7 +721,7 @@ Run this before calling a page done. It exists because an editor applying the ru
 
 ## See also
 
-- `scripts/audit.py` next to this file, the mechanical, terminology and parity gate.
+- `scripts/audit.py` next to this file, the mechanical, terminology, parity, link and nav gate.
 - `humanizer`, sentence-level AI-tell removal (rule of three, negative parallelism, filler).
 - `CLAUDE.md` at repo root, broader project conventions (Python tooling, commit style, type-checking).
 - `zensical.toml` and `zensical.fr.toml`, site config including theme features, markdown extensions, custom tags.

@@ -13,12 +13,15 @@ Checks, in order:
   vocabulary (desanonymiser, re-anonymiser, deanonymize outside code)
 - EN/FR parity: same files, same heading skeleton, same number of code and mermaid
   blocks, same admonition sequence
+- links: every relative markdown link resolves to a file that exists
+- nav: every page is declared in its language's nav, and every nav entry has a page
 
 Prose only. Fenced code blocks, inline code spans, whole markdown links and YAML
 frontmatter are excluded, so identifiers such as Anonymizer or deanonymize never
 trigger a prose rule.
 
-Exit code is the number of findings, so the script doubles as a gate.
+Exit code is 1 when anything is found and 0 otherwise, so the script doubles as a
+gate; the count is printed rather than returned, since an exit code wraps at 256.
 """
 
 from __future__ import annotations
@@ -26,12 +29,20 @@ from __future__ import annotations
 import pathlib
 import re
 import sys
+import tomllib
 
 EN = pathlib.Path("docs/en")
 FR = pathlib.Path("docs/fr")
 
 PROTECT = re.compile(r"(`[^`]*`|\[[^\]]*\]\([^)]*\)|<[^>]+>)")
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})\s*(\w*)")
+LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+
+# The nav config of each language, paired with the docs_dir it addresses.
+NAVS = (("zensical.toml", EN), ("zensical.fr.toml", FR))
+
+# Pages the nav never lists: an include is pulled in by a snippet, not navigated to.
+NAV_EXEMPT = ("includes/",)
 
 # Lines that deliberately contrast de-identification with anonymisation. Keyed by
 # the marker they carry, so the list survives a page being re-flowed.
@@ -194,11 +205,63 @@ def parity(findings: list[str]) -> None:
             findings.append(f"{rel}: sequence d'admonitions differente")
 
 
+def links(findings: list[str]) -> None:
+    """Flag a relative markdown link whose target does not exist on disk.
+
+    Only relative targets are resolved. An external scheme and a bare anchor are
+    left to a link checker with network access, which this script is not.
+    """
+    for lang in ("en", "fr"):
+        for path in sorted(pathlib.Path(f"docs/{lang}").rglob("*.md")):
+            for n, raw in prose_lines(path):
+                for m in LINK.finditer(raw):
+                    target = m.group(1).split("#")[0].strip()
+                    external = target.startswith(("http://", "https://", "mailto:"))
+                    if not target or external:
+                        continue
+                    if not (path.parent / target).exists():
+                        findings.append(f"{path}:{n}: lien mort vers {target}")
+
+
+def nav_pages(entries: object) -> list[str]:
+    """Flatten a zensical nav array into the page paths it declares."""
+    if isinstance(entries, str):
+        return [entries] if entries.endswith(".md") else []
+    if isinstance(entries, list):
+        return [page for entry in entries for page in nav_pages(entry)]
+    if isinstance(entries, dict):
+        return [page for entry in entries.values() for page in nav_pages(entry)]
+    return []
+
+
+def nav(findings: list[str]) -> None:
+    """Flag a page absent from its language's nav, and a nav entry with no page.
+
+    A page reachable by nothing is invisible on the built site, and an entry
+    pointing at a moved page breaks the build. Skipped when the nav config is
+    absent, so the other checks still run over a bare docs tree.
+    """
+    for config, root in NAVS:
+        conf = pathlib.Path(config)
+        if not conf.exists() or not root.exists():
+            continue
+        parsed = tomllib.loads(conf.read_text(encoding="utf-8"))
+        declared = set(nav_pages(parsed.get("project", {}).get("nav", [])))
+        found = {str(p.relative_to(root)) for p in root.rglob("*.md")}
+        present = {p for p in found if not p.startswith(NAV_EXEMPT)}
+        for missing in sorted(declared - present):
+            findings.append(f"{config}: {missing} declare dans le nav, page absente")
+        for orphan in sorted(present - declared):
+            findings.append(f"{root}/{orphan}: absent du nav de {config}")
+
+
 def main() -> int:
     findings: list[str] = []
     mechanical(findings)
     terminology(findings)
     parity(findings)
+    links(findings)
+    nav(findings)
     for f in findings:
         print(f)
     print(f"\n{len(findings)} finding(s)")
