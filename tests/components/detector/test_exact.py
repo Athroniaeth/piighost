@@ -1,6 +1,9 @@
 """Tests for the ExactMatchDetector."""
 
+import pytest
+
 from piighost.components.detector import AnyDetector, ExactMatchDetector
+from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
 
 
@@ -70,3 +73,10 @@ class TestDetect:
         detections = await detector.detect("hi emma!")
         assert len(detections) == 1
         assert detections[0].text == "emma"
+
+
+class TestConstruction:
+    def test_empty_value_is_refused(self) -> None:
+        """An empty configured value raises, since it matches at every position."""
+        with pytest.raises(EmptyFragmentError):
+            ExactMatchDetector({"": "PERSON"})
