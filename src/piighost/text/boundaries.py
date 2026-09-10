@@ -3,6 +3,7 @@
 import re
 from functools import lru_cache
 
+from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
 
 WORD_JOIN_CHARS = "-'"
@@ -32,8 +33,14 @@ def boundary_wrap(fragment: str) -> str:
     right after the fragment is a letter, a digit, an underscore, a hyphen, or
     an apostrophe. Because it counts the hyphen and apostrophe as part of a
     word, it does not find Jean inside Jean-Paul, nor Anne inside d'Anne, where
-    a plain boundary would. The fragment must be non-empty, since an empty
-    fragment would match at every position.
+    a plain boundary would.
+
+    Raises:
+        EmptyFragmentError: If the fragment is empty. Such a fragment matches at
+            every position, so it would yield zero-width spans a Span refuses,
+            surfacing as a SpanOrderingError far from its cause. A detector
+            whose source is untrusted, an LLM returning an empty value, filters
+            those out before calling this.
 
     >>> import re
     >>> re.search("Jean", "Jean-Paul")
@@ -51,6 +58,11 @@ def boundary_wrap(fragment: str) -> str:
     >>> re.search(boundary_wrap("Jean"), "Jean Dupont")
     <re.Match object; span=(0, 4), match='Jean'>
     """
+    if not fragment:
+        raise EmptyFragmentError(
+            "A word-boundary search needs a non-empty fragment; an empty one "
+            "matches at every position of the text."
+        )
     return f"(?<!{_WORD_CLASS}){re.escape(fragment)}(?!{_WORD_CLASS})"
 
 
@@ -77,6 +89,23 @@ def find_all_word_boundary(
 
     Returns:
         The span of every match, in order.
+
+    Raises:
+        EmptyFragmentError: If the fragment is empty, through boundary_wrap.
     """
     pattern = _word_boundary_pattern(fragment, int(flags))
     return [Span(match.start(), match.end()) for match in pattern.finditer(text)]
+
+
+def clear_boundary_cache() -> None:
+    """Drop every compiled word-boundary pattern held in the shared cache.
+
+    The cache is keyed by the fragment searched for, which is a PII value when
+    the caller is a detector or an expander, so it outlives the thread the value
+    came from. Forgetting a thread erases the store and the pipeline's own
+    memoized tokens, not this process-wide cache, since one thread's erasure is
+    not a reason to drop every other thread's compiled patterns. Call this at a
+    point where the cost is acceptable, after a batch or on an erasure request
+    covering the whole process.
+    """
+    _word_boundary_pattern.cache_clear()

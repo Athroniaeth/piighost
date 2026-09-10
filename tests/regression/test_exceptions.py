@@ -13,6 +13,7 @@ from piighost.exceptions import (
     ConfidenceError,
     DetectionError,
     EmptyEntityError,
+    EmptyFragmentError,
     EmptyPepperError,
     EntityError,
     GuardError,
@@ -24,6 +25,7 @@ from piighost.exceptions import (
     PIIRemainingError,
     SpanError,
     SpanOrderingError,
+    TextError,
 )
 
 # Each error mapped to its expected direct parent. The chain
@@ -45,6 +47,8 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     InvalidKeyLengthError: CipherError,
     GuardError: PIIGhostError,
     PIIRemainingError: GuardError,
+    TextError: PIIGhostError,
+    EmptyFragmentError: TextError,
 }
 
 

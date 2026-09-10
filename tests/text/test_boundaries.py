@@ -2,8 +2,12 @@
 
 import re
 
+import pytest
+
+from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
-from piighost.text import find_all_word_boundary
+from piighost.text import boundary_wrap, clear_boundary_cache, find_all_word_boundary
+from piighost.text.boundaries import _word_boundary_pattern
 
 
 class TestFindAllWordBoundary:
@@ -41,3 +45,23 @@ class TestFindAllWordBoundary:
     def test_fragment_is_matched_literally(self) -> None:
         """Regex metacharacters in the fragment are matched literally."""
         assert find_all_word_boundary("code a.b here", "a.b") == [Span(5, 8)]
+
+    def test_empty_fragment_is_refused(self) -> None:
+        """An empty fragment raises rather than yield a zero-width span."""
+        with pytest.raises(EmptyFragmentError):
+            find_all_word_boundary("Hello, world!", "")
+
+
+class TestBoundaryWrap:
+    def test_empty_fragment_is_refused(self) -> None:
+        """boundary_wrap refuses an empty fragment, which matches everywhere."""
+        with pytest.raises(EmptyFragmentError):
+            boundary_wrap("")
+
+
+class TestClearBoundaryCache:
+    def test_drops_the_compiled_patterns(self) -> None:
+        """Clearing the cache leaves no compiled pattern, so no fragment is held."""
+        find_all_word_boundary("Jean is here", "Jean")
+        clear_boundary_cache()
+        assert _word_boundary_pattern.cache_info().currsize == 0
