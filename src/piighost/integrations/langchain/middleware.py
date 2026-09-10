@@ -9,7 +9,7 @@ the extra to install.
 
 import importlib.util
 import logging
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from typing import Any, Generic, cast
 
 from typing_extensions import TypeVar
@@ -73,7 +73,8 @@ def _thread_id(require_thread_id: bool) -> str:
     global _missing_thread_id_warned
 
     try:
-        thread_id = get_config().get("configurable", {}).get("thread_id")
+        configurable = get_config().get("configurable") or {}
+        thread_id = configurable.get("thread_id")
     except RuntimeError:
         thread_id = None
 
@@ -95,6 +96,45 @@ def _thread_id(require_thread_id: bool) -> str:
         )
 
     return _DEFAULT_THREAD
+
+
+def _update_values(update: object) -> list[Any]:
+    """Return the values a Command state update holds, whatever shape it takes.
+
+    LangGraph accepts a mapping of state keys and, equivalently, a sequence of
+    key-value pairs, and either form may hold one value or a sequence of them.
+    All four are normalized here rather than through Command._update_as_tuples,
+    which is private to LangGraph and would tie this module to it.
+    """
+    if isinstance(update, Mapping):
+        return list(update.values())
+    if isinstance(update, Sequence) and not isinstance(update, (str, bytes)):
+        return [
+            pair[1] for pair in update if isinstance(pair, tuple) and len(pair) == 2
+        ]
+    return []
+
+
+def _tool_messages(response: ToolMessage | Command[Any]) -> list[ToolMessage]:
+    """Return the tool messages a tool's return value carries.
+
+    A tool either returns its ToolMessage directly or returns a Command whose
+    state update carries it, which is the shape a tool that also writes state
+    uses. Both are walked, so the output side of a strategy sees the same
+    messages either way and a tool result never reaches the model in clear
+    because of how the tool chose to reply. A Command update carrying no message,
+    a plain state value for instance, yields nothing.
+    """
+    if isinstance(response, ToolMessage):
+        return [response]
+
+    messages: list[ToolMessage] = []
+    for value in _update_values(response.update):
+        sequence = isinstance(value, Sequence) and not isinstance(value, (str, bytes))
+        candidates = value if sequence else [value]
+        found = [item for item in candidates if isinstance(item, ToolMessage)]
+        messages.extend(found)
+    return messages
 
 
 class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
@@ -240,19 +280,31 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
         response = await handler(request)
 
-        if anonymize_output and isinstance(response, ToolMessage):
-
-            async def anonymize(_message: BaseMessage, content: str) -> str:
-                """Anonymize one tool-result string under the user role."""
-                return await self._anonymize(content, thread_id)
-
-            new_content, changed = await self._transform_content(
-                response, response.content, anonymize
-            )
-            if changed:
-                response.content = new_content
+        if anonymize_output:
+            await self._anonymize_tool_output(response, thread_id)
 
         return response
+
+    async def _anonymize_tool_output(
+        self, response: ToolMessage | Command[Any], thread_id: str
+    ) -> None:
+        """Anonymize every tool message a tool returned, in place.
+
+        The messages are rewritten where they sit, whether the tool returned one
+        directly or wrapped it in a Command's state update, so the model reads
+        placeholders and the checkpointer persists them.
+        """
+
+        async def anonymize(_message: BaseMessage, content: str) -> str:
+            """Anonymize one tool-result string under the user role."""
+            return await self._anonymize(content, thread_id)
+
+        for message in _tool_messages(response):
+            new_content, changed = await self._transform_content(
+                message, message.content, anonymize
+            )
+            if changed:
+                message.content = new_content
 
     async def _rewrite_content(
         self,
