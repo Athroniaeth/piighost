@@ -1,7 +1,8 @@
 """Thread-aware anonymization pipeline: tokens stay consistent across a thread."""
 
+import time
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
 from piighost.components.detector.base import AnyDetector
@@ -26,6 +27,9 @@ from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 
 _TOKEN_MEMO_MAX = 256
 """How many thread-token maps to memoize before evicting the least recently used."""
+
+_MemoKey = tuple[object, ...]
+"""What a memoized thread-token map is keyed on: the thread and the state it derives from."""
 
 
 class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
@@ -58,6 +62,8 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         observation_redactor: AnyPlaceholderFactory | None = None,
         override: AnyDetectionOverride | None = None,
         trace_clear_text: bool = False,
+        token_memo_ttl: float | None = None,
+        time_source: Callable[[], float] = time.monotonic,
     ) -> None:
         """Store the stage components and the per-thread conversation memory.
 
@@ -65,6 +71,14 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         or anonymizer builds their defaults, and omitting memory builds an
         InMemoryConversationMemory, so the smallest thread pipeline is
         ThreadAnonymizationPipeline(detector).
+
+        token_memo_ttl bounds how long a memoized thread-token map is kept. That
+        memo holds the thread's values in clear, and forget_thread only reaches
+        the memo of the process it runs in, so on a multi-worker deployment the
+        other workers keep theirs until eviction. A ttl bounds that window on
+        every worker without any cross-worker coordination. Left unset, an entry
+        lives until the size bound evicts it. time_source is the clock the ttl
+        reads, injectable for tests.
         """
         memory = memory or InMemoryConversationMemory()
         super().__init__(
@@ -85,9 +99,15 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         # stream token by token, does not relink and re-resolve the whole thread
         # each time. Keyed on the union and provenance actually read, so a change
         # from any writer yields a new key; bounded, evicting least recently used.
-        self._token_memo: OrderedDict[
-            tuple[object, ...], Mapping[Entity, PreservationT]
-        ] = OrderedDict()
+        self._token_memo: OrderedDict[_MemoKey, Mapping[Entity, PreservationT]] = (
+            OrderedDict()
+        )
+        self._token_memo_expiry: dict[_MemoKey, float] = {}
+        self._token_memo_ttl = token_memo_ttl
+        self._now = time_source
+        # Bumped by every erasure, read across the awaits of a derivation, so a
+        # derivation that straddles an erasure declines to memoize its result.
+        self._forget_epoch = 0
 
     @property
     def recognizer(self) -> BaseDelimitedPlaceholderFactory | None:
@@ -221,8 +241,28 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         return {f"{token}": entity.text for entity, token in thread_tokens.items()}
 
     async def forget_thread(self, thread_id: str) -> Forgotten:
-        """Erase a thread's memory and report how much was dropped."""
-        return await self.memory.forget(thread_id)
+        """Erase a thread's memory and its memoized tokens, reporting what dropped.
+
+        The token memo holds the thread's values in clear, so it is purged here
+        too: erasing the store alone would leave a forgotten thread's PII live in
+        this process. A derivation already in flight is covered as well, since
+        the erasure bumps the epoch it reads, so it declines to memoize a result
+        it built from the state this call erased.
+
+        The word-boundary pattern cache is process-wide rather than per thread,
+        so it is left alone; clear it with clear_boundary_cache when an erasure
+        request covers the whole process.
+        """
+        forgotten = await self.memory.forget(thread_id)
+        self._forget_epoch += 1
+        self._forget_token_memo(thread_id)
+        return forgotten
+
+    def _forget_token_memo(self, thread_id: str) -> None:
+        """Drop every memoized token map derived from this thread."""
+        stale = [key for key in self._token_memo if key[0] == thread_id]
+        for key in stale:
+            self._drop_memo(key)
 
     async def _detect(
         self,
@@ -260,7 +300,13 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         repeated calls within a turn skip relinking and re-resolving the whole
         thread. The reads still happen, so a change from any writer produces a new
         key and a fresh computation.
+
+        The result is still returned when an erasure lands mid-derivation, since
+        the caller's own request was already in flight, but it is not memoized:
+        caching it would put the erased thread's values back in the memo.
         """
+        epoch = self._forget_epoch
+        self._expire_memo()
         union = await self.memory.get_detections(thread_id) or []
         provenance = await self.memory.get_provenance(thread_id)
 
@@ -286,8 +332,42 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 anonymizable.append(entity)
 
         tokens = self.anonymizer.create(anonymizable)
+        if epoch != self._forget_epoch:
+            return tokens
         self._token_memo[key] = tokens
         self._token_memo.move_to_end(key)
-        while len(self._token_memo) > _TOKEN_MEMO_MAX:
-            self._token_memo.popitem(last=False)
+        if self._token_memo_ttl is not None:
+            self._token_memo_expiry[key] = self._now() + self._token_memo_ttl
+        self._evict_memo()
         return tokens
+
+    def _expire_memo(self) -> None:
+        """Drop the memoized token maps whose ttl has passed.
+
+        Swept from the front rather than checked lazily per key: a thread that
+        gains a message derives a new key, so the entry of an older generation is
+        never looked up again and a lazy check would never reach it, which is
+        exactly the entry a ttl exists to bound. Every entry shares one ttl and
+        the deadlines sit in write order, so the sweep stops at the first live
+        one and costs nothing when none has expired.
+        """
+        if self._token_memo_ttl is None:
+            return
+
+        now = self._now()
+        while self._token_memo_expiry:
+            key = next(iter(self._token_memo_expiry))
+            if now < self._token_memo_expiry[key]:
+                break
+            self._drop_memo(key)
+
+    def _drop_memo(self, key: _MemoKey) -> None:
+        """Remove one memoized token map and its expiry deadline."""
+        self._token_memo.pop(key, None)
+        self._token_memo_expiry.pop(key, None)
+
+    def _evict_memo(self) -> None:
+        """Evict least recently used token maps while over the size bound."""
+        while len(self._token_memo) > _TOKEN_MEMO_MAX:
+            oldest, _ = self._token_memo.popitem(last=False)
+            self._token_memo_expiry.pop(oldest, None)
