@@ -96,6 +96,7 @@ The top-level keys of a `PipelineConfig`.
 | Section | Required | Meaning |
 |---------|----------|---------|
 | `name` | no | An optional pipeline name, a top-level scalar overridable by `PIIGHOST_NAME` |
+| `token_memo_ttl` | no | The seconds a thread's memoized token map is kept, a top-level scalar, needs a `[memory]` |
 | `[detector]` | yes | The detect stage |
 | `[linker]` | no | The entity linker, defaults to `ExactEntityLinker` |
 | `[anonymizer]` | no | The render stage, defaults to an `Anonymizer` with a label-counter factory |
@@ -400,6 +401,8 @@ Omitting the section traces the clear text and the detection values, and a live 
 ## `[memory]`
 
 Optional. Its presence makes the pipeline a `ThreadAnonymizationPipeline` keeping per-thread state. Discriminated on `type`.
+
+The `token_memo_ttl` scalar goes with it, at the top level rather than in this section, since it bounds the pipeline's own memoized token map and not the store. Setting it without a `[memory]` raises, because a stateless pipeline memoizes nothing. Why it matters on a multi-worker deployment is in [Multi-instance deployment](../multi-instance.md).
 
 | `type` | Extra | Store |
 |--------|-------|-------|

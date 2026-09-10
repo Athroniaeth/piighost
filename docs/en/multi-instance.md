@@ -85,6 +85,24 @@ type = "argon2"
 type = "aesgcm"
 ```
 
+## Bound the token memo on every worker
+
+A shared memory settles the numbering, but each worker also memoizes the token map it derives, keyed on the thread state it read. That memo holds the thread's values in clear, and `forget_thread` only reaches the memo of the process it runs in. So an erasure request routed to worker A leaves worker B's copy standing until its size bound evicts it.
+
+Nothing stale is ever served: the memo key carries the union read from the store, which the erasure emptied, so worker B recomputes and finds nothing. The issue is retention, not correctness. `token_memo_ttl` bounds it without any cross-worker message to lose:
+
+```toml
+token_memo_ttl = 300.0
+
+[memory]
+type = "redis"
+url = "redis://localhost:6379/0"
+```
+
+It is a top-level scalar, so it goes above the first section. Five minutes is a reasonable starting point, long enough that a live conversation keeps hitting the memo, short enough that a forgotten thread's values do not linger.
+
+The sweep rides on the traffic of the worker it runs in: an entry is dropped the next time that worker derives a token map, not on a timer. A worker that goes idle right after an erasure therefore keeps its copy until it serves another request, or until the process ends. Bounding that would take a background task, which a library has no business starting, so the ttl is a bound on busy workers and the process lifetime is the bound on idle ones. Leaving the ttl unset keeps an entry until 256 others push it out, which on a quiet worker can be a long time.
+
 ## Align with LangGraph
 
 The same trap hits LangGraph's `checkpointer`. `MemorySaver` is process-local, `PostgresSaver` and `RedisSaver` are shared. If your agent already runs a shared saver behind the load balancer, run the `piighost` memory on the same infrastructure. A `thread_id` that has a checkpointed state then also has its token mapping reachable, on any worker.
