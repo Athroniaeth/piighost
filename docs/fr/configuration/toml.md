@@ -96,6 +96,7 @@ Les clés de premier niveau d'un `PipelineConfig`.
 | Section | Requise | Signification |
 |---------|---------|---------------|
 | `name` | non | Un nom de pipeline optionnel, un scalaire de premier niveau surchargeable par `PIIGHOST_NAME` |
+| `token_memo_ttl` | non | Les secondes pendant lesquelles la carte de tokens mémoïsée d'un thread est gardée, un scalaire de premier niveau, exige un `[memory]` |
 | `[detector]` | oui | L'étage de détection |
 | `[linker]` | non | Le linker d'entités, par défaut `ExactEntityLinker` |
 | `[anonymizer]` | non | L'étage de rendu, par défaut un `Anonymizer` avec une factory label-counter |
@@ -400,6 +401,8 @@ Omettre la section trace le texte en clair et les valeurs détectées, et un tra
 ## `[memory]`
 
 Optionnel. Sa présence fait du pipeline un `ThreadAnonymizationPipeline` qui garde un état par thread. Discriminé sur `type`.
+
+Le scalaire `token_memo_ttl` va avec, au premier niveau plutôt que dans cette section, puisqu'il borne la carte de tokens mémoïsée du pipeline et non le store. Le poser sans `[memory]` lève une erreur, un pipeline sans état ne mémoïsant rien. Pourquoi il compte sur un déploiement multi-worker est dans [Déploiement multi-instance](../multi-instance.md).
 
 | `type` | Extra | Stockage |
 |--------|-------|----------|

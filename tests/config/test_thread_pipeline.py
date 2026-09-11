@@ -89,6 +89,33 @@ class TestLoadThreadPipeline:
             load_thread_pipeline(_write(tmp_path, _SIMPLE_TOML))
 
 
+class TestTokenMemoTtl:
+    """The top-level scalar bounding how long a token map is memoized.
+
+    It is a top-level scalar, so it is prepended to the config: written after a
+    section header it would land inside that section and be refused as an extra
+    key, which is TOML rather than a rule of this setting.
+    """
+
+    def test_a_ttl_reaches_the_pipeline(self, tmp_path: Path) -> None:
+        """token_memo_ttl is forwarded to the thread pipeline it bounds."""
+        config = "token_memo_ttl = 300.0\n" + _THREAD_TOML
+        pipeline = load_thread_pipeline(_write(tmp_path, config))
+        assert pipeline._token_memo_ttl == 300.0
+
+    def test_a_ttl_without_a_memory_is_refused(self, tmp_path: Path) -> None:
+        """A memo ttl with no memory raises rather than be silently ignored."""
+        config = "token_memo_ttl = 300.0\n" + _SIMPLE_TOML
+        with pytest.raises(ConfigError, match="token_memo_ttl"):
+            load_pipeline(_write(tmp_path, config))
+
+    def test_a_non_positive_ttl_is_refused(self, tmp_path: Path) -> None:
+        """A ttl of zero or less names no window, so it fails validation."""
+        config = "token_memo_ttl = 0\n" + _THREAD_TOML
+        with pytest.raises(ConfigError):
+            load_thread_pipeline(_write(tmp_path, config))
+
+
 class TestLoadPipelineRejectsMemory:
     def test_memory_config_is_rejected(self, tmp_path: Path) -> None:
         """load_pipeline on a config declaring a memory raises ConfigError."""

@@ -98,7 +98,7 @@ redis-cli -n 0 FLUSHDB
 ```
 
 ```sql
--- SQLAlchemy, la table de mémoire de conversation (its default name)
+-- SQLAlchemy, la table de mémoire de conversation (son nom par défaut)
 TRUNCATE TABLE piighost_conversation_messages;
 ```
 

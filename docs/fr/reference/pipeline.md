@@ -160,6 +160,15 @@ forgotten = await pipeline.forget_thread("user-A")
 # forgotten.messages, forgotten.detections
 ```
 
+La correspondance de tokens mémoïsée du thread part avec lui. Ce mémo garde les valeurs du thread en clair, donc effacer le store seul les laisserait vivantes dans le processus. Les autres threads gardent le leur. L'appel n'atteint que le processus où il tourne, donc sur un déploiement multi-worker posez `token_memo_ttl` au constructeur pour borner la fenêtre sur les autres, comme décrit dans [Déploiement multi-instance](../multi-instance.md). Un cache reste debout, celui des motifs de frontière de mot, partagé par tout le processus et indexé sur le fragment cherché, donc porteur de valeurs venant de tous les threads. Videz-le avec `clear_boundary_cache` quand une demande d'effacement couvre tout le processus.
+
+```python
+from piighost.text import clear_boundary_cache
+
+await pipeline.forget_thread("user-A")
+clear_boundary_cache()
+```
+
 #### `recognizer` (propriété)
 
 La grammaire des tokens que ce pipeline émet, une `BaseDelimitedPlaceholderFactory`, ou `None`. Une factory à délimiteurs est son propre recognizer, car ses tokens portent une grammaire retrouvable. Une factory sans grammaire, comme un masque, n'a pas de recognizer.

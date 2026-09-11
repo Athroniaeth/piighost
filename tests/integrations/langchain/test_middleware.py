@@ -15,7 +15,11 @@ from piighost.components.placeholder import (
     PreservesRecognizableIdentity,
 )
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
-from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
+from piighost.exceptions import (
+    InventedPlaceholderError,
+    MissingThreadIdError,
+    UnrecognizableFactoryError,
+)
 from piighost.integrations.langchain import (
     EntityCreateByAssistantStrategy,
     InventedPlaceholderStrategy,
@@ -168,6 +172,55 @@ class TestWhenInstalled:
         assert reply["messages"][0].content == [{"type": "text", "text": "Hello Emma"}]
 
 
+class TestThreadId:
+    """The thread-id resolution guarding against cross-conversation leakage."""
+
+    def _thread_id(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        config: Any,
+        require_thread_id: bool,
+    ) -> str:
+        """Resolve the thread id against a stubbed LangGraph config."""
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(module, "get_config", lambda: config)
+        return cast(str, module._thread_id(require_thread_id))
+
+    def test_reads_the_configured_thread_id(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The id declared in the LangGraph config is the thread the turn uses."""
+        pytest.importorskip("langchain")
+        config = {"configurable": {"thread_id": "t1"}}
+        assert self._thread_id(monkeypatch, config, True) == "t1"
+
+    @pytest.mark.parametrize(
+        "config",
+        [
+            {},
+            {"configurable": {}},
+            # LangGraph may hand back a config whose configurable block is unset
+            # rather than an empty mapping, which must read as a missing id and
+            # not as an attribute error.
+            {"configurable": None},
+        ],
+    )
+    def test_missing_id_raises_when_required(
+        self, monkeypatch: pytest.MonkeyPatch, config: Any
+    ) -> None:
+        """Without a thread id, require_thread_id refuses the shared default."""
+        pytest.importorskip("langchain")
+        with pytest.raises(MissingThreadIdError):
+            self._thread_id(monkeypatch, config, True)
+
+    def test_missing_id_falls_back_when_not_required(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With require_thread_id off, a missing id lands on the shared default."""
+        pytest.importorskip("langchain")
+        assert self._thread_id(monkeypatch, {"configurable": None}, False) == "default"
+
+
 class _FakeRequest:
     """A minimal stand-in for a langgraph ToolCallRequest.
 
@@ -262,6 +315,127 @@ class TestToolCalls:
         request = _FakeRequest({"name": "<<PERSON:1>>"})
         response = await middleware.awrap_tool_call(request, handler)
         assert response.content == [{"type": "text", "text": "Contact <<PERSON:1>>"}]
+
+    async def test_output_anonymizes_a_tool_message_inside_a_command(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A tool result returned inside a Command update is anonymized too.
+
+        A tool that also writes state replies with a Command carrying its
+        ToolMessage rather than the message itself; that shape used to skip the
+        output side entirely, so the tool's PII reached the model in clear.
+        """
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+        from langgraph.types import Command
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=ToolCallStrategy.OUTPUT
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        async def handler(request: Any) -> object:
+            message = ToolMessage(content="Contact Emma", tool_call_id="c1")
+            return Command(update={"messages": [message]})
+
+        request = _FakeRequest({"name": "<<PERSON:1>>"})
+        response = await middleware.awrap_tool_call(request, handler)
+        assert _text(response.update["messages"][0]) == "Contact <<PERSON:1>>"
+
+    @pytest.mark.parametrize(
+        "shape",
+        ["dict_of_list", "dict_of_tuple", "dict_of_message", "pairs_of_list"],
+        ids=["dict of list", "dict of tuple", "dict of message", "pairs of list"],
+    )
+    async def test_output_anonymizes_every_command_update_shape(
+        self, monkeypatch: pytest.MonkeyPatch, shape: str
+    ) -> None:
+        """Every shape LangGraph accepts for a Command update is de-identified.
+
+        A state update is a mapping of state keys or, equivalently, a sequence of
+        key-value pairs, and either may hold one message or a sequence of them.
+        A shape left unwalked passes the tool's PII to the model in clear.
+        """
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+        from langgraph.types import Command
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=ToolCallStrategy.OUTPUT
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        async def handler(request: Any) -> object:
+            message = ToolMessage(content="Contact Emma", tool_call_id="c1")
+            updates: dict[str, Any] = {
+                "dict_of_list": {"messages": [message]},
+                "dict_of_tuple": {"messages": (message,)},
+                "dict_of_message": {"messages": message},
+                "pairs_of_list": [("messages", [message])],
+            }
+            return Command(update=updates[shape])
+
+        request = _FakeRequest({"name": "<<PERSON:1>>"})
+        response = await middleware.awrap_tool_call(request, handler)
+        restored = module._tool_messages(response)
+        assert [_text(message) for message in restored] == ["Contact <<PERSON:1>>"]
+
+    async def test_a_command_without_a_message_is_left_alone(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A Command carrying only plain state values yields no message to rewrite."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage
+        from langgraph.types import Command
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=ToolCallStrategy.OUTPUT
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        async def handler(request: Any) -> object:
+            return Command(update={"counter": 3})
+
+        request = _FakeRequest({"name": "<<PERSON:1>>"})
+        response = await middleware.awrap_tool_call(request, handler)
+        assert response.update == {"counter": 3}
+
+    async def test_passthrough_leaves_a_command_tool_message_alone(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Under PASSTHROUGH a Command's tool message is left as the tool wrote it."""
+        pytest.importorskip("langchain")
+        from langchain_core.messages import HumanMessage, ToolMessage
+        from langgraph.types import Command
+
+        module = importlib.import_module(_MODULE)
+        monkeypatch.setattr(
+            module, "get_config", lambda: {"configurable": {"thread_id": "t1"}}
+        )
+        middleware = module.PIIAnonymizationMiddleware(
+            _pipeline(), tool_strategy=ToolCallStrategy.PASSTHROUGH
+        )
+        await middleware.abefore_model({"messages": [HumanMessage("Hi Emma")]}, None)
+
+        async def handler(request: Any) -> object:
+            message = ToolMessage(content="Contact Emma", tool_call_id="c1")
+            return Command(update={"messages": [message]})
+
+        request = _FakeRequest({"name": "<<PERSON:1>>"})
+        response = await middleware.awrap_tool_call(request, handler)
+        assert _text(response.update["messages"][0]) == "Contact Emma"
 
     async def test_before_model_reanonymizes_clear_tool_call_args(
         self, monkeypatch: pytest.MonkeyPatch

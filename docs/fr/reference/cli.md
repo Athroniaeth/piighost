@@ -81,6 +81,8 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 
 `--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`.
 
+Ces détections sont la sortie propre du détecteur, lue directement chez lui pour l'affichage. Ce n'est pas l'ensemble à partir duquel le texte dé-identifié a été rendu, donc un recouvrement écarté par le resolver et une valeur effacée par un override y figurent encore. Lisez-les comme ce que le détecteur a vu, et `anonymized_text` comme ce que le pipeline a décidé.
+
 ---
 
 ## Obtenir de l'aide

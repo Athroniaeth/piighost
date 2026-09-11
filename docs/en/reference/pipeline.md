@@ -160,6 +160,15 @@ forgotten = await pipeline.forget_thread("user-A")
 # forgotten.messages, forgotten.detections
 ```
 
+The thread's memoized token map goes with it. That memo holds the thread's values in clear, so erasing the store alone would keep them live in the process. The other threads keep theirs. It only reaches the process it runs in, so on a multi-worker deployment set `token_memo_ttl` on the constructor to bound the window on the others, as described in [Multi-instance deployment](../multi-instance.md). One cache is left standing, the process-wide word-boundary pattern cache, which is keyed by the fragment searched for and therefore holds values from every thread. Clear it with `clear_boundary_cache` when an erasure request covers the whole process.
+
+```python
+from piighost.text import clear_boundary_cache
+
+await pipeline.forget_thread("user-A")
+clear_boundary_cache()
+```
+
 #### `recognizer` (property)
 
 The grammar of the tokens this pipeline emits, a `BaseDelimitedPlaceholderFactory`, or `None`. A delimited factory is its own recognizer, since its tokens carry a grammar that can be found again. A factory without one, such as a mask, has no recognizer.

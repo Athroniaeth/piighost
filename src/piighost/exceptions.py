@@ -89,6 +89,23 @@ class TextTooLongError(DetectorError):
     """
 
 
+class TextError(PIIGhostError):
+    """Base class for errors raised by the text helpers.
+
+    Catch this to handle any text-helper case at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class EmptyFragmentError(TextError):
+    """Raised when a word-boundary search is given an empty fragment.
+
+    An empty fragment matches at every position of the text, so it would yield
+    zero-width spans a Span refuses, and the failure would surface as a
+    SpanOrderingError far from its cause. The helpers fail closed here instead.
+    """
+
+
 class HasherError(PIIGhostError):
     """Base class for errors raised while constructing a hasher.
 

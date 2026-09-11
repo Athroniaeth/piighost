@@ -35,7 +35,7 @@ Les détecteurs à modèle, le middleware et les backends optionnels sont des ex
 
     ```bash
     uv add 'piighost[gliner2]'     # détecteur GLiNER2 (NER)
-    uv add 'piighost[langchain]'  # middleware LangChain/LangGraph
+    uv add 'piighost[langchain]'   # middleware LangChain/LangGraph
     uv add 'piighost[all]'         # tous les extras
     ```
 

@@ -81,6 +81,8 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 
 `--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`.
 
+Those detections are the detector's own output, read straight from the detector for the listing. They are not the set the de-identified text was rendered from, so an overlap the resolver dropped and a value an override cleared both still appear. Read them as what the detector saw, and `anonymized_text` as what the pipeline decided.
+
 ---
 
 ## Getting help
