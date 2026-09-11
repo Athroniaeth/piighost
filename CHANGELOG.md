@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.7.1 (2026-09-11)
+
+### Feat
+
+- **skills**: audit dead internal links and nav parity in the docs gate
+- **text**: refuse an empty word-boundary fragment, expose a cache reset
+- **pipeline**: purge and bound the memoized thread token map
+
+### Fix
+
+- **build**: run pyrefly on explicit paths so the type gate is not inert
+- **langchain**: de-identify a tool result returned inside a Command
+
 ## 1.7.0 (2026-09-07)
 
 ### Feat
