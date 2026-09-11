@@ -92,6 +92,8 @@ Routes the tool call by `tool_strategy`. When the strategy de-identifies input, 
 
 Argument restoration recurses through nested `dict`, `list`, and `tuple` containers. Only `str` leaves are restored, other types pass through unchanged.
 
+The response is de-identified whichever shape the tool replied with, its `ToolMessage` directly or a `Command` whose state update carries it, the shape a tool that also writes state uses. A state update is walked as a mapping of state keys or as a sequence of key-value pairs, each holding one message or a sequence of them, so all four forms LangGraph accepts are covered. Content that is a list of text blocks is handled the same way as a plain string, block by block.
+
 ```python
 # model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
 #                       restore args

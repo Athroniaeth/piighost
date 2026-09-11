@@ -35,7 +35,7 @@ Model-based detectors, the middleware, and the optional backends are extras to c
 
     ```bash
     uv add 'piighost[gliner2]'     # GLiNER2 NER detector
-    uv add 'piighost[langchain]'  # LangChain/LangGraph middleware
+    uv add 'piighost[langchain]'   # LangChain/LangGraph middleware
     uv add 'piighost[all]'         # every extra
     ```
 

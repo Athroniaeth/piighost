@@ -107,6 +107,30 @@ class TestDetect:
         detector = LLMDetector(model=_FakeChatModel(result), labels=["PERSON"])
         assert await detector.detect("Emma only") == []
 
+    async def test_blank_value_is_dropped(self) -> None:
+        """A blank value the model returned yields no detection and does not raise.
+
+        An empty fragment matches at every position, so locating it would build a
+        zero-width span the model layer refuses. The untrusted value is dropped.
+        """
+        pytest.importorskip("langchain_core")
+        from piighost.components.detector import LLMDetector
+
+        result = _FakeExtraction([_FakeEntity("", "PERSON")])
+        detector = LLMDetector(model=_FakeChatModel(result), labels=["PERSON"])
+        assert await detector.detect("Hello, world!") == []
+
+    async def test_padded_value_is_stripped_before_locating(self) -> None:
+        """A value the model padded with spaces is still located in the text."""
+        pytest.importorskip("langchain_core")
+        from piighost.components.detector import LLMDetector
+
+        result = _FakeExtraction([_FakeEntity("  Emma  ", "PERSON")])
+        detector = LLMDetector(model=_FakeChatModel(result), labels=["PERSON"])
+        detections = await detector.detect("Hi Emma!")
+        assert len(detections) == 1
+        assert detections[0].span == Span(3, 7)
+
     async def test_malformed_output_fails_open(self) -> None:
         """A result without an entities attribute yields no detection."""
         pytest.importorskip("langchain_core")

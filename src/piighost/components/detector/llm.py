@@ -146,6 +146,11 @@ class LLMDetector(BaseNERDetector):
         carrying a closing tag cannot end the data region and have the rest read
         as instructions. Only that copy is escaped; values are located in the
         untouched source text, so the spans stay aligned with the caller's text.
+
+        Each extracted value is stripped and a blank one is dropped, since the
+        model's output is untrusted: an empty value would match at every position
+        of the text, and a surrounding space would keep a real value from being
+        located at all.
         """
         if not text:
             return []
@@ -175,7 +180,15 @@ class LLMDetector(BaseNERDetector):
 
         detections: list[Detection] = []
         for entity in entities:
-            for span in find_all_word_boundary(text, entity.text):
+            value = entity.text.strip()
+            if not value:
+                logger.warning(
+                    "LLMDetector dropped a blank value the model returned under "
+                    "label %s; a blank value localizes nowhere.",
+                    entity.label.value,
+                )
+                continue
+            for span in find_all_word_boundary(text, value):
                 detection = Detection(
                     span=span,
                     text=text[span.start : span.end],

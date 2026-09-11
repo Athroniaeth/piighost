@@ -13,7 +13,7 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import ClassVar, cast
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError, model_validator
 from pydantic_settings import (
     BaseSettings,
     JsonConfigSettingsSource,
@@ -77,6 +77,8 @@ class PipelineConfig(BaseSettings):
             observation payloads.
         memory: The optional conversation memory; when set, the pipeline is a
             thread pipeline keeping per-thread state.
+        token_memo_ttl: The seconds a thread's memoized token map is kept, or
+            None to keep it until the size bound evicts it. Needs a memory.
     """
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
@@ -94,6 +96,22 @@ class PipelineConfig(BaseSettings):
     override: OverrideConfig | None = None
     observation_redactor: PlaceholderConfig | None = None
     memory: MemoryConfig | None = None
+    token_memo_ttl: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _token_memo_ttl_needs_a_memory(self) -> "PipelineConfig":
+        """Refuse a memo ttl without a memory, which no stateless pipeline has.
+
+        Only a thread pipeline memoizes a token map, so the key would otherwise
+        be accepted and silently ignored, which is the shape of a setting a
+        deployment believes it applied.
+        """
+        if self.token_memo_ttl is not None and self.memory is None:
+            raise ValueError(
+                "token_memo_ttl needs a [memory] section: only a thread "
+                "pipeline memoizes a token map"
+            )
+        return self
 
     @classmethod
     def settings_customise_sources(
@@ -143,6 +161,7 @@ class PipelineConfig(BaseSettings):
                 guard=guard,
                 observation_redactor=observation_redactor,
                 override=override,
+                token_memo_ttl=self.token_memo_ttl,
             )
         return AnonymizationPipeline(
             detector,

@@ -29,6 +29,8 @@ flowchart LR
     PIIGhostError --> DetectorError
     DetectorError --> LabelMappingError
     DetectorError --> TextTooLongError
+    PIIGhostError --> TextError
+    TextError --> EmptyFragmentError
     PIIGhostError --> AnonymizerError
     AnonymizerError --> OverlappingSpansError
     PIIGhostError --> OverrideError
@@ -53,7 +55,7 @@ flowchart LR
 *L'arbre `PIIGhostError`, chaque classe de regroupement à gauche des erreurs qu'elle couvre.*
 { .figure-caption }
 
-Sur les trente et une classes d'erreur, dix-neuf sont levées par un composant et douze n'existent que pour être attrapées. `ConfigError` compte des deux côtés, une classe de regroupement qui est aussi levée pour elle-même.
+Sur les trente-trois classes d'erreur, vingt sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, une classe de regroupement qui est aussi levée pour elle-même.
 
 ## Modèles de données
 
@@ -79,6 +81,16 @@ Module : `piighost.components.detector.ner`. `DetectorError` regroupe deux défa
 | `TextTooLongError` | `BaseNERDetector`, à la détection | un texte dépasse `max_chars` alors que `auto_chunk` est désactivé, un scan limité au préfixe étant refusé |
 
 Les deux sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent la seconde.
+
+## Utilitaires de texte
+
+Module : `piighost.text`. `TextError` regroupe les défaillances des utilitaires de frontière de mot et porte une seule sous-classe.
+
+| Exception | Levée par | Levée quand |
+|-----------|-----------|-------------|
+| `EmptyFragmentError` | `boundary_wrap`, `find_all_word_boundary` et `ExactMatchDetector.__init__` | le fragment cherché est vide, ce qui correspondrait à chaque position du texte |
+
+Un fragment vide produirait des spans de largeur nulle qu'un `Span` refuse, donc la défaillance remonterait sinon en `SpanOrderingError` loin de sa cause. `ExactMatchDetector` vérifie ses valeurs configurées à la construction, donc une faute dans la config échoue au chargement plutôt qu'au premier message. `LLMDetector` ne la lève pas, la sortie d'un modèle n'étant pas fiable, une valeur extraite vide est écartée avec un avertissement.
 
 ## Anonymizer
 

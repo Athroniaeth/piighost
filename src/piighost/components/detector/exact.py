@@ -2,6 +2,7 @@
 
 import re
 
+from piighost.exceptions import EmptyFragmentError
 from piighost.models import Detection
 from piighost.text import find_all_word_boundary
 
@@ -20,10 +21,20 @@ class ExactMatchDetector:
     Attributes:
         values: Mapping of literal value to the PII label to emit for it.
         case_sensitive: Whether matching respects case. False by default.
+
+    Raises:
+        EmptyFragmentError: If a configured value is empty. Such a value matches
+            at every position, so it is refused at construction rather than on
+            the first message, which is where a config typo should surface.
     """
 
     def __init__(self, values: dict[str, str], case_sensitive: bool = False) -> None:
         """Store the value-to-label mapping and the case-sensitivity policy."""
+        if any(not value for value in values):
+            raise EmptyFragmentError(
+                "An ExactMatchDetector value must be non-empty; an empty one "
+                "matches at every position of the text."
+            )
         self.values = values
         self.case_sensitive = case_sensitive
 

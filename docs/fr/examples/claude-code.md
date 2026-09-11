@@ -89,8 +89,11 @@ Un prompt et une entrée d'outil sont assez simples pour être dé-identifiés e
 | `Agent` | texte du message |
 | `WebFetch` | `result` |
 | `WebSearch` | titres des résultats |
+| `ToolSearch` | `query` |
 
-Un outil absent de la liste, ou une sortie dont la forme est inattendue, passe sans modification.
+!!! warning "La liste blanche laisse passer par défaut"
+
+    Un outil absent de la liste, ou une sortie dont la forme est inattendue, passe sans modification, donc son texte atteint le modèle en clair. `Grep` est le manque notable, ses correspondances étant des lignes des fichiers parcourus, et la liste ne le couvre pas encore. En attendant, gardez `Grep` hors de la session ou étendez la liste comme décrit plus bas.
 
 ## Découvrir la forme d'un nouvel outil
 
