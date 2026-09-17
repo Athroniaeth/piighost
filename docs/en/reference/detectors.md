@@ -80,6 +80,33 @@ detections = await detector.detect("write to alice@example.com")
 # [Detection(span=Span(9, 26), text="alice@example.com", label="EMAIL", confidence=1.0)]
 ```
 
+### `from_hub`
+
+```python
+RegexDetector.from_hub(ref: str, *, hub: str | None = None) -> RegexDetector
+```
+
+Builds a detector from the regexes a [piighost hub](https://piighost-hub.athroniaeth.cloud) reference carries. The hub is a registry of tested de-identification regexes, addressed by `namespace/name` and an optional selector: a tag, or the eight hex characters of a commit.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `ref` | `str` | A reference, `namespace/name` with an optional `:selector` and an optional `hub:` prefix. Without a selector it resolves to `latest` (required) |
+| `hub` | `str \| None` | Origin of the hub to pull from. Defaults to `PIIGHOST_HUB_URL`, then to the public hub |
+
+```python
+from piighost.components.detector import RegexDetector
+
+detector = RegexDetector.from_hub("piighost/logs:fd79aec6")
+detections = await detector.detect("mail me at a@b.co from 10.0.0.1")
+```
+
+A reference pinned to a commit is immutable, so the answer is cached under `~/.cache/piighost/hub` and read from disk on every later call. A reference pointing at a tag or at `latest` moves, so it is fetched every time: serving a stale one would quietly detect less than the caller asked for.
+
+The call raises a subclass of `HubError` (`piighost.hub`) when the reference does not parse, the hub cannot be reached, or the reference resolves to something other than a plain regex detector. That last case covers a reference carrying a model detector: taking its regexes alone would detect less than the reference promises, so it fails instead of returning half of it.
+
+It uses the standard library only, so the core install needs no extra.
+
+
 ---
 
 ## `CompositeDetector`
