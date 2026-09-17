@@ -51,7 +51,7 @@ except PIIRemainingError as error:
     print(error.detections)  # the residual detections behind the flag
 ```
 
-La version exécutable est [`examples/guard_rail.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail.py), qui utilise aussi un garde-fou en autonome en appelant `await guard.check(text)` et en lisant le verdict sans lever d'exception.
+La version exécutable est [`examples/guard_rail.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail.py), qui utilise aussi un garde-fou en autonome en appelant `await guard.check(text)` et en lisant le verdict sans lever d'exception. La version à modèle local est [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
 
 ## `DetectorGuardRail`
 
@@ -62,6 +62,22 @@ DetectorGuardRail(detector: AnyDetector)
 ```
 
 Cela n'a de valeur qu'avec un détecteur différent de celui du pipeline, réexécuter le même ne trouve rien, puisque le pipeline a déjà dé-identifié tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie dé-identifiée, rattrape ce que le détecteur primaire a manqué. Les placeholders synthétiques n'ont pas la forme de PII, donc un détecteur conçu pour de vraies PII les laisse tranquilles. Il ne requiert aucun extra.
+
+### Un modèle local comme garde
+
+Le détecteur complémentaire est souvent un modèle, parce que les formes qu'un regex attrape bien sont justement celles que la passe primaire a déjà prises. Ce qui passe au travers, c'est un nom, une adresse, une raison sociale :
+
+```python
+DetectorGuardRail(
+    Gliner2Detector(
+        model="fastino/GLiNER2-Guardrails-PII-Multi",
+        labels=["person", "address"],
+        threshold=0.5,
+    )
+)
+```
+
+Cela localise ce qui a fuité, ce qu'un garde adossé à un détecteur apporte face à un classifieur. Pour un verdict au niveau du texte issu du même checkpoint, sans spans et en une seule passe, voir [`Gliner2GuardRail`](#gliner2guardrail).
 
 ## `LLMGuardRail`
 
@@ -79,6 +95,42 @@ LLMGuardRail(
 ```
 
 Un modèle `str` est chargé comme celui de `LLMDetector`. Une instance déjà chargée est utilisée telle quelle. Un `prompt` personnalisé doit contenir un placeholder `{labels}`. Quand aucun prompt personnalisé n'est fourni, `prefix` et `suffix` (par défaut `<<` et `>>`) façonnent les exemples de placeholder du prompt par défaut pour qu'ils correspondent aux délimiteurs que le pipeline émet. Requiert `piighost[llm]`.
+
+## `Gliner2GuardRail`
+
+Classe la sortie dé-identifiée avec un modèle de garde GLiNER2 qui tourne dans le processus, et signale le verdict quand la réponse revient `unsafe` avec assez de confiance.
+
+```python
+Gliner2GuardRail(
+    model: GLiNER2 | str = "fastino/GLiNER2-Guardrails-PII-Multi",
+    task: str = "response_safety",
+    labels: tuple[str, ...] = ("safe", "unsafe"),
+    threshold: float = 0.5,
+)
+```
+
+C'est `ModerationGuardRail` sans l'appel d'API, et cette différence est tout l'intérêt : le texte qu'un garde examine est celui qui contient encore ce qui a fuité, donc l'envoyer à un tiers est une drôle de forme pour la dernière étape d'un pipeline de dé-identification. Le modèle par défaut fait 300M de paramètres, couvre sept langues, et fait modération de sûreté et extraction de PII en une seule passe.
+
+Un modèle `str` est chargé avec `GLiNER2.from_pretrained` ; une instance déjà chargée est utilisée telle quelle, ce qui permet de partager un même checkpoint entre ce garde et un `Gliner2Detector`. La paire `labels` est lue par position, la réponse refusée en dernier, donc une autre tâche du même modèle se lit pareil : `task="response_refusal"` avec `labels=("compliance", "refusal")` signale un refus. Requiert `piighost[gliner2]`.
+
+```python
+from piighost.components.detector import RegexDetector
+from piighost.components.guard import Gliner2GuardRail
+from piighost.pipeline import AnonymizationPipeline
+
+pipeline = AnonymizationPipeline(
+    RegexDetector({"EMAIL": r"[\w.+-]+@[\w.-]+\.\w{2,}"}),
+    guard=Gliner2GuardRail(),
+)
+
+await pipeline.anonymize("Write to a@b.co about the invoice.")
+# Write to <<EMAIL:1>> about the invoice.
+
+await pipeline.anonymize("Write to John Doe, 12 rue des Lilas, 75008 Paris.")
+# PIIRemainingError: A guard flagged residual PII (score 0.997)
+```
+
+Étant un verdict au niveau du texte, il ne localise rien : `detections` reste vide et seul `score` est renseigné ; associez-le à un `DetectorGuardRail` s'il vous faut savoir quelle valeur a fuité. Les placeholders qu'émet le pipeline ne le déclenchent pas : `<<EMAIL:1>>` est classé `safe` à 0,989. La version exécutable est [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
 
 ## `ModerationGuardRail`
 
@@ -116,6 +168,7 @@ catalogs = ["generic", "us"]
 | `type` | Champs | Extra |
 |--------|--------|-------|
 | `detector` | `[guard.detector]` (une config de détecteur) | | 
+| `gliner2` | `model` (défaut `fastino/GLiNER2-Guardrails-PII-Multi`), `task`, `labels`, `threshold` | `gliner2` |
 | `llm` | `model`, `labels`, `prompt` (optionnel), `provider` (optionnel) | `llm` |
 | `moderation` | `model` (défaut `mistral-moderation-latest`), `threshold` (défaut `0.5`) | `mistral` |
 

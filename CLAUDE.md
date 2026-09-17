@@ -36,7 +36,7 @@ Each pipeline stage is a package under `src/piighost/components/` whose `base.py
 5. **Link**: `AnyEntityLinker` / `ExactEntityLinker` groups detections that share a value and label into an `Entity`.
 6. **Resolve entities** (optional): `AnyEntityResolver` / `MergeEntityResolver` (union-find) or `FuzzyEntityResolver` (Jaro-Winkler, `fuzzy` extra).
 7. **Anonymize**: `AnyAnonymizer` / `Anonymizer` applies span-based replacement using an `AnyPlaceholderFactory`.
-8. **Guard rail** (optional): `AnyGuardRail` (`components/guard/`) re-checks the output for residual PII and raises `PIIRemainingError`. `DetectorGuardRail` re-runs a detector, `LLMGuardRail` (`guard/llm.py`) prompts an LLM to ignore placeholders, `ModerationGuardRail` (`guard/moderation.py`, `mistral` extra) backs the check with Mistral.
+8. **Guard rail** (optional): `AnyGuardRail` (`components/guard/`) re-checks the output for residual PII and raises `PIIRemainingError`. `DetectorGuardRail` re-runs a detector, `Gliner2GuardRail` (`guard/gliner2.py`, `gliner2` extra) classifies the output with a local GLiNER2 guardrail model, `LLMGuardRail` (`guard/llm.py`) prompts an LLM to ignore placeholders, `ModerationGuardRail` (`guard/moderation.py`, `mistral` extra) backs the check with Mistral.
 
 Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models/`. Tests use `ExactMatchDetector` to avoid loading real models.
 
@@ -98,7 +98,7 @@ Docs are bilingual and mirrored: every page exists in both `docs/en/` and `docs/
 
 ## Examples
 
-- `examples/`: standalone PEP 723 inline-metadata scripts (`anonymize_basic.py`, `thread_conversation.py`, `guard_rail.py`, `langchain_middleware.py`, `langchain_streaming.py`, `placeholder_styles.py`, plus `config/`, `langchain/`, `llama_index/`, `observation/`, `pydantic_ai/`, `strategies/`, `transformers/`), run with `uv run <script>`.
+- `examples/`: standalone PEP 723 inline-metadata scripts (`anonymize_basic.py`, `thread_conversation.py`, `guard_rail.py`, `guard_rail_local_model.py`, `langchain_middleware.py`, `langchain_streaming.py`, `placeholder_styles.py`, plus `config/`, `langchain/`, `llama_index/`, `observation/`, `pydantic_ai/`, `strategies/`, `transformers/`), run with `uv run <script>`.
 
 New examples should be PEP 723 scripts, not uv sub-projects.
 

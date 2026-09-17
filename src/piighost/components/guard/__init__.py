@@ -2,9 +2,10 @@
 
 base.py holds the AnyGuardRail port and the GuardVerdict it returns; concrete
 guards live in sibling modules. DetectorGuardRail is stdlib and always
-available. ModerationGuardRail and LLMGuardRail need optional dependencies, so
-they are imported lazily: reaching for one without its extra raises a helpful
-ImportError, while importing this package never pulls the optional package in.
+available. Gliner2GuardRail, ModerationGuardRail and LLMGuardRail need optional
+dependencies, so they are imported lazily: reaching for one without its extra
+raises a helpful ImportError, while importing this package never pulls the
+optional package in.
 """
 
 from typing import Any
@@ -15,6 +16,7 @@ from piighost.components.guard.detector import DetectorGuardRail
 __all__ = [
     "AnyGuardRail",
     "DetectorGuardRail",
+    "Gliner2GuardRail",
     "GuardVerdict",
     "LLMGuardRail",
     "ModerationGuardRail",
@@ -23,6 +25,10 @@ __all__ = [
 
 def __getattr__(name: str) -> Any:
     """Import an optional guard on demand so its dependency stays optional."""
+    if name == "Gliner2GuardRail":
+        from piighost.components.guard.gliner2 import Gliner2GuardRail
+
+        return Gliner2GuardRail
     if name == "ModerationGuardRail":
         from piighost.components.guard.moderation import ModerationGuardRail
 

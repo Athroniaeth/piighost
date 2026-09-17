@@ -3,7 +3,7 @@
 import os
 from typing import Annotated, Literal
 
-from pydantic import Discriminator, Field
+from pydantic import Discriminator, Field, field_validator
 
 from piighost.components.guard.base import AnyGuardRail
 from piighost.config.models.common import _ComponentConfig
@@ -18,6 +18,18 @@ _DEFAULT_MODERATION_THRESHOLD = 0.5
 
 _MODERATION_API_KEY_ENV = "MISTRAL_API_KEY"
 """The environment variable holding the Mistral key the moderation guard needs."""
+
+_DEFAULT_GLINER2_MODEL = "fastino/GLiNER2-Guardrails-PII-Multi"
+"""The local checkpoint the GLiNER2 guard classifies with by default."""
+
+_DEFAULT_GLINER2_TASK = "response_safety"
+"""The task read: whether a produced text is safe to return."""
+
+_DEFAULT_GLINER2_LABELS = ("safe", "unsafe")
+"""The two answers the safety tasks choose between, the refused one last."""
+
+_DEFAULT_GLINER2_THRESHOLD = 0.5
+"""Confidence at or above which an unsafe answer flags the verdict."""
 
 
 class DetectorGuardRailConfig(_ComponentConfig):
@@ -104,7 +116,50 @@ class ModerationGuardRailConfig(_ComponentConfig):
         )
 
 
+class Gliner2GuardRailConfig(_ComponentConfig):
+    """Config for the GLiNER2 guard, classifying the output with a local model.
+
+    It needs no credential: the model runs in the process, which is the whole
+    point of preferring it to the moderation guard. The checkpoint is downloaded
+    on first build and cached by Hugging Face afterwards.
+
+    Attributes:
+        model: The GLiNER2 checkpoint the guard classifies with.
+        task: The classification task read from the model's answer.
+        labels: The answers the task chooses between, the unsafe one last.
+        threshold: The confidence at or above which an unsafe answer flags.
+    """
+
+    type: Literal["gliner2"]
+    model: str = _DEFAULT_GLINER2_MODEL
+    task: str = _DEFAULT_GLINER2_TASK
+    labels: tuple[str, ...] = _DEFAULT_GLINER2_LABELS
+    threshold: float = Field(default=_DEFAULT_GLINER2_THRESHOLD, ge=0.0, le=1.0)
+
+    @field_validator("labels")
+    @classmethod
+    def _two_labels_at_least(cls, labels: tuple[str, ...]) -> tuple[str, ...]:
+        """Require the pair the guard reads: an accepted answer and a refused one."""
+        if len(labels) < 2:
+            raise ValueError("a gliner2 guard needs at least two labels")
+        return labels
+
+    def build(self) -> AnyGuardRail:
+        """Build a Gliner2GuardRail over the named checkpoint."""
+        from piighost.components.guard.gliner2 import Gliner2GuardRail
+
+        return Gliner2GuardRail(
+            model=self.model,
+            task=self.task,
+            labels=self.labels,
+            threshold=self.threshold,
+        )
+
+
 GuardConfig = Annotated[
-    DetectorGuardRailConfig | LLMGuardRailConfig | ModerationGuardRailConfig,
+    DetectorGuardRailConfig
+    | Gliner2GuardRailConfig
+    | LLMGuardRailConfig
+    | ModerationGuardRailConfig,
     Discriminator("type"),
 ]
