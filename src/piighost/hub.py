@@ -24,7 +24,7 @@ from pathlib import Path
 
 from piighost.exceptions import PIIGhostError
 
-DEFAULT_HUB_URL = "https://piighost-hub.athroniaeth.cloud"
+DEFAULT_HUB_URL = "https://hub.piighost.dev"
 """The public hub, used when the environment names no other one."""
 
 HUB_URL_ENV_VAR = "PIIGHOST_HUB_URL"
