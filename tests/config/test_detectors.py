@@ -78,6 +78,49 @@ class TestRegexCatalogs:
         with pytest.raises(ValidationError):
             RegexDetectorConfig(**bad_kwargs)
 
+    def test_a_hub_reference_is_accepted_as_a_catalog(self) -> None:
+        """A config can name a reviewed catalogue instead of copying it."""
+        config = RegexDetectorConfig(
+            type="regex", catalogs=["hub:piighost/logs:fd79aec6"]
+        )
+        assert config.catalogs == ["hub:piighost/logs:fd79aec6"]
+
+    def test_a_malformed_hub_reference_is_rejected(self) -> None:
+        """A typo fails at load time rather than as a malformed URL later."""
+        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["hub:Logs"]}
+        with pytest.raises(ValidationError, match="unknown catalog"):
+            RegexDetectorConfig(**bad_kwargs)
+
+    def test_a_hub_catalog_is_pulled_at_build(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Building a config that names a hub catalog fetches its patterns."""
+        monkeypatch.setattr(
+            "piighost.config.models.detector.pull",
+            lambda ref: {"EMAIL": r"\S+@\S+"},
+        )
+        detector = RegexDetectorConfig(
+            type="regex", catalogs=["hub:piighost/logs:fd79aec6"]
+        ).build()
+        assert isinstance(detector, RegexDetector)
+        assert detector.patterns == {"EMAIL": r"\S+@\S+"}
+
+    def test_an_inline_pattern_still_overrides_a_hub_catalog(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The merge order holds for a hub catalog as for a prebuilt one."""
+        monkeypatch.setattr(
+            "piighost.config.models.detector.pull",
+            lambda ref: {"EMAIL": "FROM_HUB"},
+        )
+        detector = RegexDetectorConfig(
+            type="regex",
+            catalogs=["hub:piighost/logs:fd79aec6"],
+            patterns={"EMAIL": "INLINE"},
+        ).build()
+        assert isinstance(detector, RegexDetector)
+        assert detector.patterns["EMAIL"] == "INLINE"
+
 
 class TestExactDetectorConfig:
     def test_builds_an_exact_detector(self) -> None:

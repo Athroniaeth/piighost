@@ -405,7 +405,7 @@ The `GENERIC_PATTERNS` labels are country-agnostic. The others are prefixed (`US
 
 ### Pulling catalogs from a config
 
-A regex detector config pulls catalogs by name via `catalogs`, among `generic`, `us`, `eu`, `fr`. The named catalogs merge first, then any inline `patterns`, so an inline pattern overrides a catalog pattern on the same label. A regex detector config needs at least one inline pattern or one catalog.
+A regex detector config pulls catalogs via `catalogs`. An entry is either a prebuilt name, among `generic`, `us`, `eu`, `fr`, or a hub reference written `hub:namespace/name` with an optional `:selector`. The catalogs merge in order, then any inline `patterns`, so an inline pattern overrides a catalog pattern on the same label. A regex detector config needs at least one inline pattern or one catalog.
 
 ```toml
 [detector]
@@ -415,6 +415,16 @@ catalogs = ["generic", "fr"]
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
+
+A hub reference names a reviewed catalogue instead of carrying a copy of it, so the config stays short and the patterns stay auditable at their source:
+
+```toml
+[detector]
+type = "regex"
+catalogs = ["hub:piighost/logs:fd79aec6"]
+```
+
+A hub catalog is fetched when the config is built, not when it is parsed, and a reference pinned to a commit is cached on disk afterwards. Set `PIIGHOST_HUB_URL` to pull from a private registry. An unknown name or a malformed reference fails at load time rather than as a bad URL later.
 
 ---
 

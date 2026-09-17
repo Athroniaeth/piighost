@@ -26,6 +26,7 @@ from piighost.config.models.detector_model import (
     SpacyDetectorConfig,
     TransformersDetectorConfig,
 )
+from piighost.hub import HubRefError, parse_ref, pull
 from piighost.text import RecursiveCharacterTextSplitter
 
 CatalogName = Literal["generic", "us", "eu", "fr"]
@@ -43,17 +44,44 @@ _CATALOGS: dict[str, dict[str, str]] = {
 class RegexDetectorConfig(_ComponentConfig):
     """Config for the regex detector, patterns from inline entries and catalogs.
 
-    The final pattern set merges the named catalogs first, then the inline
+    The final pattern set merges the catalogs in order, then the inline
     patterns, so an inline pattern overrides a catalog pattern on the same label.
+
+    A catalog is either one of the names shipped with the library or a hub
+    reference, written hub:namespace/name with an optional :selector. A hub
+    reference is fetched when the config is built, so a pipeline can name a
+    reviewed catalogue instead of carrying a copy of it.
 
     Attributes:
         patterns: Inline label to regex mappings, optional when a catalog is set.
-        catalogs: Names of prebuilt catalogs to pull, among generic, us, eu, fr.
+        catalogs: Catalogs to pull, each a prebuilt name among generic, us, eu
+            and fr, or a hub reference such as hub:piighost/logs:fd79aec6.
     """
 
     type: Literal["regex"]
     patterns: dict[str, str] = Field(default_factory=dict)
-    catalogs: list[CatalogName] = Field(default_factory=list)
+    catalogs: list[str] = Field(default_factory=list)
+
+    @field_validator("catalogs")
+    @classmethod
+    def _catalogs_are_known_or_hub_refs(cls, catalogs: list[str]) -> list[str]:
+        """Reject a catalog that is neither a prebuilt name nor a hub reference.
+
+        Without this a typo parses fine and fails at build time, or worse
+        reaches the network as a malformed URL.
+        """
+        for catalog in catalogs:
+            if catalog in _CATALOGS:
+                continue
+            try:
+                parse_ref(catalog)
+            except HubRefError as exc:
+                names = ", ".join(sorted(_CATALOGS))
+                raise ValueError(
+                    f"unknown catalog {catalog!r}: expected one of {names}, or a "
+                    f"hub reference such as hub:piighost/logs:fd79aec6"
+                ) from exc
+        return catalogs
 
     @field_validator("patterns")
     @classmethod
@@ -81,10 +109,19 @@ class RegexDetectorConfig(_ComponentConfig):
         return self
 
     def build(self) -> AnyDetector:
-        """Build a RegexDetector over the merged catalog and inline patterns."""
+        """Build a RegexDetector over the merged catalog and inline patterns.
+
+        A hub reference among the catalogs is fetched here, so building a
+        config that names one reaches the network. A reference pinned to a
+        commit is cached on disk after the first build.
+
+        Raises:
+            HubError: If a hub catalog cannot be pulled.
+        """
         merged: dict[str, str] = {}
-        for name in self.catalogs:
-            merged.update(_CATALOGS[name])
+        for catalog in self.catalogs:
+            local = _CATALOGS.get(catalog)
+            merged.update(local if local is not None else pull(catalog))
         merged.update(self.patterns)
         return RegexDetector(merged)
 
