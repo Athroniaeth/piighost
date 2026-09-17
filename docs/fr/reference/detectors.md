@@ -405,7 +405,7 @@ Les labels de `GENERIC_PATTERNS` ne dépendent d'aucun pays. Les autres sont pr�
 
 ### Tirer les catalogues depuis une config
 
-Une config de détecteur regex tire les catalogues par nom via `catalogs`, parmi `generic`, `us`, `eu`, `fr`. Les catalogues nommés fusionnent d'abord, puis les `patterns` en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue sur le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
+Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée est soit un nom prédéfini, parmi `generic`, `us`, `eu`, `fr`, soit une référence de hub écrite `hub:namespace/name` avec un `:selector` optionnel. Les catalogues fusionnent dans l'ordre, puis les `patterns` en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue sur le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
 
 ```toml
 [detector]
@@ -415,6 +415,16 @@ catalogs = ["generic", "fr"]
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
+
+Une référence de hub nomme un catalogue relu au lieu d'en porter une copie : la config reste courte et les patterns restent auditables à leur source :
+
+```toml
+[detector]
+type = "regex"
+catalogs = ["hub:piighost/logs:fd79aec6"]
+```
+
+Un catalogue de hub est récupéré à la construction de la config, pas à sa lecture, et une référence épinglée sur un commit est ensuite mise en cache sur disque. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé. Un nom inconnu ou une référence malformée échoue au chargement plutôt que sous forme d'URL invalide plus tard.
 
 ---
 
