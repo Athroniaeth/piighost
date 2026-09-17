@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.8.0 (2026-09-17)
+
+### Feat
+
+- **guard**: classify residual PII with a local GLiNER2 model
+- **config**: name a hub catalogue in a regex detector config
+- **detector**: build a RegexDetector from a hub reference
+
+### Fix
+
+- **gliner2**: install the inference stack the detector needs
+
 ## 1.7.1 (2026-09-11)
 
 ### Feat
