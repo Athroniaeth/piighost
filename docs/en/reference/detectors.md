@@ -86,7 +86,7 @@ detections = await detector.detect("write to alice@example.com")
 RegexDetector.from_hub(ref: str, *, hub: str | None = None) -> RegexDetector
 ```
 
-Builds a detector from the regexes a [piighost hub](https://piighost-hub.athroniaeth.cloud) reference carries. The hub is a registry of tested de-identification regexes, addressed by `namespace/name` and an optional selector: a tag, or the eight hex characters of a commit.
+Builds a detector from the regexes a [piighost hub](https://hub.piighost.dev) reference carries. The hub is a registry of tested de-identification regexes, addressed by `namespace/name` and an optional selector: a tag, or the eight hex characters of a commit.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
