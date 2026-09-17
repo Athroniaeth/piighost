@@ -1,6 +1,7 @@
 """Regex detector: find PII by matching configured patterns, one per label."""
 
 import re
+from typing import Self
 
 from piighost.models import Detection, Span
 
@@ -20,6 +21,32 @@ class RegexDetector:
     Attributes:
         patterns: Mapping of PII label to the regex pattern string to match.
     """
+
+    @classmethod
+    def from_hub(cls, ref: str, *, hub: str | None = None) -> Self:
+        """Build a detector from the regexes a hub reference carries.
+
+        The registry addresses a set of tested regexes by namespace/name and an
+        optional selector, so RegexDetector.from_hub("piighost/logs:fd79aec6")
+        is the whole of what a caller needs to run a reviewed catalogue. A
+        reference pinned to a commit is immutable and cached on disk; one
+        pointing at a tag or at latest is fetched every time.
+
+        Args:
+            ref: A hub reference, namespace/name with an optional :selector.
+            hub: Origin of the hub to pull from. Defaults to the environment's
+                PIIGHOST_HUB_URL, then to the public hub.
+
+        Returns:
+            A detector carrying the reference's patterns, in registry order.
+
+        Raises:
+            HubError: If the reference does not parse, the hub cannot be
+                reached, or what it returns is not a plain regex detector.
+        """
+        from piighost.hub import pull
+
+        return cls(pull(ref, hub=hub))
 
     def __init__(self, patterns: dict[str, str]) -> None:
         """Compile every configured pattern under re.ASCII, keyed by its label."""
