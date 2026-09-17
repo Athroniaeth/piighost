@@ -56,10 +56,12 @@ piighost = "piighost.cli:main"
 
 [project.optional-dependencies]
 gliner2 = [
-    "gliner2>=1.2",
-    # gliner2 2.0 imports peft on its inference import path but only declares it
-    # under its own extras, so pull it in explicitly to keep the detector usable.
-    "peft>=0.10,<1",
+    # `[local]`, not the bare package: gliner2 2.0 became an API client and moved
+    # torch, transformers, peft, numpy and safetensors behind that extra of its
+    # own. Installing gliner2 alone therefore yields a Gliner2Detector that
+    # raises ModuleNotFoundError on torch the first time it is built. Naming the
+    # extra rather than the five packages keeps this tracking upstream.
+    "gliner2[local]>=2",
 ]
 redis = [
     "redis>=5",
