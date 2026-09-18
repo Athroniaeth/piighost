@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fix
 
 - **gliner2**: install the inference stack the detector needs
+- **gliner2**: name the inference stack rather than take gliner2's transformers cap
 
 ## 1.7.1 (2026-09-11)
 

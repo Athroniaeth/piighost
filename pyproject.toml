@@ -56,12 +56,22 @@ piighost = "piighost.cli:main"
 
 [project.optional-dependencies]
 gliner2 = [
-    # `[local]`, not the bare package: gliner2 2.0 became an API client and moved
-    # torch, transformers, peft, numpy and safetensors behind that extra of its
-    # own. Installing gliner2 alone therefore yields a Gliner2Detector that
-    # raises ModuleNotFoundError on torch the first time it is built. Naming the
-    # extra rather than the five packages keeps this tracking upstream.
-    "gliner2[local]>=2",
+    # gliner2 2.0 became an API client and moved torch, transformers, peft,
+    # numpy and safetensors behind a `local` extra of its own. Installing the
+    # bare package therefore yields a Gliner2Detector that raises
+    # ModuleNotFoundError on torch the first time it is built, so the stack has
+    # to be named somewhere.
+    #
+    # Not `gliner2[local]`, which caps transformers below 5. That cap is not
+    # real — 2.0.0 loads and classifies on 5.16 — and taking it would pull the
+    # whole project back onto a 4.x line that upstream no longer patches, the
+    # `transformers` extra included. So the five packages are named here.
+    "gliner2>=2",
+    "torch>=2.1,<3",
+    "transformers>=5",
+    "peft>=0.10,<1",
+    "safetensors>=0.4",
+    "numpy>=1.24",
 ]
 redis = [
     "redis>=5",
@@ -171,10 +181,13 @@ dev = [
     "asyncpg>=0.29",
 ]
 gliner2 = [
-    "gliner2>=1.2.4",
-    # See the [project.optional-dependencies] gliner2 note: peft is imported by
-    # gliner2 2.0 but only declared under its extras.
+    # The same five packages as the extra of this name, for the same reason.
+    "gliner2>=2",
+    "torch>=2.1,<3",
+    "transformers>=5",
     "peft>=0.10,<1",
+    "safetensors>=0.4",
+    "numpy>=1.24",
 ]
 presidio = [
     "presidio-analyzer>=2.2",
