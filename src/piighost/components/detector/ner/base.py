@@ -7,6 +7,7 @@ extraction, not the mapping loop.
 """
 
 import asyncio
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import replace
@@ -18,6 +19,14 @@ from piighost.text import AnySplitter, RecursiveCharacterTextSplitter
 
 _DEFAULT_CHUNK_OVERLAP = 100
 """Default chunk overlap, in characters, capped below the chunk size."""
+
+_NO_THREADS = sys.platform == "emscripten"
+"""Whether the platform can start a thread at all.
+
+Emscripten cannot, which is what a browser runs. Pyodide's asyncio.to_thread
+does not raise there, it runs the callable inline and blocks the event loop, so
+the offload has to be skipped explicitly rather than trusted.
+"""
 
 
 class BaseNERDetector(ABC):
@@ -179,7 +188,15 @@ class BaseNERDetector(ABC):
         Offloads fn via asyncio.to_thread so synchronous model inference does not
         block the loop. When max_concurrency was set, a semaphore caps how many
         inferences run at once.
+
+        Under Emscripten there are no threads, and asyncio.to_thread does not say
+        so: it runs the callable on the calling thread and blocks the loop for
+        its whole duration. Calling fn directly there costs the same and stops
+        the code from claiming a concurrency it does not have, which also makes
+        max_concurrency visibly meaningless rather than quietly so.
         """
+        if _NO_THREADS:
+            return fn(*args, **kwargs)
         if self._infer_semaphore is None:
             return await asyncio.to_thread(fn, *args, **kwargs)
         async with self._infer_semaphore:
