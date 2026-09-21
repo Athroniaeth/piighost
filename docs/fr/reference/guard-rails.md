@@ -111,7 +111,7 @@ Gliner2GuardRail(
 
 C'est `ModerationGuardRail` sans l'appel d'API, et cette différence est tout l'intérêt : le texte qu'un garde examine est celui qui contient encore ce qui a fuité, donc l'envoyer à un tiers est une drôle de forme pour la dernière étape d'un pipeline de dé-identification. Le modèle par défaut fait 300M de paramètres, couvre sept langues, et fait modération de sûreté et extraction de PII en une seule passe.
 
-Un modèle `str` est chargé avec `GLiNER2.from_pretrained` ; une instance déjà chargée est utilisée telle quelle, ce qui permet de partager un même checkpoint entre ce garde et un `Gliner2Detector`. La paire `labels` est lue par position, la réponse refusée en dernier, donc une autre tâche du même modèle se lit pareil : `task="response_refusal"` avec `labels=("compliance", "refusal")` signale un refus. Requiert `piighost[gliner2]`.
+Un modèle `str` est chargé avec `GLiNER2.from_pretrained`, et une instance déjà chargée est utilisée telle quelle, ce qui permet de partager un même checkpoint entre ce garde et un `Gliner2Detector`. La paire `labels` est lue par position, la réponse refusée en dernier, donc une autre tâche du même modèle se lit pareil, et `task="response_refusal"` avec `labels=("compliance", "refusal")` signale un refus. Requiert `piighost[gliner2]`.
 
 ```python
 from piighost.components.detector import RegexDetector
@@ -130,7 +130,7 @@ await pipeline.anonymize("Write to John Doe, 12 rue des Lilas, 75008 Paris.")
 # PIIRemainingError: A guard flagged residual PII (score 0.997)
 ```
 
-Étant un verdict au niveau du texte, il ne localise rien : `detections` reste vide et seul `score` est renseigné ; associez-le à un `DetectorGuardRail` s'il vous faut savoir quelle valeur a fuité. Les placeholders qu'émet le pipeline ne le déclenchent pas : `<<EMAIL:1>>` est classé `safe` à 0,989. La version exécutable est [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
+Étant un verdict au niveau du texte, il ne localise rien, `detections` reste vide et seul `score` est renseigné. Associez-le à un `DetectorGuardRail` s'il vous faut savoir quelle valeur a fuité. Les placeholders qu'émet le pipeline ne le déclenchent pas, et `<<EMAIL:1>>` est classé `safe` à 0,989. La version exécutable est [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
 
 ## `ModerationGuardRail`
 
