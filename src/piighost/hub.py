@@ -16,6 +16,7 @@ reason to change that.
 import hashlib
 import os
 import re
+import sys
 import tomllib
 import urllib.error
 import urllib.parse
@@ -166,8 +167,26 @@ def _origin(hub: str) -> str:
     return hub.rstrip("/")
 
 
+def _patch_emscripten_transport() -> None:
+    """Route urllib through the browser's fetch, once, when running in one.
+
+    Emscripten has no sockets, so urlopen cannot reach the hub from a browser.
+    pyodide-http replaces urllib's transport with one built on the browser's own
+    APIs; it ships with the Pyodide distribution, so this normally succeeds. When
+    it is absent the patch is skipped and the open below fails as any transport
+    failure does, with the URL in the message.
+    """
+    try:
+        import pyodide_http  # pyrefly: ignore[missing-import]
+    except ImportError:
+        return
+    pyodide_http.patch_all()
+
+
 def _fetch(url: str, ref: str) -> str:
     """Read the hub's answer as text, turning any transport failure into ours."""
+    if sys.platform == "emscripten":
+        _patch_emscripten_transport()
     try:
         # The scheme is checked in _origin and the rest of the URL is built
         # from a reference parse_ref has validated, so the open is not blind.
