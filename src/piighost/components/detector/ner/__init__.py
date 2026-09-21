@@ -3,14 +3,18 @@
 BaseNERDetector holds the shared logic and imports nothing optional. Concrete
 model-backed adapters, each behind its own optional extra, are added here as
 they land, exposed lazily so a missing extra fails only on access.
+BridgeDetector holds no model of its own and needs no extra, so it is eager.
 """
 
 from typing import Any
 
 from piighost.components.detector.ner.base import BaseNERDetector
+from piighost.components.detector.ner.bridge import AnySpanRunner, BridgeDetector
 
 __all__ = [
+    "AnySpanRunner",
     "BaseNERDetector",
+    "BridgeDetector",
     "Gliner2Detector",
     "Gliner2PiiDetector",
     "PresidioDetector",

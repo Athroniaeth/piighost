@@ -89,6 +89,25 @@ class TextTooLongError(DetectorError):
     """
 
 
+class BridgePayloadError(DetectorError):
+    """Raised when a bridged runner returns a span the detector cannot read.
+
+    The runner is foreign code, often reached across a language boundary, so its
+    answer is checked rather than trusted. A span missing a field, or carrying
+    offsets that are not integers, fails here instead of producing a detection
+    built on a guess.
+    """
+
+
+class BridgeSpanRangeError(DetectorError):
+    """Raised when a bridged runner returns a span outside the text it was given.
+
+    Offsets that overrun the text would slice a shorter substring than the
+    runner meant, so the anonymizer would replace the wrong characters and leave
+    part of the value in clear. The detector fails closed rather than trim.
+    """
+
+
 class TextError(PIIGhostError):
     """Base class for errors raised by the text helpers.
 
