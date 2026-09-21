@@ -49,6 +49,7 @@ Une version mineure ajoute des composants, des options et des factories de place
 | `piighost.integrations.llama_index` | Récente, deux composants, et la forme du wrapper de moteur de requête n'a pas encore été éprouvée sur de vrais corpus. |
 | `LLMDetector`, `LLMGuardRail` | Le prompt et le schéma de sortie structurée dépendent de ce qu'accepte un fournisseur, donc les deux peuvent être remaniés quand un fournisseur change. |
 | `ModerationGuardRail` | Lié à une API de modération Mistral tierce dont les catégories et les seuils échappent à ce projet. |
+| `BridgeDetector`, `AnySpanRunner` | Récent, et la forme de span qu'il accepte d'un exécuteur n'a pas encore été éprouvée sur assez d'exécuteurs pour être figée. |
 
 </div>
 

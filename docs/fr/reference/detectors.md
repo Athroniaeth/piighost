@@ -20,6 +20,7 @@ from piighost.components.detector import (
     RegexDetector,
 )
 from piighost.components.detector.ner import (
+    BridgeDetector,
     Gliner2Detector,
     Gliner2PiiDetector,
     PresidioDetector,
@@ -102,7 +103,7 @@ detections = await detector.detect("mail me at a@b.co from 10.0.0.1")
 
 Une référence épinglée sur un commit est immuable : la réponse est mise en cache sous `~/.cache/piighost/hub` et relue depuis le disque aux appels suivants. Une référence pointant vers un tag ou vers `latest` bouge, elle est donc récupérée à chaque fois : servir une version périmée détecterait silencieusement moins que ce que l'appelant a demandé.
 
-L'appel lève une sous-classe de `HubError` (`piighost.hub`) si la référence ne se parse pas, si le hub est injoignable, ou si la référence résout vers autre chose qu'un détecteur regex simple. Ce dernier cas couvre une référence portant un détecteur modèle : n'en prendre que les regex détecterait moins que ce que la référence promet, donc l'appel échoue plutôt que d'en rendre la moitié.
+L'appel lève une sous-classe de `HubError` (`piighost.hub`) si la référence ne se parse pas, si le hub est injoignable, ou si la référence résout vers autre chose qu'un détecteur regex simple. Ce dernier cas couvre une référence portant un détecteur modèle, dont les regex seules détecteraient moins que ce que la référence promet, donc l'appel échoue plutôt que d'en rendre la moitié.
 
 Il n'utilise que la bibliothèque standard, donc l'installation de base n'a besoin d'aucun extra.
 
@@ -341,9 +342,57 @@ PresidioDetector(
 
 Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine` anglais par défaut de Presidio. Pour une autre langue ou des recognizers custom, construisez le moteur vous-même et utilisez `PresidioDetector` directement.
 
+### `BridgeDetector`
+
+Délègue l'inférence à un exécuteur injecté et ramène ce qu'il rend sur des détections. Il ne porte aucun modèle et ne demande aucun extra. Il existe pour un environnement où aucune pile NER n'est installable, le navigateur étant le cas courant, où le modèle tourne dans le runtime JavaScript de l'hôte et où Python l'attend via le FFI de Pyodide. La même forme sert n'importe quel exécuteur hors du processus, un sous-processus ou un side-car.
+
+`labels` est obligatoire, puisque l'exécuteur est interrogé avec les labels internes et qu'un span dont le label n'est pas mappé est écarté, comme pour tout adaptateur NER.
+
+```python
+BridgeDetector(
+    runner: AnySpanRunner,
+    labels: list[str] | dict[str, str],
+    threshold: float = 0.5,
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
+)
+```
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `runner` | `AnySpanRunner` | L'appelable attendu pour chaque texte, qui porte le modèle (obligatoire) |
+| `labels` | `list[str] \| dict[str, str]` | Les labels à mapper et filtrer (obligatoire) |
+| `threshold` | `float` | La confiance à partir de laquelle un span est retenu, transmise à l'exécuteur |
+| `max_chars` | `int \| None` | Borne au-delà de laquelle le texte est découpé, ou `None` pour aucune borne |
+| `auto_chunk` | `bool` | Si un texte au-delà de `max_chars` est découpé plutôt que refusé |
+
+L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes et le seuil, et rend une séquence de mappings portant `start`, `end`, `label` et `score`. Les décalages sont des positions caractère dans le texte transmis, en intervalle semi-ouvert, comme `Span`.
+
+```python
+from piighost.components.detector.ner import BridgeDetector
+
+
+async def runner(text: str, labels: list[str], threshold: float):
+    return [{"start": 0, "end": 10, "label": "person", "score": 0.92}]
+
+
+detector = BridgeDetector(runner, {"PERSON": "person"}, threshold=0.4)
+await detector.detect("Emma Rossi works at Acme.")
+# [Detection(span=Span(0, 10), text="Emma Rossi", label="PERSON", confidence=0.92)]
+```
+
+Un exécuteur est du code étranger, souvent atteint au travers d'une frontière de langage, donc sa réponse est vérifiée plutôt que crue.
+
+- Le `text` que l'exécuteur rend est ignoré et relu depuis la source, donc un exécuteur qui abîme la sous-chaîne trouvée ne peut pas désynchroniser le remplacement.
+- Un span auquel il manque un champ, ou qui porte des décalages qui ne sont pas des entiers, lève `BridgePayloadError`.
+- Un span qui déborde du texte lève `BridgeSpanRangeError`. Le rogner découperait une sous-chaîne plus courte que ce que l'exécuteur visait, et laisserait une partie de la valeur en clair.
+- Un résultat portant une méthode `to_py`, comme le fait un `JsProxy` de Pyodide, est converti d'abord.
+
+Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelable, qu'un fichier TOML ou JSON ne peut pas nommer sans un registre d'appelables, et ce registre ferait dépendre le cœur de ce qui le configure. Un appelant qui construit ce détecteur le construit dans le code.
+
 ### Gestion des textes longs
 
-`Gliner2Detector` et `TransformersDetector` prennent `max_chars` avec `auto_chunk` (défaut `True`). Un texte plus long que `max_chars` est découpé en morceaux qui se chevauchent, scannés séparément, puis reprojetés sur le texte original. Avec `auto_chunk` désactivé, un texte au-delà de la limite lève `TextTooLongError` à la place. `max_chars` vaut `None` par défaut, donc il n'y a pas de limite et le texte entier est scanné en une passe. `SpacyDetector` et `PresidioDetector` ne les exposent pas.
+`Gliner2Detector`, `TransformersDetector` et `BridgeDetector` prennent `max_chars` avec `auto_chunk` (défaut `True`). Un texte plus long que `max_chars` est découpé en morceaux qui se chevauchent, scannés séparément, puis reprojetés sur le texte original. Avec `auto_chunk` désactivé, un texte au-delà de la limite lève `TextTooLongError` à la place. `max_chars` vaut `None` par défaut, donc il n'y a pas de limite et le texte entier est scanné en une passe. `SpacyDetector` et `PresidioDetector` ne les exposent pas.
 
 ### Correspondance des labels
 

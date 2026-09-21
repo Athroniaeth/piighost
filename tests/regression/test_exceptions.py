@@ -9,9 +9,12 @@ exception breaks this module.
 import pytest
 
 from piighost.exceptions import (
+    BridgePayloadError,
+    BridgeSpanRangeError,
     CipherError,
     ConfidenceError,
     DetectionError,
+    DetectorError,
     EmptyEntityError,
     EmptyFragmentError,
     EmptyPepperError,
@@ -19,6 +22,7 @@ from piighost.exceptions import (
     GuardError,
     HasherError,
     InvalidKeyLengthError,
+    LabelMappingError,
     MixedLabelError,
     NegativeSpanStartError,
     PIIGhostError,
@@ -26,6 +30,7 @@ from piighost.exceptions import (
     SpanError,
     SpanOrderingError,
     TextError,
+    TextTooLongError,
 )
 
 # Each error mapped to its expected direct parent. The chain
@@ -49,6 +54,11 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     PIIRemainingError: GuardError,
     TextError: PIIGhostError,
     EmptyFragmentError: TextError,
+    DetectorError: PIIGhostError,
+    LabelMappingError: DetectorError,
+    TextTooLongError: DetectorError,
+    BridgePayloadError: DetectorError,
+    BridgeSpanRangeError: DetectorError,
 }
 
 

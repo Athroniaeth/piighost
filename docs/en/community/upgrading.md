@@ -49,6 +49,7 @@ A minor release adds components, options and placeholder factories on top of the
 | `piighost.integrations.llama_index` | Recent, two components, and the shape of the query-engine wrapper has not yet been settled against real corpora. |
 | `LLMDetector`, `LLMGuardRail` | The prompt and the structured-output schema depend on what a provider accepts, so both can be reshaped when a provider changes. |
 | `ModerationGuardRail` | Bound to a third-party Mistral moderation API whose categories and thresholds are outside this project. |
+| `BridgeDetector`, `AnySpanRunner` | Recent, and the span payload it accepts from a runner has not yet been exercised against enough runners to be frozen. |
 
 </div>
 

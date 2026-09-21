@@ -20,6 +20,7 @@ from piighost.components.detector import (
     RegexDetector,
 )
 from piighost.components.detector.ner import (
+    BridgeDetector,
     Gliner2Detector,
     Gliner2PiiDetector,
     PresidioDetector,
@@ -100,9 +101,9 @@ detector = RegexDetector.from_hub("piighost/logs:fd79aec6")
 detections = await detector.detect("mail me at a@b.co from 10.0.0.1")
 ```
 
-A reference pinned to a commit is immutable, so the answer is cached under `~/.cache/piighost/hub` and read from disk on every later call. A reference pointing at a tag or at `latest` moves, so it is fetched every time: serving a stale one would quietly detect less than the caller asked for.
+A reference pinned to a commit is immutable, so the answer is cached under `~/.cache/piighost/hub` and read from disk on every later call. A reference pointing at a tag or at `latest` moves, so it is fetched every time. Serving a stale one would quietly detect less than the caller asked for.
 
-The call raises a subclass of `HubError` (`piighost.hub`) when the reference does not parse, the hub cannot be reached, or the reference resolves to something other than a plain regex detector. That last case covers a reference carrying a model detector: taking its regexes alone would detect less than the reference promises, so it fails instead of returning half of it.
+The call raises a subclass of `HubError` (`piighost.hub`) when the reference does not parse, the hub cannot be reached, or the reference resolves to something other than a plain regex detector. That last case covers a reference carrying a model detector, whose regexes alone would detect less than the reference promises, so it fails instead of returning half of it.
 
 It uses the standard library only, so the core install needs no extra.
 
@@ -341,9 +342,57 @@ PresidioDetector(
 
 From a config, the `presidio` detector type builds Presidio's default English `AnalyzerEngine`. For another language or custom recognizers, construct the engine yourself and use `PresidioDetector` directly.
 
+### `BridgeDetector`
+
+Delegates inference to an injected runner and maps what it returns onto detections. It holds no model and needs no extra. It exists for a runtime where no NER stack is installable, a browser being the usual case, where the model runs in the host's JavaScript runtime and Python awaits it through the Pyodide FFI. The same shape serves any out-of-process runner, a subprocess or a sidecar.
+
+`labels` is required, since the runner is queried with the internal labels and a span whose label is not mapped is dropped, as for any NER adapter.
+
+```python
+BridgeDetector(
+    runner: AnySpanRunner,
+    labels: list[str] | dict[str, str],
+    threshold: float = 0.5,
+    max_chars: int | None = None,
+    auto_chunk: bool = True,
+)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `runner` | `AnySpanRunner` | The callable awaited for each text, holding the model (required) |
+| `labels` | `list[str] \| dict[str, str]` | The labels to map and filter (required) |
+| `threshold` | `float` | The confidence at or above which a span is kept, passed to the runner |
+| `max_chars` | `int \| None` | Bound above which the text is chunked, or `None` for no bound |
+| `auto_chunk` | `bool` | Whether a text over `max_chars` is chunked rather than refused |
+
+The runner is an async callable taking the text, the internal labels and the threshold, and returning a sequence of mappings carrying `start`, `end`, `label` and `score`. Offsets are character positions into the text passed in, half-open, as `Span` is.
+
+```python
+from piighost.components.detector.ner import BridgeDetector
+
+
+async def runner(text: str, labels: list[str], threshold: float):
+    return [{"start": 0, "end": 10, "label": "person", "score": 0.92}]
+
+
+detector = BridgeDetector(runner, {"PERSON": "person"}, threshold=0.4)
+await detector.detect("Emma Rossi works at Acme.")
+# [Detection(span=Span(0, 10), text="Emma Rossi", label="PERSON", confidence=0.92)]
+```
+
+A runner is foreign code, often reached across a language boundary, so its answer is checked rather than trusted.
+
+- Any `text` the runner returns is ignored and re-read from the source, so a runner that mangles the matched substring cannot desynchronise the replacement.
+- A span missing a field, or carrying offsets that are not integers, raises `BridgePayloadError`.
+- A span falling outside the text raises `BridgeSpanRangeError`. Trimming it would slice a shorter substring than the runner meant, and leave part of the value in clear.
+- A result carrying a `to_py` method, as a Pyodide `JsProxy` does, is converted first.
+
+There is no configuration model for this detector. Its runner is a callable, which a TOML or JSON file cannot name without a registry of callables, and that registry would make the core depend on what configures it. A caller that builds this detector builds it in code.
+
 ### Long-text handling
 
-`Gliner2Detector` and `TransformersDetector` take `max_chars` with `auto_chunk` (default `True`). A text longer than `max_chars` is split into overlapping chunks, scanned separately, and remapped back onto the original text. With `auto_chunk` off, a text over the bound raises `TextTooLongError` instead. `max_chars` defaults to `None`, so there is no bound and the whole text is scanned in one pass. `SpacyDetector` and `PresidioDetector` do not expose these.
+`Gliner2Detector`, `TransformersDetector` and `BridgeDetector` take `max_chars` with `auto_chunk` (default `True`). A text longer than `max_chars` is split into overlapping chunks, scanned separately, and remapped back onto the original text. With `auto_chunk` off, a text over the bound raises `TextTooLongError` instead. `max_chars` defaults to `None`, so there is no bound and the whole text is scanned in one pass. `SpacyDetector` and `PresidioDetector` do not expose these.
 
 ### Label mapping
 
