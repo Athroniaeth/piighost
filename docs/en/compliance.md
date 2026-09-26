@@ -58,62 +58,79 @@ Where `piighost` sits depends on the mode you choose.
 
 The GDPR frames that distinction in the following provisions.
 
-- **Article 4(5)** defines pseudonymization as processing personal data so that they "can no longer be attributed to a specific data subject without the use of additional information", provided that this information "is kept separately" and protected by technical and organisational measures. In a `piighost` deployment, the additional information is the mapping from `<<PERSON:1>>`{ .placeholder } to `Patrick`{ .pii }.
-- **Recital 26** states that pseudonymized data which could be attributed to a person by the use of additional information is information on an identifiable person. Identifiability weighs all the means reasonably likely to be used, by the controller or by another person, given the cost, the time and the technology available. Anonymous information falls outside the regulation.
-- **Recitals 28 and 29** present pseudonymization as a way to reduce the risks to data subjects, without excluding any other measure. It can be applied within a single controller, provided the additional information is kept separately and the controller indicates who is authorised to use it.
-- **Article 25(1)**, data protection by design and by default, names pseudonymization as an example of the technical and organisational measures a controller puts in place. Recital 78 counts pseudonymizing personal data as soon as possible among such measures.
-- **Article 32(1)(a)**, security of processing, lists the pseudonymization and encryption of personal data among the measures that ensure a level of security appropriate to the risk.
-- **Article 35** requires a data protection impact assessment (DPIA) before a processing likely to result in a high risk, in particular one using new technologies. Paragraph 3 lists cases where it is always required, and paragraph 7 sets its minimum content. [How to document `piighost` in a DPIA](dpia.md) supplies the material for that content.
+- **Article 4(5)** defines pseudonymization as processing personal data so that they "can no longer be attributed to a specific data subject without the use of additional information", provided that this information "is kept separately" and is subject to technical and organizational measures. In a `piighost` deployment, the additional information is the mapping from `<<PERSON:1>>`{ .placeholder } to `Patrick`{ .pii }.
+- **Recital 26** states that pseudonymized data which could be attributed to a natural person by the use of additional information "should be considered to be information on an identifiable natural person". Identifiability weighs all the means reasonably likely to be used, by the controller or by another person, given the cost, the time and the technology available. Anonymous information falls outside the regulation.
+- **Recitals 28 and 29** present pseudonymization as a way to reduce the risks to data subjects, one that does not preclude any other measure. It can be applied within a single controller, provided the additional information is kept separately and the controller indicates the authorized persons.
+- **Article 25(1)**, data protection by design and by default, names pseudonymization as an example of the appropriate technical and organizational measures. Recital 78 counts "pseudonymising personal data as soon as possible" among such measures.
+- **Article 32(1)(a)**, security of processing, lists "the pseudonymisation and encryption of personal data" among the measures that ensure a level of security appropriate to the risk.
+- **Article 35** requires a data protection impact assessment (DPIA) before a processing that is likely to result in a high risk, "in particular using new technologies". Paragraph 3 names three cases where it is required in particular, paragraph 4 has each supervisory authority publish a list of the processing operations that require one, and paragraph 7 sets its minimum content. [How to document `piighost` in a DPIA](dpia.md) supplies the material for that content.
 
-### What the EDPB says
+### What the EDPB says on pseudonymization
 
-The European Data Protection Board adopted its Guidelines 01/2025 on pseudonymisation on 16 January 2025, in a version for public consultation. Four points bear directly on `piighost`.
+The European Data Protection Board (EDPB) adopted its Guidelines 01/2025 on pseudonymisation on 16 January 2025, as a version for public consultation. Five points bear directly on `piighost`.
 
-- Pseudonymized data that could be attributed to a person with additional information is personal data, and the guidelines add that this "also holds true if pseudonymised data and additional information are not in the hands of the same person" (paragraph 22).
-- The additional information includes "tables matching pseudonyms with the identifying attributes they replace" and cryptographic keys (paragraph 20). The conversation memory and the cipher key are exactly that.
-- Reversal should be performed by persons specifically authorised for it, following Recital 29 (paragraph 32).
+- Pseudonymized data that could be attributed to a person with additional information is personal data, and this "also holds true if pseudonymised data and additional information are not in the hands of the same person" (paragraph 22).
+- The additional information includes "tables matching pseudonyms with the identifying attributes they replace" and cryptographic keys (paragraph 20). The conversation memory and the cipher key are that additional information.
+- Reversal should be performed by persons specifically authorized for it, as per Recital 29 (paragraph 32).
+- The guidelines call pseudonymization domain the context in which attribution is to be precluded (paragraph 35), and the additional information must not enter it (paragraph 40). With `piighost`, the LLM provider sits in that domain and the mapping stays out of it.
 - Before pseudonymized data is transmitted to a third party, "the means available to the recipient for attribution of the data need to be identified and taken into account" (paragraph 70). For `piighost`, the third party is the LLM provider.
-
-These guidelines predate the judgment below. The EDPB held a stakeholder event on 12 December 2025, following that judgment, to inform its ongoing work on them and on forthcoming guidelines on anonymisation.
 
 ### What the Court of Justice held in EDPS v SRB
 
-The Single Resolution Board (SRB) had sent comments from shareholders and creditors, in pseudonymized form, to Deloitte, a firm it had engaged. Some authors complained that they had not been told. The European Data Protection Supervisor (EDPS) found that Deloitte was a recipient of personal data and that the SRB had breached its duty to inform. On appeal, the Court of Justice ruled in case C-413/23 P on 4 September 2025 (ECLI:EU:C:2025:645).
+The Single Resolution Board (SRB) had collected comments from the shareholders and creditors of a failed bank. It sent some of them to Deloitte, the firm it had tasked with a valuation, pseudonymized under an alphanumeric code that only the SRB could link to an author. Some authors complained to the European Data Protection Supervisor (EDPS), who found that the SRB had failed to tell them that Deloitte would receive their data. The General Court annulled that decision (T-557/20, 26 April 2023). On the appeal of the EDPS, the Court of Justice set aside that judgment on 4 September 2025 (C-413/23 P, ECLI:EU:C:2025:645).
 
-The judgment interprets Regulation 2018/1725, which governs the EU institutions and bodies, not the GDPR itself. Its definitions of personal data and of pseudonymization are worded like those of the GDPR, and the EDPB consulted stakeholders on the judgment for its GDPR guidelines.
+The judgment interprets Regulation 2018/1725, which governs the EU institutions and bodies, not the GDPR. The Court notes that its definition of personal data is essentially identical to that of the GDPR and must be interpreted in the same way (paragraph 52), and the definition of pseudonymization it applies is worded exactly as Article 4(5).
 
 The Court held the following.
 
-- Pseudonymized data "must not be regarded as constituting, in all cases and for every person, personal data". Pseudonymization may, depending on the circumstances, prevent persons other than the controller from identifying the data subject, so that for them the data subject is not or is no longer identifiable (paragraph 86).
-- For the recipient, that outcome presupposes two conditions. The recipient must not be in a position to lift the pseudonymization measures, and those measures must prevent it from attributing the data to the data subject, including by other means such as cross-checking with other factors (paragraph 77).
-- The controller that holds the additional information still processes personal data, in spite of the pseudonymization (paragraph 76).
-- For the controller's duty to inform data subjects of the recipients of their data, identifiability is assessed at the time of collection and from the controller's point of view. That duty applied before the transfer, whether or not the data were personal from the recipient's point of view.
-- Personal opinions and views, as the expression of a person's thinking, are necessarily closely linked to that person. Comments that express them relate to their author without their content, purpose or effects having to be examined.
+- Pseudonymization is not part of the definition of personal data. It refers to measures that reduce the risk of a data set being correlated with the identity of the data subjects (paragraph 72).
+- For the controller that holds the additional information, the data stay personal in spite of the pseudonymization (paragraph 76).
+- For a recipient, the data may not be personal, under two conditions. The recipient must not be in a position to lift the pseudonymization measures, and those measures must prevent it from attributing the data to the data subject, including by other means such as cross-checking with other factors (paragraph 77).
+- Pseudonymized data "must not be regarded as constituting, in all cases and for every person, personal data" (paragraph 86).
+- Where it cannot be ruled out that a third party receiving the data has means reasonably allowing it to attribute them, such as cross-checking with other data at its disposal, the data are personal for that transfer and for that party's processing (paragraph 85).
+- The relevant perspective for assessing identifiability depends on the circumstances of each case (paragraph 100). For the duty to inform data subjects of the recipients of their data, it is assessed at the time of collection and from the controller's point of view (paragraph 111). The SRB's duty applied before the transfer, whether or not the data were personal from Deloitte's point of view (paragraph 112).
+- Personal opinions or views, as the expression of a person's thinking, are necessarily closely linked to that person (paragraph 58).
 
 The Court did not hold the following.
 
-- It did not decide that the comments were anonymous for Deloitte. It set aside the General Court's judgment and referred the case back to it.
-- It did not take pseudonymized data out of the regulation for the controller that pseudonymized it.
+- It did not decide that the comments were anonymous for Deloitte, and it did not examine whether Deloitte could in fact identify their authors (paragraph 116).
+- It did not take pseudonymized data out of the regulation for the controller that pseudonymized them.
 - It did not relieve that controller of its duty to inform the data subjects of the recipients.
+
+The Court gave final judgment itself on the plea that the comments were not personal data, and rejected it (paragraph 120). It referred the other plea, on the right to good administration, back to the General Court (paragraph 122).
+
+### What the EDPB says since the judgment
+
+The EDPB held a stakeholder event on 12 December 2025, following the judgment, to inform its work on Guidelines 01/2025 and on guidelines on anonymisation. Participants disagreed on the perspective that applies to a processor, some arguing for the processor's own, others for the controller's.
+
+The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation open until 30 October 2026. They take the judgment into account, and three points bear on `piighost`.
+
+- Anonymity is assessed from the perspective of each relevant entity, and the basic question is for whom the data is intended to be anonymous (paragraphs 11 and 12).
+- An entity that processes information on behalf of a controller is assessed from that controller's perspective. Information that is personal data for the controller is personal data for its processor too (paragraph 15).
+- Controllers should not describe data as "anonymous", "de-identified" or "de-personalised" if individuals are still identifiable (paragraph 40).
 
 ### What this means for a `piighost` deployment
 
 - For you, the controller holding the mapping, the de-identified text stays personal data. Every obligation of the GDPR applies to the whole processing, the mapping included.
-- For the LLM provider, which receives `<<PERSON:1>>`{ .placeholder } without the mapping, the judgment leaves open that the text is not personal data, but only if both conditions of paragraph 77 hold. `piighost` addresses the first by design, since the mapping never leaves your side. The second depends on what the text still carries in clear, the context, the quasi-identifiers, a PII the detector missed, and what the provider can cross-check it with. See [Security](security.md) and [Limitations](limitations.md).
-- Your duty to tell data subjects that their messages reach an LLM provider is assessed from your point of view at collection, so it holds whatever the provider's position.
-- The judgment does not settle whether a processor acting on your behalf is assessed from its own point of view or from yours. Participants at the EDPB stakeholder event raised differing views on exactly that point. A DPIA that treats the de-identified text as personal data for the provider does not depend on the answer.
+- An LLM provider that processes the text on your behalf is your processor. Under Guidelines 02/2026, the text is then assessed from your perspective, so it stays personal data for the provider too.
+- An LLM provider that uses the text for its own purposes is assessed from its own perspective. The judgment leaves open that the text is not personal data for it, but only if both conditions of paragraph 77 hold. `piighost` addresses the first by design, since the mapping never leaves your side. The second depends on what the text still carries in clear, the context, the quasi-identifiers, a PII the detector missed, and on what the provider can cross-check it with. See [Security](security.md) and [Limitations](limitations.md).
+- Your duty to tell data subjects that their messages reach an LLM provider is assessed from your point of view at collection, so it holds whatever the provider's position. In that notice, call the processing pseudonymization, not anonymization or de-identification, as paragraph 40 of Guidelines 02/2026 asks.
+- A DPIA that treats the de-identified text as personal data for the provider holds whichever way these questions are settled.
 
 ### Sources
 
 - GDPR, Regulation (EU) 2016/679: [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
-- EDPB, Guidelines 01/2025 on pseudonymisation, version for public consultation: [edpb.europa.eu](https://www.edpb.europa.eu/system/files/2025-01/edpb_guidelines_202501_pseudonymisation_en.pdf)
+- Regulation (EU) 2018/1725, on the EU institutions and bodies: [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2018/1725/oj)
+- EDPB, Guidelines 01/2025 on pseudonymisation, version for public consultation: [edpb.europa.eu](https://www.edpb.europa.eu/public-consultations/guidelines-012025-on-pseudonymisation_en)
 - EDPB, report on the stakeholder event on anonymisation and pseudonymisation of 12 December 2025: [edpb.europa.eu](https://www.edpb.europa.eu/system/files/2026-02/edpb-report-stakeholder-event-anonymisation-pseudonymisation_en.pdf)
+- EDPB, Guidelines 02/2026 on anonymisation, version for public consultation: [edpb.europa.eu](https://www.edpb.europa.eu/public-consultations/guidelines-on-anonymisation_en)
 - Court of Justice, judgment of 4 September 2025, EDPS v SRB, C-413/23 P: [EUR-Lex](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62023CJ0413)
 - Court of Justice, press release No 107/25: [curia.europa.eu](https://curia.europa.eu/site/upload/docs/application/pdf/2025-09/cp250107en.pdf)
 
 ## See also
 
 - [Security](security.md): the threat model, the memory backends, and the at-rest crypto that protects the restoration mapping.
+- [How to document `piighost` in a DPIA](dpia.md): the processing, the data flows, the measures and the residual risks, with a template to fill in.
 - [Limitations](limitations.md): the shape-only regex and what it does not validate.
 - [Placeholder factories](placeholder-factories.md): which modes are reversible and which are not.
 - [Roadmap](roadmap.md): what is pending and what is deliberately out of scope.
