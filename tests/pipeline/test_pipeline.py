@@ -14,6 +14,7 @@ from piighost.components.placeholder import (
     RedactPlaceholderFactory,
 )
 from piighost.exceptions import PIIRemainingError
+from piighost.models import Detection, Span
 from piighost.pipeline import AnonymizationPipeline, AnyPipeline
 
 
@@ -146,3 +147,40 @@ class TestDeanonymize:
         result = await pipeline.anonymize("Emma met Liam")
         restored = pipeline.deanonymize(result.text, result.tokens)
         assert restored == "Emma met Liam"
+
+
+class _FixedDetector:
+    """A detector returning the same detections whatever the text."""
+
+    def __init__(self, detections: list[Detection]) -> None:
+        self.detections = detections
+
+    async def detect(self, text: str) -> list[Detection]:
+        return list(self.detections)
+
+
+class TestExpansion:
+    async def test_an_occurrence_inside_a_detection_does_not_break_rendering(
+        self,
+    ) -> None:
+        """The expander never adds an occurrence the renderer would refuse.
+
+        "Paul" is found alone once, and also sits inside "Monsieur Paul", which
+        is already detected. Expanding it there used to raise
+        OverlappingSpansError at render time.
+        """
+        text = "Monsieur Paul signe. Paul arrive."
+        detector = _FixedDetector(
+            [
+                Detection(Span(0, 13), "Monsieur Paul", "PERSON", 0.8),
+                Detection(Span(21, 25), "Paul", "PERSON", 1.0),
+            ]
+        )
+        pipeline = AnonymizationPipeline(
+            detector,
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            expander=WordBoundaryExpander(),
+        )
+        result = await pipeline.anonymize(text)
+        assert "Paul" not in result.text
