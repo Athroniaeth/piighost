@@ -103,7 +103,7 @@ The Court gave final judgment itself on the plea that the comments were not pers
 
 The EDPB held a stakeholder event on 12 December 2025, following the judgment, to inform its work on Guidelines 01/2025 on pseudonymisation and on guidelines on anonymisation. Participants disagreed on the perspective that applies to a processor, some arguing for the processor's own, others for the controller's.
 
-The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation open until 30 October 2026. They take the judgment into account, delivered on pseudonymized data, and three points bear on `piighost`.
+The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation open until 30 October 2026. They take the judgment into account, and three points bear on `piighost`.
 
 - Anonymity is assessed from the perspective of each relevant entity, and the basic question is for whom the data is intended to be anonymous (paragraphs 11 and 12).
 - An entity that processes information on behalf of a controller is assessed from that controller's perspective. Information that is personal data for the controller is personal data for its processor too (paragraph 15).
