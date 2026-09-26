@@ -54,6 +54,9 @@ Where `piighost` sits depends on the mode you choose.
 - The default reversible tokens, restored from the conversation memory, `<<PERSON:1>>`{ .placeholder } restored back to `Patrick`{ .pii }, are **pseudonymization**. The mapping exists, so the data stays personal data. Protecting that mapping, the memory backend and its at-rest crypto, is what keeps the pseudonymization meaningful. See [Security](security.md).
 - A `RedactPlaceholderFactory` or a mask used with no memory drops the mapping, so it moves toward **anonymization**. Whether the result is truly anonymous still depends on the residual re-identification risk in the surrounding text.
 
+!!! note "The word this documentation uses"
+    These pages say de-identification for what the pipeline does, a technical term covering both modes above. It is not a legal category. In the reversible default the legal name is pseudonymization, and it is the word to use toward data subjects, in a privacy notice or a DPIA. The EDPB asks controllers not to describe data as "de-identified" while individuals stay identifiable (Guidelines 02/2026, paragraph 40, see [below](#what-the-edpb-says-since-the-judgment)).
+
 ### What the regulation says
 
 The GDPR frames that distinction in the following provisions.
