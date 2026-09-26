@@ -140,7 +140,7 @@ class AnyDetectionExpander(Protocol):
     def expand(self, text: str, detections: list[Detection]) -> list[Detection]: ...
 ```
 
-Subclass `BaseDetectionExpander`. It keeps the original detections and, for each one, adds a detection at every extra occurrence your `_find_occurrences` returns, carrying the source detection's label and confidence.
+Subclass `BaseDetectionExpander`. It keeps the original detections and, for each one, adds a detection at every extra occurrence your `_find_occurrences` returns, carrying the source detection's label and confidence. An occurrence that overlaps a detection already kept is skipped, since the expander runs after the overlap resolver and the renderer refuses overlapping spans. Values are searched longest first, so a full name claims a place before its first name does.
 
 ???+ example "Whole-word repeats"
 

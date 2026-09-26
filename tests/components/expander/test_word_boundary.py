@@ -1,5 +1,7 @@
 """Tests for the WordBoundaryExpander."""
 
+from itertools import pairwise
+
 from piighost.components.expander import AnyDetectionExpander, WordBoundaryExpander
 from piighost.models import Detection, Span
 
@@ -75,3 +77,40 @@ class TestExpand:
         detection = _detection(0, 4, "Emma")
         expander = WordBoundaryExpander(case_sensitive=True)
         assert expander.expand("Emma and emma", [detection]) == [detection]
+
+
+class TestOverlap:
+    def test_skips_an_occurrence_inside_a_kept_detection(self) -> None:
+        """A value found inside a longer kept detection is already hidden."""
+        text = "Monsieur Paul signe. Paul arrive."
+        title = _detection(0, 13, "Monsieur Paul")
+        first = _detection(21, 25, "Paul")
+        expanded = WordBoundaryExpander().expand(text, [title, first])
+        assert sorted(found.span for found in expanded) == [Span(0, 13), Span(21, 25)]
+
+    def test_skips_an_occurrence_straddling_a_kept_detection(self) -> None:
+        """An occurrence that only partly overlaps a kept detection is skipped."""
+        text = "Paul Lemoine Immobilier. Voir Paul Lemoine."
+        company = _detection(5, 23, "Lemoine Immobilier", label="ORGANIZATION")
+        person = _detection(30, 42, "Paul Lemoine")
+        expanded = WordBoundaryExpander().expand(text, [company, person])
+        assert sorted(found.span for found in expanded) == [Span(5, 23), Span(30, 42)]
+
+    def test_the_longer_value_claims_a_shared_occurrence(self) -> None:
+        """When two values occur at one place, the longer one is added."""
+        text = "Paul Lemoine et Paul. Puis Paul Lemoine."
+        short = _detection(16, 20, "Paul")
+        full = _detection(0, 12, "Paul Lemoine")
+        expanded = WordBoundaryExpander().expand(text, [short, full])
+        spans = sorted(found.span for found in expanded)
+        assert spans == [Span(0, 12), Span(16, 20), Span(27, 39)]
+
+    def test_the_result_never_overlaps_when_the_input_does_not(self) -> None:
+        """Expanding disjoint detections keeps them disjoint."""
+        text = "Jean Dupont, Dupont, Jean, Jean Dupont et Dupont-Martin."
+        detections = [_detection(0, 11, "Jean Dupont"), _detection(13, 19, "Dupont")]
+        expanded = sorted(
+            WordBoundaryExpander().expand(text, detections), key=lambda d: d.span
+        )
+        for before, after in pairwise(expanded):
+            assert before.span.end <= after.span.start
