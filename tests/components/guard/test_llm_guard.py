@@ -12,6 +12,7 @@ import pytest
 from piighost.components.guard import AnyGuardRail
 
 if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
     from langchain_core.messages import BaseMessage
 
 
@@ -84,6 +85,11 @@ class _CapturingModel:
         return _CapturingStructured(self._result, self._sink)
 
 
+def _as_model(fake: object) -> "BaseChatModel":
+    """Type a stand-in as the chat model it imitates, for the guard's signature."""
+    return cast("BaseChatModel", fake)
+
+
 class TestConformance:
     def test_satisfies_the_port(self) -> None:
         """LLMGuardRail built on an injected model is an AnyGuardRail."""
@@ -91,7 +97,9 @@ class TestConformance:
         from piighost.components.guard import LLMGuardRail
 
         model = _FakeChatModel(_FakeExtraction([]))
-        assert isinstance(LLMGuardRail(model=model, labels=["PERSON"]), AnyGuardRail)
+        assert isinstance(
+            LLMGuardRail(model=_as_model(model), labels=["PERSON"]), AnyGuardRail
+        )
 
 
 class TestCheck:
@@ -101,7 +109,7 @@ class TestCheck:
         from piighost.components.guard import LLMGuardRail
 
         model = _FakeChatModel(_FakeExtraction([]))
-        guard = LLMGuardRail(model=model, labels=["PERSON"])
+        guard = LLMGuardRail(model=_as_model(model), labels=["PERSON"])
         verdict = await guard.check("nothing to see here")
         assert verdict.flagged is False
         assert verdict.detections == ()
@@ -112,7 +120,7 @@ class TestCheck:
         from piighost.components.guard import LLMGuardRail
 
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
-        guard = LLMGuardRail(model=_FakeChatModel(result), labels=["PERSON"])
+        guard = LLMGuardRail(model=_as_model(_FakeChatModel(result)), labels=["PERSON"])
         verdict = await guard.check("Emma slipped through")
         assert verdict.flagged is True
         assert [detection.text for detection in verdict.detections] == ["Emma"]
@@ -125,7 +133,7 @@ class TestCheck:
         captured: list[object] = []
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
         guard = LLMGuardRail(
-            model=_CapturingModel(result, captured),
+            model=_as_model(_CapturingModel(result, captured)),
             labels=["PERSON"],
             prompt="Sentinel audit instruction for {labels}.",
         )
@@ -143,7 +151,7 @@ class TestCheck:
 
         captured: list[object] = []
         guard = LLMGuardRail(
-            model=_CapturingModel(_FakeExtraction([]), captured),
+            model=_as_model(_CapturingModel(_FakeExtraction([]), captured)),
             labels=["PERSON"],
             prefix="[[",
             suffix="]]",
