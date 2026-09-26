@@ -59,6 +59,7 @@ nav = [
         { "Observation" = "observation.md" },
         { "Sécurité" = "security.md" },
         { "Conformité" = "compliance.md" },
+        { "Documenter une AIPD" = "dpia.md" },
         { "Limites" = "limitations.md" },
         { "Glossaire" = "glossary.md" },
     ] },
