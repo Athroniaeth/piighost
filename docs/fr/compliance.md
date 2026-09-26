@@ -54,6 +54,9 @@ Où tombe `piighost` dépend du mode choisi.
 - Les jetons réversibles par défaut, restaurés depuis la mémoire de conversation, `<<PERSON:1>>`{ .placeholder } restauré en `Patrick`{ .pii }, relèvent de la **pseudonymisation**. La correspondance existe, donc la donnée reste personnelle. Protéger cette correspondance, le backend de mémoire et son chiffrement au repos, est ce qui donne son sens à la pseudonymisation. Voir [Sécurité](security.md).
 - Un `RedactPlaceholderFactory` ou un masque utilisé sans mémoire abandonne la correspondance, donc se rapproche de l'**anonymisation**. Que le résultat soit vraiment anonyme dépend encore du risque de ré-identification résiduel dans le texte alentour.
 
+!!! note "Le mot qu'emploie cette documentation"
+    Ces pages disent dé-identification pour ce que fait le pipeline, un terme technique qui couvre les deux modes ci-dessus. Ce n'est pas une catégorie juridique. Dans le mode réversible par défaut, le nom juridique est pseudonymisation, et c'est le mot à employer envers les personnes concernées, dans une mention d'information ou une AIPD. Le Comité demande aux responsables du traitement de ne pas qualifier de "dé-identifiées" des données tant que les personnes restent identifiables (lignes directrices 02/2026, paragraphe 40, voir [plus bas](#ce-que-dit-le-comite-europeen-depuis-larret)).
+
 ### Ce que dit le règlement
 
 Le RGPD encadre cette distinction dans les dispositions suivantes.
