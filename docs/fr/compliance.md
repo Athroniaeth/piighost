@@ -4,10 +4,10 @@ icon: lucide/scale
 
 # Conformité
 
-Les détecteurs et les modes de `piighost` se placent face à deux cadres réglementaires, HIPAA Safe Harbor et le GDPR. La mise en regard ci-dessous montre ce qui est couvert et où passe la frontière.
+Les détecteurs et les modes de `piighost` se placent face à deux cadres réglementaires, HIPAA Safe Harbor et le RGPD. La mise en regard ci-dessous montre ce qui est couvert et où passe la frontière.
 
-!!! warning "Un repère, pas une certification"
-    Ce n'est pas une certification de conformité. Atteindre HIPAA ou le GDPR dépend aussi de la façon dont vous stockez la map de restauration, de qui peut l'atteindre, de votre base légale, et du risque résiduel dans le texte que `piighost` n'a pas touché. `piighost` est un outil de cette chaîne, pas une garantie.
+!!! warning "Un repère, ni une certification ni un conseil juridique"
+    Ce n'est pas une certification de conformité. Atteindre HIPAA ou le RGPD dépend aussi de la façon dont vous stockez la correspondance de restauration, de qui peut l'atteindre, de votre base légale, et du risque résiduel dans le texte que `piighost` n'a pas touché. `piighost` est un outil de cette chaîne, pas une garantie. Cette page n'est pas non plus un conseil juridique. Les résumés des textes et de la jurisprudence ci-dessous sont une aide à la lecture, à vérifier sur les sources officielles et avec votre conseil.
 
 ## HIPAA Safe Harbor
 
@@ -42,21 +42,95 @@ Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs l
 
 Les catalogues regex préétablis reconnaissent sur la forme seule, sans validation de checksum, donc ils ne lâchent jamais une valeur abîmée par l'OCR mais acceptent aussi une non-valeur bien formée. Voir [Limites](limitations.md).
 
-## GDPR
+## RGPD
 
-Le GDPR trace une ligne entre deux traitements, souvent confondus.
+Le RGPD trace une ligne entre deux traitements, souvent confondus.
 
-- **Pseudonymisation** : la valeur est remplacée mais une correspondance subsiste, donc c'est réversible. Une donnée pseudonymisée reste une donnée personnelle au sens du GDPR, et ses obligations continuent de s'appliquer.
-- **Anonymisation** : modification permanente et irréversible. Une donnée vraiment anonyme sort du champ du GDPR.
+- **Pseudonymisation** : la valeur est remplacée mais une correspondance subsiste, donc c'est réversible. Pour qui détient cette correspondance, une donnée pseudonymisée reste une donnée personnelle au sens du RGPD, et ses obligations continuent de s'appliquer.
+- **Anonymisation** : modification permanente et irréversible. Une donnée vraiment anonyme sort du champ du RGPD.
 
 Où tombe `piighost` dépend du mode choisi.
 
 - Les jetons réversibles par défaut, restaurés depuis la mémoire de conversation, `<<PERSON:1>>`{ .placeholder } restauré en `Patrick`{ .pii }, relèvent de la **pseudonymisation**. La correspondance existe, donc la donnée reste personnelle. Protéger cette correspondance, le backend de mémoire et son chiffrement au repos, est ce qui donne son sens à la pseudonymisation. Voir [Sécurité](security.md).
 - Un `RedactPlaceholderFactory` ou un masque utilisé sans mémoire abandonne la correspondance, donc se rapproche de l'**anonymisation**. Que le résultat soit vraiment anonyme dépend encore du risque de ré-identification résiduel dans le texte alentour.
 
+### Ce que dit le règlement
+
+Le RGPD encadre cette distinction dans les dispositions suivantes.
+
+- **L'article 4, point 5)** définit la pseudonymisation comme le traitement de données personnelles "de telle façon que celles-ci ne puissent plus être attribuées à une personne concernée précise sans avoir recours à des informations supplémentaires", pour autant que ces informations "soient conservées séparément" et soumises à des mesures techniques et organisationnelles. Dans un déploiement `piighost`, l'information supplémentaire est la correspondance de `<<PERSON:1>>`{ .placeholder } vers `Patrick`{ .pii }.
+- **Le considérant 26** pose que les données pseudonymisées qui pourraient être attribuées à une personne physique par le recours à des informations supplémentaires "devraient être considérées comme des informations concernant une personne physique identifiable". L'identifiabilité s'apprécie au regard de l'ensemble des moyens raisonnablement susceptibles d'être utilisés, par le responsable du traitement ou par toute autre personne, compte tenu du coût, du temps et des technologies disponibles. Les informations anonymes sortent du champ du règlement.
+- **Les considérants 28 et 29** présentent la pseudonymisation comme un moyen de réduire les risques pour les personnes concernées, qui n'exclut aucune autre mesure. Elle est possible chez un même responsable du traitement, pourvu que les informations supplémentaires soient conservées séparément et que le responsable indique les personnes autorisées.
+- **L'article 25, paragraphe 1**, protection des données dès la conception et par défaut, cite la pseudonymisation comme exemple de mesure technique et organisationnelle appropriée. Le considérant 78 compte parmi ces mesures le fait de "pseudonymiser les données à caractère personnel dès que possible".
+- **L'article 32, paragraphe 1, point a)**, sécurité du traitement, range "la pseudonymisation et le chiffrement des données à caractère personnel" parmi les mesures qui garantissent un niveau de sécurité adapté au risque.
+- **L'article 35** impose une analyse d'impact relative à la protection des données (AIPD) avant un traitement susceptible d'engendrer un risque élevé, "en particulier par le recours à de nouvelles technologies". Le paragraphe 3 nomme trois cas où elle est requise en particulier, le paragraphe 4 charge chaque autorité de contrôle de publier la liste des traitements qui en exigent une, et le paragraphe 7 fixe son contenu minimal. [Comment documenter `piighost` dans une AIPD](dpia.md) fournit la matière de ce contenu.
+
+### Ce que dit le Comité européen sur la pseudonymisation
+
+Le Comité européen de la protection des données (EDPB) a adopté ses lignes directrices 01/2025 sur la pseudonymisation le 16 janvier 2025, en version soumise à consultation publique. Les passages ci-dessous traduisent librement la version anglaise. Cinq points touchent directement `piighost`.
+
+- Les données pseudonymisées qui pourraient être attribuées à une personne par des informations supplémentaires sont des données personnelles, et cela vaut aussi lorsque les données pseudonymisées et les informations supplémentaires ne sont pas entre les mains de la même personne (paragraphe 22).
+- Les informations supplémentaires comprennent les tables de correspondance entre les pseudonymes et les attributs identifiants qu'ils remplacent, ainsi que les clés cryptographiques (paragraphe 20). La mémoire de conversation et la clé de chiffrement sont ces informations supplémentaires.
+- La levée de la pseudonymisation devrait être réservée à des personnes spécialement autorisées, conformément au considérant 29 (paragraphe 32).
+- Les lignes directrices appellent domaine de pseudonymisation le contexte dans lequel l'attribution doit être empêchée (paragraphe 35), et les informations supplémentaires ne doivent pas y entrer (paragraphe 40). Avec `piighost`, le fournisseur du LLM se trouve dans ce domaine et la correspondance reste en dehors.
+- Avant de transmettre des données pseudonymisées à un tiers, il faut au minimum identifier et prendre en compte les moyens dont dispose le destinataire pour attribuer les données (paragraphe 70). Pour `piighost`, ce tiers est le fournisseur du LLM.
+
+### Ce qu'a jugé la Cour de justice dans CEPD/CRU
+
+Le Conseil de résolution unique (CRU) avait recueilli les commentaires des actionnaires et créanciers d'une banque mise en résolution. Il en a transmis une partie à Deloitte, la société chargée d'une valorisation, pseudonymisés sous un code alphanumérique que seul le CRU pouvait relier à un auteur. Des auteurs se sont plaints auprès du Contrôleur européen de la protection des données (CEPD, à ne pas confondre avec le Comité), qui a jugé que le CRU avait manqué à son obligation de les informer que Deloitte recevrait leurs données. Le Tribunal a annulé cette décision (T-557/20, 26 avril 2023). Sur pourvoi du CEPD, la Cour de justice a annulé cet arrêt le 4 septembre 2025 (C-413/23 P, ECLI:EU:C:2025:645).
+
+L'arrêt interprète le règlement 2018/1725, qui régit les institutions et organes de l'Union, et non le RGPD. La Cour relève que sa définition des données à caractère personnel est en substance identique à celle du RGPD et appelle une interprétation identique (point 52), et la définition de la pseudonymisation qu'elle applique reprend mot pour mot l'article 4, point 5).
+
+La Cour a jugé ce qui suit.
+
+- La pseudonymisation ne relève pas de la définition des données personnelles. Elle renvoie à des mesures qui réduisent le risque de corrélation d'un ensemble de données avec l'identité des personnes concernées (point 72).
+- Pour le responsable du traitement qui détient les informations supplémentaires, les données conservent leur caractère personnel en dépit de la pseudonymisation (point 76).
+- Pour un destinataire, les données peuvent ne pas présenter de caractère personnel, sous deux conditions. Le destinataire ne doit pas être en mesure de lever les mesures de pseudonymisation, et ces mesures doivent l'empêcher d'attribuer les données à la personne concernée, y compris par d'autres moyens comme un recoupement avec d'autres éléments (point 77).
+- Des données pseudonymisées "ne doivent pas être considérées comme constituant, en toute hypothèse et pour toute personne, des données à caractère personnel" (point 86).
+- Lorsqu'il n'est pas exclu qu'un tiers qui reçoit les données soit raisonnablement en mesure de les attribuer, par exemple par recoupement avec d'autres données dont il dispose, les données présentent un caractère personnel pour ce transfert et pour le traitement de ce tiers (point 85).
+- La perspective pertinente pour apprécier l'identifiabilité dépend des circonstances de chaque cas (point 100). Pour l'obligation d'informer les personnes des destinataires de leurs données, elle s'apprécie au moment de la collecte et du point de vue du responsable du traitement (point 111). L'obligation du CRU s'appliquait en amont du transfert, que les données aient ou non un caractère personnel du point de vue de Deloitte (point 112).
+- Les opinions ou points de vue personnels, en tant qu'expression de la pensée d'une personne, sont nécessairement intimement liés à celle-ci (point 58).
+
+La Cour n'a pas jugé ce qui suit.
+
+- Elle n'a pas décidé que les commentaires étaient anonymes pour Deloitte, et n'a pas examiné si Deloitte pouvait en fait identifier leurs auteurs (point 116).
+- Elle n'a pas fait sortir les données pseudonymisées du règlement pour le responsable du traitement qui les a pseudonymisées.
+- Elle n'a pas dispensé ce responsable de son obligation d'informer les personnes concernées des destinataires.
+
+La Cour a statué elle-même sur le moyen tiré de ce que les commentaires n'étaient pas des données personnelles, et l'a rejeté (point 120). Elle a renvoyé l'autre moyen, tiré du droit à une bonne administration, devant le Tribunal (point 122).
+
+### Ce que dit le Comité européen depuis l'arrêt
+
+Le Comité a réuni les parties prenantes le 12 décembre 2025, à la suite de l'arrêt, pour nourrir ses travaux sur les lignes directrices 01/2025 sur la pseudonymisation et sur des lignes directrices consacrées à l'anonymisation. Les participants se sont divisés sur la perspective applicable à un sous-traitant, les uns pour celle du sous-traitant, les autres pour celle du responsable du traitement.
+
+Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique jusqu'au 30 octobre 2026. Elles tiennent compte de l'arrêt, rendu sur des données pseudonymisées, et trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
+
+- L'anonymat s'apprécie du point de vue de chaque entité concernée, et la question de départ est de savoir pour qui les données sont censées être anonymes (paragraphes 11 et 12).
+- Une entité qui traite des informations pour le compte d'un responsable du traitement s'apprécie du point de vue de ce responsable. Une information qui est une donnée personnelle pour le responsable l'est aussi pour son sous-traitant (paragraphe 15).
+- Les responsables du traitement ne devraient pas qualifier des données par les termes "anonymes", "dé-identifiées" ou "dépersonnalisées" si les personnes restent identifiables (paragraphe 40).
+
+### Ce que cela implique pour un déploiement `piighost`
+
+- Pour vous, responsable du traitement qui détient la correspondance, le texte dé-identifié reste une donnée personnelle. Toutes les obligations du RGPD s'appliquent à l'ensemble du traitement, correspondance comprise.
+- Un fournisseur de LLM qui traite le texte pour votre compte est votre sous-traitant. Selon les lignes directrices 02/2026, le texte s'apprécie alors de votre point de vue, et reste donc une donnée personnelle pour le fournisseur aussi.
+- Un fournisseur de LLM qui utilise le texte pour ses propres finalités s'apprécie de son propre point de vue. L'arrêt laisse ouverte la possibilité que le texte ne soit pas une donnée personnelle pour lui, mais seulement si les deux conditions du point 77 sont réunies. `piighost` répond à la première par construction, puisque la correspondance ne quitte jamais votre périmètre. La seconde dépend de ce que le texte porte encore en clair, le contexte, les quasi-identifiants, une PII que le détecteur a manquée, et de ce que le fournisseur peut recouper. Voir [Sécurité](security.md) et [Limites](limitations.md).
+- Votre obligation d'informer les personnes que leurs messages parviennent à un fournisseur de LLM s'apprécie de votre point de vue à la collecte, elle vaut donc quelle que soit la position du fournisseur. Dans cette information, qualifiez le traitement de pseudonymisation, et non d'anonymisation ou de dé-identification, comme le demande le paragraphe 40 des lignes directrices 02/2026.
+- Une AIPD qui traite le texte dé-identifié comme une donnée personnelle pour le fournisseur tient quelle que soit l'issue de ces questions.
+
+### Sources
+
+- [RGPD, règlement (UE) 2016/679](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
+- [Règlement (UE) 2018/1725, applicable aux institutions et organes de l'Union](https://eur-lex.europa.eu/eli/reg/2018/1725/oj)
+- [Comité européen de la protection des données, lignes directrices 01/2025 sur la pseudonymisation, version soumise à consultation publique, en anglais](https://www.edpb.europa.eu/public-consultations/guidelines-012025-on-pseudonymisation_en)
+- [Comité européen de la protection des données, compte rendu de la réunion des parties prenantes sur l'anonymisation et la pseudonymisation du 12 décembre 2025, en anglais](https://www.edpb.europa.eu/system/files/2026-02/edpb-report-stakeholder-event-anonymisation-pseudonymisation_en.pdf)
+- [Comité européen de la protection des données, lignes directrices 02/2026 sur l'anonymisation, version soumise à consultation publique, en anglais](https://www.edpb.europa.eu/public-consultations/guidelines-on-anonymisation_en)
+- [Cour de justice, arrêt du 4 septembre 2025, CEPD/CRU, C-413/23 P](https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:62023CJ0413)
+- [Cour de justice, communiqué de presse n° 107/25](https://curia.europa.eu/site/upload/docs/application/pdf/2025-09/cp250107fr.pdf)
+
 ## Voir aussi
 
-- [Sécurité](security.md) : le modèle de menace, les backends de mémoire, et le chiffrement au repos qui protège la map de restauration.
+- [Sécurité](security.md) : le modèle de menace, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
+- [Comment documenter `piighost` dans une AIPD](dpia.md) : le traitement, les flux de données, les mesures et les risques résiduels, avec un modèle à remplir.
 - [Limites](limitations.md) : la regex par forme seule et ce qu'elle ne valide pas.
 - [Placeholder factories](placeholder-factories.md) : quels modes sont réversibles et lesquels ne le sont pas.
 - [Roadmap](roadmap.md) : ce qui est en attente et ce qui est volontairement hors périmètre.
