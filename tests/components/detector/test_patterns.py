@@ -39,6 +39,16 @@ TRUE_POSITIVES: list[tuple[str, str]] = [
     ("IBAN", "GB82WEST12345698765432"),
     ("FR_PHONE", "+33612345678"),
     ("FR_PHONE", "06 12 34 56 78"),
+    # French typography separates the pairs with a no-break space.
+    ("FR_PHONE", "06\u00a012\u00a034\u00a056\u00a078"),
+    ("FR_PHONE", "06\u202f12\u202f34\u202f56\u202f78"),
+    ("FR_PHONE", "+33 6 12 34 56 78"),
+    ("FR_PHONE", "+33 (0)6 12 34 56 78"),
+    ("FR_PHONE", "+33\u00a06\u00a012\u00a034\u00a056\u00a078"),
+    # An address with accented letters is matched whole, not from the first
+    # ASCII run, which would leave the start of the local part in clear.
+    ("EMAIL", "expéditeur@exemple.fr"),
+    ("EMAIL", "zoé.lefèvre@exemple.fr"),
     ("FR_IBAN", "FR7630006000011234567890189"),
     ("FR_NIR", "180057505600157"),
     ("FR_SIRET", "73282932000074"),
@@ -50,6 +60,7 @@ TRUE_NEGATIVES: list[tuple[str, str]] = [
     ("IPV4", "999.999.999.999"),
     ("US_SSN", "1234-56-789"),
     ("FR_PHONE", "0012345678"),
+    ("FR_PHONE", "+33 (0) 6"),
     # A URL needs an http(s) scheme; a bare host or another scheme is ignored.
     ("URL", "example.com"),
     ("URL", "ftp://example.com"),
