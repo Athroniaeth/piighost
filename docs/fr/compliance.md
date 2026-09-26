@@ -103,7 +103,7 @@ La Cour a statué elle-même sur le moyen tiré de ce que les commentaires n'ét
 
 Le Comité a réuni les parties prenantes le 12 décembre 2025, à la suite de l'arrêt, pour nourrir ses travaux sur les lignes directrices 01/2025 sur la pseudonymisation et sur des lignes directrices consacrées à l'anonymisation. Les participants se sont divisés sur la perspective applicable à un sous-traitant, les uns pour celle du sous-traitant, les autres pour celle du responsable du traitement.
 
-Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique jusqu'au 30 octobre 2026. Elles tiennent compte de l'arrêt, rendu sur des données pseudonymisées, et trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
+Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique jusqu'au 30 octobre 2026. Elles tiennent compte de l'arrêt, qui portait sur la pseudonymisation, et trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
 
 - L'anonymat s'apprécie du point de vue de chaque entité concernée, et la question de départ est de savoir pour qui les données sont censées être anonymes (paragraphes 11 et 12).
 - Une entité qui traite des informations pour le compte d'un responsable du traitement s'apprécie du point de vue de ce responsable. Une information qui est une donnée personnelle pour le responsable l'est aussi pour son sous-traitant (paragraphe 15).
