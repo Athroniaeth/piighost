@@ -140,7 +140,7 @@ class AnyDetectionExpander(Protocol):
     def expand(self, text: str, detections: list[Detection]) -> list[Detection]: ...
 ```
 
-Sous-classez `BaseDetectionExpander`. Il conserve les détections d'origine et, pour chacune, ajoute une détection à chaque occurrence supplémentaire que votre `_find_occurrences` renvoie, en reprenant le label et la confiance de la détection source.
+Sous-classez `BaseDetectionExpander`. Il conserve les détections d'origine et, pour chacune, ajoute une détection à chaque occurrence supplémentaire que votre `_find_occurrences` renvoie, en reprenant le label et la confiance de la détection source. Une occurrence qui chevauche une détection déjà retenue est écartée, car l'expander passe après le résolveur de chevauchements et le rendu refuse deux spans qui se recouvrent. Les valeurs sont cherchées de la plus longue à la plus courte, donc un nom complet prend sa place avant son prénom.
 
 ???+ example "Répétitions par mot entier"
 

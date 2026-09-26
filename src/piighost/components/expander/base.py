@@ -38,16 +38,26 @@ class BaseDetectionExpander(ABC):
     and confidence. A subclass defines _find_occurrences, the only step that
     varies, the rule that locates a value's occurrences, such as whole-word
     matching.
+
+    An occurrence that overlaps a character already covered is skipped. The
+    expander runs after the overlap resolver, so nothing reconciles what it
+    adds, and the renderer refuses overlapping spans. "Paul" found inside a
+    kept "Monsieur Paul" is already hidden. Values are searched longest first,
+    so where "Paul Lemoine" and "Paul" occur at one place the full name is the
+    one added.
     """
 
     def expand(self, text: str, detections: list[Detection]) -> list[Detection]:
         """Return the detections plus any missed occurrences of their values."""
         expanded = list(detections)
-        seen = {detection.span for detection in detections}
-
+        covered = bytearray(len(text))
         for detection in detections:
+            _cover(covered, detection.span)
+
+        longest_first = sorted(detections, key=lambda d: len(d.text), reverse=True)
+        for detection in longest_first:
             for span in self._find_occurrences(text, detection):
-                if span in seen:
+                if covered.find(1, span.start, span.end) != -1:
                     continue
                 found = Detection(
                     span=span,
@@ -56,7 +66,7 @@ class BaseDetectionExpander(ABC):
                     confidence=detection.confidence,
                 )
                 expanded.append(found)
-                seen.add(span)
+                _cover(covered, span)
 
         return expanded
 
@@ -64,3 +74,8 @@ class BaseDetectionExpander(ABC):
     def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
         """Return the spans in text where the detection's value occurs."""
         ...
+
+
+def _cover(covered: bytearray, span: Span) -> None:
+    """Mark the characters of a span as covered by a kept detection."""
+    covered[span.start : span.end] = b"\x01" * (span.end - span.start)
