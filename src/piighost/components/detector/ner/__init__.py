@@ -5,9 +5,18 @@ model-backed adapters, each behind its own optional extra, are added here as
 they land, exposed lazily so a missing extra fails only on access.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from piighost.components.detector.ner.base import BaseNERDetector
+
+if TYPE_CHECKING:
+    from piighost.components.detector.ner.gliner2 import (
+        Gliner2Detector,
+        Gliner2PiiDetector,
+    )
+    from piighost.components.detector.ner.presidio import PresidioDetector
+    from piighost.components.detector.ner.spacy import SpacyDetector
+    from piighost.components.detector.ner.transformers import TransformersDetector
 
 __all__ = [
     "BaseNERDetector",

@@ -8,10 +8,15 @@ raises a helpful ImportError, while importing this package never pulls the
 optional package in.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from piighost.components.guard.base import AnyGuardRail, GuardVerdict
 from piighost.components.guard.detector import DetectorGuardRail
+
+if TYPE_CHECKING:
+    from piighost.components.guard.gliner2 import Gliner2GuardRail
+    from piighost.components.guard.llm import LLMGuardRail
+    from piighost.components.guard.moderation import ModerationGuardRail
 
 __all__ = [
     "AnyGuardRail",

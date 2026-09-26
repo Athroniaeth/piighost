@@ -7,7 +7,7 @@ lazily: reaching for it without the extra raises a helpful ImportError, while
 importing this package never pulls rapidfuzz in.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from piighost.components.entity_resolver.base import (
     AnyEntityResolver,
@@ -15,6 +15,9 @@ from piighost.components.entity_resolver.base import (
 )
 from piighost.components.entity_resolver.merge import MergeEntityResolver
 from piighost.components.entity_resolver.separate import SeparateEntityResolver
+
+if TYPE_CHECKING:
+    from piighost.components.entity_resolver.fuzzy import FuzzyEntityResolver
 
 __all__ = [
     "AnyEntityResolver",
