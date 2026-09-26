@@ -95,6 +95,7 @@ Each flow goes into the DPIA with what crosses it and who receives it.
 | Application to memory | the detected values, encrypted when a cipher is configured | you, or the host of the store |
 | Application to LLM provider | the de-identified text, with everything the detectors did not replace | the LLM provider |
 | Application to tool | the restored values, under the `FULL` and `INPUT` strategies | the operator of the tool |
+| Tool result to LLM provider | the tool's response, de-identified under `FULL` and `OUTPUT`, as the tool returned it under `INPUT` and `PASSTHROUGH` | the LLM provider |
 | Application to trace backend | the stage payloads, tokenized when an `observation_redactor` is set, in clear otherwise | the operator of the trace backend |
 | Application to a remote `LLMDetector` | the message in clear, since detection runs before replacement | the provider of that chat model |
 | Application to a remote guard rail | the de-identified output (`LLMGuardRail`, `ModerationGuardRail`) | the provider of that model |
@@ -132,7 +133,7 @@ Article 35(7)(c) asks for an assessment of the risks. `piighost` lowers the expo
 - **The LLM can write a PII it invented.** A name the model makes up is in no mapping, so nothing ties it to a person or removes it.
 - **Values the assistant introduces stay in clear** under the default `EntityCreateByAssistantStrategy.PRESERVE`. `ANONYMIZE` tokenizes them too.
 - **The mapping store is a target.** It holds the values in clear, or encrypted under a key your environment holds. The process memory and a persisted LangGraph state hold them in clear. See [Security](security.md).
-- **Tools receive real values** under the `FULL` and `INPUT` strategies, so every tool the agent can call is a recipient.
+- **Tools receive real values** under the `FULL` and `INPUT` strategies, so every tool the agent can call is a recipient. Under `INPUT` and `PASSTHROUGH`, a PII in a tool's response reaches the provider in clear.
 - **Erasure has a scope.** `forget_thread` reaches the memory and the memo of the process that runs it. It does not reach the provider's logs, your checkpointer, your traces, or the memo of another worker before its `token_memo_ttl` runs out.
 - **The provider's position is not settled.** A DPIA that treats the de-identified text as personal data for the provider holds whichever way that question is settled. See [Compliance](compliance.md).
 
