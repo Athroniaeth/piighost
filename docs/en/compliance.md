@@ -72,7 +72,7 @@ The European Data Protection Board (EDPB) adopted its Guidelines 01/2025 on pseu
 - Pseudonymized data that could be attributed to a person with additional information is personal data, and this "also holds true if pseudonymised data and additional information are not in the hands of the same person" (paragraph 22).
 - The additional information includes "tables matching pseudonyms with the identifying attributes they replace" and cryptographic keys (paragraph 20). The conversation memory and the cipher key are that additional information.
 - Reversal should be performed by persons specifically authorized for it, as per Recital 29 (paragraph 32).
-- The guidelines call pseudonymization domain the context in which attribution is to be precluded (paragraph 35), and the additional information must not enter it (paragraph 40). With `piighost`, the LLM provider sits in that domain and the mapping stays out of it.
+- The guidelines call the context in which attribution is to be precluded the pseudonymisation domain (paragraph 35), and the additional information should not enter it (paragraph 40). With `piighost`, the LLM provider sits in that domain and the mapping stays out of it.
 - Before pseudonymized data is transmitted to a third party, "the means available to the recipient for attribution of the data need to be identified and taken into account" (paragraph 70). For `piighost`, the third party is the LLM provider.
 
 ### What the Court of Justice held in EDPS v SRB

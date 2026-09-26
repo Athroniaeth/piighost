@@ -72,7 +72,7 @@ Le Comité européen de la protection des données (EDPB) a adopté ses lignes d
 - Les données pseudonymisées qui pourraient être attribuées à une personne par des informations supplémentaires sont des données personnelles, et cela vaut aussi lorsque les données pseudonymisées et les informations supplémentaires ne sont pas entre les mains de la même personne (paragraphe 22).
 - Les informations supplémentaires comprennent les tables de correspondance entre les pseudonymes et les attributs identifiants qu'ils remplacent, ainsi que les clés cryptographiques (paragraphe 20). La mémoire de conversation et la clé de chiffrement sont ces informations supplémentaires.
 - La levée de la pseudonymisation devrait être réservée à des personnes spécialement autorisées, conformément au considérant 29 (paragraphe 32).
-- Les lignes directrices appellent domaine de pseudonymisation le contexte dans lequel l'attribution doit être empêchée (paragraphe 35), et les informations supplémentaires ne doivent pas y entrer (paragraphe 40). Avec `piighost`, le fournisseur du LLM se trouve dans ce domaine et la correspondance reste en dehors.
+- Les lignes directrices appellent domaine de pseudonymisation le contexte dans lequel l'attribution doit être empêchée (paragraphe 35), et les informations supplémentaires ne devraient pas y entrer (paragraphe 40). Avec `piighost`, le fournisseur du LLM se trouve dans ce domaine et la correspondance reste en dehors.
 - Avant de transmettre des données pseudonymisées à un tiers, il faut au minimum identifier et prendre en compte les moyens dont dispose le destinataire pour attribuer les données (paragraphe 70). Pour `piighost`, ce tiers est le fournisseur du LLM.
 
 ### Ce qu'a jugé la Cour de justice dans CEPD/CRU
