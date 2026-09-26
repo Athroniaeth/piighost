@@ -101,9 +101,9 @@ The Court gave final judgment itself on the plea that the comments were not pers
 
 ### What the EDPB says since the judgment
 
-The EDPB held a stakeholder event on 12 December 2025, following the judgment, to inform its work on Guidelines 01/2025 and on guidelines on anonymisation. Participants disagreed on the perspective that applies to a processor, some arguing for the processor's own, others for the controller's.
+The EDPB held a stakeholder event on 12 December 2025, following the judgment, to inform its work on Guidelines 01/2025 on pseudonymisation and on guidelines on anonymisation. Participants disagreed on the perspective that applies to a processor, some arguing for the processor's own, others for the controller's.
 
-The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation open until 30 October 2026. They take the judgment into account, and three points bear on `piighost`.
+The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation open until 30 October 2026. They take the judgment into account, delivered on pseudonymized data, and three points bear on `piighost`.
 
 - Anonymity is assessed from the perspective of each relevant entity, and the basic question is for whom the data is intended to be anonymous (paragraphs 11 and 12).
 - An entity that processes information on behalf of a controller is assessed from that controller's perspective. Information that is personal data for the controller is personal data for its processor too (paragraph 15).
@@ -119,13 +119,13 @@ The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as
 
 ### Sources
 
-- GDPR, Regulation (EU) 2016/679: [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
-- Regulation (EU) 2018/1725, on the EU institutions and bodies: [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2018/1725/oj)
-- EDPB, Guidelines 01/2025 on pseudonymisation, version for public consultation: [edpb.europa.eu](https://www.edpb.europa.eu/public-consultations/guidelines-012025-on-pseudonymisation_en)
-- EDPB, report on the stakeholder event on anonymisation and pseudonymisation of 12 December 2025: [edpb.europa.eu](https://www.edpb.europa.eu/system/files/2026-02/edpb-report-stakeholder-event-anonymisation-pseudonymisation_en.pdf)
-- EDPB, Guidelines 02/2026 on anonymisation, version for public consultation: [edpb.europa.eu](https://www.edpb.europa.eu/public-consultations/guidelines-on-anonymisation_en)
-- Court of Justice, judgment of 4 September 2025, EDPS v SRB, C-413/23 P: [EUR-Lex](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62023CJ0413)
-- Court of Justice, press release No 107/25: [curia.europa.eu](https://curia.europa.eu/site/upload/docs/application/pdf/2025-09/cp250107en.pdf)
+- [GDPR, Regulation (EU) 2016/679](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
+- [Regulation (EU) 2018/1725, on the EU institutions and bodies](https://eur-lex.europa.eu/eli/reg/2018/1725/oj)
+- [EDPB, Guidelines 01/2025 on pseudonymisation, version for public consultation](https://www.edpb.europa.eu/public-consultations/guidelines-012025-on-pseudonymisation_en)
+- [EDPB, report on the stakeholder event on anonymisation and pseudonymisation of 12 December 2025](https://www.edpb.europa.eu/system/files/2026-02/edpb-report-stakeholder-event-anonymisation-pseudonymisation_en.pdf)
+- [EDPB, Guidelines 02/2026 on anonymisation, version for public consultation](https://www.edpb.europa.eu/public-consultations/guidelines-on-anonymisation_en)
+- [Court of Justice, judgment of 4 September 2025, EDPS v SRB, C-413/23 P](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62023CJ0413)
+- [Court of Justice, press release No 107/25](https://curia.europa.eu/site/upload/docs/application/pdf/2025-09/cp250107en.pdf)
 
 ## See also
 
