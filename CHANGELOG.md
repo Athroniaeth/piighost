@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.9.0 (2026-09-27)
+
+### Feat
+
+- **config**: a gliner2 or transformers detector config sets max_chars
+- **detector**: bridge inference to an injected runner
+
+### Fix
+
+- **patterns**: French phones with no-break spaces, and accented email addresses
+- **expander**: never add an occurrence that overlaps a kept detection
+- **emscripten**: stop claiming concurrency the platform cannot give
+- **text**: a French elision and an English possessive end the word they follow
+- **typing**: give the lazy exports their real types, and lift anyio past two CVEs
+
+### Perf
+
+- **text**: search the fragment as a literal, then check its edges
+
 ## 1.8.0 (2026-09-17)
 
 ### Feat
