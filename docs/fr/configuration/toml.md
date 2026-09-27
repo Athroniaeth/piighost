@@ -196,9 +196,9 @@ Chacun nécessite son propre extra, et tous sauf `presidio` nécessitent un mod�
 
 | `type` | Extra | Clés |
 |--------|-------|------|
-| `gliner2` | `gliner2` | `model` (requis), `labels` (requis), `threshold` (défaut `0.5`), `max_concurrency` |
+| `gliner2` | `gliner2` | `model` (requis), `labels` (requis), `threshold` (défaut `0.5`), `max_concurrency`, `max_chars` |
 | `spacy` | `spacy` | `model` (requis), `labels`, `max_concurrency` |
-| `transformers` | `transformers` | `model` (requis), `labels`, `threshold` (défaut `0.0`), `aggregation_strategy` (défaut `simple`), `max_concurrency` |
+| `transformers` | `transformers` | `model` (requis), `labels`, `threshold` (défaut `0.0`), `aggregation_strategy` (défaut `simple`), `max_concurrency`, `max_chars` |
 | `presidio` | `presidio` | `labels`, `language` (défaut `en`), `threshold` (défaut `0.0`) |
 | `llm` | `llm` | `model` (requis), `labels` (requis), `prompt`, `provider` |
 
@@ -210,7 +210,10 @@ type = "gliner2"
 model = "fastino/gliner2-multi-v1"
 labels = ["PERSON", "LOCATION"]
 threshold = 0.5
+max_chars = 2000
 ```
+
+Les détecteurs `gliner2` et `transformers` acceptent `max_chars`, le plus long texte qu'une inférence voit. Un texte plus long est découpé en morceaux qui se chevauchent, analysés séparément, et les spans sont replacés dans le texte d'origine. Sans cette clé, le texte entier part au modèle en une fois, ce qu'un modèle à fenêtre courte tronque et ce qui peut épuiser la mémoire sur un long document.
 
 Le détecteur `transformers` passe `aggregation_strategy` à sa pipeline de classification de tokens, qui regroupe les sous-tokens en entités entières.
 

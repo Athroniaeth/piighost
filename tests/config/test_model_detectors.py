@@ -32,6 +32,48 @@ class TestModelDetectorParsing:
         assert config.labels == ["PERSON"]
         assert config.threshold == 0.7
 
+    def test_gliner2_and_transformers_take_a_chunk_size(self) -> None:
+        """max_chars is optional, and a text longer than it is split into chunks."""
+        assert (
+            Gliner2DetectorConfig(type="gliner2", model="m", labels=["A"]).max_chars
+            is None
+        )
+        gliner2 = Gliner2DetectorConfig(
+            type="gliner2", model="m", labels=["A"], max_chars=1000
+        )
+        transformers = TransformersDetectorConfig(
+            type="transformers", model="m", max_chars=1000
+        )
+        assert gliner2.max_chars == transformers.max_chars == 1000
+
+    def test_gliner2_build_forwards_the_chunk_size(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """build() hands max_chars to the detector, so a long text is chunked."""
+        import sys
+        import types
+
+        captured: dict[str, object] = {}
+
+        class _Detector:
+            def __init__(self, **kwargs: object) -> None:
+                captured.update(kwargs)
+
+        module = types.ModuleType("piighost.components.detector.ner.gliner2")
+        module.__dict__["Gliner2Detector"] = _Detector
+        monkeypatch.setitem(sys.modules, module.__name__, module)
+        Gliner2DetectorConfig(
+            type="gliner2", model="m", labels=["A"], max_chars=1000
+        ).build()
+        assert captured["max_chars"] == 1000
+
+    def test_a_chunk_size_must_be_positive(self) -> None:
+        """A zero or negative max_chars is refused at parse time."""
+        with pytest.raises(ValueError, match="max_chars"):
+            Gliner2DetectorConfig.model_validate(
+                {"type": "gliner2", "model": "m", "labels": ["A"], "max_chars": 0}
+            )
+
     def test_spacy_parses_with_dict_labels(self) -> None:
         """The spacy config parses an emitted-to-model label mapping."""
         config = SpacyDetectorConfig(
