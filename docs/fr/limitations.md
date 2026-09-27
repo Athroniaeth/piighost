@@ -12,7 +12,7 @@ Un détecteur ne trouve que ce qu'il sait reconnaître. Deux familles se partage
 
 Un détecteur à motif (`RegexDetector`) reconnaît des chaînes de caractères qui suivent une structure fixe, comme un email, une IP ou une forme de carte bancaire. Il est déterministe sur ces formats et aveugle au reste. Un détecteur NER (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) ou LLM (`LLMDetector`) reconnaît des entités en texte libre, un nom, un lieu, une organisation, mais il en manque. Un nom rare, une orthographe inhabituelle, une entité hors distribution passent en clair vers le LLM.
 
-Une PII non détectée n'est pas dé-identifiée. C'est un enjeu d'ingénierie, pas un défaut conceptuel.
+Une donnée confidentielle non détectée n'est pas dé-identifiée. C'est un enjeu d'ingénierie, pas un défaut conceptuel.
 
 **Mitigation** : chaîner un détecteur NER et un `RegexDetector` via le `CompositeDetector`, pour couvrir à la fois le texte libre et les formats structurés. Charger un modèle NER spécifique à la locale pour une meilleure précision. Voir [Étendre PIIGhost](extending.md).
 
@@ -46,7 +46,7 @@ La contrepartie est que `RegexDetector` peut détecter des chaînes qui ont la f
 
 La factory de placeholder décide de ce qui distingue deux entités. Certaines familles produisent la même sortie pour deux entrées différentes.
 
-- `RedactPlaceholderFactory` ramène toute PII sur `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` ramène toute PII d'un même label sur `<<PERSON>>`{ .placeholder }. Ces deux familles ne distinguent pas les entités, donc elles ne sont pas réversibles.
+- `RedactPlaceholderFactory` ramène toute valeur sur `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` ramène toute valeur d'un même label sur `<<PERSON>>`{ .placeholder }. Ces deux familles ne distinguent pas les entités, donc elles ne sont pas réversibles.
 - `MaskPlaceholderFactory` garde un fragment de la valeur, `j***@mail.com`{ .placeholder }. Deux valeurs de forme voisine peuvent se confondre sur un même masque, et un masque peut aussi se confondre avec une vraie valeur dans une réponse d'outil.
 - `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }) donnent un token distinct par entité et se retrouvent dans le texte, donc elles restent réversibles sans ambiguïté.
 
@@ -54,7 +54,7 @@ La factory de placeholder décide de ce qui distingue deux entités. Certaines f
 
 ## La restauration n'est fiable que sous identité
 
-Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Deux propriétés se combinent dans le token. Le **typage** dit de quelle sorte de PII il s'agit, personne, lieu, email. L'**identité** dit de laquelle il s'agit parmi celles du même type. Chaque factory porte un tag de préservation qui déclare ce que son token garde des deux.
+Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Deux propriétés se combinent dans le token. Le **typage** dit de quelle sorte de valeur il s'agit, personne, lieu, email. L'**identité** dit de laquelle il s'agit parmi celles du même type. Chaque factory porte un tag de préservation qui déclare ce que son token garde des deux.
 
 | Factory | Tag de préservation | Token émis | Typage | Identité | Restauration |
 |---|---|---|---|---|---|
@@ -79,7 +79,7 @@ La restauration fonctionne sur les valeurs vues à l'entrée. Si le LLM hallucin
 
 Le middleware détecte un cas voisin, le placeholder inventé. Si le LLM fabrique un jeton qui ressemble à un placeholder mais n'a jamais été émis, `piighost` le repère (le token n'a pas de valeur associée) et le refuse par défaut (`InventedPlaceholderError`, stratégie `RAISE`). Les stratégies `KEEP` et `DROP` existent pour d'autres politiques.
 
-**Mitigation** : exécuter une étape de re-détection sur la sortie du LLM au niveau applicatif, et décider s'il faut supprimer, signaler ou re-dé-identifier avant l'affichage. Un garde-fou (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-vérifie la sortie dé-identifiée et signale une PII résiduelle, à charge pour l'appelant de lever `PIIRemainingError`.
+**Mitigation** : exécuter une étape de re-détection sur la sortie du LLM au niveau applicatif, et décider s'il faut supprimer, signaler ou re-dé-identifier avant l'affichage. Un garde-fou (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-vérifie la sortie dé-identifiée et signale des données confidentielles résiduelles, à charge pour l'appelant de lever `PIIRemainingError`.
 
 ## La mémoire est locale au processus par défaut
 

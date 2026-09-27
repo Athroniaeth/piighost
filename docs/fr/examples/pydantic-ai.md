@@ -82,7 +82,7 @@ hooks = pii_hooks(
 
 ## Appels d'outils
 
-`pii_hooks` traite aussi la frontière des outils, pilotée par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont restaurés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est ré-dé-identifié avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne restaure que les arguments, `OUTPUT` ne dé-identifie à nouveau que le résultat, et `PASSTHROUGH` ne touche à rien.
+`pii_hooks` traite aussi la frontière des outils, pilotée par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont restaurés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est dé-identifié à nouveau avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne restaure que les arguments, `OUTPUT` ne dé-identifie à nouveau que le résultat, et `PASSTHROUGH` ne touche à rien.
 
 ```python
 from piighost.integrations.langchain import ToolCallStrategy
@@ -92,7 +92,7 @@ hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
 
 ## Valeurs de l'assistant
 
-Toute valeur n'est pas une PII utilisateur. Quand le modèle introduit lui-même une valeur tirée de sa connaissance du monde, la tokeniser la lui cacherait au tour suivant sans rien protéger côté utilisateur. `assistant_strategy` décide du sort d'une valeur introduite par l'assistant, encore le même enum que le middleware. Sous `PRESERVE`, le défaut, elle reste en clair, le modèle garde donc sa propre connaissance et seule une PII utilisateur connue est tokenisée. `ANONYMIZE` la tokenise quand même, et `IGNORE` saute entièrement les messages de l'assistant, économisant le détecteur.
+Toute valeur n'est pas une donnée confidentielle de l'utilisateur. Quand le modèle introduit lui-même une valeur tirée de sa connaissance du monde, la tokeniser la lui cacherait au tour suivant sans rien protéger côté utilisateur. `assistant_strategy` décide du sort d'une valeur introduite par l'assistant, encore le même enum que le middleware. Sous `PRESERVE`, le défaut, elle reste en clair, le modèle garde donc sa propre connaissance et seule une valeur utilisateur connue est tokenisée. `ANONYMIZE` la tokenise quand même, et `IGNORE` saute entièrement les messages de l'assistant, économisant le détecteur.
 
 ```python
 from piighost.integrations.langchain import EntityCreateByAssistantStrategy

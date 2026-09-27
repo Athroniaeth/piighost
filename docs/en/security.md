@@ -7,38 +7,38 @@ icon: lucide/shield-check
 This page complements [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) at the repo root with a threat model. It describes what `piighost` protects against, what it does not, and why.
 
 !!! note "Reversible de-identification"
-    `piighost` de-identifies by default. It replaces each PII with a placeholder and **keeps the link** between the placeholder and the original value, so it can restore the real value later. That link is a mapping of cleartext PII. Protecting it is the core of this threat model.
+    `piighost` de-identifies by default. It replaces each detected value with a placeholder and **keeps the link** between the placeholder and the original value, so it can restore the real value later. That link is a mapping of cleartext confidential data, that is personal data (PII) and secrets such as API keys. Protecting it is the core of this threat model.
 
 ## The trajectory of a value
 
-Take a message that contains `jean@mail.com`{ .pii }. `piighost` detects the PII, replaces it with `<<EMAIL:1>>`{ .placeholder }, and sends the de-identified text to the LLM. The LLM only ever sees `<<EMAIL:1>>`{ .placeholder }. When the response comes back, `piighost` reinjects `jean@mail.com`{ .pii } in place of the placeholder, and the user sees the real value.
+Take a message that contains `jean@mail.com`{ .pii }. `piighost` detects the value, replaces it with `<<EMAIL:1>>`{ .placeholder }, and sends the de-identified text to the LLM. The LLM only ever sees `<<EMAIL:1>>`{ .placeholder }. When the response comes back, `piighost` reinjects `jean@mail.com`{ .pii } in place of the placeholder, and the user sees the real value.
 
 Two things therefore coexist at all times. The de-identified text, which can travel to the LLM safely, and the mapping `<<EMAIL:1>>`{ .placeholder } to `jean@mail.com`{ .pii }, which must never leave your perimeter. The threat model lives in that separation.
 
 ## What `piighost` protects against
 
 !!! success "Within the protection scope"
-    - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real PII. Even if the provider logs the request, no sensitive data leaks to it.
+    - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real values. Even if the provider logs the request, no sensitive data leaks to it.
     - **Tool-call leakage**: the middleware restores tool arguments just before execution, then de-identifies the results before they go back to the LLM. The real values never flow through the LLM's visible context.
-    - **Cross-message drift**: the `ConversationMemory` links variants (`Patrick`{ .pii } and `patrick`{ .pii } group by `(text.casefold(), label)`), so the same entity keeps the same placeholder across the whole conversation. The LLM never sees the same PII under two different masks.
-    - **Theft of a stolen persistent store**: a persistent backend (Redis or SQL) can encrypt every stored value and hash the key, so a store leak reveals neither the message nor the PII. See below.
+    - **Cross-message drift**: the `ConversationMemory` links variants (`Patrick`{ .pii } and `patrick`{ .pii } group by `(text.casefold(), label)`), so the same entity keeps the same placeholder across the whole conversation. The LLM never sees the same value under two different masks.
+    - **Theft of a stolen persistent store**: a persistent backend (Redis or SQL) can encrypt every stored value and hash the key, so a store leak reveals neither the message nor the confidential data. See below.
 
 ## What `piighost` does not protect against
 
 !!! danger "Outside the protection scope"
-    - **Process memory compromise**: the mapping from `placeholder` to original value lives in RAM for the duration of processing. An attacker who reads process memory recovers the cleartext PII, whatever the backend.
-    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing, it serves development and single-process use. A persistent backend built without crypto stores its values in clear, so a disk theft exposes the PII. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
+    - **Process memory compromise**: the mapping from `placeholder` to original value lives in RAM for the duration of processing. An attacker who reads process memory recovers the cleartext confidential data, whatever the backend.
+    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing, it serves development and single-process use. A persistent backend built without crypto stores its values in clear, so a disk theft exposes the confidential data. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
     - **LLM-invented placeholders**: if the LLM fabricates a placeholder that was never emitted, `piighost` cannot map it back to a value since it is in no mapping. The middleware refuses such tokens by default (`InventedPlaceholderError`). See [Limitations](limitations.md).
     - **Re-identification from context**: a placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
-    - **Fallible detectors**: a detector is best-effort. A PII it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
+    - **Fallible detectors**: a detector is best-effort. Confidential data it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
     - **Assistant-introduced values under PRESERVE**: with the default `AssistantEntityStrategy.PRESERVE`, a value the model itself introduced stays in clear for the whole thread, since the model already knows it, and it stays clear even when a later user message repeats it, because the thread dates the value to its first occurrence. Use `ANONYMIZE` to tokenize values the assistant introduces too.
-    - **Upstream application logs**: `piighost` never logs raw PII, but your application might. Audit your own logging, tracing, and error reporting before claiming compliance.
+    - **Upstream application logs**: `piighost` never logs raw confidential data, but your application might. Audit your own logging, tracing, and error reporting before claiming compliance.
 
 ## The LangGraph state after the model turn
 
-The middleware restores PII for display. After `aafter_model`, each message's content holds the real values again, so the user sees `jean@mail.com`{ .pii } and not `<<EMAIL:1>>`{ .placeholder }. That restored content lives in the LangGraph state, and a checkpointer that persists the state persists cleartext PII in the message content. This is intended, the state is your display surface, but it means the checkpointer store holds sensitive data and must be protected like the mapping itself.
+The middleware restores confidential data for display. After `aafter_model`, each message's content holds the real values again, so the user sees `jean@mail.com`{ .pii } and not `<<EMAIL:1>>`{ .placeholder }. That restored content lives in the LangGraph state, and a checkpointer that persists the state persists cleartext confidential data in the message content. This is intended, the state is your display surface, but it means the checkpointer store holds sensitive data and must be protected like the mapping itself.
 
-Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware restores a tool argument only for the tool run, on a fresh request, and never writes the restored value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not PII.
+Tool calls are treated differently. An `AIMessage`'s `tool_calls` stay tokenized in the state. The middleware restores a tool argument only for the tool run, on a fresh request, and never writes the restored value back into the state, so the checkpointer never persists a cleartext value inside a tool call. A tool result kept as a `ToolMessage` also stays tokenized in the state, so a UI that renders tool outputs from the state sees tokens, not confidential data.
 
 ## Token injection in user input
 
@@ -52,9 +52,9 @@ neutralized, never the tokens the pipeline splices in, so a real token still
 restores and an injected one does not. The behaviour is on by default and can be
 turned off with `escape_existing_tokens=False` on the `Anonymizer`.
 
-## The mapping is cleartext PII
+## The mapping is cleartext confidential data
 
-Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link, held by the `ConversationMemory`, contains cleartext PII. It is the system's most sensitive asset, and it must be protected as such.
+Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link, held by the `ConversationMemory`, contains cleartext confidential data. It is the system's most sensitive asset, and it must be protected as such.
 
 Three backends exist, with three security profiles.
 
@@ -65,7 +65,7 @@ Three backends exist, with three security profiles.
 - The **key is hashed**. The hasher derives a digest of the message with a secret pepper. The default is `Sha256Hasher` (HMAC-SHA256, fast, fit for the hot path). `Argon2Hasher` (Argon2id, slow and memory-hard) is the alternative when the pepper itself might leak. Both are deterministic, so the same message lands on the same key.
 - The **value is encrypted**. The cipher encrypts the JSON of the detections before writing. `AesGcmCipher` (AES-GCM) is the provided authenticated encryption. A random nonce is drawn per message, and decryption fails on an altered ciphertext.
 
-The pepper and the encryption key **never live in the config file**. They are read from the environment, `PIIGHOST_HASH_PEPPER` for the hasher and `PIIGHOST_CIPHER_KEY` (base64) for the cipher. Security rests on that secret living outside the store. A theft of the store disk alone reveals neither the message nor the PII, because the key is hashed and the value encrypted under a secret the disk does not hold.
+The pepper and the encryption key **never live in the config file**. They are read from the environment, `PIIGHOST_HASH_PEPPER` for the hasher and `PIIGHOST_CIPHER_KEY` (base64) for the cipher. Security rests on that secret living outside the store. A theft of the store disk alone reveals neither the message nor the confidential data, because the key is hashed and the value encrypted under a secret the disk does not hold.
 
 !!! warning "The secret lives in the environment, not the config"
     A pepper or key written into a versioned config file cancels the protection. Keep them in the process environment or a secrets manager, and rotate them like any production secret.
@@ -103,9 +103,9 @@ Legend:
 
 The red column for in-RAM memory is not a flaw, it is a scope choice. That backend does not claim to be secure storage. The sqlite row shows the same red on confidentiality when built without crypto, fit for local development only. As soon as the mapping must survive a restart or be shared across workers, switch to an encrypted persistent backend, Redis or PostgreSQL with a hasher and a cipher.
 
-## Logging discipline for PII-bearing dataclasses
+## Logging discipline for dataclasses that carry confidential data
 
-The `Detection` dataclass holds the raw PII surface form in its `text` field. The dataclass-generated `__repr__` renders that value verbatim, which keeps the API predictable for inspection, debugging, and tests.
+The `Detection` dataclass holds the raw surface form of the detected value in its `text` field. The dataclass-generated `__repr__` renders that value verbatim, which keeps the API predictable for inspection, debugging, and tests.
 
 ```python
 >>> from piighost.models import Detection, Span
@@ -119,11 +119,11 @@ The library deliberately does not auto-mask the field. If you forward `Detection
 - Filter `to_dict()` before serialization (drop the `text` key).
 - Wrap your structured logger with a redactor that recognises `Detection` and replaces `text` with a length marker.
 
-`piighost` itself never writes PII to any logger. The discipline above is needed in your own code.
+`piighost` itself never writes confidential data to any logger. The discipline above is needed in your own code.
 
 ## Observation payload redaction
 
-The pipeline traces its stages through OpenTelemetry. Each stage emits a span with its own input and output payload, pushed to the trace backend you wired in. By default those payloads carry the cleartext text and the detection values, which makes traces usable as annotation datasets, but dangerous on a backend that is not allowed to see PII.
+The pipeline traces its stages through OpenTelemetry. Each stage emits a span with its own input and output payload, pushed to the trace backend you wired in. By default those payloads carry the cleartext text and the detection values, which makes traces usable as annotation datasets, but dangerous on a backend that is not allowed to see confidential data.
 
 The pipeline's `observation_redactor` parameter controls that behaviour. It takes a placeholder factory that replaces every detected value before the payload leaves for the backend. With `RedactPlaceholderFactory()`, every entity collapses to `<<REDACT>>`{ .placeholder }.
 
@@ -138,7 +138,7 @@ Concretely:
 - serialized `Detection` and `Entity` records carry the factory's token instead of their `text` field. Label, position, and occurrence count stay visible for debugging,
 - already-de-identified payloads pass through unchanged because they contain placeholders only.
 
-To surface more structure (for example a distinct counter per PII during local development), pass a different factory.
+To surface more structure (for example a distinct counter per value during local development), pass a different factory.
 
 ```python
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
@@ -152,15 +152,15 @@ pipeline = AnonymizationPipeline(
 )
 ```
 
-Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend. That default is treated as an explicit choice. With a tracer provider actually configured and no redactor, the pipeline warns once that its traces carry clear PII, and `trace_clear_text=True` acknowledges it and silences the warning.
+Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend. That default is treated as an explicit choice. With a tracer provider actually configured and no redactor, the pipeline warns once that its traces carry cleartext confidential data, and `trace_clear_text=True` acknowledges it and silences the warning.
 
 ## Design decisions that back the threat model
 
-- **De-identification happens locally**: PII is replaced before the HTTP request reaches the LLM provider.
-- **The mapping is treated as sensitive**: the mapping store holds cleartext PII. A persistent backend (Redis or SQL) can encrypt it at rest (AES-GCM) and hash its keys (HMAC-SHA256 or Argon2id), the secret living outside the store. Crypto is opt-in and all-or-nothing, and a networked backend built without it warns.
-- **No logging of raw PII by the library**: `piighost` itself never writes PII to any logger. Your own code must follow the same discipline.
+- **De-identification happens locally**: confidential data is replaced before the HTTP request reaches the LLM provider.
+- **The mapping is treated as sensitive**: the mapping store holds cleartext confidential data. A persistent backend (Redis or SQL) can encrypt it at rest (AES-GCM) and hash its keys (HMAC-SHA256 or Argon2id), the secret living outside the store. Crypto is opt-in and all-or-nothing, and a networked backend built without it warns.
+- **No logging of raw confidential data by the library**: `piighost` itself never writes confidential data to any logger. Your own code must follow the same discipline.
 - **Frozen dataclasses**: `Entity`, `Detection`, `Span` are immutable, preventing accidental mutation after de-identification has been applied.
-- **Optional guard rail**: a guard rail (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual PII, leaving the caller to raise `PIIRemainingError`. See [Limitations](limitations.md).
+- **Optional guard rail**: a guard rail (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual confidential data, leaving the caller to raise `PIIRemainingError`. See [Limitations](limitations.md).
 
 ## Reporting a vulnerability
 

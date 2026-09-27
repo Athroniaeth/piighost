@@ -10,7 +10,7 @@
 
 `piighost` est une librairie Python qui permet de protéger vos données confidentielles, données personnelles (PII) et secrets, dans les conversations avec les LLM via de la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
 
-Cette dé-identification repère les PII grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le token qui prend sa place. Par exemple :
+Cette dé-identification repère les données confidentielles grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le token qui prend sa place. Par exemple :
 
 - `John Doe` devient `<<PERSON:1>>`
 - `john.doe@example.com` devient `<<EMAIL:1>>`
@@ -24,7 +24,7 @@ La même mécanique protège les agents qui appellent des outils. Avec le middle
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-fr-dark.gif">
-    <img alt="Un utilisateur discute avec un agent : les valeurs PII sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="docs/assets/deid-chat-fr-light.gif" width="760">
+    <img alt="Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="docs/assets/deid-chat-fr-light.gif" width="760">
   </picture>
 </p>
 
@@ -43,9 +43,9 @@ La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy 
 - **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>` et est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton. Les factories label-only, masque et hash à clé sont aussi disponibles.
 - **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, adossé à une mémoire in-process, Redis ou SQLAlchemy (Redis et SQL peuvent chiffrer les valeurs au repos et hacher les clés).
 - **Intégrations agents avec frontière d'outils :** middleware LangChain, hooks Pydantic AI, et LlamaIndex. L'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton, avec une restauration en streaming token par token.
-- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, dé-identification, et un guard rail optionnel qui refuse une réponse contenant une PII résiduelle (un détecteur, un LLM, ou la modération Mistral). Branchez un appariement fuzzy tolérant aux fautes ou ajoutez votre propre étape.
+- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, dé-identification, et un guard rail optionnel qui refuse une réponse contenant des données confidentielles résiduelles (un détecteur, un LLM, ou la modération Mistral). Branchez un appariement fuzzy tolérant aux fautes ou ajoutez votre propre étape.
 - **Piloté par config et auto-hébergeable :** construisez tout un pipeline depuis un fichier TOML/JSON avec un CLI pour le valider, exécutez-le dans votre process, ou comme service via le compagnon [piighost-api](https://github.com/Athroniaeth/piighost-api) (proxys compatibles OpenAI et Anthropic).
-- **Typé et observable :** fournit `py.typed` et un cœur minimal avec tout le lourd derrière des extras, plus des spans OpenTelemetry par étape (visibles dans Langfuse ou Jaeger) avec rédaction optionnelle des payloads.
+- **Typé et observable :** fournit `py.typed` et un cœur minimal avec tout le lourd derrière des extras, plus des spans OpenTelemetry par étape (visibles dans Langfuse ou Jaeger) avec caviardage optionnel des payloads.
 - **Périmètre, texte et conversations en direct :** `piighost` protège une conversation en cours, message par message, pas un dataset figé.
 
 Pour voir comment il se situe face à Presidio, LangChain, les API cloud et d'autres, voir [Comment PIIGhost se compare](https://athroniaeth.github.io/piighost/fr/comparison/).

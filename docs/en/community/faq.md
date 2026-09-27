@@ -4,7 +4,7 @@ icon: lucide/message-circle-question
 
 # FAQ
 
-??? question "Is it really necessary to de-identify PII before calling an LLM?"
+??? question "Is it really necessary to de-identify confidential data before calling an LLM?"
     Yes, and this holds regardless of `piighost`. The stakes (exfiltration to providers, legal requisition, training on conversations, GDPR compliance, data leaks) are covered in [Why de-identify?](../why-anonymize.md). The page is library-agnostic, it explains why the problem exists before justifying a solution like `piighost`.
 
 ??? question "Which languages are supported?"
@@ -31,14 +31,14 @@ icon: lucide/message-circle-question
 ??? question "Can I get realistic fake values instead of tokens?"
     Not yet. A Faker factory that emits realistic values (a plausible name in place of `Patrick`{ .pii }) is on the [roadmap](../roadmap.md) but not reimplemented in v2. Today the factories emit synthetic tokens or masks, never a value that looks real.
 
-??? question "Does the LLM see raw PII when it calls a tool?"
-    It depends on the tool-call strategy. With the default (`FULL`), no. The middleware restores arguments right before the tool executes, then re-de-identifies the tool response before it flows back to the LLM. The tool sees real values, the LLM only sees placeholders. The `INPUT`, `OUTPUT` and `PASSTHROUGH` modes change this behaviour, see the next question and [Tool-call strategies](../tool-call-strategies.md). Full diagram in [Architecture](../architecture.md).
+??? question "Does the LLM see raw confidential data when it calls a tool?"
+    It depends on the tool-call strategy. With the default (`FULL`), no. The middleware restores arguments right before the tool executes, then de-identifies the tool response again before it flows back to the LLM. The tool sees real values, the LLM only sees placeholders. The `INPUT`, `OUTPUT` and `PASSTHROUGH` modes change this behaviour, see the next question and [Tool-call strategies](../tool-call-strategies.md). Full diagram in [Architecture](../architecture.md).
 
 ??? question "How do I control what a tool sees: placeholder or real value?"
-    The tool-call strategy of `PIIAnonymizationMiddleware` exposes four modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). The right choice depends on whether the tool may emit new PII and how strict the privacy boundary needs to be. See [Tool-call strategies](../tool-call-strategies.md) for the trade-offs and the decision tree, and [Placeholder factories](../placeholder-factories.md) for the factory constraint, the middleware needs an identity-preserving, recognizable placeholder factory.
+    The tool-call strategy of `PIIAnonymizationMiddleware` exposes four modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). The right choice depends on whether the tool may emit new confidential data and how strict the privacy boundary needs to be. See [Tool-call strategies](../tool-call-strategies.md) for the trade-offs and the decision tree, and [Placeholder factories](../placeholder-factories.md) for the factory constraint, the middleware needs an identity-preserving, recognizable placeholder factory.
 
-??? question "What happens if the LLM hallucinates a PII that was not in the input?"
-    It is **not** de-identified by `piighost`. Entity linking works on detections coming from the input, not on invented values. A residual-PII guard can re-check the output and refuse it, see the guard section of the [configuration reference](../configuration/toml.md) and [Limitations](../limitations.md).
+??? question "What happens if the LLM hallucinates confidential data that was not in the input?"
+    It is **not** de-identified by `piighost`. Entity linking works on detections coming from the input, not on invented values. A guard for residual confidential data can re-check the output and refuse it, see the guard section of the [configuration reference](../configuration/toml.md) and [Limitations](../limitations.md).
 
 ??? question "Is the conversation memory shared across threads?"
     No. The memory is scoped by `thread_id`. Two parallel conversations never see each other's tokens, preventing cross-user leaks. The `thread_id` is extracted automatically from the LangGraph config.

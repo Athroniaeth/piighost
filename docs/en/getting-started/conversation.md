@@ -40,7 +40,7 @@ pipeline = ThreadAnonymizationPipeline(
 
 ## 2. De-identify two messages of the same thread
 
-`anonymize` takes the text and a `thread_id`. The `thread_id` is required, there is no shared default thread, so two callers cannot fall into the same thread and leak each other's PII. We send two messages on the thread `"thread-42"`.
+`anonymize` takes the text and a `thread_id`. The `thread_id` is required, there is no shared default thread, so two callers cannot fall into the same thread and leak each other's confidential data. We send two messages on the thread `"thread-42"`.
 
 ```python
 async def main() -> None:

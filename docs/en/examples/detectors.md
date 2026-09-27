@@ -25,6 +25,8 @@ from piighost.components.detector.patterns import (
 - `EU_PATTERNS`: pan-European ISO 13616 IBAN.
 - `FR_PATTERNS`: phone, IBAN, NIR, SIRET, prefixed `FR_`.
 
+Secrets such as API keys are not in these catalogs but in the hub groups `piighost/secrets` and `piighost/secrets-extended`, pulled from a config with `catalogs = ["hub:piighost/secrets"]`.
+
 For the label details, see the [detectors reference](../reference/detectors.md).
 
 ## Use a single catalog

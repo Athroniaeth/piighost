@@ -2,9 +2,9 @@
 icon: lucide/link
 ---
 
-# Garder les PII hors d'un pipeline RAG LlamaIndex
+# Garder les données confidentielles hors d'un pipeline RAG LlamaIndex
 
-Vous voulez un RAG LlamaIndex où ni le fournisseur d'embeddings ni le LLM ne voient de PII. `piighost` fournit deux composants : `PIINodeAnonymizer`, un transform d'ingestion qui dé-identifie chaque node avant l'embedding, et `PIIQueryEngine`, un wrapper qui dé-identifie la requête et restaure la réponse. Les deux partagent un pipeline de thread, donc une valeur garde le même token à travers le corpus et la requête.
+Vous voulez un RAG LlamaIndex où ni le fournisseur d'embeddings ni le LLM ne voient de données confidentielles. `piighost` fournit deux composants : `PIINodeAnonymizer`, un transform d'ingestion qui dé-identifie chaque node avant l'embedding, et `PIIQueryEngine`, un wrapper qui dé-identifie la requête et restaure la réponse. Les deux partagent un pipeline de thread, donc une valeur garde le même token à travers le corpus et la requête.
 
 Pour la même idée orchestrée à la main sur un flux RAG simple, voir le script `examples/langchain/rag.py`. Cette page l'emballe en objets LlamaIndex réutilisables.
 
@@ -26,7 +26,7 @@ pipeline = ThreadAnonymizationPipeline(detector)
 
 ## 2. Dé-identifier à l'ingestion, avant l'embedding
 
-Placez `PIINodeAnonymizer` dans les transformations avant le modèle d'embedding, pour que l'index soit bâti sur des tokens et que le fournisseur d'embeddings ne voie jamais de PII.
+Placez `PIINodeAnonymizer` dans les transformations avant le modèle d'embedding, pour que l'index soit bâti sur des tokens et que le fournisseur d'embeddings ne voie jamais de données confidentielles.
 
 ```python
 from llama_index.core import Document, Settings, VectorStoreIndex
@@ -62,7 +62,7 @@ answer = engine.query("Where does Patrick live?")
 print(answer.response)
 ```
 
-Le LLM a répondu sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }. L'utilisateur voit `Patrick`{ .pii } et `Paris`{ .pii } restaurés. Le retrieval tourne sur l'espace dé-identifié, ce qui échange un peu de qualité contre le fait de garder les PII hors de l'appel d'embedding.
+Le LLM a répondu sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }. L'utilisateur voit `Patrick`{ .pii } et `Paris`{ .pii } restaurés. Le retrieval tourne sur l'espace dé-identifié, ce qui échange un peu de qualité contre le fait de garder les données confidentielles hors de l'appel d'embedding.
 
 ## Voir aussi
 

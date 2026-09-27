@@ -6,12 +6,12 @@ icon: lucide/eye
 
 `piighost` émet une trace OpenTelemetry à chaque dé-identification. Chaque appel
 ouvre un span racine et un span enfant par étape du pipeline. On voit ainsi où
-une PII a été détectée, comment elle a été liée, quel token l'a remplacée et si
+une valeur a été détectée, comment elle a été liée, quel token l'a remplacée et si
 le guard rail a laissé passer. Le traçage est optionnel et n'est jamais requis
 pour dé-identifier.
 
 !!! note
-    Les payloads des traces portent par défaut les valeurs de PII en clair, donc
+    Les payloads des traces portent par défaut les valeurs en clair, donc
     une trace fait aussi office de jeu de données d'annotation. Passez un
     `observation_redactor` pour caviarder ces valeurs avant d'envoyer les traces
     vers un backend en qui vous n'avez pas pleine confiance. Voir
@@ -86,13 +86,13 @@ se rend en dessous, comme une seule trace.
 
 ## Caviarder les payloads des traces
 
-Par défaut un payload de span contient la PII en clair. Le span `detect`
+Par défaut un payload de span contient les données confidentielles (données personnelles, secrets) en clair. Le span `detect`
 enregistre `Patrick`{ .pii }, le span racine enregistre le texte d'entrée avec
 `Patrick`{ .pii } à sa place. C'est délibéré. Une trace avec les valeurs en
 clair est un jeu de données prêt à l'emploi pour évaluer la qualité de
 détection.
 
-C'est aussi une fuite si le backend n'a pas à connaître les PII. Passez un
+C'est aussi une fuite si le backend n'a pas à connaître les données confidentielles. Passez un
 `observation_redactor`, une placeholder factory, au constructeur du pipeline et
 chaque payload est caviardé au travers avant de sortir du processus.
 
@@ -119,12 +119,12 @@ valeurs en clair ont disparu.
 
 | `observation_redactor` | Payloads des traces | Sûr pour un backend non fiable | Utilisable comme jeu de données |
 |---|---|---|---|
-| `None` (défaut) | valeurs de PII en clair | non | oui |
+| `None` (défaut) | valeurs en clair | non | oui |
 | une placeholder factory | tokens caviardés | oui | non |
 
 </div>
 
-Le traçage en clair reste le défaut, pour que les traces gardent leur valeur d'annotation, mais c'est un choix explicite. Sans redactor et avec un tracer provider réellement configuré, le pipeline avertit une fois à la construction que ses traces portent de la PII en clair. Passez `trace_clear_text=True` pour l'assumer et taire l'avertissement, ou un `observation_redactor` pour caviarder les payloads.
+Le traçage en clair reste le défaut, pour que les traces gardent leur valeur d'annotation, mais c'est un choix explicite. Sans redactor et avec un tracer provider réellement configuré, le pipeline avertit une fois à la construction que ses traces portent des données confidentielles en clair. Passez `trace_clear_text=True` pour l'assumer et taire l'avertissement, ou un `observation_redactor` pour caviarder les payloads.
 
 ```python
 pipeline = AnonymizationPipeline(

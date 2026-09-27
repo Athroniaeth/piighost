@@ -36,7 +36,7 @@ Une `Detection` est un `Span(start, end)` portant `text`, `label` et une `confid
 
 ## Un détecteur personnalisé
 
-Un détecteur trouve les PII dans un texte. Implémentez une seule méthode.
+Un détecteur trouve les données confidentielles (données personnelles, secrets) dans un texte. Implémentez une seule méthode.
 
 ```python
 class AnyDetector(Protocol):
@@ -259,14 +259,14 @@ anonymizer = Anonymizer(factory)
 
 ## Un garde-fou personnalisé
 
-Un garde-fou re-contrôle la sortie dé-identifiée à la recherche de PII résiduelles. Il classe, il ne décide pas. Il renvoie un `GuardVerdict` et laisse le pipeline lever `PIIRemainingError` quand un verdict est signalé. Il n'y a pas de patron `Base`, les gardes diffèrent par tout leur mécanisme de contrôle. Le port :
+Un garde-fou re-contrôle la sortie dé-identifiée à la recherche de données confidentielles résiduelles. Il classe, il ne décide pas. Il renvoie un `GuardVerdict` et laisse le pipeline lever `PIIRemainingError` quand un verdict est signalé. Il n'y a pas de patron `Base`, les gardes diffèrent par tout leur mécanisme de contrôle. Le port :
 
 ```python
 class AnyGuardRail(Protocol):
     async def check(self, text: str) -> GuardVerdict: ...
 ```
 
-`check` ne voit que le texte dé-identifié. Les placeholders qu'il porte sont clairement synthétiques, donc un contrôle destiné aux vraies PII ne les prend pas pour elles.
+`check` ne voit que le texte dé-identifié. Les placeholders qu'il porte sont clairement synthétiques, donc un contrôle destiné aux vraies valeurs ne les prend pas pour elles.
 
 ???+ example "Signaler un @ résiduel"
 

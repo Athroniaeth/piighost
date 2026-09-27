@@ -7,16 +7,30 @@ icon: lucide/book-a
 Termes utilisés dans la documentation `piighost`. Chaque entrée définit le
 concept par ce qu'il fait. Les noms de classes restent en anglais.
 
+Données confidentielles
+:   Tout ce que `piighost` protège, c'est-à-dire les données personnelles (PII)
+    et les secrets comme les clés d'API. Chaque élément détecté est une valeur,
+    remplacée par un placeholder dans le texte dé-identifié.
+
 PII
 :   Personally Identifiable Information, en français donnée à caractère
-    personnel. Toute valeur qui peut identifier une personne, c'est-à-dire nom,
+    personnel. C'est la partie données personnelles des données confidentielles.
+    Toute valeur qui peut identifier une personne, c'est-à-dire nom,
     adresse, numéro de téléphone, email, lieu, organisation, numéro de compte.
     `piighost` trouve et remplace les PII pour qu'un LLM en aval ne voie jamais
     la valeur brute.
 
+Secret
+:   Identifiant d'accès qui ne doit jamais atteindre un modèle, comme une clé
+    d'API, un token d'accès, une clé privée ou une chaîne de connexion. Les
+    secrets sont l'autre partie des données confidentielles. Ils sont détectés
+    par les catalogues du hub `piighost/secrets` et `piighost/secrets-extended`,
+    tirés avec `catalogs = ["hub:piighost/secrets"]`, car les catalogues regex
+    intégrés ne contiennent aucun motif de secret.
+
 Dé-identification
-:   Remplacement des PII par des placeholders tout en gardant la correspondance
-    entre chaque valeur et son placeholder, de sorte que l'original peut être
+:   Remplacement des données confidentielles par des placeholders tout en
+    gardant la correspondance entre chaque valeur et son placeholder, de sorte que l'original peut être
     restauré ensuite. Le pipeline `piighost` par défaut dé-identifie. Au sens du
     RGPD c'est de la pseudonymisation, pas de l'anonymisation.
 
@@ -26,7 +40,7 @@ Anonymisation
     garde aucune correspondance vers la valeur.
 
 Placeholder
-:   Token qui remplace une PII dans le texte dé-identifié, par exemple
+:   Token qui remplace une valeur dans le texte dé-identifié, par exemple
     `<<PERSON:1>>`{ .placeholder } ou `<<EMAIL:1>>`{ .placeholder }. L'apparence
     d'un placeholder est décidée par une placeholder factory.
 
@@ -38,7 +52,7 @@ Placeholder factory
     `LabelHashPlaceholderFactory` et `MaskPlaceholderFactory`.
 
 Détecteur
-:   Composant qui trouve les PII dans un texte et retourne des détections. Les
+:   Composant qui trouve les données confidentielles dans un texte et retourne des détections. Les
     détecteurs implémentent le protocole `AnyDetector` et sont interchangeables.
     Trois familles existent, chacune sous son entrée : regex, NER et LLM.
 
@@ -55,23 +69,23 @@ Détecteur NER
     échoue. `SpacyDetector`, `Gliner2Detector`, `TransformersDetector`.
 
 Détecteur LLM
-:   Détecteur qui demande à un grand modèle de langage de retourner les PII
+:   Détecteur qui demande à un grand modèle de langage de retourner les valeurs
     trouvées en sortie structurée. Plus lent et moins déterministe que le regex
     ou le NER, mais capable de raisonner sur le contexte. `LLMDetector`.
 
 Span
 :   Intervalle de caractères semi-ouvert `[start, end)` dans un texte, calqué sur
     la sémantique du slice Python. Chaque détection porte un `Span` qui marque où
-    se trouve la PII. `Span`.
+    se trouve la valeur. `Span`.
 
 Détection
-:   Une occurrence de PII repérée par un détecteur, c'est-à-dire un `Span`, le
+:   Une occurrence d'une valeur repérée par un détecteur, c'est-à-dire un `Span`, le
     texte apparié, un label et une confiance dans l'intervalle 0 à 1. Détecter
     `Patrick`{ .pii } comme `PERSON` en `(0, 7)` avec une confiance de `0.95` est
     une `Detection`.
 
 Entité
-:   Groupe de détections qui référent à la même valeur de PII. Chaque occurrence
+:   Groupe de détections qui référent à la même valeur. Chaque occurrence
     de la valeur est une détection. Le groupe partage un placeholder et restaure
     vers une valeur. Différent d'une détection, qui est une occurrence unique.
     `Entity`.
@@ -90,15 +104,15 @@ Résolveur d'entités
     `SeparateEntityResolver` laisse chaque groupe tel quel.
 
 Guard rail
-:   Composant qui revérifie le texte dé-identifié à la recherche d'une PII que le
-    pipeline a manquée. Il tourne après le remplacement et lève une erreur si une
-    PII résiduelle demeure. Un guard rail peut relancer un détecteur
+:   Composant qui revérifie le texte dé-identifié à la recherche de données confidentielles
+    que le pipeline a manquées. Il tourne après le remplacement et lève une erreur si une
+    valeur résiduelle demeure. Un guard rail peut relancer un détecteur
     (`DetectorGuardRail`) ou interroger un LLM (`LLMGuardRail`).
 
 Thread
 :   Portée de conversation identifiée par un `thread_id`. La mémoire est isolée
-    par thread, donc deux conversations parallèles ne partagent jamais l'état des
-    PII. Un placeholder reste stable sur tous les messages d'un même thread.
+    par thread, donc deux conversations parallèles ne partagent jamais leurs
+    données confidentielles. Un placeholder reste stable sur tous les messages d'un même thread.
 
 thread_id
 :   Chaîne qui identifie un thread. Le pipeline de thread et le middleware s'en
@@ -114,7 +128,7 @@ Mémoire de conversation
 
 Recognizer
 :   Grammaire de tokens que le middleware utilise pour retrouver les placeholders
-    d'un pipeline dans une réponse LLM, sans passer par l'anonymizer. Un pipeline
+    d'un pipeline dans une réponse LLM, sans passer par l'anonymiseur. Un pipeline
     l'expose via `recognizer`, un `BaseDelimitedPlaceholderFactory` ou `None`.
 
 Tag de préservation de placeholder
@@ -126,7 +140,7 @@ Tag de préservation de placeholder
 
 Pepper
 :   Secret qui clé un hasher, lu depuis la variable d'environnement
-    `PIIGHOST_HASH_PEPPER`. Hacher une PII à faible entropie sans secret la laisse
+    `PIIGHOST_HASH_PEPPER`. Hacher une valeur à faible entropie sans secret la laisse
     attaquable par force brute, donc le pepper est obligatoire. Utilisé par
     `Sha256Hasher` et `Argon2Hasher`.
 

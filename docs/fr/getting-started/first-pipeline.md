@@ -11,7 +11,7 @@ Vous allez construire un pipeline qui détecte des noms et des lieux arbitraires
 
 ## 1. Choisir un détecteur
 
-Le détecteur lit le texte et renvoie des détections, une par PII trouvée. Le reste du pipeline est identique quel que soit le détecteur, alors choisissez celui qui correspond à votre texte.
+Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. Le reste du pipeline est identique quel que soit le détecteur, alors choisissez celui qui correspond à votre texte.
 
 === "Regex (catalogue)"
 
@@ -105,7 +105,7 @@ Chaque occurrence de `Patrick`{ .pii } reçoit le même `<<PERSON:1>>`{ .placeho
 
 ## Comment ça marche
 
-`AnonymizationPipeline` exécute trois étapes obligatoires. Le détecteur trouve les PII, le linker regroupe les occurrences d'une même valeur en une entité, l'anonymiseur remplace chaque entité par le jeton de sa factory. Des étapes optionnelles existent (expansion des occurrences manquées, fusion d'entités), désactivées par défaut, tandis que la résolution de chevauchement s'exécute par défaut. Seul le détecteur est strictement requis pour construire, ce qui suffit pour un premier pipeline.
+`AnonymizationPipeline` exécute trois étapes obligatoires. Le détecteur trouve les données confidentielles, le linker regroupe les occurrences d'une même valeur en une entité, l'anonymiseur remplace chaque entité par le jeton de sa factory. Des étapes optionnelles existent (expansion des occurrences manquées, fusion d'entités), désactivées par défaut, tandis que la résolution de chevauchement s'exécute par défaut. Seul le détecteur est strictement requis pour construire, ce qui suffit pour un premier pipeline.
 
 ## Et ensuite
 

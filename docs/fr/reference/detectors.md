@@ -9,7 +9,7 @@ tags:
 
 Module : `piighost.components.detector`
 
-Un détecteur est l'étage de détection d'un pipeline. Il lit un texte et renvoie les PII qu'il y trouve. Tout détecteur satisfait le port `AnyDetector` et renvoie une liste de `Detection`, quel que soit le backend qu'il enveloppe.
+Un détecteur est l'étage de détection d'un pipeline. Il lit un texte et renvoie les données confidentielles qu'il y trouve. Tout détecteur satisfait le port `AnyDetector` et renvoie une liste de `Detection`, quel que soit le backend qu'il enveloppe.
 
 ```python
 from piighost.components.detector import (
@@ -52,14 +52,14 @@ Chaque détecteur renvoie une liste de `Detection`, un dataclass gelé qui porte
 |----------|------|-------------|
 | `span` | `Span` | L'emplacement de la détection, en intervalle semi-ouvert |
 | `text` | `str` | La sous-chaîne trouvée |
-| `label` | `str` | La catégorie de PII, par exemple `PERSON` ou `EMAIL` |
+| `label` | `str` | La catégorie de la valeur détectée, par exemple `PERSON` ou `EMAIL` |
 | `confidence` | `float` | La confiance du détecteur, dans l'intervalle fermé 0 à 1 |
 
 ---
 
 ## `RegexDetector`
 
-Trouve les PII en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car un format de PII utilise des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0.
+Trouve les données confidentielles en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car les formats qu'il cible utilisent des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0.
 
 Il ne porte aucun validateur de somme de contrôle, donc il correspond sur la forme seule. Une valeur structurée abîmée par un OCR est conservée plutôt que rejetée, car rejeter une vraie valeur reviendrait à la laisser fuiter.
 
@@ -71,7 +71,7 @@ RegexDetector(patterns: dict[str, str])
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `patterns` | `dict[str, str]` | Correspondance d'un label de PII vers le pattern regex à appliquer (requis) |
+| `patterns` | `dict[str, str]` | Correspondance d'un label vers le pattern regex à appliquer (requis) |
 
 ```python
 from piighost.components.detector import RegexDetector
@@ -147,7 +147,7 @@ ExactMatchDetector(values: dict[str, str], case_sensitive: bool = False)
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `values` | `dict[str, str]` | Correspondance d'une valeur littérale vers le label de PII à émettre pour elle (requis) |
+| `values` | `dict[str, str]` | Correspondance d'une valeur littérale vers le label à émettre pour elle (requis) |
 | `case_sensitive` | `bool` | Si la correspondance respecte la casse. `False` par défaut |
 
 ```python

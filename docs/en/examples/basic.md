@@ -4,7 +4,7 @@ icon: lucide/code
 
 # How to de-identify a text and restore it
 
-You have a text with PII, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency.
+You have a text with confidential data, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency.
 
 Install the core.
 
