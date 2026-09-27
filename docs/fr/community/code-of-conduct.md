@@ -4,7 +4,7 @@ icon: lucide/handshake
 
 # Code de conduite
 
-La communauté `piighost` accueille toute personne partageant l'objectif de rendre la protection des PII accessible et composable. Cette page résume les attentes de comportement. Pour la version complète qui fait autorité, voir [`CODE_OF_CONDUCT.md`](https://github.com/Athroniaeth/piighost/blob/master/CODE_OF_CONDUCT.md) à la racine du dépôt.
+La communauté `piighost` accueille toute personne partageant l'objectif de rendre la protection des données confidentielles accessible et composable. Cette page résume les attentes de comportement. Pour la version complète qui fait autorité, voir [`CODE_OF_CONDUCT.md`](https://github.com/Athroniaeth/piighost/blob/master/CODE_OF_CONDUCT.md) à la racine du dépôt.
 
 ## Périmètre
 

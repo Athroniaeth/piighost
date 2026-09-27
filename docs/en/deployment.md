@@ -77,7 +77,7 @@ result = await pipeline.anonymize("Patrick lives in Lyon.", thread_id="user-42")
 print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
 ```
 
-The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token, and a different `thread_id` never sees it, so two users stay isolated. Behind the scenes the pipeline hashes the message into a Redis key and stores the detections encrypted, so a leak of the Redis disk reveals neither the message nor the PII.
+The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token, and a different `thread_id` never sees it, so two users stay isolated. Behind the scenes the pipeline hashes the message into a Redis key and stores the detections encrypted, so a leak of the Redis disk reveals neither the message nor the confidential data.
 
 ## Bound the in-memory store
 

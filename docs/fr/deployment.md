@@ -77,7 +77,7 @@ result = await pipeline.anonymize("Patrick lives in Lyon.", thread_id="user-42")
 print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
 ```
 
-Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur de `user-42` garde son token, et un autre `thread_id` ne la voit jamais, ce qui isole deux utilisateurs. En coulisses le pipeline hache le message en une clé Redis et stocke les détections chiffrées, si bien qu'une fuite du disque Redis ne révèle ni le message ni la PII.
+Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur de `user-42` garde son token, et un autre `thread_id` ne la voit jamais, ce qui isole deux utilisateurs. En coulisses le pipeline hache le message en une clé Redis et stocke les détections chiffrées, si bien qu'une fuite du disque Redis ne révèle ni le message ni les données confidentielles.
 
 ## Borner le store in-process
 

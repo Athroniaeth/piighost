@@ -9,7 +9,7 @@ tags:
 
 Module: `piighost.components.detector`
 
-A detector is the detect stage of a pipeline. It reads a text and returns the PII it finds. Every detector satisfies the `AnyDetector` port and returns a list of `Detection`, whatever backend it wraps.
+A detector is the detect stage of a pipeline. It reads a text and returns the confidential data it finds. Every detector satisfies the `AnyDetector` port and returns a list of `Detection`, whatever backend it wraps.
 
 ```python
 from piighost.components.detector import (
@@ -52,14 +52,14 @@ Each detector returns a list of `Detection`, a frozen dataclass carrying where t
 |-----------|------|-------------|
 | `span` | `Span` | Where the detection sits, as a half-open range |
 | `text` | `str` | The matched substring |
-| `label` | `str` | The PII category, for example `PERSON` or `EMAIL` |
+| `label` | `str` | The category of the detected value, for example `PERSON` or `EMAIL` |
 | `confidence` | `float` | Detector confidence, in the closed range 0 to 1 |
 
 ---
 
 ## `RegexDetector`
 
-Finds PII by matching one regex pattern per label. Each pattern is compiled once at construction, under `re.ASCII`, so `\d` and the other shape classes match ASCII only. A Unicode digit look-alike such as an Arabic-Indic numeral does not match, since a PII format uses ASCII digits. `detect` emits one detection per non-overlapping match at a flat confidence of 1.0.
+Finds confidential data by matching one regex pattern per label. Each pattern is compiled once at construction, under `re.ASCII`, so `\d` and the other shape classes match ASCII only. A Unicode digit look-alike such as an Arabic-Indic numeral does not match, since the formats it targets use ASCII digits. `detect` emits one detection per non-overlapping match at a flat confidence of 1.0.
 
 It carries no checksum validator, so it matches on shape alone. A structured value mangled by OCR is kept rather than dropped, because dropping a real value would leak it.
 
@@ -71,7 +71,7 @@ RegexDetector(patterns: dict[str, str])
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `patterns` | `dict[str, str]` | Mapping of PII label to the regex pattern string to match (required) |
+| `patterns` | `dict[str, str]` | Mapping of label to the regex pattern string to match (required) |
 
 ```python
 from piighost.components.detector import RegexDetector
@@ -147,7 +147,7 @@ ExactMatchDetector(values: dict[str, str], case_sensitive: bool = False)
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `values` | `dict[str, str]` | Mapping of literal value to the PII label to emit for it (required) |
+| `values` | `dict[str, str]` | Mapping of literal value to the label to emit for it (required) |
 | `case_sensitive` | `bool` | Whether matching respects case. `False` by default |
 
 ```python

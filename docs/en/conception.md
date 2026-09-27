@@ -6,7 +6,7 @@ icon: lucide/blocks
 
 Once you accept that you need to de-identify (see [Why de-identify?](why-anonymize.md)),
 the question that remains is how. The build below goes step by step, from the first
-brick, detecting sensitive data, adding one constraint at a time. Each component of the
+brick, detecting confidential data (personal data, secrets), adding one constraint at a time. Each component of the
 pipeline appears because a previous constraint made it necessary. By the end, the
 order of the stages and the technical choices are no longer arbitrary, they follow from
 the problem.
@@ -26,7 +26,7 @@ the problem.
 
 De-identifying means replacing a sensitive value with a *placeholder*, that is the
 *token* that takes its place in the text. On free text, you do not know in advance where
-the PII are nor of what type. So the first brick is detection.
+the confidential data is nor of what type. So the first brick is detection.
 
 Two classic approaches complement each other.
 
@@ -38,7 +38,7 @@ Two classic approaches complement each other.
   organization). It captures context where regex only sees a format.
 
 That is the role of the detector (`AnyDetector`). It reads the text and returns a list
-of detections, one per PII found, with its position, its type, and a confidence score.
+of detections, one per value found, with its position, its type, and a confidence score.
 
 ```mermaid
 flowchart LR
@@ -60,13 +60,13 @@ a frozen class, you inject the one you want.
 The regex validates **no checksum**. An IBAN or a card number recognized by the pattern
 is kept as-is, with no check-digit control. A value damaged by an OCR therefore stays a
 detection rather than being discarded by a computation that fails on the noise. Better
-one detection too many, arbitrated later, than a PII left in clear.
+one detection too many, arbitrated later, than a value left in clear.
 
 ---
 
 ## Step 2, saying what type it is, the typed placeholder
 
-With detection, you know the type of each PII. The simplest placeholder would be a
+With detection, you know the type of each value. The simplest placeholder would be a
 constant token, the same for everything, like `<<REDACT>>`{ .placeholder }. You enrich it
 with the type, `<<PERSON>>`{ .placeholder } or `<<EMAIL>>`{ .placeholder }.
 
@@ -97,7 +97,7 @@ Patrick écrit à Marie  →  <<PERSON:1>> écrit à <<PERSON:2>>
 But the same person often appears several times, sometimes spelled differently
 ("Patrick", "patrick"). All these occurrences must share the same token. An isolated
 detection is therefore not enough. You need a notion above it, the entity, which groups
-all the detections referring to the same PII.
+all the detections referring to the same value.
 
 Hence a new step, going from detections to entities. That is the linker
 (`AnyEntityLinker`). `ExactEntityLinker` groups the detections by canonical key
@@ -110,7 +110,7 @@ flowchart LR
     L --> E2["Entité PERSON 'marie'"]
 ```
 
-*The linker groups the detections of the same PII into one entity, which will receive a
+*The linker groups the detections of the same value into one entity, which will receive a
 unique token.*
 { .figure-caption }
 
@@ -151,7 +151,7 @@ The order of the stages is constrained.
 
 ```mermaid
 flowchart LR
-    A["détecter"] --> B["résoudre les spans"] --> C["rattraper les occurrences"] --> D["lier en entités"] --> E["résoudre les entités"] --> F["anonymiser"]
+    A["detect"] --> B["resolve the spans"] --> C["catch missed occurrences"] --> D["link into entities"] --> E["resolve the entities"] --> F["de-identify"]
 ```
 
 *Positions are resolved before linking, identities after.*
@@ -262,7 +262,7 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
   appearance in the conversation and never moves again. Without this rule, a new entity
   early in its message would steal the counter of an older one.
 - **Isolation by `thread_id`.** The `thread_id` is mandatory, there is no shared default
-  thread, so two callers do not fall into the same thread and leak each other's PII.
+  thread, so two callers do not fall into the same thread and leak each other's confidential data.
   `forget_thread` can erase everything from a thread, for the right to erasure.
 
 ### Rendering stays per message
@@ -276,13 +276,13 @@ whose offsets are valid in that message.
 
 ## Step 10, value provenance
 
-Not every value in a message is PII to protect. If the model mentions a public figure
+Not every value in a message is confidential data to protect. If the model mentions a public figure
 from its world knowledge, tokenizing it would hide it from the model on the next turn,
 protecting nothing of the user.
 
 The memory therefore records the role of each value's first occurrence,
 `MessageRole.USER` or `MessageRole.ASSISTANT`. A value whose first occurrence comes from
-a model message is left in clear, because it is not user PII. The middleware controls
+a model message is left in clear, because it is not the user's confidential data. The middleware controls
 this behavior through `EntityCreateByAssistantStrategy`, preserve, de-identify anyway, or ignore
 the model's messages.
 
@@ -314,22 +314,22 @@ On a single worker, the memory fits in a process-local dict
 (`InMemoryConversationMemory`). A multi-worker deployment needs a shared one,
 `RedisConversationMemory`, so one worker sees another's threads.
 
-But the reverse mapping is clear PII. A store leak would reveal it. Two crypto components
+But the reverse mapping is confidential data in clear. A store leak would reveal it. Two crypto components
 protect the Redis backend. A hasher (`AnyHasher`) turns each message into a deterministic
 key without revealing the text. A cipher (`AnyCipher`) encrypts the detections at rest,
-so a store leak yields neither the message nor the PII. The `thread_id` stays clear as a
+so a store leak yields neither the message nor the values. The `thread_id` stays clear as a
 key prefix, so a thread can be enumerated and forgotten.
 
 ---
 
 ## Step 13, the guard rail, defense in depth
 
-Even with everything above, a PII can slip through the net, for example a name the NER
+Even with everything above, a value can slip through the net, for example a name the NER
 missed. The guard rail (`AnyGuardRail`) re-analyzes the de-identified text and raises
-`PIIRemainingError` if it still finds a PII in clear.
+`PIIRemainingError` if it still finds a value in clear.
 
 The guard rail examines only the de-identified output. The placeholders it carries are
-clearly synthetic, so a check meant for real PII does not mistake them for it. The guard
+clearly synthetic, so a check meant for real values does not mistake them for such. The guard
 rail is optional but it is the last barrier before the output. `DetectorGuardRail`
 replays a detector, `LLMGuardRail` and `ModerationGuardRail` query an external model.
 
@@ -345,7 +345,7 @@ It remains to wire all this into a LangChain agent loop, transparently. That is 
 - After the model (`aafter_model`), it restores the output for the user display.
 - Around the tool calls (`awrap_tool_call`), depending on the chosen strategy
   (`ToolCallStrategy`), it restores the arguments so the tool receives real data, then
-  re-identifies its response.
+  de-identifies its response.
 
 The middleware contains no de-identification logic, it delegates everything to the
 conversation pipeline. It is a simple adapter between the LangChain world and the core.
@@ -361,7 +361,7 @@ token still following the placeholder grammar was not emitted by the pipeline.
 
 | Constraint encountered | Component born from the constraint |
 |---|---|
-| You do not know where the PII are | Detector (`AnyDetector`) |
+| You do not know where the confidential data is | Detector (`AnyDetector`) |
 | The model needs the type | Typed placeholder (`AnyPlaceholderFactory`) |
 | Distinguish two individuals of the same type | Identity per entity and linker (`AnyEntityLinker`) |
 | Occurrences missed by the detector | Expander (`AnyDetectionExpander`) |
@@ -373,7 +373,7 @@ token still following the placeholder grammar was not emitted by the pipeline.
 | A value from the model, not the user | Provenance in memory (`MessageRole`) |
 | I/O without blocking and heavy compute | Async and inference offloaded to a thread |
 | Persistent reverse mapping to protect | Crypto, hasher and cipher of the Redis backend |
-| Residual PII | Guard rail (`AnyGuardRail`) |
+| Residual confidential data | Guard rail (`AnyGuardRail`) |
 | Transparent agent integration | LangChain middleware |
 
 </div>

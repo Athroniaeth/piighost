@@ -11,7 +11,7 @@ You will build a pipeline that detects arbitrary names and locations, not only v
 
 ## 1. Pick a detector
 
-The detector reads the text and returns detections, one per PII found. The rest of the pipeline is the same whatever the detector, so pick the one that matches your text.
+The detector reads the text and returns detections, one per value found. The rest of the pipeline is the same whatever the detector, so pick the one that matches your text.
 
 === "Regex (catalog)"
 
@@ -105,7 +105,7 @@ Each occurrence of `Patrick`{ .pii } receives the same `<<PERSON:1>>`{ .placehol
 
 ## How it works
 
-`AnonymizationPipeline` runs three mandatory stages. The detector finds the PII, the linker groups the occurrences of the same value into one entity, the anonymizer replaces each entity with the token from its factory. Optional stages exist (missed-occurrence expansion, entity merging), disabled by default, while overlap resolution runs by default. Only the detector is strictly required to construct, which is enough for a first pipeline.
+`AnonymizationPipeline` runs three mandatory stages. The detector finds the confidential data, the linker groups the occurrences of the same value into one entity, the anonymizer replaces each entity with the token from its factory. Optional stages exist (missed-occurrence expansion, entity merging), disabled by default, while overlap resolution runs by default. Only the detector is strictly required to construct, which is enough for a first pipeline.
 
 ## What's next
 

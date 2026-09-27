@@ -8,7 +8,7 @@ tags:
 
 Module : `piighost.components.guard`
 
-Un garde-fou est le dernier étage, optionnel, du pipeline. Il revérifie le texte dé-identifié pour des PII résiduelles et, s'il en trouve, fait lever `PIIRemainingError` au pipeline plutôt que de renvoyer une fuite. Chaque garde-fou satisfait le port `AnyGuardRail`, un `async def check(self, text: str) -> GuardVerdict`, et renvoie un `GuardVerdict` indiquant si des PII semblent subsister et comment il le sait. Contrairement aux autres étages, les garde-fous ne partagent aucun template `Base*` : ils diffèrent par tout leur mécanisme de vérification, réexécuter un détecteur local ou appeler une API externe, il n'y a donc pas de squelette commun.
+Un garde-fou est le dernier étage, optionnel, du pipeline. Il revérifie le texte dé-identifié pour des valeurs confidentielles résiduelles et, s'il en trouve, fait lever `PIIRemainingError` au pipeline plutôt que de renvoyer une fuite. Chaque garde-fou satisfait le port `AnyGuardRail`, un `async def check(self, text: str) -> GuardVerdict`, et renvoie un `GuardVerdict` indiquant si des valeurs confidentielles semblent subsister et comment il le sait. Contrairement aux autres étages, les garde-fous ne partagent aucun template `Base*` : ils diffèrent par tout leur mécanisme de vérification, réexécuter un détecteur local ou appeler une API externe, il n'y a donc pas de squelette commun.
 
 Le garde-fou classifie, il ne décide pas. Il rapporte un verdict, et le pipeline transforme un verdict signalé en exception, laissant à votre code le choix de la réaction.
 
@@ -61,7 +61,7 @@ Réexécute un détecteur sur la sortie dé-identifiée et signale tout ce qu'il
 DetectorGuardRail(detector: AnyDetector)
 ```
 
-Cela n'a de valeur qu'avec un détecteur différent de celui du pipeline, réexécuter le même ne trouve rien, puisque le pipeline a déjà dé-identifié tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie dé-identifiée, rattrape ce que le détecteur primaire a manqué. Les placeholders synthétiques n'ont pas la forme de PII, donc un détecteur conçu pour de vraies PII les laisse tranquilles. Il ne requiert aucun extra.
+Cela n'a de valeur qu'avec un détecteur différent de celui du pipeline, réexécuter le même ne trouve rien, puisque le pipeline a déjà dé-identifié tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie dé-identifiée, rattrape ce que le détecteur primaire a manqué. Les placeholders synthétiques n'ont pas la forme de vraies valeurs, donc un détecteur conçu pour de vraies valeurs les laisse tranquilles. Il ne requiert aucun extra.
 
 ### Un modèle local comme garde
 
@@ -150,7 +150,7 @@ ModerationGuardRail(
 
 `check` renvoie un `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])` gelé. Le détail dépend du garde-fou : un score depuis un modèle de modération, ou les détections résiduelles depuis un détecteur. Les deux sont optionnels.
 
-Quand un garde-fou signale des PII, le pipeline lève `PIIRemainingError` (une sous-classe de `GuardError`, elle-même une `PIIGhostError`). Son message nomme les labels fuités ou le score, et son attribut `detections` contient les détections résiduelles, vide pour un garde-fou basé sur un score qui ne localise rien.
+Quand un garde-fou signale des valeurs confidentielles, le pipeline lève `PIIRemainingError` (une sous-classe de `GuardError`, elle-même une `PIIGhostError`). Son message nomme les labels fuités ou le score, et son attribut `detections` contient les détections résiduelles, vide pour un garde-fou basé sur un score qui ne localise rien.
 
 ## Configurer un garde-fou depuis un fichier
 

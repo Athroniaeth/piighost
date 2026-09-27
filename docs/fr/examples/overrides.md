@@ -107,7 +107,7 @@ overlap -> <<PERSON:1>> works at Acme, formerly Globex Ltd.
 `EXACT` n'a rien trouvé à écarter, la blacklist disant que `Acme`{ .pii } est une organisation là où le détecteur dit une personne, et le span du détecteur couvrant `Globex Ltd`{ .pii } là où la blacklist ne couvre que `Globex`{ .pii }. `VALUE` compare des valeurs entières, donc il a écarté `Acme`{ .pii } et laissé `Globex Ltd`{ .pii }, dont le texte n'est pas celui de la blacklist. `OVERLAP` a écarté les deux, le span blacklisté étant à l'intérieur de la détection plus longue.
 
 !!! note "Une valeur blacklistée ne déclenche pas le garde-fou"
-    Un [garde-fou](../reference/guard-rails.md) relit la sortie et refuse les PII résiduelles. Le pipeline lui transmet les valeurs que la blacklist a trouvées dans le texte, donc une valeur que vous laissez volontairement en clair est exemptée. Toute autre fuite lève quand même `PIIRemainingError`.
+    Un [garde-fou](../reference/guard-rails.md) relit la sortie et refuse les données confidentielles résiduelles. Le pipeline lui transmet les valeurs que la blacklist a trouvées dans le texte, donc une valeur que vous laissez volontairement en clair est exemptée. Toute autre fuite lève quand même `PIIRemainingError`.
 
 ## 2. Forcer une valeur ratée avec une whitelist
 

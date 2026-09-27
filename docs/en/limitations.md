@@ -12,7 +12,7 @@ A detector only finds what it knows how to recognize. Two families share the wor
 
 A pattern detector (`RegexDetector`) recognizes strings that follow a fixed structure, such as an email, an IP, or a credit-card shape. It is deterministic on those formats and blind to the rest. A NER detector (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) or LLM detector (`LLMDetector`) recognizes free-form entities, a name, a place, an organization, but it misses some. A rare name, an unusual spelling, an out-of-distribution entity passes in cleartext to the LLM.
 
-A PII that is not detected is not de-identified. This is an engineering concern, not a conceptual flaw.
+Confidential data that is not detected is not de-identified. This is an engineering concern, not a conceptual flaw.
 
 **Mitigation**: chain a NER detector and a `RegexDetector` through the `CompositeDetector`, to cover both free-form text and structured formats. Load a locale-specific NER model for better accuracy. See [Extending PIIGhost](extending.md).
 
@@ -46,7 +46,7 @@ The trade-off is that `RegexDetector` can match strings that have the shape of a
 
 The placeholder factory decides what distinguishes two entities. Some families produce the same output for two different inputs.
 
-- `RedactPlaceholderFactory` collapses every PII to `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` collapses every PII of one label to `<<PERSON>>`{ .placeholder }. Neither family distinguishes entities, so neither is reversible.
+- `RedactPlaceholderFactory` collapses every value to `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` collapses every value of one label to `<<PERSON>>`{ .placeholder }. Neither family distinguishes entities, so neither is reversible.
 - `MaskPlaceholderFactory` keeps a fragment of the value, `j***@mail.com`{ .placeholder }. Two similarly shaped values can collide on one mask, and a mask can also collide with a real value in a tool response.
 - `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) and `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }) give a distinct token per entity and can be found again in text, so they stay reversible without ambiguity.
 
@@ -54,7 +54,7 @@ The placeholder factory decides what distinguishes two entities. Some families p
 
 ## Restoration is only reliable under identity
 
-Restoring a value from a placeholder assumes the placeholder identifies a unique entity. Two properties combine in the token. **Typing** says which kind of PII it is, a person, a location, an email. **Identity** says which one it is among those of the same kind. Each factory carries a preservation tag that declares what its token keeps of the two.
+Restoring a value from a placeholder assumes the placeholder identifies a unique entity. Two properties combine in the token. **Typing** says which kind of value it is, a person, a location, an email. **Identity** says which one it is among those of the same kind. Each factory carries a preservation tag that declares what its token keeps of the two.
 
 | Factory | Preservation tag | Token emitted | Typing | Identity | Restoration |
 |---|---|---|---|---|---|
@@ -79,7 +79,7 @@ Restoration works on values seen at the input. If the LLM hallucinates a name th
 
 The middleware catches a neighbouring case, the invented placeholder. If the LLM fabricates a token that looks like a placeholder but was never emitted, `piighost` spots it (the token has no associated value) and refuses it by default (`InventedPlaceholderError`, the `RAISE` strategy). The `KEEP` and `DROP` strategies exist for other policies.
 
-**Mitigation**: run a re-detection step on the LLM output at the application layer, and decide whether to strip, flag, or re-de-identify before display. A guard rail (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual PII, leaving the caller to raise `PIIRemainingError`.
+**Mitigation**: run a re-detection step on the LLM output at the application layer, and decide whether to strip, flag, or re-de-identify before display. A guard rail (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual confidential data, leaving the caller to raise `PIIRemainingError`.
 
 ## Memory is process-local by default
 

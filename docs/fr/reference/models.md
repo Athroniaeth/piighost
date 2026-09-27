@@ -94,7 +94,7 @@ span.shift(-9)                               # Span(0, 17)
 | `NegativeSpanStartError` | `start` est négatif |
 | `SpanOrderingError` | `end` n'est pas strictement supérieur à `start`, un intervalle vide ou inversé |
 
-Les deux dérivent de `SpanError`. Un intervalle vide est refusé parce qu'une détection de PII couvre toujours au moins un caractère.
+Les deux dérivent de `SpanError`. Un intervalle vide est refusé parce qu'une détection couvre toujours au moins un caractère.
 
 ---
 
@@ -102,7 +102,7 @@ Les deux dérivent de `SpanError`. Un intervalle vide est refusé parce qu'une d
 
 Module : `piighost.models.detection`
 
-Une occurrence de PII trouvée par un détecteur. Un span qui porte le texte correspondant, un label et une confiance.
+Une occurrence de donnée confidentielle trouvée par un détecteur. Un span qui porte le texte correspondant, un label et une confiance.
 
 ### Champs
 
@@ -110,7 +110,7 @@ Une occurrence de PII trouvée par un détecteur. Un span qui porte le texte cor
 |-------|------|-------------|
 | `span` | `Span` | Où la détection se situe dans le texte, sous forme d'intervalle semi-ouvert |
 | `text` | `str` | La sous-chaîne trouvée |
-| `label` | `str` | La catégorie de PII, par exemple `PERSON` ou `EMAIL` |
+| `label` | `str` | La catégorie de la valeur détectée, par exemple `PERSON` ou `EMAIL` |
 | `confidence` | `float` | La confiance du détecteur, dans l'intervalle fermé 0 à 1 |
 
 Le tri se fait sur `(span, text, label, confidence)`, donc les détections s'ordonnent d'abord par position, ce dont l'étage de résolution des chevauchements dépend.
@@ -151,7 +151,7 @@ Elle dérive de `DetectionError`.
 
 Module : `piighost.models.entity`
 
-Les détections identifiées comme une même valeur de PII, regroupées par l'étage de liaison. Le groupe partage un token et se restaure en une seule valeur.
+Les détections identifiées comme une même valeur, regroupées par l'étage de liaison. Le groupe partage un token et se restaure en une seule valeur.
 
 ### Champs
 
@@ -163,7 +163,7 @@ Les détections identifiées comme une même valeur de PII, regroupées par l'é
 
 #### `label` (propriété)
 
-Le label de PII partagé par les détections regroupées.
+Le label partagé par les détections regroupées.
 
 #### `text` (propriété)
 

@@ -103,7 +103,7 @@ Les clés de premier niveau d'un `PipelineConfig`.
 | `[overlap_resolver]` | non | Résout les détections qui se chevauchent, par défaut `ConfidenceOverlapResolver` |
 | `[expander]` | non | Retrouve les occurrences manquées d'une valeur détectée |
 | `[entity_resolver]` | non | Regroupe les entités qui désignent la même chose |
-| `[guard]` | non | Revérifie la sortie pour une PII résiduelle |
+| `[guard]` | non | Revérifie la sortie pour des données confidentielles résiduelles |
 | `[override]` | non | Force ou écarte des détections via une whitelist et une blacklist |
 | `[observation_redactor]` | non | Une factory de placeholders caviardant les charges de trace |
 | `[memory]` | non | La mémoire de conversation. Sa présence fait un pipeline de thread |
@@ -314,7 +314,7 @@ threshold = 0.85
 
 ## `[guard]`
 
-Optionnel. Discriminé sur `type`. Revérifie la sortie dé-identifiée pour une PII résiduelle et la refuse quand une PII subsiste.
+Optionnel. Discriminé sur `type`. Revérifie la sortie dé-identifiée pour des données confidentielles résiduelles et la refuse quand il en subsiste.
 
 | `type` | Extra | Revérifie avec |
 |--------|-------|----------------|

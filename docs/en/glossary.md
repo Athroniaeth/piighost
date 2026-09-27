@@ -7,14 +7,28 @@ icon: lucide/book-a
 Terms used across the `piighost` documentation. Each entry defines the concept by
 what it does. Class names stay in English.
 
+Confidential data
+:   Everything `piighost` protects, that is personal data (PII) and secrets such
+    as API keys. Each detected item is a value, replaced by a placeholder in the
+    de-identified text.
+
 PII
-:   Personally Identifiable Information. Any value that can identify a person:
+:   Personally Identifiable Information, the personal-data part of confidential
+    data. Any value that can identify a person:
     name, address, phone number, email, location, organization, account number.
     `piighost` finds and replaces PII so a downstream LLM never sees the raw
     value.
 
+Secret
+:   A credential that must never reach a model, such as an API key, an access
+    token, a private key, or a connection string. Secrets are the other part of
+    confidential data. They are detected through the hub catalogs
+    `piighost/secrets` and `piighost/secrets-extended`, pulled with
+    `catalogs = ["hub:piighost/secrets"]`, since the built-in regex catalogs hold
+    no secret pattern.
+
 De-identification
-:   Replacing PII with placeholders while keeping the mapping between each value
+:   Replacing confidential data with placeholders while keeping the mapping between each value
     and its placeholder, so the original can be restored later. The default
     `piighost` pipeline de-identifies. Under the GDPR this is pseudonymization,
     not anonymization.
@@ -25,7 +39,7 @@ Anonymization
     the value.
 
 Placeholder
-:   The token that replaces a PII in the de-identified text, for example
+:   The token that replaces a value in the de-identified text, for example
     `<<PERSON:1>>`{ .placeholder } or `<<EMAIL:1>>`{ .placeholder }. What a
     placeholder looks like is decided by a placeholder factory.
 
@@ -37,7 +51,7 @@ Placeholder factory
     `MaskPlaceholderFactory`.
 
 Detector
-:   The component that finds PII in a text and returns detections. Detectors
+:   The component that finds confidential data in a text and returns detections. Detectors
     implement the `AnyDetector` protocol and are interchangeable. Three families
     exist, listed under their own entries: regex, NER, and LLM.
 
@@ -54,22 +68,22 @@ NER detector
     `TransformersDetector`.
 
 LLM detector
-:   A detector that prompts a large language model to return the PII it finds as
+:   A detector that prompts a large language model to return the values it finds as
     structured output. Slower and less deterministic than regex or NER, but able
     to reason about context. `LLMDetector`.
 
 Span
 :   A half-open character range `[start, end)` inside a text, mirroring Python
-    slice semantics. Every detection carries a `Span` to mark where the PII sits.
+    slice semantics. Every detection carries a `Span` to mark where the value sits.
     `Span`.
 
 Detection
-:   One PII occurrence spotted by a detector: a `Span`, the matched text, a
+:   One occurrence of a value spotted by a detector: a `Span`, the matched text, a
     label, and a confidence in the range 0 to 1. Detecting `Patrick`{ .pii } as
     `PERSON` at `(0, 7)` with confidence `0.95` is one `Detection`.
 
 Entity
-:   A group of detections that refer to the same PII value. Every occurrence of
+:   A group of detections that refer to the same value. Every occurrence of
     the value is one detection. The group shares one placeholder and restores to
     one value. Different from a detection, which is a single occurrence.
     `Entity`.
@@ -87,13 +101,13 @@ Entity resolver
     `SeparateEntityResolver` leaves each group as is.
 
 Guard rail
-:   A component that re-checks the de-identified text for PII the pipeline missed. It
-    runs after replacement and raises if a residual PII remains. A guard can
+:   A component that re-checks the de-identified text for confidential data the pipeline missed. It
+    runs after replacement and raises if a residual value remains. A guard can
     re-run a detector (`DetectorGuardRail`) or query an LLM (`LLMGuardRail`).
 
 Thread
 :   A conversation scope identified by a `thread_id`. Memory is isolated per
-    thread, so two parallel conversations never share PII state. A placeholder
+    thread, so two parallel conversations never share confidential data. A placeholder
     stays stable across all the messages of one thread.
 
 thread_id
@@ -120,7 +134,7 @@ Placeholder preservation tag
 
 Pepper
 :   A secret that keys a hasher, read from the `PIIGHOST_HASH_PEPPER` environment
-    variable. Hashing a low-entropy PII without a secret leaves it
+    variable. Hashing a low-entropy value without a secret leaves it
     brute-forceable, so the pepper is mandatory. Used by `Sha256Hasher` and
     `Argon2Hasher`.
 

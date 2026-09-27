@@ -8,7 +8,7 @@ tags:
 
 Module: `piighost.components.guard`
 
-A guard rail is the pipeline's last, optional stage. It re-checks the de-identified text for residual PII and, when it finds any, makes the pipeline raise `PIIRemainingError` instead of returning a leak. Every guard satisfies the `AnyGuardRail` port, an `async def check(self, text: str) -> GuardVerdict`, and returns a `GuardVerdict` carrying whether PII seems to remain and how it knows. Unlike the other stages, guards share no `Base*` template, they differ by their whole checking mechanism, re-running a local detector versus calling an external API, so there is no shared skeleton.
+A guard rail is the pipeline's last, optional stage. It re-checks the de-identified text for residual confidential values and, when it finds any, makes the pipeline raise `PIIRemainingError` instead of returning a leak. Every guard satisfies the `AnyGuardRail` port, an `async def check(self, text: str) -> GuardVerdict`, and returns a `GuardVerdict` carrying whether confidential values seem to remain and how it knows. Unlike the other stages, guards share no `Base*` template, they differ by their whole checking mechanism, re-running a local detector versus calling an external API, so there is no shared skeleton.
 
 The guard classifies, it does not decide. It reports a verdict, and the pipeline turns a flagged verdict into an exception, leaving the choice of how to react to your code.
 
@@ -61,7 +61,7 @@ Re-runs a detector on the de-identified output and flags whatever it still finds
 DetectorGuardRail(detector: AnyDetector)
 ```
 
-This only adds value with a detector different from the pipeline's, re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. The synthetic placeholders are not PII-shaped, so a detector meant for real PII leaves them alone. It needs no optional extra.
+This only adds value with a detector different from the pipeline's, re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. The synthetic placeholders are not shaped like real values, so a detector meant for real values leaves them alone. It needs no optional extra.
 
 ### A local model as the guard
 
@@ -150,7 +150,7 @@ Being a different modality from a detector, it catches PII a detection-based pip
 
 `check` returns a frozen `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])`. The detail depends on the guard: a score from a moderation model, or the residual detections from a detector. Both are optional.
 
-When a guard flags PII, the pipeline raises `PIIRemainingError` (a subclass of `GuardError`, itself a `PIIGhostError`). Its message names the leaked labels or the score, and its `detections` attribute holds the residual detections, empty for a score-based guard that localizes nothing.
+When a guard flags confidential values, the pipeline raises `PIIRemainingError` (a subclass of `GuardError`, itself a `PIIGhostError`). Its message names the leaked labels or the score, and its `detections` attribute holds the residual detections, empty for a score-based guard that localizes nothing.
 
 ## Configure a guard from a file
 

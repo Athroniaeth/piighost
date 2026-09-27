@@ -6,7 +6,7 @@ icon: lucide/blocks
 
 Une fois admis qu'il faut dé-identifier (voir [Pourquoi dé-identifier ?](why-anonymize.md)),
 reste le comment. La construction ci-dessous se fait pas à pas, à partir de la première
-brique, détecter les données sensibles, en ajoutant une contrainte à la fois. Chaque
+brique, détecter les données confidentielles (données personnelles, secrets), en ajoutant une contrainte à la fois. Chaque
 composant du pipeline apparaît parce qu'une contrainte précédente l'a rendu nécessaire. À la fin,
 l'ordre des étapes et les choix techniques ne sont plus arbitraires, ils découlent du
 problème.
@@ -26,7 +26,7 @@ problème.
 
 Dé-identifier, c'est remplacer une valeur sensible par un *placeholder*, c'est-à-dire le
 *token* qui prend sa place dans le texte. Sur un texte libre, on ne sait pas d'avance où
-sont les PII ni de quel type. La première brique est donc la détection.
+sont les données confidentielles ni de quel type. La première brique est donc la détection.
 
 Deux approches classiques se complètent.
 
@@ -38,7 +38,7 @@ Deux approches classiques se complètent.
   saisit le contexte là où la regex ne voit qu'un format.
 
 C'est le rôle du détecteur (`AnyDetector`). Il lit le texte et renvoie une liste de
-détections, une par PII trouvée, avec sa position, son type et un score de confiance.
+détections, une par valeur trouvée, avec sa position, son type et un score de confiance.
 
 ```mermaid
 flowchart LR
@@ -60,14 +60,14 @@ un port et non une classe figée, on injecte celui qu'on veut.
 La regex ne valide **aucun checksum**. Un IBAN ou un numéro de carte reconnu par le
 motif est gardé tel quel, sans contrôle de clé de contrôle. Une valeur abîmée par un OCR
 reste ainsi une détection plutôt que d'être écartée par un calcul qui échoue sur le
-bruit. Mieux vaut une détection de trop, arbitrée plus tard, qu'une PII laissée en
+bruit. Mieux vaut une détection de trop, arbitrée plus tard, qu'une valeur laissée en
 clair.
 
 ---
 
 ## Étape 2, dire de quel type il s'agit, le placeholder typé
 
-Avec la détection, on connaît le type de chaque PII. Le placeholder le plus simple
+Avec la détection, on connaît le type de chaque valeur. Le placeholder le plus simple
 serait un token constant, le même pour tout, comme `<<REDACT>>`{ .placeholder }. On
 l'enrichit avec le type, `<<PERSON>>`{ .placeholder } ou `<<EMAIL>>`{ .placeholder }.
 
@@ -98,7 +98,7 @@ Patrick écrit à Marie  →  <<PERSON:1>> écrit à <<PERSON:2>>
 Mais une même personne apparaît souvent plusieurs fois, parfois orthographiée
 différemment (`Patrick`{ .pii }, `patrick`{ .pii }). Toutes ces occurrences doivent partager le même
 token. Une détection isolée ne suffit donc pas. Il faut une notion au-dessus, l'entité,
-qui regroupe toutes les détections désignant la même PII.
+qui regroupe toutes les détections désignant la même valeur.
 
 D'où une nouvelle étape, passer des détections aux entités. C'est le linker
 (`AnyEntityLinker`). `ExactEntityLinker` groupe les détections par clé canonique
@@ -111,7 +111,7 @@ flowchart LR
     L --> E2["Entité PERSON 'marie'"]
 ```
 
-*Le linker regroupe les détections d'une même PII en une entité, qui recevra un token
+*Le linker regroupe les détections d'une même valeur en une entité, qui recevra un token
 unique.*
 { .figure-caption }
 
@@ -156,7 +156,7 @@ L'ordre des étapes est contraint.
 
 ```mermaid
 flowchart LR
-    A["détecter"] --> B["résoudre les spans"] --> C["rattraper les occurrences"] --> D["lier en entités"] --> E["résoudre les entités"] --> F["anonymiser"]
+    A["détecter"] --> B["résoudre les spans"] --> C["rattraper les occurrences"] --> D["lier en entités"] --> E["résoudre les entités"] --> F["dé-identifier"]
 ```
 
 *Les positions se résolvent avant le linking, les identités après.*
@@ -274,7 +274,7 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
   entité tôt dans son message volerait le compteur d'une plus ancienne.
 - **Isolation par `thread_id`.** Le `thread_id` est obligatoire, il n'y a pas de thread
   partagé par défaut, pour que deux appelants ne tombent pas dans le même fil et ne
-  fuitent pas leurs PII. `forget_thread` peut tout effacer d'un fil, pour le droit à
+  fuitent pas leurs données confidentielles. `forget_thread` peut tout effacer d'un fil, pour le droit à
   l'oubli.
 
 ### Le rendu reste par message
@@ -288,14 +288,14 @@ spans du message courant, ceux dont les offsets valent dans ce message.
 
 ## Étape 10, la provenance des valeurs
 
-Toute valeur d'un message n'est pas de la PII à protéger. Si le modèle mentionne une
+Toute valeur d'un message n'est pas une donnée confidentielle à protéger. Si le modèle mentionne une
 personnalité publique de sa connaissance du monde, la tokeniser la lui cacherait au tour
 suivant, sans rien protéger de l'utilisateur.
 
 La mémoire enregistre donc le rôle de la première occurrence de chaque valeur,
 `MessageRole.USER` ou `MessageRole.ASSISTANT`. Une valeur dont la première occurrence
-vient d'un message du modèle est laissée en clair, car elle n'est pas une PII
-utilisateur. Le middleware règle ce comportement par `EntityCreateByAssistantStrategy`,
+vient d'un message du modèle est laissée en clair, car elle n'est pas une donnée
+confidentielle de l'utilisateur. Le middleware règle ce comportement par `EntityCreateByAssistantStrategy`,
 préserver, dé-identifier quand même, ou ignorer les messages du modèle.
 
 ---
@@ -326,10 +326,10 @@ Sur un seul worker, la mémoire tient dans un dictionnaire du processus
 (`InMemoryConversationMemory`). Un déploiement multi-worker en a besoin d'une partagée,
 `RedisConversationMemory`, pour qu'un worker voie les threads d'un autre.
 
-Mais le mapping inverse est de la PII en clair. Une fuite du store la révélerait. Deux
+Mais le mapping inverse est fait de données confidentielles en clair. Une fuite du store la révélerait. Deux
 composants crypto protègent le backend Redis. Un hasher (`AnyHasher`) transforme chaque
 message en clé déterministe sans révéler le texte. Un cipher (`AnyCipher`) chiffre les
-détections au repos, de sorte qu'une fuite de la base ne rende ni le message ni la PII.
+détections au repos, de sorte qu'une fuite de la base ne rende ni le message ni les valeurs.
 Le `thread_id` reste en clair comme préfixe de clé, pour qu'un thread puisse être
 énuméré et oublié.
 
@@ -337,13 +337,13 @@ Le `thread_id` reste en clair comme préfixe de clé, pour qu'un thread puisse �
 
 ## Étape 13, le garde-fou, défense en profondeur
 
-Même avec tout ce qui précède, une PII peut passer entre les mailles, par exemple un nom
+Même avec tout ce qui précède, une valeur peut passer entre les mailles, par exemple un nom
 que le NER a raté. Le garde-fou (`AnyGuardRail`) re-analyse le texte dé-identifié et lève
-`PIIRemainingError` s'il y trouve encore une PII en clair.
+`PIIRemainingError` s'il y trouve encore une valeur en clair.
 
 Le garde-fou n'examine que la sortie dé-identifiée. Les placeholders qu'elle porte sont
-clairement synthétiques, donc un contrôle prévu pour de la vraie PII ne les prend pas
-pour telle. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
+clairement synthétiques, donc un contrôle prévu pour de vraies valeurs ne les prend pas
+pour tels. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
 `DetectorGuardRail` rejoue un détecteur, `LLMGuardRail` et `ModerationGuardRail`
 interrogent un modèle externe.
 
@@ -359,7 +359,7 @@ C'est le `PIIAnonymizationMiddleware`, qui intervient en trois points.
 - Après le modèle (`aafter_model`), il restaure la sortie pour l'affichage utilisateur.
 - Autour des appels outils (`awrap_tool_call`), selon la stratégie choisie
   (`ToolCallStrategy`), il restaure les arguments pour que l'outil reçoive de vraies
-  données, puis ré-identifie sa réponse.
+  données, puis dé-identifie sa réponse.
 
 Le middleware ne contient aucune logique de dé-identification, il délègue tout au
 pipeline conversationnel. C'est un simple adaptateur entre le monde LangChain et le
@@ -375,7 +375,7 @@ qui suit encore la grammaire des placeholders n'a pas été émis par le pipelin
 
 | Contrainte rencontrée | Composant né de la contrainte |
 |---|---|
-| On ne sait pas où sont les PII | Détecteur (`AnyDetector`) |
+| On ne sait pas où sont les données confidentielles | Détecteur (`AnyDetector`) |
 | Le modèle a besoin du type | Placeholder typé (`AnyPlaceholderFactory`) |
 | Distinguer deux individus du même type | Identité par entité et linker (`AnyEntityLinker`) |
 | Occurrences ratées par le détecteur | Expander (`AnyDetectionExpander`) |
@@ -387,7 +387,7 @@ qui suit encore la grammaire des placeholders n'a pas été émis par le pipelin
 | Valeur venant du modèle, pas de l'utilisateur | Provenance en mémoire (`MessageRole`) |
 | I/O sans bloquer et calcul lourd | Asynchrone et déport en thread de l'inférence |
 | Mapping inverse persistant à protéger | Crypto, hasher et cipher du backend Redis |
-| PII résiduelle | Garde-fou (`AnyGuardRail`) |
+| Données confidentielles résiduelles | Garde-fou (`AnyGuardRail`) |
 | Intégration agent transparente | Middleware LangChain |
 
 </div>

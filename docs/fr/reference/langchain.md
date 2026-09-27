@@ -9,7 +9,7 @@ Module : `piighost.integrations.langchain`
 !!! note "Déplacé en 1.4.0"
     Cette intégration vient de `piighost.integrations.middleware`. L'ancien chemin d'import fonctionne toujours mais émet un `DeprecationWarning`. Mettez à jour vos imports vers `piighost.integrations.langchain`.
 
-`PIIAnonymizationMiddleware` est un `AgentMiddleware` LangChain qui dé-identifie les PII autour de la frontière modèle et outils d'un agent. Il lit le thread id depuis la config LangGraph, dé-identifie les messages avant que le modèle ne les voie, les restaure ensuite pour l'affichage, et route les appels d'outil selon une stratégie choisie. Toute la détection, l'attribution des tokens et le remplacement sont délégués à un `ThreadAnonymizationPipeline`.
+`PIIAnonymizationMiddleware` est un `AgentMiddleware` LangChain qui dé-identifie les données confidentielles autour de la frontière modèle et outils d'un agent. Il lit le thread id depuis la config LangGraph, dé-identifie les messages avant que le modèle ne les voie, les restaure ensuite pour l'affichage, et route les appels d'outil selon une stratégie choisie. Toute la détection, l'attribution des tokens et le remplacement sont délégués à un `ThreadAnonymizationPipeline`.
 
 ```python
 from piighost.integrations.langchain import (
@@ -34,7 +34,7 @@ Nécessite l'extra `middleware` (`pip install piighost[langchain]`), qui tire `l
 |------|--------|-----------|
 | `abefore_model` | Avant chaque appel modèle | Dé-identifie les messages utilisateur et modèle |
 | `aafter_model` | Après chaque réponse modèle | Restaure les messages utilisateur et modèle pour l'affichage |
-| `awrap_tool_call` | Autour de chaque appel d'outil | Dé-identifie les arguments, dé-identifie la réponse, selon la stratégie |
+| `awrap_tool_call` | Autour de chaque appel d'outil | Restaure les arguments, dé-identifie la réponse, selon la stratégie |
 
 </div>
 
@@ -136,12 +136,12 @@ Comment un token que le pipeline n'a jamais émis est traité. Après restaurati
 
 ### `EntityCreateByAssistantStrategy`
 
-Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une PII utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
+Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
 
 | Valeur | Effet |
 |--------|-------|
 | `PRESERVE` | laisse en clair les valeurs introduites par l'assistant |
-| `ANONYMIZE` | les dé-identifie comme des PII utilisateur |
+| `ANONYMIZE` | les dé-identifie comme les données confidentielles de l'utilisateur |
 | `IGNORE` | n'analyse pas du tout les messages de l'assistant, ce qui épargne le détecteur |
 
 `PRESERVE` est la valeur par défaut.

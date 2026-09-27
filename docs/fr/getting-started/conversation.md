@@ -40,7 +40,7 @@ pipeline = ThreadAnonymizationPipeline(
 
 ## 2. Dé-identifier deux messages du même fil
 
-`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire, il n'y a pas de fil par défaut partagé, si bien que deux appelants ne peuvent pas tomber dans le même fil et se fuiter mutuellement leurs PII. On envoie deux messages sur le fil `"thread-42"`.
+`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire, il n'y a pas de fil par défaut partagé, si bien que deux appelants ne peuvent pas tomber dans le même fil et se fuiter mutuellement leurs données confidentielles. On envoie deux messages sur le fil `"thread-42"`.
 
 ```python
 async def main() -> None:

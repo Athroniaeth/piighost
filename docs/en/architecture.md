@@ -165,13 +165,13 @@ Why each stage exists and in which order is covered in
 
 | Stage | Port | Provided adapter | Role |
 |---|---|---|---|
-| Detector | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Finds the PII, returns positioned and typed `Detection` objects. |
+| Detector | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Finds the confidential data (personal data, secrets), returns positioned and typed `Detection` objects. |
 | Span resolver | `AnyOverlapResolver` | `ConfidenceOverlapResolver` | Arbitrates overlapping detections, keeps the highest-confidence one. |
 | Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Catches missed occurrences of an already-detected value. |
 | Linker | `AnyEntityLinker` | `ExactEntityLinker` | Groups the detections of one value into an `Entity`. |
 | Entity resolver | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Reconciles entities that share a detection. |
 | Anonymizer | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Replaces each entity with its token. |
-| Guard rail | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-checks the output, raises `PIIRemainingError` on residual PII. |
+| Guard rail | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-checks the output, raises `PIIRemainingError` on residual confidential data. |
 
 </div>
 
@@ -306,7 +306,7 @@ dropped = await thread_pipeline.forget_thread("t-42")
 ```
 
 - The `thread_id` is **mandatory**, there is no shared default thread, so two callers
-  cannot fall into the same thread and leak each other's PII.
+  cannot fall into the same thread and leak each other's confidential data.
 - `deanonymize` rebuilds the thread's tokens from memory, so **any** text carrying those
   tokens is restored, including a model reply the pipeline never de-identified.
 - `forget_thread` erases a thread's whole memory and reports how much was dropped, for
@@ -314,7 +314,7 @@ dropped = await thread_pipeline.forget_thread("t-42")
 
 ### Value provenance
 
-A value whose first occurrence in the thread comes from a model message is not user PII.
+A value whose first occurrence in the thread comes from a model message is not the user's confidential data.
 Tokenizing it would strip the model of its world knowledge. So the memory records the
 **role** of each value's first occurrence (`MessageRole.USER` or
 `MessageRole.ASSISTANT`), and the pipeline leaves assistant-introduced values in clear.
@@ -330,11 +330,11 @@ The memory is a **repository**, an `AnyConversationMemory` port with two adapter
 - `RedisConversationMemory` persists to Redis, for a multi-worker deployment where each
   worker must see the others' threads.
 
-The Redis backend stores clear PII by nature, the reverse mapping. Two **crypto**
+The Redis backend stores confidential data in clear by nature, the reverse mapping. Two **crypto**
 components protect it. An `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`) turns each
 message into a deterministic key without revealing the text. An `AnyCipher`
 (`AesGcmCipher`) encrypts the detections at rest, so a store leak reveals neither the
-message nor the PII. The `thread_id` stays clear as a key prefix, so a thread can be
+message nor the values. The `thread_id` stays clear as a key prefix, so a thread can be
 enumerated and forgotten.
 
 ---
@@ -359,7 +359,7 @@ sequenceDiagram
     M->>M: awrap_tool_call, restores the arguments
     M->>T: send_email(to="Patrick")
     T->>M: "Email sent to Patrick"
-    M->>M: awrap_tool_call, re-identifies the result
+    M->>M: awrap_tool_call, de-identifies the result
     M->>L: "Email sent to <<PERSON:1>>"
     L->>M: "Done, email sent to <<PERSON:1>>."
     M->>M: aafter_model, restores for the user
@@ -373,7 +373,7 @@ sequenceDiagram
 - `aafter_model` restores the model's output for the user display.
 - `awrap_tool_call` handles the tool call according to the chosen strategy
   (`ToolCallStrategy`), restoring the arguments so the tool receives real data, then
-  re-identifying its response.
+  de-identifying its response.
 
 The middleware requires a factory that preserves identity, at type-check time. It also
 recognizes the tokens the model **invents** (`InventedPlaceholderStrategy`), since after
@@ -389,7 +389,7 @@ pipeline. The detail of the tool strategies is in
 seam on top of OpenTelemetry. With no backend configured, a no-op implementation traces
 nothing and costs nothing, so the pipeline can always emit without checking whether
 tracing is active. An optional `observation_redactor` replaces the values in the traces
-with tokens, for a backend not allowed to see PII.
+with tokens, for a backend not allowed to see confidential data.
 
 ---
 

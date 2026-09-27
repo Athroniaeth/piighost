@@ -170,13 +170,13 @@ chacune.
 
 | Étape | Port | Adaptateur fourni | Rôle |
 |---|---|---|---|
-| Détecteur | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Trouve les PII, renvoie des `Detection` positionnées et typées. |
+| Détecteur | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Trouve les données confidentielles (données personnelles, secrets), renvoie des `Detection` positionnées et typées. |
 | Résolveur de spans | `AnyOverlapResolver` | `ConfidenceOverlapResolver` | Arbitre les détections qui se chevauchent, garde la plus confiante. |
 | Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Rattrape les occurrences ratées d'une valeur déjà détectée. |
 | Linker | `AnyEntityLinker` | `ExactEntityLinker` | Regroupe les détections d'une même valeur en une `Entity`. |
 | Résolveur d'entités | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Réconcilie les entités qui partagent une détection. |
 | Anonymiseur | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Remplace chaque entité par son token. |
-| Garde-fou | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-vérifie la sortie, lève `PIIRemainingError` sur PII résiduelle. |
+| Garde-fou | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-vérifie la sortie, lève `PIIRemainingError` sur donnée confidentielle résiduelle. |
 
 </div>
 
@@ -312,7 +312,7 @@ dropped = await thread_pipeline.forget_thread("t-42")
 ```
 
 - Le `thread_id` est **obligatoire**, il n'y a pas de thread partagé par défaut, donc
-  deux appelants ne peuvent pas tomber dans le même thread et fuiter leurs PII.
+  deux appelants ne peuvent pas tomber dans le même thread et fuiter leurs données confidentielles.
 - `deanonymize` reconstruit les tokens du thread depuis la mémoire, donc **n'importe
   quel** texte porteur de ces tokens est restauré, y compris une réponse du modèle que
   le pipeline n'a jamais dé-identifiée.
@@ -322,7 +322,7 @@ dropped = await thread_pipeline.forget_thread("t-42")
 ### La provenance des valeurs
 
 Une valeur dont la première occurrence dans le thread vient d'un message du modèle
-n'est pas de la PII utilisateur. La tokeniser priverait le modèle de sa connaissance du
+n'est pas une donnée confidentielle de l'utilisateur. La tokeniser priverait le modèle de sa connaissance du
 monde. La mémoire enregistre donc le **rôle** de la première occurrence de chaque
 valeur (`MessageRole.USER` ou `MessageRole.ASSISTANT`), et le pipeline laisse en clair
 les valeurs introduites par l'assistant.
@@ -339,11 +339,11 @@ adaptateurs.
 - `RedisConversationMemory` persiste dans Redis, pour un déploiement multi-worker où
   chaque worker doit voir les threads des autres.
 
-Le backend Redis stocke de la PII en clair par nature, le mapping inverse. Deux
+Le backend Redis stocke des données confidentielles en clair par nature, le mapping inverse. Deux
 composants **crypto** le protègent. Un `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`)
 transforme chaque message en clé déterministe sans révéler le texte. Un `AnyCipher`
 (`AesGcmCipher`) chiffre les détections au repos, de sorte qu'une fuite de la base ne
-révèle ni le message ni la PII. Le `thread_id` reste en clair comme préfixe de clé,
+révèle ni le message ni les valeurs. Le `thread_id` reste en clair comme préfixe de clé,
 pour qu'un thread puisse être énuméré et oublié.
 
 ---
@@ -368,7 +368,7 @@ sequenceDiagram
     M->>M: awrap_tool_call, restaure les arguments
     M->>T: send_email(to="Patrick")
     T->>M: "Email envoyé à Patrick"
-    M->>M: awrap_tool_call, ré-identifie le résultat
+    M->>M: awrap_tool_call, dé-identifie le résultat
     M->>L: "Email envoyé à <<PERSON:1>>"
     L->>M: "C'est fait, email envoyé à <<PERSON:1>>."
     M->>M: aafter_model, restaure pour l'utilisateur
@@ -382,7 +382,7 @@ sequenceDiagram
 - `aafter_model` restaure la sortie du modèle pour l'affichage utilisateur.
 - `awrap_tool_call` traite l'appel d'outil selon la stratégie choisie
   (`ToolCallStrategy`), en restaurant les arguments pour que l'outil reçoive de vraies
-  données, puis en ré-identifiant sa réponse.
+  données, puis en dé-identifiant sa réponse.
 
 Le middleware exige au type une factory qui préserve l'identité. Il reconnaît aussi les
 tokens que le modèle **invente** (`InventedPlaceholderStrategy`), car après restauration
@@ -399,7 +399,7 @@ pipeline. Le détail des stratégies d'outil est dans
 une implémentation no-op ne trace rien et ne coûte rien, donc le pipeline peut toujours
 émettre sans vérifier si le traçage est actif. Un `observation_redactor` optionnel
 remplace les valeurs des traces par des tokens, pour un backend qui n'a pas le droit de
-voir la PII.
+voir les données confidentielles.
 
 ---
 

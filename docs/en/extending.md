@@ -36,7 +36,7 @@ A `Detection` is a `Span(start, end)` carrying `text`, `label`, and a `confidenc
 
 ## A custom detector
 
-A detector finds PII in a text. Implement one method:
+A detector finds confidential data (personal data, secrets) in a text. Implement one method:
 
 ```python
 class AnyDetector(Protocol):
@@ -259,14 +259,14 @@ anonymizer = Anonymizer(factory)
 
 ## A custom guard rail
 
-A guard rail re-checks the de-identified output for residual PII. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
+A guard rail re-checks the de-identified output for residual confidential data. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
 
 ```python
 class AnyGuardRail(Protocol):
     async def check(self, text: str) -> GuardVerdict: ...
 ```
 
-`check` sees only the de-identified text. The placeholders it carries are clearly synthetic, so a check meant for real PII does not mistake them for it.
+`check` sees only the de-identified text. The placeholders it carries are clearly synthetic, so a check meant for real values does not mistake them for such.
 
 ???+ example "Flag a residual @ sign"
 

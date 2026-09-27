@@ -107,7 +107,7 @@ overlap -> <<PERSON:1>> works at Acme, formerly Globex Ltd.
 `EXACT` matched neither detection, since the blacklist says `Acme`{ .pii } is an organization where the detector says a person, and since the detector's span covers `Globex Ltd`{ .pii } where the blacklist covers `Globex`{ .pii } alone. `VALUE` compares whole values, so it cleared `Acme`{ .pii } and left `Globex Ltd`{ .pii }, whose text is not the blacklisted one. `OVERLAP` cleared both, the blacklisted span sitting inside the longer detection.
 
 !!! note "A blacklisted value does not trip the guard rail"
-    A [guard rail](../reference/guard-rails.md) re-reads the output and refuses residual PII. The pipeline hands it the values the blacklist matched in the text, so a value you deliberately left in clear is exempt. Any other leak still raises `PIIRemainingError`.
+    A [guard rail](../reference/guard-rails.md) re-reads the output and refuses residual confidential data. The pipeline hands it the values the blacklist matched in the text, so a value you deliberately left in clear is exempt. Any other leak still raises `PIIRemainingError`.
 
 ## 2. Force a missed value with a whitelist
 

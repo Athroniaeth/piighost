@@ -179,11 +179,11 @@ Three errors expose the values behind the failure as attributes. Every other err
 
 ## `PIIGhostSecurityWarning`
 
-A `UserWarning`, outside the `PIIGhostError` tree, so it never fails a call and the standard `warnings` filters govern it. It marks a setup that runs but keeps PII readable, so a knowing choice still works while a forgotten one is loud. Two sites emit it, both at construction.
+A `UserWarning`, outside the `PIIGhostError` tree, so it never fails a call and the standard `warnings` filters govern it. It marks a setup that runs but keeps confidential data readable, so a knowing choice still works while a forgotten one is loud. Two sites emit it, both at construction.
 
 | Emitted by | Emitted when |
 |------------|--------------|
-| `warn_plaintext`, called from `RedisConversationMemory` and `SqlAlchemyConversationMemory` | a persistent backend is built without a hasher and a cipher, so its store holds PII in clear |
+| `warn_plaintext`, called from `RedisConversationMemory` and `SqlAlchemyConversationMemory` | a persistent backend is built without a hasher and a cipher, so its store holds confidential data in clear |
 | `BaseAnonymizationPipeline.__init__` | no `observation_redactor` is set, `trace_clear_text` is off, and the tracer is exporting, so traces would record clear text |
 
 The backend comparison is in [Conversation memory](memory.md), and the redactor in [Observation](../observation.md).

@@ -94,7 +94,7 @@ span.shift(-9)                               # Span(0, 17)
 | `NegativeSpanStartError` | `start` is negative |
 | `SpanOrderingError` | `end` is not strictly greater than `start`, an empty or a reversed range |
 
-Both derive from `SpanError`. An empty range is refused because a PII detection always covers at least one character.
+Both derive from `SpanError`. An empty range is refused because a detection always covers at least one character.
 
 ---
 
@@ -102,7 +102,7 @@ Both derive from `SpanError`. An empty range is refused because a PII detection 
 
 Module: `piighost.models.detection`
 
-One PII occurrence a detector found. A span carrying the matched text, a label and a confidence.
+One occurrence of confidential data a detector found. A span carrying the matched text, a label and a confidence.
 
 ### Fields
 
@@ -110,7 +110,7 @@ One PII occurrence a detector found. A span carrying the matched text, a label a
 |-------|------|-------------|
 | `span` | `Span` | Where the detection sits in the text, as a half-open range |
 | `text` | `str` | The matched substring |
-| `label` | `str` | The PII category, for example `PERSON` or `EMAIL` |
+| `label` | `str` | The category of the detected value, for example `PERSON` or `EMAIL` |
 | `confidence` | `float` | Detector confidence, in the closed range 0 to 1 |
 
 Ordering is `(span, text, label, confidence)`, so detections sort by position first, which the overlap-resolver stage relies on.
@@ -151,7 +151,7 @@ It derives from `DetectionError`.
 
 Module: `piighost.models.entity`
 
-The detections identified as the same PII value, grouped by the link stage. The group shares one token and restores to one value.
+The detections identified as the same value, grouped by the link stage. The group shares one token and restores to one value.
 
 ### Fields
 
@@ -163,7 +163,7 @@ The detections identified as the same PII value, grouped by the link stage. The 
 
 #### `label` (property)
 
-The shared PII label of the grouped detections.
+The shared label of the grouped detections.
 
 #### `text` (property)
 

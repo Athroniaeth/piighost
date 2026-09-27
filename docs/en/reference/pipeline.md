@@ -17,7 +17,7 @@ Both return an [`Anonymization`](anonymizer.md#anonymization), the de-identified
 
 Module: `piighost.pipeline`
 
-De-identify a single text through the stages, in order: detect the PII, apply the server override, resolve overlapping spans, expand missed occurrences, link detections into entities, resolve entity conflicts, replace with tokens, and re-check with a guard. Each `anonymize()` call is independent.
+De-identify a single text through the stages, in order: detect the confidential data, apply the server override, resolve overlapping spans, expand missed occurrences, link detections into entities, resolve entity conflicts, replace with tokens, and re-check with a guard. Each `anonymize()` call is independent.
 
 ### Constructor
 
@@ -44,7 +44,7 @@ AnonymizationPipeline(
 | `overlap_resolver` | `AnyOverlapResolver \| None` | `None` | Resolves overlapping detections. Defaults to `ConfidenceOverlapResolver()`, since the render stage needs disjoint spans |
 | `expander` | `AnyDetectionExpander \| None` | `None` | Adds missed occurrences of a detected value. Disabled when `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Reconciles conflicting entities. Disabled when `None` |
-| `guard` | `AnyGuardRail \| None` | `None` | Re-checks the output for residual PII. Disabled when `None` |
+| `guard` | `AnyGuardRail \| None` | `None` | Re-checks the output for residual confidential values. Disabled when `None` |
 | `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory replacing clear values in observation payloads. `None` traces the clear text, so traces double as annotation datasets. With a live tracer and no redactor, the constructor emits a `PIIGhostSecurityWarning` unless `trace_clear_text=True` acknowledges it |
 | `override` | `AnyDetectionOverride \| None` | `None` | Server whitelist and blacklist imposed on every detection set. Disabled when `None` |
 | `trace_clear_text` | `bool` | `False` | Acknowledge clear-text observation tracing to suppress the security warning when no `observation_redactor` is set |
@@ -58,7 +58,7 @@ AnonymizationPipeline(
 
 Runs the full pipeline and returns the de-identified text with the token used for each entity.
 
-**Raises** `PIIRemainingError` when a configured guard flags PII left in the output.
+**Raises** `PIIRemainingError` when a configured guard flags confidential values left in the output.
 
 ```python
 result = await pipeline.anonymize("Patrick lives in Paris.")
@@ -116,9 +116,9 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 Detects the message's entities, records them in `thread_id`'s memory, then de-identifies using tokens assigned over the whole thread. The token of a value stays the same from one message to the next.
 
-The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's PII. `role` dates the values the message introduces, a value first introduced by the assistant is left in clear, since it is not user PII.
+The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's confidential data. `role` dates the values the message introduces, a value first introduced by the assistant is left in clear, since it is not the user's confidential data.
 
-**Raises** `PIIRemainingError` when a configured guard flags PII left in the output.
+**Raises** `PIIRemainingError` when a configured guard flags confidential values left in the output.
 
 ```python
 a1 = await pipeline.anonymize("Patrick lives in Paris.", thread_id="user-A")

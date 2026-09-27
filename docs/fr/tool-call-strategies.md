@@ -29,7 +29,7 @@ Dans `awrap_tool_call`, le LLM produit les arguments d'outil en combinant, fragm
 Les deux directions retombent donc sur du **remplacement de chaîne brut**.
 
 - *Arguments d'outil (LLM vers outil)*, on parcourt les arguments à la recherche des tokens connus et on remplace chacun par la valeur originale de son entité, `<<EMAIL:1>>`{ .placeholder } redevient `jean@mail.com`{ .pii }.
-- *Réponse de l'outil (outil vers LLM)*, on parcourt la réponse à la recherche des valeurs PII connues et on remplace chacune par le token correspondant.
+- *Réponse de l'outil (outil vers LLM)*, on parcourt la réponse à la recherche des valeurs connues et on remplace chacune par le token correspondant.
 
 Le remplacement brut n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le token `<<PERSON>>`{ .placeholder }, impossible de savoir laquelle restaurer dans les arguments. C'est la raison structurelle pour laquelle le middleware n'accepte que des factories dont les tokens préservent une identité retrouvable. Voir [Placeholder factories](placeholder-factories.md).
 
@@ -37,20 +37,20 @@ Le middleware agit seulement dans le wrapper d'outil, jamais sur la réponse sto
 
 ### `ToolCallStrategy` : ce qui franchit la frontière outil
 
-Les deux directions d'un appel d'outil sont indépendantes. `INPUT` restaure les arguments pour que l'outil reçoive de la vraie donnée. `OUTPUT` dé-identifie la réponse de l'outil pour protéger toute PII qu'elle renvoie. `FULL` fait les deux. `PASSTHROUGH` ne touche à rien.
+Les deux directions d'un appel d'outil sont indépendantes. `INPUT` restaure les arguments pour que l'outil reçoive de la vraie donnée. `OUTPUT` dé-identifie la réponse de l'outil pour protéger les données confidentielles (données personnelles, secrets) qu'elle renvoie. `FULL` fait les deux. `PASSTHROUGH` ne touche à rien.
 
 | Stratégie | L'outil voit | Réponse vers le LLM | Quand l'utiliser |
 |---|---|---|---|
-| `INPUT` | les vraies valeurs (arguments restaurés) | telle quelle, non dé-identifiée | outils dont la réponse est connue sans PII |
-| `OUTPUT` | les tokens | dé-identifiée par le pipeline | outils qui reçoivent des identifiants opaques mais peuvent renvoyer des PII |
-| `FULL` (défaut) | les vraies valeurs (arguments restaurés) | dé-identifiée par le pipeline | outils qui lisent des PII et peuvent en renvoyer de nouvelles (BDD, CRM, recherche) |
-| `PASSTHROUGH` | les tokens | telle quelle | outils qui ne doivent jamais voir de PII, ou qui n'en ont pas besoin |
+| `INPUT` | les vraies valeurs (arguments restaurés) | telle quelle, non dé-identifiée | outils dont la réponse est connue sans donnée confidentielle |
+| `OUTPUT` | les tokens | dé-identifiée par le pipeline | outils qui reçoivent des identifiants opaques mais peuvent renvoyer des données confidentielles |
+| `FULL` (défaut) | les vraies valeurs (arguments restaurés) | dé-identifiée par le pipeline | outils qui lisent des données confidentielles et peuvent en renvoyer de nouvelles (BDD, CRM, recherche) |
+| `PASSTHROUGH` | les tokens | telle quelle | outils qui ne doivent jamais voir de données confidentielles, ou qui n'en ont pas besoin |
 
-`FULL` est symétrique, on restaure les arguments puis on passe la réponse par `pipeline.anonymize()`, qui re-détecte et dé-identifie. Toute nouvelle PII renvoyée par l'outil devient un token avant que le LLM ne la voie, au prix d'une passe de détection par appel.
+`FULL` est symétrique, on restaure les arguments puis on passe la réponse par `pipeline.anonymize()`, qui re-détecte et dé-identifie. Toute nouvelle donnée confidentielle renvoyée par l'outil devient un token avant que le LLM ne la voie, au prix d'une passe de détection par appel.
 
-`INPUT` restaure seulement l'entrée et laisse la réponse brute, à réserver aux outils dont la sortie est connue sans PII, un lookup d'identifiant interne, un drapeau de statut, une valeur numérique. `OUTPUT` fait l'inverse, il laisse les arguments sous forme de tokens et ne dé-identifie que la réponse.
+`INPUT` restaure seulement l'entrée et laisse la réponse brute, à réserver aux outils dont la sortie est connue sans donnée confidentielle, un lookup d'identifiant interne, un drapeau de statut, une valeur numérique. `OUTPUT` fait l'inverse, il laisse les arguments sous forme de tokens et ne dé-identifie que la réponse.
 
-`PASSTHROUGH` est la frontière de confidentialité la plus stricte, les outils n'observent jamais de PII. L'outil reçoit la chaîne de tokens telle quelle et sa réponse est transmise sans réécriture. Utile quand les outils de l'agent travaillent sur des identifiants opaques, ou quand l'outil est lui-même la couche LLM-facing d'un autre système de dé-identification. C'est le seul mode qui tolère une factory `PreservesLabel`, `PreservesShape` ou `PreservesNothing`, puisque la frontière outil n'est jamais traversée en clair l'exigence d'unicité disparaît. On ne peut toujours pas brancher une telle factory directement sur `PIIAnonymizationMiddleware`, le type-checker la rejette, l'échappatoire est d'utiliser le pipeline brut hors du middleware.
+`PASSTHROUGH` est la frontière de confidentialité la plus stricte, les outils n'observent jamais de données confidentielles. L'outil reçoit la chaîne de tokens telle quelle et sa réponse est transmise sans réécriture. Utile quand les outils de l'agent travaillent sur des identifiants opaques, ou quand l'outil est lui-même la couche LLM-facing d'un autre système de dé-identification. C'est le seul mode qui tolère une factory `PreservesLabel`, `PreservesShape` ou `PreservesNothing`, puisque la frontière outil n'est jamais traversée en clair l'exigence d'unicité disparaît. On ne peut toujours pas brancher une telle factory directement sur `PIIAnonymizationMiddleware`, le type-checker la rejette, l'échappatoire est d'utiliser le pipeline brut hors du middleware.
 
 ### `InventedPlaceholderStrategy` : le token que le modèle a inventé
 
@@ -66,13 +66,13 @@ Cette détection n'est possible que parce que la factory est retrouvable, ce qui
 
 ### `EntityCreateByAssistantStrategy` : la valeur venue de l'assistant
 
-La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une PII utilisateur, la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
+La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une donnée confidentielle de l'utilisateur, la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
 
 | Stratégie | Effet | Quand l'utiliser |
 |---|---|---|
 | `PRESERVE` (défaut) | laisse en clair les valeurs introduites par l'assistant | par défaut, garder la connaissance du modèle |
-| `ANONYMIZE` | les dé-identifie comme des PII utilisateur | quand même les valeurs de l'assistant doivent être protégées |
-| `IGNORE` | n'analyse pas du tout les messages de l'assistant | économiser le détecteur quand l'assistant n'introduit jamais de PII |
+| `ANONYMIZE` | les dé-identifie comme les données confidentielles de l'utilisateur | quand même les valeurs de l'assistant doivent être protégées |
+| `IGNORE` | n'analyse pas du tout les messages de l'assistant | économiser le détecteur quand l'assistant n'introduit jamais de données confidentielles |
 
 ---
 
@@ -133,9 +133,9 @@ Toutes trois sont des `Enum` simples, sans dépendance externe, importables depu
 
 ```mermaid
 flowchart TD
-    A{L'outil lit ou renvoie des PII ?} -->|l'outil doit lire les PII| B{La réponse peut contenir de nouvelles PII ?}
+    A{L'outil lit ou renvoie des données confidentielles ?} -->|l'outil doit lire les vraies valeurs| B{La réponse peut contenir de nouvelles données confidentielles ?}
     A -->|l'outil n'a besoin de rien| E[PASSTHROUGH]
-    A -->|l'outil ne lit rien mais renvoie des PII| F[OUTPUT]
+    A -->|l'outil ne lit rien mais renvoie des données confidentielles| F[OUTPUT]
     B -->|oui| C[FULL]
     B -->|non| D[INPUT]
 ```
@@ -145,12 +145,12 @@ flowchart TD
 
 Pour `ToolCallStrategy`.
 
-- Par défaut `FULL`, le réglage le plus défensif et le seul qui rattrape automatiquement les PII introduites par l'outil.
-- `INPUT` quand la réponse est prouvée sans PII et que le gain de latence compte.
-- `OUTPUT` quand l'outil reçoit des identifiants opaques mais peut renvoyer des PII.
+- Par défaut `FULL`, le réglage le plus défensif et le seul qui rattrape automatiquement les données confidentielles introduites par l'outil.
+- `INPUT` quand la réponse est prouvée sans donnée confidentielle et que le gain de latence compte.
+- `OUTPUT` quand l'outil reçoit des identifiants opaques mais peut renvoyer des données confidentielles.
 - `PASSTHROUGH` quand la confidentialité prime, ou quand l'outil est conçu pour travailler sur des tokens.
 
-Pour les deux autres, gardez les défauts sauf raison contraire. Passez `InventedPlaceholderStrategy` à `DROP` pour nettoyer une sortie utilisateur sans lever, ou à `KEEP` pour tolérer un faux token. Passez `EntityCreateByAssistantStrategy` à `ANONYMIZE` si même les valeurs citées par l'assistant doivent être protégées, ou à `IGNORE` pour économiser le détecteur quand l'assistant n'introduit jamais de PII.
+Pour les deux autres, gardez les défauts sauf raison contraire. Passez `InventedPlaceholderStrategy` à `DROP` pour nettoyer une sortie utilisateur sans lever, ou à `KEEP` pour tolérer un faux token. Passez `EntityCreateByAssistantStrategy` à `ANONYMIZE` si même les valeurs citées par l'assistant doivent être protégées, ou à `IGNORE` pour économiser le détecteur quand l'assistant n'introduit jamais de données confidentielles.
 
 ---
 

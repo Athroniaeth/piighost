@@ -6,7 +6,7 @@ icon: lucide/shield
 
 `piighost` est une librairie Python qui permet de protéger vos données confidentielles, données personnelles (PII) et secrets, dans les conversations avec les LLM via de la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
 
-Cette dé-identification repère les PII grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le token qui prend sa place. Par exemple :
+Cette dé-identification repère les données confidentielles grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le token qui prend sa place. Par exemple :
 
 - `John Doe`{ .pii } devient `<<PERSON:1>>`{ .placeholder }
 - `john.doe@example.com`{ .pii } devient `<<EMAIL:1>>`{ .placeholder }
@@ -17,8 +17,8 @@ Le LLM ne reçoit donc que du texte dé-identifié. Quand il retourne des placeh
 
 La même mécanique protège les agents qui appellent des outils. Avec le middleware LangChain, un outil qui a besoin de la vraie adresse mail la reçoit en clair, alors que le LLM qui la fournit n'écrit que `<<EMAIL:1>>`{ .placeholder }.
 
-![Un utilisateur discute avec un agent, les valeurs PII sont remplacées par des placeholders avant d'atteindre le LLM puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-light.svg#only-light)
-![Un utilisateur discute avec un agent, les valeurs PII sont remplacées par des placeholders avant d'atteindre le LLM puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-dark.svg#only-dark)
+![Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le LLM puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-light.svg#only-light)
+![Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le LLM puis restaurées pour l'utilisateur et pour les appels d'outils.](assets/deid-chat-dark.svg#only-dark)
 
 *Aller-retour complet d'une requête agent. L'utilisateur et l'outil voient les vraies valeurs, le LLM ne voit que des placeholders.*
 { .figure-caption }
@@ -28,7 +28,7 @@ La même mécanique protège les agents qui appellent des outils. Avec le middle
 
 ## Pourquoi dé-identifier ?
 
-Un LLM en cloud (GPT, Claude, Gemini) reçoit chaque information que vous lui envoyez, PII de vos utilisateurs comprises. Dé-identifier en amont découple le choix du LLM de la sensibilité du contenu. Quand les PII n'atteignent jamais le LLM, le fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence.
+Un LLM en cloud (GPT, Claude, Gemini) reçoit chaque information que vous lui envoyez, PII de vos utilisateurs comprises. Dé-identifier en amont découple le choix du LLM de la sensibilité du contenu. Quand les données confidentielles n'atteignent jamais le LLM, le fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence.
 
 Pour aller plus loin :
 

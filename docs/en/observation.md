@@ -5,12 +5,12 @@ icon: lucide/eye
 # Observation
 
 `piighost` emits an OpenTelemetry trace for every de-identification. Each call opens
-a root span and one child span per pipeline stage, so you can see where a PII was
+a root span and one child span per pipeline stage, so you can see where a value was
 detected, how it was linked, which token replaced it, and whether the guard
 passed. Tracing is optional and never required for de-identification to run.
 
 !!! note
-    Trace payloads carry the clear PII values by default, so a trace doubles as
+    Trace payloads carry the clear values by default, so a trace doubles as
     an annotation dataset. Pass an `observation_redactor` to scrub those values
     before you send traces to a backend you do not fully trust. See
     [Redacting the trace payloads](#redacting-the-trace-payloads) below.
@@ -79,12 +79,12 @@ below it as one trace.
 
 ## Redacting the trace payloads
 
-By default a span payload holds the clear PII. The `detect` span records
+By default a span payload holds the confidential data (personal data, secrets) in clear. The `detect` span records
 `Patrick`{ .pii }, the root span records the input text with `Patrick`{ .pii }
 in place. That is deliberate. A trace with clear values is a ready-made dataset
 for evaluating detection quality.
 
-It is also a leak if the backend is not trusted with PII. Pass an
+It is also a leak if the backend is not trusted with confidential data. Pass an
 `observation_redactor`, a placeholder factory, to the pipeline constructor and
 every payload is scrubbed through it before it leaves the process.
 
@@ -110,12 +110,12 @@ serve as an annotation dataset, since the clear values are gone.
 
 | `observation_redactor` | Trace payloads | Safe for an untrusted backend | Usable as a dataset |
 |---|---|---|---|
-| `None` (default) | clear PII values | no | yes |
+| `None` (default) | clear values | no | yes |
 | a placeholder factory | scrubbed tokens | yes | no |
 
 </div>
 
-Clear-text tracing stays the default so traces keep their annotation value, but it is treated as an explicit choice. With no redactor set and a tracer provider actually configured, the pipeline warns once at construction that its traces carry clear PII. Pass `trace_clear_text=True` to acknowledge it and silence the warning, or an `observation_redactor` to scrub the payloads.
+Clear-text tracing stays the default so traces keep their annotation value, but it is treated as an explicit choice. With no redactor set and a tracer provider actually configured, the pipeline warns once at construction that its traces carry confidential data in clear. Pass `trace_clear_text=True` to acknowledge it and silence the warning, or an `observation_redactor` to scrub the payloads.
 
 ```python
 pipeline = AnonymizationPipeline(
