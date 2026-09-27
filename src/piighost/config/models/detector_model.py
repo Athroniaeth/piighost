@@ -22,6 +22,7 @@ class Gliner2DetectorConfig(_ComponentConfig):
     labels: list[str] | dict[str, str]
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
     max_concurrency: int | None = Field(default=None, ge=1)
+    max_chars: int | None = Field(default=None, ge=1)
 
     def build(self) -> AnyDetector:
         """Build a Gliner2Detector loading the named model."""
@@ -32,6 +33,7 @@ class Gliner2DetectorConfig(_ComponentConfig):
             labels=self.labels,
             threshold=self.threshold,
             max_concurrency=self.max_concurrency,
+            max_chars=self.max_chars,
         )
 
 
@@ -62,6 +64,7 @@ class TransformersDetectorConfig(_ComponentConfig):
     labels: list[str] | dict[str, str] | None = None
     threshold: float = Field(default=0.0, ge=0.0, le=1.0)
     max_concurrency: int | None = Field(default=None, ge=1)
+    max_chars: int | None = Field(default=None, ge=1)
     aggregation_strategy: str = "simple"
 
     def build(self) -> AnyDetector:
@@ -79,6 +82,7 @@ class TransformersDetectorConfig(_ComponentConfig):
             labels=self.labels,
             threshold=self.threshold,
             max_concurrency=self.max_concurrency,
+            max_chars=self.max_chars,
             aggregation_strategy=self.aggregation_strategy,
         )
 

@@ -196,9 +196,9 @@ Each needs its own extra, and every one but `presidio` needs a model. `labels` a
 
 | `type` | Extra | Keys |
 |--------|-------|------|
-| `gliner2` | `gliner2` | `model` (required), `labels` (required), `threshold` (default `0.5`), `max_concurrency` |
+| `gliner2` | `gliner2` | `model` (required), `labels` (required), `threshold` (default `0.5`), `max_concurrency`, `max_chars` |
 | `spacy` | `spacy` | `model` (required), `labels`, `max_concurrency` |
-| `transformers` | `transformers` | `model` (required), `labels`, `threshold` (default `0.0`), `aggregation_strategy` (default `simple`), `max_concurrency` |
+| `transformers` | `transformers` | `model` (required), `labels`, `threshold` (default `0.0`), `aggregation_strategy` (default `simple`), `max_concurrency`, `max_chars` |
 | `presidio` | `presidio` | `labels`, `language` (default `en`), `threshold` (default `0.0`) |
 | `llm` | `llm` | `model` (required), `labels` (required), `prompt`, `provider` |
 
@@ -210,7 +210,10 @@ type = "gliner2"
 model = "fastino/gliner2-multi-v1"
 labels = ["PERSON", "LOCATION"]
 threshold = 0.5
+max_chars = 2000
 ```
+
+The `gliner2` and `transformers` detectors take `max_chars`, the longest text one inference sees. A longer text is split into overlapping chunks scanned separately, and the spans are mapped back. Without it the whole text goes to the model in one pass, which a model with a short window truncates and a long document can exhaust memory on.
 
 The `transformers` detector passes `aggregation_strategy` to its token-classification pipeline, which groups sub-word tokens into whole entities.
 
