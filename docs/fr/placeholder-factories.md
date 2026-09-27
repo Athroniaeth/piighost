@@ -4,7 +4,7 @@ icon: lucide/replace
 
 # Placeholder factories
 
-Un *placeholder* est le token synthétique qui prend la place d'une PII détectée avant que le texte n'atteigne le LLM. Au lieu d'envoyer `Patrick habite à Paris`{ .pii } au LLM, le pipeline transmet `<<PERSON:1>>`{ .placeholder } `habite à`  `<<LOCATION:1>>`{ .placeholder }. Les valeurs originales restent dans la mémoire de conversation, le LLM ne les voit jamais.
+Un *placeholder* est le token synthétique qui prend la place d'une valeur détectée avant que le texte n'atteigne le LLM. Au lieu d'envoyer `Patrick habite à Paris`{ .pii } au LLM, le pipeline transmet `<<PERSON:1>>`{ .placeholder } `habite à`  `<<LOCATION:1>>`{ .placeholder }. Les valeurs originales restent dans la mémoire de conversation, le LLM ne les voit jamais.
 
 !!! note "Pourquoi le nom placeholder factory"
 
@@ -27,8 +27,8 @@ Cinq familles de factories se placent à des points différents de ce spectre, e
 
     Les tokens de cette documentation suivent une règle simple.
 
-    - **Token synthétique** (qui ne ressemble à aucune PII réelle), encadré par `<<` et `>>`. Exemples : `<<REDACT>>`{ .placeholder }, `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }, `<<REDACT:a1b2c3d4>>`{ .placeholder }. Les délimiteurs servent deux objectifs. Un LLM ou un humain qui relit ne confond jamais le token avec un mot du texte ou une balise HTML/XML émise par le modèle. Et le middleware peut retrouver le token pour faire son remplacement de chaîne, y compris repérer un token que le modèle aurait inventé.
-    - **Token qui réplique un format de PII** (réaliste hashé, masqué), sans délimiteur. Exemples : `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder }, `j***@mail.com`{ .placeholder }. L'absence de délimiteur est délibérée, le but est de paraître naturel pour qu'un outil aval qui valide le format (regex email, longueur de carte) accepte le token.
+    - **Token synthétique** (qui ne ressemble à aucune valeur réelle), encadré par `<<` et `>>`. Exemples : `<<REDACT>>`{ .placeholder }, `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }, `<<REDACT:a1b2c3d4>>`{ .placeholder }. Les délimiteurs servent deux objectifs. Un LLM ou un humain qui relit ne confond jamais le token avec un mot du texte ou une balise HTML/XML émise par le modèle. Et le middleware peut retrouver le token pour faire son remplacement de chaîne, y compris repérer un token que le modèle aurait inventé.
+    - **Token qui réplique le format d'une valeur réelle** (réaliste hashé, masqué), sans délimiteur. Exemples : `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder }, `j***@mail.com`{ .placeholder }. L'absence de délimiteur est délibérée, le but est de paraître naturel pour qu'un outil aval qui valide le format (regex email, longueur de carte) accepte le token.
 
     La règle vaut aussi pour toute factory que vous écrirez. Token purement opaque, encadrez-le. Token qui imite une vraie valeur, laissez-le brut.
 
@@ -70,7 +70,7 @@ Pas de built-in. Tag `PreservesLabeledIdentityHashed`. Voir la section *Écrire 
 
 `j***@mail.com`{ .placeholder }, `****4567`{ .placeholder }, `P******`{ .placeholder }. Le token conserve *une partie* de la valeur originale, le domaine de l'email, les quatre derniers chiffres d'une carte, la première lettre d'un nom. Le LLM peut raisonner au-delà du type, *l'email est sur le domaine de l'entreprise*, *la carte se termine en 4567*, *le nom commence par P*. Deux compromis viennent avec.
 
-1. **Des fragments réels de la PII atteignent le LLM.** Il ne peut pas reconstruire la valeur complète, mais `j***@mail.com`{ .placeholder } situe déjà l'utilisateur chez un fournisseur de mail connu.
+1. **Des fragments réels de la valeur atteignent le LLM.** Il ne peut pas reconstruire la valeur complète, mais `j***@mail.com`{ .placeholder } situe déjà l'utilisateur chez un fournisseur de mail connu.
 2. **Des collisions sont possibles.** Deux cartes différentes terminant par `4567` se confondent dans `****4567`{ .placeholder }, deux emails partageant la première lettre et le domaine deviennent identiques. Le token est *majoritairement* unique, sans garantie.
 
 Built-in : `MaskPlaceholderFactory`, qui garde par défaut le premier caractère de la valeur et masque le reste avec `*`, donc `Jonathan`{ .pii } devient `J*******`{ .placeholder }. Tag `PreservesShape`. Le middleware le rejette pour la même raison que `PreservesLabel`, un token ambigu ne peut pas être restauré par remplacement de chaîne.
@@ -100,7 +100,7 @@ Code couleur commun aux deux tables, bleu = meilleur, vert = correct, jaune = pa
 
 <table class="security-table" markdown="1">
 <thead>
-<tr><th>Famille</th><th>Type vu ?</th><th>PII distinguées ?</th><th>Fuite de valeur ?</th><th>Collision avec une vraie valeur ?</th></tr>
+<tr><th>Famille</th><th>Type vu ?</th><th>Valeurs distinguées ?</th><th>Fuite de valeur ?</th><th>Collision avec une vraie valeur ?</th></tr>
 </thead>
 <tbody>
 <tr><td>Aucune information</td><td class="c-blue">non</td><td class="c-blue">non</td><td class="c-blue">aucune</td><td class="c-blue">non</td></tr>
@@ -277,7 +277,7 @@ Le middleware travaille sur trois frontières, les **messages d'entrée** (LLM i
 
 **Messages d'entrée et sortie.** Quand `abefore_model` dé-identifie un message, le pipeline mémorise le mapping entité vers token. La réponse du LLM est restaurée en relisant ce mapping à l'envers. Cette opération fonctionne avec n'importe quelle factory, qu'il y ait ou non collision de tokens.
 
-**Appels d'outil.** Le LLM produit les arguments d'outil en *combinant* et *paraphrasant* les tokens qu'il vient de voir. Ce texte précis n'a jamais été produit par le pipeline, il n'est donc pas mémorisé. La seule façon de le restaurer est le **remplacement de chaîne**, on parcourt les arguments à la recherche des tokens connus et on substitue la valeur originale de chaque entité. La logique est symétrique pour la réponse de l'outil, dé-identifiée à nouveau en remplaçant les valeurs PII connues par leur token.
+**Appels d'outil.** Le LLM produit les arguments d'outil en *combinant* et *paraphrasant* les tokens qu'il vient de voir. Ce texte précis n'a jamais été produit par le pipeline, il n'est donc pas mémorisé. La seule façon de le restaurer est le **remplacement de chaîne**, on parcourt les arguments à la recherche des tokens connus et on substitue la valeur originale de chaque entité. La logique est symétrique pour la réponse de l'outil, dé-identifiée à nouveau en remplaçant les valeurs connues par leur token.
 
 Cette substitution n'est non ambiguë **que si chaque entité a un token unique**. Si deux entités se confondent dans `<<PERSON>>`{ .placeholder }, on ne sait pas quelle valeur restaurer. Le middleware exige en plus une **grammaire retrouvable**, une fois tous les tokens émis remplacés, tout token restant qui matche encore la grammaire a été inventé par le modèle et peut être refusé (voir [Stratégies d'appel outil](tool-call-strategies.md)). Le middleware restreint donc son type accepté à un pipeline dont les tokens sont `PreservesRecognizableIdentity`, ce qui via la covariance englobe `PreservesIdentityOnly` (redact hashé sans label) et `PreservesLabeledIdentityOpaque` (avec label). Brancher une factory `PreservesLabel`, `PreservesShape`, `PreservesNothing` ou `PreservesLabeledIdentityHashed` est rejeté par `pyrefly` avant même que le programme ne tourne.
 

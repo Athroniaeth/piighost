@@ -9,7 +9,7 @@ Module: `piighost.integrations.langchain`
 !!! note "Moved in 1.4.0"
     This integration moved here from `piighost.integrations.middleware`. The old import path still works but emits a `DeprecationWarning`. Update imports to `piighost.integrations.langchain`.
 
-`PIIAnonymizationMiddleware` is a LangChain `AgentMiddleware` that de-identifies PII around the model and tool boundary of an agent. It reads the thread id from the LangGraph config, de-identifies messages before the model sees them, restores them after for display, and routes tool calls by a chosen strategy. All detection, token assignment, and replacement is delegated to a `ThreadAnonymizationPipeline`.
+`PIIAnonymizationMiddleware` is a LangChain `AgentMiddleware` that de-identifies confidential data around the model and tool boundary of an agent. It reads the thread id from the LangGraph config, de-identifies messages before the model sees them, restores them after for display, and routes tool calls by a chosen strategy. All detection, token assignment, and replacement is delegated to a `ThreadAnonymizationPipeline`.
 
 ```python
 from piighost.integrations.langchain import (
@@ -34,7 +34,7 @@ Extends `AgentMiddleware` and hooks the agent loop at three points.
 |------|------|-----------|
 | `abefore_model` | Before each model call | De-identifies the user and model messages |
 | `aafter_model` | After each model response | Restores the user and model messages for display |
-| `awrap_tool_call` | Around each tool call | De-identifies arguments, de-identifies the response, per strategy |
+| `awrap_tool_call` | Around each tool call | Restores the arguments, de-identifies the response, per strategy |
 
 </div>
 
@@ -136,12 +136,12 @@ How a token the pipeline never issued is treated. After restoration, every issue
 
 ### `EntityCreateByAssistantStrategy`
 
-How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not user PII, so de-identifying it strips the model of its world knowledge of that entity. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
+How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, so de-identifying it strips the model of its world knowledge of that entity. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
 
 | Value | Effect |
 |-------|--------|
 | `PRESERVE` | leave assistant-introduced values in clear |
-| `ANONYMIZE` | de-identify them like user PII |
+| `ANONYMIZE` | de-identify them like the user's confidential data |
 | `IGNORE` | do not analyze assistant messages at all, saving the detector |
 
 `PRESERVE` is the default.

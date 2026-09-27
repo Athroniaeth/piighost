@@ -128,8 +128,8 @@ Patrick lives in Paris.
 GLiNER2 marque `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, chaque frontière du tour substitue une direction.
 
 - `abefore_model` fait passer le message dans `pipeline.anonymize`, si bien que le LLM reçoit `Where does <<PERSON:1>> live?`.
-- Le modèle appelle `lookup_city(person="<<PERSON:1>>")`. Sous `ToolCallStrategy.FULL`, `awrap_tool_call` dé-identifie l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis dé-identifie à nouveau le résultat texte de l'outil.
-- `aafter_model` dé-identifie la réponse pour l'utilisateur.
+- Le modèle appelle `lookup_city(person="<<PERSON:1>>")`. Sous `ToolCallStrategy.FULL`, `awrap_tool_call` restaure l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis dé-identifie à nouveau le résultat texte de l'outil.
+- `aafter_model` restaure la réponse pour l'utilisateur.
 
 Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape.
 

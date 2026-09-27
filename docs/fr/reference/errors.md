@@ -179,11 +179,11 @@ Trois erreurs exposent les valeurs derrière la défaillance en attributs. Toute
 
 ## `PIIGhostSecurityWarning`
 
-Un `UserWarning`, en dehors de l'arbre `PIIGhostError`, donc il ne fait jamais échouer un appel et les filtres standards de `warnings` le gouvernent. Il signale une configuration qui tourne mais garde les PII lisibles, donc un choix assumé fonctionne encore alors qu'un oubli reste bruyant. Deux endroits l'émettent, tous deux à la construction.
+Un `UserWarning`, en dehors de l'arbre `PIIGhostError`, donc il ne fait jamais échouer un appel et les filtres standards de `warnings` le gouvernent. Il signale une configuration qui tourne mais garde les données confidentielles lisibles, donc un choix assumé fonctionne encore alors qu'un oubli reste bruyant. Deux endroits l'émettent, tous deux à la construction.
 
 | Émis par | Émis quand |
 |----------|------------|
-| `warn_plaintext`, appelé depuis `RedisConversationMemory` et `SqlAlchemyConversationMemory` | un backend persistant est construit sans hacheur ni cipher, donc son store garde les PII en clair |
+| `warn_plaintext`, appelé depuis `RedisConversationMemory` et `SqlAlchemyConversationMemory` | un backend persistant est construit sans hacheur ni cipher, donc son store garde les données confidentielles en clair |
 | `BaseAnonymizationPipeline.__init__` | aucun `observation_redactor` n'est posé, `trace_clear_text` est désactivé, et le tracer exporte, donc les traces enregistreraient du texte en clair |
 
 La comparaison des backends est dans [Référence de la mémoire de conversation](memory.md), et le redactor dans [Observation](../observation.md).

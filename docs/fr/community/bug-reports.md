@@ -28,7 +28,7 @@ Un bon rapport de bug fait gagner du temps à tout le monde. Avant d'ouvrir une 
 
 - Rapports à haut niveau du type "la dé-identification ne marche pas" sans exemple reproductible.
 - Captures d'écran de code à la place d'un bloc texte (impossible à copier-coller pour reproduire).
-- Partager de vraies PII dans l'issue. Utilisez des valeurs factices (`Alice Dupont`, `Paris`, `alice@example.com`).
+- Partager de vraies données confidentielles dans l'issue. Utilisez des valeurs factices (`Alice Dupont`, `Paris`, `alice@example.com`).
 
 ## Vulnérabilités de sécurité
 

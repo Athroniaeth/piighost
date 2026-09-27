@@ -4,7 +4,7 @@ icon: lucide/code
 
 # Comment dé-identifier un texte et le restaurer
 
-Vous avez un texte contenant des PII et vous voulez le dé-identifier, l'envoyer à un LLM, puis restaurer les valeurs d'origine dans la réponse. Ce guide fait l'aller-retour avec le seul cœur de `piighost`, sans modèle ni dépendance optionnelle.
+Vous avez un texte contenant des données confidentielles et vous voulez le dé-identifier, l'envoyer à un LLM, puis restaurer les valeurs d'origine dans la réponse. Ce guide fait l'aller-retour avec le seul cœur de `piighost`, sans modèle ni dépendance optionnelle.
 
 Installez le cœur.
 

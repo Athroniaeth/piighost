@@ -7,7 +7,7 @@ icon: lucide/wrench
 `PIIAnonymizationMiddleware` sits on two channels, the LLM channel and the tool channel, which do not offer the same reliability guarantees. Three strategies drive its behaviour, one per independent decision the middleware has to make.
 
 - **`ToolCallStrategy`** decides what crosses the tool boundary, in both directions. Default `FULL`.
-- **`InventedPlaceholderStrategy`** decides the fate of a token the pipeline never issued, surfacing in a response or a deanonymised argument. Default `RAISE`.
+- **`InventedPlaceholderStrategy`** decides the fate of a token the pipeline never issued, surfacing in a response or a restored argument. Default `RAISE`.
 - **`EntityCreateByAssistantStrategy`** decides the fate of a value whose first occurrence in the thread came from the assistant. Default `PRESERVE`.
 
 !!! note "One entity, one token, across the whole thread"
@@ -29,32 +29,32 @@ In `awrap_tool_call`, the LLM produces tool arguments by combining, splitting, p
 Both directions therefore fall back on **plain string replacement**.
 
 - *Tool args (LLM to tool)*, scan the args for known tokens and replace each with the original value of its entity, `<<EMAIL:1>>`{ .placeholder } becomes `jean@mail.com`{ .pii } again.
-- *Tool response (tool to LLM)*, scan the response for known PII values and replace each with the corresponding token.
+- *Tool response (tool to LLM)*, scan the response for known values and replace each with the corresponding token.
 
 Plain replacement only works when the mapping is **unambiguous**. If two entities share the token `<<PERSON>>`{ .placeholder }, there is no way to decide which original to restore in the args. This is the structural reason the middleware accepts only factories whose tokens preserve a findable identity. See [Placeholder factories](placeholder-factories.md).
 
-The middleware acts only in the tool wrapper, never on the stored response afterwards. Arguments are deanonymised recursively through nested `dict`, `list`, and `tuple` containers, other containers pass through unchanged.
+The middleware acts only in the tool wrapper, never on the stored response afterwards. Arguments are restored recursively through nested `dict`, `list`, and `tuple` containers, other containers pass through unchanged.
 
 ### `ToolCallStrategy`: what crosses the tool boundary
 
-The two directions of a tool call are independent. `INPUT` deanonymises the arguments so the tool receives real data. `OUTPUT` anonymises the tool response to protect any PII it returns. `FULL` does both. `PASSTHROUGH` touches neither.
+The two directions of a tool call are independent. `INPUT` restores the arguments so the tool receives real data. `OUTPUT` de-identifies the tool response to protect any confidential data (personal data, secrets) it returns. `FULL` does both. `PASSTHROUGH` touches neither.
 
 | Strategy | Tool sees | Response to the LLM | When to use |
 |---|---|---|---|
-| `INPUT` | real values (deanonymised args) | as-is, not anonymised | tools whose response is known PII-free |
-| `OUTPUT` | tokens | re-anonymised by the pipeline | tools that receive opaque ids but may return PII |
-| `FULL` (default) | real values (deanonymised args) | re-anonymised by the pipeline | tools that read PII and may return new PII (DBs, CRMs, search) |
-| `PASSTHROUGH` | tokens | as-is | tools that must never see PII, or that do not need them |
+| `INPUT` | real values (restored args) | as-is, not de-identified | tools whose response is known to hold no confidential data |
+| `OUTPUT` | tokens | de-identified by the pipeline | tools that receive opaque ids but may return confidential data |
+| `FULL` (default) | real values (restored args) | de-identified by the pipeline | tools that read confidential data and may return new confidential data (DBs, CRMs, search) |
+| `PASSTHROUGH` | tokens | as-is | tools that must never see confidential data, or that do not need it |
 
-`FULL` is symmetric, deanonymise the arguments then run the response through `pipeline.anonymize()`, which re-detects and re-anonymises. Any new PII the tool returned becomes a token before the LLM sees it, at the cost of one detection pass per call.
+`FULL` is symmetric, restore the arguments then run the response through `pipeline.anonymize()`, which re-detects and de-identifies. Any new confidential data the tool returned becomes a token before the LLM sees it, at the cost of one detection pass per call.
 
-`INPUT` deanonymises the input only and leaves the response raw, reserve it for tools whose output is known PII-free, an internal id lookup, a status flag, a numeric value. `OUTPUT` does the reverse, it leaves the arguments as tokens and only anonymises the response.
+`INPUT` restores the input only and leaves the response raw, reserve it for tools whose output is known to hold no confidential data, an internal id lookup, a status flag, a numeric value. `OUTPUT` does the reverse, it leaves the arguments as tokens and only de-identifies the response.
 
-`PASSTHROUGH` is the strictest privacy boundary, tools never observe PII. The tool receives the token string as-is and its response is forwarded back without rewriting. Useful when the agent's tools work on opaque identifiers, or when the tool is itself the LLM-facing layer of a separate de-identification system. It is the only mode that tolerates a `PreservesLabel`, `PreservesShape` or `PreservesNothing` factory, since the tool boundary is never crossed in clear text the uniqueness requirement disappears. You still cannot wire such a factory into `PIIAnonymizationMiddleware` directly, the type-checker rejects it, the escape hatch is to use the bare pipeline outside the middleware.
+`PASSTHROUGH` is the strictest privacy boundary, tools never observe confidential data. The tool receives the token string as-is and its response is forwarded back without rewriting. Useful when the agent's tools work on opaque identifiers, or when the tool is itself the LLM-facing layer of a separate de-identification system. It is the only mode that tolerates a `PreservesLabel`, `PreservesShape` or `PreservesNothing` factory, since the tool boundary is never crossed in clear text the uniqueness requirement disappears. You still cannot wire such a factory into `PIIAnonymizationMiddleware` directly, the type-checker rejects it, the escape hatch is to use the bare pipeline outside the middleware.
 
 ### `InventedPlaceholderStrategy`: the token the model invented
 
-After deanonymisation, every token the pipeline issued has been replaced by its value. If a string still matches the token grammar, the model invented it, by hallucination or injection. The model may have produced a `<<PERSON:9>>`{ .placeholder } that maps to no known entity.
+After restoration, every token the pipeline issued has been replaced by its value. If a string still matches the token grammar, the model invented it, by hallucination or injection. The model may have produced a `<<PERSON:9>>`{ .placeholder } that maps to no known entity.
 
 | Strategy | Effect | When to use |
 |---|---|---|
@@ -66,13 +66,13 @@ This detection is possible only because the factory is findable, which the tag `
 
 ### `EntityCreateByAssistantStrategy`: the value that came from the assistant
 
-The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not user PII, anonymising it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
+The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, de-identifying it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
 
 | Strategy | Effect | When to use |
 |---|---|---|
 | `PRESERVE` (default) | leaves assistant-introduced values in clear | default, keep the model's knowledge |
-| `ANONYMIZE` | de-identifies them like user PII | when even assistant values must be protected |
-| `IGNORE` | does not analyse assistant messages at all | save the detector when the assistant never introduces PII |
+| `ANONYMIZE` | de-identifies them like the user's confidential data | when even assistant values must be protected |
+| `IGNORE` | does not analyse assistant messages at all | save the detector when the assistant never introduces confidential data |
 
 ---
 
@@ -80,7 +80,7 @@ The *provenance* of a value is the role of its first occurrence in the thread. A
 
 The strategies above are `Enum`s passed at middleware construction. The type constraint is on the pipeline's *factory*, not on the strategies.
 
-The middleware is generic on a `PreservesRecognizableIdentity` tag, the intersection of the *Identity* axis (the token is unique per entity) and the *Recognizable* axis (the token carries a delimited grammar the factory can find again). Uniqueness makes the string-replacement deanonymisation unambiguous. Findability makes it possible to detect an invented token, hence `InventedPlaceholderStrategy`.
+The middleware is generic on a `PreservesRecognizableIdentity` tag, the intersection of the *Identity* axis (the token is unique per entity) and the *Recognizable* axis (the token carries a delimited grammar the factory can find again). Uniqueness makes the string-replacement restoration unambiguous. Findability makes it possible to detect an invented token, hence `InventedPlaceholderStrategy`.
 
 ```mermaid
 classDiagram
@@ -133,9 +133,9 @@ All three are plain `Enum`s with no external dependency, importable from `piigho
 
 ```mermaid
 flowchart TD
-    A{Tool reads or returns PII?} -->|tool must read PII| B{Response may contain new PII?}
+    A{Tool reads or returns confidential data?} -->|tool must read real values| B{Response may contain new confidential data?}
     A -->|tool needs nothing| E[PASSTHROUGH]
-    A -->|tool reads nothing but returns PII| F[OUTPUT]
+    A -->|tool reads nothing but returns confidential data| F[OUTPUT]
     B -->|yes| C[FULL]
     B -->|no| D[INPUT]
 ```
@@ -145,12 +145,12 @@ flowchart TD
 
 For `ToolCallStrategy`.
 
-- Default to `FULL`, the most defensive setting and the only one that catches tool-introduced PII automatically.
-- `INPUT` when the response is proven PII-free and the latency saving matters.
-- `OUTPUT` when the tool receives opaque identifiers but may return PII.
+- Default to `FULL`, the most defensive setting and the only one that catches tool-introduced confidential data automatically.
+- `INPUT` when the response is proven to hold no confidential data and the latency saving matters.
+- `OUTPUT` when the tool receives opaque identifiers but may return confidential data.
 - `PASSTHROUGH` when privacy outweighs functionality, or when the tool is engineered to work on tokens.
 
-For the other two, keep the defaults unless you have a reason not to. Set `InventedPlaceholderStrategy` to `DROP` to clean a user-facing output without raising, or to `KEEP` to tolerate a fake token. Set `EntityCreateByAssistantStrategy` to `ANONYMIZE` if even values the assistant cited must be protected, or to `IGNORE` to save the detector when the assistant never introduces PII.
+For the other two, keep the defaults unless you have a reason not to. Set `InventedPlaceholderStrategy` to `DROP` to clean a user-facing output without raising, or to `KEEP` to tolerate a fake token. Set `EntityCreateByAssistantStrategy` to `ANONYMIZE` if even values the assistant cited must be protected, or to `IGNORE` to save the detector when the assistant never introduces confidential data.
 
 ---
 

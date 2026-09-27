@@ -28,7 +28,7 @@ A good bug report saves time for everyone. Before opening an issue, a few quick 
 
 - High-level reports like "de-identification doesn't work" without a reproducible example.
 - Screenshots of code instead of a text block (cannot be copy-pasted to reproduce).
-- Sharing real PII in the issue. Use fake values (`Alice Smith`, `Paris`, `alice@example.com`).
+- Sharing real confidential data in the issue. Use fake values (`Alice Smith`, `Paris`, `alice@example.com`).
 
 ## Security vulnerabilities
 

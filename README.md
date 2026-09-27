@@ -10,7 +10,7 @@
 
 `piighost` is a Python library that protects your confidential data, personal data (PII) and secrets, in conversations with LLMs through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
-This de-identification spots PII with pluggable detectors (regex, NER, LLM) and replaces each value with a placeholder, the token that takes its place. For example:
+This de-identification spots confidential data with pluggable detectors (regex, NER, LLM) and replaces each value with a placeholder, the token that takes its place. For example:
 
 - `John Doe` becomes `<<PERSON:1>>`
 - `john.doe@example.com` becomes `<<EMAIL:1>>`
@@ -24,7 +24,7 @@ The same mechanism protects agents that call tools. With the LangChain middlewar
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-dark.gif">
-    <img alt="A user chats with an agent, PII values are replaced by placeholders before reaching the LLM and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
+    <img alt="A user chats with an agent, confidential values are replaced by placeholders before reaching the LLM and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-light.gif" width="760">
   </picture>
 </p>
 
@@ -43,7 +43,7 @@ Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs
 - **Reversible, transparent tokens:** each value becomes a stable id like `<<PERSON:1>>` and is put back automatically, so the end user reads `john.doe@example.com` and never sees a token. Label-only, masked, and keyed-hash factories are available too.
 - **Consistent across a conversation:** the same value keeps the same token for the whole thread, backed by in-process, Redis, or SQLAlchemy memory (Redis and SQL can encrypt values at rest and hash keys).
 - **Agent integrations with a tool boundary:** LangChain middleware, Pydantic AI hooks, and LlamaIndex. The tool receives the real value while the model sees only the token, with token-by-token streaming restoration.
-- **A customizable staged pipeline:** detect, link, resolve overlaps, expand, de-identify, and an optional guard rail that refuses a reply with residual PII (a detector, an LLM, or Mistral moderation). Swap in fuzzy matching to tolerate typos or add your own stage.
+- **A customizable staged pipeline:** detect, link, resolve overlaps, expand, de-identify, and an optional guard rail that refuses a reply with residual confidential data (a detector, an LLM, or Mistral moderation). Swap in fuzzy matching to tolerate typos or add your own stage.
 - **Config-driven and self-hostable:** build a whole pipeline from a TOML/JSON file with a CLI to validate it, run it in your process, or as a service through the companion [piighost-api](https://github.com/Athroniaeth/piighost-api) (OpenAI- and Anthropic-compatible proxies).
 - **Typed and observable:** ships `py.typed` and a minimal core with everything heavy behind extras, plus OpenTelemetry per-stage spans (viewable in Langfuse or Jaeger) with optional payload redaction.
 - **Scope, live text and conversations:** `piighost` protects a running conversation message by message, not a static dataset.

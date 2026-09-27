@@ -103,7 +103,7 @@ The top-level keys of a `PipelineConfig`.
 | `[overlap_resolver]` | no | Resolves overlapping detections, defaults to `ConfidenceOverlapResolver` |
 | `[expander]` | no | Re-finds missed occurrences of a detected value |
 | `[entity_resolver]` | no | Clusters entities that refer to the same thing |
-| `[guard]` | no | Re-checks the output for residual PII |
+| `[guard]` | no | Re-checks the output for residual confidential data |
 | `[override]` | no | Forces or vetoes detections via a whitelist and a blacklist |
 | `[observation_redactor]` | no | A placeholder factory redacting trace payloads |
 | `[memory]` | no | The conversation memory, its presence makes a thread pipeline |
@@ -118,7 +118,7 @@ Discriminated on `type`. Required.
 
 ### `type = "regex"`
 
-Matches PII by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and a shape class stops at the first non-ASCII character. A value such as `prénom@corp.com`{ .pii } is therefore matched from `nom` onwards.
+Matches confidential data by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and a shape class stops at the first non-ASCII character. A value such as `prénom@corp.com`{ .pii } is therefore matched from `nom` onwards.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
@@ -314,7 +314,7 @@ threshold = 0.85
 
 ## `[guard]`
 
-Optional. Discriminated on `type`. Re-checks the de-identified output for residual PII and refuses it when PII remains.
+Optional. Discriminated on `type`. Re-checks the de-identified output for residual confidential data and refuses it when any remains.
 
 | `type` | Extra | Re-checks with |
 |--------|-------|----------------|

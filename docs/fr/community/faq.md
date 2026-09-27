@@ -4,7 +4,7 @@ icon: lucide/message-circle-question
 
 # FAQ
 
-??? question "Est-ce vraiment utile de dé-identifier les PII avant d'appeler un LLM ?"
+??? question "Est-ce vraiment utile de dé-identifier les données confidentielles avant d'appeler un LLM ?"
     Oui, et ce indépendamment de `piighost`. Les enjeux (exfiltration vers les providers, réquisition légale, entraînement sur les conversations, conformité RGPD, fuites de données) sont détaillés dans [Pourquoi dé-identifier ?](../why-anonymize.md). La page est agnostique à la librairie. Elle explique pourquoi le problème existe avant de justifier une solution comme `piighost`.
 
 ??? question "Quelles langues sont supportées ?"
@@ -31,14 +31,14 @@ icon: lucide/message-circle-question
 ??? question "Puis-je obtenir de fausses valeurs réalistes plutôt que des tokens ?"
     Pas encore. Une factory Faker qui émet des valeurs réalistes (un nom plausible à la place de `Patrick`{ .pii }) est sur la [roadmap](../roadmap.md) mais pas réimplémentée en v2. Aujourd'hui les factories émettent des tokens synthétiques ou des masques, jamais une valeur qui ressemble à du vrai.
 
-??? question "Le LLM voit-il les vraies PII quand il appelle un outil ?"
-    Cela dépend de la stratégie d'appel outil. Avec la valeur par défaut (`FULL`), non. Le middleware restaure les arguments juste avant l'exécution de l'outil, puis re-dé-identifie la réponse avant qu'elle ne retourne au LLM. L'outil voit les vraies valeurs, le LLM ne voit que les placeholders. Les modes `INPUT`, `OUTPUT` et `PASSTHROUGH` modifient ce comportement, voir la question suivante et [Stratégies d'appel outil](../tool-call-strategies.md). Diagramme complet dans [Architecture](../architecture.md).
+??? question "Le LLM voit-il les vraies données confidentielles quand il appelle un outil ?"
+    Cela dépend de la stratégie d'appel outil. Avec la valeur par défaut (`FULL`), non. Le middleware restaure les arguments juste avant l'exécution de l'outil, puis dé-identifie à nouveau la réponse avant qu'elle ne retourne au LLM. L'outil voit les vraies valeurs, le LLM ne voit que les placeholders. Les modes `INPUT`, `OUTPUT` et `PASSTHROUGH` modifient ce comportement, voir la question suivante et [Stratégies d'appel outil](../tool-call-strategies.md). Diagramme complet dans [Architecture](../architecture.md).
 
 ??? question "Comment contrôler ce que voit un outil : placeholder ou vraie valeur ?"
-    La stratégie d'appel outil de `PIIAnonymizationMiddleware` expose quatre modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). Le bon choix dépend de la possibilité que l'outil émette de nouvelles PII et du niveau de cloisonnement souhaité. Voir [Stratégies d'appel outil](../tool-call-strategies.md) pour les compromis et l'arbre de décision, et [Placeholder factories](../placeholder-factories.md) pour la contrainte de factory, le middleware exige une factory qui préserve l'identité et reste reconnaissable.
+    La stratégie d'appel outil de `PIIAnonymizationMiddleware` expose quatre modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). Le bon choix dépend de la possibilité que l'outil émette de nouvelles données confidentielles et du niveau de cloisonnement souhaité. Voir [Stratégies d'appel outil](../tool-call-strategies.md) pour les compromis et l'arbre de décision, et [Placeholder factories](../placeholder-factories.md) pour la contrainte de factory, le middleware exige une factory qui préserve l'identité et reste reconnaissable.
 
-??? question "Que se passe-t-il si le LLM hallucine une PII qui n'était pas dans l'entrée ?"
-    Elle n'est **pas** dé-identifiée par `piighost`. Le linking d'entités travaille sur les détections issues de l'entrée, pas sur des valeurs inventées. Un guard de PII résiduelle peut re-vérifier la sortie et la refuser, voir la section guard de la [référence de configuration](../configuration/toml.md) et [Limites](../limitations.md).
+??? question "Que se passe-t-il si le LLM hallucine une donnée confidentielle qui n'était pas dans l'entrée ?"
+    Elle n'est **pas** dé-identifiée par `piighost`. Le linking d'entités travaille sur les détections issues de l'entrée, pas sur des valeurs inventées. Un guard de données confidentielles résiduelles peut re-vérifier la sortie et la refuser, voir la section guard de la [référence de configuration](../configuration/toml.md) et [Limites](../limitations.md).
 
 ??? question "La mémoire de conversation est-elle partagée entre threads ?"
     Non. La mémoire est scopée par `thread_id`. Deux conversations parallèles ne voient pas les tokens l'une de l'autre, ce qui évite les fuites latérales entre utilisateurs. Le `thread_id` est extrait automatiquement de la config LangGraph.
