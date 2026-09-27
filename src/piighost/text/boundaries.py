@@ -121,10 +121,24 @@ def boundary_wrap(fragment: str) -> str:
     return f"{_START}{re.escape(fragment)}{_END}"
 
 
+_STARTS_WORD = re.compile(_START)
+"""The start condition alone, checked at a position a literal match begins."""
+
+_ENDS_WORD = re.compile(_END)
+"""The end condition alone, checked at the position a literal match ends."""
+
+
 @lru_cache(maxsize=1024)
 def _word_boundary_pattern(fragment: str, flags: int) -> re.Pattern[str]:
-    """Compile and cache the word-boundary pattern for a fragment and flags."""
-    return re.compile(boundary_wrap(fragment), flags)
+    """Compile and cache the literal pattern for a fragment and flags.
+
+    The fragment alone, not the pattern boundary_wrap returns: that one opens
+    on an alternation of lookbehinds, which keeps the regex engine from
+    skipping ahead to the fragment, and it made every search about twenty
+    times slower on a long document.
+    """
+    boundary_wrap(fragment)
+    return re.compile(re.escape(fragment), flags)
 
 
 def find_all_word_boundary(
@@ -134,8 +148,12 @@ def find_all_word_boundary(
 ) -> list[Span]:
     """Return the span of every word-boundary occurrence.
 
-    The compiled pattern is cached per fragment and flags to avoid recompiling
-    in hot paths.
+    The fragment is searched as a literal and each candidate's two edges are
+    then checked against the conditions boundary_wrap encodes, so the result
+    is the same as matching that pattern. A rejected candidate resumes the
+    search one character further, as the regex engine would, so an occurrence
+    overlapping a rejected one is still found. The compiled literal is cached
+    per fragment and flags to avoid recompiling in hot paths.
 
     Args:
         text: The text to search.
@@ -148,8 +166,17 @@ def find_all_word_boundary(
     Raises:
         EmptyFragmentError: If the fragment is empty, through boundary_wrap.
     """
-    pattern = _word_boundary_pattern(fragment, int(flags))
-    return [Span(match.start(), match.end()) for match in pattern.finditer(text)]
+    literal = _word_boundary_pattern(fragment, int(flags))
+    spans: list[Span] = []
+    position = 0
+    while (match := literal.search(text, position)) is not None:
+        start, end = match.span()
+        if _STARTS_WORD.match(text, start) and _ENDS_WORD.match(text, end):
+            spans.append(Span(start, end))
+            position = end
+        else:
+            position = start + 1
+    return spans
 
 
 def clear_boundary_cache() -> None:
