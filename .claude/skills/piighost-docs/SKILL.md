@@ -98,7 +98,7 @@ Keep out of the README: detector catalogs, config reference, migration notes, th
 
 The opening paragraph is an identity card, three sentences at most. The reference application, in full:
 
-1. What it is and what it does. « `piighost` est une librairie Python qui permet de protéger vos données personnelles (PII) dans les conversations avec les LLM via de la dé-identification. »
+1. What it is and what it does. « `piighost` est une librairie Python qui permet de protéger vos données confidentielles, données personnelles (PII) et secrets, dans les conversations avec les LLM via de la dé-identification. »
 2. How, in one sentence, with the round trip. « Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. » The mechanism only. The benefit does not belong here, see below.
 3. What it plugs into. « Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic. »
 
@@ -153,7 +153,25 @@ PIIGhost keeps the mapping between a value and its placeholder so it can restore
 - Reserve **anonymisation** for genuinely irreversible removal (no restoration possible). Say so explicitly when you use it.
 - When the reversible nature matters (privacy claims, RGPD scope), state it in a `!!! note` (docs) or `> [!NOTE]` (README).
 
-The rule governs every page you write or rewrite. Renaming page slugs and nav labels (`why-anonymize.md` and friends) is a separate, deliberate task, do not rename a file as a side effect of a prose pass.
+The rule governs every page you write or rewrite. Renaming page slugs (`why-anonymize.md` and friends) is a separate, deliberate task, do not rename a file as a side effect of a prose pass. Nav labels follow the prose and say de-identify.
+
+**Where « anonymisation » still belongs.** Only where the text is about the law or about irreversible removal: the RGPD distinction between pseudonymisation and anonymisation, a regulator's wording (EDPB, CNIL, HIPAA), a quoted source, or a factory that drops the mapping for good. Everywhere else, including titles, nav labels, card blurbs and alt text, the word is dé-identification.
+
+## Terminology: données confidentielles, not only PII
+
+`piighost` protects more than personal data. The regex catalogs of the hub also carry secrets (API keys, access tokens, private keys, connection strings), which must never reach a model either. So the umbrella word is **données confidentielles** / **confidential data**, and it covers two kinds.
+
+| Concept | FR | EN | Use it when |
+|---|---|---|---|
+| Everything `piighost` can hide | données confidentielles | confidential data | the sentence is about what the pipeline protects in general: the pitch, the round trip, detection, placeholders |
+| Data about a person | données personnelles (PII) | personal data (PII) | the sentence is about people or the law: RGPD, HIPAA, a name, an address, NER, re-identification |
+| Credentials | secrets | secrets | the sentence is about keys, tokens, passwords or connection strings |
+
+- A single detected item is a **valeur** / **value**, as before ("chaque valeur est remplacée par un placeholder").
+- Define the term where it first appears on a page that needs it: « les données confidentielles, c'est-à-dire les données personnelles (PII) et les secrets comme les clés d'API ».
+- **State where secrets come from.** The built-in catalogs (`generic`, `us`, `eu`, `fr`) hold no secret pattern. The secrets live in the hub groups `piighost/secrets` and `piighost/secrets-extended`, pulled with `catalogs = ["hub:piighost/secrets"]`. Never write that `piighost` detects API keys out of the box.
+- **PII stays** in identifiers and markup, which are names: `PIIRemainingError`, `PIIAnonymizationMiddleware`, the `{ .pii }` tag class (it marks any real value, a secret included), the `pii` package name in a URL.
+- **Keep PII when the sentence is really about personal data.** The compliance, DPIA and "why de-identify" pages are about the law on personal data, so they keep « données personnelles » and PII. Do not turn a GDPR sentence into one about "confidential data": the GDPR does not cover an API key.
 
 ### Name the two directions, and never confuse them
 
