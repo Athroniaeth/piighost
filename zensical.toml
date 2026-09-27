@@ -1,7 +1,7 @@
 [project]
 site_name = "PIIGhost"
 site_url = "https://athroniaeth.github.io/piighost/"
-site_description = "Protect personal data (PII) in your LLM prompts, so the model only sees placeholders while tools and the user still get the real values. Pluggable regex, NER, and LLM detectors, LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
+site_description = "Protect confidential data, personal data (PII) and secrets, in your LLM prompts, so the model only sees placeholders while tools and the user still get the real values. Pluggable regex, NER, and LLM detectors, LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
 site_author = "PIIGhost"
 copyright = "Copyright &copy; 2026 PIIGhost contributors"
 repo_url = "https://github.com/Athroniaeth/piighost"
@@ -59,6 +59,7 @@ nav = [
     { "Security" = "security.md" },
     { "Compliance" = "compliance.md" },
     { "Documenting a DPIA" = "dpia.md" },
+    { "Detection, measured" = "benchmark.md" },
     { "Limitations" = "limitations.md" },
     { "Glossary" = "glossary.md" },
   ]},
