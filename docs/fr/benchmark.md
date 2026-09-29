@@ -52,8 +52,8 @@ Identifiants directs cachés, modèle seul (A) puis pipeline complet (F), en %.
 
 Les jeux français tournent avec la config `fr-notarial`, TAB avec `support-en`. La config `fr-notarial` publiée obtient ce qu'obtient sa marche F. Sur chaque jeu et pour les deux modèles, les intervalles à 95 % de A et de F ne se recoupent pas.
 
-!!! warning "Les formules d'acte ont été réglées sur des actes générés"
-    Les règles qui reconnaissent un nom après "Monsieur" ou une adresse après "demeurant" ont été écrites sur le jeu de dev des actes générés. Le jeu de test tire d'autres valeurs mais des mêmes modèles, donc une partie de leur gain peut venir des tournures du générateur. Un jeu de contrôle fait de modèles officiels remplis de valeurs fictives sert à mesurer cet écart.
+!!! warning "Les formules d'acte ont été réglées sur des actes générés, puis vérifiées sur des modèles officiels"
+    Les règles qui reconnaissent un nom après "Monsieur" ou une adresse après "demeurant" ont été écrites sur le jeu de dev des actes générés, donc une partie de leur gain peut venir des tournures du générateur. Un jeu de contrôle le mesure, fait de 112 documents officiels, douze modèles du Code du travail numérique et les deux baux du décret n° 2015-587, dont les blancs sont remplis de valeurs fictives. Le pipeline complet y cache 91 % des identifiants directs avec GLiNER2 et 86 % avec ONNX, 3 à 4 points sous les actes générés. Les règles seules perdent 18 points, de 70 à 53 %. La précision tombe à 43 %, car le modèle relève les noms de rôle de la prose officielle ("salarié", "entreprise") et l'expander les répète.
 
 ## D'où vient le gain
 
