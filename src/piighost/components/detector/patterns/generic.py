@@ -12,12 +12,13 @@ GENERIC_PATTERNS: dict[str, str] = {
     # adversarial "a.a.a..." cannot restart the scan at every character, and the
     # domain is segmented label by label so "." is never both a class member and
     # a separator. Both guards keep the scan linear instead of quadratic. The
-    # Latin letters with diacritics (U+00C0 to U+024F) belong to the local part
-    # and the domain labels: without them "expéditeur@exemple.fr" matched from
-    # "diteur", leaving "expé" in clear.
+    # catalogs compile under re.ASCII, so the letter classes turn Unicode on
+    # locally: a letter of any script belongs to the local part, the domain
+    # labels and the top-level domain. With ASCII classes "expéditeur@exemple.fr"
+    # matched from "diteur", leaving "expé" in clear.
     "EMAIL": (
-        r"(?<![A-Za-z0-9\u00c0-\u024f._%+-])[A-Za-z0-9\u00c0-\u024f._%+-]+@"
-        r"(?:[A-Za-z0-9\u00c0-\u024f-]+\.)+[A-Za-z]{2,}"
+        r"(?<!(?u:[\w.%+-]))(?u:[\w.%+-])+@"
+        r"(?:(?u:[\w-])+\.)+(?u:[^\W\d_]){2,}"
     ),
     # Plain http(s) URL. The final character class excludes trailing sentence
     # punctuation, so a URL ending a sentence does not swallow the "." or ",".

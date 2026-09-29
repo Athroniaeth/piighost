@@ -23,63 +23,31 @@ class TestFindAllWordBoundary:
         """A hyphen joins words, so Jean is not matched inside Jean-Paul."""
         assert find_all_word_boundary("Jean-Paul is here", "Jean") == []
 
-    def test_apostrophe_inside_a_name_counts_as_word_internal(self) -> None:
-        """An apostrophe inside a name joins it, so Brien is not found in O'Brien."""
-        assert find_all_word_boundary("Mr O'Brien is here", "Brien") == []
-        assert find_all_word_boundary("Mr O\u2019Brien is here", "Brien") == []
-
     @pytest.mark.parametrize(
         ("text", "fragment", "span"),
         [
             ("bonjour d'Anne", "Anne", Span(10, 14)),
             ("le notaire d'Ille-et-Vilaine", "Ille-et-Vilaine", Span(13, 28)),
-            ("au nom de l'ACQUEREUR", "ACQUEREUR", Span(12, 21)),
-            ("L'Oréal signe", "Oréal", Span(2, 7)),
-            ("qu'Yvonne vienne", "Yvonne", Span(3, 9)),
-            ("jusqu'Arras", "Arras", Span(6, 11)),
-            ("lorsqu'Yvonne signe", "Yvonne", Span(7, 13)),
+            ("la pratica dell'Anna", "Anna", Span(16, 20)),
             ("chez d\u2019Anne", "Anne", Span(7, 11)),
+            ("Jean's car", "Jean", Span(0, 4)),
+            ("the Jones' house", "Jones", Span(4, 9)),
+            ("he said 'Jean' twice", "Jean", Span(9, 13)),
         ],
     )
-    def test_a_french_elision_is_a_boundary(
+    def test_an_apostrophe_bounds_a_word(
         self, text: str, fragment: str, span: Span
     ) -> None:
-        """The apostrophe after an elided article or preposition ends that word."""
+        """An apostrophe ends or starts a word, whatever the language."""
         assert find_all_word_boundary(text, fragment) == [span]
 
-    def test_an_elision_needs_the_clitic_to_stand_alone(self) -> None:
-        """A letter before an apostrophe elides only when it is a word of its own."""
-        assert find_all_word_boundary("aujourd'hui", "hui") == []
-        assert find_all_word_boundary("prud'homme", "homme") == []
+    def test_a_fragment_inside_an_apostrophe_compound_is_found(self) -> None:
+        """Brien is found inside O'Brien, the accepted cost of a boundary apostrophe."""
+        assert find_all_word_boundary("Mr O'Brien is here", "Brien") == [Span(5, 10)]
 
-    def test_an_elision_is_found_in_either_case(self) -> None:
-        """The clitic is recognised whatever the case flags of the search."""
-        assert find_all_word_boundary("D'Anne", "Anne", flags=re.NOFLAG) == [Span(2, 6)]
-        assert find_all_word_boundary("QU'Anne", "Anne", flags=re.NOFLAG) == [
-            Span(3, 7)
-        ]
-
-    @pytest.mark.parametrize(
-        ("text", "span"),
-        [
-            ("Jean's car", Span(0, 4)),
-            ("Jean\u2019s car", Span(0, 4)),
-            ("the Jones' house", Span(4, 9)),
-        ],
-    )
-    def test_an_english_possessive_is_a_boundary(self, text: str, span: Span) -> None:
-        """A possessive ends the name it follows, like any punctuation."""
-        fragment = text[span.start : span.end]
-        assert find_all_word_boundary(text, fragment) == [span]
-
-    def test_a_single_quote_around_a_name_is_a_boundary(self) -> None:
-        """An apostrophe used as a quotation mark bounds the name it wraps."""
-        assert find_all_word_boundary("he said 'Jean' twice", "Jean") == [Span(9, 13)]
-
-    def test_a_possessive_needs_to_end_the_word(self) -> None:
-        """An apostrophe then more letters is still inside the word."""
-        assert find_all_word_boundary("O'Shea", "O") == []
-        assert find_all_word_boundary("Jean'sen", "Jean") == []
+    def test_a_fragment_with_an_apostrophe_is_matched_whole(self) -> None:
+        """A value that holds an apostrophe is found as itself."""
+        assert find_all_word_boundary("Mr O'Brien is here", "O'Brien") == [Span(3, 10)]
 
     def test_finds_every_occurrence(self) -> None:
         """Every whole-word occurrence is returned, in order."""
