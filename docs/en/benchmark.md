@@ -52,8 +52,8 @@ Direct identifiers hidden, model alone (A) then full pipeline (F), in %.
 
 The French sets run the `fr-notarial` config, TAB runs `support-en`. The published `fr-notarial` scores what its F rung scores. On every set and for both models, the 95 % intervals of A and F do not overlap.
 
-!!! warning "The deed formulae were tuned on generated deeds"
-    The rules that catch a name after "Monsieur" or an address after "demeurant" were written against the dev seed of the generated deeds. The test seed draws other values but from the same templates, so part of their gain may come from the generator's phrasing. A control set of official templates filled with fictitious values is how that gap gets measured.
+!!! warning "The deed formulae were tuned on generated deeds, then checked on official templates"
+    The rules that catch a name after "Monsieur" or an address after "demeurant" were written against the dev seed of the generated deeds, so part of their gain may come from the generator's phrasing. A control set measures it: 112 official documents, twelve Code du travail numérique models and the two leases of décret n° 2015-587, their blanks filled with fictitious values. There the full pipeline hides 91 % of direct identifiers with GLiNER2 and 86 % with ONNX, 3 to 4 points below the generated deeds. The rules alone lose 18 points, from 70 to 53 %. Precision falls to 43 %, since the model tags role nouns of the official prose ("salarié", "entreprise") and the expander repeats them.
 
 ## Where the gain comes from
 
