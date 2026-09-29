@@ -4,7 +4,7 @@ icon: lucide/gauge
 
 # La détection, mesurée
 
-Combien de valeurs confidentielles un pipeline `piighost` configuré cache, et ce que chaque étape ajoute par rapport à un modèle NER appelé directement. Les chiffres viennent d'un banc d'essai lancé le 2026-09-29 sur cinq jeux de données, en anglais et en français, avec `piighost` 1.9.0.
+Combien de valeurs confidentielles un pipeline `piighost` configuré cache, et ce que chaque étape ajoute par rapport à un modèle NER appelé directement. Les chiffres viennent d'un banc d'essai lancé le 2026-09-29 sur cinq jeux de données, en anglais et en français, avec `piighost` 1.10.0.
 
 !!! note "Un décompte strict"
     Une valeur ne compte comme cachée que si chacun de ses caractères est masqué. Un masquage partiel est une fuite. `Paul <<PERSON:1>>`{ .placeholder } laisse `Paul`{ .pii } en clair, donc compte comme un raté pour `Paul Lemoine`{ .pii }. C'est plus strict que le recouvrement que retiennent les articles sur le NER, et les chiffres sont plus bas pour cette raison.
@@ -44,26 +44,29 @@ Identifiants directs cachés, modèle seul (A) puis pipeline complet (F), en %.
 
 | Jeu | GLiNER2 A → F | ONNX A → F |
 |---|---|---|
-| Actes générés | 36 → 82 | 19 → 76 |
-| Actes générés longs | 2 → 80 | 1 → 87 |
+| Actes générés | 36 → 95 | 19 → 90 |
+| Actes générés longs | 2 → 96 | 1 → 95 |
 | TAB | 27 → 46 | 31 → 61 |
-| PARHAF | 15 → 60 | 11 → 58 |
-| Gretel finance | 66 → 78 | 55 → 74 |
+| PARHAF | 15 → 61 | 11 → 61 |
+| Gretel finance | 66 → 79 | 55 → 75 |
 
-Les jeux français tournent avec la config `fr-notarial`, TAB avec `support-en`. La config `fr-notarial` publiée obtient ce qu'obtient sa marche F, maintenant qu'elle découpe le texte pour son modèle.
+Les jeux français tournent avec la config `fr-notarial`, TAB avec `support-en`. La config `fr-notarial` publiée obtient ce qu'obtient sa marche F. Sur chaque jeu et pour les deux modèles, les intervalles à 95 % de A et de F ne se recoupent pas.
 
-Sur chaque jeu et pour les deux modèles, les intervalles à 95 % de A et de F ne se recoupent pas.
+!!! warning "Les formules d'acte ont été réglées sur des actes générés"
+    Les règles qui reconnaissent un nom après "Monsieur" ou une adresse après "demeurant" ont été écrites sur le jeu de dev des actes générés. Le jeu de test tire d'autres valeurs mais des mêmes modèles, donc une partie de leur gain peut venir des tournures du générateur. Un jeu de contrôle fait de modèles officiels remplis de valeurs fictives sert à mesurer cet écart.
 
 ## D'où vient le gain
 
-Sur les actes générés avec GLiNER2, marche par marche : 36 % pour A, 66 % pour B, 80 % pour D, 82 % pour E et F.
+Sur les actes générés avec GLiNER2, marche par marche : 36 % pour A, 66 % pour B, 94 % pour D, 95 % pour E et F.
 
-- **Le découpage** fait l'essentiel, 31 à 33 points sur les actes générés et 53 à 64 sur les longs. Un modèle lit une fenêtre fixe, et sans découpage il ne voit jamais au-delà. Sur les actes longs, la marche A ne lit que la première page et rate toutes les valeurs qui suivent.
-- **Les règles regex** ajoutent 11 à 19 points, et elles portent toutes les valeurs à forme fixe. E-mails, IBAN, numéros de sécurité sociale, numéros d'entreprise et téléphones atteignent 100 %, là où le modèle seul en trouve au plus un cinquième.
-- **L'expander par mot entier** ajoute 2 à 4 points sur les actes générés et 10 à 11 sur les longs, où un nom revient des pages plus loin.
-- **Le résolveur d'entités** n'ajoute pas de rappel. Il regroupe les graphies d'une même personne sous un seul jeton, ce qui réduit la part de personnes réparties sur plusieurs jetons, au prix de quelques personnes fusionnées à tort.
+- **Le découpage** apporte 31 à 33 points sur les actes générés et 53 à 64 sur les longs. Un modèle lit une fenêtre fixe, et sans découpage il ne voit jamais au-delà. Sur les actes longs, la marche A ne lit que la première page et rate toutes les valeurs qui suivent.
+- **Les règles regex** apportent 28 à 40 points. Elles portent toutes les valeurs à forme fixe, et e-mails, IBAN, numéros de sécurité sociale, numéros d'entreprise, téléphones et dates atteignent 100 %, là où le modèle seul en trouve au plus un cinquième. Les formules d'un acte ("Monsieur", "Maître", "née", "demeurant", "section") rattrapent les noms et les adresses que le modèle rate.
+- **L'expander par mot entier** ajoute 1 à 3 points, moins qu'avant, car les règles trouvent maintenant elles-mêmes la plupart des répétitions.
+- **Le résolveur d'entités** n'ajoute pas de rappel. Il regroupe les graphies d'une même personne sous un seul jeton.
 
-Le pipeline coûte un peu de précision, la part du texte masqué qui était vraiment une valeur. Sur les actes générés, elle passe de 87 % pour A à 78 % pour F. Une partie du coût vient des titres en capitales que le motif `SWIFT_BIC` prend pour des codes bancaires. Sur les actes longs, l'expander la fait descendre à 54 % avec ONNX, car un mot de titre masqué une fois l'est ensuite partout.
+Les règles et le modèle relèvent souvent la même valeur avec des longueurs différentes. `fr-notarial` garde leur union avec le résolveur de chevauchements `merge`. Avec le résolveur `confidence` par défaut, le span court d'une règle à confiance 1.0 l'emportait sur le span plus long du modèle, et sur le jeu financier les noms tombaient de 89 à 77 %.
+
+La précision, la part du texte masqué qui était vraiment une valeur, reste proche de 86 % sur les actes générés. Sur les actes longs, l'expander la fait descendre à 59 % avec ONNX, car un mot de titre masqué une fois l'est ensuite partout.
 
 ## Ce qui fuit encore
 
@@ -72,33 +75,35 @@ Sur les actes générés, pipeline GLiNER2 complet :
 | Catégorie | Cachée | Documents où il n'en reste aucune en clair |
 |---|---|---|
 | E-mail, IBAN, numéro de sécurité sociale, numéro d'entreprise, téléphone, date de naissance | 100 % | 100 % |
-| Organisation | 86 % | 77 % |
-| Personne | 83 % | 13 % |
-| Adresse | 57 % | 27 % |
-| Parcelle cadastrale | 0 % | 0 % |
+| Personne | 95 % | 59 % |
+| Organisation | 94 % | 88 % |
+| Adresse | 94 % | 81 % |
+| Parcelle cadastrale | 43 % | 75 % |
 
-Seuls 2,5 % des actes générés sortent sans rien en clair, car un seul nom oublié suffit. Les valeurs à forme fixe et les dates sont réglées par les règles. Aucun détecteur ne vise encore les parcelles cadastrales. Les noms et les adresses dépendent du modèle.
+43 % des actes générés sortent sans rien en clair, contre aucun avant les règles de dates et d'actes. Un seul nom oublié suffit encore à gâcher un acte. Les parcelles qu'un tableau liste sans le mot "section" sont manquées.
 
 ## Ce que le banc d'essai a changé
 
-Les premiers passages ont trouvé des défauts que `piighost` 1.9.0 corrige.
+Chaque passage a trouvé quelque chose, corrigé dans la librairie ou dans la config `fr-notarial` du hub avant le suivant.
 
-- L'expander par mot entier pouvait ajouter une occurrence à l'intérieur d'une détection retenue, et le rendu levait alors `OverlappingSpansError`. C'était le cas sur 163 des 200 actes générés.
-- Les téléphones français composés avec des espaces insécables n'étaient jamais reconnus, ce qui bloquait le rappel du téléphone entre 50 et 72 %. Il est maintenant de 100 %.
-- Une adresse e-mail accentuée était reconnue à partir de sa première suite ASCII, et son début restait en clair.
-- Une config de détecteur ne pouvait pas fixer `max_chars`, donc un modèle construit depuis une config lisait un acte entier d'un coup. La config `fr-notarial` publiée y perdait 13 points de rappel, et manquait de mémoire au-delà de 13 000 caractères.
+- **`piighost` 1.9.0.** L'expander par mot entier pouvait ajouter une occurrence à l'intérieur d'une détection retenue, et le rendu levait alors `OverlappingSpansError`, sur 163 des 200 actes générés. Les téléphones français composés avec des espaces insécables n'étaient jamais reconnus. Une adresse e-mail accentuée était reconnue à partir de sa première suite ASCII. Une config de détecteur ne pouvait pas fixer `max_chars`, donc un modèle construit depuis une config lisait un acte entier d'un coup et manquait de mémoire au-delà de 13 000 caractères.
+- **Les dates.** Une date de naissance est un identifiant direct qu'aucun modèle NER ne relève. `fr-notarial` masque toutes les dates françaises, car un motif ne distingue pas une date de naissance de la date de l'acte, mais épargne la date d'un texte de loi numéroté ("loi n° 89-462 du 6 juillet 1989").
+- **Les formules d'acte.** Un nom après une civilité ou "Maître", un nom de naissance après "née", une adresse après "demeurant" ou "situé", une adresse de rue, un lieu-dit et une référence cadastrale après "section".
+- **`SWIFT_BIC`.** Il reconnaissait n'importe quelle suite de huit ou onze capitales. Il demande maintenant un mot-clé ou un chiffre, donc un titre comme "DESIGNATION" reste en clair.
+- **`piighost` 1.10.0.** Le résolveur de chevauchements `merge`, donc le span court d'une règle ne découvre plus une partie de celui du modèle.
 
-Une date de naissance est un identifiant direct qu'aucun modèle NER ne relève, et aucune config mesurée n'en masquait. La config `fr-notarial` du hub masque désormais toutes les dates françaises, car un motif ne distingue pas une date de naissance de la date de l'acte, et découpe le texte pour son modèle avec `max_chars = 1000`. Par rapport au passage précédent :
+Sur les actes générés, GLiNER2, passage après passage :
 
-| Actes générés, GLiNER2 | Avant | Après |
-|---|---|---|
-| Identifiants directs cachés, pipeline complet | 76 % | 82 % |
-| La config telle que publiée | 63 % | 82 % |
-| Dates de naissance cachées | 0 % | 100 % |
-| Actes sans rien en clair | 0 % | 2,5 % |
-| Précision | 77 % | 78 % |
+| | Candidate 1.9.0 | Dates, découpage | Formules, merge |
+|---|---|---|---|
+| Identifiants directs cachés, pipeline complet | 76 % | 82 % | 95 % |
+| La config telle que publiée | 63 % | 82 % | 95 % |
+| Actes sans rien en clair | 0 % | 2,5 % | 43 % |
+| Précision | 77 % | 78 % | 86 % |
+| Titres en capitales masqués, sur 1 437 | 411 | 411 | 30 |
+| Références juridiques masquées, sur 452 | 14 | 250 | 14 |
 
-Sur PARHAF, où les dates identifiantes sont des identifiants directs, le pipeline complet passe de 34 à 60 %. Le coût se voit dans les pièges. Les dates contenues dans les références juridiques sont masquées aussi, donc "loi du 10 juillet 1965" perd sa date, dans 239 des 452 références plantées contre 3 avant. Une config pour la conversation ne devrait pas porter ces motifs.
+Ces motifs sont faits pour une config de documents. Une config de conversation ne devrait ni masquer toutes les dates ni lire "Monsieur" comme le début d'un nom à cacher.
 
 ## Limites de ces chiffres
 

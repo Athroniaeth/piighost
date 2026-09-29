@@ -4,7 +4,7 @@ icon: lucide/gauge
 
 # Detection, measured
 
-How many confidential values a configured `piighost` pipeline hides, and what each stage adds over calling a NER model directly. The figures come from a benchmark run on 2026-09-29 on five data sets, English and French, with `piighost` 1.9.0.
+How many confidential values a configured `piighost` pipeline hides, and what each stage adds over calling a NER model directly. The figures come from a benchmark run on 2026-09-29 on five data sets, English and French, with `piighost` 1.10.0.
 
 !!! note "A strict count"
     A value counts as hidden only when every one of its characters is masked. A partial mask is a leak: `Paul <<PERSON:1>>`{ .placeholder } leaves `Paul`{ .pii } in clear, so it counts as a miss for `Paul Lemoine`{ .pii }. This is stricter than the overlap match NER papers report, and the numbers are lower for it.
@@ -44,26 +44,29 @@ Direct identifiers hidden, model alone (A) then full pipeline (F), in %.
 
 | Set | GLiNER2 A → F | ONNX A → F |
 |---|---|---|
-| Generated deeds | 36 → 82 | 19 → 76 |
-| Long generated deeds | 2 → 80 | 1 → 87 |
+| Generated deeds | 36 → 95 | 19 → 90 |
+| Long generated deeds | 2 → 96 | 1 → 95 |
 | TAB | 27 → 46 | 31 → 61 |
-| PARHAF | 15 → 60 | 11 → 58 |
-| Gretel finance | 66 → 78 | 55 → 74 |
+| PARHAF | 15 → 61 | 11 → 61 |
+| Gretel finance | 66 → 79 | 55 → 75 |
 
-The French sets run the `fr-notarial` config, TAB runs `support-en`. The published `fr-notarial` scores what its F rung scores, now that it chunks its model.
+The French sets run the `fr-notarial` config, TAB runs `support-en`. The published `fr-notarial` scores what its F rung scores. On every set and for both models, the 95 % intervals of A and F do not overlap.
 
-On every set and for both models, the 95 % intervals of A and F do not overlap.
+!!! warning "The deed formulae were tuned on generated deeds"
+    The rules that catch a name after "Monsieur" or an address after "demeurant" were written against the dev seed of the generated deeds. The test seed draws other values but from the same templates, so part of their gain may come from the generator's phrasing. A control set of official templates filled with fictitious values is how that gap gets measured.
 
 ## Where the gain comes from
 
-On the generated deeds with GLiNER2, rung by rung: 36 % for A, 66 % for B, 80 % for D, 82 % for E and F.
+On the generated deeds with GLiNER2, rung by rung: 36 % for A, 66 % for B, 94 % for D, 95 % for E and F.
 
-- **Chunking** does most of it, 31 to 33 points on the generated deeds and 53 to 64 on the long ones. A model reads a fixed window, and without chunking it never sees past it. On the long deeds, rung A only reads page one and misses every value after it.
-- **The regex rules** add 11 to 19 points, and they carry every value with a fixed shape. Emails, IBANs, social security numbers, company numbers and phones reach 100 %, where the model alone finds at most a fifth of them.
-- **The word-boundary expander** adds 2 to 4 points on the generated deeds and 10 to 11 on the long ones, where a name appears again pages later.
-- **The entity resolver** adds no recall. It groups the spellings of one person onto one token, which lowers the share of people split across several tokens, at the price of a few people merged by mistake.
+- **Chunking** gives 31 to 33 points on the generated deeds and 53 to 64 on the long ones. A model reads a fixed window, and without chunking it never sees past it. On the long deeds, rung A only reads page one and misses every value after it.
+- **The regex rules** give 28 to 40 points. They carry every value with a fixed shape, emails, IBANs, social security numbers, company numbers, phones and dates reach 100 %, where the model alone finds at most a fifth of them. The formulae of a deed ("Monsieur", "Maître", "née", "demeurant", "section") catch the names and addresses the model misses.
+- **The word-boundary expander** adds 1 to 3 points, less than before, since the rules now find most repeats themselves.
+- **The entity resolver** adds no recall. It groups the spellings of one person onto one token.
 
-The pipeline costs some precision, the share of masked text that was really a value. On the generated deeds it falls from 87 % for A to 78 % for F. Part of the cost comes from capitalised headings the `SWIFT_BIC` pattern takes for bank codes. On the long deeds the expander drops it to 54 % with ONNX, since a heading word masked once is then masked everywhere.
+Rules and the model often flag the same value with different lengths. `fr-notarial` keeps their union with the `merge` overlap resolver. With the default `confidence` resolver, a rule's short span at confidence 1.0 beat a model's longer one, and on the finance set names fell from 89 to 77 %.
+
+Precision, the share of masked text that was really a value, stays near 86 % on the generated deeds. On the long deeds the expander drops it to 59 % with ONNX, since a heading word masked once is then masked everywhere.
 
 ## What still leaks
 
@@ -72,33 +75,35 @@ On the generated deeds, full GLiNER2 pipeline:
 | Category | Hidden | Documents with none left in clear |
 |---|---|---|
 | Email, IBAN, social security number, company number, phone, date of birth | 100 % | 100 % |
-| Organisation | 86 % | 77 % |
-| Person | 83 % | 13 % |
-| Address | 57 % | 27 % |
-| Cadastral parcel | 0 % | 0 % |
+| Person | 95 % | 59 % |
+| Organisation | 94 % | 88 % |
+| Address | 94 % | 81 % |
+| Cadastral parcel | 43 % | 75 % |
 
-Only 2.5 % of the generated deeds come out with nothing left in clear, since a single forgotten name is enough. The fixed-shape values and the dates are solved by rules. Cadastral parcels are targeted by no detector yet. Names and addresses depend on the model.
+43 % of the generated deeds come out with nothing left in clear, against none before the date and deed rules. A single forgotten name is still enough to spoil a deed. The cadastral parcels a table lists without the word "section" are missed.
 
 ## What the benchmark changed
 
-The first runs found defects that `piighost` 1.9.0 fixes.
+Each run found something, fixed in the library or in the hub's `fr-notarial` before the next.
 
-- The word-boundary expander could add an occurrence inside a kept detection, and the render stage then raised `OverlappingSpansError`. That happened on 163 of the 200 generated deeds.
-- French phones typeset with no-break spaces were never matched, which held phone recall between 50 and 72 %. It is now 100 %.
-- An email address with accented letters was matched from its first ASCII run, leaving the start in clear.
-- A detector config could not set `max_chars`, so a config-built model read a whole deed in one pass. The published `fr-notarial` lost 13 points of recall to it, and ran out of memory past 13,000 characters.
+- **`piighost` 1.9.0.** The word-boundary expander could add an occurrence inside a kept detection, and the render stage then raised `OverlappingSpansError`, on 163 of the 200 generated deeds. French phones typeset with no-break spaces were never matched. An email with accented letters was matched from its first ASCII run. A detector config could not set `max_chars`, so a config-built model read a whole deed in one pass and ran out of memory past 13,000 characters.
+- **Dates.** A date of birth is a direct identifier no NER model tags. `fr-notarial` hides every French date, since a pattern cannot tell a date of birth from the date of the deed, but spares the date of a numbered legal text ("loi n° 89-462 du 6 juillet 1989").
+- **Deed formulae.** A name after a civility or "Maître", a maiden name after "née", an address after "demeurant" or "situé", a street address, a lieu-dit and a cadastral reference after "section".
+- **`SWIFT_BIC`.** It matched any run of eight or eleven capitals. It now needs a keyword or a digit, so a heading such as "DESIGNATION" stays in clear.
+- **`piighost` 1.10.0.** The `merge` overlap resolver, so a rule's short span no longer uncovers part of the model's.
 
-A date of birth is a direct identifier no NER model tags, and no measured config hid one. The hub's `fr-notarial` now hides every French date, since a pattern cannot tell a date of birth from the date of the deed, and chunks its model at `max_chars = 1000`. Against the previous run:
+On the generated deeds, GLiNER2, run after run:
 
-| Generated deeds, GLiNER2 | Before | After |
-|---|---|---|
-| Direct identifiers hidden, full pipeline | 76 % | 82 % |
-| The config as published | 63 % | 82 % |
-| Dates of birth hidden | 0 % | 100 % |
-| Deeds with nothing left in clear | 0 % | 2.5 % |
-| Precision | 77 % | 78 % |
+| | 1.9.0 candidate | Dates, chunking | Formulae, merge |
+|---|---|---|---|
+| Direct identifiers hidden, full pipeline | 76 % | 82 % | 95 % |
+| The config as published | 63 % | 82 % | 95 % |
+| Deeds with nothing left in clear | 0 % | 2.5 % | 43 % |
+| Precision | 77 % | 78 % | 86 % |
+| Capitalised headings masked, of 1,437 | 411 | 411 | 30 |
+| Legal references masked, of 452 | 14 | 250 | 14 |
 
-On PARHAF, where identifying dates are direct identifiers, the full pipeline goes from 34 to 60 %. The cost is in the traps. The dates inside legal references are masked too, so "loi du 10 juillet 1965" loses its date, in 239 of the 452 planted references against 3 before. A chat config should not carry these patterns.
+These patterns belong to a document config. A chat config should not hide every date nor read "Monsieur" as the start of a name to hide.
 
 ## Limits of these numbers
 
