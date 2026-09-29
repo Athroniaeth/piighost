@@ -1,7 +1,9 @@
 """Merge overlap resolver: keep the union where spans overlap."""
 
-from piighost.components.overlap_resolver.base import BaseOverlapResolver
-from piighost.components.overlap_resolver.confidence import _by_confidence
+from piighost.components.overlap_resolver.base import (
+    BaseOverlapResolver,
+    by_confidence,
+)
 from piighost.models import Detection, Span
 
 
@@ -30,7 +32,7 @@ class MergeOverlapResolver(BaseOverlapResolver):
         for detection in conflicting:
             offset = detection.span.start - start
             characters[offset : offset + len(detection.text)] = detection.text
-        surest = min(conflicting, key=_by_confidence)
+        surest = min(conflicting, key=by_confidence)
         span = Span(start, end)
         text = "".join(characters)
         merged = Detection(
