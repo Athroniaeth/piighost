@@ -57,7 +57,7 @@ class BaseDetectionExpander(ABC):
         longest_first = sorted(detections, key=lambda d: len(d.text), reverse=True)
         for detection in longest_first:
             for span in self._find_occurrences(text, detection):
-                if covered.find(1, span.start, span.end) != -1:
+                if _touches(covered, span):
                     continue
                 found = Detection(
                     span=span,
@@ -79,3 +79,8 @@ class BaseDetectionExpander(ABC):
 def _cover(covered: bytearray, span: Span) -> None:
     """Mark the characters of a span as covered by a kept detection."""
     covered[span.start : span.end] = b"\x01" * (span.end - span.start)
+
+
+def _touches(covered: bytearray, span: Span) -> bool:
+    """Whether any character of the span is already covered by a kept detection."""
+    return covered.find(1, span.start, span.end) != -1

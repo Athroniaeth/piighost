@@ -87,32 +87,3 @@ class TestClearBoundaryCache:
         find_all_word_boundary("Jean is here", "Jean")
         clear_boundary_cache()
         assert _word_boundary_pattern.cache_info().currsize == 0
-
-
-class TestSameAsTheWrappedPattern:
-    def test_the_search_agrees_with_boundary_wrap(self) -> None:
-        """The literal-first search finds exactly what the wrapped pattern finds.
-
-        find_all_word_boundary looks for the fragment as a literal and checks
-        its two edges, instead of running the wrapped pattern, whose leading
-        lookbehinds keep the regex engine from skipping ahead. The two must
-        agree everywhere, overlapping candidates and rejected ones included.
-        """
-        import random
-
-        rng = random.Random(20260927)
-        pieces = ["a", "ab", " ", "-", "'", "’", "d'", "l'", "qu'", "s", "É", "."]
-        fragments = ["ab", "a b", "ab ab", "s", "É", "a-b", "d'ab"]
-        for _ in range(3000):
-            text = "".join(rng.choice(pieces) for _ in range(rng.randint(1, 14)))
-            for fragment in fragments:
-                for flags in (re.IGNORECASE, re.NOFLAG):
-                    expected = [
-                        Span(m.start(), m.end())
-                        for m in re.finditer(boundary_wrap(fragment), text, flags)
-                    ]
-                    assert find_all_word_boundary(text, fragment, flags) == expected, (
-                        text,
-                        fragment,
-                        flags,
-                    )

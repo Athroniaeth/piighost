@@ -21,6 +21,7 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+from functools import cache
 from pathlib import Path
 
 from piighost.exceptions import PIIGhostError
@@ -167,6 +168,7 @@ def _origin(hub: str) -> str:
     return hub.rstrip("/")
 
 
+@cache
 def _patch_emscripten_transport() -> None:
     """Route urllib through the browser's fetch, once, when running in one.
 

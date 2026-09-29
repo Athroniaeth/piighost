@@ -3,7 +3,16 @@
 from abc import ABC, abstractmethod
 from typing import Protocol, runtime_checkable
 
-from piighost.models import Detection
+from piighost.models import Detection, Span
+
+
+def by_confidence(detection: Detection) -> tuple[float, Span]:
+    """Sort key ordering detections most confident first, then by position.
+
+    A stable sort on it keeps the earliest detector's detection on a true tie,
+    since a conflict group is in detector order.
+    """
+    return -detection.confidence, detection.span
 
 
 @runtime_checkable

@@ -12,7 +12,7 @@ FR_PATTERNS: dict[str, str] = {
     # (U+00A0, U+202F) French typography puts between the pairs, so they are
     # listed. "+33 6 ..." and "+33 (0)6 ..." are the written international forms.
     "FR_PHONE": (
-        r"(?<!\d)(?:\+33[ \u00a0\u202f]?(?:\(0\)[ \u00a0\u202f]?)?|0)[1-9]"
+        r"(?<!\d)(?:\+33[\s\u00a0\u202f]?(?:\(0\)[\s\u00a0\u202f]?)?|0)[1-9]"
         r"(?:[\s\u00a0\u202f.-]?\d{2}){4}(?!\d)"
     ),
     # IBAN FR, FR + 2 check digits + 23 alphanumerics, optional separators.
