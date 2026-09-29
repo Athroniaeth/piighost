@@ -166,7 +166,7 @@ Why each stage exists and in which order is covered in
 | Stage | Port | Provided adapter | Role |
 |---|---|---|---|
 | Detector | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Finds the confidential data (personal data, secrets), returns positioned and typed `Detection` objects. |
-| Span resolver | `AnyOverlapResolver` | `ConfidenceOverlapResolver` | Arbitrates overlapping detections, keeps the highest-confidence one. |
+| Span resolver | `AnyOverlapResolver` | `ConfidenceOverlapResolver`, `MergeOverlapResolver` | Arbitrates overlapping detections, keeps the highest-confidence one or their union. |
 | Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Catches missed occurrences of an already-detected value. |
 | Linker | `AnyEntityLinker` | `ExactEntityLinker` | Groups the detections of one value into an `Entity`. |
 | Entity resolver | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Reconciles entities that share a detection. |
