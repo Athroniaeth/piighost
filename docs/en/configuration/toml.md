@@ -265,16 +265,19 @@ The middleware needs a delimited factory, so `redact`, `label`, `label_counter`,
 
 ## `[overlap_resolver]`
 
-Optional in the file, but the stage runs either way. Omitting the section builds a `ConfidenceOverlapResolver`, and there is no supported way to disable the stage, since the render stage assumes disjoint spans. One resolver exists, so `type` names it rather than discriminating a union.
+Optional in the file, but the stage runs either way. Omitting the section builds a `ConfidenceOverlapResolver`, and there is no supported way to disable the stage, since the render stage assumes disjoint spans.
 
 | `type` | Meaning |
 |--------|---------|
 | `confidence` | Keeps the highest-confidence detection when two overlap |
+| `merge` | Keeps the union of overlapping detections, with the label of the most confident |
 
 ```toml
 [overlap_resolver]
-type = "confidence"
+type = "merge"
 ```
+
+`merge` hides every character a detector flagged. With `confidence`, a regex at confidence 1.0 that found `Wirth`{ .pii } beats a model that found `Loni M. Wirth`{ .pii }, and `Loni M.`{ .pii } is sent in clear. Choose `merge` when a leak costs more than a masked neighbour word, as in a document with rules and a model together.
 
 ---
 

@@ -146,6 +146,8 @@ corrupted text. So you must resolve the position conflicts before grouping into 
 
 That is the span resolver (`AnyOverlapResolver`). `ConfidenceOverlapResolver` groups the
 overlapping detections, then keeps the highest-confidence one in each group.
+`MergeOverlapResolver` keeps the union of each group instead, so a sure but short
+detection never uncovers part of a longer one.
 
 The order of the stages is constrained.
 

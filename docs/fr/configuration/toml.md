@@ -265,16 +265,19 @@ Le middleware a besoin d'une factory délimitée, donc `redact`, `label`, `label
 
 ## `[overlap_resolver]`
 
-Optionnel dans le fichier, mais l'étage tourne dans tous les cas. Omettre la section construit un `ConfidenceOverlapResolver`, et il n'existe aucun moyen supporté de désactiver l'étage, car l'étage de rendu suppose des spans disjoints. Un seul resolver existe, donc `type` le nomme sans discriminer une union.
+Optionnel dans le fichier, mais l'étage tourne dans tous les cas. Omettre la section construit un `ConfidenceOverlapResolver`, et il n'existe aucun moyen supporté de désactiver l'étage, car l'étage de rendu suppose des spans disjoints.
 
 | `type` | Signification |
 |--------|---------------|
 | `confidence` | Garde la détection la plus confiante quand deux se chevauchent |
+| `merge` | Garde l'union des détections qui se chevauchent, avec le label de la plus confiante |
 
 ```toml
 [overlap_resolver]
-type = "confidence"
+type = "merge"
 ```
+
+`merge` cache chaque caractère qu'un détecteur a relevé. Avec `confidence`, une regex à confiance 1.0 qui a trouvé `Wirth`{ .pii } l'emporte sur un modèle qui a trouvé `Loni M. Wirth`{ .pii }, et `Loni M.`{ .pii } part en clair. Choisissez `merge` quand une fuite coûte plus qu'un mot voisin masqué, comme dans un document traité par des règles et un modèle ensemble.
 
 ---
 

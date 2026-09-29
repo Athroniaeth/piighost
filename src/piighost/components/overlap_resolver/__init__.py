@@ -9,5 +9,11 @@ from piighost.components.overlap_resolver.base import (
     BaseOverlapResolver,
 )
 from piighost.components.overlap_resolver.confidence import ConfidenceOverlapResolver
+from piighost.components.overlap_resolver.merge import MergeOverlapResolver
 
-__all__ = ["AnyOverlapResolver", "BaseOverlapResolver", "ConfidenceOverlapResolver"]
+__all__ = [
+    "AnyOverlapResolver",
+    "BaseOverlapResolver",
+    "ConfidenceOverlapResolver",
+    "MergeOverlapResolver",
+]

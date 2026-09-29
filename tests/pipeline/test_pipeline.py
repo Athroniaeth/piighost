@@ -184,3 +184,27 @@ class TestExpansion:
         )
         result = await pipeline.anonymize(text)
         assert "Paul" not in result.text
+
+
+class TestMergeOverlap:
+    async def test_the_merge_resolver_leaves_no_fragment_of_a_longer_span(
+        self,
+    ) -> None:
+        """With the merge resolver, a sure short rule span cannot uncover a model's longer one."""
+        from piighost.components.overlap_resolver import MergeOverlapResolver
+
+        text = "Signé par Loni M. Wirth."
+        detector = _FixedDetector(
+            [
+                Detection(Span(18, 23), "Wirth", "FR_CIVIL_NAME", 1.0),
+                Detection(Span(10, 23), "Loni M. Wirth", "PERSON", 0.7),
+            ]
+        )
+        pipeline = AnonymizationPipeline(
+            detector,
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            overlap_resolver=MergeOverlapResolver(),
+        )
+        result = await pipeline.anonymize(text)
+        assert result.text == "Signé par <<FR_CIVIL_NAME:1>>."

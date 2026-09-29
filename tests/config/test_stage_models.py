@@ -9,7 +9,10 @@ from piighost.components.entity_resolver import (
     SeparateEntityResolver,
 )
 from piighost.components.expander import WordBoundaryExpander
-from piighost.components.overlap_resolver import ConfidenceOverlapResolver
+from piighost.components.overlap_resolver import (
+    ConfidenceOverlapResolver,
+    MergeOverlapResolver,
+)
 from piighost.components.placeholder import LabelHashPlaceholderFactory
 from piighost.config.models.entity_resolver import (
     EntityResolverConfig,
@@ -18,7 +21,10 @@ from piighost.config.models.entity_resolver import (
     SeparateEntityResolverConfig,
 )
 from piighost.config.models.expander import WordBoundaryExpanderConfig
-from piighost.config.models.overlap_resolver import ConfidenceOverlapResolverConfig
+from piighost.config.models.overlap_resolver import (
+    ConfidenceOverlapResolverConfig,
+    OverlapResolverConfig,
+)
 from piighost.config.models.placeholder import LabelHashPlaceholderConfig
 from piighost.models import Detection, Entity, Span
 
@@ -36,6 +42,17 @@ class TestOverlapResolverConfig:
         """The confidence config builds a ConfidenceOverlapResolver."""
         resolver = ConfidenceOverlapResolverConfig(type="confidence").build()
         assert isinstance(resolver, ConfidenceOverlapResolver)
+
+    @pytest.mark.parametrize(
+        ("kind", "resolver_class"),
+        [("confidence", ConfidenceOverlapResolver), ("merge", MergeOverlapResolver)],
+    )
+    def test_union_dispatches_on_type(
+        self, kind: str, resolver_class: type[object]
+    ) -> None:
+        """The overlap resolver config builds the resolver its type names."""
+        config = TypeAdapter(OverlapResolverConfig).validate_python({"type": kind})
+        assert isinstance(config.build(), resolver_class)
 
 
 class TestExpanderConfig:

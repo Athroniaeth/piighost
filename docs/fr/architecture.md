@@ -171,7 +171,7 @@ chacune.
 | Étape | Port | Adaptateur fourni | Rôle |
 |---|---|---|---|
 | Détecteur | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Trouve les données confidentielles (données personnelles, secrets), renvoie des `Detection` positionnées et typées. |
-| Résolveur de spans | `AnyOverlapResolver` | `ConfidenceOverlapResolver` | Arbitre les détections qui se chevauchent, garde la plus confiante. |
+| Résolveur de spans | `AnyOverlapResolver` | `ConfidenceOverlapResolver`, `MergeOverlapResolver` | Arbitre les détections qui se chevauchent, garde la plus confiante ou leur union. |
 | Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Rattrape les occurrences ratées d'une valeur déjà détectée. |
 | Linker | `AnyEntityLinker` | `ExactEntityLinker` | Regroupe les détections d'une même valeur en une `Entity`. |
 | Résolveur d'entités | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Réconcilie les entités qui partagent une détection. |

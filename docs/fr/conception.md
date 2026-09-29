@@ -151,6 +151,8 @@ regrouper en entités.
 
 C'est le résolveur de spans (`AnyOverlapResolver`). `ConfidenceOverlapResolver` groupe
 les détections qui se chevauchent, puis garde dans chaque groupe la plus confiante.
+`MergeOverlapResolver` garde plutôt l'union de chaque groupe, donc une détection sûre
+mais courte ne découvre jamais une partie d'une détection plus longue.
 
 L'ordre des étapes est contraint.
 
