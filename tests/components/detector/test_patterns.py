@@ -49,6 +49,8 @@ TRUE_POSITIVES: list[tuple[str, str]] = [
     # ASCII run, which would leave the start of the local part in clear.
     ("EMAIL", "expéditeur@exemple.fr"),
     ("EMAIL", "zoé.lefèvre@exemple.fr"),
+    ("EMAIL", "ζωή@παράδειγμα.ελ"),
+    ("EMAIL", "иван.петров@пример.рф"),
     ("FR_IBAN", "FR7630006000011234567890189"),
     ("FR_NIR", "180057505600157"),
     ("FR_SIRET", "73282932000074"),

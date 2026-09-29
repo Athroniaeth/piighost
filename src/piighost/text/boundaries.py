@@ -6,89 +6,45 @@ from functools import lru_cache
 from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
 
-WORD_JOIN_CHARS = "-'\u2019"
+WORD_JOIN_CHARS = "-"
 """Characters treated as part of a word, in addition to the word class.
 
-A bare word boundary treats the hyphen and apostrophe as separators, so a
-search for "Jean" would match the "Jean" inside "Jean-Paul", and "Brien" the one
-inside "O'Brien", wrongly linking a short name to an unrelated compound. These
-joiners, the typographic apostrophe included, are added to the word-character
-class so a fragment is not matched when glued to them, while genuine end-of-word
-punctuation such as a space, a period, a comma, or a newline still bounds it.
+A bare word boundary treats the hyphen as a separator, so a search for "Jean"
+would match the "Jean" inside "Jean-Paul", wrongly linking a short name to an
+unrelated compound. The hyphen is added to the word-character class so a
+fragment glued to it is not a match.
+
+The apostrophe is not a joiner, in any language. It ends the word before it as
+often as it sits inside one: an elision (d'Anne, dell'Anna), a possessive
+(Jean's), a quotation mark ('Jean'). As a boundary it finds the value in all of
+them, and the cost is the other way round, a search for "Brien" also matching
+inside "O'Brien", which hides more than asked and never leaves a value in clear.
 Edit this single constant to change what counts as a word separator across
 detection, expansion, linking, and replacement.
 """
 
-ELISIONS = (
-    "c",
-    "d",
-    "j",
-    "l",
-    "m",
-    "n",
-    "s",
-    "t",
-    "qu",
-    "jusqu",
-    "lorsqu",
-    "puisqu",
-    "quoiqu",
-)
-"""French words that elide before a vowel, so the apostrophe after them ends them.
-
-In "d'Anne" or "l'ACQUEREUR" the apostrophe is not inside a name, it closes the
-article or preposition, and "Anne" stands as a word of its own. Counting it as a
-joiner there hid "Ille-et-Vilaine" in "d'Ille-et-Vilaine" from the search. An
-elision is only recognised when the clitic is itself a whole word, so
-"aujourd'hui" and "prud'homme" stay single words.
-"""
-
-_JOINERS = "".join(re.escape(char) for char in WORD_JOIN_CHARS)
-_APOSTROPHES = "'\u2019"
-
-_WORD_CLASS = "[\\w" + _JOINERS + "]"
+_WORD_CLASS = "[\\w" + "".join(re.escape(char) for char in WORD_JOIN_CHARS) + "]"
 """Regex character class of what counts as inside a word.
 
 The word class plus the WORD_JOIN_CHARS joiners, so a fragment glued to a
-hyphen or apostrophe is treated as part of a larger word, not a match.
+hyphen is treated as part of a larger word, not a match.
 """
 
+_START = f"(?<!{_WORD_CLASS})"
+"""What must not precede a whole word: a word character or a joiner."""
 
-def _elision(clitic: str) -> str:
-    """A lookbehind true right after the clitic and its apostrophe, the clitic standing alone."""
-    letters = "".join(f"[{char}{char.upper()}]" for char in clitic)
-    return f"(?<=(?<!{_WORD_CLASS}){letters}[{_APOSTROPHES}])"
-
-
-_START = (
-    "(?:(?<!"
-    + _WORD_CLASS
-    + ")|(?<=(?<![\\w\\-])["
-    + _APOSTROPHES
-    + "])|"
-    + "|".join(map(_elision, ELISIONS))
-    + ")"
-)
-"""What may precede a whole word: no word character, an opening quote, or an elision."""
-
-_END = "(?![\\w\\-]|[" + _APOSTROPHES + "](?![sS](?!" + _WORD_CLASS + "))[\\w\\-])"
-"""What may follow a whole word: no word character, nor an apostrophe inside one.
-
-An apostrophe after the fragment ends it when a non-letter follows ("the
-Jones' house") or a possessive s does ("Jean's car"), and joins it otherwise.
-"""
+_END = f"(?!{_WORD_CLASS})"
+"""What must not follow a whole word: a word character or a joiner."""
 
 
 def boundary_wrap(fragment: str) -> str:
     """Escape fragment and wrap it so it matches only as a whole word.
 
     The returned pattern rejects a match when the character right before or
-    right after the fragment is a letter, a digit, an underscore, a hyphen, or
-    an apostrophe. Because it counts the hyphen and apostrophe as part of a
-    word, it does not find Jean inside Jean-Paul, nor Brien inside O'Brien,
-    where a plain boundary would. Two apostrophes are boundaries all the same,
-    the one closing a French elision, which finds Anne in d'Anne, and an
-    English possessive, which finds Jean in Jean's.
+    right after the fragment is a letter, a digit, an underscore or a hyphen.
+    Because it counts the hyphen as part of a word, it does not find Jean inside
+    Jean-Paul, where a plain boundary would. An apostrophe bounds a word, so Anne
+    is found in d'Anne and Jean in Jean's.
 
     Raises:
         EmptyFragmentError: If the fragment is empty. Such a fragment matches at
