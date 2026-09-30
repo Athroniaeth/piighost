@@ -122,7 +122,12 @@ class DetectionOverride:
     def _force(
         self, detections: list[Detection], forced: list[Detection]
     ) -> list[Detection]:
-        """Add the whitelist detections, replacing any detection they overlap."""
+        """Add the whitelist detections, replacing any detection they overlap.
+
+        The result is in position order. It is sorted on the span alone, so two
+        detections on one span stay in detector order, which the overlap
+        resolver breaks a tie with.
+        """
         if not forced:
             return detections
         kept = [
@@ -131,7 +136,7 @@ class DetectionOverride:
             if not any(detection.overlaps(forced_one) for forced_one in forced)
         ]
         combined = kept + list(forced)
-        return sorted(combined)
+        return sorted(combined, key=lambda detection: detection.span)
 
     def _clear(
         self, detections: list[Detection], cleared: list[Detection]

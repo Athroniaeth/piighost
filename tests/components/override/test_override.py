@@ -61,6 +61,16 @@ class TestWhitelist:
         assert len(result) == 1
         assert result[0].label == "PERSON"
 
+    async def test_keeps_the_detector_order_on_one_span(self) -> None:
+        """Two detections on one span stay in detector order, not label order."""
+        primary = [
+            _detection(0, 4, "Emma", label="SECOND"),
+            _detection(0, 4, "Emma", label="FIRST"),
+        ]
+        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+        result = await override.apply("Emma at Acme", primary)
+        assert [d.label for d in result] == ["SECOND", "FIRST", "ORG"]
+
 
 class TestBlacklistStrategies:
     async def test_exact_removes_the_identical_detection(self) -> None:
