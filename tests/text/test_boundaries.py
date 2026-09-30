@@ -1,13 +1,29 @@
 """Tests for word-boundary matching."""
 
 import re
+import sys
+import unicodedata
 
 import pytest
 
 from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
 from piighost.text import boundary_wrap, clear_boundary_cache, find_all_word_boundary
-from piighost.text.boundaries import _word_boundary_pattern
+from piighost.text.boundaries import WORD_JOIN_CHARS, _word_boundary_pattern
+
+HYPHENS = [
+    pytest.param("-", id="hyphen-minus"),
+    pytest.param("\u2011", id="non-breaking-hyphen"),
+    pytest.param("\u00ad", id="soft-hyphen"),
+    pytest.param("\u05be", id="maqaf"),
+]
+"""The ASCII hyphen, and three others that Word or a script writes in its place."""
+
+DASHES = [
+    pytest.param("\u2013", id="en-dash"),
+    pytest.param("\u2014", id="em-dash"),
+]
+"""Dashes, which separate two words rather than join them."""
 
 
 class TestFindAllWordBoundary:
@@ -19,9 +35,26 @@ class TestFindAllWordBoundary:
         """A fragment glued to more letters is not a whole-word match."""
         assert find_all_word_boundary("Jeanne is here", "Jean") == []
 
-    def test_hyphen_counts_as_word_internal(self) -> None:
-        """A hyphen joins words, so Jean is not matched inside Jean-Paul."""
-        assert find_all_word_boundary("Jean-Paul is here", "Jean") == []
+    @pytest.mark.parametrize("hyphen", HYPHENS)
+    def test_a_hyphen_joins_words(self, hyphen: str) -> None:
+        """Jean is not matched inside Jean-Paul, whichever hyphen joins them."""
+        assert find_all_word_boundary(f"Jean{hyphen}Paul is here", "Jean") == []
+
+    @pytest.mark.parametrize("dash", DASHES)
+    def test_a_dash_bounds_a_word(self, dash: str) -> None:
+        """Paris is found when a dash, not a hyphen, stands between it and Lyon."""
+        assert find_all_word_boundary(f"Paris{dash}Lyon", "Paris") == [Span(0, 5)]
+
+    def test_hyphens_are_the_dash_punctuation_named_hyphen(self) -> None:
+        """WORD_JOIN_CHARS is every Pd character named a hyphen, and the soft one."""
+        every_char = (chr(code) for code in range(sys.maxunicode + 1))
+        named = {
+            char
+            for char in every_char
+            if unicodedata.category(char) == "Pd"
+            and any(word in unicodedata.name(char) for word in ("HYPHEN", "MAQAF"))
+        }
+        assert set(WORD_JOIN_CHARS) == named | {"\u00ad"}
 
     @pytest.mark.parametrize(
         ("text", "fragment", "span"),

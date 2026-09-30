@@ -6,13 +6,45 @@ from functools import lru_cache
 from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
 
-WORD_JOIN_CHARS = "-"
+_HYPHEN_CODE_POINTS = (
+    0x002D,
+    0x00AD,
+    0x058A,
+    0x05BE,
+    0x1400,
+    0x1806,
+    0x2010,
+    0x2011,
+    0x2E17,
+    0x2E1A,
+    0x2E40,
+    0x2E5D,
+    0x30A0,
+    0xFE63,
+    0xFF0D,
+    0x10EAD,
+)
+"""Code points of the hyphens: every dash punctuation named a hyphen, and the soft one.
+
+The hyphen-minus, the soft hyphen, the Armenian hyphen, the Hebrew maqaf, the
+Canadian syllabics hyphen, the Mongolian todo soft hyphen, the hyphen and the
+non-breaking hyphen Word types in its place, the double oblique hyphen, the
+hyphen with diaeresis, the double hyphen, the oblique hyphen, the katakana
+double hyphen, the small and the fullwidth hyphen-minus, and the Yezidi
+hyphenation mark. Written as numbers, since several are invisible or look like
+the ASCII one in source.
+"""
+
+WORD_JOIN_CHARS = "".join(map(chr, _HYPHEN_CODE_POINTS))
 """Characters treated as part of a word, in addition to the word class.
 
 A bare word boundary treats the hyphen as a separator, so a search for "Jean"
 would match the "Jean" inside "Jean-Paul", wrongly linking a short name to an
-unrelated compound. The hyphen is added to the word-character class so a
-fragment glued to it is not a match.
+unrelated compound. Every hyphen is added to the word-character class so a
+fragment glued to one is not a match, whichever hyphen the text was typed with.
+
+A dash is not a joiner. The en dash, the em dash and the figure dash stand
+between two words, or two places in "Paris–Lyon", so they bound a word.
 
 The apostrophe is not a joiner, in any language. It ends the word before it as
 often as it sits inside one: an elision (d'Anne, dell'Anna), a possessive
@@ -26,7 +58,7 @@ detection, expansion, linking, and replacement.
 _WORD_CLASS = "[" + "\\w" + "".join(re.escape(char) for char in WORD_JOIN_CHARS) + "]"
 """Regex character class of what counts as inside a word.
 
-The word class plus the WORD_JOIN_CHARS joiners, so a fragment glued to a
+The word class plus the WORD_JOIN_CHARS hyphens, so a fragment glued to a
 hyphen is treated as part of a larger word, not a match.
 """
 
