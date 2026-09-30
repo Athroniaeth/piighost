@@ -32,6 +32,36 @@ Là encore, la limite est celle du modèle, pas du pipeline. Un détecteur à mo
 
 **Mitigation** : charger un modèle spécifique à la locale, ou combiner plusieurs détecteurs via le `CompositeDetector`.
 
+## La recherche par mot entier suppose des espaces entre les mots
+
+Pour retrouver une valeur, `piighost` la cherche comme un mot entier, si bien que `Jean`{ .pii } n'est pas trouvé dans `Jeanne`{ .pii }. Une valeur ne doit toucher ni lettre, ni chiffre, ni trait d'union, d'un côté comme de l'autre. Le chinois, le japonais et le thaï écrivent les mots sans espace entre eux, donc une valeur dans ces écritures touche toujours une lettre, et elle n'est jamais trouvée.
+
+| Texte | Valeur cherchée | Trouvé |
+|---|---|---|
+| `Jeanne et Jean`{ .pii } | `Jean`{ .pii } | le second `Jean`{ .pii } |
+| `田中さんは田中です`{ .pii } | `田中`{ .pii } | rien |
+
+Trois composants reposent sur cette recherche. `ExactMatchDetector` ne trouve rien, `WordBoundaryExpander` ne trouve aucune répétition, et `LLMDetector`, qui place dans le texte chaque valeur que nomme le LLM, écarte une valeur que le LLM a pourtant trouvée, si bien qu'elle part telle quelle. Les détecteurs qui rendent des positions, `RegexDetector` et les détecteurs NER, ne sont pas concernés.
+
+Prendre en charge ces écritures demanderait un segmenteur de mots par langue, et le pipeline n'en a pas.
+
+**Mitigation** : sur un texte chinois, japonais ou thaï, détecter avec un modèle NER ou un motif plutôt qu'avec `ExactMatchDetector` ou `LLMDetector`, et ne pas compter sur l'expander pour les répétitions.
+
+## Le motif e-mail lit mal certaines écritures
+
+Le motif `EMAIL` du catalogue `generic` accepte les lettres Unicode, donc une adresse accentuée, `expéditeur@exemple.fr`{ .pii }, est trouvée entière. Deux cas lui échappent.
+
+| Texte | Trouvé | Attendu |
+|---|---|---|
+| `メールはtanaka@example.jpです`{ .pii } | toute la phrase | `tanaka@example.jp`{ .pii } |
+| `राम@उदाहरण.भारत`{ .pii } | rien | l'adresse |
+
+Dans un texte chinois ou japonais sans espace autour de l'adresse, les idéogrammes voisins sont aussi des lettres, donc le motif les englobe. Le jeton masque plus que l'adresse, et rien ne part en clair. En hindi, et dans les autres écritures dont les voyelles sont des signes combinants, le module `re` de Python ne compte pas ces signes comme des lettres, donc l'adresse est manquée et part telle quelle.
+
+Corriger les deux demanderait un moteur de regex qui connaisse la segmentation en mots et les graphèmes, ce que `re` ne fait pas.
+
+**Mitigation** : pour un texte dans ces écritures, écrire le motif e-mail de votre config pour les adresses qu'il contient vraiment, ou détecter les adresses avec un modèle NER.
+
 ## Pas de validation par checksum (volontaire)
 
 `RegexDetector` matche sur la forme seule. Il ne vérifie aucun checksum, pas de Luhn sur les cartes, pas de clé IBAN, pas de clé NIR. C'est délibéré.

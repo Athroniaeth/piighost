@@ -320,7 +320,7 @@ TransformersDetector(
 
 ### `PresidioDetector`
 
-Wraps a Presidio `AnalyzerEngine` so a caller reuses Presidio's recognizers. Needs the `presidio` extra. The analyzer is injected, since an engine is assembled from an NLP engine and a recognizer registry, not loaded from a name. `labels` is optional, kept native when omitted. An entity scoring below `threshold` is dropped by Presidio.
+Wraps a Presidio `AnalyzerEngine` so a caller reuses Presidio's recognizers. Needs the `presidio` extra. The analyzer is injected, since an engine is assembled from an NLP engine and a recognizer registry, not loaded from a name. `labels` is optional, kept native when omitted. An entity scoring below `threshold` is dropped.
 
 ```python
 PresidioDetector(
@@ -346,12 +346,14 @@ From a config, the `presidio` detector type builds Presidio's default English `A
 
 Delegates inference to an injected runner and maps what it returns onto detections. It holds no model and needs no extra. It exists for a runtime where no NER stack is installable, a browser being the usual case, where the model runs in the host's JavaScript runtime and Python awaits it through the Pyodide FFI. The same shape serves any out-of-process runner, a subprocess or a sidecar.
 
-`labels` is required, since the runner is queried with the internal labels and a span whose label is not mapped is dropped, as for any NER adapter.
+`labels` is required, since the runner is queried with the internal labels and a span whose label is not mapped is dropped, as for any NER adapter. `offset_unit` is required too, since nothing in a payload tells the two units apart.
 
 ```python
 BridgeDetector(
     runner: AnySpanRunner,
     labels: list[str] | dict[str, str],
+    *,
+    offset_unit: OffsetUnit,
     threshold: float = 0.5,
     max_chars: int | None = None,
     auto_chunk: bool = True,
@@ -362,21 +364,31 @@ BridgeDetector(
 |-----------|------|-------------|
 | `runner` | `AnySpanRunner` | The callable awaited for each text, holding the model (required) |
 | `labels` | `list[str] \| dict[str, str]` | The labels to map and filter (required) |
-| `threshold` | `float` | The confidence at or above which a span is kept, passed to the runner |
+| `offset_unit` | `OffsetUnit` | What the runner counts in its offsets, `CODE_POINT` or `UTF16` (required) |
+| `threshold` | `float` | The confidence at or above which a span is kept, passed to the runner and applied again on its answer |
 | `max_chars` | `int \| None` | Bound above which the text is chunked, or `None` for no bound |
 | `auto_chunk` | `bool` | Whether a text over `max_chars` is chunked rather than refused |
 
-The runner is an async callable taking the text, the internal labels and the threshold, and returning a sequence of mappings carrying `start`, `end`, `label` and `score`. Offsets are character positions into the text passed in, half-open, as `Span` is.
+The runner is an async callable taking the text, the internal labels and the threshold, and returning a sequence of mappings carrying `start`, `end`, `label` and `score`. Offsets are half-open positions into the text passed in, counted in the unit `offset_unit` names.
+
+| `OffsetUnit` | Counts | Runner |
+|---|---|---|
+| `CODE_POINT` | characters, as a Python `str` and `Span` do | written in Python |
+| `UTF16` | UTF-16 code units, where an emoji or a rare ideograph takes two | written in JavaScript, in a browser or in Node |
+
+The two units agree on a text without such a character and drift apart by one after each. A JavaScript offset read as a code point lands one character late, and the first letter of the value stays in clear, so a JavaScript runner declares `UTF16` and the detector converts.
 
 ```python
-from piighost.components.detector.ner import BridgeDetector
+from piighost.components.detector.ner import BridgeDetector, OffsetUnit
 
 
 async def runner(text: str, labels: list[str], threshold: float):
     return [{"start": 0, "end": 10, "label": "person", "score": 0.92}]
 
 
-detector = BridgeDetector(runner, {"PERSON": "person"}, threshold=0.4)
+detector = BridgeDetector(
+    runner, {"PERSON": "person"}, offset_unit=OffsetUnit.CODE_POINT, threshold=0.4
+)
 await detector.detect("Emma Rossi works at Acme.")
 # [Detection(span=Span(0, 10), text="Emma Rossi", label="PERSON", confidence=0.92)]
 ```
@@ -384,8 +396,9 @@ await detector.detect("Emma Rossi works at Acme.")
 A runner is foreign code, often reached across a language boundary, so its answer is checked rather than trusted.
 
 - Any `text` the runner returns is ignored and re-read from the source, so a runner that mangles the matched substring cannot desynchronise the replacement.
-- A span missing a field, or carrying offsets that are not integers, raises `BridgePayloadError`.
-- A span falling outside the text raises `BridgeSpanRangeError`. Trimming it would slice a shorter substring than the runner meant, and leave part of the value in clear.
+- A span missing a field, or carrying an offset that is not an integer, a float such as `8.9` or `8.0` included, raises `BridgePayloadError`. Truncating it would move the span.
+- A span falling outside the text, or a UTF-16 offset between the two halves of a character, raises `BridgeSpanRangeError`. Trimming it would slice a shorter substring than the runner meant, and leave part of the value in clear.
+- A span scored below `threshold` is dropped, even when the runner ignored the threshold it was given.
 - A result carrying a `to_py` method, as a Pyodide `JsProxy` does, is converted first.
 
 There is no configuration model for this detector. Its runner is a callable, which a TOML or JSON file cannot name without a registry of callables, and that registry would make the core depend on what configures it. A caller that builds this detector builds it in code.
@@ -393,6 +406,14 @@ There is no configuration model for this detector. Its runner is a callable, whi
 ### Long-text handling
 
 `Gliner2Detector`, `TransformersDetector` and `BridgeDetector` take `max_chars` with `auto_chunk` (default `True`). A text longer than `max_chars` is split into overlapping chunks, scanned separately, and remapped back onto the original text. With `auto_chunk` off, a text over the bound raises `TextTooLongError` instead. `max_chars` defaults to `None`, so there is no bound and the whole text is scanned in one pass. `SpacyDetector` and `PresidioDetector` do not expose these.
+
+### Guarantees every NER detector keeps
+
+`BaseNERDetector` applies one pass to whatever a model returns, so every adapter behaves alike, whatever its backend.
+
+- The text of a detection is its span's slice of the source, never the string the model returned. Merging overlaps, linking and restoring all rely on the text matching the characters it replaces.
+- A detection scored below `threshold` is dropped, even when the model was handed the threshold and let a weaker one through.
+- Labels are mapped and filtered, as the next section describes.
 
 ### Label mapping
 
@@ -495,6 +516,24 @@ from piighost.text import normalize_spaces, value_key
 normalize_spaces("06\u00a012\u202f34")  # "06 12 34", same length
 value_key("Paul\u00a0Martin") == value_key("paul  MARTIN")  # True, one value
 ```
+
+## Whole-word search
+
+`ExactMatchDetector`, `LLMDetector` and `WordBoundaryExpander` find a value only where it stands as a whole word, so the character before it and the one after must not belong to a word.
+
+| Character | Role | Example |
+|---|---|---|
+| letter, digit, underscore | inside a word | `Jean`{ .pii } is not found in `Jeanne`{ .pii } |
+| hyphen, every Unicode one | inside a word | `Jean`{ .pii } is not found in `Jean-Paul`{ .pii }, whichever hyphen joins them |
+| dash, en or em | bounds a word | `Paris`{ .pii } is found in `Paris–Lyon`{ .pii } |
+| apostrophe, straight or curly | bounds a word | `Anne`{ .pii } is found in `d'Anne`{ .pii }, `Jean`{ .pii } in `Jean's`{ .pii } |
+| space, every Unicode one | bounds a word | see [Unicode spaces](#unicode-spaces) |
+
+The hyphens are the ASCII one, the hyphen and the non-breaking hyphen Word types in its place, the soft hyphen, the Hebrew maqaf, and every other dash punctuation Unicode names a hyphen. They are `WORD_JOIN_CHARS` in `piighost.text.boundaries`.
+
+The apostrophe bounds a word in every language, since it ends a word as often as it sits inside one. The cost is that `Brien`{ .pii } is also found inside `O'Brien`{ .pii }, which hides more than asked and leaves nothing in clear.
+
+The rule assumes spaces between words, so it finds nothing in Chinese, Japanese or Thai, see [Limitations](../limitations.md#whole-word-search-assumes-spaces-between-words).
 
 ---
 

@@ -137,32 +137,32 @@ python run.py "Write to alice@corp.com and prénom@corp.com from 10.0.0.7."
 The output should be:
 
 ```text
-Write to <<EMAIL:1>> and pré<<EMAIL:2>> from <<IPV4:1>>.
+Write to <<EMAIL:1>> and <<EMAIL:2>> from <<IPV4:1>>.
 ```
 
-The IP address is covered now, and `prénom@corp.com`{ .pii } only half of it. The catalog patterns match ASCII shapes, so the match starts after the accent. Add an inline pattern on the same label, and it overrides the catalog's.
+The IP address is covered now, and the accented address with it. A format of your own, an order number such as `CMD-2024-0042`{ .pii }, is in no catalog. Declare it inline, next to the catalog.
 
 ```toml
 [detector]
 type = "regex"
 catalogs = ["generic"]
-patterns = { EMAIL = '[A-Za-zÀ-ÿ0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' }
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [anonymizer.placeholder]
 type = "label_counter"
 ```
 
 ```bash
-python run.py "Write to alice@corp.com and prénom@corp.com from 10.0.0.7."
+python run.py "Order CMD-2024-0042 for alice@corp.com, from 10.0.0.7."
 ```
 
 The output should be:
 
 ```text
-Write to <<EMAIL:1>> and <<EMAIL:2>> from <<IPV4:1>>.
+Order <<ORDER:1>> for <<EMAIL:1>>, from <<IPV4:1>>.
 ```
 
-The whole address is a token now. Catalogs merge first, then your inline patterns, so a label declared in both takes your pattern.
+The order number is a token now. Catalogs merge first, then your inline patterns, so a label declared in both takes your pattern.
 
 ## 5. Run two detectors at once
 
@@ -175,7 +175,7 @@ type = "composite"
 [[detector.detectors]]
 type = "regex"
 catalogs = ["generic"]
-patterns = { EMAIL = '[A-Za-zÀ-ÿ0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' }
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [[detector.detectors]]
 type = "exact"

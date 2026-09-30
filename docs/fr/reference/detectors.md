@@ -320,7 +320,7 @@ TransformersDetector(
 
 ### `PresidioDetector`
 
-Enveloppe un `AnalyzerEngine` de Presidio pour réutiliser ses recognizers. A besoin de l'extra `presidio`. L'analyzer est injecté, car un moteur est assemblé d'un moteur NLP et d'un registre de recognizers, pas chargé depuis un nom. `labels` est optionnel, gardé natif quand il est omis. Une entité scorant sous `threshold` est écartée par Presidio.
+Enveloppe un `AnalyzerEngine` de Presidio pour réutiliser ses recognizers. A besoin de l'extra `presidio`. L'analyzer est injecté, car un moteur est assemblé d'un moteur NLP et d'un registre de recognizers, pas chargé depuis un nom. `labels` est optionnel, gardé natif quand il est omis. Une entité scorant sous `threshold` est écartée.
 
 ```python
 PresidioDetector(
@@ -346,12 +346,14 @@ Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine`
 
 Délègue l'inférence à un exécuteur injecté et ramène ce qu'il rend sur des détections. Il ne porte aucun modèle et ne demande aucun extra. Il existe pour un environnement où aucune pile NER n'est installable, le navigateur étant le cas courant, où le modèle tourne dans le runtime JavaScript de l'hôte et où Python l'attend via le FFI de Pyodide. La même forme sert n'importe quel exécuteur hors du processus, un sous-processus ou un side-car.
 
-`labels` est obligatoire, puisque l'exécuteur est interrogé avec les labels internes et qu'un span dont le label n'est pas mappé est écarté, comme pour tout adaptateur NER.
+`labels` est obligatoire, puisque l'exécuteur est interrogé avec les labels internes et qu'un span dont le label n'est pas mappé est écarté, comme pour tout adaptateur NER. `offset_unit` l'est aussi, puisque rien dans une réponse ne distingue les deux unités.
 
 ```python
 BridgeDetector(
     runner: AnySpanRunner,
     labels: list[str] | dict[str, str],
+    *,
+    offset_unit: OffsetUnit,
     threshold: float = 0.5,
     max_chars: int | None = None,
     auto_chunk: bool = True,
@@ -362,21 +364,31 @@ BridgeDetector(
 |-----------|------|-------------|
 | `runner` | `AnySpanRunner` | L'appelable attendu pour chaque texte, qui porte le modèle (obligatoire) |
 | `labels` | `list[str] \| dict[str, str]` | Les labels à mapper et filtrer (obligatoire) |
-| `threshold` | `float` | La confiance à partir de laquelle un span est retenu, transmise à l'exécuteur |
+| `offset_unit` | `OffsetUnit` | Ce que l'exécuteur compte dans ses décalages, `CODE_POINT` ou `UTF16` (obligatoire) |
+| `threshold` | `float` | La confiance à partir de laquelle un span est retenu, transmise à l'exécuteur puis appliquée à nouveau sur sa réponse |
 | `max_chars` | `int \| None` | Borne au-delà de laquelle le texte est découpé, ou `None` pour aucune borne |
 | `auto_chunk` | `bool` | Si un texte au-delà de `max_chars` est découpé plutôt que refusé |
 
-L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes et le seuil, et rend une séquence de mappings portant `start`, `end`, `label` et `score`. Les décalages sont des positions caractère dans le texte transmis, en intervalle semi-ouvert, comme `Span`.
+L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes et le seuil, et rend une séquence de mappings portant `start`, `end`, `label` et `score`. Les décalages sont des positions dans le texte transmis, en intervalle semi-ouvert, comptées dans l'unité que nomme `offset_unit`.
+
+| `OffsetUnit` | Compte | Exécuteur |
+|---|---|---|
+| `CODE_POINT` | des caractères, comme une `str` Python et `Span` | écrit en Python |
+| `UTF16` | des unités UTF-16, où un emoji ou un idéogramme rare en prend deux | écrit en JavaScript, dans un navigateur ou dans Node |
+
+Les deux unités concordent sur un texte sans un tel caractère, et s'écartent d'une unité après chacun. Un décalage JavaScript lu comme un point de code tombe un caractère trop loin, et la première lettre de la valeur reste en clair. Un exécuteur JavaScript déclare donc `UTF16`, et le détecteur convertit.
 
 ```python
-from piighost.components.detector.ner import BridgeDetector
+from piighost.components.detector.ner import BridgeDetector, OffsetUnit
 
 
 async def runner(text: str, labels: list[str], threshold: float):
     return [{"start": 0, "end": 10, "label": "person", "score": 0.92}]
 
 
-detector = BridgeDetector(runner, {"PERSON": "person"}, threshold=0.4)
+detector = BridgeDetector(
+    runner, {"PERSON": "person"}, offset_unit=OffsetUnit.CODE_POINT, threshold=0.4
+)
 await detector.detect("Emma Rossi works at Acme.")
 # [Detection(span=Span(0, 10), text="Emma Rossi", label="PERSON", confidence=0.92)]
 ```
@@ -384,8 +396,9 @@ await detector.detect("Emma Rossi works at Acme.")
 Un exécuteur est du code étranger, souvent atteint au travers d'une frontière de langage, donc sa réponse est vérifiée plutôt que crue.
 
 - Le `text` que l'exécuteur rend est ignoré et relu depuis la source, donc un exécuteur qui abîme la sous-chaîne trouvée ne peut pas désynchroniser le remplacement.
-- Un span auquel il manque un champ, ou qui porte des décalages qui ne sont pas des entiers, lève `BridgePayloadError`.
-- Un span qui déborde du texte lève `BridgeSpanRangeError`. Le rogner découperait une sous-chaîne plus courte que ce que l'exécuteur visait, et laisserait une partie de la valeur en clair.
+- Un span auquel il manque un champ, ou qui porte un décalage qui n'est pas un entier, un flottant comme `8.9` ou `8.0` compris, lève `BridgePayloadError`. Le tronquer déplacerait le span.
+- Un span qui déborde du texte, ou un décalage UTF-16 qui tombe entre les deux moitiés d'un caractère, lève `BridgeSpanRangeError`. Le rogner découperait une sous-chaîne plus courte que ce que l'exécuteur visait, et laisserait une partie de la valeur en clair.
+- Un span noté sous `threshold` est écarté, même quand l'exécuteur a ignoré le seuil qu'il a reçu.
 - Un résultat portant une méthode `to_py`, comme le fait un `JsProxy` de Pyodide, est converti d'abord.
 
 Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelable, qu'un fichier TOML ou JSON ne peut pas nommer sans un registre d'appelables, et ce registre ferait dépendre le cœur de ce qui le configure. Un appelant qui construit ce détecteur le construit dans le code.
@@ -393,6 +406,14 @@ Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelab
 ### Gestion des textes longs
 
 `Gliner2Detector`, `TransformersDetector` et `BridgeDetector` prennent `max_chars` avec `auto_chunk` (défaut `True`). Un texte plus long que `max_chars` est découpé en morceaux qui se chevauchent, scannés séparément, puis reprojetés sur le texte original. Avec `auto_chunk` désactivé, un texte au-delà de la limite lève `TextTooLongError` à la place. `max_chars` vaut `None` par défaut, donc il n'y a pas de limite et le texte entier est scanné en une passe. `SpacyDetector` et `PresidioDetector` ne les exposent pas.
+
+### Garanties communes à tous les détecteurs NER
+
+`BaseNERDetector` applique une même passe à ce que rend n'importe quel modèle, si bien que tous les adaptateurs se comportent pareil, quel que soit leur backend.
+
+- Le texte d'une détection est la tranche de la source que couvre son span, jamais la chaîne que le modèle a rendue. La fusion des chevauchements, le regroupement et la restauration supposent tous que le texte correspond aux caractères qu'il remplace.
+- Une détection notée sous `threshold` est écartée, même quand le modèle a reçu le seuil et laissé passer une détection plus faible.
+- Les labels sont mappés et filtrés, comme le décrit la section suivante.
 
 ### Correspondance des labels
 
@@ -495,6 +516,24 @@ from piighost.text import normalize_spaces, value_key
 normalize_spaces("06\u00a012\u202f34")  # "06 12 34", même longueur
 value_key("Paul\u00a0Martin") == value_key("paul  MARTIN")  # True, la même valeur
 ```
+
+## Recherche par mot entier
+
+`ExactMatchDetector`, `LLMDetector` et `WordBoundaryExpander` ne trouvent une valeur que là où elle forme un mot entier. Le caractère qui la précède et celui qui la suit ne doivent donc pas appartenir à un mot.
+
+| Caractère | Rôle | Exemple |
+|---|---|---|
+| lettre, chiffre, tiret bas | dans un mot | `Jean`{ .pii } n'est pas trouvé dans `Jeanne`{ .pii } |
+| trait d'union, n'importe lequel | dans un mot | `Jean`{ .pii } n'est pas trouvé dans `Jean-Paul`{ .pii }, quel que soit le trait d'union qui les relie |
+| tiret, demi-cadratin ou cadratin | borne un mot | `Paris`{ .pii } est trouvé dans `Paris–Lyon`{ .pii } |
+| apostrophe, droite ou courbe | borne un mot | `Anne`{ .pii } est trouvé dans `d'Anne`{ .pii }, `Jean`{ .pii } dans `Jean's`{ .pii } |
+| espace, n'importe laquelle | borne un mot | voir [Espaces Unicode](#espaces-unicode) |
+
+Les traits d'union sont celui de l'ASCII, le trait d'union et le trait d'union insécable que Word écrit à sa place, le trait d'union conditionnel, le maqaf hébreu, et toute autre ponctuation de tiret que Unicode nomme trait d'union. Ils forment `WORD_JOIN_CHARS`, dans `piighost.text.boundaries`.
+
+L'apostrophe borne un mot dans toutes les langues, puisqu'elle termine un mot aussi souvent qu'elle se trouve à l'intérieur. En contrepartie, `Brien`{ .pii } est aussi trouvé dans `O'Brien`{ .pii }, ce qui masque plus que demandé et ne laisse rien en clair.
+
+La règle suppose des espaces entre les mots, elle ne trouve donc rien en chinois, en japonais ou en thaï, voir [Limites](../limitations.md#la-recherche-par-mot-entier-suppose-des-espaces-entre-les-mots).
 
 ---
 
