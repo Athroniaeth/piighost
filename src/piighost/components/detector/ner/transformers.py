@@ -28,11 +28,10 @@ class TransformersDetector(BaseNERDetector):
     labels is optional. When omitted, every entity is kept with its model-native
     label. A str pipeline is loaded with the transformers pipeline factory as an
     ner pipeline; a built pipeline is used as-is. An entity scoring below
-    threshold is dropped.
+    threshold is dropped by the base.
 
     Attributes:
         pipeline: The token-classification pipeline run over each text.
-        threshold: The score below which a detected entity is dropped.
     """
 
     def __init__(
@@ -54,6 +53,7 @@ class TransformersDetector(BaseNERDetector):
         """
         super().__init__(
             labels,
+            threshold=threshold,
             max_concurrency=max_concurrency,
             max_chars=max_chars,
             auto_chunk=auto_chunk,
@@ -69,16 +69,12 @@ class TransformersDetector(BaseNERDetector):
                 aggregation_strategy=aggregation_strategy,
             )
         self.pipeline = pipeline
-        self.threshold = threshold
 
     async def _raw_detect(self, text: str) -> list[Detection]:
-        """Run the pipeline and build detections, dropping sub-threshold ones."""
+        """Run the pipeline and build one detection per entity, native labels kept."""
         results = await self._run_blocking(self.pipeline, text)
         detections: list[Detection] = []
         for entity in results:
-            score = float(entity["score"])
-            if score < self.threshold:
-                continue
             native_label = entity.get("entity_group", entity.get("entity", "UNKNOWN"))
             start = int(entity["start"])
             end = int(entity["end"])
@@ -87,7 +83,7 @@ class TransformersDetector(BaseNERDetector):
                 span=span,
                 text=text[start:end],
                 label=native_label,
-                confidence=score,
+                confidence=float(entity["score"]),
             )
             detections.append(detection)
         return detections

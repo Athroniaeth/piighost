@@ -29,7 +29,6 @@ class Gliner2Detector(BaseNERDetector):
 
     Attributes:
         model: The loaded GLiNER2 model queried for entities.
-        threshold: The confidence at or above which an entity is kept.
     """
 
     def __init__(
@@ -44,12 +43,12 @@ class Gliner2Detector(BaseNERDetector):
         """Store or load the model, then set the labels and threshold."""
         super().__init__(
             labels,
+            threshold=threshold,
             max_concurrency=max_concurrency,
             max_chars=max_chars,
             auto_chunk=auto_chunk,
         )
         self.model = GLiNER2.from_pretrained(model) if isinstance(model, str) else model
-        self.threshold = threshold
 
     async def _raw_detect(self, text: str) -> list[Detection]:
         """Run GLiNER2 and build one detection per entity, native labels kept."""
@@ -67,7 +66,7 @@ class Gliner2Detector(BaseNERDetector):
                 span = Span(entity["start"], entity["end"])
                 detection = Detection(
                     span=span,
-                    text=entity["text"],
+                    text=span.extract(text),
                     label=native_label,
                     confidence=entity["confidence"],
                 )
