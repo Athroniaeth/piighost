@@ -1,9 +1,11 @@
-"""Base for NER detectors: a shared label-mapping pass over a model hook.
+"""Base for NER detectors: one shared pass over a model hook.
 
 BaseNERDetector is a Template Method. Its detect runs the abstract _raw_detect,
 which each adapter implements around its own model, then applies one shared
-label-mapping and filtering pass. Adapters therefore hold only backend-specific
-extraction, not the mapping loop.
+pass: the text of each detection is re-read from the source, a detection below
+the threshold is dropped, and labels are mapped and filtered. Adapters therefore
+hold only backend-specific extraction, and every one of them keeps the same
+guarantees, whatever its model returns.
 """
 
 import asyncio
@@ -21,7 +23,7 @@ _DEFAULT_CHUNK_OVERLAP = 100
 """Default chunk overlap, in characters, capped below the chunk size."""
 
 _NO_THREADS = sys.platform == "emscripten"
-"""Whether the platform can start a thread at all.
+"""Whether the platform cannot start a thread at all.
 
 Emscripten cannot, which is what a browser runs. Pyodide's asyncio.to_thread
 does not raise there, it runs the callable inline and blocks the event loop, so
@@ -41,11 +43,17 @@ class BaseNERDetector(ABC):
     detection is kept with the label the model gave it. A non-empty map keeps
     only detections whose native label is mapped, relabeling each to its
     external label and dropping the rest.
+
+    Attributes:
+        threshold: The confidence at or above which a detection is kept. An
+            adapter may also hand it to its model, to filter earlier, but the
+            base applies it either way, so no model can let a weaker one through.
     """
 
     def __init__(
         self,
         labels: list[str] | dict[str, str] | None,
+        threshold: float = 0.0,
         max_concurrency: int | None = None,
         max_chars: int | None = None,
         auto_chunk: bool = True,
@@ -62,6 +70,7 @@ class BaseNERDetector(ABC):
         """
         self._label_map = self._normalize(labels)
         self._reverse_map = self._build_reverse(self._label_map)
+        self.threshold = threshold
         self._infer_semaphore = (
             asyncio.Semaphore(max_concurrency) if max_concurrency else None
         )
@@ -84,11 +93,11 @@ class BaseNERDetector(ABC):
         )
 
     async def detect(self, text: str) -> list[Detection]:
-        """Detect via the subclass hook, then map and filter the labels."""
+        """Detect via the subclass hook, then apply the threshold and the labels."""
         detections: list[Detection] = []
         for detection in await self._gather_raw(text):
             label = self._resolve_label(detection.label)
-            if label is None:
+            if label is None or detection.confidence < self.threshold:
                 continue
             if label != detection.label:
                 detection = replace(detection, label=label)
@@ -102,9 +111,15 @@ class BaseNERDetector(ABC):
         A longer text is chunked when auto_chunk is on, each chunk scanned and
         its spans shifted back onto the original text, exact duplicates from the
         overlap dropped; otherwise it raises TextTooLongError.
+
+        Either way the text of each detection is its span's slice of the source,
+        whatever the model returned. A model may hand back a normalized or
+        trimmed string, and every later stage, merging overlaps, linking, and
+        restoring, relies on the text matching the characters it replaces.
         """
         if self._max_chars is None or len(text) <= self._max_chars:
-            return await self._raw_detect(text)
+            raw = await self._raw_detect(text)
+            return [self._reread(detection, text) for detection in raw]
 
         if not self._auto_chunk or self._splitter is None:
             raise TextTooLongError(
@@ -116,9 +131,14 @@ class BaseNERDetector(ABC):
         remapped: list[Detection] = []
         for chunk in self._splitter.split(text):
             for detection in await self._raw_detect(chunk.text):
-                shifted = detection.span.shift(chunk.start)
-                remapped.append(replace(detection, span=shifted))
+                shifted = replace(detection, span=detection.span.shift(chunk.start))
+                remapped.append(self._reread(shifted, text))
         return list(dict.fromkeys(remapped))
+
+    @staticmethod
+    def _reread(detection: Detection, text: str) -> Detection:
+        """Return the detection with its text sliced from the source."""
+        return replace(detection, text=detection.span.extract(text))
 
     @abstractmethod
     async def _raw_detect(self, text: str) -> list[Detection]:

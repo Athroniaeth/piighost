@@ -21,8 +21,9 @@ class _FakeNERDetector(BaseNERDetector):
         raw: list[Detection],
         labels: list[str] | dict[str, str] | None = None,
         max_concurrency: int | None = None,
+        threshold: float = 0.0,
     ) -> None:
-        super().__init__(labels, max_concurrency=max_concurrency)
+        super().__init__(labels, threshold=threshold, max_concurrency=max_concurrency)
         self._raw = raw
 
     async def _raw_detect(self, text: str) -> list[Detection]:
@@ -98,6 +99,21 @@ class TestLabelMapping:
         detector = _FakeNERDetector([], labels={"PERSON": "per", "COMPANY": "org"})
         assert detector.internal_labels == ["per", "org"]
         assert detector.external_labels == ["PERSON", "COMPANY"]
+
+
+class TestSharedPass:
+    async def test_text_is_read_from_the_source(self) -> None:
+        """The text a model returns is replaced by its span's slice of the source."""
+        raw = Detection(span=Span(0, 4), text="EMMA?", label="PERSON", confidence=0.9)
+        detections = await _FakeNERDetector([raw]).detect("Emma is here")
+        assert detections[0].text == "Emma"
+
+    async def test_detection_below_the_threshold_is_dropped(self) -> None:
+        """The base applies the threshold, whatever the model filtered."""
+        raw = [_det("PERSON", confidence=0.9), _det("PERSON", confidence=0.1)]
+        detector = _FakeNERDetector(raw, threshold=0.5)
+        confidences = [d.confidence for d in await detector.detect("Emma")]
+        assert confidences == [0.9]
 
 
 class TestMaxChars:

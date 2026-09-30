@@ -9,7 +9,11 @@ BridgeDetector holds no model of its own and needs no extra, so it is eager.
 from typing import TYPE_CHECKING, Any
 
 from piighost.components.detector.ner.base import BaseNERDetector
-from piighost.components.detector.ner.bridge import AnySpanRunner, BridgeDetector
+from piighost.components.detector.ner.bridge import (
+    AnySpanRunner,
+    BridgeDetector,
+    OffsetUnit,
+)
 
 if TYPE_CHECKING:
     from piighost.components.detector.ner.gliner2 import (
@@ -26,6 +30,7 @@ __all__ = [
     "BridgeDetector",
     "Gliner2Detector",
     "Gliner2PiiDetector",
+    "OffsetUnit",
     "PresidioDetector",
     "SpacyDetector",
     "TransformersDetector",
