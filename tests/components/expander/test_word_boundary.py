@@ -36,8 +36,8 @@ class TestExpand:
         spans = sorted(found.span for found in expanded)
         assert spans == [Span(0, 4), Span(9, 13)]
 
-    def test_finds_an_occurrence_after_a_french_elision(self) -> None:
-        """A value repeated after l' or d' is found, the apostrophe ending the article."""
+    def test_finds_an_occurrence_glued_to_an_apostrophe(self) -> None:
+        """A repeat right after an apostrophe is found, the apostrophe bounding the word."""
         text = "Ille-et-Vilaine, office notarial d'Ille-et-Vilaine"
         detection = _detection(0, 15, "Ille-et-Vilaine", label="LOCATION")
         expanded = WordBoundaryExpander().expand(text, [detection])
