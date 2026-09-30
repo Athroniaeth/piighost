@@ -191,7 +191,7 @@ Sous-classez `BaseEntityLinker`. Il regroupe les détections par une clé que vo
             return (detection.text, detection.label)
     ```
 
-L'`ExactEntityLinker` intégré regroupe sur la valeur en casse repliée, si bien que `Patrick`{ .pii } et `patrick`{ .pii } deviennent une seule entité.
+L'`ExactEntityLinker` intégré regroupe sur la clé de valeur, les mêmes mots quelles que soient leurs espaces et leur casse, si bien que `Patrick`{ .pii } et `patrick`{ .pii } deviennent une seule entité. Utilisez `piighost.text.value_key` dans votre propre linker pour suivre la même règle, voir [Espaces Unicode](reference/detectors.md#espaces-unicode).
 
 ---
 

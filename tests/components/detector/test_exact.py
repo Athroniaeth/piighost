@@ -80,3 +80,9 @@ class TestConstruction:
         """An empty configured value raises, since it matches at every position."""
         with pytest.raises(EmptyFragmentError):
             ExactMatchDetector({"": "PERSON"})
+
+    @pytest.mark.parametrize("value", [" ", "\u00a0", "\u3000\n"])
+    def test_a_whitespace_only_value_is_refused(self, value: str) -> None:
+        """A value made only of spaces matches everywhere, so it is refused too."""
+        with pytest.raises(EmptyFragmentError):
+            ExactMatchDetector({value: "PERSON"})

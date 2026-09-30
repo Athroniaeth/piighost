@@ -26,6 +26,7 @@ from piighost.conversation_memory.base import Forgotten, MessageRole, warn_plain
 from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
+from piighost.text import value_key
 
 if importlib.util.find_spec("redis") is None:
     raise ImportError(
@@ -183,7 +184,7 @@ class RedisConversationMemory:
 
         for _, role, detections in await self._read_all(thread_id):
             for detection in detections:
-                provenance.setdefault(detection.text.casefold(), role)
+                provenance.setdefault(value_key(detection.text), role)
 
         return provenance
 

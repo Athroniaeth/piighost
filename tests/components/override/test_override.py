@@ -187,3 +187,15 @@ class TestForcesValue:
             whitelist_strategy=WhitelistStrategy.FORCE,
         )
         assert await override.forces_value("Globex") is False
+
+
+class TestUnicodeSpaces:
+    async def test_value_clears_a_spelling_with_other_spaces(self) -> None:
+        """VALUE compares by value key, so a no-break-space spelling is cleared too."""
+        text = "Paul Martin, puis Paul\u00a0Martin"
+        primary = [_detection(18, 29, "Paul\u00a0Martin", label="PERSON")]
+        override = DetectionOverride(
+            blacklist=ExactMatchDetector({"Paul Martin": "PERSON"}),
+            blacklist_strategy=BlacklistStrategy.VALUE,
+        )
+        assert await override.apply(text, primary) == []

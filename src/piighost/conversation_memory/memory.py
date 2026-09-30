@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.models import Detection
+from piighost.text import value_key
 
 _Thread = dict[str, tuple[MessageRole, list[Detection]]]
 
@@ -96,7 +97,7 @@ class InMemoryConversationMemory:
 
         for role, cached in thread.values():
             for detection in cached:
-                provenance.setdefault(detection.text.casefold(), role)
+                provenance.setdefault(value_key(detection.text), role)
 
         return provenance
 

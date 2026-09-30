@@ -21,8 +21,8 @@ class WhitelistStrategy(Enum):
 class BlacklistStrategy(Enum):
     """How a blacklist detection invalidates an already-detected one.
 
-    VALUE, the default, invalidates every detection carrying the same
-    casefolded text, positions and labels ignored, the classic
+    VALUE, the default, invalidates every detection carrying the same value,
+    compared by value key, positions and labels ignored, the classic
     never-anonymize-this-value list. It is the default because a blacklist
     names a value, and the label a caller writes beside it is a guess about
     what the primary detector will emit. EXACT invalidates only a detection

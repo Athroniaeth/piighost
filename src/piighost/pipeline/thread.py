@@ -24,6 +24,7 @@ from piighost.conversation_memory.base import (
 from piighost.conversation_memory.memory import InMemoryConversationMemory
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
+from piighost.text import value_key
 
 _TOKEN_MEMO_MAX = 256
 """How many thread-token maps to memoize before evicting the least recently used."""
@@ -165,7 +166,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 if entity.detections[0] in token_of
             }
             preserved = frozenset(
-                entity.text.casefold()
+                value_key(entity.text)
                 for entity in message_entities
                 if entity.detections[0] not in token_of
             )
@@ -326,7 +327,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         anonymizable = []
         for entity in thread_entities:
             introduced_by_assistant = (
-                provenance.get(entity.text.casefold()) is MessageRole.ASSISTANT
+                provenance.get(value_key(entity.text)) is MessageRole.ASSISTANT
             )
             if not introduced_by_assistant or await self._forces_value(entity.text):
                 anonymizable.append(entity)

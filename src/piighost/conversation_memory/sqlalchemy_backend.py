@@ -22,6 +22,7 @@ from piighost.conversation_memory.base import Forgotten, MessageRole, warn_plain
 from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
+from piighost.text import value_key
 
 if importlib.util.find_spec("sqlalchemy") is None:
     raise ImportError(
@@ -208,7 +209,7 @@ class SqlAlchemyConversationMemory:
         for row in rows:
             role = MessageRole(row.role)
             for detection in self._deserialize(row.detections):
-                provenance.setdefault(detection.text.casefold(), role)
+                provenance.setdefault(value_key(detection.text), role)
         return provenance
 
     async def forget(self, thread_id: str) -> Forgotten:

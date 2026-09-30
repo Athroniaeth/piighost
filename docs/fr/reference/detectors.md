@@ -59,7 +59,7 @@ Chaque détecteur renvoie une liste de `Detection`, un dataclass gelé qui porte
 
 ## `RegexDetector`
 
-Trouve les données confidentielles en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car les formats qu'il cible utilisent des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0.
+Trouve les données confidentielles en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car les formats qu'il cible utilisent des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0. Chaque espace Unicode du texte est lue comme une espace ordinaire, voir [Espaces Unicode](#espaces-unicode).
 
 Il ne porte aucun validateur de somme de contrôle, donc il correspond sur la forme seule. Une valeur structurée abîmée par un OCR est conservée plutôt que rejetée, car rejeter une vraie valeur reviendrait à la laisser fuiter.
 
@@ -137,7 +137,7 @@ detector = CompositeDetector([email_detector, person_detector])
 
 ## `ExactMatchDetector`
 
-Trouve les occurrences en mot entier de valeurs littérales configurées. Il parcourt le texte pour chaque valeur et émet une détection par occurrence à une confiance de 1.0. La correspondance se fait sur des frontières de mot, donc une valeur ne se déclenche pas à l'intérieur d'un mot plus long (`Ann`{ .pii } ne correspond pas dans `Anne`{ .pii }), et elle est insensible à la casse par défaut, donc une valeur correspond quelle que soit sa casse tandis que la détection garde le texte tel qu'il apparaît. Il ne porte aucun modèle et aucune dépendance optionnelle, ce qui en fait le détecteur de choix pour exercer le pipeline dans les tests.
+Trouve les occurrences en mot entier de valeurs littérales configurées. Il parcourt le texte pour chaque valeur et émet une détection par occurrence à une confiance de 1.0. La correspondance se fait sur des frontières de mot, donc une valeur ne se déclenche pas à l'intérieur d'un mot plus long (`Ann`{ .pii } ne correspond pas dans `Anne`{ .pii }), et elle est insensible à la casse par défaut, donc une valeur correspond quelle que soit sa casse tandis que la détection garde le texte tel qu'il apparaît. Une espace dans une valeur correspond à n'importe quelle suite d'espaces, voir [Espaces Unicode](#espaces-unicode), et une valeur faite uniquement d'espaces est refusée. Il ne porte aucun modèle et aucune dépendance optionnelle, ce qui en fait le détecteur de choix pour exercer le pipeline dans les tests.
 
 ### Constructeur
 
@@ -474,6 +474,27 @@ catalogs = ["hub:piighost/logs:fd79aec6"]
 ```
 
 Un catalogue de hub est récupéré à la construction de la config, pas à sa lecture, et une référence épinglée sur un commit est ensuite mise en cache sur disque. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé. Un nom inconnu ou une référence malformée échoue au chargement plutôt que sous forme d'URL invalide plus tard.
+
+## Espaces Unicode
+
+Une valeur est souvent tapée avec une espace qui n'est pas l'espace ASCII. Word place une espace insécable (U+00A0) ou une espace fine insécable (U+202F) dans un numéro de téléphone ou un IBAN, l'extraction d'un PDF produit des espaces fines et des espaces de chiffre, et un texte d'Asie de l'Est utilise l'espace idéographique (U+3000). `piighost` lit chaque séparateur d'espace Unicode (catégorie Zs) comme une espace ordinaire, et chaque séparateur de ligne (U+0085, U+2028, U+2029) comme un retour à la ligne, à trois étapes.
+
+| Étape | Composants | Ce qui est garanti |
+|---|---|---|
+| Détection | `RegexDetector` | Un pattern écrit avec une espace ou avec `\s` reconnaît une valeur tapée avec n'importe quelle espace Unicode. Les patterns s'appliquent à une copie du texte de même longueur, donc les positions restent justes et le texte détecté garde ses espaces telles qu'elles sont écrites. |
+| Recherche | `ExactMatchDetector`, `LLMDetector`, `WordBoundaryExpander` | Une espace dans une valeur cherchée correspond à n'importe quelle suite d'espaces, retour à la ligne compris, donc `Paul Martin`{ .pii } est retrouvé à travers une espace insécable, deux espaces ou un retour à la ligne. |
+| Identité | `ExactEntityLinker`, overrides, mémoire de conversation, `FuzzyEntityResolver` | Deux valeurs sont la même quand elles ont les mêmes mots, quelles que soient les espaces qui les séparent et leur casse, donc elles partagent un jeton. |
+
+La règle vaut pour tous les patterns, ceux du hub compris, donc un pattern n'a pas à prévoir ces caractères. Un pattern qui cherche exprès une espace insécable n'en trouve plus, car la copie sur laquelle il s'applique porte des espaces ordinaires à la place. Les caractères de largeur nulle (U+200B, U+2060, U+FEFF) ne sont pas des espaces et restent tels quels.
+
+Les deux fonctions sont publiques dans `piighost.text`, pour un détecteur ou un linker personnalisé qui doit suivre la même règle.
+
+```python
+from piighost.text import normalize_spaces, value_key
+
+normalize_spaces("06\u00a012\u202f34")  # "06 12 34", même longueur
+value_key("Paul\u00a0Martin") == value_key("paul  MARTIN")  # True, la même valeur
+```
 
 ---
 

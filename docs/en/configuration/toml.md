@@ -229,7 +229,7 @@ Optional. Defaults to `ExactEntityLinker`. One linker exists, so `type` names it
 
 | `type` | Meaning |
 |--------|---------|
-| `exact` | Groups detections by casefolded value |
+| `exact` | Groups detections by value, the same words whatever their spaces and case |
 
 ```toml
 [linker]
@@ -287,7 +287,7 @@ Optional, and disabled when omitted. One expander exists, so `type` names it rat
 
 | `type` | Keys | Meaning |
 |--------|------|---------|
-| `word_boundary` | `case_sensitive` (default `false`) | Re-finds a detected value's other whole-word occurrences |
+| `word_boundary` | `case_sensitive` (default `false`) | Re-finds a detected value's other whole-word occurrences, whatever spaces separate its words |
 
 ```toml
 [expander]
@@ -370,7 +370,7 @@ Optional. Forces detections through a whitelist and vetoes them through a blackl
 |-----|--------|---------|---------|
 | `[override.whitelist]` | detector | | A detector whose hits are forced into the set |
 | `[override.blacklist]` | detector | | A detector whose hits invalidate detections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | How a blacklist hit invalidates, same casefolded value, same span and label, or any overlapping span |
+| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | How a blacklist hit invalidates, same value whatever its spaces and case, same span and label, or any overlapping span |
 | `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a whitelist hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
 | `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
 

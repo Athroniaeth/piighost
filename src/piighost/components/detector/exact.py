@@ -30,7 +30,7 @@ class ExactMatchDetector:
 
     def __init__(self, values: dict[str, str], case_sensitive: bool = False) -> None:
         """Store the value-to-label mapping and the case-sensitivity policy."""
-        if any(not value for value in values):
+        if any(not value.strip() for value in values):
             raise EmptyFragmentError(
                 "An ExactMatchDetector value must be non-empty; an empty one "
                 "matches at every position of the text."

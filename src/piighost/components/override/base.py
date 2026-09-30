@@ -29,7 +29,7 @@ class AnyDetectionOverride(Protocol):
         ...
 
     async def cleared_values(self, text: str) -> frozenset[str]:
-        """Return the casefolded values the blacklist matches in this text.
+        """Return the value keys of what the blacklist matches in this text.
 
         The pipeline exempts them from the guard rail: a blacklisted value is
         deliberately left in clear, so a detector-based guard would otherwise
@@ -39,7 +39,7 @@ class AnyDetectionOverride(Protocol):
             text: The message to scan with the blacklist.
 
         Returns:
-            The casefolded matched values, empty without a blacklist.
+            The value keys of the matches, empty without a blacklist.
         """
         ...
 

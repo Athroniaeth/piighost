@@ -59,7 +59,7 @@ Each detector returns a list of `Detection`, a frozen dataclass carrying where t
 
 ## `RegexDetector`
 
-Finds confidential data by matching one regex pattern per label. Each pattern is compiled once at construction, under `re.ASCII`, so `\d` and the other shape classes match ASCII only. A Unicode digit look-alike such as an Arabic-Indic numeral does not match, since the formats it targets use ASCII digits. `detect` emits one detection per non-overlapping match at a flat confidence of 1.0.
+Finds confidential data by matching one regex pattern per label. Each pattern is compiled once at construction, under `re.ASCII`, so `\d` and the other shape classes match ASCII only. A Unicode digit look-alike such as an Arabic-Indic numeral does not match, since the formats it targets use ASCII digits. `detect` emits one detection per non-overlapping match at a flat confidence of 1.0. Every Unicode space in the text is read as an ordinary one, see [Unicode spaces](#unicode-spaces).
 
 It carries no checksum validator, so it matches on shape alone. A structured value mangled by OCR is kept rather than dropped, because dropping a real value would leak it.
 
@@ -137,7 +137,7 @@ detector = CompositeDetector([email_detector, person_detector])
 
 ## `ExactMatchDetector`
 
-Finds whole-word occurrences of configured literal values. It scans the text for each value and emits one detection per occurrence at confidence 1.0. Matching is on word boundaries, so a value does not fire inside a longer word (`Ann`{ .pii } does not match inside `Anne`{ .pii }), and case-insensitive by default, so a value matches whatever its casing while the detection keeps the text as it appears. It carries no model and no optional dependency, which makes it the detector of choice for exercising the pipeline in tests.
+Finds whole-word occurrences of configured literal values. It scans the text for each value and emits one detection per occurrence at confidence 1.0. Matching is on word boundaries, so a value does not fire inside a longer word (`Ann`{ .pii } does not match inside `Anne`{ .pii }), and case-insensitive by default, so a value matches whatever its casing while the detection keeps the text as it appears. A space inside a value matches any run of whitespace, see [Unicode spaces](#unicode-spaces), and a value made only of spaces is refused. It carries no model and no optional dependency, which makes it the detector of choice for exercising the pipeline in tests.
 
 ### Constructor
 
@@ -474,6 +474,27 @@ catalogs = ["hub:piighost/logs:fd79aec6"]
 ```
 
 A hub catalog is fetched when the config is built, not when it is parsed, and a reference pinned to a commit is cached on disk afterwards. Set `PIIGHOST_HUB_URL` to pull from a private registry. An unknown name or a malformed reference fails at load time rather than as a bad URL later.
+
+## Unicode spaces
+
+A value is often typed with a space that is not the ASCII one. Word puts a no-break space (U+00A0) or a narrow no-break space (U+202F) inside a phone number or an IBAN, PDF extraction yields thin and figure spaces, and East Asian text uses the ideographic space (U+3000). `piighost` reads every Unicode space separator (category Zs) as an ordinary space, and every line separator (U+0085, U+2028, U+2029) as a newline, at three stages.
+
+| Stage | Components | What it guarantees |
+|---|---|---|
+| Detection | `RegexDetector` | A pattern written with a space or with `\s` matches a value typed with any Unicode space. The patterns run on a copy of the text of the same length, so the offsets hold and the detected text keeps its spaces as written. |
+| Search | `ExactMatchDetector`, `LLMDetector`, `WordBoundaryExpander` | A space inside a searched value matches any run of whitespace, a line break included, so `Paul Martin`{ .pii } is found again across a no-break space, two spaces or a line break. |
+| Identity | `ExactEntityLinker`, overrides, conversation memory, `FuzzyEntityResolver` | Two values are the same when they have the same words, whatever the spaces between them and their case, so they share one token. |
+
+The rule holds for every pattern, those of the hub included, so a pattern needs no case for these characters. A pattern that looks for a no-break space on purpose no longer finds one, since the copy it runs on has ordinary spaces instead. Zero-width characters (U+200B, U+2060, U+FEFF) are not spaces and are left as they are.
+
+The two helpers are public in `piighost.text`, for a custom detector or linker that should follow the same rule.
+
+```python
+from piighost.text import normalize_spaces, value_key
+
+normalize_spaces("06\u00a012\u202f34")  # "06 12 34", same length
+value_key("Paul\u00a0Martin") == value_key("paul  MARTIN")  # True, one value
+```
 
 ---
 
