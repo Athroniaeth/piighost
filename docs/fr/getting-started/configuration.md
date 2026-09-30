@@ -137,32 +137,32 @@ python run.py "Write to alice@corp.com and prénom@corp.com from 10.0.0.7."
 La sortie doit être :
 
 ```text
-Write to <<EMAIL:1>> and pré<<EMAIL:2>> from <<IPV4:1>>.
+Write to <<EMAIL:1>> and <<EMAIL:2>> from <<IPV4:1>>.
 ```
 
-L'adresse IP est couverte, et `prénom@corp.com`{ .pii } l'est à moitié. Les motifs du catalogue reconnaissent des formes ASCII, donc la correspondance démarre après l'accent. Ajoutez un motif inline sur le même label, et il prend le pas sur celui du catalogue.
+L'adresse IP est couverte, et l'adresse accentuée aussi. Un format qui vous est propre, un numéro de commande comme `CMD-2024-0042`{ .pii }, n'est dans aucun catalogue. Déclarez-le inline, à côté du catalogue.
 
 ```toml
 [detector]
 type = "regex"
 catalogs = ["generic"]
-patterns = { EMAIL = '[A-Za-zÀ-ÿ0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' }
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [anonymizer.placeholder]
 type = "label_counter"
 ```
 
 ```bash
-python run.py "Write to alice@corp.com and prénom@corp.com from 10.0.0.7."
+python run.py "Order CMD-2024-0042 for alice@corp.com, from 10.0.0.7."
 ```
 
 La sortie doit être :
 
 ```text
-Write to <<EMAIL:1>> and <<EMAIL:2>> from <<IPV4:1>>.
+Order <<ORDER:1>> for <<EMAIL:1>>, from <<IPV4:1>>.
 ```
 
-L'adresse entière est devenue un jeton. Les catalogues fusionnent d'abord, vos motifs inline ensuite, donc un label déclaré des deux côtés prend votre motif.
+Le numéro de commande est devenu un jeton. Les catalogues fusionnent d'abord, vos motifs inline ensuite, donc un label déclaré des deux côtés prend votre motif.
 
 ## 5. Faire tourner deux détecteurs à la fois
 
@@ -175,7 +175,7 @@ type = "composite"
 [[detector.detectors]]
 type = "regex"
 catalogs = ["generic"]
-patterns = { EMAIL = '[A-Za-zÀ-ÿ0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' }
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [[detector.detectors]]
 type = "exact"

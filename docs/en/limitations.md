@@ -32,6 +32,36 @@ Here too the limit belongs to the model, not to the pipeline. A pattern detector
 
 **Mitigation**: load a locale-specific model, or combine several detectors through the `CompositeDetector`.
 
+## Whole-word search assumes spaces between words
+
+To find a value again, `piighost` searches it as a whole word, so `Jean`{ .pii } is not found inside `Jeanne`{ .pii }. A value must not touch a letter, a digit or a hyphen on either side. Chinese, Japanese and Thai write words without spaces between them, so a value in those scripts always touches a letter, and it is never found.
+
+| Text | Searched value | Found |
+|---|---|---|
+| `Jeanne et Jean`{ .pii } | `Jean`{ .pii } | the second `Jean`{ .pii } |
+| `田中さんは田中です`{ .pii } | `田中`{ .pii } | nothing |
+
+Three components rely on this search. `ExactMatchDetector` finds nothing, `WordBoundaryExpander` finds no repetition, and `LLMDetector`, which places in the text each value the LLM names, drops a value the LLM did find, so the value is sent as it is. The detectors that return offsets, `RegexDetector` and the NER detectors, are not affected.
+
+Supporting these scripts would take a word segmenter per language, and the pipeline has none.
+
+**Mitigation**: on Chinese, Japanese or Thai text, detect with a NER model or a pattern rather than with `ExactMatchDetector` or `LLMDetector`, and do not count on the expander for repetitions.
+
+## The email pattern misreads some scripts
+
+The `EMAIL` pattern of the `generic` catalog takes Unicode letters in, so an address with an accent, `expéditeur@exemple.fr`{ .pii }, is found whole. Two cases escape it.
+
+| Text | Found | Expected |
+|---|---|---|
+| `メールはtanaka@example.jpです`{ .pii } | the whole sentence | `tanaka@example.jp`{ .pii } |
+| `राम@उदाहरण.भारत`{ .pii } | nothing | the address |
+
+In Chinese or Japanese text with no space around the address, the ideographs next to it are letters too, so the pattern takes them in. The token hides more than the address, and nothing is sent in clear. In Hindi, and in the other scripts whose vowels are combining marks, Python's `re` does not count those marks as letters, so the address is missed and sent as it is.
+
+Fixing both would take a regex engine that knows word segmentation and grapheme clusters, which `re` does not.
+
+**Mitigation**: for text in those scripts, write the email pattern of your config for the addresses it really holds, or detect addresses with a NER model.
+
 ## No checksum validation (deliberate)
 
 `RegexDetector` matches on shape alone. It verifies no checksum, no Luhn on cards, no IBAN check key, no NIR check key. This is deliberate.

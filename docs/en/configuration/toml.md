@@ -118,7 +118,7 @@ Discriminated on `type`. Required.
 
 ### `type = "regex"`
 
-Matches confidential data by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and a shape class stops at the first non-ASCII character. A value such as `prénom@corp.com`{ .pii } is therefore matched from `nom` onwards.
+Matches confidential data by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and `\w` stops at the first non-ASCII character. A pattern written with `\w` therefore matches `prénom@corp.com`{ .pii } from `nom` onwards. Scope the Unicode flag to the class, `(?u:\w)`, to take accented letters in, as the `EMAIL` pattern of the `generic` catalog does.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|

@@ -118,7 +118,7 @@ Discriminé sur `type`. Requis.
 
 ### `type = "regex"`
 
-Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` nommés, ou des deux. Les catalogues fusionnent d'abord, puis les patterns en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue au même label. Au moins un pattern en ligne ou un catalogue est requis. Chaque pattern est validé comme un regex compilable au chargement, puis compilé sous `re.ASCII`, donc `\d` correspond à `0-9` et une classe de forme s'arrête au premier caractère non ASCII. Une valeur comme `prénom@corp.com`{ .pii } est donc reconnue à partir de `nom`.
+Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` nommés, ou des deux. Les catalogues fusionnent d'abord, puis les patterns en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue au même label. Au moins un pattern en ligne ou un catalogue est requis. Chaque pattern est validé comme un regex compilable au chargement, puis compilé sous `re.ASCII`, donc `\d` correspond à `0-9` et `\w` s'arrête au premier caractère non ASCII. Un motif écrit avec `\w` reconnaît donc `prénom@corp.com`{ .pii } à partir de `nom`. Limitez le drapeau Unicode à la classe, `(?u:\w)`, pour inclure les lettres accentuées, comme le fait le motif `EMAIL` du catalogue `generic`.
 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
