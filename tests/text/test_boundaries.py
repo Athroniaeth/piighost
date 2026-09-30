@@ -87,3 +87,55 @@ class TestClearBoundaryCache:
         find_all_word_boundary("Jean is here", "Jean")
         clear_boundary_cache()
         assert _word_boundary_pattern.cache_info().currsize == 0
+
+
+SPACES = [
+    pytest.param("\u00a0", id="no-break-space"),
+    pytest.param("\u3000", id="ideographic-space"),
+]
+"""Two Unicode spaces standing for all of them.
+
+test_normalization checks every separator one by one. Here two are enough to
+show the component reads spaces through normalize_spaces.
+"""
+
+SPACING_VARIANTS = [
+    pytest.param("Paul  Martin", id="two-spaces"),
+    pytest.param("Paul\nMartin", id="line-break"),
+    pytest.param("Paul\u2028Martin", id="line-separator"),
+    pytest.param("Paul \u00a0Martin", id="mixed-run"),
+    pytest.param("Paul\tMartin", id="tab"),
+]
+"""Ways a text separates the two words of a value."""
+
+
+class TestUnicodeSpaces:
+    @pytest.mark.parametrize("space", SPACES)
+    def test_a_space_in_the_fragment_matches_any_space(self, space: str) -> None:
+        """A value searched with an ordinary space is found with any Unicode one."""
+        text = f"signé Paul{space}Martin."
+        assert find_all_word_boundary(text, "Paul Martin") == [Span(6, 17)]
+
+    @pytest.mark.parametrize("space", SPACES)
+    def test_a_fragment_with_a_unicode_space_finds_an_ordinary_one(
+        self, space: str
+    ) -> None:
+        """A value detected with a Unicode space is found written with U+0020."""
+        text = "signé Paul Martin."
+        assert find_all_word_boundary(text, f"Paul{space}Martin") == [Span(6, 17)]
+
+    @pytest.mark.parametrize("text", SPACING_VARIANTS)
+    def test_any_run_of_whitespace_separates_the_words(self, text: str) -> None:
+        """The words of a value are found whatever whitespace runs between them."""
+        (span,) = find_all_word_boundary(text, "Paul Martin")
+        assert (span.start, span.end) == (0, len(text))
+
+    def test_the_last_word_still_has_to_end(self) -> None:
+        """A flexible space does not relax the whole-word rule at the edges."""
+        assert find_all_word_boundary("Paul\u00a0Martine", "Paul Martin") == []
+
+    @pytest.mark.parametrize("fragment", [" ", "\u00a0", "\u3000 \n"])
+    def test_a_whitespace_only_fragment_is_refused(self, fragment: str) -> None:
+        """A fragment with no word matches everywhere, so it is refused."""
+        with pytest.raises(EmptyFragmentError):
+            find_all_word_boundary("some text", fragment)

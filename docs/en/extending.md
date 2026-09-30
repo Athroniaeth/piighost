@@ -191,7 +191,7 @@ Subclass `BaseEntityLinker`. It groups detections by a key you compute in `_key`
             return (detection.text, detection.label)
     ```
 
-The built-in `ExactEntityLinker` groups on the casefolded value, so `Patrick`{ .pii } and `patrick`{ .pii } become one entity.
+The built-in `ExactEntityLinker` groups on the value key, the same words whatever their spaces and case, so `Patrick`{ .pii } and `patrick`{ .pii } become one entity. Use `piighost.text.value_key` in your own linker to follow the same rule, see [Unicode spaces](reference/detectors.md#unicode-spaces).
 
 ---
 

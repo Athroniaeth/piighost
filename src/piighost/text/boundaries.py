@@ -31,6 +31,16 @@ hyphen is treated as part of a larger word, not a match.
 """
 
 
+_ANY_SPACE = r"(?u:\s)+"
+"""What a space inside a fragment matches: any run of Unicode whitespace.
+
+A value detected as "Paul Martin" is found again as "Paul\u00a0Martin", as
+"Paul  Martin" and across a line break, since each writes the same value. The
+Unicode flag is scoped to this group, so it holds whatever flags the caller
+compiles with.
+"""
+
+
 def boundary_wrap(fragment: str) -> str:
     """Escape fragment and wrap it so it matches only as a whole word.
 
@@ -38,14 +48,16 @@ def boundary_wrap(fragment: str) -> str:
     right after the fragment is a letter, a digit, an underscore or a hyphen.
     Because it counts the hyphen as part of a word, it does not find Jean inside
     Jean-Paul, where a plain boundary would. An apostrophe bounds a word, so Anne
-    is found in d'Anne and Jean in Jean's.
+    is found in d'Anne and Jean in Jean's. A space inside the fragment matches
+    any run of whitespace, so Paul Martin is also found written with a no-break
+    space, with two spaces, or across a line break.
 
     Raises:
-        EmptyFragmentError: If the fragment is empty. Such a fragment matches at
-            every position, so it would yield zero-width spans a Span refuses,
-            surfacing as a SpanOrderingError far from its cause. A detector
-            whose source is untrusted, an LLM returning an empty value, filters
-            those out before calling this.
+        EmptyFragmentError: If the fragment is empty or only whitespace. Such a
+            fragment matches at every position, so it would yield zero-width
+            spans a Span refuses, surfacing as a SpanOrderingError far from its
+            cause. A detector whose source is untrusted, an LLM returning an
+            empty value, filters those out before calling this.
 
     >>> import re
     >>> re.search("Jean", "Jean-Paul")
@@ -63,12 +75,14 @@ def boundary_wrap(fragment: str) -> str:
     >>> re.search(boundary_wrap("Jean"), "Jean Dupont")
     <re.Match object; span=(0, 4), match='Jean'>
     """
-    if not fragment:
+    words = fragment.split()
+    if not words:
         raise EmptyFragmentError(
             "A word-boundary search needs a non-empty fragment; an empty one "
             "matches at every position of the text."
         )
-    return f"(?<!{_WORD_CLASS}){re.escape(fragment)}(?!{_WORD_CLASS})"
+    body = _ANY_SPACE.join(re.escape(word) for word in words)
+    return f"(?<!{_WORD_CLASS}){body}(?!{_WORD_CLASS})"
 
 
 @lru_cache(maxsize=1024)

@@ -10,6 +10,7 @@ from piighost.components.override.strategy import (
 )
 from piighost.exceptions import ConflictingOverrideError
 from piighost.models import Detection
+from piighost.text import value_key
 
 
 def _exact_invalidated(detection: Detection, cleared: list[Detection]) -> bool:
@@ -21,9 +22,9 @@ def _exact_invalidated(detection: Detection, cleared: list[Detection]) -> bool:
 
 
 def _value_invalidated(detection: Detection, cleared: list[Detection]) -> bool:
-    """Whether any cleared detection carries this one's casefolded text."""
-    values = {cleared_one.text.casefold() for cleared_one in cleared}
-    return detection.text.casefold() in values
+    """Whether any cleared detection carries this one's value, by value key."""
+    values = {value_key(cleared_one.text) for cleared_one in cleared}
+    return value_key(detection.text) in values
 
 
 def _overlap_invalidated(detection: Detection, cleared: list[Detection]) -> bool:
@@ -103,11 +104,11 @@ class DetectionOverride:
         return self._force(kept, forced)
 
     async def cleared_values(self, text: str) -> frozenset[str]:
-        """Return the casefolded values the blacklist matches in this text."""
+        """Return the value keys of what the blacklist matches in this text."""
         if self.blacklist is None:
             return frozenset()
         cleared = await self.blacklist.detect(text)
-        return frozenset(detection.text.casefold() for detection in cleared)
+        return frozenset(value_key(detection.text) for detection in cleared)
 
     async def forces_value(self, value: str) -> bool:
         """Return whether the whitelist forces this value to a token."""
@@ -116,7 +117,7 @@ class DetectionOverride:
         if self.whitelist_strategy is WhitelistStrategy.RESPECT_PROVENANCE:
             return False
         matches = await self.whitelist.detect(value)
-        return any(match.text.casefold() == value.casefold() for match in matches)
+        return any(value_key(match.text) == value_key(value) for match in matches)
 
     def _force(
         self, detections: list[Detection], forced: list[Detection]

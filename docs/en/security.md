@@ -20,7 +20,7 @@ Two things therefore coexist at all times. The de-identified text, which can tra
 !!! success "Within the protection scope"
     - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real values. Even if the provider logs the request, no sensitive data leaks to it.
     - **Tool-call leakage**: the middleware restores tool arguments just before execution, then de-identifies the results before they go back to the LLM. The real values never flow through the LLM's visible context.
-    - **Cross-message drift**: the `ConversationMemory` links variants (`Patrick`{ .pii } and `patrick`{ .pii } group by `(text.casefold(), label)`), so the same entity keeps the same placeholder across the whole conversation. The LLM never sees the same value under two different masks.
+    - **Cross-message drift**: the `ConversationMemory` links variants (`Patrick`{ .pii } and `patrick`{ .pii } group by `(value_key(text), label)`, whatever their spaces and case), so the same entity keeps the same placeholder across the whole conversation. The LLM never sees the same value under two different masks.
     - **Theft of a stolen persistent store**: a persistent backend (Redis or SQL) can encrypt every stored value and hash the key, so a store leak reveals neither the message nor the confidential data. See below.
 
 ## What `piighost` does not protect against

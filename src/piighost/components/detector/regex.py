@@ -4,6 +4,7 @@ import re
 from typing import Self
 
 from piighost.models import Detection, Span
+from piighost.text import normalize_spaces
 
 
 class RegexDetector:
@@ -17,6 +18,12 @@ class RegexDetector:
     optional dependency, so it stays cheap and matches on shape alone. A
     structured value mangled by OCR is kept rather than dropped, because dropping
     a real value would leak it.
+
+    The patterns run on a copy of the text whose Unicode spaces are ordinary
+    spaces, so a pattern written with " " or with \s also matches the no-break,
+    thin or ideographic space a value is often typed with. The copy has the
+    text's length, so each detection keeps its offsets and its text is sliced
+    from the original, spaces as written.
 
     Attributes:
         patterns: Mapping of PII label to the regex pattern string to match.
@@ -58,12 +65,13 @@ class RegexDetector:
     async def detect(self, text: str) -> list[Detection]:
         """Return one detection per non-overlapping match of each pattern."""
         detections: list[Detection] = []
+        searched = normalize_spaces(text)
         for label, compiled in self._compiled.items():
-            for match in compiled.finditer(text):
+            for match in compiled.finditer(searched):
                 span = Span(match.start(), match.end())
                 detection = Detection(
                     span=span,
-                    text=match.group(),
+                    text=span.extract(text),
                     label=label,
                     confidence=1.0,
                 )

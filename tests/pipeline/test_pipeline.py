@@ -3,7 +3,12 @@
 import pytest
 
 from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import CompositeDetector, ExactMatchDetector
+from piighost.components.detector import (
+    CompositeDetector,
+    ExactMatchDetector,
+    RegexDetector,
+)
+from piighost.components.detector.patterns import EU_PATTERNS
 from piighost.components.entity_resolver import MergeEntityResolver
 from piighost.components.expander import WordBoundaryExpander
 from piighost.components.guard import DetectorGuardRail
@@ -208,3 +213,33 @@ class TestMergeOverlap:
         )
         result = await pipeline.anonymize(text)
         assert result.text == "Signé par <<FR_CIVIL_NAME:1>>."
+
+
+class TestUnicodeSpaces:
+    async def test_a_value_keeps_one_token_whatever_its_spaces(self) -> None:
+        """A value detected with a no-break space and repeated with a plain one shares a token."""
+        text = "Paul\u00a0Martin signe. Paul Martin paie. Paul  Martin part."
+        span = Span(0, 11)
+        detection = Detection(
+            span=span,
+            text="Paul\u00a0Martin",
+            label="PERSON",
+            confidence=0.9,
+        )
+        pipeline = AnonymizationPipeline(
+            _FixedDetector([detection]),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            expander=WordBoundaryExpander(),
+        )
+        result = await pipeline.anonymize(text)
+        assert result.text == (
+            "<<PERSON:1>> signe. <<PERSON:1>> paie. <<PERSON:1>> part."
+        )
+
+    async def test_a_regex_value_typed_with_no_break_spaces_is_hidden(self) -> None:
+        """A catalog pattern written for plain spaces hides a value typed with others."""
+        text = "IBAN FR76\u00a03000\u202f6000\u00a00112\u00a03456\u00a07890\u00a0189."
+        pipeline = AnonymizationPipeline(RegexDetector({"IBAN": EU_PATTERNS["IBAN"]}))
+        result = await pipeline.anonymize(text)
+        assert result.text == "IBAN <<IBAN:1>>."

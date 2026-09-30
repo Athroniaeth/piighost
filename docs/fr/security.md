@@ -20,7 +20,7 @@ Deux choses coexistent donc à tout moment. Le texte dé-identifié, qui peut ci
 !!! success "Dans le périmètre de protection"
     - **Exfiltration vers les LLM tiers** : le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), jamais les vraies valeurs. Même si le provider journalise la requête, aucune donnée sensible ne fuit vers lui.
     - **Fuite via les appels d'outils** : le middleware restaure les arguments d'outil juste avant l'exécution, puis dé-identifie les résultats avant qu'ils ne repartent vers le LLM. Les vraies valeurs ne transitent jamais par le contexte visible du LLM.
-    - **Dérive inter-messages** : la `ConversationMemory` lie les variantes (`Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(text.casefold(), label)`), pour que la même entité garde le même placeholder sur toute la conversation. Le LLM ne voit jamais la même valeur sous deux masques différents.
+    - **Dérive inter-messages** : la `ConversationMemory` lie les variantes (`Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(value_key(text), label)`, quelles que soient leurs espaces et leur casse), pour que la même entité garde le même placeholder sur toute la conversation. Le LLM ne voit jamais la même valeur sous deux masques différents.
     - **Fuite d'un store persistant volé** : un backend persistant (Redis ou SQL) peut chiffrer chaque valeur stockée et hacher la clé, donc un vol du store ne révèle ni le message ni les données confidentielles. Voir plus bas.
 
 ## Ce contre quoi `piighost` ne protège pas

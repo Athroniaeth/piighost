@@ -29,6 +29,7 @@ from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.exceptions import PIIGhostSecurityWarning, PIIRemainingError
 from piighost.models import Detection, Entity
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
+from piighost.text import value_key
 
 PreservationT = TypeVar(
     "PreservationT",
@@ -361,7 +362,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             residual = tuple(
                 detection
                 for detection in verdict.detections
-                if detection.text.casefold() not in expected
+                if value_key(detection.text) not in expected
             )
             if not residual:
                 return replace(verdict, flagged=False, detections=())

@@ -13,6 +13,7 @@ from collections.abc import Callable
 
 from piighost.components.entity_resolver.merge import MergeEntityResolver
 from piighost.models import Entity
+from piighost.text import value_key
 
 if importlib.util.find_spec("rapidfuzz") is None:
     raise ImportError(
@@ -33,8 +34,8 @@ without collapsing genuinely distinct names.
 class FuzzyEntityResolver(MergeEntityResolver):
     """Merge same-label entities whose values are nearly identical.
 
-    Two entities read as one value when they share a label and their casefolded
-    texts score at or above the threshold, by Jaro-Winkler unless another
+    Two entities read as one value when they share a label and the value keys of
+    their texts score at or above the threshold, by Jaro-Winkler unless another
     similarity is injected. The merge itself is inherited: a group combines into
     one entity, its detections deduplicated and position-ordered.
 
@@ -83,5 +84,5 @@ class FuzzyEntityResolver(MergeEntityResolver):
         """Whether two entities read as one value: one label, similar texts."""
         if first.label != second.label:
             return False
-        score = self._similarity(first.text.casefold(), second.text.casefold())
+        score = self._similarity(value_key(first.text), value_key(second.text))
         return score >= self.threshold

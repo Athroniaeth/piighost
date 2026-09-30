@@ -72,7 +72,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 - `integrations/client/remote.py`: `PIIGhostClient`, async httpx client for a remote piighost-api server.
 - `observation/`: OpenTelemetry-native tracing behind a `get_tracer()` seam. The pipeline emits per-stage spans; an optional `observation_redactor` tokenizes span payloads so traces stay safe for a PII-untrusted backend. There is no Langfuse or Opik library adapter.
-- `text/`: `RecursiveCharacterTextSplitter` and word-boundary helpers used by `ChunkedDetector`.
+- `text/`: `RecursiveCharacterTextSplitter`, the word-boundary search used by `ExactMatchDetector`, `LLMDetector` and the expander, and `normalization.py`, the one definition of a space: `normalize_spaces` (every Unicode space read as U+0020, same length, used by `RegexDetector`) and `value_key` (a value's identity, whatever its spaces and case, used by the linker, overrides, memory and the fuzzy resolver).
 
 ### Optional Dependencies
 

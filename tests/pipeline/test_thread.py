@@ -400,3 +400,13 @@ class TestThreadTokenMemoization:
         await pipeline.anonymize("Hi Emma", "t1")
         await pipeline.anonymize("and Liam", "t1")
         assert resolver.calls == 2
+
+
+class TestUnicodeSpaces:
+    async def test_a_value_keeps_its_token_across_spacings_and_messages(self) -> None:
+        """A value typed with a plain space, then a no-break one, keeps its token."""
+        pipeline = _pipeline(ExactMatchDetector({"Paul Martin": "PERSON"}))
+        first = await pipeline.anonymize("Bonjour Paul Martin", "t1")
+        second = await pipeline.anonymize("Merci Paul\u00a0Martin", "t1")
+        assert first.text == "Bonjour <<PERSON:1>>"
+        assert second.text == "Merci <<PERSON:1>>"

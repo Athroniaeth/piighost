@@ -28,7 +28,7 @@ Four async methods make up the interface. A backend implements all four, whateve
 |--------|---------|
 | `remember(thread_id, message, detections, role=MessageRole.USER)` | Cache the detections found in a message, replacing any prior entry. |
 | `get_detections(thread_id, message=None)` | Return a thread's detections for one message, or the whole thread as a first-seen-order union when `message` is omitted. |
-| `get_provenance(thread_id)` | Return, per value, the role of its first occurrence in the thread (casefolded value → `MessageRole`). |
+| `get_provenance(thread_id)` | Return, per value, the role of its first occurrence in the thread (value key → `MessageRole`, the same words whatever their spaces and case). |
 | `forget(thread_id)` | Erase a thread and report a `Forgotten` count of the messages and detections dropped. |
 
 The pipeline drives these for you. You call the memory directly only to pre-seed or inspect a thread, and `create_schema()` on the SQL backend at startup.

@@ -229,7 +229,7 @@ Optionnel. Par défaut `ExactEntityLinker`. Un seul linker existe, donc `type` l
 
 | `type` | Signification |
 |--------|---------------|
-| `exact` | Regroupe les détections par valeur repliée en casse |
+| `exact` | Regroupe les détections par valeur, les mêmes mots quelles que soient leurs espaces et leur casse |
 
 ```toml
 [linker]
@@ -287,7 +287,7 @@ Optionnel, et désactivé quand il est omis. Un seul expander existe, donc `type
 
 | `type` | Clés | Signification |
 |--------|------|---------------|
-| `word_boundary` | `case_sensitive` (défaut `false`) | Retrouve les autres occurrences entières d'une valeur détectée |
+| `word_boundary` | `case_sensitive` (défaut `false`) | Retrouve les autres occurrences entières d'une valeur détectée, quelles que soient les espaces entre ses mots |
 
 ```toml
 [expander]
@@ -370,7 +370,7 @@ Optionnel. Force des détections via une whitelist et en écarte via une blackli
 |-----|---------|--------|---------------|
 | `[override.whitelist]` | détecteur | | Un détecteur dont les hits sont forcés dans l'ensemble |
 | `[override.blacklist]` | détecteur | | Un détecteur dont les hits invalident des détections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de blacklist invalide, même valeur repliée en casse, même span et label, ou tout span en chevauchement |
+| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de blacklist invalide, même valeur quelles que soient ses espaces et sa casse, même span et label, ou tout span en chevauchement |
 | `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de whitelist laisse en clair une valeur introduite par l'assistant, ou la tokenise quand même |
 | `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
 

@@ -97,8 +97,8 @@ class AnyConversationMemory(Protocol):
     async def get_provenance(self, thread_id: str) -> Mapping[str, MessageRole]:
         """Return, per value, the role of its first occurrence in the thread.
 
-        The value is the detection text, casefolded, so case variants share one
-        entry. The role is that of the earliest message holding the value, in
+        The value is the value key of the detection text (piighost.text.value_key),
+        so variants in case or in spacing share one entry. The role is that of the earliest message holding the value, in
         first-seen order, so a value the assistant introduced reads as ASSISTANT
         even if a later user message repeats it.
 
@@ -106,7 +106,7 @@ class AnyConversationMemory(Protocol):
             thread_id: The conversation to read.
 
         Returns:
-            A mapping from each casefolded value to its first-occurrence role,
+            A mapping from each value key to its first-occurrence role,
             empty for a thread never written to.
         """
         ...
