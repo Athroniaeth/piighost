@@ -67,6 +67,5 @@ uv run pytest   # Test suite
 The most common places to contribute without touching the core:
 
 - **New detector**: implement the `AnyDetector` protocol. See [Extending PIIGhost](../extending.md).
-- **New regex pack**: add a module under `piighost/detector/patterns/`.
-- **New validator**: a `Callable[[str], bool]` function in `piighost/validators.py`.
+- **New regex pack**: publish a pattern group on the [piighost hub](https://hub.piighost.dev), which a config then pulls by reference.
 - **New placeholder factory**: implement `AnyPlaceholderFactory`.

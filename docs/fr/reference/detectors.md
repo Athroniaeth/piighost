@@ -438,63 +438,56 @@ detector = TransformersDetector(
 
 ## Catalogues de patterns
 
-Ensembles de patterns regex réutilisables pour `RegexDetector`. Chaque catalogue est un `dict[str, str]` simple qui associe un label de PII à un pattern regex. Les patterns correspondent sur la forme seule, sans validation de somme de contrôle.
-
-```python
-from piighost.components.detector.patterns import (
-    EU_PATTERNS,
-    FR_PATTERNS,
-    GENERIC_PATTERNS,
-    US_PATTERNS,
-)
-```
-
-Passez un catalogue à un `RegexDetector`, ou fusionnez-en plusieurs par fusion de dict, un pattern en ligne sur le même label prenant le dessus.
-
-```python
-from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
-
-detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
-```
+Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous forme de groupes sur le [hub piighost](https://hub.piighost.dev). Chaque groupe associe un label de PII à un pattern regex. Les patterns correspondent sur la forme seule, sans validation de somme de contrôle.
 
 <div class="wide-table" markdown="1">
 
-| Catalogue | Import | Labels |
-|-----------|--------|--------|
-| Générique | `GENERIC_PATTERNS` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| US | `US_PATTERNS` | `US_SSN`, `US_PHONE`, `US_ZIP` |
-| EU | `EU_PATTERNS` | `IBAN` |
-| France | `FR_PATTERNS` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET` |
+| Groupe | Référence | Labels |
+|--------|-----------|--------|
+| Générique | `hub:piighost/generic:fab51b33` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
+| US | `hub:piighost/us:29d5c0a5` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
+| EU | `hub:piighost/eu:b0303ae6` | `IBAN` |
+| France | `hub:piighost/fr:6802f5ef` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
+| Secrets | `hub:piighost/secrets:d822d04c` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
 
 </div>
 
-Chaque pattern de catalogue est testé contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
+Construisez un détecteur à partir d'un groupe avec [`from_hub`](#from_hub). `pull` (`piighost.hub`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre, donc plusieurs groupes se fusionnent par fusion de dict, l'entrée de droite prenant le dessus sur un même label.
 
-Les labels de `GENERIC_PATTERNS` ne dépendent d'aucun pays. Les autres sont préfixés (`US_`, `FR_`) pour ne pas se confondre quand les catalogues sont fusionnés. `EU_PATTERNS` porte l'IBAN ISO 13616 partagé entre les États membres. Pour des numéros propres à un pays, utilisez un catalogue par pays.
+```python
+from piighost.components.detector import RegexDetector
+from piighost.hub import pull
+
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+merged = RegexDetector({**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")})
+```
+
+Une référence épinglée sur un commit, les huit caractères hexadécimaux après le dernier deux-points, est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, hors ligne compris. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
+
+Le hub teste chaque pattern qu'il publie contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
+
+Les labels du groupe générique ne dépendent d'aucun pays. Les autres sont préfixés (`US_`, `FR_`) pour ne pas se confondre quand les groupes sont fusionnés. Le groupe EU porte l'IBAN ISO 13616 partagé entre les États membres. Pour des numéros propres à un pays, utilisez un groupe par pays.
 
 ### Tirer les catalogues depuis une config
 
-Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée est soit un nom prédéfini, parmi `generic`, `us`, `eu`, `fr`, soit une référence de hub écrite `hub:namespace/name` avec un `:selector` optionnel. Les catalogues fusionnent dans l'ordre, puis les `patterns` en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue sur le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
+Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée est une référence de hub écrite `hub:namespace/name` avec un `:selector` optionnel. Les catalogues fusionnent dans l'ordre, puis les `patterns` en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue sur le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic", "fr"]
+catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
 
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-Une référence de hub nomme un catalogue relu au lieu d'en porter une copie : la config reste courte et les patterns restent auditables à leur source :
+Une référence de hub nomme un catalogue relu au lieu d'en porter une copie, donc la config reste courte et les patterns restent auditables à leur source. Un catalogue est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé.
 
-```toml
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/logs:fd79aec6"]
+Une entrée qui n'est pas une référence de hub échoue au chargement plutôt que sous forme d'URL invalide plus tard. Les noms `generic`, `us`, `eu` et `fr`, qui désignaient avant la 2.0 des catalogues livrés dans la librairie, sont refusés avec la référence qui les remplace.
+
+```text
+the built-in catalog 'generic' was removed in piighost 2.0: name the hub group instead, hub:piighost/generic
 ```
-
-Un catalogue de hub est récupéré à la construction de la config, pas à sa lecture, et une référence épinglée sur un commit est ensuite mise en cache sur disque. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé. Un nom inconnu ou une référence malformée échoue au chargement plutôt que sous forme d'URL invalide plus tard.
 
 ## Espaces Unicode
 

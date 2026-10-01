@@ -23,9 +23,9 @@ Secret
 :   A credential that must never reach a model, such as an API key, an access
     token, a private key, or a connection string. Secrets are the other part of
     confidential data. They are detected through the hub catalogs
-    `piighost/secrets` and `piighost/secrets-extended`, pulled with
-    `catalogs = ["hub:piighost/secrets"]`, since the built-in regex catalogs hold
-    no secret pattern. `Gliner2PiiDetector` also asks its model for API keys
+    `piighost/secrets` and `piighost/secrets-extended`, pulled for example with
+    `catalogs = ["hub:piighost/secrets:d822d04c"]`. The other hub catalogs,
+    `piighost/generic` and the regional ones, hold no secret pattern. `Gliner2PiiDetector` also asks its model for API keys
     and passwords.
 
 De-identification

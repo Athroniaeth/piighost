@@ -66,7 +66,7 @@ This detection is possible only because the factory is findable, which the tag `
 
 ### `EntityCreateByAssistantStrategy`: the value that came from the assistant
 
-The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, de-identifying it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
+The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, de-identifying it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself.
 
 | Strategy | Effect | When to use |
 |---|---|---|

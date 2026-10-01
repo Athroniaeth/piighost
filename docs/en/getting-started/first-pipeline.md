@@ -27,13 +27,12 @@ The detector reads the text and returns detections, one per value found. The res
     detector = RegexDetector(patterns)
     ```
 
-    `piighost` also ships ready-made catalogs for formats that are not language-specific, such as email and URL.
+    For formats that are not language-specific, such as email and URL, the [piighost hub](https://hub.piighost.dev) publishes ready-made catalogs. The pinned group below is fetched on the first build, then read from the on-disk cache.
 
     ```python
     from piighost.components.detector import RegexDetector
-    from piighost.components.detector.patterns import GENERIC_PATTERNS
 
-    detector = RegexDetector(GENERIC_PATTERNS)
+    detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
     ```
 
 === "GLiNER2 (NER)"
@@ -109,5 +108,5 @@ Each occurrence of `Patrick`{ .pii } receives the same `<<PERSON:1>>`{ .placehol
 
 ## What's next
 
-- To describe this pipeline in a file rather than in Python, see the [TOML reference](../configuration/toml.md). A regex detector takes its catalogs there with `catalogs = ["generic"]`.
+- To describe this pipeline in a file rather than in Python, see the [TOML reference](../configuration/toml.md). A regex detector takes its catalogs there with `catalogs = ["hub:piighost/generic:fab51b33"]`.
 - To de-identify across a conversation with tokens stable between messages, see the [Conversational pipeline](conversation.md).

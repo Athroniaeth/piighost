@@ -6,9 +6,6 @@ icon: lucide/blend
 
 Module : `piighost.integrations.langchain`
 
-!!! note "Déplacé en 1.4.0"
-    Cette intégration vient de `piighost.integrations.middleware`. L'ancien chemin d'import fonctionne toujours mais émet un `DeprecationWarning`. Mettez à jour vos imports vers `piighost.integrations.langchain`.
-
 `PIIAnonymizationMiddleware` est un `AgentMiddleware` LangChain qui dé-identifie les données confidentielles autour de la frontière modèle et outils d'un agent. Il lit le thread id depuis la config LangGraph, dé-identifie les messages avant que le modèle ne les voie, les restaure ensuite pour l'affichage, et route les appels d'outil selon une stratégie choisie. Toute la détection, l'attribution des tokens et le remplacement sont délégués à un `ThreadAnonymizationPipeline`.
 
 ```python
@@ -20,7 +17,7 @@ from piighost.integrations.langchain import (
 )
 ```
 
-Nécessite l'extra `middleware` (`pip install piighost[langchain]`), qui tire `langchain`. Importer le paquet ne tire jamais `langchain`. La classe du middleware est importée à la demande, donc un extra manquant lève une `ImportError` nommant l'extra.
+Nécessite l'extra `langchain` (`pip install piighost[langchain]`), qui tire `langchain`. Importer le paquet ne tire jamais `langchain`. La classe du middleware est importée à la demande, donc un extra manquant lève une `ImportError` nommant l'extra.
 
 ---
 
@@ -136,7 +133,7 @@ Comment un token que le pipeline n'a jamais émis est traité. Après restaurati
 
 ### `EntityCreateByAssistantStrategy`
 
-Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
+Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité.
 
 | Valeur | Effet |
 |--------|-------|

@@ -47,20 +47,22 @@ Supporting these scripts would take a word segmenter per language, and the pipel
 
 **Mitigation**: on Chinese, Japanese or Thai text, detect with a NER model or a pattern rather than with `ExactMatchDetector` or `LLMDetector`, and do not count on the expander for repetitions.
 
-## The email pattern misreads some scripts
+## A pattern cannot cover every script at once
 
-The `EMAIL` pattern of the `generic` catalog takes Unicode letters in, so an address with an accent, `expéditeur@exemple.fr`{ .pii }, is found whole. Two cases escape it.
+Python's `re` has no word segmentation, and it does not count combining marks, the vowel signs of Hindi and the other Indic scripts, as letters. An email pattern therefore has to choose which letters it takes in, and each choice misses something.
 
-| Text | Found | Expected |
+| Text | Pattern taking Unicode letters, `(?u:\w)` | `EMAIL` of `hub:piighost/generic` |
 |---|---|---|
+| `écrire à expéditeur@exemple.fr`{ .pii } | `expéditeur@exemple.fr`{ .pii } | `expéditeur@exemple.fr`{ .pii } |
 | `メールはtanaka@example.jpです`{ .pii } | the whole sentence | `tanaka@example.jp`{ .pii } |
-| `राम@उदाहरण.भारत`{ .pii } | nothing | the address |
+| `ελένη@example.gr`{ .pii } | `ελένη@example.gr`{ .pii } | nothing |
+| `राम@उदाहरण.भारत`{ .pii } | nothing | nothing |
 
-In Chinese or Japanese text with no space around the address, the ideographs next to it are letters too, so the pattern takes them in. The token hides more than the address, and nothing is sent in clear. In Hindi, and in the other scripts whose vowels are combining marks, Python's `re` does not count those marks as letters, so the address is missed and sent as it is.
+A pattern that takes Unicode letters in finds an accented or a Greek address whole. In Chinese or Japanese text with no space around the address, the ideographs next to it are letters too, so the pattern takes them in. The token hides more than the address, and nothing is sent in clear. The Hindi address still escapes it, since its vowels are combining marks.
 
-Fixing both would take a regex engine that knows word segmentation and grapheme clusters, which `re` does not.
+The `EMAIL` pattern of `hub:piighost/generic` takes Latin letters only, the ASCII letters and digits plus the Latin range `À` to `ɏ`. It finds the accented and the Japanese examples exactly, and misses every address written in another script, which is sent as it is.
 
-**Mitigation**: for text in those scripts, write the email pattern of your config for the addresses it really holds, or detect addresses with a NER model.
+**Mitigation**: for text in non-Latin scripts, write the email pattern of your config for the addresses it really holds, since an inline pattern overrides the group's on the same label, or detect addresses with a NER model.
 
 ## No checksum validation (deliberate)
 

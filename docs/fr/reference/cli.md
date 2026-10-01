@@ -54,7 +54,7 @@ Pointez un éditeur vers `schema.json` pour l'autocomplétion et la validation e
 
 ## `piighost anonymize`
 
-Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut elle lance un `RegexDetector` générique. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
+Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut elle lance un `RegexDetector` sur le groupe du hub `hub:piighost/generic:fab51b33` (`DEFAULT_CATALOG` dans `piighost.cli`), récupéré à la première exécution, puis relu depuis le cache sur disque. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -79,7 +79,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `--thread-id ID` | Thread id pour l'API ou une config à mémoire (défaut `default`) |
 | `--json` | Imprime le texte dé-identifié et les détections en JSON |
 
-`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`.
+`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`. Quand un catalogue du hub ne peut pas être tiré, la commande imprime `Could not pull a hub catalog:` suivi de la cause et sort avec le code `1`.
 
 Ces détections sont la sortie propre du détecteur, lue directement chez lui pour l'affichage. Ce n'est pas l'ensemble à partir duquel le texte dé-identifié a été rendu, donc un recouvrement écarté par le resolver et une valeur effacée par un override y figurent encore. Lisez-les comme ce que le détecteur a vu, et `anonymized_text` comme ce que le pipeline a décidé.
 

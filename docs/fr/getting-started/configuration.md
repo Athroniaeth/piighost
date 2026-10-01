@@ -7,7 +7,7 @@ icon: lucide/file-cog
 Vous allez décrire un pipeline complet dans un fichier TOML, en le faisant passer de trois lignes à un pipeline conversationnel qui garde un jeton stable d'un tour de conversation à l'autre. Chaque étape change une seule chose dans le fichier, puis vous vérifiez le fichier et vous le lancez pour voir ce qui a changé.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle et sans accès réseau. L'étape 6 ajoute l'extra `fuzzy`.
+    `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle. L'étape 4 récupère une fois un catalogue depuis le [hub piighost](https://hub.piighost.dev), puis le relit depuis le cache sur disque. L'étape 6 ajoute l'extra `fuzzy`.
 
 ## 1. Mettre en place la boucle de vérification
 
@@ -117,14 +117,14 @@ Write to <<REDACT>> from 10.0.0.7.
 
 L'adresse a disparu, et son label avec elle. `examples/config/minimal.toml` porte ce fichier avec le linker par défaut écrit explicitement, et `examples/config/minimal.json` le porte en JSON, le suffixe choisissant le parseur. La [référence de configuration](../configuration/toml.md) liste tous les styles de jeton.
 
-## 4. Tirer un catalogue prêt à l'emploi
+## 4. Tirer un catalogue du hub
 
-Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif inline par le catalogue `generic`, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Quatre labels arrivent maintenant à l'anonymiseur, donc remettez le jeton numéroté pour les distinguer.
+Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif inline par le groupe `generic` du hub, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Le suffixe `:fab51b33` l'épingle sur un commit, donc il est récupéré depuis le hub à la première construction du pipeline, puis relu depuis le cache. Quatre labels arrivent maintenant à l'anonymiseur, donc remettez le jeton numéroté pour les distinguer.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [anonymizer.placeholder]
 type = "label_counter"
@@ -145,7 +145,7 @@ L'adresse IP est couverte, et l'adresse accentuée aussi. Un format qui vous est
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [anonymizer.placeholder]
@@ -174,7 +174,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [[detector.detectors]]

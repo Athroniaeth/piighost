@@ -4,7 +4,7 @@ icon: lucide/code
 
 # How to de-identify a text and restore it
 
-You have a text with confidential data, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency.
+You have a text with confidential data, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency. The detector's patterns come from the [piighost hub](https://hub.piighost.dev), fetched on the first run, then read from the on-disk cache.
 
 Install the core.
 
@@ -21,12 +21,11 @@ import asyncio
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector(GENERIC_PATTERNS)
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
 linker = ExactEntityLinker()
 factory = LabelCounterPlaceholderFactory()
 anonymizer = Anonymizer(factory)

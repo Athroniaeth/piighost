@@ -12,7 +12,7 @@ Your detector reads your company name as a person and you want that name left al
 The stage runs right after detection, before overlap resolution and linking, so its two lists trump the detector's reading and also a corrected set coming back from a human review. See [Architecture](../architecture.md) for the full stage order.
 
 !!! note "Prerequisites"
-    `piighost` alone, `pip install piighost`. Every snippet below runs as is, no model download and no network. The last section reads a config file, which needs the config extra, `pip install piighost[config]`.
+    `piighost` alone, `pip install piighost`. Every snippet below runs as is, with no model download. Section 2 and the config file pull the generic group of the [piighost hub](https://hub.piighost.dev), fetched once, then read from the on-disk cache. The last section reads a config file, which needs the config extra, `pip install piighost[config]`.
 
 ## 1. Keep a value in clear with a blacklist
 
@@ -118,13 +118,12 @@ import asyncio
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.override import DetectionOverride
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector(GENERIC_PATTERNS)
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
 whitelist = RegexDetector({"CODENAME": r"ACME-[A-Z]+"})
 override = DetectionOverride(whitelist=whitelist)
 linker = ExactEntityLinker()
@@ -298,7 +297,7 @@ Both lists are detector configs, `[override.whitelist]` and `[override.blacklist
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [override]
 blacklist_strategy = "value"

@@ -118,19 +118,21 @@ Discriminated on `type`. Required.
 
 ### `type = "regex"`
 
-Matches confidential data by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and `\w` stops at the first non-ASCII character. A pattern written with `\w` therefore matches `prénom@corp.com`{ .pii } from `nom` onwards. Scope the Unicode flag to the class, `(?u:\w)`, to take accented letters in, as the `EMAIL` pattern of the `generic` catalog does.
+Matches confidential data by one regex per label, pulled from inline `patterns`, hub `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and `\w` stops at the first non-ASCII character. A pattern written with `\w` therefore matches `prénom@corp.com`{ .pii } from `nom` onwards. Scope the Unicode flag to the class, `(?u:\w)`, to take every letter in, or name a range, as the `EMAIL` pattern of `hub:piighost/generic` does with the Latin `À-ɏ`. See [Limitations](../limitations.md) for what each choice misses.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
 | `patterns` | `dict[str, str]` | `{}` | Inline label-to-regex mapping |
-| `catalogs` | `list[str]` | `[]` | Prebuilt catalogs, only `generic`, `us`, `eu`, `fr`, any other name failing validation |
+| `catalogs` | `list[str]` | `[]` | Hub references, `hub:namespace/name` with an optional `:selector`, any other entry failing validation |
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic", "fr"]
+catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
+
+A catalog is fetched from the hub when the config is built, not when it is parsed. A reference pinned to a commit is fetched once, then read from the on-disk cache, and `PIIGHOST_HUB_URL` points at a private registry. The names `generic`, `us`, `eu` and `fr` are refused, see [Pattern catalogs](../reference/detectors.md#pattern-catalogs) for the groups that replace them.
 
 ### `type = "composite"`
 
@@ -146,7 +148,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [[detector.detectors]]
 type = "exact"
@@ -514,7 +516,7 @@ The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a cata
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 [overlap_resolver]

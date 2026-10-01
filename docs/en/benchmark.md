@@ -114,5 +114,5 @@ These patterns belong to a document config. A chat config should not hide every 
 ## See also
 
 - [Limitations](limitations.md): what detection cannot promise, whatever its score.
-- [Pre-built detectors](examples/detectors.md): the regex catalogs and the models.
+- [Pre-built detectors](examples/detectors.md): the regex catalogs of the hub and the models.
 - [TOML reference](configuration/toml.md): `max_chars` and the detector keys.

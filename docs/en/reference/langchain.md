@@ -6,9 +6,6 @@ icon: lucide/blend
 
 Module: `piighost.integrations.langchain`
 
-!!! note "Moved in 1.4.0"
-    This integration moved here from `piighost.integrations.middleware`. The old import path still works but emits a `DeprecationWarning`. Update imports to `piighost.integrations.langchain`.
-
 `PIIAnonymizationMiddleware` is a LangChain `AgentMiddleware` that de-identifies confidential data around the model and tool boundary of an agent. It reads the thread id from the LangGraph config, de-identifies messages before the model sees them, restores them after for display, and routes tool calls by a chosen strategy. All detection, token assignment, and replacement is delegated to a `ThreadAnonymizationPipeline`.
 
 ```python
@@ -20,7 +17,7 @@ from piighost.integrations.langchain import (
 )
 ```
 
-Needs the `middleware` extra (`pip install piighost[langchain]`), which pulls in `langchain`. Importing the package never pulls `langchain` in. The middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
+Needs the `langchain` extra (`pip install piighost[langchain]`), which pulls in `langchain`. Importing the package never pulls `langchain` in. The middleware class is imported on demand, so a missing extra raises an `ImportError` naming the extra.
 
 ---
 
@@ -136,7 +133,7 @@ How a token the pipeline never issued is treated. After restoration, every issue
 
 ### `EntityCreateByAssistantStrategy`
 
-How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, so de-identifying it strips the model of its world knowledge of that entity. Formerly named `AssistantEntityStrategy`, kept as a deprecated alias.
+How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, so de-identifying it strips the model of its world knowledge of that entity.
 
 | Value | Effect |
 |-------|--------|

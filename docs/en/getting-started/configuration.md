@@ -7,7 +7,7 @@ icon: lucide/file-cog
 You will describe a whole pipeline in a TOML file, growing it from three lines to a conversational pipeline that keeps a token stable across the turns of a conversation. Each step changes one thing in the file, then you check the file and run it to see what changed.
 
 !!! note "Prerequisites"
-    `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model and without network access. Step 6 adds the `fuzzy` extra.
+    `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model. Step 4 fetches a catalog from the [piighost hub](https://hub.piighost.dev) once, then reads it from the on-disk cache. Step 6 adds the `fuzzy` extra.
 
 ## 1. Set up the check loop
 
@@ -117,14 +117,14 @@ Write to <<REDACT>> from 10.0.0.7.
 
 The address is gone and its label with it. `examples/config/minimal.toml` carries this file with the default linker written out, and `examples/config/minimal.json` carries it in JSON, the suffix picking the parser. The [configuration reference](../configuration/toml.md) lists every token style.
 
-## 4. Pull a prebuilt catalog
+## 4. Pull a catalog from the hub
 
-Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` catalog, which carries email, URL, IPv4 and credit card. Four labels now reach the anonymizer, so put the numbered token back to tell them apart.
+Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the hub, which carries email, URL, IPv4 and credit card. The `:fab51b33` suffix pins it to a commit, so it is fetched from the hub the first time the pipeline is built, then read from the cache. Four labels now reach the anonymizer, so put the numbered token back to tell them apart.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [anonymizer.placeholder]
 type = "label_counter"
@@ -145,7 +145,7 @@ The IP address is covered now, and the accented address with it. A format of you
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [anonymizer.placeholder]
@@ -174,7 +174,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [[detector.detectors]]
