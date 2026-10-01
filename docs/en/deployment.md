@@ -159,7 +159,7 @@ The image reads these variables:
 
 | Variable | Default | Effect |
 |---|---|---|
-| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | The config file or hub reference to serve. The image ships no file, so mount one or name a hub reference |
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | The config file or hub reference to serve. The image ships a default, every regex group of the hub, which a mounted file or a hub reference replaces |
 | `API_HOST` | `0.0.0.0` | Bind host |
 | `API_PORT` | `8000` | Bind port |
 | `LOG_LEVEL` | `info` | Log level |

@@ -159,7 +159,7 @@ L'image lit ces variables :
 
 | Variable | Défaut | Effet |
 |---|---|---|
-| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du hub à servir. L'image ne contient aucun fichier, donc montez-en un ou nommez une référence du hub |
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du hub à servir. L'image embarque une config par défaut, tous les groupes de regex du hub, qu'un fichier monté ou une référence du hub remplace |
 | `API_HOST` | `0.0.0.0` | Hôte d'écoute |
 | `API_PORT` | `8000` | Port d'écoute |
 | `LOG_LEVEL` | `info` | Niveau de log |
