@@ -44,14 +44,12 @@ def _guard(
 class TestUsableWhenInstalled:
     def test_conforms_to_the_port(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """With mistralai installed, ModerationGuardRail is an AnyGuardRail."""
-        pytest.importorskip("mistralai")
         from piighost.components.guard import AnyGuardRail
 
         assert isinstance(_guard({"pii": 0.1}, monkeypatch), AnyGuardRail)
 
     def test_real_client_exposes_moderate_async(self) -> None:
         """The installed SDK really has the async moderation call the guard uses."""
-        pytest.importorskip("mistralai")
         from mistralai.client import Mistral
 
         assert hasattr(Mistral(api_key="test").classifiers, "moderate_async")
@@ -60,7 +58,6 @@ class TestUsableWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A PII score at or above the threshold flags the verdict."""
-        pytest.importorskip("mistralai")
         guard = _guard({"pii": 0.9}, monkeypatch, threshold=0.5)
         verdict = await guard.check("<<PERSON:1>> lives in Paris")
         assert verdict.flagged is True
@@ -70,7 +67,6 @@ class TestUsableWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A PII score below the threshold leaves the verdict unflagged."""
-        pytest.importorskip("mistralai")
         guard = _guard({"pii": 0.1}, monkeypatch, threshold=0.5)
         verdict = await guard.check("nothing sensitive")
         assert verdict.flagged is False
@@ -79,7 +75,6 @@ class TestUsableWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The same score flags or not depending on the threshold."""
-        pytest.importorskip("mistralai")
         lenient = _guard({"pii": 0.4}, monkeypatch, threshold=0.3)
         strict = _guard({"pii": 0.4}, monkeypatch, threshold=0.5)
         assert (await lenient.check("x")).flagged is True
@@ -89,7 +84,6 @@ class TestUsableWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A response without a PII score scores zero and does not flag."""
-        pytest.importorskip("mistralai")
         guard = _guard({"violence": 0.9}, monkeypatch)
         verdict = await guard.check("safe text")
         assert verdict.flagged is False

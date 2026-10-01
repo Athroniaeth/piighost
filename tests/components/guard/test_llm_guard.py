@@ -1,13 +1,10 @@
 """Tests for the LLMGuardRail.
 
 A fake chat model returns canned structured output, so no real LLM or network is
-needed. The tests are guarded with importorskip for environments without the llm
-extra, but run in the dev venv where langchain-core is installed.
+needed. langchain-core comes with the dev group, so the tests always run.
 """
 
 from typing import TYPE_CHECKING, cast
-
-import pytest
 
 from piighost.components.guard import AnyGuardRail
 
@@ -93,7 +90,6 @@ def _as_model(fake: object) -> "BaseChatModel":
 class TestConformance:
     def test_satisfies_the_port(self) -> None:
         """LLMGuardRail built on an injected model is an AnyGuardRail."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         model = _FakeChatModel(_FakeExtraction([]))
@@ -105,7 +101,6 @@ class TestConformance:
 class TestCheck:
     async def test_clean_text_is_not_flagged(self) -> None:
         """When the model returns no entities, the verdict is unflagged."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         model = _FakeChatModel(_FakeExtraction([]))
@@ -116,7 +111,6 @@ class TestCheck:
 
     async def test_residual_pii_is_flagged_and_carried(self) -> None:
         """A value the model returns and that is in the text flags the verdict."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
@@ -127,7 +121,6 @@ class TestCheck:
 
     async def test_custom_prompt_reaches_the_model(self) -> None:
         """A custom prompt is forwarded and appears in the model's system message."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         captured: list[object] = []
@@ -146,7 +139,6 @@ class TestCheck:
 
     async def test_placeholder_hint_follows_custom_delimiters(self) -> None:
         """The default prompt's placeholder examples match the given delimiters."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         captured: list[object] = []

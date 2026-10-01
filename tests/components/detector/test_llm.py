@@ -1,8 +1,7 @@
 """Tests for the LLMDetector.
 
-The langchain-core extra is absent in the dev venv, so these tests skip via
-importorskip. A fake chat model returns canned structured output, so no real LLM
-or network is needed when the extra is present.
+A fake chat model returns canned structured output, so no real LLM or network is
+needed. langchain-core comes with the dev group, so the tests always run.
 """
 
 import logging
@@ -62,7 +61,6 @@ class _FakeChatModel:
 class TestConformance:
     def test_satisfies_the_detector_port(self) -> None:
         """LLMDetector built on an injected model is an AnyDetector."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         model = _FakeChatModel(_FakeExtraction([]))
@@ -73,7 +71,6 @@ class TestConformance:
 class TestDetect:
     async def test_locates_a_single_occurrence_and_relabels(self) -> None:
         """An extracted value is located and relabeled through the base map."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("Emma", "person")])
@@ -89,7 +86,6 @@ class TestDetect:
 
     async def test_locates_every_occurrence(self) -> None:
         """A value present several times yields one detection each."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
@@ -100,7 +96,6 @@ class TestDetect:
 
     async def test_hallucinated_value_absent_from_text_is_ignored(self) -> None:
         """A value the model returned but that is not in the text yields none."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("Bob", "PERSON")])
@@ -113,7 +108,6 @@ class TestDetect:
         An empty fragment matches at every position, so locating it would build a
         zero-width span the model layer refuses. The untrusted value is dropped.
         """
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("", "PERSON")])
@@ -122,7 +116,6 @@ class TestDetect:
 
     async def test_padded_value_is_stripped_before_locating(self) -> None:
         """A value the model padded with spaces is still located in the text."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("  Emma  ", "PERSON")])
@@ -133,7 +126,6 @@ class TestDetect:
 
     async def test_malformed_output_fails_open(self) -> None:
         """A result without an entities attribute yields no detection."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         detector = LLMDetector(model=_FakeChatModel(object()), labels=["PERSON"])
@@ -141,7 +133,6 @@ class TestDetect:
 
     async def test_empty_text_returns_empty(self) -> None:
         """Empty input yields no detection."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
@@ -150,7 +141,6 @@ class TestDetect:
 
     async def test_confidence_is_configurable(self) -> None:
         """A configured confidence is carried on each detection."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
@@ -162,7 +152,6 @@ class TestDetect:
 
     async def test_text_to_analyze_is_wrapped_against_injection(self) -> None:
         """The source text is wrapped in tags and marked as data, not instructions."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         detector = LLMDetector(
@@ -179,7 +168,6 @@ class TestDetect:
 
     async def test_a_data_tag_in_the_text_cannot_close_the_data_region(self) -> None:
         """The closing tag inside the source text cannot break out of the data region."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
@@ -197,7 +185,6 @@ class TestDetect:
 
     async def test_an_uppercase_data_tag_is_neutralized_too(self) -> None:
         """A data tag in a different case is escaped like the exact one."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         detector = LLMDetector(
@@ -211,7 +198,6 @@ class TestDetect:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """A data tag found in the source text raises a warning naming how many."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         detector = LLMDetector(
@@ -225,7 +211,6 @@ class TestDetect:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """A source text without a data tag raises no warning."""
-        pytest.importorskip("langchain_core")
         from piighost.components.detector import LLMDetector
 
         detector = LLMDetector(
