@@ -1,13 +1,15 @@
-# A fuller local pipeline, still runnable with no model and no network.
+# A fuller local pipeline, still runnable with no model.
 #
-# The detector pulls the generic pattern catalog and adds one inline pattern;
+# The detector pulls the hub's generic group, pinned to a commit so it is
+# fetched on the first build and read from the cache after, and adds one inline
+# pattern;
 # several optional stages are enabled. For model-backed detectors (gliner2,
 # spacy, transformers, llm) see docs/en/configuration, they need extra
 # dependencies and a model, so they are left out of this runnable example.
 
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 # Keep the most confident detection when two overlap.
