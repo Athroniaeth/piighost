@@ -181,3 +181,5 @@ sandbox/
 !.claude/skills
 !.claude/settings.json
 
+CLAUDE.md
+AGENTS.md
