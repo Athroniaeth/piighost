@@ -1,10 +1,12 @@
 # PIIGhost
 
+[English](../README.md) | Français
+
 [![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg)](https://codecov.io/gh/Athroniaeth/piighost)
 [![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
 [![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](../LICENSE)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Discord](https://img.shields.io/badge/Discord-rejoindre-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
@@ -23,8 +25,8 @@ La même mécanique protège les agents qui appellent des outils. Avec le middle
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/deid-chat-fr-dark.gif">
-    <img alt="Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="docs/assets/deid-chat-fr-light.gif" width="760">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/deid-chat-fr-dark.gif">
+    <img alt="Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="assets/deid-chat-fr-light.gif" width="760">
   </picture>
 </p>
 
@@ -76,4 +78,4 @@ Le [démarrage rapide](https://athroniaeth.github.io/piighost/fr/getting-started
 
 - **Communauté** : [Discord](https://discord.gg/vFg9GHQR2s) pour obtenir de l'aide, signaler un bug ou demander une fonctionnalité
 - **Contribuer** : [guide de contribution](https://athroniaeth.github.io/piighost/fr/community/contributing/) et [signaler un bug](https://athroniaeth.github.io/piighost/fr/community/bug-reports/)
-- **Licence** : [MIT](LICENSE)
+- **Licence** : [MIT](../LICENSE)

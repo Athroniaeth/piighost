@@ -1,6 +1,6 @@
 ---
 name: piighost-docs
-description: Use when writing, rewriting or reviewing any PIIGhost documentation page under docs/en/ or docs/fr/, the pitch of README.md or README.fr.md, or the nav in zensical.toml / zensical.fr.toml. Also use when choosing between anonymisation and dé-identification, when a page mixes tutorial with reference, when French prose carries a semicolon or an em dash, when PIIGhost is written in bold instead of code font, when an explanation has no concrete example, or when a Mermaid diagram, a .placeholder / .pii tag, a .wide-table or a .security-table needs markup.
+description: Use when writing, rewriting or reviewing any PIIGhost documentation page under docs/en/ or docs/fr/, the pitch of README.md or docs/README.fr.md, or the nav in zensical.toml / zensical.fr.toml. Also use when choosing between anonymisation and dé-identification, when a page mixes tutorial with reference, when French prose carries a semicolon or an em dash, when PIIGhost is written in bold instead of code font, when an explanation has no concrete example, or when a Mermaid diagram, a .placeholder / .pii tag, a .wide-table or a .security-table needs markup.
 ---
 
 # PIIGhost docs
@@ -18,7 +18,7 @@ This skill owns both halves of a doc change, the **voice** (which mode the page 
 ## When to use
 
 - Writing or rewriting any page under `docs/en/` or `docs/fr/`.
-- Writing or rewriting the intro/pitch of `README.md` / `README.fr.md`.
+- Writing or rewriting the intro/pitch of `README.md` / `docs/README.fr.md`.
 - Deciding between "anonymisation" and "dé-identification".
 - Reviewing a draft that feels padded, abstract, or over-narrated.
 - Adding a diagram, a colour-coded table, a nav entry, or a new page.
