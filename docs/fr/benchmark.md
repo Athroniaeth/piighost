@@ -32,7 +32,7 @@ Deux modèles montent l'échelle. GLiNER2 (`fastino/gliner2-multi-v1`, le modèl
 |---|---|---|---|---|
 | Actes générés | français | 200 | actes, baux, contrats de travail, e-mails, comptes rendus médicaux, construits sur des modèles avec des valeurs fictives | un texte généré flatte, les valeurs sont là où un emplacement les attend |
 | Actes générés longs | français | 12 | les mêmes, de 2 à 60 pages | trois documents par longueur, intervalles larges |
-| TAB | anglais | 127 | arrêts de la CEDH annotés pour l'anonymisation (Pilán et al., 2022) | des arrêts publics, qu'un modèle a pu voir à l'entraînement |
+| TAB | anglais | 127 | arrêts de la CEDH annotés pour le Text Anonymization Benchmark (Pilán et al., 2022) | des arrêts publics, qu'un modèle a pu voir à l'entraînement |
 | PARHAF | français | 101 | comptes rendus médicaux écrits à la main par des internes pour des patients fictifs | presque aucun identifiant à forme fixe, il teste donc le modèle |
 | Gretel finance | français | 443 | documents financiers synthétiques | écrits par un LLM |
 

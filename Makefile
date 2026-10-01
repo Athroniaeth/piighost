@@ -13,6 +13,7 @@ lint:
 	uv run ruff check .
 	uv run pyrefly check src tests examples
 	uv run bandit -c pyproject.toml -r src examples
+	uv run python .claude/skills/piighost-docs/scripts/audit.py
 
 test:
 	uv run pytest
@@ -21,9 +22,7 @@ docs-build:
 	uv run python -m zensical build
 	uv run python -m zensical build -f zensical.fr.toml
 
-docs:
-	uv run python -m zensical build
-	uv run python -m zensical build -f zensical.fr.toml
+docs: docs-build
 	python3 -m http.server 8000 --directory site
 
 docs-watch:
