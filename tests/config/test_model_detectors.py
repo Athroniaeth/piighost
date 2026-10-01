@@ -33,7 +33,7 @@ class TestModelDetectorParsing:
         assert config.threshold == 0.7
 
     def test_gliner2_and_transformers_take_a_chunk_size(self) -> None:
-        """max_chars is optional, and a text longer than it is split into chunks."""
+        """max_chars is optional, unset by default, and parsed when given."""
         assert (
             Gliner2DetectorConfig(type="gliner2", model="m", labels=["A"]).max_chars
             is None
@@ -49,7 +49,7 @@ class TestModelDetectorParsing:
     def test_gliner2_build_forwards_the_chunk_size(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """build() hands max_chars to the detector, so a long text is chunked."""
+        """build() hands max_chars to the detector, which chunks with it."""
         import sys
         import types
 

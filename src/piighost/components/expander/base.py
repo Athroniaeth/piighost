@@ -50,11 +50,11 @@ class BaseDetectionExpander(ABC):
     def expand(self, text: str, detections: list[Detection]) -> list[Detection]:
         """Return the detections plus any missed occurrences of their values."""
         expanded = list(detections)
+        longest_first = sorted(detections, key=_value_length, reverse=True)
         covered = bytearray(len(text))
         for detection in detections:
             _cover(covered, detection.span)
 
-        longest_first = sorted(detections, key=lambda d: len(d.text), reverse=True)
         for detection in longest_first:
             for span in self._find_occurrences(text, detection):
                 if _touches(covered, span):
@@ -74,6 +74,11 @@ class BaseDetectionExpander(ABC):
     def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
         """Return the spans in text where the detection's value occurs."""
         ...
+
+
+def _value_length(detection: Detection) -> int:
+    """Sort key ordering detections by the length of their value."""
+    return len(detection.text)
 
 
 def _cover(covered: bytearray, span: Span) -> None:

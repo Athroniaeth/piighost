@@ -8,6 +8,9 @@ never change, so they are fetched once and kept. A moving selector is fetched
 every time, because serving a stale one would quietly detect less than the
 caller asked for.
 
+The hub is the only source of patterns: piighost ships none of its own, so two
+copies of one pattern set cannot drift apart.
+
 This module talks HTTP with the standard library alone. The core of piighost
 depends on typing-extensions and nothing else, and a registry client is not a
 reason to change that.
@@ -16,7 +19,6 @@ reason to change that.
 import hashlib
 import os
 import re
-import sys
 import tomllib
 import urllib.error
 import urllib.parse
@@ -24,6 +26,7 @@ import urllib.request
 from functools import cache
 from pathlib import Path
 
+from piighost._runtime import EMSCRIPTEN
 from piighost.exceptions import PIIGhostError
 
 DEFAULT_HUB_URL = "https://hub.piighost.dev"
@@ -187,7 +190,7 @@ def _patch_emscripten_transport() -> None:
 
 def _fetch(url: str, ref: str) -> str:
     """Read the hub's answer as text, turning any transport failure into ours."""
-    if sys.platform == "emscripten":
+    if EMSCRIPTEN:
         _patch_emscripten_transport()
     try:
         # The scheme is checked in _origin and the rest of the URL is built
