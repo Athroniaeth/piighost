@@ -4,7 +4,7 @@ icon: lucide/git-pull-request
 
 # Contributing
 
-Thanks for your interest in `piighost`. This page summarises the contribution workflow. For the authoritative version, see [`CONTRIBUTING.md`](https://github.com/Athroniaeth/piighost/blob/master/CONTRIBUTING.md) at the repository root.
+Thanks for your interest in `piighost`. This page summarises the contribution workflow. For the authoritative version, see [`CONTRIBUTING.md`](https://github.com/Athroniaeth/piighost/blob/master/.github/CONTRIBUTING.md) at the repository root.
 
 ## Prerequisites
 

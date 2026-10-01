@@ -4,7 +4,7 @@ icon: lucide/handshake
 
 # Code of conduct
 
-The `piighost` community welcomes anyone sharing the goal of making confidential data protection accessible and composable. This page summarises the behaviour expectations. For the authoritative version, see [`CODE_OF_CONDUCT.md`](https://github.com/Athroniaeth/piighost/blob/master/CODE_OF_CONDUCT.md) at the repository root.
+The `piighost` community welcomes anyone sharing the goal of making confidential data protection accessible and composable. This page summarises the behaviour expectations. For the authoritative version, see [`CODE_OF_CONDUCT.md`](https://github.com/Athroniaeth/piighost/blob/master/.github/CODE_OF_CONDUCT.md) at the repository root.
 
 ## Scope
 
