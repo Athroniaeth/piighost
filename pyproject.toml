@@ -180,11 +180,11 @@ markers = [
 show_missing = true
 
 [tool.ruff]
-# docs/ and skills/ are Markdown prose whose fenced Python blocks are
+# The Markdown under docs/ and skills/ is prose whose fenced Python blocks are
 # hand-aligned for readability; ruff 0.16 reformats code in Markdown, which
-# would flatten that alignment, so keep them out of ruff's scope. docs/tools/
-# holds the self-contained animation scripts, exempt for the same reason.
-extend-exclude = ["docs", "skills"]
+# would flatten that alignment, so keep it out of ruff's scope. The Python
+# scripts under docs/tools/ stay in scope.
+extend-exclude = ["docs/**/*.md", "skills"]
 
 [tool.ruff.lint]
 # Typing is mandatory: flake8-annotations (ANN) flags any missing argument or
@@ -211,14 +211,26 @@ convention = "google"
 [tool.pyrefly]
 project-excludes = [
     "skills/**",
-    "docs/tools/**",
     "dist/**",
     "site/**",
 ]
 # transformers is an optional extra outside the dev venv. Its imports used to
 # resolve only because an `examples` search path let examples/transformers/
 # shadow the package, so name the gap here instead.
-ignore-missing-imports = ["transformers", "transformers.*"]
+#
+# cairosvg, fontTools, numpy and Pillow are needed only by the PEP 723 scripts
+# of docs/tools/, which uv resolves on its own, so they stay out of the dev venv.
+ignore-missing-imports = [
+    "transformers",
+    "transformers.*",
+    "cairosvg",
+    "fontTools",
+    "fontTools.*",
+    "numpy",
+    "numpy.*",
+    "PIL",
+    "PIL.*",
+]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
