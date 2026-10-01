@@ -11,7 +11,7 @@ format:
 lint:
 	uv run ruff format --check .
 	uv run ruff check .
-	uv run pyrefly check src tests examples
+	uv run pyrefly check src tests examples docs/tools
 	uv run bandit -c pyproject.toml -r src examples
 	uv run python skills/piighost-docs/scripts/audit.py
 
