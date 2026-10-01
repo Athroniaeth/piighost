@@ -152,6 +152,14 @@ def test_debug_record_is_compact() -> None:
     }
 
 
+def test_debug_record_keeps_a_passed_through_tool_output() -> None:
+    """An output the hooks left alone is logged whole, to learn the tool's shape."""
+    from piighost.integrations.claude_code.runner import _debug_record
+
+    event = {"hook_event_name": "PostToolUse", "tool_response": {"rows": ["x"]}}
+    assert _debug_record(event, None)["tool_response"] == {"rows": ["x"]}
+
+
 async def test_post_tool_use_unknown_tool_is_passthrough() -> None:
     """A structured output from a tool not in the allowlist is passed through."""
     pipeline = _pipeline()

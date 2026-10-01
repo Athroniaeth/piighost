@@ -21,13 +21,20 @@ _DEFAULT_API_URL = "http://localhost:8000"
 def _debug_record(
     event: dict[str, Any], output: dict[str, Any] | None
 ) -> dict[str, Any]:
-    """A compact record of one hook invocation for the optional debug log."""
-    return {
+    """A compact record of one hook invocation for the optional debug log.
+
+    A tool output the hooks passed through is logged whole, so the shape of a
+    tool missing from the allowlist can be read and its text fields added.
+    """
+    record = {
         "event": event.get("hook_event_name"),
         "tool": event.get("tool_name"),
         "session_id": event.get("session_id"),
         "output": output,
     }
+    if output is None and "tool_response" in event:
+        record["tool_response"] = event["tool_response"]
+    return record
 
 
 def _log(event: dict[str, Any], output: dict[str, Any] | None) -> None:

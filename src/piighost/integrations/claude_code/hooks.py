@@ -12,6 +12,7 @@ handle_hook is pure: it takes any AnyThreadPipeline, a local pipeline or a remot
 PIIGhostClient, so it is driven the same way in tests and in the runner.
 """
 
+import re
 from typing import Any
 
 from piighost.conversation_memory.base import MessageRole
@@ -42,22 +43,16 @@ def _output(event_name: str, fields: dict[str, Any]) -> dict[str, Any]:
     return {"hookSpecificOutput": {"hookEventName": event_name, **fields}}
 
 
+_PATH_SEGMENT = re.compile(r"[^.\[\]]+|\[\]")
+"""A field name, or a [] list marker, in a dotted field path."""
+
+
 def _split_path(path: str) -> list[str]:
-    """Split a dotted field path into segments, expanding each `[]` list marker.
+    """Split a dotted field path into segments, each [] list marker its own.
 
     "structuredPatch[].lines[]" becomes ["structuredPatch", "[]", "lines", "[]"].
     """
-    segments: list[str] = []
-    for part in path.split("."):
-        name = part
-        markers = 0
-        while name.endswith("[]"):
-            name = name[:-2]
-            markers += 1
-        if name:
-            segments.append(name)
-        segments.extend(["[]"] * markers)
-    return segments
+    return _PATH_SEGMENT.findall(path)
 
 
 async def _apply_path(node: Any, segments: list[str], op: StringOp) -> Any:
@@ -130,7 +125,7 @@ async def handle_hook(
         if isinstance(tool_output, dict) and fields is not None:
             updated = await _anonymize_fields(tool_output, fields, anonymize_text)
             return _output(name, {"updatedToolOutput": updated})
-        # Unknown tool or unexpected shape: pass through, capture it to learn it.
+        # Unknown tool or unexpected shape: pass through, the debug log keeps it.
         return None
 
     if name == "PreToolUse":
