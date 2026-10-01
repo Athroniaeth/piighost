@@ -57,31 +57,68 @@ Pin an exact version if you build on one of these, and read the CHANGELOG before
 
 ### Deprecated
 
-The names on their way out are listed in the next section, with the release that deprecated them.
+No name is deprecated in 2.0. The names 1.x kept for back-compatibility are removed, and listed in the next section.
 
-Security fixes land on the latest 1.x minor only, on the stable and the experimental surface alike. An older minor receives nothing, so staying current is part of the contract.
+Security fixes land on the latest minor only, on the stable and the experimental surface alike. An older minor receives nothing, so staying current is part of the contract.
 
-## Deprecated names
+## Upgrading to 2.0
 
-Three names from earlier releases are still importable. They resolve to the current implementation, so nothing breaks today, and they will be removed in a future major release.
+### The regex catalogs are hub groups
 
-| Deprecated | Use instead | Since | On use |
-|---|---|---|---|
-| `piighost.integrations.middleware` | `piighost.integrations.langchain` | 1.4.0 | `DeprecationWarning` on import |
-| `AssistantEntityStrategy` | `EntityCreateByAssistantStrategy` | 1.5.0 | `DeprecationWarning` on access |
-| the `piighost[middleware]` extra | `piighost[langchain]` | 1.4.0 | no warning, both install `langchain` |
+`piighost` ships no pattern of its own. The `piighost.components.detector.patterns` module is gone, with its four catalogs, and the same sets are groups of the [piighost hub](https://hub.piighost.dev).
 
-The old module and the old strategy name reach the same objects as the current ones, so the update is a rewritten import line:
+| 1.x | 2.0 |
+|---|---|
+| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `hub:piighost/generic:fab51b33` |
+| `US_PATTERNS`, `catalogs = ["us"]` | `hub:piighost/us:29d5c0a5` |
+| `EU_PATTERNS`, `catalogs = ["eu"]` | `hub:piighost/eu:b0303ae6` |
+| `FR_PATTERNS`, `catalogs = ["fr"]` | `hub:piighost/fr:6802f5ef` |
 
 ```python
-# deprecated, still works
+# 1.x
+from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
+
+detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
+
+# 2.0
+from piighost.hub import pull
+
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+detector = RegexDetector(
+    {**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")}
+)
+```
+
+A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards, so a pipeline reaches the network once. The hub groups have moved on since the catalogs were copied: `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `hub:piighost/generic:fab51b33`.
+
+### The 1.x aliases are removed
+
+| Removed | Use instead |
+|---|---|
+| `piighost.integrations.middleware` | `piighost.integrations.langchain` |
+| `AssistantEntityStrategy` | `EntityCreateByAssistantStrategy` |
+| the `piighost[middleware]` extra | `piighost[langchain]` |
+
+```python
+# 1.x
 from piighost.integrations.middleware import AssistantEntityStrategy, PIIAnonymizationMiddleware
 
-# current
+# 2.0
 from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PIIAnonymizationMiddleware
 ```
 
-Run your test suite with `python -W error::DeprecationWarning` to fail on any deprecated name left in a code base. The current surface is listed in the [LangChain reference](../reference/langchain.md).
+### `BridgeDetector` takes an offset unit
+
+`offset_unit` is a required keyword, `OffsetUnit.CODE_POINT` for a runner written in Python, `OffsetUnit.UTF16` for one written in JavaScript. A JavaScript runner counts an emoji as two, so its offsets used to land one character late after one. An offset that is not an integer, `8.0` included, now raises `BridgePayloadError` instead of being truncated, and a span scored below `threshold` is dropped even when the runner ignored it. See the [detectors reference](../reference/detectors.md).
+
+### Behaviours that changed
+
+- **Unicode spaces.** `RegexDetector` reads every Unicode space as an ordinary one, so a pattern that looked for a no-break space on purpose no longer finds one. Two values that differ only by their spaces are one value, and get one token.
+- **Hyphens.** Every Unicode hyphen joins two words in a whole-word search, the non-breaking one Word types included, so `Jean`{ .pii } is no longer found inside `Jean‑Paul`{ .pii } written with it.
+- **NER detectors.** Every adapter re-reads the text of a detection from the source and applies its threshold itself, whatever its model returns. A `Gliner2Detector` detection can therefore carry a slightly different text than before, the document's rather than the model's.
+- **Overrides.** Two detections on one span keep their detector order after a whitelist, as they do without one.
+
+A conversation memory written by 1.x keys the provenance of a value by its casefolded text, while 2.0 keys it by the value with its spaces collapsed. A value typed with an unusual space can lose its provenance across the upgrade. Purge the store, as for the Argon2 change below, if that matters to a thread in flight.
 
 ## Argon2 digests changed
 

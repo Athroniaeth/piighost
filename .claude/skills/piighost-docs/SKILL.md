@@ -169,7 +169,7 @@ The rule governs every page you write or rewrite. Renaming page slugs (`why-anon
 
 - A single detected item is a **valeur** / **value**, as before ("chaque valeur est remplacée par un placeholder").
 - Define the term where it first appears on a page that needs it: « les données confidentielles, c'est-à-dire les données personnelles (PII) et les secrets comme les clés d'API ».
-- **State where secrets come from.** The built-in catalogs (`generic`, `us`, `eu`, `fr`) hold no secret pattern. The secrets live in the hub groups `piighost/secrets` and `piighost/secrets-extended`, pulled with `catalogs = ["hub:piighost/secrets"]`. Never write that `piighost` detects API keys out of the box.
+- **State where secrets come from.** `piighost` ships no pattern, and the hub groups `piighost/generic`, `us`, `eu` and `fr` hold no secret pattern either. Secret patterns live in the hub groups `piighost/secrets` and `piighost/secrets-extended`, pulled with `catalogs = ["hub:piighost/secrets:d822d04c"]`, and `Gliner2PiiDetector` also asks its model for API keys and passwords. Never write that a regex detector finds API keys without one of those groups.
 - **PII stays** in identifiers and markup, which are names: `PIIRemainingError`, `PIIAnonymizationMiddleware`, the `{ .pii }` tag class (it marks any real value, a secret included), the `pii` package name in a URL.
 - **Keep PII when the sentence is really about personal data.** The compliance, DPIA and "why de-identify" pages are about the law on personal data, so they keep « données personnelles » and PII. Do not turn a GDPR sentence into one about "confidential data": the GDPR does not cover an API key.
 

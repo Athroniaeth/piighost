@@ -29,7 +29,7 @@ If you conclude that a DPIA is required, gather the facts of your deployment bef
 
 Article 35(7)(a) asks for a systematic description of the processing. For the part `piighost` performs, it holds in four steps.
 
-1. **Detection.** The configured detectors find the PII in each message, a name, an email, an IBAN. Only what they recognize is replaced. The prebuilt regex catalogs and the NER models run locally, an `LLMDetector` runs wherever its chat model runs.
+1. **Detection.** The configured detectors find the PII in each message, a name, an email, an IBAN. Only what they recognize is replaced. The regex patterns and the NER models run locally, an `LLMDetector` runs wherever its chat model runs. A regex catalog of the hub pinned to a commit is fetched once, as patterns only, then read from the local cache, and no message text is sent to the hub.
 2. **Replacement.** Each detected value is replaced by a token before the text leaves for the LLM provider. `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }, and stays `<<PERSON:1>>`{ .placeholder } for the whole conversation.
 3. **Retention of the mapping.** The mapping from `<<PERSON:1>>`{ .placeholder } back to `Patrick`{ .pii } is kept in the conversation memory, partitioned by conversation (`thread_id`).
 4. **Restoration.** When the reply comes back, `piighost` puts `Patrick`{ .pii } back in place of `<<PERSON:1>>`{ .placeholder } for the user. With the LangChain middleware, the tool-call strategy decides whether tools receive real values too. The default, `ToolCallStrategy.FULL`, restores the arguments of a tool call and de-identifies its result.

@@ -25,7 +25,7 @@ A `[memory]` section turns the pipeline into a thread pipeline keeping per-threa
 ```toml title="pipeline.toml"
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [linker]
 type = "exact"

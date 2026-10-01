@@ -39,7 +39,7 @@ La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy 
 
 **Ce que `piighost` ajoute par-dessus :**
 
-- **Détecteurs enfichables :** catalogues regex (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), un détecteur LLM, plus les détecteurs exact-match, composite et chunked (le chunking découpe le texte qui dépasse la fenêtre de contexte d'un modèle), et vous gardez celui que vous connaissez (Presidio se branche via un extra).
+- **Détecteurs enfichables :** motifs regex tirés du [hub piighost](https://hub.piighost.dev) (groupes generic, US, EU, FR et d'autres), NER (GLiNER2, spaCy, Transformers), un détecteur LLM, plus les détecteurs exact-match, composite et chunked (le chunking découpe le texte qui dépasse la fenêtre de contexte d'un modèle), et vous gardez celui que vous connaissez (Presidio se branche via un extra).
 - **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>` et est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton. Les factories label-only, masque et hash à clé sont aussi disponibles.
 - **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, adossé à une mémoire in-process, Redis ou SQLAlchemy (Redis et SQL peuvent chiffrer les valeurs au repos et hacher les clés).
 - **Intégrations agents avec frontière d'outils :** middleware LangChain, hooks Pydantic AI, et LlamaIndex. L'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton, avec une restauration en streaming token par token.

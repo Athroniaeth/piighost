@@ -39,7 +39,7 @@ Most PII tooling stops at detection. Presidio, GLiNER, spaCy, and regex catalogs
 
 **What `piighost` adds on top:**
 
-- **Pluggable detectors:** regex catalogs (generic, US, EU, FR), NER (GLiNER2, spaCy, Transformers), an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits text that overruns a model's context window), and you keep the one you trust (Presidio plugs in through an extra).
+- **Pluggable detectors:** regex patterns pulled from the [piighost hub](https://hub.piighost.dev) (generic, US, EU, FR groups and more), NER (GLiNER2, spaCy, Transformers), an LLM detector, plus exact-match, composite, and chunked detectors (chunking splits text that overruns a model's context window), and you keep the one you trust (Presidio plugs in through an extra).
 - **Reversible, transparent tokens:** each value becomes a stable id like `<<PERSON:1>>` and is put back automatically, so the end user reads `john.doe@example.com` and never sees a token. Label-only, masked, and keyed-hash factories are available too.
 - **Consistent across a conversation:** the same value keeps the same token for the whole thread, backed by in-process, Redis, or SQLAlchemy memory (Redis and SQL can encrypt values at rest and hash keys).
 - **Agent integrations with a tool boundary:** LangChain middleware, Pydantic AI hooks, and LlamaIndex. The tool receives the real value while the model sees only the token, with token-by-token streaming restoration.

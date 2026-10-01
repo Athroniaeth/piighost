@@ -114,5 +114,5 @@ Ces motifs sont faits pour une config de documents. Une config de conversation n
 ## Voir aussi
 
 - [Limites](limitations.md) : ce que la détection ne peut pas promettre, quel que soit son score.
-- [Détecteurs prêts à l'emploi](examples/detectors.md) : les catalogues regex et les modèles.
+- [Détecteurs prêts à l'emploi](examples/detectors.md) : les catalogues regex du hub et les modèles.
 - [Référence TOML](configuration/toml.md) : `max_chars` et les clés des détecteurs.

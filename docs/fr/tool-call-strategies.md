@@ -66,7 +66,7 @@ Cette détection n'est possible que parce que la factory est retrouvable, ce qui
 
 ### `EntityCreateByAssistantStrategy` : la valeur venue de l'assistant
 
-La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une donnée confidentielle de l'utilisateur, la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite. Anciennement AssistantEntityStrategy, conservé comme alias déprécié.
+La *provenance* d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur que l'assistant a introduite n'est pas une donnée confidentielle de l'utilisateur, la dé-identifier prive le modèle de sa connaissance du monde sur cette entité. Si l'assistant cite un lieu public dans sa réponse, le dé-identifier au tour suivant coupe le modèle d'une information qu'il a lui-même produite.
 
 | Stratégie | Effet | Quand l'utiliser |
 |---|---|---|

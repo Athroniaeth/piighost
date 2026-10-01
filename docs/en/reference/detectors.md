@@ -438,63 +438,56 @@ detector = TransformersDetector(
 
 ## Pattern catalogs
 
-Reusable regex pattern sets for `RegexDetector`. Each catalog is a plain `dict[str, str]` mapping a PII label to a regex pattern string. Patterns match on shape alone, with no checksum validation.
-
-```python
-from piighost.components.detector.patterns import (
-    EU_PATTERNS,
-    FR_PATTERNS,
-    GENERIC_PATTERNS,
-    US_PATTERNS,
-)
-```
-
-Feed a catalog to a `RegexDetector`, or merge several by dict merge, an inline pattern on the same label taking precedence.
-
-```python
-from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
-
-detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
-```
+Reusable regex pattern sets for `RegexDetector`, published as groups on the [piighost hub](https://hub.piighost.dev). Each group maps a PII label to a regex pattern string. Patterns match on shape alone, with no checksum validation.
 
 <div class="wide-table" markdown="1">
 
-| Catalog | Import | Labels |
-|---------|--------|--------|
-| Generic | `GENERIC_PATTERNS` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| US | `US_PATTERNS` | `US_SSN`, `US_PHONE`, `US_ZIP` |
-| EU | `EU_PATTERNS` | `IBAN` |
-| French | `FR_PATTERNS` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET` |
+| Group | Reference | Labels |
+|-------|-----------|--------|
+| Generic | `hub:piighost/generic:fab51b33` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
+| US | `hub:piighost/us:29d5c0a5` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
+| EU | `hub:piighost/eu:b0303ae6` | `IBAN` |
+| French | `hub:piighost/fr:6802f5ef` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
+| Secrets | `hub:piighost/secrets:d822d04c` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
 
 </div>
 
-Every catalog pattern is tested against catastrophic backtracking, so an adversarial input cannot turn a scan into a denial of service.
+Build a detector from one group with [`from_hub`](#from_hub). `pull` (`piighost.hub`) returns a group as a `dict[str, str]` in registry order, so several groups merge by dict merge, the right-hand entry taking precedence on a shared label.
 
-The `GENERIC_PATTERNS` labels are country-agnostic. The others are prefixed (`US_`, `FR_`) so they do not collide when catalogs are merged. `EU_PATTERNS` carries the ISO 13616 IBAN shared across member states. For country-specific numbers, use a per-country catalog.
+```python
+from piighost.components.detector import RegexDetector
+from piighost.hub import pull
+
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+merged = RegexDetector({**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")})
+```
+
+A reference pinned to a commit, the eight hex characters after the last colon, is fetched the first time a detector is built, then read from the on-disk cache, offline included. An unpinned reference, `hub:piighost/generic` or `hub:piighost/generic:latest`, is fetched at every build.
+
+The hub checks every pattern it publishes against catastrophic backtracking, so an adversarial input cannot turn a scan into a denial of service.
+
+The generic labels are country-agnostic. The others are prefixed (`US_`, `FR_`) so they do not collide when groups are merged. The EU group carries the ISO 13616 IBAN shared across member states. For country-specific numbers, use a per-country group.
 
 ### Pulling catalogs from a config
 
-A regex detector config pulls catalogs via `catalogs`. An entry is either a prebuilt name, among `generic`, `us`, `eu`, `fr`, or a hub reference written `hub:namespace/name` with an optional `:selector`. The catalogs merge in order, then any inline `patterns`, so an inline pattern overrides a catalog pattern on the same label. A regex detector config needs at least one inline pattern or one catalog.
+A regex detector config pulls catalogs via `catalogs`. An entry is a hub reference written `hub:namespace/name` with an optional `:selector`. The catalogs merge in order, then any inline `patterns`, so an inline pattern overrides a catalog pattern on the same label. A regex detector config needs at least one inline pattern or one catalog.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic", "fr"]
+catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
 
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-A hub reference names a reviewed catalogue instead of carrying a copy of it, so the config stays short and the patterns stay auditable at their source:
+A hub reference names a reviewed catalog instead of carrying a copy of it, so the config stays short and the patterns stay auditable at their source. A catalog is fetched when the config is built, not when it is parsed. Set `PIIGHOST_HUB_URL` to pull from a private registry.
 
-```toml
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/logs:fd79aec6"]
+An entry that is not a hub reference fails at load time rather than as a bad URL later. The names `generic`, `us`, `eu` and `fr`, which named catalogs shipped inside the library before 2.0, are refused with the reference that replaces them.
+
+```text
+the built-in catalog 'generic' was removed in piighost 2.0: name the hub group instead, hub:piighost/generic
 ```
-
-A hub catalog is fetched when the config is built, not when it is parsed, and a reference pinned to a commit is cached on disk afterwards. Set `PIIGHOST_HUB_URL` to pull from a private registry. An unknown name or a malformed reference fails at load time rather than as a bad URL later.
 
 ## Unicode spaces
 

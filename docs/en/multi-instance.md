@@ -40,7 +40,7 @@ Point every worker at one Redis instance. The tokens are assigned over the union
 ```toml title="pipeline.toml"
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [linker]
 type = "exact"

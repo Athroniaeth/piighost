@@ -12,7 +12,7 @@ Votre détecteur lit le nom de votre entreprise comme une personne et vous voule
 L'étape s'exécute juste après la détection, avant la résolution des chevauchements et la liaison, donc ses deux listes l'emportent sur la lecture du détecteur ainsi que sur un jeu corrigé qui revient d'une relecture humaine. Voir [Architecture](../architecture.md) pour l'ordre complet des étapes.
 
 !!! note "Prérequis"
-    `piighost` seul, `pip install piighost`. Chaque snippet ci-dessous s'exécute tel quel, sans téléchargement de modèle ni accès réseau. La dernière section lit un fichier de configuration, ce qui demande l'extra config, `pip install piighost[config]`.
+    `piighost` seul, `pip install piighost`. Chaque snippet ci-dessous s'exécute tel quel, sans téléchargement de modèle. La section 2 et le fichier de configuration tirent le groupe générique du [hub piighost](https://hub.piighost.dev), récupéré une fois, puis relu depuis le cache sur disque. La dernière section lit un fichier de configuration, ce qui demande l'extra config, `pip install piighost[config]`.
 
 ## 1. Laisser une valeur en clair avec une blacklist
 
@@ -118,13 +118,12 @@ import asyncio
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.override import DetectionOverride
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector(GENERIC_PATTERNS)
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
 whitelist = RegexDetector({"CODENAME": r"ACME-[A-Z]+"})
 override = DetectionOverride(whitelist=whitelist)
 linker = ExactEntityLinker()
@@ -298,7 +297,7 @@ Les deux listes sont des configs de détecteur, `[override.whitelist]` et `[over
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [override]
 blacklist_strategy = "value"

@@ -13,7 +13,7 @@ Les détecteurs et les modes de `piighost` se placent face à deux cadres régle
 
 HIPAA est la loi américaine sur les données de santé. Sa méthode Safe Harbor établit qu'une fois retirées 18 catégories d'identifiants d'un dossier, et sans connaissance effective que le reste pourrait ré-identifier une personne, le dossier n'est plus une donnée de santé protégée et sort du champ de la règle. Safe Harbor est destructif pour les données qui dépendent de dates ou de lieux exacts, c'est donc une cible de dé-identification, pas une transformation sans perte.
 
-Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs livrés par `piighost`. "Custom" signifie que `piighost` n'a pas de pattern préétabli, mais qu'un pattern `RegexDetector` pour votre format local, ou le `LLMDetector`, le couvre.
+Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs livrés par `piighost` et des catalogues regex du hub. "Custom" signifie qu'aucun catalogue du hub n'a de pattern pour lui, mais qu'un pattern `RegexDetector` pour votre format local, ou le `LLMDetector`, le couvre.
 
 <div class="wide-table" markdown="1">
 
@@ -40,7 +40,7 @@ Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs l
 
 </div>
 
-Les catalogues regex préétablis reconnaissent sur la forme seule, sans validation de checksum, donc ils ne lâchent jamais une valeur abîmée par l'OCR mais acceptent aussi une non-valeur bien formée. Voir [Limites](limitations.md).
+Les catalogues regex du hub reconnaissent sur la forme seule, sans validation de checksum, donc ils ne lâchent jamais une valeur abîmée par l'OCR mais acceptent aussi une non-valeur bien formée. Voir [Limites](limitations.md).
 
 ## RGPD
 

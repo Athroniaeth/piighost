@@ -54,7 +54,7 @@ Point an editor at `schema.json` for autocompletion and inline validation of a c
 
 ## `piighost anonymize`
 
-De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default it runs a generic `RegexDetector`. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
+De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default it runs a `RegexDetector` over the hub group `hub:piighost/generic:fab51b33` (`DEFAULT_CATALOG` in `piighost.cli`), fetched on the first run, then read from the on-disk cache. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -79,7 +79,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `--thread-id ID` | Thread id for the API or a thread-scoped config (default `default`) |
 | `--json` | Print the de-identified text and the detections as JSON |
 
-`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`.
+`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`.
 
 Those detections are the detector's own output, read straight from the detector for the listing. They are not the set the de-identified text was rendered from, so an overlap the resolver dropped and a value an override cleared both still appear. Read them as what the detector saw, and `anonymized_text` as what the pipeline decided.
 

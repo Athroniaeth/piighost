@@ -7,43 +7,33 @@ tags:
 
 # Comment utiliser les catalogues de patterns et combiner des détecteurs
 
-`piighost` fournit des catalogues de patterns regex prêts à l'emploi pour les PII à structure fixe (email, IP, IBAN, téléphone). Ce guide montre comment les charger, les fusionner et combiner plusieurs détecteurs, avec le seul cœur de `piighost`.
+`piighost` tire du [hub piighost](https://hub.piighost.dev) des catalogues de patterns regex prêts à l'emploi pour les PII à structure fixe (email, IP, IBAN, téléphone). Ce guide montre comment les charger, les fusionner et combiner plusieurs détecteurs, avec le seul cœur de `piighost`.
 
-Les quatre catalogues sont de simples dictionnaires `label` vers `pattern`.
+Quatre groupes du hub couvrent les formats courants. Chacun est un ensemble d'entrées `label` vers `pattern`, et le suffixe après le dernier deux-points l'épingle sur un commit.
 
-```python
-from piighost.components.detector.patterns import (
-    EU_PATTERNS,
-    FR_PATTERNS,
-    GENERIC_PATTERNS,
-    US_PATTERNS,
-)
-```
+- `hub:piighost/generic:fab51b33`, email, URL, IPv4, carte bancaire, indépendants du pays
+- `hub:piighost/us:29d5c0a5`, téléphone, ZIP, ITIN, SSN, préfixés `US_`
+- `hub:piighost/eu:b0303ae6`, IBAN ISO 13616 pan-européen
+- `hub:piighost/fr:6802f5ef`, téléphone, IBAN, NIR, SIRET, SIREN, préfixés `FR_`
 
-- `GENERIC_PATTERNS` : email, URL, IPv4, carte bancaire, indépendants du pays.
-- `US_PATTERNS` : SSN, téléphone, ZIP, préfixés `US_`.
-- `EU_PATTERNS` : IBAN ISO 13616 pan-européen.
-- `FR_PATTERNS` : téléphone, IBAN, NIR, SIRET, préfixés `FR_`.
-
-Les secrets comme les clés d'API ne sont pas dans ces catalogues mais dans les groupes du hub `piighost/secrets` et `piighost/secrets-extended`, tirés depuis une config avec `catalogs = ["hub:piighost/secrets"]`.
+Un groupe épinglé est récupéré depuis le hub à la première construction d'un détecteur, puis relu depuis le cache sur disque, hors ligne compris. Les secrets comme les clés d'API sont dans les groupes du hub `piighost/secrets` et `piighost/secrets-extended`, tirés de la même façon, par exemple avec `catalogs = ["hub:piighost/secrets:d822d04c"]` dans une config.
 
 Pour le détail des labels, voir la [référence des détecteurs](../reference/detectors.md).
 
 ## Utiliser un seul catalogue
 
-Passez le catalogue à un `RegexDetector`, puis montez le pipeline.
+Construisez un `RegexDetector` à partir du groupe avec `from_hub`, puis montez le pipeline.
 
 ```python
 import asyncio
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector(GENERIC_PATTERNS)
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
 linker = ExactEntityLinker()
 factory = LabelCounterPlaceholderFactory()
 anonymizer = Anonymizer(factory)
@@ -65,12 +55,12 @@ asyncio.run(main())
 
 ## Fusionner générique et régional
 
-Si vous voulez couvrir à la fois les PII génériques et celles d'une région, fusionnez les dictionnaires. La fusion de droite l'emporte sur un même label.
+Si vous voulez couvrir à la fois les PII génériques et celles d'une région, tirez chaque groupe avec `pull`, qui renvoie un dictionnaire `label` vers `pattern`, et fusionnez les dictionnaires. L'entrée de droite l'emporte sur un même label.
 
 ```python
-from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
+from piighost.hub import pull
 
-patterns = {**GENERIC_PATTERNS, **FR_PATTERNS}
+patterns = {**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")}
 detector = RegexDetector(patterns)
 
 linker = ExactEntityLinker()
@@ -97,9 +87,11 @@ asyncio.run(main())
 Pour ne garder que certains labels, construisez un dictionnaire à la carte.
 
 ```python
+generic = pull("hub:piighost/generic:fab51b33")
+french = pull("hub:piighost/fr:6802f5ef")
 patterns = {
-    "EMAIL": GENERIC_PATTERNS["EMAIL"],
-    "FR_IBAN": FR_PATTERNS["FR_IBAN"],
+    "EMAIL": generic["EMAIL"],
+    "FR_IBAN": french["FR_IBAN"],
 }
 detector = RegexDetector(patterns)
 ```
@@ -110,10 +102,9 @@ detector = RegexDetector(patterns)
 
 ```python
 from piighost.components.detector import CompositeDetector, ExactMatchDetector, RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
 
 exact_detector = ExactMatchDetector({"Patrick": "PERSON"})
-regex_detector = RegexDetector(GENERIC_PATTERNS)
+regex_detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
 detector = CompositeDetector([exact_detector, regex_detector])
 
 linker = ExactEntityLinker()
@@ -143,10 +134,9 @@ Un détecteur NER a une fenêtre de contexte bornée, et un long document peut l
 
 ```python
 from piighost.components.detector import ChunkedDetector, RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
 from piighost.text import RecursiveCharacterTextSplitter
 
-regex_detector = RegexDetector(GENERIC_PATTERNS)
+regex_detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
 splitter = RecursiveCharacterTextSplitter(chunk_size=40, chunk_overlap=10)
 detector = ChunkedDetector(regex_detector, splitter=splitter)
 
@@ -182,7 +172,7 @@ Si vous pilotez le pipeline par un fichier de configuration plutôt que par du c
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic", "fr"]
+catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
 ```
 
 Les catalogues fusionnent d'abord, puis les `patterns` en ligne, donc un pattern en ligne l'emporte au même label. Voir la [configuration TOML](../configuration/toml.md).

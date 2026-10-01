@@ -57,31 +57,68 @@ Une version mineure ajoute des composants, des options et des factories de place
 
 ### Déprécié
 
-Les noms en voie de retrait sont listés dans la section suivante, avec la version qui les a dépréciés.
+Aucun nom n'est déprécié en 2.0. Les noms que la 1.x gardait par compatibilité sont supprimés, et listés dans la section suivante.
 
-Les correctifs de sécurité n'atterrissent que sur la dernière version mineure 1.x, aussi bien sur la surface stable que sur l'expérimentale. Une version mineure antérieure ne reçoit rien, rester à jour fait donc partie du contrat.
+Les correctifs de sécurité n'atterrissent que sur la dernière version mineure, aussi bien sur la surface stable que sur l'expérimentale. Une version mineure antérieure ne reçoit rien, rester à jour fait donc partie du contrat.
 
-## Noms dépréciés
+## Passer à la 2.0
 
-Trois noms issus de versions précédentes restent importables. Ils pointent vers l'implémentation actuelle, donc rien ne casse aujourd'hui, et ils seront supprimés dans une future version majeure.
+### Les catalogues regex sont des groupes du hub
 
-| Déprécié | À utiliser | Depuis | À l'usage |
-|---|---|---|---|
-| `piighost.integrations.middleware` | `piighost.integrations.langchain` | 1.4.0 | `DeprecationWarning` à l'import |
-| `AssistantEntityStrategy` | `EntityCreateByAssistantStrategy` | 1.5.0 | `DeprecationWarning` à l'accès |
-| l'extra `piighost[middleware]` | `piighost[langchain]` | 1.4.0 | aucun avertissement, les deux installent `langchain` |
+`piighost` n'embarque plus aucun motif. Le module `piighost.components.detector.patterns` disparaît avec ses quatre catalogues, et les mêmes ensembles sont des groupes du [hub piighost](https://hub.piighost.dev).
 
-L'ancien module et l'ancien nom de stratégie atteignent les mêmes objets que les noms actuels, donc la mise à jour est une ligne d'import réécrite :
+| 1.x | 2.0 |
+|---|---|
+| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `hub:piighost/generic:fab51b33` |
+| `US_PATTERNS`, `catalogs = ["us"]` | `hub:piighost/us:29d5c0a5` |
+| `EU_PATTERNS`, `catalogs = ["eu"]` | `hub:piighost/eu:b0303ae6` |
+| `FR_PATTERNS`, `catalogs = ["fr"]` | `hub:piighost/fr:6802f5ef` |
 
 ```python
-# déprécié, fonctionne encore
+# 1.x
+from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
+
+detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
+
+# 2.0
+from piighost.hub import pull
+
+detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+detector = RegexDetector(
+    {**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")}
+)
+```
+
+Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque, donc un pipeline n'atteint le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés : `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic:fab51b33`.
+
+### Les alias de la 1.x sont supprimés
+
+| Supprimé | À utiliser |
+|---|---|
+| `piighost.integrations.middleware` | `piighost.integrations.langchain` |
+| `AssistantEntityStrategy` | `EntityCreateByAssistantStrategy` |
+| l'extra `piighost[middleware]` | `piighost[langchain]` |
+
+```python
+# 1.x
 from piighost.integrations.middleware import AssistantEntityStrategy, PIIAnonymizationMiddleware
 
-# actuel
+# 2.0
 from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PIIAnonymizationMiddleware
 ```
 
-Lancez votre suite de tests avec `python -W error::DeprecationWarning` pour échouer sur tout nom déprécié resté dans un code. La surface actuelle est listée dans la [référence LangChain](../reference/langchain.md).
+### `BridgeDetector` prend une unité de décalage
+
+`offset_unit` est un mot-clé obligatoire, `OffsetUnit.CODE_POINT` pour un exécuteur écrit en Python, `OffsetUnit.UTF16` pour un exécuteur écrit en JavaScript. Un exécuteur JavaScript compte un emoji pour deux, si bien que ses décalages tombaient un caractère trop loin après chacun. Un décalage qui n'est pas un entier, `8.0` compris, lève maintenant `BridgePayloadError` au lieu d'être tronqué, et un span noté sous `threshold` est écarté même quand l'exécuteur l'a ignoré. Voir la [référence des détecteurs](../reference/detectors.md).
+
+### Comportements qui changent
+
+- **Espaces Unicode.** `RegexDetector` lit toute espace Unicode comme une espace ordinaire, donc un motif qui cherchait exprès une espace insécable n'en trouve plus. Deux valeurs qui ne diffèrent que par leurs espaces sont une seule valeur, et reçoivent un seul jeton.
+- **Traits d'union.** Tout trait d'union Unicode relie deux mots dans une recherche par mot entier, y compris le trait d'union insécable que tape Word, donc `Jean`{ .pii } n'est plus trouvé dans `Jean‑Paul`{ .pii } écrit avec lui.
+- **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
+- **Surcharges.** Deux détections sur un même span gardent l'ordre de leurs détecteurs après une liste blanche, comme sans elle.
+
+Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour un fil en cours.
 
 ## Les digests Argon2 ont changé
 

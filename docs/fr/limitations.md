@@ -47,20 +47,22 @@ Prendre en charge ces écritures demanderait un segmenteur de mots par langue, e
 
 **Mitigation** : sur un texte chinois, japonais ou thaï, détecter avec un modèle NER ou un motif plutôt qu'avec `ExactMatchDetector` ou `LLMDetector`, et ne pas compter sur l'expander pour les répétitions.
 
-## Le motif e-mail lit mal certaines écritures
+## Un motif ne couvre pas toutes les écritures à la fois
 
-Le motif `EMAIL` du catalogue `generic` accepte les lettres Unicode, donc une adresse accentuée, `expéditeur@exemple.fr`{ .pii }, est trouvée entière. Deux cas lui échappent.
+Le module `re` de Python ne connaît pas la segmentation en mots, et il ne compte pas les signes combinants, les voyelles du hindi et des autres écritures indiennes, comme des lettres. Un motif e-mail doit donc choisir les lettres qu'il accepte, et chaque choix en manque.
 
-| Texte | Trouvé | Attendu |
+| Texte | Motif qui accepte les lettres Unicode, `(?u:\w)` | `EMAIL` de `hub:piighost/generic` |
 |---|---|---|
+| `écrire à expéditeur@exemple.fr`{ .pii } | `expéditeur@exemple.fr`{ .pii } | `expéditeur@exemple.fr`{ .pii } |
 | `メールはtanaka@example.jpです`{ .pii } | toute la phrase | `tanaka@example.jp`{ .pii } |
-| `राम@उदाहरण.भारत`{ .pii } | rien | l'adresse |
+| `ελένη@example.gr`{ .pii } | `ελένη@example.gr`{ .pii } | rien |
+| `राम@उदाहरण.भारत`{ .pii } | rien | rien |
 
-Dans un texte chinois ou japonais sans espace autour de l'adresse, les idéogrammes voisins sont aussi des lettres, donc le motif les englobe. Le jeton masque plus que l'adresse, et rien ne part en clair. En hindi, et dans les autres écritures dont les voyelles sont des signes combinants, le module `re` de Python ne compte pas ces signes comme des lettres, donc l'adresse est manquée et part telle quelle.
+Un motif qui accepte les lettres Unicode trouve entière une adresse accentuée ou grecque. Dans un texte chinois ou japonais sans espace autour de l'adresse, les idéogrammes voisins sont aussi des lettres, donc le motif les englobe. Le jeton masque plus que l'adresse, et rien ne part en clair. L'adresse en hindi lui échappe quand même, car ses voyelles sont des signes combinants.
 
-Corriger les deux demanderait un moteur de regex qui connaisse la segmentation en mots et les graphèmes, ce que `re` ne fait pas.
+Le motif `EMAIL` de `hub:piighost/generic` n'accepte que les lettres latines, les lettres et chiffres ASCII plus la plage latine de `À` à `ɏ`. Il trouve exactement les exemples accentué et japonais, et manque toute adresse écrite dans une autre écriture, qui part telle quelle.
 
-**Mitigation** : pour un texte dans ces écritures, écrire le motif e-mail de votre config pour les adresses qu'il contient vraiment, ou détecter les adresses avec un modèle NER.
+**Mitigation** : pour un texte dans une écriture non latine, écrire le motif e-mail de votre config pour les adresses qu'il contient vraiment, puisqu'un motif en ligne l'emporte sur celui du groupe au même label, ou détecter les adresses avec un modèle NER.
 
 ## Pas de validation par checksum (volontaire)
 
