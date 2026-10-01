@@ -12,9 +12,9 @@ import logging
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from typing import Any, Generic, cast
 
-from typing_extensions import TypeVar
-
-from piighost.components.placeholder.tags import PreservesRecognizableIdentity
+from piighost.components.placeholder.tags import (
+    IdentityT,
+)
 from piighost.conversation_memory import MessageRole
 from piighost.exceptions import MissingThreadIdError
 from piighost.integrations._deidentify import TextDeidentifier
@@ -54,12 +54,6 @@ Falling back to it lets distinct conversations share placeholder state, which
 leaks entities across them; require_thread_id exists to reject that fallback.
 """
 _missing_thread_id_warned = False
-
-IdentityT = TypeVar(
-    "IdentityT",
-    bound=PreservesRecognizableIdentity,
-    default=PreservesRecognizableIdentity,
-)
 
 
 def _thread_id(require_thread_id: bool) -> str:

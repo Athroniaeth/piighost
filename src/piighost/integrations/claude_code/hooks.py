@@ -12,13 +12,11 @@ handle_hook is pure: it takes any AnyThreadPipeline, a local pipeline or a remot
 PIIGhostClient, so it is driven the same way in tests and in the runner.
 """
 
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from piighost.conversation_memory.base import MessageRole
+from piighost.integrations._deidentify import StringOp, map_strings
 from piighost.pipeline import AnyThreadPipeline
-
-_StringOp = Callable[[str], Awaitable[str]]
 
 _TOOL_OUTPUT_TEXT_FIELDS: dict[str, tuple[str, ...]] = {
     "Bash": ("stdout", "stderr"),
@@ -44,17 +42,6 @@ def _output(event_name: str, fields: dict[str, Any]) -> dict[str, Any]:
     return {"hookSpecificOutput": {"hookEventName": event_name, **fields}}
 
 
-async def _map_strings(value: Any, op: _StringOp) -> Any:
-    """Apply op to every string inside nested dicts and lists."""
-    if isinstance(value, str):
-        return await op(value)
-    if isinstance(value, dict):
-        return {key: await _map_strings(item, op) for key, item in value.items()}
-    if isinstance(value, list):
-        return [await _map_strings(item, op) for item in value]
-    return value
-
-
 def _split_path(path: str) -> list[str]:
     """Split a dotted field path into segments, expanding each `[]` list marker.
 
@@ -73,7 +60,7 @@ def _split_path(path: str) -> list[str]:
     return segments
 
 
-async def _apply_path(node: Any, segments: list[str], op: _StringOp) -> Any:
+async def _apply_path(node: Any, segments: list[str], op: StringOp) -> Any:
     """Return node with op applied to the string leaves reached by segments.
 
     Rebuilds only the nodes along the path, sharing untouched siblings. A segment
@@ -94,7 +81,7 @@ async def _apply_path(node: Any, segments: list[str], op: _StringOp) -> Any:
 
 
 async def _anonymize_fields(
-    data: dict[str, Any], paths: tuple[str, ...], op: _StringOp
+    data: dict[str, Any], paths: tuple[str, ...], op: StringOp
 ) -> dict[str, Any]:
     """Apply op to every allowlisted field path in a structured tool result."""
     result: Any = data
@@ -154,7 +141,7 @@ async def handle_hook(
         async def restore(text: str) -> str:
             return await pipeline.deanonymize(text, thread_id)
 
-        restored = await _map_strings(tool_input, restore)
+        restored = await map_strings(tool_input, restore)
         return _output(name, {"updatedInput": restored})
 
     return None

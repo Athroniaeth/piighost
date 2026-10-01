@@ -6,8 +6,6 @@ from contextlib import AbstractContextManager, nullcontext
 from dataclasses import replace
 from typing import Any, Generic, Protocol, cast, runtime_checkable
 
-from typing_extensions import TypeVar
-
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
 from piighost.components.detector.base import AnyDetector
@@ -24,35 +22,15 @@ from piighost.components.placeholder.base import (
     AnyPlaceholderFactory,
     BaseDelimitedPlaceholderFactory,
 )
-from piighost.components.placeholder.tags import PlaceholderPreservation
+from piighost.components.placeholder.tags import (
+    PreservationT,
+    PreservationT_co,
+)
 from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.exceptions import PIIGhostSecurityWarning, PIIRemainingError
 from piighost.models import Detection, Entity
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
 from piighost.text import value_key
-
-PreservationT = TypeVar(
-    "PreservationT",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-)
-"""What the concrete pipeline's tokens preserve, invariant on the implementations.
-
-Invariant, since a pipeline both consumes its anonymizer's tag and hands the same
-tokens back out, so it cannot vary in either direction.
-"""
-
-PreservationT_co = TypeVar(
-    "PreservationT_co",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-    covariant=True,
-)
-"""What a pipeline's tokens preserve, on the AnyPipeline and AnyThreadPipeline ports.
-
-Covariant, so a pipeline whose tokens preserve identity satisfies a consumer such
-as the middleware that requires only identity or less.
-"""
 
 
 @runtime_checkable

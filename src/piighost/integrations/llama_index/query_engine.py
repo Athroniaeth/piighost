@@ -11,9 +11,9 @@ an ImportError pointing at the extra.
 import asyncio
 from typing import Any, Generic
 
-from typing_extensions import TypeVar
-
-from piighost.components.placeholder.tags import PreservesRecognizableIdentity
+from piighost.components.placeholder.tags import (
+    IdentityT,
+)
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
 from piighost.pipeline import AnyThreadPipeline
@@ -27,12 +27,6 @@ except ImportError as exc:
         "The LlamaIndex integration requires the llama-index package. "
         "Install it with: pip install piighost[llama-index]"
     ) from exc
-
-IdentityT = TypeVar(
-    "IdentityT",
-    bound=PreservesRecognizableIdentity,
-    default=PreservesRecognizableIdentity,
-)
 
 
 class PIIQueryEngine(BaseQueryEngine, Generic[IdentityT]):

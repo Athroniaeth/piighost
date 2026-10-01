@@ -66,6 +66,8 @@ The full hierarchy:
       - PreservesLabeledIdentityHashed
 """
 
+from typing_extensions import TypeVar
+
 
 class PlaceholderPreservation(str):
     """Root type for placeholder preservation tags, and for tokens themselves.
@@ -182,6 +184,40 @@ class PreservesLabeledIdentityHashed(PreservesLabeledIdentityRealistic):
     its content derives from a hash, so it is unique and cannot coincidentally
     match a real-world value.
     """
+
+
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
+"""What a component's tokens preserve, invariant.
+
+For a class that both takes tokens of the tag and hands them back out, such as
+the anonymizer template and the concrete pipelines, so it cannot vary in either
+direction.
+"""
+
+PreservationT_co = TypeVar(
+    "PreservationT_co",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+    covariant=True,
+)
+"""What a component's tokens preserve, covariant.
+
+For a port that only returns tokens, the factory, the anonymizer and the
+pipelines, so one whose tokens preserve more satisfies a consumer asking for
+less. Defaults to PlaceholderPreservation so a bare annotation still
+type-checks.
+"""
+
+IdentityT = TypeVar(
+    "IdentityT",
+    bound=PreservesRecognizableIdentity,
+    default=PreservesRecognizableIdentity,
+)
+"""Tokens that identify an entity and can be found again, as the integrations need."""
 
 
 __all__ = [
