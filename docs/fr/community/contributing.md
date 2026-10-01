@@ -4,7 +4,7 @@ icon: lucide/git-pull-request
 
 # Contribuer
 
-Merci de l'intérêt porté à `piighost`. Cette page résume le workflow de contribution. Pour la version complète, voir [`CONTRIBUTING.md`](https://github.com/Athroniaeth/piighost/blob/master/CONTRIBUTING.md) à la racine du dépôt.
+Merci de l'intérêt porté à `piighost`. Cette page résume le workflow de contribution. Pour la version complète, voir [`CONTRIBUTING.md`](https://github.com/Athroniaeth/piighost/blob/master/.github/CONTRIBUTING.md) à la racine du dépôt.
 
 ## Prérequis
 

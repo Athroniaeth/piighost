@@ -4,7 +4,7 @@ icon: lucide/shield-check
 
 # Sécurité
 
-Cette page complète [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) à la racine du dépôt avec un modèle de menaces. Elle décrit ce contre quoi `piighost` protège, ce contre quoi il ne protège pas, et pourquoi.
+Cette page complète [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/.github/SECURITY.md) du dépôt avec un modèle de menaces. Elle décrit ce contre quoi `piighost` protège, ce contre quoi il ne protège pas, et pourquoi.
 
 !!! note "Dé-identification réversible"
     `piighost` dé-identifie par défaut. Il remplace chaque valeur détectée par un placeholder et **garde le lien** entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Ce lien est un mapping de données confidentielles en clair, c'est-à-dire de données personnelles (PII) et de secrets comme les clés d'API. Le protéger est au coeur de ce modèle de menaces.
@@ -165,4 +165,4 @@ N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le re
 
 ## Signaler une vulnérabilité
 
-Voir [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/SECURITY.md) pour le canal privé de signalement de vulnérabilités et la matrice des versions supportées.
+Voir [`SECURITY.md`](https://github.com/Athroniaeth/piighost/blob/master/.github/SECURITY.md) pour le canal privé de signalement de vulnérabilités et la matrice des versions supportées.
