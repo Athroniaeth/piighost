@@ -40,9 +40,9 @@ per-tool allowlist of the dotted field paths that hold free text
 | `ToolSearch` | `query` |
 
 A plain-string `tool_response` is anonymized whole. A tool not in the allowlist is
-passed through untouched, so its metadata is never mangled; run the capture logger
-(`python -m piighost.integrations.claude_code.capture`, writing to
-`PIIGHOST_HOOK_LOG`) to observe a new tool's shape and add its text fields.
+passed through untouched, so its metadata is never mangled. Set `PIIGHOST_HOOK_LOG`
+to log each hook call: a passed-through tool output is logged whole, so a new
+tool's shape can be read and its text fields added.
 
 ## Known limitations
 
