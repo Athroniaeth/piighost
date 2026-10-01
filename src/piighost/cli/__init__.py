@@ -102,11 +102,15 @@ def _build_app() -> "typer.Typer":
         if config is not None and api is not None:
             typer.echo("Pass at most one of --config and --api.", err=True)
             raise typer.Exit(code=1)
+        from piighost.exceptions import ConfigError
         from piighost.hub import HubError
 
         source = sys.stdin.read() if text is None or text == "-" else text
         try:
             output = asyncio.run(_anonymize(source, config, api, thread_id, as_json))
+        except ConfigError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from exc
         except HubError as exc:
             typer.echo(f"Could not pull a hub catalog: {exc}", err=True)
             raise typer.Exit(code=1) from exc
@@ -169,12 +173,16 @@ async def _anonymize_local(
     else:  # pragma: no cover - the config builds one of the two concrete pipelines
         raise TypeError(f"unsupported pipeline type: {type(pipeline).__name__}")
 
-    detections: list[dict[str, Any]] = []
-    if as_json:
-        detections = [
-            detection.to_dict() for detection in await pipeline.detector.detect(text)
-        ]
-    return result.text, detections
+    if not as_json:
+        return result.text, []
+    # The entities are what the text replaced: every stage after the detector,
+    # overlaps, overrides and the expander, has already run on them.
+    detections = [
+        detection.to_dict()
+        for entity in result.tokens
+        for detection in entity.detections
+    ]
+    return result.text, sorted(detections, key=lambda detection: detection["start"])
 
 
 def _load_or_default(config: Path | None) -> "BaseAnonymizationPipeline[Any]":

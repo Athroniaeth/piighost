@@ -79,9 +79,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `--thread-id ID` | Thread id for the API or a thread-scoped config (default `default`) |
 | `--json` | Print the de-identified text and the detections as JSON |
 
-`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`.
-
-Those detections are the detector's own output, read straight from the detector for the listing. They are not the set the de-identified text was rendered from, so an overlap the resolver dropped and a value an override cleared both still appear. Read them as what the detector saw, and `anonymized_text` as what the pipeline decided.
+`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`, the detections being those the text replaced, after overlaps, overrides and the expander. A configuration that does not validate prints the same message as `validate` and exits `1`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`.
 
 ---
 

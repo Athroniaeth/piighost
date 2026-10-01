@@ -211,12 +211,12 @@ def load_pipeline(path: str | Path) -> AnonymizationPipeline[PlaceholderPreserva
         ConfigError: If the configuration declares a memory, which describes a
             thread pipeline; use load_thread_pipeline instead.
     """
-    pipeline = load_config(path).build()
-    if not isinstance(pipeline, AnonymizationPipeline):
+    config = load_config(path)
+    if config.memory is not None:
         raise ConfigError(
             "this configuration declares a memory; use load_thread_pipeline"
         )
-    return cast(AnonymizationPipeline[PlaceholderPreservation], pipeline)
+    return cast(AnonymizationPipeline[PlaceholderPreservation], config.build())
 
 
 def load_thread_pipeline(
@@ -228,7 +228,7 @@ def load_thread_pipeline(
         ConfigError: If the configuration declares no memory, which a thread
             pipeline needs; use load_pipeline instead.
     """
-    pipeline = load_config(path).build()
-    if not isinstance(pipeline, ThreadAnonymizationPipeline):
+    config = load_config(path)
+    if config.memory is None:
         raise ConfigError("this configuration declares no memory; use load_pipeline")
-    return cast(ThreadAnonymizationPipeline[PlaceholderPreservation], pipeline)
+    return cast(ThreadAnonymizationPipeline[PlaceholderPreservation], config.build())

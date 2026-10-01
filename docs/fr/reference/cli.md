@@ -79,9 +79,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `--thread-id ID` | Thread id pour l'API ou une config à mémoire (défaut `default`) |
 | `--json` | Imprime le texte dé-identifié et les détections en JSON |
 
-`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`. Quand un catalogue du hub ne peut pas être tiré, la commande imprime `Could not pull a hub catalog:` suivi de la cause et sort avec le code `1`.
-
-Ces détections sont la sortie propre du détecteur, lue directement chez lui pour l'affichage. Ce n'est pas l'ensemble à partir duquel le texte dé-identifié a été rendu, donc un recouvrement écarté par le resolver et une valeur effacée par un override y figurent encore. Lisez-les comme ce que le détecteur a vu, et `anonymized_text` comme ce que le pipeline a décidé.
+`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`, les détections étant celles que le texte a remplacées, après les chevauchements, les overrides et l'expander. Une configuration qui ne passe pas la validation affiche le même message que `validate` et sort avec le code `1`. Quand un catalogue du hub ne peut pas être tiré, la commande imprime `Could not pull a hub catalog:` suivi de la cause et sort avec le code `1`.
 
 ---
 
