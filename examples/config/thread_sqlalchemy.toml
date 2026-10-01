@@ -16,7 +16,7 @@
 
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["hub:piighost/generic:fab51b33"]
 
 [linker]
 type = "exact"

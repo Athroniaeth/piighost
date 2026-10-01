@@ -3,8 +3,10 @@
 import pytest
 
 from piighost.components.detector import AnyDetector, RegexDetector
-from piighost.components.detector.patterns import EU_PATTERNS, GENERIC_PATTERNS
 from piighost.models import Span
+
+IBAN = r"\b[A-Z]{2}\d{2}(?:[\s-]?[A-Z0-9]){11,30}\b"
+"""An IBAN pattern written for plain spaces, as a hub pattern is."""
 
 
 class TestConformance:
@@ -74,7 +76,7 @@ class TestUnicodeSpaces:
 
     async def test_the_detection_keeps_the_spaces_as_written(self) -> None:
         """The detected text is sliced from the original, not from the copy."""
-        detector = RegexDetector({"IBAN": EU_PATTERNS["IBAN"]})
+        detector = RegexDetector({"IBAN": IBAN})
         iban = "FR76\u00a03000\u202f6000\u20070112 3456\u00a07890\u00a0189"
         (detection,) = await detector.detect(f"IBAN {iban}.")
         assert detection.text == iban
@@ -82,7 +84,7 @@ class TestUnicodeSpaces:
     async def test_spaces_before_a_value_do_not_shift_its_offsets(self) -> None:
         """Separators earlier in the text leave a later detection where it is."""
         text = "\u3000\u3000Mail\u00a0: a@b.co\u2028fin"
-        detector = RegexDetector({"EMAIL": GENERIC_PATTERNS["EMAIL"]})
+        detector = RegexDetector({"EMAIL": r"[\w.]+@[\w.]+\.\w+"})
         (detection,) = await detector.detect(text)
         assert detection.span == Span(9, 15)
         assert detection.span.extract(text) == "a@b.co"

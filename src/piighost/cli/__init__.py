@@ -10,7 +10,7 @@ Subcommands:
   component, exiting 0 on success and 1 on any configuration error.
 - schema prints the JSON Schema of PipelineConfig to stdout.
 - anonymize anonymizes a text from an argument or stdin, through a config file, a
-  remote piighost-api, or a default generic regex detector.
+  remote piighost-api, or a default regex detector over the hub's generic group.
 """
 
 import asyncio
@@ -24,6 +24,13 @@ if TYPE_CHECKING:
     import typer
 
     from piighost.pipeline.base import BaseAnonymizationPipeline
+
+DEFAULT_CATALOG = "hub:piighost/generic:fab51b33"
+"""The hub group the default detector runs: email, URL, IPv4 and card number.
+
+It is pinned to a commit, so the first run fetches it and every later one reads
+it from the on-disk cache, offline included.
+"""
 
 _TYPER_HINT = (
     "The piighost CLI requires typer. Install it with: pip install piighost[config]"
@@ -93,8 +100,14 @@ def _build_app() -> "typer.Typer":
         if config is not None and api is not None:
             typer.echo("Pass at most one of --config and --api.", err=True)
             raise typer.Exit(code=1)
+        from piighost.hub import HubError
+
         source = sys.stdin.read() if text is None or text == "-" else text
-        output = asyncio.run(_anonymize(source, config, api, thread_id, as_json))
+        try:
+            output = asyncio.run(_anonymize(source, config, api, thread_id, as_json))
+        except HubError as exc:
+            typer.echo(f"Could not pull a hub catalog: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
         typer.echo(output)
 
     return app
@@ -163,17 +176,16 @@ async def _anonymize_local(
 
 
 def _load_or_default(config: Path | None) -> "BaseAnonymizationPipeline[Any]":
-    """Build the pipeline from a config, or a default generic regex one."""
+    """Build the pipeline from a config, or a regex one over DEFAULT_CATALOG."""
     if config is not None:
         from piighost.config import load_config
 
         return load_config(config).build()
 
     from piighost.components.detector import RegexDetector
-    from piighost.components.detector.patterns import GENERIC_PATTERNS
     from piighost.pipeline import AnonymizationPipeline
 
-    detector = RegexDetector(GENERIC_PATTERNS)
+    detector = RegexDetector.from_hub(DEFAULT_CATALOG)
     return AnonymizationPipeline(detector)
 
 

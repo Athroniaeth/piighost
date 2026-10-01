@@ -7,7 +7,8 @@ from typing import Self
 import pytest
 from typer.testing import CliRunner
 
-from piighost.cli import app
+from piighost.cli import DEFAULT_CATALOG, app
+from piighost.hub import HubUnreachableError
 
 runner = CliRunner()
 
@@ -83,11 +84,25 @@ class TestSchema:
         assert {"detector", "linker", "anonymizer"} <= set(document["properties"])
 
 
+@pytest.fixture(autouse=True)
+def fake_hub(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Answer every hub pull with an email pattern, recording each reference."""
+    pulled: list[str] = []
+
+    def pull(ref: str, hub: str | None = None) -> dict[str, str]:
+        pulled.append(ref)
+        return {"EMAIL": "[a-z]+@[a-z.]+"}
+
+    monkeypatch.setattr("piighost.hub.pull", pull)
+    return pulled
+
+
 class TestAnonymize:
-    def test_default_detector_anonymizes_an_argument(self) -> None:
-        """With no config, a generic regex detector tokenizes a known shape."""
+    def test_default_detector_anonymizes_an_argument(self, fake_hub: list[str]) -> None:
+        """With no config, the regex detector over the pinned hub group tokenizes."""
         result = runner.invoke(app, ["anonymize", "mail me at a@b.co please"])
         assert result.exit_code == 0
+        assert fake_hub == [DEFAULT_CATALOG]
         assert "a@b.co" not in result.stdout
         assert "<<EMAIL:1>>" in result.stdout
 
@@ -105,6 +120,19 @@ class TestAnonymize:
         payload = json.loads(result.stdout)
         assert payload["anonymized_text"] == "<<EMAIL:1>>"
         assert [d["text"] for d in payload["detections"]] == ["a@b.co"]
+
+    def test_an_unreachable_hub_fails_with_a_message(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A hub that cannot be reached exits 1 with a line, not a traceback."""
+
+        def pull(ref: str, hub: str | None = None) -> dict[str, str]:
+            raise HubUnreachableError("no route to hub")
+
+        monkeypatch.setattr("piighost.hub.pull", pull)
+        result = runner.invoke(app, ["anonymize", "a@b.co"])
+        assert result.exit_code == 1
+        assert "Could not pull a hub catalog" in result.stderr
 
     def test_config_pipeline_is_used(self, tmp_path: Path) -> None:
         """--config anonymizes through the configured pipeline."""
