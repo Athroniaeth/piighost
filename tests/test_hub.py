@@ -16,6 +16,7 @@ from piighost.hub import (
     HubUrlError,
     parse_ref,
     pull,
+    pull_config,
 )
 
 DETECTOR_TOML = r"""# piighost/logs:fd79aec6
@@ -33,6 +34,19 @@ type = 'gliner2'
 model = 'fastino/gliner2-multi-v1'
 """
 """A reference whose detector is a model, which carries more than regexes."""
+
+PIPELINE_TOML = r"""name = 'piighost/notarial:2f602547'
+
+[detector]
+type = 'regex'
+
+[detector.patterns]
+EMAIL = '\S+@\S+'
+
+[overlap_resolver]
+type = 'merge'
+"""
+"""What the hub returns for a whole configuration, every stage included."""
 
 REFS = [
     ("piighost/logs", ("piighost", "logs", "latest")),
@@ -212,3 +226,34 @@ class TestFromHub:
             ("EMAIL", "a@b.co"),
             ("IPV4", "10.0.0.1"),
         }
+
+
+class TestPullConfig:
+    def test_asks_the_whole_pipeline(self, served: Serve) -> None:
+        """A configuration is the whole pipeline.toml, not its detector part."""
+        asked = served(PIPELINE_TOML)
+        body = pull_config("piighost/notarial:2f602547", cache=False)
+        assert body == PIPELINE_TOML
+        assert asked == [
+            f"{DEFAULT_HUB_URL}/api/v1/refs/piighost/notarial/2f602547/pipeline.toml"
+        ]
+
+    def test_a_pinned_configuration_is_fetched_once(
+        self, served: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A commit is immutable, so the second pull reads the disk."""
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+        asked = served(PIPELINE_TOML)
+        pull_config("piighost/notarial:2f602547")
+        pull_config("piighost/notarial:2f602547")
+        assert len(asked) == 1
+
+    def test_a_detector_and_a_configuration_are_cached_apart(
+        self, served: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """One reference read both ways is two answers, never one for the other."""
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+        asked = served(PIPELINE_TOML)
+        pull("piighost/notarial:2f602547")
+        pull_config("piighost/notarial:2f602547")
+        assert len(asked) == 2

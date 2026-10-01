@@ -221,7 +221,7 @@ The shared machinery both pipelines extend. It holds the stage components and th
 
 Module: `piighost.config`
 
-`load_pipeline` and `load_thread_pipeline` read a config file, TOML or JSON by its suffix, and return a built pipeline. A configured memory makes the config a thread pipeline. The two loaders enforce that distinction:
+`load_pipeline` and `load_thread_pipeline` read a config file, TOML or JSON by its suffix, or a hub reference, and return a built pipeline. A configured memory makes the config a thread pipeline. The two loaders enforce that distinction, and check it before building anything:
 
 - `load_pipeline(path)` returns an `AnonymizationPipeline`. It raises `ConfigError` when the config declares a memory.
 - `load_thread_pipeline(path)` returns a `ThreadAnonymizationPipeline`. It raises `ConfigError` when the config declares no memory.
@@ -231,6 +231,14 @@ from piighost.config import load_pipeline, load_thread_pipeline
 
 pipeline = load_pipeline("pipeline.toml")
 thread_pipeline = load_thread_pipeline("thread.toml")
+```
+
+A reference written `hub:namespace/name:selector` loads the whole configuration the [piighost hub](https://hub.piighost.dev) publishes under that name, every stage included, exactly as a file holding it would. A reference pinned to a commit is fetched on the first load and read from the disk cache afterwards. An environment variable prefixed `PIIGHOST_` overrides a hub value as it overrides a file one.
+
+```python
+from piighost.config import load_pipeline
+
+pipeline = load_pipeline("hub:piighost/fr-notarial:2f602547")
 ```
 
 This package needs the `config` extra. See the [TOML configuration](../configuration/toml.md) reference for the file format.

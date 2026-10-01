@@ -113,22 +113,53 @@ def pull(ref: str, *, hub: str | None = None, cache: bool = True) -> dict[str, s
         HubUnreachableError: If the hub cannot be reached.
         HubPayloadError: If the answer is not a plain regex detector.
     """
+    body = _read(ref, hub=hub, cache=cache, query="?part=detector")
+    return _patterns(body, ref)
+
+
+def pull_config(ref: str, *, hub: str | None = None, cache: bool = True) -> str:
+    """Return the whole pipeline configuration a hub reference names, as TOML.
+
+    The same reference pull reads for its detector alone. A configuration
+    carries every stage, a model detector, the resolvers and a memory
+    included, so it is handed to the config loader rather than taken apart
+    here.
+
+    Args:
+        ref: A reference, namespace/name with an optional :selector and an
+            optional hub: prefix. Without a selector it resolves to latest.
+        hub: Origin of the hub to pull from. Defaults to the environment's
+            PIIGHOST_HUB_URL, then to the public hub.
+        cache: Whether a commit-pinned reference may be read from and written
+            to the on-disk cache. A moving selector is never cached.
+
+    Raises:
+        HubRefError: If the reference does not parse.
+        HubUrlError: If the hub origin is not an http or https URL.
+        HubUnreachableError: If the hub cannot be reached.
+    """
+    return _read(ref, hub=hub, cache=cache, query="")
+
+
+def _read(ref: str, *, hub: str | None, cache: bool, query: str) -> str:
+    """Return the pipeline.toml a reference names, through the disk cache.
+
+    The query selects what the hub renders, the detector alone or the whole
+    pipeline, and is part of the URL the cache is keyed by, so the two never
+    stand in for each other.
+    """
     namespace, name, selector = parse_ref(ref)
     origin = _origin(hub or os.environ.get(HUB_URL_ENV_VAR) or DEFAULT_HUB_URL)
-    url = (
-        f"{origin}/api/v1/refs/{namespace}/{name}/{selector}"
-        f"/pipeline.toml?part=detector"
-    )
+    url = f"{origin}/api/v1/refs/{namespace}/{name}/{selector}/pipeline.toml{query}"
     pinned = cache and _COMMIT.fullmatch(selector) is not None
     path = _cache_path(url) if pinned else None
     if path is not None and path.exists():
-        return _patterns(path.read_text(encoding="utf-8"), ref)
+        return path.read_text(encoding="utf-8")
 
     body = _fetch(url, ref)
-    patterns = _patterns(body, ref)
     if path is not None:
         _write_cache(path, body)
-    return patterns
+    return body
 
 
 def parse_ref(ref: str) -> tuple[str, str, str]:

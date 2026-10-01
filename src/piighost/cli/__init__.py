@@ -48,16 +48,20 @@ def _build_app() -> "typer.Typer":
     @app.command()
     def validate(
         path: Annotated[
-            Path, typer.Argument(help="Path to a TOML or JSON pipeline config.")
+            Path,
+            typer.Argument(
+                help="Path to a TOML or JSON pipeline config, or a hub: reference."
+            ),
         ],
     ) -> None:
-        """Validate a pipeline configuration file, TOML or JSON, without building it."""
+        """Validate a pipeline configuration, a file or a hub reference, unbuilt."""
         from piighost.config import load_config
         from piighost.exceptions import ConfigError
+        from piighost.hub import HubError
 
         try:
             load_config(path)
-        except ConfigError as exc:
+        except (ConfigError, HubError) as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(code=1) from exc
         typer.echo(f"OK: {path}")
@@ -79,7 +83,10 @@ def _build_app() -> "typer.Typer":
         ] = None,
         config: Annotated[
             Path | None,
-            typer.Option("--config", help="Pipeline config file (TOML or JSON)."),
+            typer.Option(
+                "--config",
+                help="Pipeline config file (TOML or JSON), or a hub: reference.",
+            ),
         ] = None,
         api: Annotated[
             str | None,

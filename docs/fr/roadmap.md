@@ -21,11 +21,9 @@ La mémoire de conversation cache les détections de chaque message par thread, 
 
 ~~Désormais câblé, `AsyncPlaceholderStreamDecoder` atteint les intégrations via `TextDeidentifier.deanonymize_stream`, exposé sur le middleware LangChain sous `deanonymize_stream` et utilisé par le proxy Anthropic dans `piighost-api`. Une app l'enveloppe autour de sa propre boucle de streaming pour restaurer une réponse à la volée, en ne tamponnant qu'au passage d'un token. Toute factory construit aussi le décodeur brut sur sa grammaire avec `async_stream_decoder`, pour un autre framework.~~
 
-## Hub de configurations
+## ~~Hub de configurations~~
 
-Un pipeline est entièrement décrit par un fichier TOML ou JSON, mais chaque utilisateur reconstruit cette description à la main. Un hub de configurations laisserait un utilisateur récupérer une configuration prête à l'emploi via un identifiant court et la lancer directement, comme un hub de prompts distribue des prompts. La bibliothèque a déjà les briques sur lesquelles il s'appuie, `load_config`, `load_pipeline` et `load_thread_pipeline` parsent et construisent un pipeline depuis un fichier. Ce qui manque est la distribution, un registre pour publier et récupérer une configuration par identifiant, l'épinglage de version à une release `piighost`, et une frontière de confiance, puisqu'une configuration est de la donnée déclarative et non du code. Un catalogue de configurations par métier, notaires, comptables, un défaut généraliste, grandirait par-dessus au fil du temps.
-
-C'est prévu comme un projet séparé plutôt que dans le cœur de `piighost`, car il s'agit d'un service de distribution, pas d'une préoccupation du pipeline.
+~~Désormais livré comme projet séparé, le [hub piighost](https://hub.piighost.dev) publie des groupes de motifs relus et des configurations de pipeline complètes sous un identifiant court, chacune épinglée par commit. Un détecteur regex tire un groupe via `catalogs`, et `load_config`, `load_pipeline`, `load_thread_pipeline` et `piighost --config` prennent une référence comme `hub:piighost/fr-notarial:2f602547` pour lancer une configuration directement.~~
 
 ## ~~Intégration aux harness d'agents~~
 
