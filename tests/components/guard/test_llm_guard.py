@@ -4,6 +4,7 @@ A fake chat model returns canned structured output, so no real LLM or network is
 needed. langchain-core comes with the dev group, so the tests always run.
 """
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 from piighost.components.guard import AnyGuardRail
@@ -13,48 +14,13 @@ if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
 
 
-class _FakeLabel:
-    """A stand-in for a schema label enum member."""
-
-    def __init__(self, value: str) -> None:
-        self.value = value
-
-
-class _FakeEntity:
-    """A stand-in for one extracted entity."""
-
-    def __init__(self, text: str, label: str) -> None:
-        self.text = text
-        self.label = _FakeLabel(label)
-
-
-class _FakeExtraction:
-    """A stand-in for the structured extraction result."""
-
-    def __init__(self, entities: list[_FakeEntity]) -> None:
-        self.entities = entities
-
-
-class _FakeStructured:
-    """A stand-in for model.with_structured_output(schema)."""
-
-    def __init__(self, result: object) -> None:
-        self._result = result
-
-    async def ainvoke(self, messages: object, **kwargs: object) -> object:
-        return self._result
-
-
-class _FakeChatModel:
-    """A stand-in chat model whose structured output is canned."""
-
-    def __init__(self, result: object) -> None:
-        self._result = result
-
-    def with_structured_output(
-        self, schema: object, **kwargs: object
-    ) -> _FakeStructured:
-        return _FakeStructured(self._result)
+def _extraction(*entities: tuple[str, str]) -> SimpleNamespace:
+    """Build a stand-in structured extraction result from (text, label) pairs."""
+    found = [
+        SimpleNamespace(text=text, label=SimpleNamespace(value=label))
+        for text, label in entities
+    ]
+    return SimpleNamespace(entities=found)
 
 
 class _CapturingStructured:
@@ -92,7 +58,7 @@ class TestConformance:
         """LLMGuardRail built on an injected model is an AnyGuardRail."""
         from piighost.components.guard import LLMGuardRail
 
-        model = _FakeChatModel(_FakeExtraction([]))
+        model = _CapturingModel(_extraction(), [])
         assert isinstance(
             LLMGuardRail(model=_as_model(model), labels=["PERSON"]), AnyGuardRail
         )
@@ -103,7 +69,7 @@ class TestCheck:
         """When the model returns no entities, the verdict is unflagged."""
         from piighost.components.guard import LLMGuardRail
 
-        model = _FakeChatModel(_FakeExtraction([]))
+        model = _CapturingModel(_extraction(), [])
         guard = LLMGuardRail(model=_as_model(model), labels=["PERSON"])
         verdict = await guard.check("nothing to see here")
         assert verdict.flagged is False
@@ -113,8 +79,10 @@ class TestCheck:
         """A value the model returns and that is in the text flags the verdict."""
         from piighost.components.guard import LLMGuardRail
 
-        result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
-        guard = LLMGuardRail(model=_as_model(_FakeChatModel(result)), labels=["PERSON"])
+        result = _extraction(("Emma", "PERSON"))
+        guard = LLMGuardRail(
+            model=_as_model(_CapturingModel(result, [])), labels=["PERSON"]
+        )
         verdict = await guard.check("Emma slipped through")
         assert verdict.flagged is True
         assert [detection.text for detection in verdict.detections] == ["Emma"]
@@ -124,7 +92,7 @@ class TestCheck:
         from piighost.components.guard import LLMGuardRail
 
         captured: list[object] = []
-        result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
+        result = _extraction(("Emma", "PERSON"))
         guard = LLMGuardRail(
             model=_as_model(_CapturingModel(result, captured)),
             labels=["PERSON"],
@@ -143,7 +111,7 @@ class TestCheck:
 
         captured: list[object] = []
         guard = LLMGuardRail(
-            model=_as_model(_CapturingModel(_FakeExtraction([]), captured)),
+            model=_as_model(_CapturingModel(_extraction(), captured)),
             labels=["PERSON"],
             prefix="[[",
             suffix="]]",
