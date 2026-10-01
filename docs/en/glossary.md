@@ -25,7 +25,8 @@ Secret
     confidential data. They are detected through the hub catalogs
     `piighost/secrets` and `piighost/secrets-extended`, pulled with
     `catalogs = ["hub:piighost/secrets"]`, since the built-in regex catalogs hold
-    no secret pattern.
+    no secret pattern. `Gliner2PiiDetector` also asks its model for API keys
+    and passwords.
 
 De-identification
 :   Replacing confidential data with placeholders while keeping the mapping between each value
