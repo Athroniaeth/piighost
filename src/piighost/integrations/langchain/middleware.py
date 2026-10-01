@@ -28,7 +28,7 @@ from piighost.pipeline import AnyThreadPipeline
 if importlib.util.find_spec("langchain") is None:
     raise ImportError(
         "PIIAnonymizationMiddleware requires the langchain package. "
-        "Install it with: pip install piighost[middleware]"
+        "Install it with: pip install piighost[langchain]"
     )
 
 from langchain.agents.middleware import AgentMiddleware, AgentState

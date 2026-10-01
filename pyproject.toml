@@ -79,10 +79,6 @@ redis = [
 langchain = [
     "langchain>=1.2",
 ]
-# Alias of `langchain`, kept for back-compat. Prefer `piighost[langchain]`.
-middleware = [
-    "langchain>=1.2",
-]
 pydantic-ai = [
     "pydantic-ai>=2.0",
 ]
@@ -132,7 +128,7 @@ sqlalchemy = [
     "asyncpg>=0.29",
 ]
 all = [
-    "piighost[gliner2,redis,langchain,middleware,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy,presidio,llama-index]",
+    "piighost[gliner2,redis,langchain,pydantic-ai,client,spacy,transformers,llm,observation,fuzzy,config,argon2,crypto,mistral,sqlalchemy,presidio,llama-index]",
 ]
 
 [build-system]

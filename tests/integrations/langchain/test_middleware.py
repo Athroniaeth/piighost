@@ -51,7 +51,7 @@ class TestOptionalDependencyGuard:
     def test_missing_langchain_explains_how_to_install(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Importing without langchain points the user at piighost[middleware]."""
+        """Importing without langchain points the user at piighost[langchain]."""
         real_find_spec = importlib.util.find_spec
 
         def find_spec(name: str, *args: Any, **kwargs: Any) -> object:
@@ -62,7 +62,7 @@ class TestOptionalDependencyGuard:
         monkeypatch.setattr(importlib.util, "find_spec", find_spec)
         sys.modules.pop(_MODULE, None)
 
-        with pytest.raises(ImportError, match=r"piighost\[middleware\]"):
+        with pytest.raises(ImportError, match=r"piighost\[langchain\]"):
             importlib.import_module(_MODULE)
 
         sys.modules.pop(_MODULE, None)
