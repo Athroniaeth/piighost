@@ -1,20 +1,15 @@
-"""Tests for the Gliner2GuardRail and its optional-dependency guard.
+"""Tests for the Gliner2GuardRail.
 
 The model is injected, so no weights are downloaded and the tests run without
 a network; they skip when gliner2 is absent.
 """
 
-import importlib
-import importlib.util
-import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
     from piighost.components.guard.gliner2 import Gliner2GuardRail
-
-_MODULE = "piighost.components.guard.gliner2"
 
 
 class _FakeGliner2:
@@ -38,30 +33,6 @@ def _guard(label: str, confidence: float, threshold: float = 0.5) -> "Gliner2Gua
     from piighost.components.guard import Gliner2GuardRail
 
     return Gliner2GuardRail(model=_FakeGliner2(label, confidence), threshold=threshold)
-
-
-class TestOptionalDependencyGuard:
-    def test_missing_gliner2_explains_how_to_install(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Importing without gliner2 points the user at piighost[gliner2]."""
-        real_find_spec = importlib.util.find_spec
-
-        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
-            if name == "gliner2":
-                return None
-            return real_find_spec(name, *args, **kwargs)
-
-        monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        original = sys.modules.pop(_MODULE, None)
-
-        try:
-            with pytest.raises(ImportError, match=r"piighost\[gliner2\]"):
-                importlib.import_module(_MODULE)
-        finally:
-            sys.modules.pop(_MODULE, None)
-            if original is not None:
-                sys.modules[_MODULE] = original
 
 
 class TestUsableWhenInstalled:

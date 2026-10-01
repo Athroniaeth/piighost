@@ -2,7 +2,6 @@
 
 import importlib
 import importlib.util
-import sys
 from typing import Any, cast
 
 import pytest
@@ -45,27 +44,6 @@ def _text(message: Any) -> str:
     """Return a message's text content as a plain string."""
     content = message.content
     return content if isinstance(content, str) else str(content)
-
-
-class TestOptionalDependencyGuard:
-    def test_missing_langchain_explains_how_to_install(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Importing without langchain points the user at piighost[langchain]."""
-        real_find_spec = importlib.util.find_spec
-
-        def find_spec(name: str, *args: Any, **kwargs: Any) -> object:
-            if name == "langchain":
-                return None
-            return real_find_spec(name, *args, **kwargs)
-
-        monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        sys.modules.pop(_MODULE, None)
-
-        with pytest.raises(ImportError, match=r"piighost\[langchain\]"):
-            importlib.import_module(_MODULE)
-
-        sys.modules.pop(_MODULE, None)
 
 
 class TestWhenInstalled:

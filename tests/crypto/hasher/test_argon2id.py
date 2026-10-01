@@ -1,35 +1,8 @@
-"""Tests for the Argon2id hasher and its optional-dependency guard."""
+"""Tests for the Argon2id hasher."""
 
 import hashlib
-import importlib
-import importlib.util
-import sys
-from typing import Any
 
 import pytest
-
-_MODULE = "piighost.crypto.hasher.argon2id"
-
-
-class TestOptionalDependencyGuard:
-    def test_missing_argon2_explains_how_to_install(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Importing without argon2-cffi points the user at piighost[argon2]."""
-        real_find_spec = importlib.util.find_spec
-
-        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
-            if name == "argon2":
-                return None
-            return real_find_spec(name, *args, **kwargs)
-
-        monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        sys.modules.pop(_MODULE, None)
-
-        with pytest.raises(ImportError, match=r"piighost\[argon2\]"):
-            importlib.import_module(_MODULE)
-
-        sys.modules.pop(_MODULE, None)
 
 
 class TestUsableWhenInstalled:

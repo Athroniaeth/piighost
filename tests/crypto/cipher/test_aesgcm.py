@@ -1,36 +1,9 @@
-"""Tests for the AES-GCM cipher and its optional-dependency guard."""
-
-import importlib
-import importlib.util
-import sys
-from typing import Any
+"""Tests for the AES-GCM cipher."""
 
 import pytest
 
-_MODULE = "piighost.crypto.cipher.aesgcm"
 _KEY = b"0123456789abcdef0123456789abcdef"
 """A 32-byte key, the AES-256 size."""
-
-
-class TestOptionalDependencyGuard:
-    def test_missing_cryptography_explains_how_to_install(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Importing without cryptography points the user at piighost[crypto]."""
-        real_find_spec = importlib.util.find_spec
-
-        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
-            if name == "cryptography":
-                return None
-            return real_find_spec(name, *args, **kwargs)
-
-        monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        sys.modules.pop(_MODULE, None)
-
-        with pytest.raises(ImportError, match=r"piighost\[crypto\]"):
-            importlib.import_module(_MODULE)
-
-        sys.modules.pop(_MODULE, None)
 
 
 class TestUsableWhenInstalled:

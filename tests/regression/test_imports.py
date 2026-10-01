@@ -6,7 +6,11 @@ here before any behavioral test runs.
 """
 
 import importlib
+import importlib.util
 import pkgutil
+import re
+import sys
+from typing import Any
 
 import pytest
 
@@ -121,6 +125,19 @@ PUBLIC_API: list[tuple[str, str]] = [
 ]
 
 
+# The modules guarded behind an optional dependency, as (module, missing
+# dependency, extra) rows: without the dependency, importing the module names the
+# extra to install.
+OPTIONAL_DEPENDENCY_GUARDS: list[tuple[str, str, str]] = [
+    ("piighost.conversation_memory.redis_backend", "redis", "redis"),
+    ("piighost.crypto.cipher.aesgcm", "cryptography", "crypto"),
+    ("piighost.crypto.hasher.argon2id", "argon2", "argon2"),
+    ("piighost.components.guard.moderation", "mistralai", "mistral"),
+    ("piighost.components.guard.gliner2", "gliner2", "gliner2"),
+    ("piighost.integrations.langchain.middleware", "langchain", "langchain"),
+]
+
+
 # Core symbols the package root re-exports lazily, resolved to their home module.
 FACADE_EXPORTS: list[tuple[str, str]] = [
     ("piighost.pipeline", "AnonymizationPipeline"),
@@ -189,3 +206,24 @@ def test_every_module_imports_cleanly() -> None:
         except ImportError as exc:
             if "piighost[" not in str(exc):
                 raise
+
+
+@pytest.mark.parametrize(("module", "dependency", "extra"), OPTIONAL_DEPENDENCY_GUARDS)
+def test_missing_optional_dependency_names_its_extra(
+    module: str, dependency: str, extra: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Check that a guarded module imported without its dependency names its extra."""
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == dependency:
+            return None
+        return real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec)
+    # The already imported module comes back after the test, so the classes other
+    # tests hold stay the ones sys.modules serves.
+    monkeypatch.delitem(sys.modules, module, raising=False)
+
+    with pytest.raises(ImportError, match=re.escape(f"piighost[{extra}]")):
+        importlib.import_module(module)
