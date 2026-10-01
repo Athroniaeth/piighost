@@ -53,7 +53,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 `PIIAnonymizationMiddleware` (`integrations/langchain/middleware.py`) extends LangChain's `AgentMiddleware`:
 - Reads `thread_id` from the LangGraph config; `require_thread_id` defaults to `True`, so a missing thread id raises instead of leaking into the shared default.
 - Anonymizes messages before the model sees them and deanonymizes for user display.
-- `ToolCallStrategy` (`INPUT` / `OUTPUT` / `FULL` / `PASSTHROUGH`) governs tool-call de- and re-anonymization; `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) handles tokens the model made up; `EntityCreateByAssistantStrategy` (`PRESERVE` / `ANONYMIZE` / `IGNORE`, formerly `AssistantEntityStrategy`, still importable as a deprecated alias) handles values the assistant introduces.
+- `ToolCallStrategy` (`INPUT` / `OUTPUT` / `FULL` / `PASSTHROUGH`) governs tool-call de- and re-anonymization; `InventedPlaceholderStrategy` (`KEEP` / `DROP` / `RAISE`) handles tokens the model made up; `EntityCreateByAssistantStrategy` (`PRESERVE` / `ANONYMIZE` / `IGNORE`) handles values the assistant introduces.
 - Requires a pipeline whose tokens are recognizable (`pipeline.recognizer`), else raises at construction.
 
 ### Configuration & CLI
@@ -66,7 +66,6 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 - `integrations/llama_index/`: `PIINodeAnonymizer`, an ingestion transform that anonymizes node text before embedding, and `PIIQueryEngine`, a wrapper that anonymizes the query and deanonymizes the answer (`llama-index` extra).
 - `integrations/claude_code/`: `handle_hook` (pure, core-only) plus a `run` entrypoint driven by `python -m piighost.integrations.claude_code`, wiring piighost into Claude Code's hook lifecycle keyed by the session id (`client` extra for the runner).
 - `integrations/_deidentify.py`: `TextDeidentifier`, the framework-agnostic anonymize/deanonymize/invented-placeholder logic the LangChain and Pydantic AI integrations share so they cannot drift.
-- `integrations/middleware/`: a deprecated alias of `integrations/langchain/`, emitting a `DeprecationWarning`.
 
 ### Other Components
 
@@ -76,7 +75,7 @@ Data models (`Entity`, `Detection`, `Span`) are frozen dataclasses under `models
 
 ### Optional Dependencies
 
-Nearly everything beyond the core is an extra (`pyproject.toml` `[project.optional-dependencies]`): `gliner2`, `redis`, `langchain`, `middleware`, `pydantic-ai`, `client`, `spacy`, `transformers`, `llm`, `observation`, `fuzzy`, `config`, `argon2`, `crypto`, `mistral`, `presidio`, `llama-index`, `sqlalchemy`, `all`. `middleware` is a back-compat alias of `langchain`; prefer `langchain`. `all` pulls every other extra. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`; `tests/regression/test_imports.py` enforces this. Keep new optional features behind the same pattern.
+Nearly everything beyond the core is an extra (`pyproject.toml` `[project.optional-dependencies]`): `gliner2`, `redis`, `langchain`, `pydantic-ai`, `client`, `spacy`, `transformers`, `llm`, `observation`, `fuzzy`, `config`, `argon2`, `crypto`, `mistral`, `presidio`, `llama-index`, `sqlalchemy`, `all`. `all` pulls every other extra. Imports of optional packages stay inside the modules that need them, guarded and exposed lazily through the package `__getattr__`, which looks the name up in a dict of name to module; `tests/regression/test_imports.py` enforces this. Keep new optional features behind the same pattern.
 
 ### Design Patterns
 
