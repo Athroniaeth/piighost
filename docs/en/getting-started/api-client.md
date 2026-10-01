@@ -7,7 +7,7 @@ icon: lucide/cloud
 You will use `PIIGhostClient` as a drop-in remote thread pipeline. It implements the same port as a local `ThreadAnonymizationPipeline`, but every call runs against a `piighost-api` server over HTTP. You point it at a base URL, de-identify a message, restore it, then drop the same client into the LangChain middleware where a local pipeline would go. This keeps the NER model off the application host, on a shared server, a GPU node, or a dedicated inference pod.
 
 !!! note "Prerequisites"
-    `piighost` installed with the client extra, `pip install piighost[client]`, and a reachable `piighost-api` server. Here we assume one at `http://localhost:8000`.
+    `piighost` installed with the client extra, `pip install piighost[client]`, and a reachable `piighost-api` server, see [Deploy a de-identification API](api-server.md). Here we assume one at `http://localhost:8000`.
 
 ## 1. Open a client
 
@@ -95,4 +95,4 @@ If you manage your own `httpx.AsyncClient`, for shared connection pooling, pass 
 
 - To run the same pipeline locally instead of over HTTP, see [Conversational pipeline](conversation.md).
 - To wire the client into a LangChain agent end to end, see [LangChain middleware](langchain.md).
-- To stand up the `piighost-api` server the client talks to, see [Deployment](../deployment.md).
+- To stand up the `piighost-api` server the client talks to, see [Deploy a de-identification API](api-server.md), and [API endpoints](../reference/api-endpoints.md) for the routes it calls.

@@ -11,7 +11,7 @@ Cette page liste ce qui reste en attente pour `piighost` et les capacités écar
 
 ## ~~Proxy compatible OpenAI~~
 
-~~Livré dans `piighost-api` : un endpoint compatible OpenAI sous `/openai/v1` où une application ne change que son `base_url`, nomme le vrai upstream dans un header, et le proxy dé-identifie chaque requête, la relaie, puis restaure la réponse. L'affaire HTTP vit dans `piighost-api`, pas dans cette bibliothèque.~~
+~~Livré dans `piighost-api` : un endpoint compatible OpenAI sous `/openai/v1` où une application ne change que son `base_url`, nomme le vrai upstream dans un header, et le proxy dé-identifie chaque requête, la relaie, puis restaure la réponse. L'affaire HTTP vit dans `piighost-api`, pas dans cette bibliothèque. Voir [Dé-identifier un client OpenAI avec le proxy](examples/openai-proxy.md).~~
 
 ## Cache de résultat optionnel
 
@@ -27,7 +27,7 @@ La mémoire de conversation cache les détections de chaque message par thread, 
 
 ## ~~Intégration aux harness d'agents~~
 
-~~Désormais livré pour Claude Code via son système de hooks, `piighost.integrations.claude_code` dé-identifie le prompt et les sorties d'outils et restaure les entrées d'outils, en pilotant un client léger vers `piighost-api`. Voir [Dé-identifier Claude Code avec les hooks](examples/claude-code.md). Le proxy compatible OpenAI de `piighost-api` couvre toujours tout harness qui laisse une application changer son `base_url`. Un endpoint proxy compatible Anthropic est aussi fourni dans `piighost-api` pour les harness qui parlent l'API Messages d'Anthropic, à côté des hooks, réutilisant la même dé- et restauration, le réassemblage du streaming et la gestion de la frontière des outils déjà présents dans le cœur.~~
+~~Désormais livré pour Claude Code via son système de hooks, `piighost.integrations.claude_code` dé-identifie le prompt et les sorties d'outils et restaure les entrées d'outils, en pilotant un client léger vers `piighost-api`. Voir [Dé-identifier Claude Code avec les hooks](examples/claude-code.md). Le proxy compatible OpenAI de `piighost-api` couvre toujours tout harness qui laisse une application changer son `base_url`. Un endpoint proxy compatible Anthropic est aussi fourni dans `piighost-api` pour les harness qui parlent l'API Messages d'Anthropic, à côté des hooks, réutilisant la même dé- et restauration, le réassemblage du streaming et la gestion de la frontière des outils déjà présents dans le cœur. Voir [Dé-identifier Claude Code avec le proxy Anthropic](examples/anthropic-proxy.md).~~
 
 ## Application document locale dans le navigateur (WebAssembly)
 

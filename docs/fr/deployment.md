@@ -123,6 +123,50 @@ export PIIGHOST_DATABASE_URL="postgresql+asyncpg://user:pass@db.internal/piighos
 
 L'URL doit utiliser un driver async (`postgresql+asyncpg://...`, `sqlite+aiosqlite://...`). Créez la table une fois au démarrage avec `await pipeline.memory.create_schema()`. Le hacheur et le cipher protègent les valeurs stockées exactement comme pour Redis.
 
+## Le servir en HTTP avec `piighost-api`
+
+Si plusieurs applications partagent le pipeline, ou si une application qui n'est pas écrite en Python en a besoin, servez le même fichier avec `piighost-api`, le serveur compagnon. Son image Docker est `ghcr.io/athroniaeth/piighost-api`. Un premier serveur hors Docker est construit pas à pas dans [Déployer une API de dé-identification](getting-started/api-server.md).
+
+```yaml title="compose.yaml"
+services:
+  piighost-api:
+    image: ghcr.io/athroniaeth/piighost-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - PIIGHOST_CONFIG=/app/pipeline.toml
+      - API_KEY_DEFAULT=${API_KEY_DEFAULT}
+      - SECRET_PEPPER=${SECRET_PEPPER}
+      - PIIGHOST_HASH_PEPPER=${PIIGHOST_HASH_PEPPER}
+      - PIIGHOST_CIPHER_KEY=${PIIGHOST_CIPHER_KEY}
+      - EXTRA_PACKAGES=piighost[crypto]
+    volumes:
+      - ./pipeline.toml:/app/pipeline.toml
+      - cache:/root/.cache
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  cache:
+```
+
+Le `pipeline.toml` monté est le fichier ci-dessus, avec son `url` posée à `redis://redis:6379/0`, l'adresse du service `redis`. `API_KEY_DEFAULT` porte une clé imprimée par `keyshield generate`, et le serveur refuse de démarrer sans clé. L'image embarque le client Redis et le hacheur Argon2, et `EXTRA_PACKAGES` ajoute le cipher AES-GCM. Le volume `cache` garde les téléchargements du hub, les poids du modèle et les paquets de `EXTRA_PACKAGES` d'un redémarrage de conteneur à l'autre.
+
+L'image lit ces variables :
+
+| Variable | Défaut | Effet |
+|---|---|---|
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du hub à servir. L'image ne contient aucun fichier, donc montez-en un ou nommez une référence du hub |
+| `API_HOST` | `0.0.0.0` | Hôte d'écoute |
+| `API_PORT` | `8000` | Port d'écoute |
+| `LOG_LEVEL` | `info` | Niveau de log |
+| `EXTRA_PACKAGES` | vide | Paquets installés avec `uv pip install` au démarrage du conteneur, comme `piighost[gliner2]` pour une configuration qui exécute GLiNER2 |
+
+Pour servir une configuration du hub plutôt qu'un fichier, posez `PIIGHOST_CONFIG` à sa référence et ajoutez la mémoire Redis avec une variable `PIIGHOST_MEMORY`, comme le montre [CLI du serveur](reference/api-cli.md). Chaque conteneur exécute un seul processus serveur, donc passez à l'échelle en ajoutant des conteneurs sur la même mémoire Redis. Chaque route, proxys compris, est listée dans [Endpoints de l'API](reference/api-endpoints.md).
+
 ## Voir aussi
 
 - [Référence de configuration](configuration/toml.md) : chaque section et chaque `type` de composant, en TOML et en JSON.

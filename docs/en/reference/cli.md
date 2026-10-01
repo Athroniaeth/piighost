@@ -79,7 +79,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `--thread-id ID` | Thread id for the API or a thread-scoped config (default `default`) |
 | `--json` | Print the de-identified text and the detections as JSON |
 
-`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`, the detections being those the text replaced, after overlaps, overrides and the expander. A configuration that does not validate prints the same message as `validate` and exits `1`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`.
+`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`, the detections being those the text replaced, after overlaps, overrides and the expander. A configuration that does not validate prints the same message as `validate` and exits `1`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`. `--api` sends no API key, so it reaches only a server started with `PIIGHOST_ALLOW_ANONYMOUS`, see [Server CLI](api-cli.md).
 
 ---
 

@@ -4,7 +4,7 @@ icon: lucide/terminal
 
 # Dé-identifier Claude Code avec les hooks
 
-Claude Code parle l'API Messages d'Anthropic, pas la forme OpenAI, donc vous ne pouvez pas le pointer vers le proxy compatible OpenAI. À la place, `piighost` se branche sur le système de hooks propre à Claude Code, de petites commandes que le harness exécute à des moments fixes d'un tour. Les hooks dé-identifient ce que le modèle voit et restaurent les vraies valeurs là où elles sont réellement nécessaires, sans toucher au code de votre agent.
+Claude Code parle l'API Messages d'Anthropic, pas la forme OpenAI, donc vous ne pouvez pas le pointer vers le proxy compatible OpenAI. À la place, `piighost` se branche sur le système de hooks propre à Claude Code, de petites commandes que le harness exécute à des moments fixes d'un tour. Les hooks dé-identifient ce que le modèle voit et restaurent les vraies valeurs là où elles sont réellement nécessaires, sans toucher au code de votre agent. Le [proxy compatible Anthropic](anthropic-proxy.md) est l'autre voie, par l'URL de base de Claude Code.
 
 Trois hooks couvrent un tour :
 
@@ -15,7 +15,7 @@ Trois hooks couvrent un tour :
 Ainsi le modèle ne voit que des placeholders comme `<<PERSON:1>>`, tandis que les outils qui s'exécutent vraiment (Bash, Read, Edit, ...) reçoivent les vraies valeurs. Le `session_id` de Claude Code sert de thread de dé-identification, donc une valeur garde le même token sur toute la session.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur [`piighost-api`](https://github.com/Athroniaeth/piighost-api) en cours d'exécution. Le hook est un client léger, il transmet chaque événement à l'API, qui possède le pipeline et la mémoire de conversation.
+    `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur `piighost-api` en cours d'exécution, voir [Déployer une API de dé-identification](../getting-started/api-server.md). Le hook est un client léger, il transmet chaque événement à l'API, qui possède le pipeline et la mémoire de conversation. Il n'envoie aucune clé d'API, donc démarrez le serveur avec `PIIGHOST_ALLOW_ANONYMOUS=true` et gardez-le sur un hôte que vous seul pouvez joindre.
 
 ## Brancher les hooks
 
