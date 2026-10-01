@@ -67,10 +67,17 @@ class TestResolve:
         (merged,) = MergeOverlapResolver().resolve([first, middle, last])
         assert merged.text == "Monsieur Loni M. Wirth"
 
+    def test_the_widest_member_wins_at_equal_confidence(self) -> None:
+        """At equal confidence the member covering most of the union names it."""
+        fragment = _detection("Loni M.", "FRAGMENT", 0.9)
+        whole = _detection("Loni M. Wirth", "WHOLE", 0.9)
+        (merged,) = MergeOverlapResolver().resolve([fragment, whole])
+        assert merged.label == "WHOLE"
+
     def test_an_earlier_span_wins_at_equal_confidence(self) -> None:
-        """At equal confidence the member that starts first gives its label."""
-        late = _detection("M. Wirth", "LATE", 0.9)
-        early = _detection("Loni M. Wirth", "EARLY", 0.9)
+        """At equal confidence and width, the member that starts first names it."""
+        late = _detection("Loni M. Wirth", "LATE", 0.9)
+        early = _detection("Monsieur Loni", "EARLY", 0.9)
         (merged,) = MergeOverlapResolver().resolve([late, early])
         assert merged.label == "EARLY"
 

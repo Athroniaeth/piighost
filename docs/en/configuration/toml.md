@@ -272,7 +272,7 @@ Optional in the file, but the stage runs either way. Omitting the section builds
 | `type` | Meaning |
 |--------|---------|
 | `confidence` | Keeps the highest-confidence detection when two overlap |
-| `merge` | Keeps the union of overlapping detections, with the label of the most confident |
+| `merge` | Keeps the union of overlapping detections, with the label of the most confident, the widest at equal confidence |
 
 ```toml
 [overlap_resolver]

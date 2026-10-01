@@ -272,7 +272,7 @@ Optionnel dans le fichier, mais l'étage tourne dans tous les cas. Omettre la se
 | `type` | Signification |
 |--------|---------------|
 | `confidence` | Garde la détection la plus confiante quand deux se chevauchent |
-| `merge` | Garde l'union des détections qui se chevauchent, avec le label de la plus confiante |
+| `merge` | Garde l'union des détections qui se chevauchent, avec le label de la plus confiante, la plus large à confiance égale |
 
 ```toml
 [overlap_resolver]
