@@ -244,7 +244,7 @@ class TestNav:
         """A page missing from the nav, or a nav entry with no page, is reported."""
         _prepare_tree(tmp_path, monkeypatch)
         _write_page(tmp_path, "en", "# Title\n")
-        (tmp_path / "zensical.toml").write_text(config, encoding="utf-8")
+        (tmp_path / "docs" / "zensical.toml").write_text(config, encoding="utf-8")
         findings: list[str] = []
         audit.nav(findings)
         _assert_marker(findings, marker)
@@ -257,7 +257,7 @@ class TestNav:
         include = tmp_path / "docs" / "en" / "includes" / "abbreviations.md"
         include.parent.mkdir(parents=True, exist_ok=True)
         include.write_text("*[PII]: Personally Identifiable Information\n", "utf-8")
-        (tmp_path / "zensical.toml").write_text("[project]\nnav = []\n", "utf-8")
+        (tmp_path / "docs" / "zensical.toml").write_text("[project]\nnav = []\n", "utf-8")
         findings: list[str] = []
         audit.nav(findings)
         assert findings == []

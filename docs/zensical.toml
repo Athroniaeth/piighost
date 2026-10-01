@@ -7,7 +7,8 @@ copyright = "Copyright &copy; 2026 PIIGhost contributors"
 repo_url = "https://github.com/Athroniaeth/piighost"
 repo_name = "Athroniaeth/piighost"
 edit_uri = "edit/master/docs/en/"
-docs_dir = "docs/en"
+docs_dir = "en"
+site_dir = "site"
 extra_css = ["stylesheets/extra.css"]
 
 nav = [
@@ -82,7 +83,7 @@ nav = [
 
 [project.theme]
 language = "en"
-custom_dir = "docs/overrides"
+custom_dir = "overrides"
 icon.logo = "lucide/ghost"
 features = [
   "announce.dismiss",
@@ -150,6 +151,8 @@ pygments_lang_class = true
 [project.markdown_extensions.pymdownx.tilde]
 
 [project.markdown_extensions.pymdownx.snippets]
+# Unlike the paths above, which resolve against this file's folder, base_path
+# resolves against the folder zensical runs from: the repository root.
 base_path = ["docs/en"]
 auto_append = ["includes/abbreviations.md"]
 
