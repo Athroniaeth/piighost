@@ -23,14 +23,14 @@ dependencies on its own.
 
 ```bash
 # Animated SVGs, one light/dark pair per language
-uv run --no-project tools/animation/generate_animation.py --lang en --out docs/en/assets
-uv run --no-project tools/animation/generate_animation.py --lang fr --out docs/fr/assets
+uv run --no-project docs/tools/generate_animation.py --lang en --out docs/en/assets
+uv run --no-project docs/tools/generate_animation.py --lang fr --out docs/fr/assets
 
 # GIFs for the READMEs, page background baked in per colour scheme
-uv run --no-project tools/animation/svg2gif.py docs/en/assets/deid-chat-light.svg docs/assets/deid-chat-light.gif    --bg "#FFFFFF"
-uv run --no-project tools/animation/svg2gif.py docs/en/assets/deid-chat-dark.svg  docs/assets/deid-chat-dark.gif     --bg "#151A24"
-uv run --no-project tools/animation/svg2gif.py docs/fr/assets/deid-chat-light.svg docs/assets/deid-chat-fr-light.gif --bg "#FFFFFF"
-uv run --no-project tools/animation/svg2gif.py docs/fr/assets/deid-chat-dark.svg  docs/assets/deid-chat-fr-dark.gif  --bg "#151A24"
+uv run --no-project docs/tools/svg2gif.py docs/en/assets/deid-chat-light.svg docs/assets/deid-chat-light.gif    --bg "#FFFFFF"
+uv run --no-project docs/tools/svg2gif.py docs/en/assets/deid-chat-dark.svg  docs/assets/deid-chat-dark.gif     --bg "#151A24"
+uv run --no-project docs/tools/svg2gif.py docs/fr/assets/deid-chat-light.svg docs/assets/deid-chat-fr-light.gif --bg "#FFFFFF"
+uv run --no-project docs/tools/svg2gif.py docs/fr/assets/deid-chat-dark.svg  docs/assets/deid-chat-fr-dark.gif  --bg "#151A24"
 ```
 
 `svg2gif.py` draws the text with cairosvg, which needs the two fonts available
@@ -38,5 +38,5 @@ system-wide to reproduce the SVG geometry (otherwise it falls back to a default
 font). Install them once:
 
 ```bash
-cp tools/animation/fonts/*.ttf ~/.local/share/fonts/ && fc-cache -f
+cp docs/tools/fonts/*.ttf ~/.local/share/fonts/ && fc-cache -f
 ```

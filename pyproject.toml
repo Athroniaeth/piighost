@@ -138,7 +138,7 @@ packages = ["src/piighost"]
 
 [tool.hatch.build.targets.sdist]
 # Ship only what a source install needs; keep docs/, site/, e2e/, benchmarks/,
-# tools/, scripts/, publish/, and examples out of the source distribution.
+# scripts/, publish/, and examples out of the source distribution.
 only-include = [
     "src/piighost",
     "README.md",
@@ -180,12 +180,11 @@ markers = [
 show_missing = true
 
 [tool.ruff]
-# tools/ holds self-contained dev scripts (the animation generator), not
-# library code, so they are exempt from the strict annotation lint. docs/ and
-# .claude/ are Markdown prose whose fenced Python blocks are hand-aligned for
-# readability; ruff 0.16 reformats code in Markdown, which would flatten that
-# alignment, so keep them out of ruff's scope.
-extend-exclude = ["tools", "docs", ".claude"]
+# docs/ and .claude/ are Markdown prose whose fenced Python blocks are
+# hand-aligned for readability; ruff 0.16 reformats code in Markdown, which
+# would flatten that alignment, so keep them out of ruff's scope. docs/tools/
+# holds the self-contained animation scripts, exempt for the same reason.
+extend-exclude = ["docs", ".claude"]
 
 [tool.ruff.lint]
 # Typing is mandatory: flake8-annotations (ANN) flags any missing argument or
@@ -212,7 +211,7 @@ convention = "google"
 [tool.pyrefly]
 project-excludes = [
     ".claude/**",
-    "tools/**",
+    "docs/tools/**",
     "dist/**",
     "site/**",
 ]
