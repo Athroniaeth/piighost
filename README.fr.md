@@ -33,39 +33,13 @@ La même mécanique protège les agents qui appellent des outils. Avec le middle
 > [!NOTE]
 > Cette correspondance conservée fait de la dé-identification une pseudonymisation au sens du RGPD, pas une anonymisation définitive. Avec le pipeline conversationnel, les valeurs réelles restent stockées le temps de la conversation et doivent être protégées en conséquence.
 
-## Pourquoi PIIGhost
-
-La plupart des outils PII s'arrêtent à la détection. Presidio, GLiNER, spaCy et les catalogues regex repèrent très bien les entités dans un texte. Le difficile, pour un agent LLM, c'est tout ce qui vient après. Remplacer les valeurs sans casser le raisonnement du modèle, garder une valeur associée à un seul token sur toute une conversation, donner la vraie valeur aux outils pendant que le modèle ne voit que le token, et réinjecter les originaux dans la réponse. Cette orchestration, c'est `piighost`.
-
-**Ce que `piighost` ajoute par-dessus :**
-
-- **Détecteurs enfichables :** motifs regex tirés du [hub piighost](https://hub.piighost.dev) (groupes generic, US, EU, FR et d'autres), NER (GLiNER2, spaCy, Transformers), un détecteur LLM, plus les détecteurs exact-match, composite et chunked (le chunking découpe le texte qui dépasse la fenêtre de contexte d'un modèle), et vous gardez celui que vous connaissez (Presidio se branche via un extra).
-- **Jetons réversibles et transparents :** chaque valeur devient un id stable comme `<<PERSON:1>>` et est réinjectée automatiquement, donc l'utilisateur final lit `john.doe@example.com` et ne voit jamais de jeton. Les factories label-only, masque et hash à clé sont aussi disponibles.
-- **Cohérent sur toute une conversation :** la même valeur garde le même token sur tout le thread, adossé à une mémoire in-process, Redis ou SQLAlchemy (Redis et SQL peuvent chiffrer les valeurs au repos et hacher les clés).
-- **Intégrations agents avec frontière d'outils :** middleware LangChain, hooks Pydantic AI, et LlamaIndex. L'outil reçoit la vraie valeur pendant que le modèle ne voit que le jeton, avec une restauration en streaming token par token.
-- **Un pipeline en étapes personnalisable :** détection, liaison, résolution des chevauchements, expansion, dé-identification, et un guard rail optionnel qui refuse une réponse contenant des données confidentielles résiduelles (un détecteur, un LLM, ou la modération Mistral). Branchez un appariement fuzzy tolérant aux fautes ou ajoutez votre propre étape.
-- **Piloté par config et auto-hébergeable :** construisez tout un pipeline depuis un fichier TOML/JSON avec un CLI pour le valider, exécutez-le dans votre process, ou comme service via le compagnon [piighost-api](https://github.com/Athroniaeth/piighost-api) (proxys compatibles OpenAI et Anthropic).
-- **Typé et observable :** fournit `py.typed` et un cœur minimal avec tout le lourd derrière des extras, plus des spans OpenTelemetry par étape (visibles dans Langfuse ou Jaeger) avec caviardage optionnel des payloads.
-- **Périmètre, texte et conversations en direct :** `piighost` protège une conversation en cours, message par message, pas un dataset figé.
-
-Pour voir comment il se situe face à Presidio, LangChain, les API cloud et d'autres, voir [Comment PIIGhost se compare](https://athroniaeth.github.io/piighost/fr/comparison/).
-
-### Limites et partis pris
-
-- **Le jeton n'embarque pas la valeur chiffrée, par choix.** Contrairement à un jeton à chiffrement à format préservé (où le chiffré *est* le jeton, ex. Google DLP), `piighost` utilise un id (`<<PERSON:1>>`) adossé à un cache. La raison : un jeton qui contient le chiffré peut être capté aujourd'hui et cassé dans 20 ans ("harvest now, decrypt later", la menace de l'informatique quantique sur le chiffrement classique), alors qu'un id ne révèle rien en soi. En retour, il faut un cache pour garder la correspondance jeton-valeur, donc une mémoire à déployer, partager entre workers et persister en production.
-- **Ce cache stocke les vraies valeurs, donc la réversibilité est de la pseudonymisation, pas de l'anonymisation (RGPD).** Les données réelles restent stockées le temps de la conversation. La lib fournit de quoi les protéger (chiffrement AES-GCM des valeurs, hachage Argon2id des clés), mais l'architecture de base de données elle-même doit être sécurisée en production dès qu'on utilise Redis ou PostgreSQL.
-- **Pas d'anonymisation de dataset.** Ni k-anonymity, ni l-diversité, ni differential privacy, ni données tabulaires. `piighost` protège du texte et des conversations en direct, pas un jeu de données entier. Pour ça, voir ARX, Amnesia, ou Google DLP.
-- **Pas de validation par checksum (Luhn / IBAN / NIR), par choix.** Le `RegexDetector` matche sur la forme seule pour ne jamais laisser fuiter une valeur réelle abîmée par l'OCR (un checksum la rejetterait et elle passerait en clair). En échange, il repère parfois une chaîne qui a la forme d'une PII sans en être une, ce qui ne coûte qu'un jeton de trop.
-
 ## Démarrage rapide
 
 ```bash
-pip install piighost   # or: uv add piighost
+pip install piighost   # ou : uv add piighost
 ```
 
-### Dé-identifier un texte
-
-`ExactMatchDetector` dé-identifie un dictionnaire de valeurs connues sans télécharger de modèle.
+`ExactMatchDetector` dé-identifie un dictionnaire de valeurs connues, sans modèle à télécharger.
 
 ```python
 import asyncio
@@ -76,113 +50,30 @@ from piighost.pipeline import AnonymizationPipeline
 detector = ExactMatchDetector({"John Doe": "PERSON", "john.doe@example.com": "EMAIL"})
 pipeline = AnonymizationPipeline(detector)
 
-result = asyncio.run(pipeline.anonymize("Écris à John Doe à john.doe@example.com."))
-print(result.text)  # Écris à <<PERSON:1>> à <<EMAIL:1>>.
+result = asyncio.run(pipeline.anonymize("Write to John Doe at john.doe@example.com."))
+print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
 ```
 
-### Conversations et agents (LangChain)
+Le [démarrage rapide](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/) continue avec un vrai détecteur et une conversation.
 
-Le middleware enrobe un pipeline conversationnel et gère chaque tour d'agent pour vous, si bien que la même dé-identification s'applique sans rien changer à la logique de votre agent.
+## Aller plus loin
 
-```bash
-pip install 'piighost[langchain]'   # or: uv add 'piighost[langchain]'
-```
+- **Démarrer** : [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/), [premier pipeline](https://athroniaeth.github.io/piighost/fr/getting-started/first-pipeline/), [pipeline conversationnel](https://athroniaeth.github.io/piighost/fr/getting-started/conversation/)
+- **Configurer** : [un pipeline dans un fichier TOML](https://athroniaeth.github.io/piighost/fr/getting-started/configuration/), [les groupes de motifs du hub](https://athroniaeth.github.io/piighost/fr/reference/detectors/#catalogues-de-patterns), [toutes les clés de config](https://athroniaeth.github.io/piighost/fr/configuration/toml/)
+- **Intégrer** : [LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/), [Pydantic AI](https://athroniaeth.github.io/piighost/fr/examples/pydantic-ai/), [LlamaIndex](https://athroniaeth.github.io/piighost/fr/examples/llama-index/), [Claude Code](https://athroniaeth.github.io/piighost/fr/examples/claude-code/), [un piighost-api distant](https://athroniaeth.github.io/piighost/fr/getting-started/api-client/)
+- **Déployer** : [un pipeline de thread en production](https://athroniaeth.github.io/piighost/fr/deployment/), [plusieurs instances](https://athroniaeth.github.io/piighost/fr/multi-instance/)
+- **Comprendre** : [pourquoi dé-identifier](https://athroniaeth.github.io/piighost/fr/why-anonymize/), [architecture](https://athroniaeth.github.io/piighost/fr/architecture/), [sécurité](https://athroniaeth.github.io/piighost/fr/security/), [conformité RGPD](https://athroniaeth.github.io/piighost/fr/compliance/), [limites](https://athroniaeth.github.io/piighost/fr/limitations/), [la détection mesurée](https://athroniaeth.github.io/piighost/fr/benchmark/), [comparaison](https://athroniaeth.github.io/piighost/fr/comparison/)
+- **Mettre à jour** : [versions et passage à la 2.0](https://athroniaeth.github.io/piighost/fr/community/upgrading/)
 
-```python
-import asyncio
+## Écosystème
 
-from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
-from langchain_core.messages import HumanMessage
-from langchain_core.tools import tool
-
-from piighost.components.detector import ExactMatchDetector
-from piighost.integrations.langchain import PIIAnonymizationMiddleware
-from piighost.pipeline import ThreadAnonymizationPipeline
-
-SYSTEM_PROMPT = (
-    "Some inputs contain placeholders like <<PERSON:1>> that stand in for real "
-    "values withheld for privacy. Treat each placeholder as the real value, never "
-    "comment on its format, and pass it to tools unchanged."
-)
-
-
-@tool
-def send_mail(to: str, body: str) -> str:
-    """Send an email to `to` with the given body."""
-    print(f"[tool] send_mail received to={to!r}")
-    return "Email successfully sent."
-
-
-async def main() -> None:
-    # This example calls OpenAI, so set OPENAI_API_KEY in your environment first.
-    labels = {"Patrick Dupont": "PERSON", "patrick@acme.com": "EMAIL"}
-    detector = ExactMatchDetector(labels)
-    pipeline = ThreadAnonymizationPipeline(detector)
-    middleware = PIIAnonymizationMiddleware(pipeline)
-    # gpt-5.6-terra is a reasoning model; reasoning_effort="none" lets it call
-    # function tools over chat/completions.
-    model = init_chat_model("openai:gpt-5.6-terra", reasoning_effort="none")
-    # The system prompt tells the model to treat placeholders as real values and
-    # pass them to tools unchanged, so it does not balk at the tokens.
-    agent = create_agent(
-        model=model,
-        system_prompt=SYSTEM_PROMPT,
-        tools=[send_mail],
-        middleware=[middleware],
-    )
-    config = {"configurable": {"thread_id": "demo-thread"}}
-
-    message = HumanMessage(
-        "Use the send_mail tool to send a welcome note to Patrick Dupont at patrick@acme.com."
-    )
-    result = await agent.ainvoke({"messages": [message]}, config=config)
-    print(f"user sees: {result['messages'][-1].content!r}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-C'est l'intégration **LangChain**, mais ce n'est qu'une option parmi d'autres. `piighost` propose aussi des connecteurs pour [Pydantic AI](https://athroniaeth.github.io/piighost/fr/examples/pydantic-ai/) et [LlamaIndex](https://athroniaeth.github.io/piighost/fr/examples/llama-index/), et le serveur compagnon [piighost-api](https://github.com/Athroniaeth/piighost-api) expose des proxys compatibles OpenAI et Anthropic pour déplacer la dé-identification à la frontière HTTP en changeant seulement l'URL de base.
-
-Pour un vrai détecteur et le pipeline conversationnel, voir le [Quickstart](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/) et l'[intégration LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/).
-
-## Documentation
-
-**[Documentation complète](https://athroniaeth.github.io/piighost/fr/)**
-
-<details>
-<summary>Parcourir la doc par section</summary>
-
-- **Démarrer**
-    - [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/)
-    - [quickstart](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/)
-    - [premier pipeline](https://athroniaeth.github.io/piighost/fr/getting-started/first-pipeline/)
-- **Recettes**
-    - [usage basique](https://athroniaeth.github.io/piighost/fr/examples/basic/)
-    - [intégration LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/)
-    - [intégration Pydantic AI](https://athroniaeth.github.io/piighost/fr/examples/pydantic-ai/)
-    - [détecteurs prêts à l'emploi](https://athroniaeth.github.io/piighost/fr/examples/detectors/)
-- **Référence**
-    - [pipeline](https://athroniaeth.github.io/piighost/fr/reference/pipeline/)
-    - [middleware](https://athroniaeth.github.io/piighost/fr/reference/langchain/)
-    - [détecteurs](https://athroniaeth.github.io/piighost/fr/reference/detectors/)
-    - [CLI](https://athroniaeth.github.io/piighost/fr/reference/cli/)
-- **Concepts**
-    - [pourquoi dé-identifier](https://athroniaeth.github.io/piighost/fr/why-anonymize/)
-    - [architecture](https://athroniaeth.github.io/piighost/fr/architecture/)
-    - [placeholder factories](https://athroniaeth.github.io/piighost/fr/placeholder-factories/)
-    - [sécurité](https://athroniaeth.github.io/piighost/fr/security/)
-
-</details>
+- **[piighost.dev](https://piighost.dev/fr/?utm_source=github&utm_medium=readme&utm_campaign=piighost)** : le site de présentation
+- **[hub piighost](https://hub.piighost.dev)** : des groupes de regex relus et des configurations de pipeline prêtes à l'emploi, tirés par référence
+- **[piighost-api](https://github.com/Athroniaeth/piighost-api)** : un serveur qui héberge un pipeline derrière HTTP, avec des proxys compatibles OpenAI et Anthropic
+- **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)** : une interface de chat d'exemple avec validation humaine
 
 ## Projet
 
-- **Communauté** : [Discord](https://discord.gg/vFg9GHQR2s) pour obtenir de l'aide, signaler des bugs, proposer des fonctionnalités et échanger sur la dé-identification
+- **Communauté** : [Discord](https://discord.gg/vFg9GHQR2s) pour obtenir de l'aide, signaler un bug ou demander une fonctionnalité
 - **Contribuer** : [guide de contribution](https://athroniaeth.github.io/piighost/fr/community/contributing/) et [signaler un bug](https://athroniaeth.github.io/piighost/fr/community/bug-reports/)
-- **Écosystème** :
-    - **[Site de présentation](https://piighost.dev/?utm_source=github&utm_medium=readme&utm_campaign=piighost)** : une vue d'ensemble du projet
-    - **[piighost-api](https://github.com/Athroniaeth/piighost-api)** : le serveur d'API d'inférence
-    - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)** : un exemple d'interface de chat avec HITL
 - **Licence** : [MIT](LICENSE)
