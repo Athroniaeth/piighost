@@ -3,7 +3,7 @@
 
 Run from the repository root:
 
-    python3 .claude/skills/piighost-docs/scripts/audit.py
+    python3 skills/piighost-docs/scripts/audit.py
 
 Checks, in order:
 
