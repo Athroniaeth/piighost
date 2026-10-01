@@ -27,9 +27,9 @@ piighost validate <PATH>
 
 | Argument | Description |
 |----------|-------------|
-| `PATH` | Chemin vers une config de pipeline TOML ou JSON |
+| `PATH` | Chemin vers une config de pipeline TOML ou JSON, ou une référence du hub comme `hub:piighost/fr-notarial:2f602547` |
 
-Le code de sortie est `0` en cas de succès et `1` en cas d'erreur de configuration, qu'il s'agisse d'un fichier absent, d'une syntaxe TOML ou JSON invalide, ou d'une valeur qui échoue à la validation. Le message d'erreur est écrit sur stderr, ce qui rend la commande adaptée à une barrière de CI.
+Le code de sortie est `0` en cas de succès et `1` en cas d'erreur de configuration, qu'il s'agisse d'un fichier absent, d'une syntaxe TOML ou JSON invalide, d'une valeur qui échoue à la validation, ou d'un hub injoignable. Le message d'erreur est écrit sur stderr, ce qui rend la commande adaptée à une barrière de CI.
 
 ```bash
 $ piighost validate ./broken.toml
@@ -74,7 +74,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | Option | Description |
 |--------|-------------|
 | `TEXT` | Le texte à dé-identifier, ou `-` pour lire stdin |
-| `--config PATH` | Un fichier de config de pipeline (TOML ou JSON) |
+| `--config PATH` | Un fichier de config de pipeline (TOML ou JSON), ou une référence du hub |
 | `--api URL` | URL de base d'un serveur `piighost-api`, utilisé via le client HTTP |
 | `--thread-id ID` | Thread id pour l'API ou une config à mémoire (défaut `default`) |
 | `--json` | Imprime le texte dé-identifié et les détections en JSON |

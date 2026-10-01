@@ -75,6 +75,32 @@ class TestValidate:
         assert result.stderr
 
 
+class TestValidateHub:
+    def test_a_hub_reference_is_validated(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """validate takes a hub reference as it takes a file."""
+        monkeypatch.setattr(
+            "piighost.config.settings.pull_config", lambda ref: _VALID_TOML
+        )
+        result = runner.invoke(app, ["validate", "hub:piighost/demo:2f602547"])
+        assert result.exit_code == 0
+        assert "OK: hub:piighost/demo:2f602547" in result.stdout
+
+    def test_an_unreachable_hub_fails_with_a_message(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A hub that cannot be reached exits 1 with a line, not a traceback."""
+
+        def pull_config(ref: str) -> str:
+            raise HubUnreachableError(f"{ref}: the hub answered 404")
+
+        monkeypatch.setattr("piighost.config.settings.pull_config", pull_config)
+        result = runner.invoke(app, ["validate", "hub:piighost/nope:2f602547"])
+        assert result.exit_code == 1
+        assert "the hub answered 404" in result.stderr
+
+
 class TestSchema:
     def test_schema_prints_json_with_expected_fields(self) -> None:
         """schema exits 0 and prints a JSON schema covering the components."""

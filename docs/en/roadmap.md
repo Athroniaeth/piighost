@@ -21,11 +21,9 @@ The conversation memory caches each message's detections per thread, so resendin
 
 ~~Now wired, `AsyncPlaceholderStreamDecoder` reaches the integrations through `TextDeidentifier.deanonymize_stream`, exposed on the LangChain middleware as `deanonymize_stream` and used by the Anthropic proxy in `piighost-api`. An app wraps it around its own streaming loop to restore a reply on the fly, buffering only across a token boundary. Any factory also builds the raw decoder over its grammar with `async_stream_decoder`, for another framework.~~
 
-## Configuration hub
+## ~~Configuration hub~~
 
-A pipeline is fully described by a TOML or JSON file, but every user rebuilds that description by hand. A configuration hub would let a user pull a ready-to-use configuration by a short identifier and run it directly, the way a prompt hub distributes prompts. The library already has the pieces it stands on, `load_config`, `load_pipeline`, and `load_thread_pipeline` parse and build a pipeline from a file. The missing part is distribution, a registry to publish and fetch a configuration by identifier, version pinning to a `piighost` release, and a trust boundary, since a configuration is declarative data rather than code. A catalogue of per-profession configurations, notaries, accountants, a general-purpose default, would grow on top of it over time.
-
-This is planned as a separate project rather than part of the `piighost` core, since it is a distribution service, not a pipeline concern.
+~~Now shipped as a separate project, the [piighost hub](https://hub.piighost.dev) publishes reviewed pattern groups and whole pipeline configurations under a short identifier, each pinned by commit. A regex detector pulls a group through `catalogs`, and `load_config`, `load_pipeline`, `load_thread_pipeline` and `piighost --config` take a reference such as `hub:piighost/fr-notarial:2f602547` to run a configuration directly.~~
 
 ## ~~Agent-harness integration~~
 
