@@ -13,7 +13,7 @@ lint:
 	uv run ruff check .
 	uv run pyrefly check src tests examples
 	uv run bandit -c pyproject.toml -r src examples
-	uv run python .claude/skills/piighost-docs/scripts/audit.py
+	uv run python skills/piighost-docs/scripts/audit.py
 
 test:
 	uv run pytest

@@ -178,6 +178,6 @@ sandbox/
 
 # Claude Code local state (worktrees, session data)
 .claude/*
-!.claude/skills/
+!.claude/skills
 !.claude/settings.json
 

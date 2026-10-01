@@ -410,7 +410,7 @@ uv run zensical build -f zensical.fr.toml  # build FR site (output: site/fr/)
 The mechanical rules, the terminology, the EN/FR parity, the internal links and the nav are checked by a script that ships with this skill:
 
 ```bash
-python3 .claude/skills/piighost-docs/scripts/audit.py   # exits non-zero on any finding
+python3 skills/piighost-docs/scripts/audit.py   # exits non-zero on any finding
 ```
 
 It reads prose only, so an identifier such as `Anonymizer` or `deanonymize` never trips a prose rule. Beyond style it resolves every relative markdown link against the tree and compares each language's pages with its `nav` array both ways, so a moved page shows up as a dead link on one side and an orphan nav entry on the other. An `includes/` page is exempt from the nav check, being pulled in by a snippet. It is deliberately conservative on the apposition colon: a lead-in label of four words or fewer, an enumeration of two or more comma-separated items, and two coordinated alternatives are all left alone. A finding is a real violation, not a style opinion, so drive it to zero rather than arguing with it. It does not judge voice. Diátaxis mode fit, chaining, the running example and the padding tails are still yours to read.
@@ -735,7 +735,7 @@ Run this before calling a page done. It exists because an editor applying the ru
 
 - [ ] The other language carries the same change, same structure, same section order, same code.
 - [ ] `uv run zensical build --clean` and `uv run zensical build -f zensical.fr.toml` both print `No issues found`.
-- [ ] `python3 .claude/skills/piighost-docs/scripts/audit.py` prints `0 finding(s)`.
+- [ ] `python3 skills/piighost-docs/scripts/audit.py` prints `0 finding(s)`.
 
 ## See also
 
