@@ -17,7 +17,8 @@ import pytest
 import piighost
 
 # The public symbols consumers import, as (module, name) pairs. Adding a public
-# export is one line here; renaming or removing one breaks the matching case.
+# export is one line here; renaming or removing one breaks the matching case. The
+# exceptions test_exceptions.py imports for its hierarchy are guarded there.
 PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.models", "Span"),
     ("piighost.models", "Detection"),
@@ -89,28 +90,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.placeholder", "LabelPlaceholderFactory"),
     ("piighost.components.placeholder", "MaskPlaceholderFactory"),
     ("piighost.components.placeholder", "RedactPlaceholderFactory"),
-    ("piighost.exceptions", "PIIGhostError"),
-    ("piighost.exceptions", "SpanError"),
-    ("piighost.exceptions", "NegativeSpanStartError"),
-    ("piighost.exceptions", "SpanOrderingError"),
-    ("piighost.exceptions", "DetectionError"),
-    ("piighost.exceptions", "ConfidenceError"),
-    ("piighost.exceptions", "EntityError"),
-    ("piighost.exceptions", "EmptyEntityError"),
-    ("piighost.exceptions", "MixedLabelError"),
-    ("piighost.exceptions", "HasherError"),
-    ("piighost.exceptions", "EmptyPepperError"),
-    ("piighost.exceptions", "CipherError"),
-    ("piighost.exceptions", "InvalidKeyLengthError"),
     ("piighost.exceptions", "AnonymizerError"),
     ("piighost.exceptions", "OverlappingSpansError"),
-    ("piighost.exceptions", "DetectorError"),
-    ("piighost.exceptions", "LabelMappingError"),
-    ("piighost.exceptions", "TextTooLongError"),
-    ("piighost.exceptions", "TextError"),
-    ("piighost.exceptions", "EmptyFragmentError"),
-    ("piighost.exceptions", "GuardError"),
-    ("piighost.exceptions", "PIIRemainingError"),
     ("piighost.exceptions", "MiddlewareError"),
     ("piighost.exceptions", "InventedPlaceholderError"),
     ("piighost.exceptions", "MissingThreadIdError"),
