@@ -1,6 +1,6 @@
 ---
 name: piighost-docs
-description: Use when writing, rewriting or reviewing any PIIGhost documentation page under docs/en/ or docs/fr/, the pitch of README.md or docs/README.fr.md, or the nav in zensical.toml / zensical.fr.toml. Also use when choosing between anonymisation and dé-identification, when a page mixes tutorial with reference, when French prose carries a semicolon or an em dash, when PIIGhost is written in bold instead of code font, when an explanation has no concrete example, or when a Mermaid diagram, a .placeholder / .pii tag, a .wide-table or a .security-table needs markup.
+description: Use when writing, rewriting or reviewing any PIIGhost documentation page under docs/en/ or docs/fr/, the pitch of README.md or docs/README.fr.md, or the nav in docs/zensical.toml / docs/zensical.fr.toml. Also use when choosing between anonymisation and dé-identification, when a page mixes tutorial with reference, when French prose carries a semicolon or an em dash, when PIIGhost is written in bold instead of code font, when an explanation has no concrete example, or when a Mermaid diagram, a .placeholder / .pii tag, a .wide-table or a .security-table needs markup.
 ---
 
 # PIIGhost docs
@@ -393,16 +393,17 @@ docs/
 │   ├── reference/                     # API surface
 │   ├── stylesheets/extra.css          # CSS overrides
 │   └── includes/abbreviations.md      # snippet auto-loaded by zensical
-└── fr/                                # mirrors en/, identical layout
-zensical.toml       # EN site config (nav, theme, extensions)
-zensical.fr.toml    # FR site config
+├── fr/                                # mirrors en/, identical layout
+├── overrides/main.html                # theme override (analytics)
+├── zensical.toml                      # EN site config (nav, theme, extensions)
+└── zensical.fr.toml                   # FR site config
 ```
 
 ## Build & verify
 
 ```bash
-uv run zensical build --clean              # build EN site (output: site/)
-uv run zensical build -f zensical.fr.toml  # build FR site (output: site/fr/)
+uv run zensical build --clean -f docs/zensical.toml  # build EN site (output: docs/site/)
+uv run zensical build -f docs/zensical.fr.toml       # build FR site (output: docs/site/fr/)
 ```
 
 **Always rebuild both sites after a doc change.** CI (`.github/workflows/docs.yml`) runs both in production, so a broken FR build will only surface there if you forget locally.
@@ -418,8 +419,8 @@ It reads prose only, so an identifier such as `Anonymizer` or `deanonymize` neve
 For iteration, use the dev server:
 
 ```bash
-uv run zensical serve                      # EN at localhost:8001
-uv run zensical serve -f zensical.fr.toml  # FR (run separately)
+uv run zensical serve -f docs/zensical.toml     # EN at localhost:8000
+uv run zensical serve -f docs/zensical.fr.toml  # FR (run separately)
 ```
 
 ## Page structure
@@ -429,7 +430,7 @@ uv run zensical serve -f zensical.fr.toml  # FR (run separately)
 ```yaml
 ---
 icon: lucide/replace          # any icon from https://lucide.dev/icons
-tags:                         # optional, must exist in zensical.toml [project.extra.tags]
+tags:                         # optional, must exist in docs/zensical.toml [project.extra.tags]
   - Advanced
   - Detector
 ---
@@ -633,7 +634,7 @@ The Stable list mirrors `piighost.__all__` plus the ports, the models, the confi
 
 ## Nav updates
 
-Both `zensical.toml` (EN) and `zensical.fr.toml` (FR) carry a `nav = [...]` array. Always update **both**. The file paths stay the same since `docs_dir` differs per file:
+Both `docs/zensical.toml` (EN) and `docs/zensical.fr.toml` (FR) carry a `nav = [...]` array. Always update **both**. The file paths stay the same since `docs_dir` differs per file:
 
 ```toml
 { "Concepts" = [
@@ -681,7 +682,7 @@ Use French labels in the FR config, EN labels in the EN config. Group the nav by
 | Mermaid renders broken or empty | Used `<<abstract>>` or unescaped `<`/`>` in class members | Use plain `abstraction` text and `&lt;` / `&gt;` for tokens |
 | `Unresolved reference` IDE warnings on inline code | Pyrefly tries to resolve identifiers inside markdown tables | Ignore, these are false positives, builds pass |
 | Wide table runs under the nav or TOC sidebar | Negative margins on `.wide-table` | Remove the margins, default scroll is correct |
-| Doc change shows up only on EN site | Forgot to rebuild FR | Always run both `zensical build --clean` and `zensical build -f zensical.fr.toml` |
+| Doc change shows up only on EN site | Forgot to rebuild FR | Always run both `zensical build --clean -f docs/zensical.toml` and `zensical build -f docs/zensical.fr.toml` |
 | Anchor link broken on FR page (e.g. `#écrire-la-sienne`) | Slugifier with accent inconsistencies | Replace anchor link with prose pointer (« voir la section *X* plus bas ») |
 | Cell colours don't appear | Tagged the `<tr>` instead of each `<td>` | Move `class="c-..."` onto each `<td>` (per-cell, not per-row) |
 
@@ -734,7 +735,7 @@ Run this before calling a page done. It exists because an editor applying the ru
 **Mirror and build**
 
 - [ ] The other language carries the same change, same structure, same section order, same code.
-- [ ] `uv run zensical build --clean` and `uv run zensical build -f zensical.fr.toml` both print `No issues found`.
+- [ ] `uv run zensical build --clean -f docs/zensical.toml` and `uv run zensical build -f docs/zensical.fr.toml` both print `No issues found`.
 - [ ] `python3 skills/piighost-docs/scripts/audit.py` prints `0 finding(s)`.
 
 ## See also
@@ -742,6 +743,6 @@ Run this before calling a page done. It exists because an editor applying the ru
 - `scripts/audit.py` next to this file, the mechanical, terminology, parity, link and nav gate.
 - `humanizer`, sentence-level AI-tell removal (rule of three, negative parallelism, filler).
 - `CLAUDE.md` at repo root, broader project conventions (Python tooling, commit style, type-checking).
-- `zensical.toml` and `zensical.fr.toml`, site config including theme features, markdown extensions, custom tags.
+- `docs/zensical.toml` and `docs/zensical.fr.toml`, site config including theme features, markdown extensions, custom tags.
 - https://diataxis.fr, the documentation architecture this skill adopts (four modes, one need per page).
 - https://docs.langchain.com/oss/python/deepagents, reference example of a good overview page (pyramid, capability-first, code-first, skimmable, links out).

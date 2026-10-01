@@ -39,7 +39,7 @@ FENCE = re.compile(r"^\s*(`{3,}|~{3,})\s*(\w*)")
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 # The nav config of each language, paired with the docs_dir it addresses.
-NAVS = (("zensical.toml", EN), ("zensical.fr.toml", FR))
+NAVS = (("docs/zensical.toml", EN), ("docs/zensical.fr.toml", FR))
 
 # Pages the nav never lists: an include is pulled in by a snippet, not navigated to.
 NAV_EXEMPT = ("includes/",)
