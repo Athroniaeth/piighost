@@ -11,7 +11,7 @@ This page tracks what is still pending for `piighost`, and the capabilities it d
 
 ## ~~OpenAI-compatible proxy~~
 
-~~Shipped in `piighost-api`, an OpenAI-compatible endpoint under `/openai/v1` where an application changes only its `base_url`, names the real upstream in a header, and the proxy de-identifies each request, forwards it, and restores the reply. The HTTP concern lives in `piighost-api`, not this library.~~
+~~Shipped in `piighost-api`, an OpenAI-compatible endpoint under `/openai/v1` where an application changes only its `base_url`, names the real upstream in a header, and the proxy de-identifies each request, forwards it, and restores the reply. The HTTP concern lives in `piighost-api`, not this library. See [De-identify an OpenAI client with the proxy](examples/openai-proxy.md).~~
 
 ## Optional result cache
 
@@ -27,7 +27,7 @@ The conversation memory caches each message's detections per thread, so resendin
 
 ## ~~Agent-harness integration~~
 
-~~Now shipped for Claude Code through its hook system, `piighost.integrations.claude_code` de-identifies the prompt and tool outputs and restores tool inputs, driving a thin client to `piighost-api`. See [De-identify Claude Code with hooks](examples/claude-code.md). The OpenAI-compatible proxy in `piighost-api` still covers any harness that lets an application change its `base_url`. An Anthropic-compatible proxy endpoint also ships in `piighost-api` for harnesses that speak Anthropic's Messages API, beside the hooks, reusing the same de- and restoration, streaming reassembly, and tool-boundary handling already in the core.~~
+~~Now shipped for Claude Code through its hook system, `piighost.integrations.claude_code` de-identifies the prompt and tool outputs and restores tool inputs, driving a thin client to `piighost-api`. See [De-identify Claude Code with hooks](examples/claude-code.md). The OpenAI-compatible proxy in `piighost-api` still covers any harness that lets an application change its `base_url`. An Anthropic-compatible proxy endpoint also ships in `piighost-api` for harnesses that speak Anthropic's Messages API, beside the hooks, reusing the same de- and restoration, streaming reassembly, and tool-boundary handling already in the core. See [De-identify Claude Code with the Anthropic proxy](examples/anthropic-proxy.md).~~
 
 ## Local in-browser document app (WebAssembly)
 

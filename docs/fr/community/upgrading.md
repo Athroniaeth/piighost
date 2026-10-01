@@ -120,6 +120,19 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PII
 
 Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour un fil en cours.
 
+### Le serveur d'API
+
+`piighost-api` demande `piighost>=2.0,<3`, et sa configuration suit les règles de la 2.0 ci-dessus, références du hub de `catalogs` comprises.
+
+- `--config` et `PIIGHOST_CONFIG` acceptent une référence du hub aussi bien qu'un chemin de fichier.
+- Une configuration sans section `[memory]` est servie avec la mémoire in-process au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les threads entre instances.
+- `/v1/labels` lit les labels d'un groupe du hub sur le hub.
+- L'observation passe par les variables standard `OTEL_*`. `LANGFUSE_PUBLIC_KEY` et `LANGFUSE_SECRET_KEY` ne servent qu'à `dataset extract`, et aucune variable `OPIK_*` n'est lue.
+- Le serveur ne lit aucun `REDIS_URL`, l'adresse Redis est l'`url` de la section `[memory]`.
+- Un déploiement qui pose encore `PIPELINE_PATH`, ou passe un chemin `module:variable`, date d'avant le chargeur TOML. Posez plutôt `PIIGHOST_CONFIG` à un fichier de config ou à une référence du hub.
+
+Les routes et les variables sont listées dans [Endpoints de l'API](../reference/api-endpoints.md) et [CLI du serveur](../reference/api-cli.md).
+
 ## Les digests Argon2 ont changé
 
 `Argon2Hasher` passe désormais la valeur dans un HMAC-SHA256 clé par le pepper avant qu'Argon2id ne la hache, donc un digest n'est plus celui qu'une version antérieure produisait. Rien ne change dans l'API, mais toute clé déjà stockée sous l'ancien digest devient introuvable.

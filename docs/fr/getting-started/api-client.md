@@ -7,7 +7,7 @@ icon: lucide/cloud
 Vous allez utiliser `PIIGhostClient` comme un pipeline de fil distant, interchangeable avec un pipeline local. Il implémente le même port qu'un `ThreadAnonymizationPipeline` local, mais chaque appel s'exécute contre un serveur `piighost-api` en HTTP. Vous le pointez sur une URL de base, dé-identifiez un message, le restaurez, puis glissez ce même client dans le middleware LangChain là où irait un pipeline local. Cela garde le modèle NER hors de l'hôte applicatif, sur un serveur partagé, un nœud GPU ou un pod d'inférence dédié.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur `piighost-api` joignable. On en suppose ici un sur `http://localhost:8000`.
+    `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur `piighost-api` joignable, voir [Déployer une API de dé-identification](api-server.md). On en suppose ici un sur `http://localhost:8000`.
 
 ## 1. Ouvrir un client
 
@@ -95,4 +95,4 @@ Si vous gérez votre propre `httpx.AsyncClient`, pour un pool de connexions part
 
 - Pour exécuter le même pipeline en local plutôt qu'en HTTP, voir [Pipeline conversationnel](conversation.md).
 - Pour brancher le client dans un agent LangChain de bout en bout, voir [Middleware LangChain](langchain.md).
-- Pour monter le serveur `piighost-api` auquel le client parle, voir [Déploiement](../deployment.md).
+- Pour monter le serveur `piighost-api` auquel le client parle, voir [Déployer une API de dé-identification](api-server.md), et [Endpoints de l'API](../reference/api-endpoints.md) pour les routes qu'il appelle.

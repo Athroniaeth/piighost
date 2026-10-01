@@ -4,7 +4,7 @@ icon: lucide/terminal
 
 # De-identify Claude Code with hooks
 
-Claude Code speaks Anthropic's Messages API, not the OpenAI shape, so you cannot point it at the OpenAI-compatible proxy. Instead, `piighost` plugs into Claude Code's own hook system, small commands the harness runs at fixed points in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code.
+Claude Code speaks Anthropic's Messages API, not the OpenAI shape, so you cannot point it at the OpenAI-compatible proxy. Instead, `piighost` plugs into Claude Code's own hook system, small commands the harness runs at fixed points in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code. The [Anthropic-compatible proxy](anthropic-proxy.md) is the other route, through Claude Code's base URL.
 
 Three hooks cover a turn:
 
@@ -15,7 +15,7 @@ Three hooks cover a turn:
 So the model only ever sees placeholders like `<<PERSON:1>>`, while the tools that actually run (Bash, Read, Edit, ...) receive the real values. The Claude Code `session_id` is used as the de-identification thread, so a value keeps the same token for the whole session.
 
 !!! note "Prerequisites"
-    `piighost` installed with the client extra, `pip install piighost[client]`, and a running [`piighost-api`](https://github.com/Athroniaeth/piighost-api) server. The hook is a thin client, it forwards each event to the API, which owns the pipeline and the conversation memory.
+    `piighost` installed with the client extra, `pip install piighost[client]`, and a running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md). The hook is a thin client, it forwards each event to the API, which owns the pipeline and the conversation memory. It sends no API key, so start the server with `PIIGHOST_ALLOW_ANONYMOUS=true` and keep it on a host only you can reach.
 
 ## Wire the hooks
 

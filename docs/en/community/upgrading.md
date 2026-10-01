@@ -120,6 +120,19 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PII
 
 A conversation memory written by 1.x keys the provenance of a value by its casefolded text, while 2.0 keys it by the value with its spaces collapsed. A value typed with an unusual space can lose its provenance across the upgrade. Purge the store, as for the Argon2 change below, if that matters to a thread in flight.
 
+### The API server
+
+`piighost-api` requires `piighost>=2.0,<3`, and its configuration follows the 2.0 rules above, the hub references of `catalogs` included.
+
+- `--config` and `PIIGHOST_CONFIG` take a hub reference as well as a file path.
+- A configuration without a `[memory]` section is served with the in-process memory instead of being refused. Declare a `redis` memory to share the threads between instances.
+- `/v1/labels` reads the labels of a hub group from the hub.
+- Observation goes through the standard `OTEL_*` variables. `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` serve `dataset extract` only, and no `OPIK_*` variable is read.
+- The server reads no `REDIS_URL`, the Redis address is the `url` of the `[memory]` section.
+- A deployment still setting `PIPELINE_PATH`, or passing a `module:variable` path, predates the TOML loader. Set `PIIGHOST_CONFIG` to a config file or a hub reference instead.
+
+The routes and the variables are listed in [API endpoints](../reference/api-endpoints.md) and [Server CLI](../reference/api-cli.md).
+
 ## Argon2 digests changed
 
 `Argon2Hasher` now runs the value through HMAC-SHA256 under the pepper before Argon2id hashes it, so a digest is no longer the one an earlier release produced. Nothing in the API changed, but every key already stored under the old digest becomes unreachable.

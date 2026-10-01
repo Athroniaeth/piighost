@@ -20,6 +20,7 @@ nav = [
         { "Pipeline conversationnel" = "getting-started/conversation.md" },
         { "Fichier de configuration" = "getting-started/configuration.md" },
         { "Middleware LangChain" = "getting-started/langchain.md" },
+        { "Serveur d'API" = "getting-started/api-server.md" },
         { "Client distant" = "getting-started/api-client.md" },
     ] },
     { "Recettes" = [
@@ -28,6 +29,8 @@ nav = [
         { "Intégration Pydantic AI" = "examples/pydantic-ai.md" },
         { "Intégration LlamaIndex" = "examples/llama-index.md" },
         { "Hooks Claude Code" = "examples/claude-code.md" },
+        { "Proxy compatible OpenAI" = "examples/openai-proxy.md" },
+        { "Proxy compatible Anthropic" = "examples/anthropic-proxy.md" },
         { "Détecteurs prêts à l'emploi" = "examples/detectors.md" },
         { "Listes d'override" = "examples/overrides.md" },
         { "Étendre PIIGhost" = "extending.md" },
@@ -45,6 +48,10 @@ nav = [
         { "Mémoire de conversation" = "reference/memory.md" },
         { "Exceptions" = "reference/errors.md" },
         { "CLI" = "reference/cli.md" },
+        { "Serveur d'API" = [
+            { "Endpoints" = "reference/api-endpoints.md" },
+            { "CLI du serveur" = "reference/api-cli.md" },
+        ]},
         { "Configuration" = [
             { "Référence TOML" = "configuration/toml.md" },
         ]},

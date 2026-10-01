@@ -50,6 +50,7 @@ To go further:
     - [First pipeline](getting-started/first-pipeline.md)
     - [Conversational pipeline](getting-started/conversation.md)
     - [LangChain middleware](getting-started/langchain.md)
+    - [API server](getting-started/api-server.md)
 
 -   :lucide-wrench: __Recipes__
 
