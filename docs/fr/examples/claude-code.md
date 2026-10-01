@@ -97,15 +97,13 @@ Un prompt et une entrée d'outil sont assez simples pour être dé-identifiés e
 
 ## Découvrir la forme d'un nouvel outil
 
-Pour étendre la liste blanche à un outil qu'elle ne couvre pas encore, exécutez le module de capture à la place du runner. Il journalise chaque événement dans un fichier JSONL et ne mute rien, ce qui vous laisse voir les vrais noms de champs :
+Pour étendre la liste blanche à un outil qu'elle ne couvre pas encore, définissez `PIIGHOST_HOOK_LOG` avant de lancer Claude Code. Le runner journalise alors chaque appel de hook dans un fichier JSONL, et une sortie d'outil qu'il a laissée passer y figure en entier, ce qui vous laisse voir les vrais noms de champs :
 
 ```bash
-export PIIGHOST_HOOK_LOG="$HOME/piighost-capture.jsonl"
-# Dans settings.json, remplacez la commande par :
-#   python -m piighost.integrations.claude_code.capture
+export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 ```
 
-Sollicitez l'outil, lisez le log pour trouver quels champs portent le texte, et ajoutez l'outil à la liste blanche dans l'intégration.
+Sollicitez l'outil, lisez le log pour trouver quels champs portent le texte, et ajoutez l'outil à la liste blanche dans l'intégration. Le log contient du texte en clair, supprimez-le ensuite.
 
 ## L'utiliser par programmation
 
