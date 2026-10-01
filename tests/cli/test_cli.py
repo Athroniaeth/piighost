@@ -144,6 +144,30 @@ class TestAnonymize:
         assert "a@b.co" not in result.stdout
         assert "<<REDACT>>" in result.stdout
 
+    def test_an_invalid_config_fails_with_a_message(self, tmp_path: Path) -> None:
+        """A config that does not validate exits 1 with the reason, no traceback."""
+        path = _write(tmp_path, _VALID_TOML.replace("patterns =", "pattern ="))
+        result = runner.invoke(app, ["anonymize", "a@b.co", "--config", str(path)])
+        assert result.exit_code == 1
+        assert "invalid configuration" in result.stderr
+        assert result.exception is None or isinstance(result.exception, SystemExit)
+
+    def test_json_lists_the_detections_the_text_replaced(self, tmp_path: Path) -> None:
+        """--json reports what the pipeline kept, not the detector's raw overlaps."""
+        overlapping = """
+[detector]
+type = "regex"
+patterns = { EMAIL = '[a-z]+@[a-z.]+', DOMAIN = '[a-z]+[.]co' }
+"""
+        path = _write(tmp_path, overlapping)
+        result = runner.invoke(
+            app, ["anonymize", "write alice@corp.co", "--config", str(path), "--json"]
+        )
+        assert result.exit_code == 0
+        payload = json.loads(result.stdout)
+        assert payload["anonymized_text"] == "write <<EMAIL:1>>"
+        assert [d["text"] for d in payload["detections"]] == ["alice@corp.co"]
+
     def test_config_and_api_are_mutually_exclusive(self) -> None:
         """Passing both --config and --api exits 1 with a message."""
         result = runner.invoke(
