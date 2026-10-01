@@ -82,7 +82,7 @@ nav = [
 
 [project.theme]
 language = "en"
-custom_dir = "overrides"
+custom_dir = "docs/overrides"
 icon.logo = "lucide/ghost"
 features = [
   "announce.dismiss",

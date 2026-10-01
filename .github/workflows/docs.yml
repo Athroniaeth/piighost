@@ -12,7 +12,6 @@ on:
       - "docs/**"
       - "zensical.toml"
       - "zensical.fr.toml"
-      - "overrides/**"
 
 permissions:
   contents: read
