@@ -97,15 +97,13 @@ A prompt and a tool input are plain enough to de-identify wholesale, but a tool'
 
 ## Discover a new tool's shape
 
-To extend the allowlist to a tool it does not yet cover, run the capture module in place of the runner. It logs each event to a JSONL file and mutates nothing, so you can see the real field names:
+To extend the allowlist to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` before starting Claude Code. The runner then logs each hook call to a JSONL file, and a tool output it passed through is logged whole, so you can see the real field names:
 
 ```bash
-export PIIGHOST_HOOK_LOG="$HOME/piighost-capture.jsonl"
-# In settings.json, swap the command for:
-#   python -m piighost.integrations.claude_code.capture
+export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 ```
 
-Exercise the tool, read the log to find which fields carry the text, and add the tool to the allowlist in the integration.
+Exercise the tool, read the log to find which fields carry the text, and add the tool to the allowlist in the integration. The log holds clear text, so delete it afterwards.
 
 ## Use it programmatically
 
