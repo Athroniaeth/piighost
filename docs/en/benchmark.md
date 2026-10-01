@@ -87,7 +87,7 @@ On the generated deeds, full GLiNER2 pipeline:
 Each run found something, fixed in the library or in the hub's `fr-notarial` before the next.
 
 - **`piighost` 1.9.0.** The word-boundary expander could add an occurrence inside a kept detection, and the render stage then raised `OverlappingSpansError`, on 163 of the 200 generated deeds. French phones typeset with no-break spaces were never matched. An email with accented letters was matched from its first ASCII run. A detector config could not set `max_chars`, so a config-built model read a whole deed in one pass and ran out of memory past 13,000 characters.
-- **Dates.** A date of birth is a direct identifier no NER model tags. `fr-notarial` hides every French date, since a pattern cannot tell a date of birth from the date of the deed, but spares the date of a numbered legal text ("loi n° 89-462 du 6 juillet 1989").
+- **Dates.** A date of birth is a direct identifier, and neither model of the benchmark was asked for one, so the rules carry it. `fr-notarial` hides every French date, since a pattern cannot tell a date of birth from the date of the deed, but spares the date of a numbered legal text ("loi n° 89-462 du 6 juillet 1989").
 - **Deed formulae.** A name after a civility or "Maître", a maiden name after "née", an address after "demeurant" or "situé", a street address, a lieu-dit and a cadastral reference after "section".
 - **`SWIFT_BIC`.** It matched any run of eight or eleven capitals. It now needs a keyword or a digit, so a heading such as "DESIGNATION" stays in clear.
 - **`piighost` 1.10.0.** The `merge` overlap resolver, so a rule's short span no longer uncovers part of the model's.
