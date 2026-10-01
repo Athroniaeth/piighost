@@ -8,14 +8,6 @@ with a hand-built ToolCallRequest cannot see it.
 
 from typing import Any
 
-import pytest
-
-from piighost.components.detector import ExactMatchDetector
-from piighost.integrations.langchain import PIIAnonymizationMiddleware
-from piighost.pipeline import ThreadAnonymizationPipeline
-
-pytest.importorskip("langchain")
-
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
@@ -25,6 +17,10 @@ from langchain_core.messages import (
 )
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.tools import tool
+
+from piighost.components.detector import ExactMatchDetector
+from piighost.integrations.langchain import PIIAnonymizationMiddleware
+from piighost.pipeline import ThreadAnonymizationPipeline
 
 # Recording state lives outside the pydantic model, so the fake stays a plain
 # BaseChatModel with no mutable-field surprises. Reset it at the start of a test.

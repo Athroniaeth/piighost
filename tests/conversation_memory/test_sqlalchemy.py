@@ -4,9 +4,6 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
-
-pytest.importorskip("sqlalchemy")
-
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -130,8 +127,6 @@ class TestCrypto:
 
     async def test_encrypted_round_trip(self, tmp_path: Path) -> None:
         """With a hasher and cipher, detections still round-trip through crypto."""
-        pytest.importorskip("cryptography")
-
         from piighost.crypto.cipher import AesGcmCipher
         from piighost.crypto.hasher import Sha256Hasher
 

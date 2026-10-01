@@ -20,8 +20,7 @@ def _detection(text: str, label: str = "PERSON") -> Detection:
 
 def _make() -> tuple[Any, Any]:
     """Build a RedisConversationMemory over a fresh fake Redis client."""
-    pytest.importorskip("cryptography")
-    fakeredis = pytest.importorskip("fakeredis.aioredis")
+    import fakeredis.aioredis as fakeredis
 
     from piighost.conversation_memory import RedisConversationMemory
     from piighost.crypto.cipher import AesGcmCipher

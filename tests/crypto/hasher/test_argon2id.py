@@ -8,14 +8,12 @@ import pytest
 class TestUsableWhenInstalled:
     def test_conforms_to_the_port(self) -> None:
         """With argon2-cffi installed, Argon2Hasher is an AnyHasher."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import AnyHasher, Argon2Hasher
 
         assert isinstance(Argon2Hasher("pepper-secret"), AnyHasher)
 
     def test_installed_argon2_hashes_deterministically(self) -> None:
         """A digest is a 64-char hex string and stable across calls."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import Argon2Hasher
 
         hasher = Argon2Hasher("pepper-secret")
@@ -26,7 +24,6 @@ class TestUsableWhenInstalled:
 
     def test_distinct_values_differ(self) -> None:
         """Different values hash to different digests."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import Argon2Hasher
 
         hasher = Argon2Hasher("pepper-secret")
@@ -34,14 +31,12 @@ class TestUsableWhenInstalled:
 
     def test_pepper_keys_the_digest(self) -> None:
         """The same value under different peppers hashes differently."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import Argon2Hasher
 
         assert Argon2Hasher("one").hash("Emma") != Argon2Hasher("two").hash("Emma")
 
     def test_empty_pepper_is_rejected(self) -> None:
         """Argon2Hasher inherits the fail-closed empty-pepper guard."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import Argon2Hasher
         from piighost.exceptions import EmptyPepperError
 
@@ -50,7 +45,6 @@ class TestUsableWhenInstalled:
 
     def test_hash_length_is_configurable(self) -> None:
         """A custom hash length sizes the digest, hex being twice the bytes."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import Argon2Hasher
 
         assert len(Argon2Hasher("pepper-secret", hash_length=16).hash("Emma")) == 32
@@ -61,7 +55,6 @@ class TestUsableWhenInstalled:
         The salt alone carried the pepper before this change, and Argon2 treats a
         salt as public, so the value is now HMAC-ed under the pepper first.
         """
-        pytest.importorskip("argon2")
         import argon2.low_level
 
         from piighost.crypto.hasher import Argon2Hasher, argon2id
@@ -81,7 +74,6 @@ class TestUsableWhenInstalled:
 
     def test_cost_parameters_change_the_digest(self) -> None:
         """A different Argon2 cost yields a different digest for the same input."""
-        pytest.importorskip("argon2")
         from piighost.crypto.hasher import Argon2Hasher
 
         cheap = Argon2Hasher("pepper-secret", time_cost=1).hash("Emma")

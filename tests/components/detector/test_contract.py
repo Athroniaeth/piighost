@@ -122,7 +122,6 @@ def _spacy() -> AnyDetector:
 
 def _llm() -> AnyDetector:
     """Build an LLMDetector over a chat model that names the value."""
-    pytest.importorskip("langchain_core")
     from types import SimpleNamespace
 
     from piighost.components.detector import LLMDetector
