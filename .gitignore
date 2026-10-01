@@ -176,10 +176,11 @@ Thumbs.db
 # Local sandbox scripts
 sandbox/
 
-# Claude Code local state (worktrees, session data)
-.claude/*
-!.claude/skills
-!.claude/settings.json
+# Claude Code local state (settings, hooks, skills link, sessions)
+.claude/
+
+# Local research notes
+docs/veille/
 
 CLAUDE.md
 AGENTS.md
