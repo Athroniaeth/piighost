@@ -219,3 +219,11 @@ project-excludes = [
 # resolve only because an `examples` search path let examples/transformers/
 # shadow the package, so name the gap here instead.
 ignore-missing-imports = ["transformers", "transformers.*"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = false
