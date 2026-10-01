@@ -7,6 +7,7 @@ so it is imported lazily: reaching for it without the extra raises a helpful
 ImportError, while importing this package never pulls redis in.
 """
 
+import importlib
 from typing import Any
 
 from piighost.conversation_memory.base import (
@@ -26,18 +27,15 @@ __all__ = [
 ]
 
 
+_LAZY_BACKENDS: dict[str, str] = {
+    "RedisConversationMemory": "piighost.conversation_memory.redis_backend",
+    "SqlAlchemyConversationMemory": "piighost.conversation_memory.sqlalchemy_backend",
+}
+"""Each backend behind an optional extra, by name, with the module that holds it."""
+
+
 def __getattr__(name: str) -> Any:
     """Import the optional backends on demand to keep their extras optional."""
-    if name == "RedisConversationMemory":
-        from piighost.conversation_memory.redis_backend import RedisConversationMemory
-
-        return RedisConversationMemory
-
-    if name == "SqlAlchemyConversationMemory":
-        from piighost.conversation_memory.sqlalchemy_backend import (
-            SqlAlchemyConversationMemory,
-        )
-
-        return SqlAlchemyConversationMemory
-
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    if name not in _LAZY_BACKENDS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    return getattr(importlib.import_module(_LAZY_BACKENDS[name]), name)

@@ -9,26 +9,18 @@ guarantees, whatever its model returns.
 """
 
 import asyncio
-import sys
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import replace
 from typing import Any
 
+from piighost._runtime import EMSCRIPTEN
 from piighost.exceptions import LabelMappingError, TextTooLongError
 from piighost.models import Detection
 from piighost.text import AnySplitter, RecursiveCharacterTextSplitter
 
 _DEFAULT_CHUNK_OVERLAP = 100
 """Default chunk overlap, in characters, capped below the chunk size."""
-
-_NO_THREADS = sys.platform == "emscripten"
-"""Whether the platform cannot start a thread at all.
-
-Emscripten cannot, which is what a browser runs. Pyodide's asyncio.to_thread
-does not raise there, it runs the callable inline and blocks the event loop, so
-the offload has to be skipped explicitly rather than trusted.
-"""
 
 
 class BaseNERDetector(ABC):
@@ -215,7 +207,7 @@ class BaseNERDetector(ABC):
         the code from claiming a concurrency it does not have, which also makes
         max_concurrency visibly meaningless rather than quietly so.
         """
-        if _NO_THREADS:
+        if EMSCRIPTEN:
             return fn(*args, **kwargs)
         if self._infer_semaphore is None:
             return await asyncio.to_thread(fn, *args, **kwargs)
