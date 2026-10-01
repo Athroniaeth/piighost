@@ -199,7 +199,7 @@ def _fetch(url: str, ref: str) -> str:
             return answer.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         raise HubUnreachableError(f"{ref}: the hub answered {exc.code}") from exc
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+    except OSError as exc:  # URLError and TimeoutError are both OSError
         raise HubUnreachableError(f"{ref}: cannot reach {url}: {exc}") from exc
 
 

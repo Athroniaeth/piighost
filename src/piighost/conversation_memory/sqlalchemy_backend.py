@@ -14,11 +14,16 @@ The thread_id stays clear so a thread can be enumerated and forgotten; the
 autoincrement id gives first-seen order.
 """
 
-import hashlib
 import importlib.util
 import json
 
-from piighost.conversation_memory.base import Forgotten, MessageRole, warn_plaintext
+from piighost.conversation_memory.base import (
+    Forgotten,
+    MessageRole,
+    message_digest,
+    require_paired_crypto,
+    warn_plaintext,
+)
 from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
@@ -74,8 +79,7 @@ class SqlAlchemyConversationMemory:
         table_name: str = _DEFAULT_TABLE,
     ) -> None:
         """Store the engine and optional crypto, and define the table."""
-        if (hasher is None) != (cipher is None):
-            raise ValueError("Provide both a hasher and a cipher, or neither")
+        require_paired_crypto(hasher, cipher)
         self._engine = engine
         self._hasher = hasher
         self._cipher = cipher
@@ -100,12 +104,6 @@ class SqlAlchemyConversationMemory:
         async with self._engine.begin() as conn:
             await conn.run_sync(self._metadata.create_all)
 
-    def _digest(self, message: str) -> str:
-        """Key a message: the security hasher if set, else a plain SHA-256."""
-        if self._hasher is not None:
-            return self._hasher.hash(message)
-        return hashlib.sha256(message.encode()).hexdigest()
-
     def _serialize(self, detections: list[Detection]) -> bytes:
         """Serialize detections to JSON bytes, encrypting when a cipher is set."""
         blob = json.dumps([d.to_dict() for d in detections]).encode()
@@ -129,7 +127,7 @@ class SqlAlchemyConversationMemory:
         message, a portable choice over dialect-specific upsert; a rare concurrent
         double-insert of the same message raises the unique-constraint error.
         """
-        digest = self._digest(message)
+        digest = message_digest(message, self._hasher)
         blob = self._serialize(detections)
         table = self._table
         async with self._engine.begin() as conn:
@@ -167,7 +165,7 @@ class SqlAlchemyConversationMemory:
         """Return a thread's detections, for one message or the whole thread."""
         table = self._table
         if message is not None:
-            digest = self._digest(message)
+            digest = message_digest(message, self._hasher)
             async with self._engine.connect() as conn:
                 row = (
                     await conn.execute(

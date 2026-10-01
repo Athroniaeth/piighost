@@ -41,6 +41,8 @@ def _build_app() -> "typer.Typer":
     """Build the typer application and its commands. Requires typer."""
     import typer
 
+    from piighost.conversation_memory.base import DEFAULT_THREAD_ID
+
     app = typer.Typer(no_args_is_help=True, add_completion=False)
 
     @app.command()
@@ -88,7 +90,7 @@ def _build_app() -> "typer.Typer":
             typer.Option(
                 "--thread-id", help="Thread id for the API or a thread config."
             ),
-        ] = "default",
+        ] = DEFAULT_THREAD_ID,
         as_json: Annotated[
             bool,
             typer.Option(

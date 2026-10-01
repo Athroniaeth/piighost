@@ -256,14 +256,10 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """
         forgotten = await self.memory.forget(thread_id)
         self._forget_epoch += 1
-        self._forget_token_memo(thread_id)
-        return forgotten
-
-    def _forget_token_memo(self, thread_id: str) -> None:
-        """Drop every memoized token map derived from this thread."""
-        stale = [key for key in self._token_memo if key[0] == thread_id]
-        for key in stale:
+        # Every memoized token map derived from this thread goes with it.
+        for key in [key for key in self._token_memo if key[0] == thread_id]:
             self._drop_memo(key)
+        return forgotten
 
     async def _detect(
         self,
@@ -280,7 +276,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         detections = await self.detector.detect(text)
         with self._stage_span("piighost.override", self.override):
             detections = await self._override(text, detections)
-        detections = self._resolve_overlaps(detections)
+        detections = self.overlap_resolver.resolve(detections)
         detections = self._expand(text, detections)
         await self.memory.remember(
             message=text,

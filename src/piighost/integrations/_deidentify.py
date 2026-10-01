@@ -12,9 +12,7 @@ the integration boundary, not inside the pipeline.
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any, Generic
 
-from piighost.components.placeholder.tags import (
-    IdentityT,
-)
+from piighost.components.placeholder.tags import IdentityT
 from piighost.conversation_memory import MessageRole
 from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
 from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
