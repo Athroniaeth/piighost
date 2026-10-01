@@ -11,9 +11,7 @@ import importlib.util
 from collections.abc import Callable
 from typing import Any
 
-from piighost.components.placeholder.tags import (
-    IdentityT,
-)
+from piighost.components.placeholder.tags import IdentityT
 from piighost.conversation_memory import MessageRole
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import (

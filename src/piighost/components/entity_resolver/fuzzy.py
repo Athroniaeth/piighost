@@ -63,22 +63,13 @@ class FuzzyEntityResolver(MergeEntityResolver):
         groups: list[list[Entity]] = []
 
         for entity in entities:
-            group = self._anchored_group(groups, entity)
+            anchored = (g for g in groups if self._same_value(entity, g[0]))
+            group = next(anchored, None)
             if group is None:
                 groups.append([entity])
             else:
                 group.append(entity)
         return groups
-
-    def _anchored_group(
-        self, groups: list[list[Entity]], entity: Entity
-    ) -> list[Entity] | None:
-        """Return the first group whose anchor reads as the entity's value."""
-        for group in groups:
-            anchor = group[0]
-            if self._same_value(entity, anchor):
-                return group
-        return None
 
     def _same_value(self, first: Entity, second: Entity) -> bool:
         """Whether two entities read as one value: one label, similar texts."""

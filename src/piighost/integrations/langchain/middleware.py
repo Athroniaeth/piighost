@@ -12,10 +12,9 @@ import logging
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from typing import Any, Generic, cast
 
-from piighost.components.placeholder.tags import (
-    IdentityT,
-)
+from piighost.components.placeholder.tags import IdentityT
 from piighost.conversation_memory import MessageRole
+from piighost.conversation_memory.base import DEFAULT_THREAD_ID
 from piighost.exceptions import MissingThreadIdError
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import (
@@ -47,12 +46,6 @@ from langgraph.types import Command
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_THREAD = "default"
-"""Shared fallback thread id used when no thread id is present.
-
-Falling back to it lets distinct conversations share placeholder state, which
-leaks entities across them; require_thread_id exists to reject that fallback.
-"""
 _missing_thread_id_warned = False
 
 
@@ -89,7 +82,7 @@ def _thread_id(require_thread_id: bool) -> str:
             "state. Pass a thread_id or set require_thread_id=True."
         )
 
-    return _DEFAULT_THREAD
+    return DEFAULT_THREAD_ID
 
 
 def _update_values(update: object) -> list[Any]:
@@ -201,7 +194,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         async def anonymize(message: BaseMessage, content: str) -> str:
             """Anonymize one message under the role its type contributes."""
             role = self._message_role(message)
-            return await self._anonymize(content, thread_id, role)
+            return await self._deid.anonymize(content, thread_id, role)
 
         messages = state["messages"]
         changed = await self._rewrite_content(messages, allowed, anonymize)
@@ -222,7 +215,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
         async def restore(message: BaseMessage, content: str) -> str:
             """Deanonymize one message's content for display."""
-            return await self._deanonymize(content, thread_id)
+            return await self._deid.deanonymize(content, thread_id)
 
         messages = state["messages"]
         # Only content is restored for display; tool_calls stay tokenized in the
@@ -291,7 +284,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
         async def anonymize(_message: BaseMessage, content: str) -> str:
             """Anonymize one tool-result string under the user role."""
-            return await self._anonymize(content, thread_id)
+            return await self._deid.anonymize(content, thread_id)
 
         for message in _tool_messages(response):
             new_content, changed = await self._transform_content(
@@ -407,13 +400,3 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         if self.assistant_strategy is EntityCreateByAssistantStrategy.ANONYMIZE:
             return MessageRole.USER
         return MessageRole.ASSISTANT
-
-    async def _anonymize(
-        self, text: str, thread_id: str, role: MessageRole = MessageRole.USER
-    ) -> str:
-        """Anonymize a text within the thread and return the anonymized string."""
-        return await self._deid.anonymize(text, thread_id, role)
-
-    async def _deanonymize(self, text: str, thread_id: str) -> str:
-        """Deanonymize a text, applying the invented-placeholder strategy."""
-        return await self._deid.deanonymize(text, thread_id)

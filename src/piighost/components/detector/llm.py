@@ -57,21 +57,12 @@ _DATA_TAG_PATTERN = re.compile(
     f"{re.escape(_TEXT_OPEN)}|{re.escape(_TEXT_CLOSE)}", re.IGNORECASE
 )
 """Matches either data tag, in any case, so neither can close the data region
-from inside the source text."""
+from inside the source text.
 
-
-def _escape_data_tag(match: re.Match[str]) -> str:
-    """Escape the leading angle bracket of a matched data tag."""
-    return match.group().replace("<", "&lt;")
-
-
-def _neutralize_data_tags(text: str) -> tuple[str, int]:
-    """Escape every data tag in a text, returning the copy and how many were found.
-
-    The escaped form is ordinary text, so it survives any provider-side
-    normalization that would silently strip an invisible separator.
-    """
-    return _DATA_TAG_PATTERN.subn(_escape_data_tag, text)
+A match is escaped by its leading angle bracket, as &lt;. The escaped form is
+ordinary text, so it survives any provider-side normalization that would
+silently strip an invisible separator.
+"""
 
 
 def _make_schema(labels: list[str]) -> type[BaseModel]:
@@ -155,7 +146,9 @@ class LLMDetector(BaseNERDetector):
         if not text:
             return []
 
-        tagged_text, tag_count = _neutralize_data_tags(text)
+        tagged_text, tag_count = _DATA_TAG_PATTERN.subn(
+            lambda match: match.group().replace("<", "&lt;"), text
+        )
         if tag_count:
             logger.warning(
                 "LLMDetector source text carried %d data tag(s); they were "

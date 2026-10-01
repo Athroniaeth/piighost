@@ -150,7 +150,7 @@ class BaseNERDetector(ABC):
         """
         if not self._label_map:
             return native
-        return self._map_label(native)
+        return self._reverse_map.get(native)
 
     @staticmethod
     def _normalize(labels: list[str] | dict[str, str] | None) -> dict[str, str]:
@@ -187,10 +187,6 @@ class BaseNERDetector(ABC):
     def external_labels(self) -> list[str]:
         """The labels emitted in Detection.label (map keys)."""
         return list(self._label_map.keys())
-
-    def _map_label(self, internal: str) -> str | None:
-        """Return the external label for an internal one, or None if unmapped."""
-        return self._reverse_map.get(internal)
 
     async def _run_blocking(
         self, fn: Callable[..., Any], *args: Any, **kwargs: Any

@@ -15,7 +15,7 @@ PIIGhostClient, so it is driven the same way in tests and in the runner.
 import re
 from typing import Any
 
-from piighost.conversation_memory.base import MessageRole
+from piighost.conversation_memory.base import DEFAULT_THREAD_ID, MessageRole
 from piighost.integrations._deidentify import StringOp, map_strings
 from piighost.pipeline import AnyThreadPipeline
 
@@ -96,7 +96,7 @@ async def handle_hook(
     without its payload field, or one this integration does not handle, is a no-op.
     """
     name = event.get("hook_event_name")
-    thread_id = event.get("session_id") or "default"
+    thread_id = event.get("session_id") or DEFAULT_THREAD_ID
 
     if name == "UserPromptSubmit":
         prompt = event.get("prompt")

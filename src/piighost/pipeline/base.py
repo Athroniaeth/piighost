@@ -202,21 +202,11 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
                 stacklevel=2,
             )
 
-    def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
-        """Resolve overlapping detections, or pass them through when disabled."""
-        if self.overlap_resolver is None:
-            return detections
-        return self.overlap_resolver.resolve(detections)
-
     def _expand(self, text: str, detections: list[Detection]) -> list[Detection]:
         """Add missed occurrences, or pass the detections through when disabled."""
         if self.expander is None:
             return detections
         return self.expander.expand(text, detections)
-
-    def _link(self, detections: list[Detection]) -> list[Entity]:
-        """Group detections into entities. A subclass may widen this to a thread."""
-        return self.linker.link(detections)
 
     def _resolve_entities(self, entities: list[Entity]) -> list[Entity]:
         """Reconcile entity conflicts, or pass them through when disabled."""
@@ -375,13 +365,13 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 detections = await self._override(text, detections)
             root.set_input(self._payload_text(text, detections))
 
-            with self._stage_span("piighost.overlap", self.overlap_resolver):
-                detections = self._resolve_overlaps(detections)
+            with self._tracer.span("piighost.overlap"):
+                detections = self.overlap_resolver.resolve(detections)
             with self._stage_span("piighost.expand", self.expander):
                 detections = self._expand(text, detections)
 
             with self._tracer.span("piighost.link") as span:
-                entities = self._link(detections)
+                entities = self.linker.link(detections)
                 span.set_output(self._payload_entities(entities))
 
             with self._stage_span("piighost.entity_resolve", self.entity_resolver):

@@ -14,14 +14,26 @@ This is the pairwise exception to the always-template rule, the same reason the
 fuzzy entity resolver stands apart from the linker.
 """
 
+import hashlib
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from piighost.exceptions import PIIGhostSecurityWarning
 from piighost.models import Detection
+
+if TYPE_CHECKING:
+    from piighost.crypto.cipher.base import AnyCipher
+    from piighost.crypto.hasher.base import AnyHasher
+
+DEFAULT_THREAD_ID = "default"
+"""The thread a caller lands in when it names none.
+
+Every caller that names no thread shares it, and with it the tokens of every
+value they sent, which is why the LangChain middleware refuses it by default.
+"""
 
 _SECURITY_DOC_URL = "https://athroniaeth.github.io/piighost/security/"
 """Documentation page explaining the at-rest crypto options for a backend."""
@@ -41,6 +53,28 @@ def warn_plaintext(backend: str) -> None:
         PIIGhostSecurityWarning,
         stacklevel=3,
     )
+
+
+def require_paired_crypto(
+    hasher: "AnyHasher | None", cipher: "AnyCipher | None"
+) -> None:
+    """Refuse a persistent backend given a hasher or a cipher, but not both.
+
+    Hashing the keys while storing the values in clear, or the reverse, protects
+    nothing, so the crypto is all or nothing.
+
+    Raises:
+        ValueError: If exactly one of the two is given.
+    """
+    if (hasher is None) != (cipher is None):
+        raise ValueError("Provide both a hasher and a cipher, or neither")
+
+
+def message_digest(message: str, hasher: "AnyHasher | None") -> str:
+    """Key a message: the security hasher if set, else a plain SHA-256."""
+    if hasher is not None:
+        return hasher.hash(message)
+    return hashlib.sha256(message.encode()).hexdigest()
 
 
 class MessageRole(Enum):
