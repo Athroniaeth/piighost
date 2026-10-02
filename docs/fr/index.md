@@ -45,7 +45,7 @@ Pour aller plus loin :
 
     Aucune donnée confidentielle ne part en clair, et vous pouvez le prouver.
 
-    [Vos besoins](needs-by-profile.md#responsable-conformite-dpo)
+    [Documenter une AIPD](dpia.md)
 
 -   :lucide-code: __Développeur__
 
@@ -53,7 +53,7 @@ Pour aller plus loin :
 
     La protection s'ajoute à votre agent sans réécrire sa logique.
 
-    [Vos besoins](needs-by-profile.md#developpeur)
+    [Protéger un agent LangChain](getting-started/langchain.md)
 
 -   :lucide-server: __Exploitant__
 
@@ -61,7 +61,7 @@ Pour aller plus loin :
 
     Un serveur partagé, une mémoire chiffrée, des secrets hors des fichiers.
 
-    [Vos besoins](needs-by-profile.md#exploitant)
+    [Déployer une API de dé-identification](getting-started/api-server.md)
 
 -   :lucide-message-circle: __Utilisateur de l'application__
 
@@ -69,7 +69,7 @@ Pour aller plus loin :
 
     Il lit ses vraies informations et ne voit jamais un jeton.
 
-    [Ses besoins](needs-by-profile.md#utilisateur-de-lapplication)
+    [Pipeline conversationnel](getting-started/conversation.md)
 
 </div>
 

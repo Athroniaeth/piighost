@@ -35,6 +35,44 @@ To go further:
 - [Why de-identify?](why-anonymize.md), the provider spectrum, the legal detail (CLOUD Act, FISA 702, Schrems II) and the use cases
 - [How PIIGhost compares](comparison.md), the alternatives and their trade-offs
 
+## By profile
+
+<div class="grid cards" markdown>
+
+-   :lucide-scale: __Compliance officer__
+
+    ---
+
+    No confidential data leaves in clear, and you can prove it.
+
+    [Document a DPIA](dpia.md)
+
+-   :lucide-code: __Developer__
+
+    ---
+
+    The protection joins your agent without rewriting its logic.
+
+    [Protect a LangChain agent](getting-started/langchain.md)
+
+-   :lucide-server: __Operator__
+
+    ---
+
+    A shared server, an encrypted memory, secrets kept out of files.
+
+    [Deploy a de-identification API](getting-started/api-server.md)
+
+-   :lucide-message-circle: __Application user__
+
+    ---
+
+    They read their real information and never see a token.
+
+    [Conversational pipeline](getting-started/conversation.md)
+
+</div>
+
 ## Where to start
 
 <div class="grid cards" markdown>
