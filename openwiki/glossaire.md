@@ -1,11 +1,8 @@
 ---
 type: glossary
 title: Glossaire
-description: Définitions des termes de PIIGhost (dé-identification, jeton, détection, entité, fil de conversation, provenance, listes serveur, garde-fou, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
+description: Définitions des termes de PIIGhost (dé-identification, jeton, détection, entité, fil de conversation, provenance, liste blanche et liste noire, garde-fou, identifiants, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
 tags: [glossary, vocabulary, de-identification, placeholder, entity, thread]
-verified:
-  - by: openwiki/0.6.1
-    at: 2026-10-01T18:36:49.731Z
 sources:
   - id: openwiki-source-aa685735384e8973ddee846d
     resource: repo://src/piighost/components/linker/exact.py
@@ -29,7 +26,7 @@ sources:
     resource: repo://src/piighost/models/span.py
   - id: openwiki-source-5ddce4dd4539293afb49cdfd
     resource: repo://src/piighost/pipeline/base.py
-generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
+generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
 # Glossaire
@@ -44,7 +41,7 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 |---|---|---|---|
 | Données confidentielles | Tout ce que PIIGhost protège : les données personnelles et les secrets. | la valeur d'origine, avant protection | aucun |
 | Donnée personnelle (PII) | Valeur qui peut identifier une personne : nom, adresse, téléphone, e-mail. PII signifie *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | étiquette `PERSON`, `EMAIL`… |
-| Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle : clé d'API, mot de passe, clé privée. | une clé d'API dans un message | catalogues hub `piighost/secrets` |
+| Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle : clé d'API, mot de passe, clé privée. | une clé d'API dans un message | groupe du hub `piighost/logs` |
 | Dé-identification | Remplacement des données confidentielles par des jetons, en gardant de quoi les restaurer. Au sens du RGPD (règlement général sur la protection des données), c'est une pseudonymisation. | `Bonjour <<PERSON:1>>` | pipeline par défaut |
 | Anonymisation | Suppression sans retour possible. PIIGhost ne l'obtient qu'avec un jeton qui ne garde rien. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restauration | Remise des vraies valeurs à la place des jetons, dans la réponse montrée à l'utilisateur. | `Bonjour Patrick` dans la réponse | `deanonymize` |
@@ -80,17 +77,19 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
 | Fil de conversation (thread) | Une conversation isolée. Une valeur garde le même jeton sur tout le fil. | identifiant de fil, `--thread-id` | `thread_id` |
-| Fil par défaut | Fil commun à tous les appels qui n'en nomment aucun. Ils partagent alors leurs jetons. | `default` | `DEFAULT_THREAD_ID` |
+| Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration n'y retombe seule : un appel sans identifiant est refusé. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
 | Provenance | Auteur de la première apparition d'une valeur dans le fil : l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
-| Mémoire de conversation | Stockage des détections de chaque message, par fil. Contient des données personnelles. | clé `[memory]` | `AnyConversationMemory` |
+| Mémoire de conversation | Stockage des détections de chaque message, par fil. Contient des données personnelles. Gardée dans le programme, elle garde au plus 10 000 fils, chacun un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
 | Effacement d'un fil | Suppression de toute la mémoire d'un fil, pour le droit à l'effacement. Renvoie le nombre de messages et de détections supprimés. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
 | Correction humaine | Jeu de détections corrigé par une personne pour un message, qui remplace celui du détecteur. | aucune forme visible | `anonymize_corrected` |
+| Décodeur de flux | Composant qui restaure une réponse diffusée au fil de l'eau, en retenant un jeton coupé jusqu'à ce qu'il soit entier. | « `<<PER` » retenu, puis « Jean Dupont » | `AsyncPlaceholderStreamDecoder`, `deanonymize_stream` |
+| Réglage d'outil | Ce que reçoit un outil (vraies valeurs ou jetons) et ce que lit le modèle de son résultat (masqué ou en clair). | « Complet », « Entrée seule », « Sortie seule », « Aucun » | `ToolCallStrategy` |
 
-## Règles imposées par le serveur
+## Liste blanche et liste noire de la configuration
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Liste blanche | Valeurs toujours masquées, même si le détecteur les rate. | clé `[override.whitelist]` | `DetectionOverride.whitelist` |
+| Liste blanche | Valeurs toujours masquées, même si le détecteur les rate. Écrite dans la section `[override]` de la configuration, celle de l'application ou celle du serveur `piighost-api`. | clé `[override.whitelist]` | `DetectionOverride.whitelist` |
 | Liste noire | Valeurs jamais masquées, même si le détecteur les trouve. | clé `[override.blacklist]` | `DetectionOverride.blacklist` |
 
 ## Stockage et sécurité
@@ -101,3 +100,14 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Chiffreur (cipher) | Composant qui chiffre les détections stockées, avec une clé AES (*Advanced Encryption Standard*) en mode GCM. | variable `PIIGHOST_CIPHER_KEY` | `AesGcmCipher` |
 | Hub | Registre en ligne de motifs et de configurations, adressés par référence. | `https://hub.piighost.dev`, variable `PIIGHOST_HUB_URL` | `piighost.hub` |
 | Masqueur de traces | Fabrique de jetons appliquée aux traces techniques, pour qu'elles ne contiennent pas de données en clair. | clé `[observation_redactor]` | `observation_redactor` |
+
+## Identifiants du wiki
+
+Les identifiants sont en anglais, les mêmes quelle que soit la langue de la page.
+
+| Terme | Définition | Ce que vous voyez | Nom technique |
+|---|---|---|---|
+| Besoin | Ce qu'un profil attend de PIIGhost, avec ses critères observables. Le préfixe nomme le profil : responsable conformité, développeur, exploitant, utilisateur de l'application. | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Besoins par profil](besoins-par-profil.md) |
+| Règle de gestion | Règle formulée en « Quand… alors… » dans une page de processus. *BR* signifie *business rule*, suivi du domaine. | `BR-MSG-05`, `BR-CONV-03` | parties « Règles à connaître » |
+| Test d'acceptation | Test qui vérifie un critère d'un besoin. | `AT-DPO-1-2` | [Tests d'acceptation](tests/tests-d-acceptation.md), `tests/acceptance/` |
+| Écart | Endroit où la documentation et le code divergent. | `ECART-09` | [Registre des écarts](reference/ecarts-doc-code.md) |

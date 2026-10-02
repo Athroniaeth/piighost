@@ -4,7 +4,7 @@ The files used to generate the French wiki in [`openwiki/`](../../openwiki/quick
 
 | File | Role |
 |---|---|
-| `INSTRUCTIONS.md` | The brief OpenWiki reads from `openwiki/INSTRUCTIONS.md`: audience (business readers first, then developers), mandatory page structure, business rules numbered `RG-<DOMAIN>-NN`, doc/code discrepancy register, style rules. Written in French. |
+| `INSTRUCTIONS.md` | The brief OpenWiki reads from `openwiki/INSTRUCTIONS.md`: audience (business readers first, then developers), mandatory page structure, business rules numbered `BR-<DOMAIN>-NN`, doc/code discrepancy register, style rules. Written in French. |
 | `skills/rediger-doc/` | Writing skill the brief asks the host to use for each page, with one reference per document type (business doc, technical doc, README) and a shared style guide. |
 | `skills/custom-humanizer/` | Final-review skill, used in its light "Retoucher" mode. `scripts/verifier_sens.py` compares a text and its rewrite and reports lost or added numbers, inline code and URLs. |
 

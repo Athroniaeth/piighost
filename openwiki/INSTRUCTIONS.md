@@ -95,7 +95,9 @@ Sections, dans cet ordre (omettre celles qui ne servent pas) :
    - avertit **avant** l'étape de toute action irréversible ou qui envoie
      quelque chose ;
    - se termine par **Comment vérifier**.
-3. **Règles à connaître** : règles de gestion numérotées (`RG-<DOMAINE>-NN`),
+3. **Règles à connaître** : règles de gestion numérotées (`BR-<DOMAINE>-NN`,
+   *business rule*, avec un code de domaine en anglais : `MSG`, `CONV`,
+   `LIST`, `TOOL`, `STREAM`, `AGT`, `CFG`, `STO`),
    formulées en « Quand… alors… », avec un exemple concret daté pour chaque
    règle non évidente. Utiliser un tableau de décision quand plusieurs
    conditions se combinent. Expliquer le pourquoi en une phrase si cela aide
@@ -112,7 +114,7 @@ conduite à tenir.
 
 Sections typées, sans les mélanger :
 
-1. **Où vivent les règles** (référence) : un tableau `RG-… | fichier:ligne`,
+1. **Où vivent les règles** (référence) : un tableau `BR-… | fichier:ligne`,
    en reprenant les identifiants de la partie métier, plus les entités,
    services et commandes liés.
 2. **Modifier…** (how-to), quand une modification courante existe : étapes
@@ -169,6 +171,17 @@ Couvrir au minimum :
   sigle du métier, avec une définition métier d'une ou deux phrases, le
   libellé de l'écran, puis, si utile, le nom technique correspondant.
 - **Registre des écarts doc / code** (`reference/ecarts-doc-code.md`).
+- **Besoins par profil** (`besoins-par-profil.md`) et **tests d'acceptation**
+  (`tests/tests-d-acceptation.md`) : chaque processus cite les besoins qu'il
+  couvre, et chaque besoin ses tests.
+
+## Identifiants
+
+Les identifiants sont en anglais, les mêmes quelle que soit la langue de la
+page : besoins `DPO-n`, `DEV-n`, `OPS-n`, `USER-n` ; règles
+`BR-<DOMAINE>-NN` ; tests d'acceptation `AT-<besoin>-<n>` ; écarts
+`ECART-NN`. Un identifiant publié ne change plus de sens : une règle retirée
+laisse son numéro libre.
 
 ## Style
 
