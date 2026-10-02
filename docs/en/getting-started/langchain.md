@@ -14,24 +14,7 @@ You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM onl
 The middleware wraps a `ThreadAnonymizationPipeline`, the same one from the [Conversational pipeline](conversation.md) page. Its anonymizer must use a delimited token factory like `LabelCounterPlaceholderFactory`, which emits `<<PERSON:1>>`{ .placeholder }. The middleware needs that grammar to find a token again, otherwise it raises `UnrecognizableFactoryError` at construction.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.conversation_memory import InMemoryConversationMemory
-
-detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+--8<-- "snippets/langchain_start.py:pipeline"
 ```
 
 ## 2. Declare a tool that needs the real value
@@ -39,14 +22,7 @@ pipeline = ThreadAnonymizationPipeline(
 A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>`{ .placeholder }. Write the tool as usual, against real values. The middleware restores them before the call.
 
 ```python
-from langchain.tools import tool
-
-
-@tool
-def lookup_city(person: str) -> str:
-    """Return the city where a person lives."""
-    directory = {"Patrick": "Paris"}
-    return directory.get(person, "unknown")
+--8<-- "snippets/langchain_start.py:tool"
 ```
 
 ## 3. Wrap the pipeline in the middleware
@@ -54,22 +30,7 @@ def lookup_city(person: str) -> str:
 `PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` restores the tool arguments on the way in and de-identifies the tool result on the way out, so the tool works on real values while the model still only sees tokens.
 
 ```python
-from langchain.agents import create_agent
-from piighost.integrations.langchain import (
-    PIIAnonymizationMiddleware,
-    ToolCallStrategy,
-)
-
-agent = create_agent(
-    model="openai:gpt-5.6-terra",
-    tools=[lookup_city],
-    middleware=[
-        PIIAnonymizationMiddleware(
-            pipeline=pipeline,
-            tool_strategy=ToolCallStrategy.FULL,
-        )
-    ],
-)
+--8<-- "snippets/langchain_start.py:agent"
 ```
 
 ## 4. Run one turn
@@ -77,24 +38,13 @@ agent = create_agent(
 The `thread_id` goes in the LangGraph config, under `configurable`. The middleware reads it from there and scopes every token to that thread.
 
 ```python
-import asyncio
-
-
-async def main() -> None:
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": "Où habite Patrick ?"}]},
-        config={"configurable": {"thread_id": "thread-42"}},
-    )
-    print(result["messages"][-1].content)
-
-
-asyncio.run(main())
+--8<-- "snippets/langchain_start.py:run"
 ```
 
 The final message is restored for display, so the answer reads with the real values:
 
 ```text
-Patrick habite à Paris.
+--8<-- "snippets/langchain_start.out"
 ```
 
 ## How it works

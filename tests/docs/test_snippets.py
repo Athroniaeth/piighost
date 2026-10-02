@@ -5,6 +5,10 @@ and English pages, which include them with `--8<-- "snippets/<file>:<section>"`.
 A file that prints has a sibling .out holding its expected output, which the
 page includes too: the output a reader sees is the output the code gives. A
 file named test_*.py is a test file the page shows, and runs under pytest.
+
+An example that calls a model provider swaps it, in lines the page does not
+include, for a scripted model of `_offline.py`, which fails if a clear value
+reaches it. A file named _*.py is such a helper, never shown.
 """
 
 import importlib
@@ -58,6 +62,10 @@ SNIPPETS: list[Any] = [
     "placeholder_uuid.py",
     "placeholder_bracket.py",
     "placeholder_hashed_email.py",
+    "langchain_start.py",
+    "langchain_agent.py",
+    "pydantic_ai_agent.py",
+    "llama_index_rag.py",
     # These reach the hub or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
     pytest.param("detector_hub.py", marks=pytest.mark.integration),
@@ -70,6 +78,8 @@ SNIPPETS: list[Any] = [
     pytest.param("detectors_composite.py", marks=pytest.mark.integration),
     pytest.param("detectors_chunked.py", marks=pytest.mark.integration),
     pytest.param("extending_gliner2.py", marks=pytest.mark.integration),
+    pytest.param("langchain_pipeline.py", marks=pytest.mark.integration),
+    pytest.param("pydantic_ai_pipeline.py", marks=pytest.mark.integration),
 ]
 """Every example, the ones that need the network or a model marked integration."""
 
@@ -86,6 +96,10 @@ MIGRATED = [
     "observation.md",
     "tool-call-strategies.md",
     "placeholder-factories.md",
+    "getting-started/langchain.md",
+    "examples/langchain.md",
+    "examples/pydantic-ai.md",
+    "examples/llama-index.md",
 ]
 """The pages whose Python examples all come from docs/snippets/, in both languages."""
 
@@ -107,6 +121,12 @@ REQUIRES = {
     "observation_langfuse.py": "langfuse",
     "tool_call_middleware.fr.py": "langchain",
     "tool_call_middleware.en.py": "langchain",
+    "langchain_start.py": "langchain",
+    "langchain_agent.py": "langchain",
+    "langchain_pipeline.py": "gliner2",
+    "pydantic_ai_agent.py": "pydantic_ai",
+    "pydantic_ai_pipeline.py": "gliner2",
+    "llama_index_rag.py": "llama_index.core",
 }
 """The optional package an example needs, skipped when it is absent."""
 
@@ -129,14 +149,15 @@ def _expected(snippet: Path) -> str | None:
 
 
 RUNNER = """
-import ast, asyncio, sys
+import ast, asyncio, os, sys
 path = sys.argv[1]
+sys.path.insert(0, os.path.dirname(path))
 code = compile(open(path, encoding="utf-8").read(), path, "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
 result = eval(code, {"__name__": "__main__", "__file__": path})
 if asyncio.iscoroutine(result):
     asyncio.run(result)
 """
-"""Run a file as a script, a top-level await included, as a page may show one."""
+"""Run a file as `python <file>` does, a top-level await included, as a page may show one."""
 
 
 def _run(snippet: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -179,7 +200,7 @@ def test_an_example_runs_and_prints_what_the_page_shows(
 def test_every_example_is_listed() -> None:
     """A file added to docs/snippets/ without a case here would never run."""
     listed = {_name(case) for case in SNIPPETS}
-    on_disk = {path.name for path in SNIPPETS_DIR.glob("*.py")}
+    on_disk = {path.name for path in SNIPPETS_DIR.glob("[!_]*.py")}
     assert on_disk == listed
 
 

@@ -532,6 +532,14 @@ file per example, shared by the FR and EN pages, and the page includes it:
 - **`tests/docs/test_snippets.py` runs every file** and compares its output.
   A new file goes in its `SNIPPETS` list; one that reaches the hub or loads a
   model is marked `integration`.
+- **An example that calls a model provider** keeps the provider's name on
+  the page. Lines above its first section, which the page does not include,
+  swap the provider for a scripted model of `_offline.py`, and that model
+  fails if a clear value reaches it. Never change the shown code to make it
+  testable.
+- **A class a page shows** (a port, a template, a built-in factory) is listed
+  in `SHOWN_CLASSES`, which compares its signatures and bases with the real
+  class.
 - **A page listed in `MIGRATED`** fails the test if a Python block is written
   in it by hand again.
 - **One file serves both languages**, which keeps the code identical, as the
