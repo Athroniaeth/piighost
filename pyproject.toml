@@ -210,6 +210,8 @@ convention = "google"
 # The documentation's examples are the code a page shows, line for line: a
 # docstring or an annotation added for the linter would be added to the page.
 "docs/snippets/**" = ["D", "ANN"]
+# A page may show a top-level await, as a notebook or `python -m asyncio` runs it.
+"docs/snippets/architecture_{pipeline,thread}.py" = ["F704", "PLE1142"]
 
 [tool.pyrefly]
 project-excludes = [

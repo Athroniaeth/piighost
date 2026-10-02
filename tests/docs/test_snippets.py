@@ -7,7 +7,10 @@ page includes too: the output a reader sees is the output the code gives. A
 file named test_*.py is a test file the page shows, and runs under pytest.
 """
 
+import importlib
+import inspect
 import re
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -34,6 +37,27 @@ SNIPPETS: list[Any] = [
     "overrides_whitelist_exact.py",
     "overrides_whitelist_provenance.py",
     "overrides_conflict.py",
+    "extending.py",
+    "extending_models.py",
+    "ports.py",
+    "architecture_port.py",
+    "architecture_template.fr.py",
+    "architecture_template.en.py",
+    "architecture_pipeline.py",
+    "architecture_signature.fr.py",
+    "architecture_signature.en.py",
+    "architecture_thread.py",
+    "architecture_loaders.py",
+    "observation_tracer.py",
+    "observation_redactor.py",
+    "observation_clear_text.py",
+    "observation_langfuse.py",
+    "tool_call_middleware.fr.py",
+    "tool_call_middleware.en.py",
+    "placeholder_builtins.py",
+    "placeholder_uuid.py",
+    "placeholder_bracket.py",
+    "placeholder_hashed_email.py",
     # These reach the hub or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
     pytest.param("detector_hub.py", marks=pytest.mark.integration),
@@ -45,6 +69,7 @@ SNIPPETS: list[Any] = [
     pytest.param("detectors_pick.py", marks=pytest.mark.integration),
     pytest.param("detectors_composite.py", marks=pytest.mark.integration),
     pytest.param("detectors_chunked.py", marks=pytest.mark.integration),
+    pytest.param("extending_gliner2.py", marks=pytest.mark.integration),
 ]
 """Every example, the ones that need the network or a model marked integration."""
 
@@ -56,16 +81,33 @@ MIGRATED = [
     "examples/testing.md",
     "examples/overrides.md",
     "examples/detectors.md",
+    "extending.md",
+    "architecture.md",
+    "observation.md",
+    "tool-call-strategies.md",
+    "placeholder-factories.md",
 ]
 """The pages whose Python examples all come from docs/snippets/, in both languages."""
 
 DOCS_DIR = SNIPPETS_DIR.parent
 """The documentation root, holding one folder per language."""
 
-FILES = {"overrides_config.py": {"piighost.toml": "overrides_config.toml"}}
+FILES = {
+    "overrides_config.py": {"piighost.toml": "overrides_config.toml"},
+    "architecture_loaders.py": {
+        "pipeline.toml": "architecture_loaders.pipeline.toml",
+        "thread.toml": "architecture_loaders.thread.toml",
+    },
+}
 """The files an example reads, copied from docs/snippets/ under the name it opens."""
 
-REQUIRES = {"detector_gliner2.py": "gliner2"}
+REQUIRES = {
+    "detector_gliner2.py": "gliner2",
+    "extending_gliner2.py": "gliner2",
+    "observation_langfuse.py": "langfuse",
+    "tool_call_middleware.fr.py": "langchain",
+    "tool_call_middleware.en.py": "langchain",
+}
 """The optional package an example needs, skipped when it is absent."""
 
 TIMEOUT = 300
@@ -86,9 +128,20 @@ def _expected(snippet: Path) -> str | None:
     return "".join(line for line in lines if "--8<--" not in line)
 
 
+RUNNER = """
+import ast, asyncio, sys
+path = sys.argv[1]
+code = compile(open(path, encoding="utf-8").read(), path, "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+result = eval(code, {"__name__": "__main__", "__file__": path})
+if asyncio.iscoroutine(result):
+    asyncio.run(result)
+"""
+"""Run a file as a script, a top-level await included, as a page may show one."""
+
+
 def _run(snippet: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
     """Run an example as a reader would, or a test file under pytest."""
-    command = [sys.executable, str(snippet)]
+    command = [sys.executable, "-c", RUNNER, str(snippet)]
     if snippet.name.startswith("test_"):
         command = [
             sys.executable,
@@ -136,6 +189,60 @@ def test_every_example_is_listed() -> None:
 def test_a_config_example_is_valid(config: str) -> None:
     """A configuration a page shows parses, hub references included."""
     load_config(SNIPPETS_DIR / config)
+
+
+SHOWN_CLASSES = {
+    "ports.py": "the ports of extending.md",
+    "architecture_port.py": "the detector port of architecture.md",
+    "architecture_template.fr.py": "the linker template, French comments",
+    "architecture_template.en.py": "the linker template, English comments",
+    "placeholder_builtins.py": "the built-in factories of placeholder-factories.md",
+}
+"""The examples that show a class of piighost, which must match the real one."""
+
+REAL_CLASSES = {
+    "AnyDetector": "piighost.components.detector.base",
+    "AnyOverlapResolver": "piighost.components.overlap_resolver.base",
+    "AnyDetectionExpander": "piighost.components.expander.base",
+    "AnyEntityLinker": "piighost.components.linker.base",
+    "AnyEntityResolver": "piighost.components.entity_resolver.base",
+    "AnyPlaceholderFactory": "piighost.components.placeholder.base",
+    "AnyGuardRail": "piighost.components.guard.base",
+    "BaseEntityLinker": "piighost.components.linker.base",
+    "LabelCounterPlaceholderFactory": "piighost.components.placeholder",
+    "LabelHashPlaceholderFactory": "piighost.components.placeholder",
+    "LabelPlaceholderFactory": "piighost.components.placeholder",
+    "MaskPlaceholderFactory": "piighost.components.placeholder",
+    "RedactPlaceholderFactory": "piighost.components.placeholder",
+}
+"""Where each class a page shows really lives."""
+
+
+@pytest.mark.parametrize("name", SHOWN_CLASSES)
+def test_a_class_a_page_shows_matches_the_code(name: str) -> None:
+    """Its methods have the real signatures, and its bases are real bases of it."""
+    shown = runpy.run_path(str(SNIPPETS_DIR / name))
+    classes = {
+        key: value
+        for key, value in shown.items()
+        if isinstance(value, type) and key in REAL_CLASSES
+    }
+    assert classes, f"{name} shows no class of piighost"
+    for class_name, fake in classes.items():
+        real = getattr(importlib.import_module(REAL_CLASSES[class_name]), class_name)
+        for method, function in vars(fake).items():
+            if callable(function) and not method.startswith("__"):
+                assert inspect.signature(function) == inspect.signature(
+                    getattr(real, method)
+                ), f"{class_name}.{method}"
+        for base in fake.__bases__:
+            real_base = REAL_CLASSES.get(base.__name__) and getattr(
+                importlib.import_module(REAL_CLASSES[base.__name__]), base.__name__
+            )
+            if real_base:
+                assert issubclass(real, real_base), (
+                    f"{class_name} is not a {base.__name__}"
+                )
 
 
 def test_every_output_has_its_example() -> None:

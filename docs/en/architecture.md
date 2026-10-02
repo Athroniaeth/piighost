@@ -85,9 +85,7 @@ it has the methods, without inheriting from it. The pipeline depends on the port
 on a concrete class.
 
 ```python
-@runtime_checkable
-class AnyDetector(Protocol):
-    async def detect(self, text: str) -> list[Detection]: ...
+--8<-- "snippets/architecture_port.py:example"
 ```
 
 When several adapters of one port share a skeleton, that skeleton lives in a `Base*`
@@ -95,15 +93,7 @@ class, an abstract class that applies the Template Method pattern. The skeleton 
 written once in the base class, and each subclass provides only the step that varies.
 
 ```python
-class BaseEntityLinker(ABC):
-    def link(self, detections: list[Detection]) -> list[Entity]:
-        # common skeleton: group by key
-        ...
-
-    @abstractmethod
-    def _key(self, detection: Detection) -> Hashable:
-        # only varying step, defined by the subclass
-        ...
+--8<-- "snippets/architecture_template.en.py:example"
 ```
 
 Two ports have no template. The guard rails and the memory backends differ by their
@@ -241,26 +231,7 @@ the guard rail. Its `deanonymize` method takes the token-to-entity mapping produ
 `anonymize` and restores the values.
 
 ```python
-from piighost.pipeline import AnonymizationPipeline
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-
-detector = ExactMatchDetector({"Patrick": "PERSON"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    linker=linker,
-    anonymizer=anonymizer,
-)
-result = await pipeline.anonymize("Patrick habite à Paris.")
-# result.text   -> "<<PERSON:1>> habite à Paris."
-# result.tokens -> {Entity("Patrick"): "<<PERSON:1>>"}
-restored = pipeline.deanonymize(result.text, result.tokens)
-# restored -> "Patrick habite à Paris."
+--8<-- "snippets/architecture_pipeline.py:example"
 ```
 
 The constructor requires only the detector. The linker and anonymizer default to
@@ -268,16 +239,7 @@ The constructor requires only the detector. The linker and anonymizer default to
 The other stages come as keyword arguments.
 
 ```python
-AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    overlap_resolver=None,   # AnyOverlapResolver, defaults to ConfidenceOverlapResolver
-    expander=None,           # AnyDetectionExpander
-    entity_resolver=None,    # AnyEntityResolver
-    guard=None,              # AnyGuardRail
-    override=None,           # AnyDetectionOverride
-)
+--8<-- "snippets/architecture_signature.en.py:example"
 ```
 
 Omitting `overlap_resolver`, or passing `None`, builds a `ConfidenceOverlapResolver`,
@@ -300,9 +262,7 @@ message's spans are replaced, because detections from different messages do not 
 the same offset space.
 
 ```python
-result = await thread_pipeline.anonymize(text, thread_id="t-42")
-restored = await thread_pipeline.deanonymize(reply, thread_id="t-42")
-dropped = await thread_pipeline.forget_thread("t-42")
+--8<-- "snippets/architecture_thread.py:example"
 ```
 
 - The `thread_id` is **mandatory**, there is no shared default thread, so two callers
@@ -401,11 +361,10 @@ component type carries a `build()` method. Assembling the pipeline amounts to ca
 `build()` on each model.
 
 ```python
-from piighost.config import load_pipeline, load_thread_pipeline
-
-pipeline = load_pipeline("piighost.toml")
-thread_pipeline = load_thread_pipeline("piighost.toml")
+--8<-- "snippets/architecture_loaders.py"
 ```
+
+A file without a `[memory]` section builds a pipeline, a file that declares one builds a conversation pipeline. Each loader refuses the other kind.
 
 The coupling is one-way, config depends on the core and the adapters, the core never
 imports config. Adding a component means writing an adapter, a config model with

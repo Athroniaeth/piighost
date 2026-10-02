@@ -205,13 +205,7 @@ classDiagram
 Une factory déclare le tag **le plus spécifique** qui matche ses garanties.
 
 ```python
-class LabelCounterPlaceholderFactory(BaseCounterPlaceholderFactory): ...  # PreservesLabeledIdentityOpaque
-class LabelHashPlaceholderFactory(BaseCounterPlaceholderFactory): ...     # PreservesLabeledIdentityOpaque
-class LabelPlaceholderFactory(AnyPlaceholderFactory[PreservesLabel]): ...
-class MaskPlaceholderFactory(AnyPlaceholderFactory[PreservesShape]): ...
-class RedactPlaceholderFactory(AnyPlaceholderFactory[PreservesNothing]): ...
-# No built-in for the id-only branch nor the realistic hashed one,
-# implement your own with PreservesIdentityOnly or PreservesLabeledIdentityHashed.
+--8<-- "snippets/placeholder_builtins.py:example"
 ```
 
 ---
@@ -296,28 +290,7 @@ Il suffit d'hériter de `AnyPlaceholderFactory[<tag>]` avec le bon tag de prése
 ???+ example "Factory id seul (id sans label) : `PreservesIdentityOnly`"
 
     ```python
-    import uuid
-    from collections.abc import Mapping
-
-    from piighost.models import Entity
-    from piighost.components.placeholder import AnyPlaceholderFactory
-    from piighost.components.placeholder.tags import PreservesIdentityOnly
-
-
-    class UUIDPlaceholderFactory(AnyPlaceholderFactory[PreservesIdentityOnly]):
-        """Generate opaque delimited ids, e.g. <<a3f21b4c>>, no label revealed."""
-
-        def create(self, entities: list[Entity]) -> Mapping[Entity, PreservesIdentityOnly]:
-            tokens: dict[Entity, PreservesIdentityOnly] = {}
-            seen: dict[str, PreservesIdentityOnly] = {}  # canonical value -> token
-
-            for entity in entities:
-                canonical = entity.text.lower()
-                if canonical not in seen:
-                    seen[canonical] = PreservesIdentityOnly(f"<<{uuid.uuid4().hex[:8]}>>")
-                tokens[entity] = seen[canonical]
-
-            return tokens
+    --8<-- "snippets/placeholder_uuid.py"
     ```
 
     Le token est délimité, donc retrouvable, et unique par entité. Cette factory est utilisable sous `PIIAnonymizationMiddleware`.
@@ -325,29 +298,7 @@ Il suffit d'hériter de `AnyPlaceholderFactory[<tag>]` avec le bon tag de prése
 ??? example "Factory format crochets (label + id) : `PreservesLabeledIdentityOpaque`"
 
     ```python
-    from collections import defaultdict
-    from collections.abc import Mapping
-
-    from piighost.models import Entity
-    from piighost.components.placeholder import AnyPlaceholderFactory
-    from piighost.components.placeholder.tags import PreservesLabeledIdentityOpaque
-
-
-    class BracketPlaceholderFactory(AnyPlaceholderFactory[PreservesLabeledIdentityOpaque]):
-        """Generate tokens in the format [PERSON:1], [LOCATION:2], etc."""
-
-        def create(
-            self, entities: list[Entity]
-        ) -> Mapping[Entity, PreservesLabeledIdentityOpaque]:
-            tokens: dict[Entity, PreservesLabeledIdentityOpaque] = {}
-            counters: dict[str, int] = defaultdict(int)
-
-            for entity in entities:
-                counters[entity.label] += 1
-                inner = f"{entity.label}:{counters[entity.label]}"
-                tokens[entity] = PreservesLabeledIdentityOpaque(f"[{inner}]")
-
-            return tokens
+    --8<-- "snippets/placeholder_bracket.py"
     ```
 
 ??? example "Factory réaliste hashé : `PreservesLabeledIdentityHashed`"
@@ -355,29 +306,7 @@ Il suffit d'hériter de `AnyPlaceholderFactory[<tag>]` avec le bon tag de prése
     Cette factory produit une valeur d'apparence réelle dont le contenu vient d'un hash de la valeur d'origine, donc unique et sans collision. Le token n'a pas de grammaire délimitée, il n'est donc pas retrouvable, à réserver hors middleware.
 
     ```python
-    import hashlib
-    from collections.abc import Mapping
-
-    from piighost.models import Entity
-    from piighost.components.placeholder import AnyPlaceholderFactory
-    from piighost.components.placeholder.tags import PreservesLabeledIdentityHashed
-
-
-    class HashedEmailPlaceholderFactory(
-        AnyPlaceholderFactory[PreservesLabeledIdentityHashed]
-    ):
-        """Generate realistic emails like a1b2c3d4@anonymized.local."""
-
-        def create(
-            self, entities: list[Entity]
-        ) -> Mapping[Entity, PreservesLabeledIdentityHashed]:
-            tokens: dict[Entity, PreservesLabeledIdentityHashed] = {}
-
-            for entity in entities:
-                digest = hashlib.sha256(entity.text.encode()).hexdigest()[:8]
-                tokens[entity] = PreservesLabeledIdentityHashed(f"{digest}@anonymized.local")
-
-            return tokens
+    --8<-- "snippets/placeholder_hashed_email.py"
     ```
 
 ---
