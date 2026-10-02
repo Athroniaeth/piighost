@@ -100,6 +100,7 @@ MIGRATED = [
     "examples/langchain.md",
     "examples/pydantic-ai.md",
     "examples/llama-index.md",
+    "getting-started/configuration.md",
 ]
 """The pages whose Python examples all come from docs/snippets/, in both languages."""
 

@@ -1,0 +1,4 @@
+invalid configuration in pipeline.toml: 1 validation error for PipelineConfig
+detector.regex.pattern
+  Extra inputs are not permitted [type=extra_forbidden, input_value={'EMAIL': '[a-z0-9._%+-]+...a-z0-9.-]+\\.[a-z]{2,}'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden

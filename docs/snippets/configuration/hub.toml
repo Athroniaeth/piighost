@@ -1,0 +1,6 @@
+[detector]
+type = "regex"
+catalogs = ["hub:piighost/generic:fab51b33"]
+
+[anonymizer.placeholder]
+type = "label_counter"
