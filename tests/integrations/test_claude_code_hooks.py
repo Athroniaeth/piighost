@@ -4,7 +4,10 @@ handle_hook takes any AnyThreadPipeline, so these drive it with a real local
 ThreadAnonymizationPipeline and an ExactMatchDetector, no server or httpx needed.
 """
 
+import pytest
+
 from piighost.components.detector import ExactMatchDetector
+from piighost.exceptions import MissingThreadIdError
 from piighost.integrations.claude_code import handle_hook
 from piighost.pipeline import ThreadAnonymizationPipeline
 
@@ -78,6 +81,14 @@ async def test_unknown_event_is_a_no_op() -> None:
     pipeline = _pipeline()
     event = {"hook_event_name": "SessionStart", "session_id": "s1"}
     assert await handle_hook(event, pipeline) is None
+
+
+async def test_an_event_without_a_session_id_is_refused() -> None:
+    """Without a session id, the hook raises rather than use a shared thread."""
+    pipeline = _pipeline()
+    event = {"hook_event_name": "UserPromptSubmit", "prompt": "I am Patrick"}
+    with pytest.raises(MissingThreadIdError):
+        await handle_hook(event, pipeline)
 
 
 async def test_missing_field_is_a_no_op() -> None:

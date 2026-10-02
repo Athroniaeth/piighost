@@ -101,7 +101,7 @@ Patrick habite à Paris.
 
 The middleware is a thin adapter around the pipeline. Before the model call, `abefore_model` sends each message through `pipeline.anonymize`, so the LLM receives `Où habite <<PERSON:1>> ?` instead of the raw name. When the model calls `lookup_city` with `person="<<PERSON:1>>"`, `awrap_tool_call` under `ToolCallStrategy.FULL` restores the argument to `Patrick`{ .pii } before running the tool, then de-identifies the tool's string result. After the model call, `aafter_model` restores the reply for the user. The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step of the turn.
 
-Two defaults are worth knowing. `require_thread_id=True` makes a call without a thread id raise, rather than routing every conversation into one shared thread and leaking tokens across them. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuses a token that surfaces in the model's reply but was never issued by the pipeline, whether hallucinated or injected.
+Two rules are worth knowing. A call without a thread id raises, rather than routing every conversation into one shared thread and leaking tokens across them. If your conversations need no separation, pass `"default"`. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuses a token that surfaces in the model's reply but was never issued by the pipeline, whether hallucinated or injected.
 
 ## What's next
 

@@ -15,7 +15,8 @@ PIIGhostClient, so it is driven the same way in tests and in the runner.
 import re
 from typing import Any
 
-from piighost.conversation_memory.base import DEFAULT_THREAD_ID, MessageRole
+from piighost.conversation_memory.base import MessageRole
+from piighost.exceptions import MissingThreadIdError
 from piighost.integrations._deidentify import StringOp, map_strings
 from piighost.pipeline import AnyThreadPipeline
 
@@ -92,11 +93,16 @@ async def handle_hook(
 
     Dispatches on hook_event_name. UserPromptSubmit and PostToolUse anonymize the
     text the model is about to read; PreToolUse restores the real values in a tool
-    input the model produced. The session id is the anonymization thread. An event
-    without its payload field, or one this integration does not handle, is a no-op.
+    input the model produced. The session id is the anonymization thread, and an
+    event without one raises MissingThreadIdError. An event without its payload
+    field, or one this integration does not handle, is a no-op.
     """
     name = event.get("hook_event_name")
-    thread_id = event.get("session_id") or DEFAULT_THREAD_ID
+    thread_id = event.get("session_id")
+    if not isinstance(thread_id, str) or not thread_id:
+        raise MissingThreadIdError(
+            "The hook event carries no session_id, the thread its values belong to."
+        )
 
     if name == "UserPromptSubmit":
         prompt = event.get("prompt")

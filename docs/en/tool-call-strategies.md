@@ -183,7 +183,6 @@ The strategies are closed `Enum`s, you do not extend them, you combine them at m
         tool_strategy=ToolCallStrategy.FULL,
         invented_strategy=InventedPlaceholderStrategy.DROP,
         assistant_strategy=EntityCreateByAssistantStrategy.PRESERVE,
-        require_thread_id=True,
     )
     ```
 
