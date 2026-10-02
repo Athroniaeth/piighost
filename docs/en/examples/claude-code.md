@@ -70,6 +70,12 @@ The hook talks to `piighost-api` at `http://localhost:8000` by default. Override
 export PIIGHOST_API_URL="https://piighost.internal:8000"
 ```
 
+When the hook cannot de-identify, because the server is down or the event has no session id, it fails closed. A prompt or a tool call is blocked, and Claude Code shows the reason. A tool output has already been produced, so the hook replaces it with a notice instead. To let the text through in clear rather than block, for a session where availability matters more than protection, set:
+
+```bash
+export PIIGHOST_HOOK_FAIL_OPEN=1
+```
+
 To watch what the hook does, set `PIIGHOST_HOOK_LOG` to a file path. The runner appends one JSON record per event (the event, the tool, the session id, and the mutation it returned):
 
 ```bash

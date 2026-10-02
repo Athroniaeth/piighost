@@ -1,8 +1,13 @@
 """Tests for the Claude Code hooks integration, over a local thread pipeline.
 
 handle_hook takes any AnyThreadPipeline, so these drive it with a real local
-ThreadAnonymizationPipeline and an ExactMatchDetector, no server or httpx needed.
+ThreadAnonymizationPipeline and an ExactMatchDetector, no server needed. The
+runner tests point it at a server nothing listens on, to check it fails closed.
 """
+
+import io
+import json
+from collections.abc import Mapping
 
 import pytest
 
@@ -181,3 +186,91 @@ async def test_post_tool_use_unknown_tool_is_passthrough() -> None:
         "tool_response": {"payload": {"note": "Patrick"}},
     }
     assert await handle_hook(event, pipeline) is None
+
+
+UNREACHABLE_API_URL = "http://127.0.0.1:9"
+"""A server URL nothing listens on, so every runner call fails to connect."""
+
+BLOCKED_EVENTS = {
+    "a prompt": {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "s1",
+        "prompt": "I am Patrick",
+    },
+    "a tool call": {
+        "hook_event_name": "PreToolUse",
+        "session_id": "s1",
+        "tool_name": "Bash",
+        "tool_input": {"command": "echo <<PERSON:1>>"},
+    },
+    "a prompt without a session id": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "I am Patrick",
+    },
+}
+"""Events the runner blocks when it cannot de-identify them."""
+
+TOOL_OUTPUT_EVENT = {
+    "hook_event_name": "PostToolUse",
+    "session_id": "s1",
+    "tool_name": "Bash",
+    "tool_response": "Patrick ran the build",
+}
+"""A tool output, which cannot be blocked since the tool already ran."""
+
+
+def _run(event: Mapping[str, object], monkeypatch: pytest.MonkeyPatch) -> None:
+    """Feed one event to the runner on stdin, against an unreachable server."""
+    from piighost.integrations.claude_code.runner import run
+
+    monkeypatch.setenv("PIIGHOST_API_URL", UNREACHABLE_API_URL)
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(event)))
+    run()
+
+
+@pytest.mark.parametrize("event", BLOCKED_EVENTS.values(), ids=BLOCKED_EVENTS.keys())
+def test_the_runner_blocks_what_it_cannot_de_identify(
+    event: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A failed hook exits with the blocking code and names the reason on stderr.
+
+    Regression: it used to crash with code 1, which Claude Code reads as a
+    non-blocking error, so the prompt went on in clear (DPO-9).
+    """
+    with pytest.raises(SystemExit) as caught:
+        _run(event, monkeypatch)
+    captured = capsys.readouterr()
+    assert caught.value.code == 2
+    assert captured.out == ""
+    assert "so it is blocked" in captured.err
+    assert "Patrick" not in captured.err
+
+
+def test_the_runner_withholds_a_tool_output_it_cannot_de_identify(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A tool output that could not be de-identified is replaced by a notice."""
+    _run(TOOL_OUTPUT_EVENT, monkeypatch)
+    replaced = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert "withheld" in replaced["updatedToolOutput"]
+    assert "Patrick" not in replaced["updatedToolOutput"]
+
+
+@pytest.mark.parametrize(
+    "event",
+    [*BLOCKED_EVENTS.values(), TOOL_OUTPUT_EVENT],
+    ids=[*BLOCKED_EVENTS.keys(), "a tool output"],
+)
+def test_fail_open_lets_the_text_through(
+    event: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """With PIIGHOST_HOOK_FAIL_OPEN=1, a failed hook mutates nothing and says so."""
+    monkeypatch.setenv("PIIGHOST_HOOK_FAIL_OPEN", "1")
+    _run(event, monkeypatch)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "goes on in clear" in captured.err

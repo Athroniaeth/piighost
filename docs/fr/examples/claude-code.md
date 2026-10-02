@@ -70,6 +70,12 @@ Le hook parle à `piighost-api` sur `http://localhost:8000` par défaut. Surchar
 export PIIGHOST_API_URL="https://piighost.internal:8000"
 ```
 
+Quand le hook ne peut pas dé-identifier, parce que le serveur est arrêté ou que l'événement n'a pas d'identifiant de session, il échoue fermé. Un prompt ou un appel d'outil est bloqué, et Claude Code affiche la raison. Une sortie d'outil est déjà produite, donc le hook la remplace par un avis. Pour laisser passer le texte en clair plutôt que bloquer, dans une session où la disponibilité compte plus que la protection, réglez :
+
+```bash
+export PIIGHOST_HOOK_FAIL_OPEN=1
+```
+
 Pour observer ce que fait le hook, réglez `PIIGHOST_HOOK_LOG` sur un chemin de fichier. Le runner ajoute un enregistrement JSON par événement (l'événement, l'outil, l'identifiant de session, et la mutation renvoyée) :
 
 ```bash
