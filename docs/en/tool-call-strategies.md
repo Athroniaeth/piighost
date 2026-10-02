@@ -24,12 +24,10 @@ In `abefore_model`, the middleware sends an *exact* de-identified text to the LL
 
 ### The tool channel: string replacement, fragile
 
-In `awrap_tool_call`, the LLM produces tool arguments by combining, splitting, paraphrasing the tokens it just saw. That arbitrary text was never produced by the pipeline, so it is not memorised. The same is true of the tool response, `piighost` has never seen it before.
+In `awrap_tool_call`, the LLM produces tool arguments by combining, splitting, paraphrasing the tokens it just saw. That arbitrary text was never produced by the pipeline, so it is not memorised. The tool response, for its part, is a text `piighost` has never seen. The two directions are therefore handled differently.
 
-Both directions therefore fall back on **plain string replacement**.
-
-- *Tool args (LLM to tool)*, scan the args for known tokens and replace each with the original value of its entity, `<<EMAIL:1>>`{ .placeholder } becomes `jean@mail.com`{ .pii } again.
-- *Tool response (tool to LLM)*, scan the response for known values and replace each with the corresponding token.
+- *Tool args (LLM to tool)*, with no mapping for that text, restoration falls back on **plain string replacement**. Scan the args for known tokens and replace each with the original value of its entity, `<<EMAIL:1>>`{ .placeholder } becomes `jean@mail.com`{ .pii } again.
+- *Tool response (tool to LLM)*, the response goes through the thread's pipeline, detection included, like a user message. A value already seen takes its token back, and a value the conversation never mentioned, an email returned by a CRM for example, is detected and gets its own.
 
 Plain replacement only works when the mapping is **unambiguous**. If two entities share the token `<<PERSON>>`{ .placeholder }, there is no way to decide which original to restore in the args. This is the structural reason the middleware accepts only factories whose tokens preserve a findable identity. See [Placeholder factories](placeholder-factories.md).
 

@@ -235,7 +235,7 @@ async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
     print(restored, end="", flush=True)
 ```
 
-A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display never shows a broken token.
+A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display shows no broken token. Only a stream that stops in the middle of a token emits its fragment as is, `<<PER`{ .placeholder } for example, which holds no real value.
 
 For another framework, the same restoration is one step lower, `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar, with `replace` a coroutine that restores one token.
 
