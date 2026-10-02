@@ -25,7 +25,7 @@ Dé-identifie un seul texte à travers les étages, dans l'ordre. Détecter les 
 AnonymizationPipeline(
     detector: AnyDetector,
     linker: AnyEntityLinker | None = None,
-    anonymizer: AnyAnonymizer | None = None,
+    anonymizer: AnyAnonymizer[PreservationT] | None = None,
     overlap_resolver: AnyOverlapResolver | None = None,
     expander: AnyDetectionExpander | None = None,
     entity_resolver: AnyEntityResolver | None = None,
@@ -40,7 +40,7 @@ AnonymizationPipeline(
 |-----------|------|--------|-------------|
 | `detector` | `AnyDetector` | requis | Détecteur d'entités async |
 | `linker` | `AnyEntityLinker \| None` | `None` | Groupe les détections en entités. Par défaut `ExactEntityLinker()` |
-| `anonymizer` | `AnyAnonymizer \| None` | `None` | Moteur de remplacement et sa placeholder factory. Par défaut `Anonymizer(LabelCounterPlaceholderFactory())` |
+| `anonymizer` | `AnyAnonymizer[PreservationT] \| None` | `None` | Moteur de remplacement et sa placeholder factory. Par défaut `Anonymizer(LabelCounterPlaceholderFactory())` |
 | `overlap_resolver` | `AnyOverlapResolver \| None` | `None` | Résout les détections qui se chevauchent. Par défaut `ConfidenceOverlapResolver()`, car l'étape de rendu a besoin de spans disjoints |
 | `expander` | `AnyDetectionExpander \| None` | `None` | Ajoute les occurrences manquées d'une valeur détectée. Désactivé quand `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Réconcilie les entités en conflit. Désactivé quand `None` |
@@ -61,8 +61,7 @@ Exécute le pipeline complet et renvoie le texte dé-identifié avec le token ut
 **Lève** `PIIRemainingError` quand un guard configuré signale des valeurs confidentielles restées dans la sortie.
 
 ```python
-result = await pipeline.anonymize("Patrick lives in Paris.")
-# result.text == "<<PERSON:1>> lives in <<LOCATION:1>>."
+--8<-- "snippets/reference_pipeline.py:anonymize"
 ```
 
 #### `deanonymize(text, tokens) -> str`
@@ -72,8 +71,7 @@ Renvoie le texte avec chaque token connu remplacé par la valeur de son entité.
 La restauration n'est sans ambiguïté que si les tokens préservent l'identité, car deux entités partageant un même token se confondent en une seule valeur.
 
 ```python
-original = pipeline.deanonymize(result.text, result.tokens)
-# original == "Patrick lives in Paris."
+--8<-- "snippets/reference_pipeline.py:deanonymize"
 ```
 
 ---
@@ -92,7 +90,7 @@ Le composant en plus est une mémoire de conversation, `memory`, le stockage par
 ThreadAnonymizationPipeline(
     detector: AnyDetector,
     linker: AnyEntityLinker | None = None,
-    anonymizer: AnyAnonymizer | None = None,
+    anonymizer: AnyAnonymizer[PreservationT] | None = None,
     memory: AnyConversationMemory | None = None,
     overlap_resolver: AnyOverlapResolver | None = None,
     expander: AnyDetectionExpander | None = None,
@@ -101,6 +99,8 @@ ThreadAnonymizationPipeline(
     observation_redactor: AnyPlaceholderFactory | None = None,
     override: AnyDetectionOverride | None = None,
     trace_clear_text: bool = False,
+    token_memo_ttl: float | None = None,
+    time_source: Callable[[], float] = time.monotonic,
 )
 ```
 
@@ -109,6 +109,8 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
 | `memory` | `AnyConversationMemory \| None` | `None` | Stockage par thread des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus, passez `RedisConversationMemory` pour un backend partagé |
+| `token_memo_ttl` | `float \| None` | `None` | Secondes pendant lesquelles la correspondance de tokens mémoïsée d'un thread est gardée. Ce mémo garde les valeurs du thread en clair et `forget_thread` n'atteint que le processus où il tourne, donc sur un déploiement multi-worker ce délai borne combien de temps les autres workers le gardent. `None` garde une entrée jusqu'à ce que la borne de taille l'évince |
+| `time_source` | `Callable[[], float]` | `time.monotonic` | L'horloge que lit `token_memo_ttl`, injectable pour les tests |
 
 ### Méthodes
 
@@ -121,9 +123,7 @@ Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants
 **Lève** `PIIRemainingError` quand un guard configuré signale des valeurs confidentielles restées dans la sortie.
 
 ```python
-a1 = await pipeline.anonymize("Patrick lives in Paris.", thread_id="user-A")
-a2 = await pipeline.anonymize("Patrick wrote to Marie.", thread_id="user-A")
-# Patrick keeps <<PERSON:1>> across both turns.
+--8<-- "snippets/reference_thread_pipeline.py:anonymize"
 ```
 
 #### `anonymize_corrected(text, thread_id, detections) -> Anonymization` *(async)*
@@ -133,9 +133,7 @@ Redé-identifie un message utilisateur avec un ensemble de détections corrigé 
 L'ensemble corrigé est stocké tel quel, sans résolution de chevauchement ni recherche d'occurrences, car l'humain fait autorité sur lui. Un `override` configuré s'applique encore, donc les listes du serveur priment sur la correction.
 
 ```python
-detection = Detection(span=Span(0, 5), text="Marie", label="PERSON", confidence=1.0)
-detections = [detection]
-result = await pipeline.anonymize_corrected("Marie called.", "user-A", detections)
+--8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"
 ```
 
 #### `deanonymize(text, thread_id) -> str` *(async)*
@@ -143,8 +141,7 @@ result = await pipeline.anonymize_corrected("Marie called.", "user-A", detection
 Renvoie le texte avec chaque token du thread remplacé par sa valeur. Les tokens du thread sont reconstruits depuis sa mémoire, donc tout texte qui les porte est restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
 
 ```python
-reply = await pipeline.deanonymize("Message sent to <<PERSON:2>>.", thread_id="user-A")
-# reply == "Message sent to Marie."
+--8<-- "snippets/reference_thread_pipeline.py:deanonymize"
 ```
 
 #### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
@@ -156,17 +153,13 @@ Renvoie la correspondance placeholder vers valeur du thread, dérivée du cache,
 Efface la mémoire d'un thread et renvoie un `Forgotten` indiquant ce qui a été supprimé. Oublier un thread inconnu ne supprime rien et rapporte zéro.
 
 ```python
-forgotten = await pipeline.forget_thread("user-A")
-# forgotten.messages, forgotten.detections
+--8<-- "snippets/reference_thread_pipeline.py:forget_thread"
 ```
 
 La correspondance de tokens mémoïsée du thread part avec lui. Ce mémo garde les valeurs du thread en clair, donc effacer le store seul les laisserait vivantes dans le processus. Les autres threads gardent le leur. L'appel n'atteint que le processus où il tourne, donc sur un déploiement multi-worker posez `token_memo_ttl` au constructeur pour borner la fenêtre sur les autres, comme décrit dans [Déploiement multi-instance](../multi-instance.md). Un cache reste debout, celui des motifs de frontière de mot, partagé par tout le processus et indexé sur le fragment cherché, donc porteur de valeurs venant de tous les threads. Videz-le avec `clear_boundary_cache` quand une demande d'effacement couvre tout le processus.
 
 ```python
-from piighost.text import clear_boundary_cache
-
-await pipeline.forget_thread("user-A")
-clear_boundary_cache()
+--8<-- "snippets/reference_thread_pipeline.py:clear_boundary_cache"
 ```
 
 #### `recognizer` (propriété)
@@ -184,6 +177,7 @@ Deux protocoles typent un pipeline là où un appelant, comme le middleware, doi
 Un composant qui dé-identifie un seul texte et sait le restaurer.
 
 ```python
+@runtime_checkable
 class AnyPipeline(Protocol[PreservationT_co]):
     async def anonymize(self, text: str) -> Anonymization[PreservationT_co]: ...
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str: ...
@@ -194,6 +188,7 @@ class AnyPipeline(Protocol[PreservationT_co]):
 Un pipeline scopé par thread, local ou distant. Il dé-identifie chaque message d'un thread, redé-identifie un message corrigé, restaure tout texte portant les tokens du thread, oublie un thread en entier, et expose la grammaire de ses tokens.
 
 ```python
+@runtime_checkable
 class AnyThreadPipeline(Protocol[PreservationT_co]):
     async def anonymize(
         self, text: str, thread_id: str, role: MessageRole = MessageRole.USER
@@ -227,18 +222,13 @@ Module : `piighost.config`
 - `load_thread_pipeline(path)` renvoie un `ThreadAnonymizationPipeline`. Il lève `ConfigError` quand la configuration ne déclare pas de mémoire.
 
 ```python
-from piighost.config import load_pipeline, load_thread_pipeline
-
-pipeline = load_pipeline("pipeline.toml")
-thread_pipeline = load_thread_pipeline("thread.toml")
+--8<-- "snippets/loaders.py"
 ```
 
 Une référence écrite `hub:namespace/nom:sélecteur` charge toute la configuration que le [hub piighost](https://hub.piighost.dev) publie sous ce nom, toutes les étapes comprises, exactement comme le ferait un fichier qui la contiendrait. Une référence épinglée sur un commit est téléchargée au premier chargement, puis lue depuis le cache disque. Une variable d'environnement préfixée `PIIGHOST_` l'emporte sur une valeur du hub comme sur celle d'un fichier.
 
 ```python
-from piighost.config import load_pipeline
-
-pipeline = load_pipeline("hub:piighost/fr-notarial:2f602547")
+--8<-- "snippets/reference_hub_pipeline.py"
 ```
 
 Ce package a besoin de l'extra `config`. Voir la référence [Configuration TOML](../configuration/toml.md) pour le format du fichier.
@@ -248,41 +238,7 @@ Ce package a besoin de l'extra `config`. Voir la référence [Configuration TOML
 ## Exemple complet
 
 ```python
-import asyncio
-
-from gliner2 import GLiNER2
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector.ner.gliner2 import Gliner2Detector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
-from piighost.pipeline import ThreadAnonymizationPipeline
-
-model = GLiNER2.from_pretrained("fastino/gliner2-multi-v1")
-detector = Gliner2Detector(model=model, threshold=0.5, labels=["PERSON", "LOCATION"])
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-linker = ExactEntityLinker()
-memory = InMemoryConversationMemory()
-
-pipeline = ThreadAnonymizationPipeline(
-    detector=detector,
-    linker=linker,
-    anonymizer=anonymizer,
-    memory=memory,
-)
-
-
-async def main():
-    result = await pipeline.anonymize("Patrick is in Lyon.", thread_id="user-A")
-    print(result.text)  # <<PERSON:1>> is in <<LOCATION:1>>.
-
-    original = await pipeline.deanonymize(result.text, thread_id="user-A")
-    print(original)  # Patrick is in Lyon.
-
-
-asyncio.run(main())
+--8<-- "snippets/reference_gliner2_pipeline.py"
 ```
 
 ---

@@ -37,3 +37,8 @@ the page does not include, replace the provider with a scripted model of
 clear value reaches it, so the example checks the de-identification without a
 network or an API key. A file named `_*.py` is such a helper and is never
 shown.
+
+A reference page writes its signatures (`Anonymizer(ph_factory: ...)`), its
+ports and its import lists by hand, since they do not run.
+`tests/docs/test_reference_signatures.py` compares them with the source of
+`piighost` through its syntax tree, without importing any optional package.

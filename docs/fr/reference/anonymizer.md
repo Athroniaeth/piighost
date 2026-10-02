@@ -37,12 +37,12 @@ Remplace les spans de chaque entité par le token qu'une factory lui assigne. Il
 ### Constructeur
 
 ```python
-Anonymizer(ph_factory: AnyPlaceholderFactory, escape_existing_tokens: bool = True)
+Anonymizer(ph_factory: AnyPlaceholderFactory[PreservationT], escape_existing_tokens: bool = True)
 ```
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `ph_factory` | `AnyPlaceholderFactory` | La placeholder factory qui assigne un token à chaque entité (requis) |
+| `ph_factory` | `AnyPlaceholderFactory[PreservationT]` | La placeholder factory qui assigne un token à chaque entité (requis) |
 | `escape_existing_tokens` | `bool` | Neutralise les tokens saisis par l'utilisateur dans l'entrée pour qu'ils ne puissent pas se faire passer pour des tokens de la factory et détourner une valeur à la restauration. Ne s'applique que quand la factory émet une grammaire délimitée reconnaissable. Vaut `True` par défaut |
 
 La factory est exposée ensuite via la propriété `factory`.
@@ -54,19 +54,7 @@ La factory est exposée ensuite via la propriété `factory`.
 Assigne un token à chaque entité, rend le texte contre ces tokens, et renvoie les deux dans une `Anonymization`.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.models import Detection, Entity, Span
-
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-
-detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9)
-entity = Entity(detections=(detection,))
-
-result = anonymizer.anonymize("Patrick is nice", [entity])
-# result.text == "<<PERSON:1>> is nice"
-# result.tokens == {entity: "<<PERSON:1>>"}
+--8<-- "snippets/reference_anonymizer.py:anonymize"
 ```
 
 #### `create(entities) -> Mapping[Entity, str]`
@@ -74,8 +62,7 @@ result = anonymizer.anonymize("Patrick is nice", [entity])
 Renvoie le token que chaque entité obtient, sans toucher au texte. Séparer l'assignation des tokens du rendu permet à un appelant d'assigner les tokens sur un ensemble d'entités, comme toute une conversation, puis de rendre plusieurs textes contre ces mêmes tokens.
 
 ```python
-tokens = anonymizer.create([entity])
-# {entity: "<<PERSON:1>>"}
+--8<-- "snippets/reference_anonymizer.py:create"
 ```
 
 #### `render(text, entities, tokens) -> str`
@@ -87,8 +74,7 @@ Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neu
 Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de résolution des chevauchements doit s'exécuter d'abord, donc un chevauchement ici préfère échouer plutôt que d'introduire un fragment en clair d'une détection dans une autre.
 
 ```python
-rendered = anonymizer.render("Patrick is nice", [entity], tokens)
-# "<<PERSON:1>> is nice"
+--8<-- "snippets/reference_anonymizer.py:render"
 ```
 
 #### `deanonymize(text, tokens) -> str`
@@ -98,8 +84,7 @@ Renvoie le texte avec chaque token connu remplacé par la valeur de son entité,
 La restauration n'est sans ambiguïté que si les tokens préservent l'identité, car deux entités partageant un même token se confondent en une seule valeur.
 
 ```python
-original = anonymizer.deanonymize("<<PERSON:1>> is nice", result.tokens)
-# "Patrick is nice"
+--8<-- "snippets/reference_anonymizer.py:deanonymize"
 ```
 
 ---
@@ -109,6 +94,7 @@ original = anonymizer.deanonymize("<<PERSON:1>> is nice", result.tokens)
 Le port que tout anonymizer implémente. Générique sur ce que ses tokens préservent, donc un consommateur comme le middleware peut exiger un anonymizer dont les tokens préservent l'identité et rejeter celui dont les tokens ne la préservent pas, à la vérification de types.
 
 ```python
+@runtime_checkable
 class AnyAnonymizer(Protocol[PreservationT_co]):
     @property
     def factory(self) -> AnyPlaceholderFactory[PreservationT_co]: ...

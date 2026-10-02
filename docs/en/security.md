@@ -141,15 +141,7 @@ Concretely:
 To surface more structure (for example a distinct counter per value during local development), pass a different factory.
 
 ```python
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-
-redactor = LabelCounterPlaceholderFactory()
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    linker=linker,
-    anonymizer=anonymizer,
-    observation_redactor=redactor,  # <<PERSON:1>>, <<EMAIL:2>>, ...
-)
+--8<-- "snippets/security_redactor.py:example"
 ```
 
 Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor is independent from the factory used for actual de-identification, so you can display `<<PERSON:1>>`{ .placeholder } on the trace side while sending a different placeholder scheme to the LLM. Leaving `observation_redactor` at `None` traces cleartext, to reserve for a trusted backend. That default is treated as an explicit choice. With a tracer provider actually configured and no redactor, the pipeline warns once that its traces carry cleartext confidential data, and `trace_clear_text=True` acknowledges it and silences the warning.

@@ -371,7 +371,7 @@ chaque type de composant porte une méthode `build()`. Assembler le pipeline rev
 appeler `build()` sur chaque modèle.
 
 ```python
---8<-- "snippets/architecture_loaders.py"
+--8<-- "snippets/loaders.py"
 ```
 
 Un fichier sans section `[memory]` construit un pipeline, un fichier qui en déclare une construit un pipeline de conversation. Chaque chargeur refuse l'autre forme.

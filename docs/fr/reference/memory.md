@@ -36,12 +36,16 @@ Le pipeline pilote ces méthodes pour vous. Vous appelez la mémoire directement
 ## `InMemoryConversationMemory`
 
 ```python
-InMemoryConversationMemory(max_threads: int | None = 10_000, ttl: float | None = 86_400.0)
+InMemoryConversationMemory(
+    max_threads: int | None = 10_000,
+    ttl: float | None = 86_400.0,
+    time_source: Callable[[], float] = time.monotonic,
+)
 ```
 
 Un cache par thread local au processus dans un dict. Il convient au développement, aux tests et aux déploiements mono-processus. Rien ne survit à un redémarrage et rien n'est partagé entre workers, donc derrière un load balancer deux workers numérotent la même valeur différemment. Il ne requiert aucun extra et c'est le défaut quand un `ThreadAnonymizationPipeline` est construit sans mémoire.
 
-Le store est borné par défaut, à 10 000 threads (`DEFAULT_MAX_THREADS`) et un jour d'inactivité (`DEFAULT_TTL`). `max_threads` évince le thread le moins récemment utilisé. `ttl` fait expirer un thread inactif, paresseusement, au prochain accès, et ses tokens ne sont alors plus restaurés. `None` lève une borne, le store grossit alors jusqu'à ce que `forget_thread` soit appelé.
+Le store est borné par défaut, à 10 000 threads (`DEFAULT_MAX_THREADS`) et un jour d'inactivité (`DEFAULT_TTL`). `max_threads` évince le thread le moins récemment utilisé. `ttl` fait expirer un thread inactif, paresseusement, au prochain accès, et ses tokens ne sont alors plus restaurés. `None` lève une borne, le store grossit alors jusqu'à ce que `forget_thread` soit appelé. `time_source` est l'horloge que lit `ttl`, injectable pour les tests.
 
 ## `RedisConversationMemory`
 

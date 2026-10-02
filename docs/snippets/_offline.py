@@ -8,13 +8,18 @@ de-identification, not the model.
 """
 
 import importlib
+import json
 import re
 import sys
 import types
+from collections.abc import Iterator
 from typing import Any
 
 TOKEN = re.compile(r"<<[A-Z_]+:\d+>>")
 """A placeholder of LabelCounterPlaceholderFactory, the one the pages use."""
+
+STREAM_PIECE = 4
+"""Characters per streamed chunk, fewer than a token, so every token is cut."""
 
 
 def _check(text: str, secrets: tuple[str, ...]) -> None:
@@ -24,16 +29,23 @@ def _check(text: str, secrets: tuple[str, ...]) -> None:
 
 
 def offline_langchain(reply: str, secrets: tuple[str, ...]) -> None:
-    """Make `create_agent(model="provider:name")` build a scripted chat model.
+    """Make a model name given to LangChain build a scripted chat model.
 
     Its first turn calls the agent's first tool with the token of the question,
     its second answers `reply` filled with the tokens of the question and of the
     tool result, in order.
     """
+    import langchain.chat_models
     from langchain.agents import factory
     from langchain_core.language_models.chat_models import BaseChatModel
-    from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-    from langchain_core.outputs import ChatGeneration, ChatResult
+    from langchain_core.messages import (
+        AIMessage,
+        AIMessageChunk,
+        HumanMessage,
+        ToolMessage,
+    )
+    from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
+    from langchain_core.tools import BaseTool
 
     class ScriptedChatModel(BaseChatModel):
         tool: str = ""
@@ -45,17 +57,14 @@ def offline_langchain(reply: str, secrets: tuple[str, ...]) -> None:
 
         def bind_tools(self, tools: Any, **kwargs: Any) -> "ScriptedChatModel":
             first = tools[0]
+            # A structured output binds a schema, not a tool: nothing to call.
+            if not isinstance(first, BaseTool):
+                return self
             return self.model_copy(
                 update={"tool": first.name, "argument": next(iter(first.args))}
             )
 
-        def _generate(
-            self,
-            messages: Any,
-            stop: Any = None,
-            run_manager: Any = None,
-            **kwargs: Any,
-        ) -> ChatResult:
+        def _reply(self, messages: Any) -> AIMessage:
             _check(" ".join(repr(message) for message in messages), secrets)
             question = next(
                 message for message in messages if isinstance(message, HumanMessage)
@@ -64,20 +73,51 @@ def offline_langchain(reply: str, secrets: tuple[str, ...]) -> None:
             results = [
                 message for message in messages if isinstance(message, ToolMessage)
             ]
-            if results:
-                tokens += TOKEN.findall(str(results[-1].content))
-                message = AIMessage(content=reply.format(*tokens))
-            else:
-                call = {
-                    "name": self.tool,
-                    "args": {self.argument: tokens[0]},
-                    "id": "call-1",
-                    "type": "tool_call",
-                }
-                message = AIMessage(content="", tool_calls=[call])
+            # With a tool result, or no tool to call, the turn answers.
+            if results or not self.tool:
+                tokens += TOKEN.findall(str(results[-1].content)) if results else []
+                return AIMessage(content=reply.format(*tokens))
+            call = {
+                "name": self.tool,
+                "args": {self.argument: tokens[0]},
+                "id": "call-1",
+                "type": "tool_call",
+            }
+            return AIMessage(content="", tool_calls=[call])
+
+        def _generate(
+            self,
+            messages: Any,
+            stop: Any = None,
+            run_manager: Any = None,
+            **kwargs: Any,
+        ) -> ChatResult:
+            message = self._reply(messages)
             return ChatResult(generations=[ChatGeneration(message=message)])
 
+        def _stream(
+            self,
+            messages: Any,
+            stop: Any = None,
+            run_manager: Any = None,
+            **kwargs: Any,
+        ) -> Iterator[ChatGenerationChunk]:
+            """Stream the reply in pieces of a few characters, cutting its tokens."""
+            message = self._reply(messages)
+            if message.tool_calls:
+                call = message.tool_calls[0]
+                piece = {**call, "args": json.dumps(call["args"]), "index": 0}
+                chunk = AIMessageChunk(content="", tool_call_chunks=[piece])
+                yield ChatGenerationChunk(message=chunk)
+                return
+            text = str(message.content)
+            for start in range(0, len(text), STREAM_PIECE):
+                chunk = AIMessageChunk(content=text[start : start + STREAM_PIECE])
+                yield ChatGenerationChunk(message=chunk)
+
+    # create_agent holds its own reference, the detectors import it when called.
     factory.init_chat_model = lambda model, **kwargs: ScriptedChatModel()
+    langchain.chat_models.init_chat_model = factory.init_chat_model
 
 
 def offline_pydantic_ai(reply: str, secrets: tuple[str, ...]) -> None:

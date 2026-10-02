@@ -27,13 +27,7 @@ Les quatre modèles sont déclarés `@dataclass(frozen=True, slots=True)`. `Span
 - **Validé à la construction.** Chaque invariant est vérifié dans `__post_init__`, donc une instance invalide n'existe jamais. Chaque exception dérive de `PIIGhostError`.
 
 ```python
-from dataclasses import replace
-
-from piighost.models import Detection, Span
-
-detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=1.0)
-moved = replace(detection, span=detection.span.shift(10))
-# moved == Detection(span=Span(10, 17), text="Patrick", label="PERSON", confidence=1.0)
+--8<-- "snippets/reference_models.py:replace"
 ```
 
 ---
@@ -78,13 +72,7 @@ Une copie translatée de `offset` caractères. Elle reporte un span trouvé sur 
 La sous-chaîne de `text` que ce span couvre.
 
 ```python
-from piighost.models import Span
-
-span = Span(9, 26)
-span.length                                  # 17
-span.extract("write to alice@example.com")   # "alice@example.com"
-span.overlaps(Span(26, 30))                  # False, les deux intervalles sont adjacents
-span.shift(-9)                               # Span(0, 17)
+--8<-- "snippets/reference_span.fr.py:example"
 ```
 
 ### Validation
@@ -130,11 +118,7 @@ La détection sous forme de dict plat prêt pour JSON, le span étant aplati en 
 Une détection reconstruite depuis le dict plat que `to_dict` produit.
 
 ```python
-from piighost.models import Detection, Span
-
-detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=1.0)
-detection.to_dict()
-# {"start": 0, "end": 7, "text": "Patrick", "label": "PERSON", "confidence": 1.0}
+--8<-- "snippets/reference_models.py:to_dict"
 ```
 
 ### Validation
@@ -176,15 +160,7 @@ Le span de chaque occurrence, dans l'ordre des détections.
 Le label, le texte canonique et les spans sont dérivés des détections au lieu d'être stockés, donc rien ne peut se désynchroniser et la valeur ne vit qu'à un seul endroit.
 
 ```python
-from piighost.models import Detection, Entity, Span
-
-first = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=1.0)
-second = Detection(span=Span(20, 27), text="Patrick", label="PERSON", confidence=0.8)
-entity = Entity(detections=(first, second))
-
-entity.label   # "PERSON"
-entity.text    # "Patrick"
-entity.spans   # (Span(0, 7), Span(20, 27))
+--8<-- "snippets/reference_models.py:entity"
 ```
 
 ### Validation
@@ -220,12 +196,7 @@ L'offset de fin exclu dans le texte original, `start + len(text)`.
 Un splitter produit les chunks. Tout `AnySplitter` de `piighost.text` les renvoie dans l'ordre, et `RecursiveCharacterTextSplitter` fait se recouvrir deux chunks consécutifs pour qu'une valeur posée sur une frontière reste vue entière dans un chunk. `ChunkedDetector` exécute le détecteur qu'il enveloppe sur `chunk.text`, puis décale chaque détection de `chunk.start` pour la reporter sur le texte original.
 
 ```python
-from piighost.text import RecursiveCharacterTextSplitter
-
-splitter = RecursiveCharacterTextSplitter(chunk_size=20, chunk_overlap=5)
-chunks = splitter.split("Patrick lives in Lyon and works in Paris.")
-# chunks[0] == Chunk(text="Patrick lives in", start=0)
-# chunks[1] == Chunk(text="in Lyon and works in", start=14)
+--8<-- "snippets/reference_models.py:splitter"
 ```
 
 ---

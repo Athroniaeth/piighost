@@ -142,15 +142,7 @@ Concrètement :
 Pour surfacer plus de structure (par exemple une numérotation distincte par valeur en environnement de dev), passer une autre factory.
 
 ```python
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-
-redactor = LabelCounterPlaceholderFactory()
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    linker=linker,
-    anonymizer=anonymizer,
-    observation_redactor=redactor,  # <<PERSON:1>>, <<EMAIL:2>>, ...
-)
+--8<-- "snippets/security_redactor.py:example"
 ```
 
 N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le redactor d'observation est indépendant de la factory qui sert à la dé-identification réelle, donc on peut afficher du `<<PERSON:1>>`{ .placeholder } côté trace tout en envoyant un autre schéma de placeholder au LLM. Laisser `observation_redactor` à `None` trace le texte en clair, à réserver à un backend de confiance. Ce défaut est traité comme un choix explicite. Avec un tracer provider réellement configuré et sans redactor, le pipeline avertit une fois que ses traces portent des données confidentielles en clair, et `trace_clear_text=True` l'assume et tait l'avertissement.

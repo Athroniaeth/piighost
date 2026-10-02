@@ -25,30 +25,7 @@ from piighost.components.guard import (
 `AnonymizationPipeline` takes an optional `guard` argument, disabled by default. When set, the guard runs on the rendered output after de-identification, and the pipeline raises `PIIRemainingError` if the guard flags anything unexpected.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector, RegexDetector
-from piighost.components.guard import DetectorGuardRail
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.exceptions import PIIRemainingError
-from piighost.hub import pull
-from piighost.pipeline import AnonymizationPipeline
-
-# The primary detector only knows the literal name. The guard re-runs a broader
-# email and phone regex over the short output to catch structured PII it missed.
-guard_detector = RegexDetector({**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/us:29d5c0a5")})
-pipeline = AnonymizationPipeline(
-    ExactMatchDetector({"Emma Doe": "PERSON"}),
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-    guard=DetectorGuardRail(guard_detector),
-)
-
-try:
-    result = await pipeline.anonymize("Emma Doe, reachable at emma@acme.com.")
-except PIIRemainingError as error:
-    print(error)             # Anonymized text still contains PII: ['EMAIL']
-    print(error.detections)  # the residual detections behind the flag
+--8<-- "snippets/reference_guard.py"
 ```
 
 The runnable version is [`examples/guard_rail.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail.py), which also uses a guard standalone by calling `await guard.check(text)` and reading the verdict without raising. The local-model version is [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
@@ -68,13 +45,7 @@ This only adds value with a detector different from the pipeline's, re-running t
 The complementary detector is often a model, because the shapes a regex is good at are exactly the ones the primary pass already caught. A name, an address or a company name is what slips through:
 
 ```python
-DetectorGuardRail(
-    Gliner2Detector(
-        model="fastino/GLiNER2-Guardrails-PII-Multi",
-        labels=["person", "address"],
-        threshold=0.5,
-    )
-)
+--8<-- "snippets/reference_guard_gliner2.py:example"
 ```
 
 This localizes what leaked, which is what a detector-backed guard gives you over a classifier. For a text-level verdict from the same checkpoint, without spans and in one forward pass, see [`Gliner2GuardRail`](#gliner2guardrail).
@@ -114,20 +85,7 @@ This is `ModerationGuardRail` without the API call, and that difference is the p
 A `str` model is loaded with `GLiNER2.from_pretrained`, and a loaded instance is used as-is, which is how one checkpoint is shared between this guard and a `Gliner2Detector`. The `labels` pair is read positionally, the refused answer last, so another task of the same model is read the same way, and `task="response_refusal"` with `labels=("compliance", "refusal")` flags a refusal instead. Requires `piighost[gliner2]`.
 
 ```python
-from piighost.components.detector import RegexDetector
-from piighost.components.guard import Gliner2GuardRail
-from piighost.pipeline import AnonymizationPipeline
-
-pipeline = AnonymizationPipeline(
-    RegexDetector({"EMAIL": r"[\w.+-]+@[\w.-]+\.\w{2,}"}),
-    guard=Gliner2GuardRail(),
-)
-
-await pipeline.anonymize("Write to a@b.co about the invoice.")
-# Write to <<EMAIL:1>> about the invoice.
-
-await pipeline.anonymize("Write to John Doe, 12 rue des Lilas, 75008 Paris.")
-# PIIRemainingError: A guard flagged residual PII (score 0.997)
+--8<-- "snippets/reference_gliner2_guard.py"
 ```
 
 Being a text-level verdict it localizes nothing, so `detections` is empty and only `score` is set. Pair it with a `DetectorGuardRail` when you need to know which value leaked. The placeholders the pipeline emits do not trip it, and `<<EMAIL:1>>` scores safe at 0.989. The runnable version is [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).

@@ -51,7 +51,7 @@ SNIPPETS: list[Any] = [
     "architecture_signature.fr.py",
     "architecture_signature.en.py",
     "architecture_thread.py",
-    "architecture_loaders.py",
+    "loaders.py",
     "observation_tracer.py",
     "observation_redactor.py",
     "observation_clear_text.py",
@@ -66,6 +66,19 @@ SNIPPETS: list[Any] = [
     "langchain_agent.py",
     "pydantic_ai_agent.py",
     "llama_index_rag.py",
+    "reference_anonymizer.py",
+    "reference_detectors.py",
+    "reference_text.en.py",
+    "reference_text.fr.py",
+    "reference_llm_detector.py",
+    "reference_langchain.py",
+    "reference_models.py",
+    "reference_span.en.py",
+    "reference_span.fr.py",
+    "reference_pipeline.py",
+    "reference_thread_pipeline.py",
+    "security_redactor.py",
+    "upgrading.py",
     # These reach the hub or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
     pytest.param("detector_hub.py", marks=pytest.mark.integration),
@@ -80,6 +93,16 @@ SNIPPETS: list[Any] = [
     pytest.param("extending_gliner2.py", marks=pytest.mark.integration),
     pytest.param("langchain_pipeline.py", marks=pytest.mark.integration),
     pytest.param("pydantic_ai_pipeline.py", marks=pytest.mark.integration),
+    pytest.param("reference_regex_hub.py", marks=pytest.mark.integration),
+    pytest.param("reference_guard.py", marks=pytest.mark.integration),
+    pytest.param("reference_hub_pipeline.py", marks=pytest.mark.integration),
+    pytest.param("reference_composite.py", marks=pytest.mark.integration),
+    pytest.param("reference_chunked.py", marks=pytest.mark.integration),
+    pytest.param("reference_transformers.py", marks=pytest.mark.integration),
+    pytest.param("reference_guard_gliner2.py", marks=pytest.mark.integration),
+    pytest.param("reference_gliner2_guard.py", marks=pytest.mark.integration),
+    pytest.param("reference_gliner2_pipeline.py", marks=pytest.mark.integration),
+    pytest.param("upgrading_catalogs.py", marks=pytest.mark.integration),
 ]
 """Every example, the ones that need the network or a model marked integration."""
 
@@ -109,10 +132,11 @@ DOCS_DIR = SNIPPETS_DIR.parent
 
 FILES = {
     "overrides_config.py": {"piighost.toml": "overrides_config.toml"},
-    "architecture_loaders.py": {
-        "pipeline.toml": "architecture_loaders.pipeline.toml",
-        "thread.toml": "architecture_loaders.thread.toml",
+    "loaders.py": {
+        "pipeline.toml": "loaders.pipeline.toml",
+        "thread.toml": "loaders.thread.toml",
     },
+    "reference_langchain.py": {"pipeline.toml": "reference_langchain.toml"},
 }
 """The files an example reads, copied from docs/snippets/ under the name it opens."""
 
@@ -128,8 +152,24 @@ REQUIRES = {
     "pydantic_ai_agent.py": "pydantic_ai",
     "pydantic_ai_pipeline.py": "gliner2",
     "llama_index_rag.py": "llama_index.core",
+    "reference_llm_detector.py": "langchain",
+    "reference_langchain.py": "langchain",
+    "reference_hub_pipeline.py": "gliner2",
+    "reference_composite.py": "gliner2",
+    "reference_chunked.py": "spacy",
+    "reference_transformers.py": "transformers",
+    "reference_guard_gliner2.py": "gliner2",
+    "reference_gliner2_guard.py": "gliner2",
+    "reference_gliner2_pipeline.py": "gliner2",
+    "upgrading.py": "langchain",
 }
 """The optional package an example needs, skipped when it is absent."""
+
+FAILS = {"reference_gliner2_guard.py": "piighost.exceptions.PIIRemainingError"}
+"""The examples a page shows ending on an error, with the error they end on."""
+
+BANNERS = {"reference_gliner2_pipeline.py"}
+"""The examples whose model prints a banner of its own first: the output ends on the .out."""
 
 TIMEOUT = 300
 """Seconds an example may take, a model download included."""
@@ -183,7 +223,7 @@ def _run(snippet: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
 def test_an_example_runs_and_prints_what_the_page_shows(
     name: str, tmp_path: Path
 ) -> None:
-    """An example exits cleanly, and its output is its .out, when it has one."""
+    """An example exits cleanly, or on the error FAILS names, and prints its .out."""
     if name in REQUIRES:
         pytest.importorskip(REQUIRES[name])
     snippet = SNIPPETS_DIR / name
@@ -192,9 +232,15 @@ def test_an_example_runs_and_prints_what_the_page_shows(
             (SNIPPETS_DIR / source).read_text(encoding="utf-8"), encoding="utf-8"
         )
     result = _run(snippet, tmp_path)
+    if name in FAILS:
+        assert result.returncode != 0, result.stdout
+        assert result.stderr.splitlines()[-1].startswith(FAILS[name]), result.stderr
+        return
     assert result.returncode == 0, result.stdout + result.stderr
     expected = _expected(snippet)
-    if expected is not None:
+    if expected is not None and name in BANNERS:
+        assert result.stdout.endswith(expected)
+    elif expected is not None:
         assert result.stdout == expected
 
 
