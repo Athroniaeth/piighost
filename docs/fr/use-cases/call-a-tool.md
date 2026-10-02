@@ -6,7 +6,7 @@ icon: lucide/hammer
 
 Un agent appelle des outils, par exemple pour envoyer un e-mail. Le LLM ne connaît que les placeholders et écrit donc `<<EMAIL:1>>`{ .placeholder } dans l'appel. `piighost` restaure les arguments juste avant l'exécution, pour que l'outil agisse sur `jean.dupont@exemple.fr`{ .pii }, puis dé-identifie le résultat de l'outil avant que le LLM le lise.
 
-Répond à : DEV-4, DEV-8, UTI-3, DPO-1
+Répond à : DEV-4, DEV-8, USER-3, DPO-1
 
 ## Acteurs
 
@@ -83,17 +83,17 @@ Derrière le proxy OpenAI du serveur `piighost-api`, une réponse streamée ne r
 
 | Règle | Énoncé |
 |---|---|
-| RG-OUTIL-01 | La stratégie par défaut restaure les arguments avant l'outil et dé-identifie son résultat avant le LLM. |
-| RG-OUTIL-02 | La stratégie "Entrée seule" restaure les arguments et transmet le résultat au LLM tel que l'outil l'a renvoyé. |
-| RG-OUTIL-03 | La stratégie "Sortie seule" laisse les placeholders dans les arguments et dé-identifie le résultat. |
-| RG-OUTIL-04 | La stratégie "Aucune" ne touche ni aux arguments ni au résultat. |
-| RG-OUTIL-05 | Avec le middleware LangChain, les arguments restaurés ne servent qu'à l'exécution, et l'appel enregistré dans l'historique garde ses placeholders. |
-| RG-OUTIL-06 | Le résultat d'un outil passe par la détection de la conversation, donc une valeur connue reprend son placeholder et une valeur nouvelle prend le numéro suivant. |
-| RG-OUTIL-07 | Une valeur apparue d'abord dans le résultat d'un outil compte comme une valeur de l'utilisateur et reste dé-identifiée dans la suite. |
-| RG-OUTIL-08 | Un placeholder jamais émis dans un argument suit le même réglage que dans une réponse, et le refus par défaut empêche l'outil de s'exécuter. |
-| RG-OUTIL-09 | La restauration parcourt toutes les chaînes des dictionnaires, listes et tuples imbriqués, et laisse les autres valeurs intactes. |
-| RG-OUTIL-10 | Avec le middleware LangChain, les arguments des appels d'outil de l'historique sont dé-identifiés à nouveau avant chaque appel au LLM, sauf si les messages de l'assistant ne sont pas analysés. |
-| RG-OUTIL-11 | Avec le middleware LangChain, seul le texte d'un résultat d'outil est dé-identifié, et les blocs non textuels passent tels quels. |
+| BR-TOOL-01 | La stratégie par défaut restaure les arguments avant l'outil et dé-identifie son résultat avant le LLM. |
+| BR-TOOL-02 | La stratégie "Entrée seule" restaure les arguments et transmet le résultat au LLM tel que l'outil l'a renvoyé. |
+| BR-TOOL-03 | La stratégie "Sortie seule" laisse les placeholders dans les arguments et dé-identifie le résultat. |
+| BR-TOOL-04 | La stratégie "Aucune" ne touche ni aux arguments ni au résultat. |
+| BR-TOOL-05 | Avec le middleware LangChain, les arguments restaurés ne servent qu'à l'exécution, et l'appel enregistré dans l'historique garde ses placeholders. |
+| BR-TOOL-06 | Le résultat d'un outil passe par la détection de la conversation, donc une valeur connue reprend son placeholder et une valeur nouvelle prend le numéro suivant. |
+| BR-TOOL-07 | Une valeur apparue d'abord dans le résultat d'un outil compte comme une valeur de l'utilisateur et reste dé-identifiée dans la suite. |
+| BR-TOOL-08 | Un placeholder jamais émis dans un argument suit le même réglage que dans une réponse, et le refus par défaut empêche l'outil de s'exécuter. |
+| BR-TOOL-09 | La restauration parcourt toutes les chaînes des dictionnaires, listes et tuples imbriqués, et laisse les autres valeurs intactes. |
+| BR-TOOL-10 | Avec le middleware LangChain, les arguments des appels d'outil de l'historique sont dé-identifiés à nouveau avant chaque appel au LLM, sauf si les messages de l'assistant ne sont pas analysés. |
+| BR-TOOL-11 | Avec le middleware LangChain, seul le texte d'un résultat d'outil est dé-identifié, et les blocs non textuels passent tels quels. |
 
 ## Postconditions
 
@@ -130,7 +130,7 @@ middleware = PIIAnonymizationMiddleware(
 - La restauration des arguments construit un nouvel appel par `request.override(tool_call=...)` et ne modifie jamais le `tool_call` de l'état LangGraph.
 - Le résultat est dé-identifié dans le `ToolMessage` renvoyé, ou dans les `ToolMessage` portés par un `Command`.
 - Le refus d'un placeholder inventé lève `InventedPlaceholderError` depuis `awrap_tool_call`.
-- `assistant_strategy=EntityCreateByAssistantStrategy.IGNORE` désactive la nouvelle dé-identification des arguments de l'historique (RG-OUTIL-10).
+- `assistant_strategy=EntityCreateByAssistantStrategy.IGNORE` désactive la nouvelle dé-identification des arguments de l'historique (BR-TOOL-10).
 - Le middleware exige un pipeline dont la factory expose un `recognizer`, sinon il lève `UnrecognizableFactoryError` à la construction.
 
 À lire ensuite.

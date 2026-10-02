@@ -95,16 +95,16 @@ Jean Dupont écrit <<PERSON:2>> ici
 
 | Règle | Énoncé |
 |---|---|
-| RG-MSG-01 | Seul le détecteur est obligatoire, et par défaut chaque valeur reçoit un placeholder `<<TYPE:n>>` numéroté par type dans l'ordre d'apparition. |
-| RG-MSG-02 | Les occurrences d'une même valeur sous un même type reçoivent le même placeholder, quelles que soient leur casse et leurs espaces. |
-| RG-MSG-03 | La restauration remet partout la graphie de la première occurrence de la valeur. |
-| RG-MSG-04 | Quand deux détections se recouvrent, la plus sûre est gardée, et à confiance égale celle qui commence le plus tôt, puis celle du premier détecteur déclaré. |
-| RG-MSG-05 | Le départage des recouvrements est toujours actif, seul son mode change (plus sûre ou fusion). |
-| RG-MSG-06 | Un texte tapé par l'utilisateur qui a la forme d'un placeholder est neutralisé par un caractère invisible et ne peut pas être restauré. |
-| RG-MSG-07 | Sans garde-fou, une valeur que le détecteur ne voit pas part en clair vers le LLM. |
-| RG-MSG-08 | Un garde-fou qui trouve une valeur restante bloque le texte, et son erreur nomme les types restants, jamais les valeurs. |
-| RG-MSG-09 | Les motifs regex reconnaissent une forme sans vérifier de clé de contrôle, donc un IBAN ou un numéro de carte mal recopié est quand même dé-identifié. |
-| RG-MSG-10 | Les secrets ne sont reconnus que si un groupe de motifs de secrets est chargé, ou par un modèle qui les cherche. |
+| BR-MSG-01 | Seul le détecteur est obligatoire, et par défaut chaque valeur reçoit un placeholder `<<TYPE:n>>` numéroté par type dans l'ordre d'apparition. |
+| BR-MSG-02 | Les occurrences d'une même valeur sous un même type reçoivent le même placeholder, quelles que soient leur casse et leurs espaces. |
+| BR-MSG-03 | La restauration remet partout la graphie de la première occurrence de la valeur. |
+| BR-MSG-04 | Quand deux détections se recouvrent, la plus sûre est gardée, et à confiance égale celle qui commence le plus tôt, puis celle du premier détecteur déclaré. |
+| BR-MSG-05 | Le départage des recouvrements est toujours actif, seul son mode change (plus sûre ou fusion). |
+| BR-MSG-06 | Un texte tapé par l'utilisateur qui a la forme d'un placeholder est neutralisé par un caractère invisible et ne peut pas être restauré. |
+| BR-MSG-07 | Sans garde-fou, une valeur que le détecteur ne voit pas part en clair vers le LLM. |
+| BR-MSG-08 | Un garde-fou qui trouve une valeur restante bloque le texte, et son erreur nomme les types restants, jamais les valeurs. |
+| BR-MSG-09 | Les motifs regex reconnaissent une forme sans vérifier de clé de contrôle, donc un IBAN ou un numéro de carte mal recopié est quand même dé-identifié. |
+| BR-MSG-10 | Les secrets ne sont reconnus que si un groupe de motifs de secrets est chargé, ou par un modèle qui les cherche. |
 
 ## Postconditions
 
