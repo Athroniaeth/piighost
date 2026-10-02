@@ -169,19 +169,7 @@ The strategies are closed `Enum`s, you do not extend them, you combine them at m
 ???+ example "Combining the three strategies at construction"
 
     ```python
-    from piighost.integrations.langchain import (
-        PIIAnonymizationMiddleware,
-        ToolCallStrategy,
-        InventedPlaceholderStrategy,
-        EntityCreateByAssistantStrategy,
-    )
-
-    middleware = PIIAnonymizationMiddleware(
-        pipeline,  # PreservesRecognizableIdentity tokens, else UnrecognizableFactoryError
-        tool_strategy=ToolCallStrategy.FULL,
-        invented_strategy=InventedPlaceholderStrategy.DROP,
-        assistant_strategy=EntityCreateByAssistantStrategy.PRESERVE,
-    )
+    --8<-- "snippets/tool_call_middleware.en.py:example"
     ```
 
 To change *what* the pipeline finds and restores, you swap the placeholder factory, not a strategy. See *Writing your own* in [Placeholder factories](placeholder-factories.md).

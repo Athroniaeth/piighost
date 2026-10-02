@@ -21,13 +21,7 @@ The pipeline never talks to a tracing backend directly. It calls `get_tracer()`
 once at construction and records through the returned tracer.
 
 ```python
-from piighost.observation import get_tracer
-
-tracer = get_tracer()
-with tracer.span("piighost.detect") as span:
-    span.set_input(text)
-    span.set_output(detections)
-    span.set_attribute("count", len(detections))
+--8<-- "snippets/observation_tracer.py:example"
 ```
 
 `get_tracer()` returns an OpenTelemetry-backed tracer when the `observation`
@@ -89,16 +83,7 @@ It is also a leak if the backend is not trusted with confidential data. Pass an
 every payload is scrubbed through it before it leaves the process.
 
 ```python
-from piighost.pipeline import AnonymizationPipeline
-from piighost.components.placeholder import LabelPlaceholderFactory
-
-redactor = LabelPlaceholderFactory()
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    observation_redactor=redactor,
-)
+--8<-- "snippets/observation_redactor.py:example"
 ```
 
 With the redactor set, the `detect` span records `<<PERSON>>`{ .placeholder }
@@ -118,10 +103,7 @@ serve as an annotation dataset, since the clear values are gone.
 Clear-text tracing stays the default so traces keep their annotation value, but it is treated as an explicit choice. With no redactor set and a tracer provider actually configured, the pipeline warns once at construction that its traces carry confidential data in clear. Pass `trace_clear_text=True` to acknowledge it and silence the warning, or an `observation_redactor` to scrub the payloads.
 
 ```python
-pipeline = AnonymizationPipeline(
-    detector=detector,
-    trace_clear_text=True,  # I know traces carry clear PII, ship them to a trusted backend only
-)
+--8<-- "snippets/observation_clear_text.py:example"
 ```
 
 ## Backend correlation is deployment config, not lib code
@@ -141,19 +123,7 @@ admit the `piighost` instrumentation scope through the SDK's `should_export_span
 predicate:
 
 ```python
-from langfuse import Langfuse
-
-def export_piighost_spans(span) -> bool:
-    scope = span.instrumentation_scope
-    if scope is None:
-        return False
-    return (
-        scope.name == "langfuse-sdk"
-        or scope.name == "piighost"
-        or scope.name.startswith("piighost.")
-    )
-
-client = Langfuse(should_export_span=export_piighost_spans)
+--8<-- "snippets/observation_langfuse.py"
 ```
 
 The payloads are serialized under the attribute keys Langfuse maps to
