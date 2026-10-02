@@ -6,7 +6,7 @@ icon: lucide/messages-square
 
 Dans une conversation à plusieurs messages, une valeur garde le même placeholder du premier au dernier message, ce qui permet au LLM de suivre le fil. La réponse du LLM est restaurée avant d'être affichée, une personne peut corriger les détections d'un message, et la conversation peut être effacée à la demande.
 
-Répond à : DEV-2, DEV-3, DEV-8, UTI-1, UTI-2, DPO-6
+Répond à : DEV-2, DEV-3, DEV-8, USER-1, USER-2, DPO-6
 
 ## Acteurs
 
@@ -102,18 +102,18 @@ L'application efface `conv-1`. `piighost` supprime sa mémoire et rend le compte
 
 | Règle | Énoncé |
 |---|---|
-| RG-CONV-01 | Chaque appel du pipeline conversationnel nomme sa conversation, et il n'existe pas de conversation par défaut à ce niveau. |
-| RG-CONV-02 | Une valeur garde son placeholder dans toute la conversation, et une nouvelle valeur du même type prend le numéro suivant. |
-| RG-CONV-03 | Deux conversations ne partagent rien, chacune numérote ses valeurs de son côté. |
-| RG-CONV-04 | La restauration remplace tout placeholder émis dans la conversation, y compris dans un texte que `piighost` n'a jamais dé-identifié, comme la réponse du LLM. |
-| RG-CONV-05 | Avec le middleware LangChain ou la capacité Pydantic AI, un placeholder jamais émis est refusé par défaut, et peut être retiré ou gardé sur réglage. |
-| RG-CONV-06 | Le pipeline conversationnel utilisé seul laisse un placeholder inconnu tel quel. |
-| RG-CONV-07 | Une valeur citée d'abord par l'assistant reste en clair dans toute la conversation, sauf réglage contraire. |
-| RG-CONV-08 | Une correction remplace les détections d'un seul message, et les listes du serveur s'appliquent encore à la correction. |
-| RG-CONV-09 | Une correction qui ajoute ou retire une valeur dans un message ancien peut changer les numéros de toute la conversation. |
-| RG-CONV-10 | Un message identique renvoyé dans la même conversation reprend ses détections enregistrées, sans relancer le détecteur. |
-| RG-CONV-11 | L'effacement supprime toute la mémoire de la conversation et rend le nombre de messages et de détections supprimés. |
-| RG-CONV-12 | Le middleware LangChain refuse par défaut un appel sans identifiant de conversation. |
+| BR-CONV-01 | Chaque appel du pipeline conversationnel nomme sa conversation, et il n'existe pas de conversation par défaut à ce niveau. |
+| BR-CONV-02 | Une valeur garde son placeholder dans toute la conversation, et une nouvelle valeur du même type prend le numéro suivant. |
+| BR-CONV-03 | Deux conversations ne partagent rien, chacune numérote ses valeurs de son côté. |
+| BR-CONV-04 | La restauration remplace tout placeholder émis dans la conversation, y compris dans un texte que `piighost` n'a jamais dé-identifié, comme la réponse du LLM. |
+| BR-CONV-05 | Avec le middleware LangChain ou la capacité Pydantic AI, un placeholder jamais émis est refusé par défaut, et peut être retiré ou gardé sur réglage. |
+| BR-CONV-06 | Le pipeline conversationnel utilisé seul laisse un placeholder inconnu tel quel. |
+| BR-CONV-07 | Une valeur citée d'abord par l'assistant reste en clair dans toute la conversation, sauf réglage contraire. |
+| BR-CONV-08 | Une correction remplace les détections d'un seul message, et les listes du serveur s'appliquent encore à la correction. |
+| BR-CONV-09 | Une correction qui ajoute ou retire une valeur dans un message ancien peut changer les numéros de toute la conversation. |
+| BR-CONV-10 | Un message identique renvoyé dans la même conversation reprend ses détections enregistrées, sans relancer le détecteur. |
+| BR-CONV-11 | L'effacement supprime toute la mémoire de la conversation et rend le nombre de messages et de détections supprimés. |
+| BR-CONV-12 | Le middleware LangChain refuse par défaut un appel sans identifiant de conversation. |
 
 ## Postconditions
 

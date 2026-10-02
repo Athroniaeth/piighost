@@ -112,34 +112,34 @@ Les scénarios complets, étape par étape avec leurs cas d'erreur, sont dans le
 
 ## Exploitant
 
-**EXP-1. En tant qu'exploitant, je veux déployer une API de dé-identification partagée, afin que plusieurs applications utilisent un seul pipeline et un seul modèle.**
+**OPS-1. En tant qu'exploitant, je veux déployer une API de dé-identification partagée, afin que plusieurs applications utilisent un seul pipeline et un seul modèle.**
 
 - Le serveur démarre sur une configuration du hub et répond aux requêtes de dé-identification.
 - Voir [Déployer une API de dé-identification](getting-started/api-server.md).
 
-**EXP-2. En tant qu'exploitant, je veux que la mémoire survive aux redémarrages et soit partagée entre instances, afin qu'une conversation ne perde pas ses jetons.**
+**OPS-2. En tant qu'exploitant, je veux que la mémoire survive aux redémarrages et soit partagée entre instances, afin qu'une conversation ne perde pas ses jetons.**
 
 - Deux instances rendent le même `<<PERSON:1>>`{ .placeholder } pour `Jean Dupont`{ .pii } dans la même conversation.
 - Voir [Déploiement](deployment.md) et [Déploiement multi-instance](multi-instance.md).
 
-**EXP-3. En tant qu'exploitant, je veux fournir les secrets par l'environnement, afin qu'aucune clé ne soit écrite dans un fichier.**
+**OPS-3. En tant qu'exploitant, je veux fournir les secrets par l'environnement, afin qu'aucune clé ne soit écrite dans un fichier.**
 
 - Quand le chiffrement est configuré mais que ses secrets manquent, le démarrage échoue avec un message clair.
 - Une mémoire Redis déclarée sans chiffrement démarre, mais en clair, avec un avertissement de sécurité.
 - Voir [Déploiement](deployment.md) et la [référence TOML](configuration/toml.md).
 
-**EXP-4. En tant qu'exploitant, je veux protéger l'API par des clés, une taille de requête maximale et un débit, afin qu'elle ne soit ni ouverte ni abusée.**
+**OPS-4. En tant qu'exploitant, je veux protéger l'API par des clés, une taille de requête maximale et un débit, afin qu'elle ne soit ni ouverte ni abusée.**
 
 - Sans clé configurée, le serveur refuse de démarrer, sauf mode anonyme demandé explicitement.
 - Une requête trop grosse ou trop fréquente est refusée.
 - Voir [CLI du serveur](reference/api-cli.md) et [Endpoints](reference/api-endpoints.md).
 
-**EXP-5. En tant qu'exploitant, je veux traiter un long document sans que le modèle en tronque la fin, afin qu'aucune valeur en fin de texte ne parte en clair.**
+**OPS-5. En tant qu'exploitant, je veux traiter un long document sans que le modèle en tronque la fin, afin qu'aucune valeur en fin de texte ne parte en clair.**
 
 - Une valeur placée au-delà de la fenêtre du modèle est détectée quand le texte est découpé.
 - Voir [Limites](limitations.md) et la [référence des détecteurs](reference/detectors.md).
 
-**EXP-6. En tant qu'exploitant, je veux charger une configuration relue depuis le hub par sa référence, afin de ne pas maintenir de copie locale.**
+**OPS-6. En tant qu'exploitant, je veux charger une configuration relue depuis le hub par sa référence, afin de ne pas maintenir de copie locale.**
 
 - Une référence épinglée sur un commit est téléchargée au premier démarrage, puis lue depuis le cache.
 - Voir la [référence du pipeline](reference/pipeline.md) et le [hub piighost](https://hub.piighost.dev).
@@ -150,7 +150,7 @@ Les scénarios complets, étape par étape avec leurs cas d'erreur, sont dans le
 
 Ce profil ne manipule jamais `piighost`. Il utilise l'application qu'un développeur a construite avec, et ses besoins disent ce que cette application doit lui garantir.
 
-**UTI-1. En tant qu'utilisateur, je veux lire la réponse avec mes vraies informations, afin de ne jamais voir de jeton.**
+**USER-1. En tant qu'utilisateur, je veux lire la réponse avec mes vraies informations, afin de ne jamais voir de jeton.**
 
 - L'utilisateur lit "Bonjour `Jean Dupont`{ .pii }", jamais "Bonjour `<<PERSON:1>>`{ .placeholder }".
 - Voir [Suivre une conversation](use-cases/follow-a-conversation.md).
@@ -158,12 +158,12 @@ Ce profil ne manipule jamais `piighost`. Il utilise l'application qu'un dévelop
 !!! warning "Limite connue"
     Avec les hooks Claude Code, la réponse affichée dans Claude Code garde ses jetons, car aucun hook ne peut réécrire ce texte. Le [proxy compatible Anthropic](examples/anthropic-proxy.md) restaure, lui, la réponse.
 
-**UTI-2. En tant qu'utilisateur, je veux que la conversation reste cohérente de bout en bout, afin que l'assistant ne confonde pas deux personnes.**
+**USER-2. En tant qu'utilisateur, je veux que la conversation reste cohérente de bout en bout, afin que l'assistant ne confonde pas deux personnes.**
 
 - Deux personnes citées gardent chacune leur jeton d'un message à l'autre, et la réponse les nomme correctement.
 - Voir [Suivre une conversation](use-cases/follow-a-conversation.md).
 
-**UTI-3. En tant qu'utilisateur, je veux que les actions de l'assistant utilisent mes vraies données, afin que l'e-mail parte à la bonne adresse.**
+**USER-3. En tant qu'utilisateur, je veux que les actions de l'assistant utilisent mes vraies données, afin que l'e-mail parte à la bonne adresse.**
 
 - L'outil d'envoi reçoit `jean.dupont@exemple.fr`{ .pii }, pas `<<EMAIL:1>>`{ .placeholder }.
 - Voir [Laisser un outil agir](use-cases/call-a-tool.md).
@@ -171,12 +171,12 @@ Ce profil ne manipule jamais `piighost`. Il utilise l'application qu'un dévelop
 !!! warning "Limite connue"
     Le proxy compatible OpenAI ne restaure pas les arguments d'un appel d'outil quand la réponse est streamée. Voir le [proxy compatible OpenAI](examples/openai-proxy.md).
 
-**UTI-4. En tant qu'utilisateur, je veux voir la réponse s'afficher au fil de l'eau sans morceau de jeton, afin de la lire normalement.**
+**USER-4. En tant qu'utilisateur, je veux voir la réponse s'afficher au fil de l'eau sans morceau de jeton, afin de la lire normalement.**
 
 - Un fragment comme "`<<PER`" n'apparaît pas pendant le flux. Seul un flux coupé au milieu d'un jeton rend ce fragment à la fin, sans aucune valeur réelle.
 - Voir [Afficher une réponse streamée](use-cases/stream-a-reply.md).
 
-**UTI-5. En tant qu'utilisateur, je veux que les termes publics restent lisibles, afin que la réponse garde son sens.**
+**USER-5. En tant qu'utilisateur, je veux que les termes publics restent lisibles, afin que la réponse garde son sens.**
 
 - Un nom de ville mis en liste noire reste en clair, et une date de réunion n'est pas masquée par un groupe de motifs génériques.
 - Voir [Imposer les listes du serveur](use-cases/enforce-server-lists.md) et [Limites](limitations.md).

@@ -6,7 +6,7 @@ icon: lucide/radio
 
 Le LLM envoie sa réponse en morceaux, que l'application affiche au fil de l'eau. Un placeholder peut arriver coupé entre deux morceaux, `<<PER` puis `SON:1>>`. Le décodeur de flux de `piighost` retient le début du placeholder jusqu'à ce qu'il soit entier, puis le restaure une seule fois. Tant que le flux va jusqu'au bout, l'écran ne montre aucun placeholder cassé.
 
-Répond à : DEV-9, UTI-4, UTI-1, DEV-8
+Répond à : DEV-9, USER-4, USER-1, DEV-8
 
 ## Acteurs
 
@@ -74,14 +74,14 @@ Les proxys OpenAI et Anthropic du serveur `piighost-api` restaurent eux aussi le
 
 | Règle | Énoncé |
 |---|---|
-| RG-FLUX-01 | Le texte qui ne peut pas appartenir à un placeholder est rendu dès son arrivée. |
-| RG-FLUX-02 | À partir d'une ouverture `<<` non fermée, tout est retenu jusqu'à la fermeture, puis le placeholder entier est restauré une seule fois. |
-| RG-FLUX-03 | Un `<` seul en fin de morceau est retenu, pour qu'un délimiteur coupé en deux se recolle. |
-| RG-FLUX-04 | Une ouverture vieille de plus de 128 caractères est relâchée telle quelle, aucun placeholder n'étant aussi long. |
-| RG-FLUX-05 | En fin de flux, le reste retenu est rendu tel quel, sans restauration. |
-| RG-FLUX-06 | Le réglage des placeholders inventés s'applique à chaque placeholder complété, et le refus interrompt le flux. |
-| RG-FLUX-07 | Les hooks du middleware LangChain ne voient que le message entier, donc l'affichage en direct demande d'envelopper la boucle de streaming avec le décodeur. |
-| RG-FLUX-08 | Le décodeur demande l'identifiant de conversation explicitement, une boucle de streaming manuelle étant hors de la configuration de l'agent. |
+| BR-STREAM-01 | Le texte qui ne peut pas appartenir à un placeholder est rendu dès son arrivée. |
+| BR-STREAM-02 | À partir d'une ouverture `<<` non fermée, tout est retenu jusqu'à la fermeture, puis le placeholder entier est restauré une seule fois. |
+| BR-STREAM-03 | Un `<` seul en fin de morceau est retenu, pour qu'un délimiteur coupé en deux se recolle. |
+| BR-STREAM-04 | Une ouverture vieille de plus de 128 caractères est relâchée telle quelle, aucun placeholder n'étant aussi long. |
+| BR-STREAM-05 | En fin de flux, le reste retenu est rendu tel quel, sans restauration. |
+| BR-STREAM-06 | Le réglage des placeholders inventés s'applique à chaque placeholder complété, et le refus interrompt le flux. |
+| BR-STREAM-07 | Les hooks du middleware LangChain ne voient que le message entier, donc l'affichage en direct demande d'envelopper la boucle de streaming avec le décodeur. |
+| BR-STREAM-08 | Le décodeur demande l'identifiant de conversation explicitement, une boucle de streaming manuelle étant hors de la configuration de l'agent. |
 
 ## Postconditions
 

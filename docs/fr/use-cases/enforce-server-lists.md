@@ -6,7 +6,7 @@ icon: lucide/list-checks
 
 Le serveur impose deux listes au-dessus du détecteur. La liste blanche nomme des valeurs toujours dé-identifiées, même quand le détecteur les rate. La liste noire nomme des valeurs jamais dé-identifiées, même quand le détecteur les relève. Ces deux listes priment sur le détecteur comme sur une correction faite par une personne.
 
-Répond à : DPO-3, UTI-5, DPO-4, DPO-1
+Répond à : DPO-3, USER-5, DPO-4, DPO-1
 
 ## Acteurs
 
@@ -91,18 +91,18 @@ Un garde-fou qui reconnaît `Acme`{ .pii } relit "chez Acme" et ne bloque pas le
 
 | Règle | Énoncé |
 |---|---|
-| RG-LISTE-01 | Une valeur de la liste noire est retirée des détections et part au LLM en clair. |
-| RG-LISTE-02 | Une valeur de la liste blanche est dé-identifiée même si le détecteur l'a ratée, avec le type que lui donne la liste. |
-| RG-LISTE-03 | Une détection de la liste blanche remplace toute détection du détecteur qu'elle recouvre. |
-| RG-LISTE-04 | Par défaut, la liste noire retire toute détection du même texte, quels que soient sa casse, ses espaces, sa position et son type. |
-| RG-LISTE-05 | Le mode "exact" ne retire qu'une détection de même position et de même type, le mode "recouvrement" retire toute détection qui touche la valeur. |
-| RG-LISTE-06 | Quand les deux listes visent le même passage, la liste blanche gagne par défaut, et deux autres réglages font gagner la liste noire ou refusent le texte. |
-| RG-LISTE-07 | Les listes s'appliquent juste après la détection, avant le départage des recouvrements, et dans une conversation avant l'enregistrement en mémoire. |
-| RG-LISTE-08 | Les listes s'appliquent aussi à une correction humaine et priment sur elle. |
-| RG-LISTE-09 | Un garde-fou qui localise les valeurs ignore celles de la liste noire, un garde-fou à score ne peut pas les exempter. |
-| RG-LISTE-10 | Une valeur de la liste blanche citée d'abord par l'assistant reste en clair, sauf avec le réglage "forcer". |
-| RG-LISTE-11 | Un message déjà analysé dans une conversation garde son résultat, même renvoyé à l'identique après un changement de liste. |
-| RG-LISTE-12 | Chaque liste est un détecteur complet, valeurs exactes ou motifs regex par exemple, relancé sur chaque message. |
+| BR-LIST-01 | Une valeur de la liste noire est retirée des détections et part au LLM en clair. |
+| BR-LIST-02 | Une valeur de la liste blanche est dé-identifiée même si le détecteur l'a ratée, avec le type que lui donne la liste. |
+| BR-LIST-03 | Une détection de la liste blanche remplace toute détection du détecteur qu'elle recouvre. |
+| BR-LIST-04 | Par défaut, la liste noire retire toute détection du même texte, quels que soient sa casse, ses espaces, sa position et son type. |
+| BR-LIST-05 | Le mode "exact" ne retire qu'une détection de même position et de même type, le mode "recouvrement" retire toute détection qui touche la valeur. |
+| BR-LIST-06 | Quand les deux listes visent le même passage, la liste blanche gagne par défaut, et deux autres réglages font gagner la liste noire ou refusent le texte. |
+| BR-LIST-07 | Les listes s'appliquent juste après la détection, avant le départage des recouvrements, et dans une conversation avant l'enregistrement en mémoire. |
+| BR-LIST-08 | Les listes s'appliquent aussi à une correction humaine et priment sur elle. |
+| BR-LIST-09 | Un garde-fou qui localise les valeurs ignore celles de la liste noire, un garde-fou à score ne peut pas les exempter. |
+| BR-LIST-10 | Une valeur de la liste blanche citée d'abord par l'assistant reste en clair, sauf avec le réglage "forcer". |
+| BR-LIST-11 | Un message déjà analysé dans une conversation garde son résultat, même renvoyé à l'identique après un changement de liste. |
+| BR-LIST-12 | Chaque liste est un détecteur complet, valeurs exactes ou motifs regex par exemple, relancé sur chaque message. |
 
 ## Postconditions
 
@@ -137,7 +137,7 @@ type = "exact"
 values = { "Acme" = "ORG" }
 ```
 
-- `ThreadAnonymizationPipeline` applique l'`override` aux détections fraîches et dans `anonymize_corrected`, jamais aux détections relues depuis la mémoire (RG-LISTE-11).
+- `ThreadAnonymizationPipeline` applique l'`override` aux détections fraîches et dans `anonymize_corrected`, jamais aux détections relues depuis la mémoire (BR-LIST-11).
 - L'exemption du garde-fou passe par `cleared_values`, qui relance la liste noire sur le texte. Le forçage d'une valeur apportée par l'assistant passe par `forces_value`, qui relance la liste blanche sur la valeur.
 - Une liste à base de modèle coûte une inférence par message. Quand un garde-fou est configuré, la liste noire tourne une seconde fois sur le texte.
 
