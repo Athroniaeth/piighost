@@ -232,6 +232,11 @@ ignore-missing-imports = [
     "PIL.*",
 ]
 
+[tool.bandit]
+# The OpenWiki example ships third-party writing skills verbatim; their helper
+# script self-tests with assert, which is not library code.
+exclude_dirs = ["examples/openwiki/skills"]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "$version"
