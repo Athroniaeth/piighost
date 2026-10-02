@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:fb68b20ae3625583cf092dbc3f1957dc72019f7188293dd99b2ad2627d6fa183",
+  "claims": [
+    {
+      "id": "claim_efe92135e30d414090bb5f8d0c63794b",
+      "statement": "The thread pipeline assigns tokens over the union of every message's detections in first-seen order, but renders only the current message's spans.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L126-L188",
+          "version": "repo-lines-v1:sha256:792c06d62fe3d4607f621196bd8da760f659e61c2d88563d2050331a3fca62cf:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYTVlN2IxNjU0YjNkYzY5NmM5YjdlZWZkODFmMjI5YWNiYjEzMGIzZWJkNDlhM2QwMzQ1YWQ2NTU1NWYxOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3YzI1MmRjMjhjOGJjOTZmZmIxYTUxZTk1YWJhNWVlMzhlNGI1ODNhN2QwYTE0OWVkNzFlMTM0ZDNiNzBhMzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5MTA2MjU1ZWNhYjFlYTgxMThkM2Y1M2IwODYyODI0NzkwZmVmMDkzNWIyYWFjNmU2MzRiZjJlYzcyZmFlN2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyYjIwZmVlMjQ0NTQzZTQwYmQ0ZDE5NjdmNzE2NGQ2YmVjNGEyMTAzYmVhZDJmOGY4ZmU2NGRlMmJlNTRhMTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L289-L339",
+          "version": "repo-lines-v1:sha256:381b16714ee90f09f07732b90af08744509d988ac7ad4875549c475bf80fa2d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkYjYwOGIxZTJlYjMyYzE1MzA0MDNjZGU3NWRkZTc1YTI3NjkyZDIwZTU0MDcwM2MzMWZiZmUyZGQzNzY3NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2NWZjYThlNTI5MDRjMmUzMWU2M2M2YzQ5YmQ0Y2U4YTY3OWI1MDczYjFiNTc5YTdmYWExN2UzZjk2M2MyOTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2NDBhZjAwMGY1MjQ4MTJiM2JiYWVhZDc0MWIxMGFjYWY2OGZiNTRkMGNiYTJmMTY2OGMzZTMwNDNlMmQyZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiMTI3MjBmNjRhZGQ5Zjg3NDIzMTZiZTdhMTIzYWU2N2RjZDQxZWU4ODRiYmNjY2Q2MTY1ZmIyMGI5ZmVlMTMifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L36-L51",
+          "version": "repo-lines-v1:sha256:361ae099befa91743983be75cdb84f36fbffa3cd0b4646b363c5d0e7c4ad315c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZDI0YTM4YzYzOWI5M2JkZThkOTVjZDk3MDIwNmRkMjFhMjRjOTQ1YTlkMTJjNzAyY2I5ODNkZDcwZDVjMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2YTcxNTI1NzJlZTg0ZjEwOTA2Yzc0YjlmMmE5MjQzNGRkYWIwZTNjNDI4MTNiMDRlNTk3ZWZjZWM5NTFiMjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzYzNlNjFlOGNjNWExYjQxNTk0ZGUyMTFjZDdiMWZjN2MyMjNmNzljMDBkZDM4MzliYjNmMjg4OWE3ZTJjNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzMzEwOTVkNWZkOTQ5N2Y0M2RkNjkwMWE5M2Y3NDNiYjY1NTUwNmEwNTBlMTVjMjgxNWJmMWM5ZDRmMTMyOTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_69935703d635418fb02edfe93a92f9b2",
+      "statement": "A value whose first occurrence in the thread came from the assistant gets no token and stays clear, unless the whitelist forces it under FORCE.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/memory.py#L91-L102",
+          "version": "repo-lines-v1:sha256:46b370d108ec305a74950f67186711f2a2693fc1359c199a08d6227306de9f50:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4N2Q0NDJiZGI2OGYxYzc0YWJlMTE1ODcwMTI4MzQ4MjZiNDBhOTM3ZWI2MTEwNTViN2VjMTM1YmFmNGEyMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0OGQ0MzVlZTU1MWU3YzI5MzcwZGFkMzRhOTIwOGU2NjQ1MzBkZTU3NDkyOGUyZGU4YjQ1NTJhYmMzOGJkOTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhNjdkNDRiMWFhMDBhYTdkY2I5NTVkMGNkZjZhMGYxMTg5NzY0OTdmMzE2NDFhMWFlMTdmYjdkY2YxZmU2ZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2NTNhNzVkZWI3ZjQ5ODU2NmRmNzg3M2QzMzA0MWQxODNhYWZjNzVkYWEzNGJjNjY0MmNlY2M2ZmY3ZTQxNzIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L322-L331",
+          "version": "repo-lines-v1:sha256:cac816c9b2698baa58de9a5f311016f3c04e5e33e1f29c257aacbbcceb0c44f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YTkxYzE1NDg2YzU1YjZhODIwZjM1YjlkZmFmYzNiMWQ5YjFkZDgxMWQxMTBhZjgzMDExZmQ2NGRmOTdjNWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4ZDdlYmUzYmU4MDZhMDEyNzZjMjg1Y2M1MzJhZWM4ZGFiMTM5YzU0ZWE3ZmJlNmY5OTljOTdhYjA5Y2I3ZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0OTVhNmNkZDViYmYzYTc3OTFjZTA1ZDgwMDY0NTdhN2U1YmNkMWFhNGFjMDliYTBmYzVjYWM5NGQwNjU4OWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0729d2af90424dac825b8e9ba352220a",
+      "statement": "deanonymize rebuilds the thread's tokens from memory, so any text carrying them is restored, including a model reply never anonymized.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L219-L242",
+          "version": "repo-lines-v1:sha256:2b752ec7b85797d8c45712b4d5952bf785ae650c4858a321dbe9d548da0f3321:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwYjRjZWNjNjkzYzJmZDg3Yjg2ZjE5NDU2M2E5YjE4NDExMTc3Yzk1NTg1Y2I1OWU3YWRhYWQ5YzVjMjBiOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3ZmRiMjc4MmM3YzUzYTRmNWUyZjUxODUwOWQ0Y2ZjMDkxZWU5MzQ3OTYzNmFmZTk3YmM1NmZkZTgwNTFkYzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlZDQ5YWQ1OTgyNzA1Yzg2ODY5NjgzMDdhZDc2ZTdjMjcwOGE2Y2Y3MDZmMGUzYzFmMzZjN2E1OThiNmI3ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMzI0NDYzNzMyNGU0ZjgyMGEzZTZhOWM1NDk1NWI3MTU2YTNiYjQ5MTNmMzFjMDNlZTVhODZhZjA0ODg0MjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c920e71252ca4607821ae9a319965f05",
+      "statement": "anonymize_corrected passes the corrected set through the override, stores it as the message's detections without overlap resolution or expansion, then re-anonymizes the message.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L190-L217",
+          "version": "repo-lines-v1:sha256:6ac569d95640aa2a3d64c91d248d124a21bc8304421cf32778f56ecd054eaa23:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhYjA2YmIxZGMxNDM4NWY0MzBkNWFjYzZlYmQ3ZGU0ZmY5YjQ4NTU4YTQ2M2RkZTE4OGVjZGNlZjg0MDA2OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4YTgyYzhhOGUwZjEzYzA5NzQwZDEzMzU4ZjQ4ZjMzNDNkNTVjNjEzNGZmNjNkOTI5OTU5NDEzYTcyZTAzZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4OTUyYTE4ZTQwMWZjZjAxZTkyMjRjYzAxNTljMmVlYjlmY2RjNjViNDNkYjFlMTRkMWI2ZDQxMDkyOWU4NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyOGFlMGE4NDI4YmU0YjYxZWUwYWI2ZmJiNWY5MjMyOTNiZTJlZWQ4ZTcxMDIwZjQzZTI3ZjFiN2Q4ZmM1MzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0ebcaa2e8ae4f0c9b4b4159412098ee",
+      "statement": "Because tokens are numbered over the union in first-seen order, removing detections from an earlier message through a correction renumbers the thread's tokens.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/base.py#L145-L156",
+          "version": "repo-lines-v1:sha256:b3d6708c520a0e0af17306763f07d892482adf9f07426b321b1dc0a5c10d446b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4NjNlMjc3MzBjMmNiMDY1ODY2NDFiYThmNWQ2ZTdiOWU5NzUyYjMwNWZlYzc3ZWYzMDBkYWRhZjM3ZTkwNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2NWZjYThlNTI5MDRjMmUzMWU2M2M2YzQ5YmQ0Y2U4YTY3OWI1MDczYjFiNTc5YTdmYWExN2UzZjk2M2MyOTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5NDgzMTAyYTJkOTYwY2RmNTJiMDM5MjNlMzcwYTg2ZTNlZTE4M2E2OWRiN2ZmZjc4MWUxNzdhZmJmYmRiZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMWYwNzI0MTg1ZjQ2N2U2ODE4Y2Y1ZTZhOTE2OWFlOWFmNTY3MWVhZmNkNWEwYzkyYzg5ZTdjYTZhNDAwNjkifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L305-L331",
+          "version": "repo-lines-v1:sha256:aa1a868f60edc870a1bc3e766f0a1cd40a3e1b5f16483b35d5af89e19dc4b811:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwNmU3NGExNDE1YWE1Y2NkM2JhZTkyNTI0OGVmNmQ0NWZlZmFmODY0YTE5ZjUxOTc1YjRkYmI2MDk5MzRmMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YTkxYzE1NDg2YzU1YjZhODIwZjM1YjlkZmFmYzNiMWQ5YjFkZDgxMWQxMTBhZjgzMDExZmQ2NGRmOTdjNWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkYjRkMDU5ZmNhODU0ZmMwOTZjZGI0MDYyN2VjNTU5MWViNTNjYjNhNTgxOTI2YTg2YWI4NDg2Mzg5MGQ0Y2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0OTVhNmNkZDViYmYzYTc3OTFjZTA1ZDgwMDY0NTdhN2U1YmNkMWFhNGFjMDliYTBmYzVjYWM5NGQwNjU4OWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8a1c55b2263f4a0aa7791e7b0a57d43c",
+      "statement": "A resent identical message reuses its cached detections and skips detection.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L264-L287",
+          "version": "repo-lines-v1:sha256:99f3e1cae7b600fb04f56559f012776c068a2970e2d1c9f1335686076e355b21:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNmNiZWI3ZTMwYTk5NWVmNTEyZmEwOTdhYWYyMzBjN2RhZDNkMTRlZTNlODFiNmMzMTM2M2EyMzg1MmNiOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkYjEyMmNkMmQ3OWRlOWZjZWU4OTg5MjA5ZjNlNTcyNzE0ZmViM2FlYWRkZjllODg1OTY5MjRhZDQ4MzhiOWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYxOGFmOTViOWViYzhmZmU5YWNiM2ZhNjg2MmM2YmQ3ODE3ZjA0MzUxZTlmMzU1NmNkNDI2ZWQ5ODRlYzhhNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1N2RlMmQ0Yzg4YzdmMWUxMDliMDIwNGNhZWU1YTI0NzZkNDU4M2NhNThiMjNkMDdkZTZjZjI4ZDA5Yzg4YTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cae80ddb1a40415db9b1aab07de539d6",
+      "statement": "forget_thread erases the thread memory, drops its memoized token maps, bumps an epoch so an in-flight derivation is not memoized, and returns a Forgotten count.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/base.py#L92-L102",
+          "version": "repo-lines-v1:sha256:32807546637cf49d2df2f31530d6930863c8d2f068e1779c10c07523e9089d68:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlM2ZiMWU1OGZiYzkwNDc5NGQ1MDczMTRmYTkxYzlmMmYxOThjODhkM2ZmMzk1ZTAwODI4OTAxYzM3ZGM5MWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MWY1ZDc0MjhkMjBjNTNiY2Y4ZWI3YzVkMDE4ZGU4NThhMmUxMTZhZDhjMjA1OWRkMjk5MjY0OWViYzAwMjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwOWU3OTZlNDdjNzAzMmZkNjE1ZjEyODAwYzg3YjBkNjM4ZWNkMGE1ODMxYmIwMmMxN2MzYWY3ODBjMmU3ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzYzYyNWY5MWRmYjhlNGMzZDFlYjFjN2NjNDU3NWNjOGE1NWJhOGE2N2E4ZmM1MjA1MjYwYTBiZDgyYTgyYjIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L244-L262",
+          "version": "repo-lines-v1:sha256:e90558a670a33c22499ee07abb4df24949cca0620658acf2b575f8b03da2333a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMzhlNzA0MmExYzgxZWQ4NjE0OTQyNTM3Zjc3OGJiZTkyMmNhMTg4NTdkNmNhMmZjYWVjZjc4N2ZiNDQ4OGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkNzZhN2YwMGI3MWIwZTE2Y2FmNWY2ZWI3MmMyOTdlYmZhYjFiM2Q3MGFjN2NlYjliMmY1NzM1YjM4YmQ1Y2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlYjc5MDk2MWYxOTVkMDk3YjUwZjkzYzI0NDliYzk1OTVjOTUyMmVhOTQxODQ2YTFjZTdkYTBmMmVlZDJmNDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwZTM3ZmI3MmJmMzRlMzc1MzI0NWJlY2FmYzEzODVjM2ExMTVlNzg3NzQ1MjYzYWFjOTJkYTk5ZmRmM2IxZTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_12ba6807b69144fab57096229585932e",
+      "statement": "The stream decoders buffer a placeholder split across fragments and rewrite it once complete.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/streaming.py#L1-L12",
+          "version": "repo-lines-v1:sha256:ec46d5f8243cf80beb28dd3aed9e63396c7565e441e611a29bb12f29377bd8f2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5N2M0NjUxYTUxMDljZDg3NWVjZTY0NWVkZDdmNzM5MTIyOWVkNzI3ZmQ5OGJiNDZiZWQ0MDFjZThmNzBhOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzMDNlY2RkNGE0ZDEwZjE5YzczZmQ0MmZkMTI0MzdmZDMzNTRhODI2ODE2MDVkYTUyNTVhOTdhMzkwNjhkYmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxNmQ2ZTg4OWI3OTY0NzVmOTU0NjNhMjVjMGJlODUzMzc1NDllOTQzMGQ5OWVkNDNhMzU0OWQzOTFkZGUwNTYifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/_deidentify.py#L83-L107",
+          "version": "repo-lines-v1:sha256:f8ed48554cfd2e7bd1e1b297fb3cc5d56ba6fed8a03eb5df814fb3da7df0e3c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYWQ3MDE5NWUwYmQzZmYwMjY3ZGY1ZGM4MTUwZGQxZTA2MWRmNDA3ZDBkNDA3YzQ5MWEwNjZkNTI5NTZkNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1YWI3NDI0MzVhOTliZWVjMGJhMTM0YzgwYTUxN2E2MGZiZTUzNGFmNWZhOTI5MTExN2ZkNjY5NTk1ZTBmMDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwODJkZDBlOTdlY2JhMjI0Yjc3MTI4NDAwYjYxYzBjYzE5ZTUyOTUzZTI1MjI0MWVmYjU1YzkzMDFmNDA1ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhZDNkNTMwMGIwZjM1YWUxMjk3M2I0NjJhNmU3NmFjMThkN2Q5NGI3OGZlYmZkNTNmNzU2NzdmNWNhZmIxNGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d79cea51b2c14e04a79c33f86643a8fd",
+      "statement": "Redis reads drop messages whose keys expired from the thread union.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/redis_backend.py#L200-L228",
+          "version": "repo-lines-v1:sha256:6e2ce01404037d4549640f438f61efd1a46ed708f7fa5bd1f1d6a2d1f2343971:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlOWJkMTE5NmNhZGQ5ZTg0NTQ1NTIxMWZhYjk3MTE3NWRhOWQzOTFlZWRmZGIwN2QxNzQ5ZmJiZGU3ZDc0NTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjMmFkYWZmY2QzOGFmZGNiOTMwZGVjNWI2ZjUwNGYwOGFmMDJlZDU4YWI2OGEwNTRjMzI5OGJmMWNiNDJhOGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmZGVhNmQ3NzIxNzE5ZWY3YmEwZDM2NDE3NzAzMGNhYTZlMjY3YTEzYzVlZDEyYTUyMWM0NjA0ODZmNTk5NzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyNDQyZDRlNDM4NDUwMjY3MGRmNTFkOTljZjk5MTgxZGRhMGRmNjMyMWZmNjE1ZjcwYThiY2RlOWM1NTVhZGIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

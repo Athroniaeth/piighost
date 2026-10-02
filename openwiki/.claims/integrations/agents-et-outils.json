@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:f44843302962c6586ebe6a9a99b5632503e3c2b3c7acd3f63769b7148bbcfebe",
+  "claims": [
+    {
+      "id": "claim_9bc63821c4ba4e9b8af4929895d94936",
+      "statement": "The LangChain middleware defaults to require_thread_id=True, raising MissingThreadIdError when the LangGraph config carries no thread_id; with it disabled it warns once per process and falls back to the shared default thread.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L142-L173",
+          "version": "repo-lines-v1:sha256:baca651437c7333e6d41d6a41992146a9f11cebdac15699728957b7111388617:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZDdhMDdhODNkZDE5OTZmYjUxNjg0YjQyYWVjYWY0ZTkwZmI3OGJhNzIzMGU1NDJlZDdiZDAxZDQyMzAxYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1NGU2NmU5MjZiMjlhNzA3NzA1ODc5NzJkYmI2NTIzMTY5OTAxMTBkYmU4MDAyMzY4NmVhNjdjOWI2YWIwNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0OTk0OTQzYjVjMDcwZmU0MTA0Yjk1NjkwMWIwOWRlNWI2MjU1YTYxZWEwZjU0YTA5ZTliZjFjMGYzZTVjOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhYzExNDFkYTNmNDViNjZmNDc4NmE1NmRmYTE3MjI0YWYxNGM2YjcyOTM1ZmExOTNhOWJhNjBiNjI1NDhiNDYifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L49-L85",
+          "version": "repo-lines-v1:sha256:ecc2bbb3459926df76088eafa0cd4159d0dc6f44d677aa36860bbdda0bf3b573:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2ZTJkMGJmY2Q0MmJhYzk0MjBlOGQ5Y2Q1OGEwNGFkZDI0NGVkMDk5YWUyMDUzYWEyYzYyOGM1NmUzODA4MmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlNzRmNGQ2NGU3MmY4ZTE3ZTI5NzM5MTYwNzY3MzE4MjQ2OGVlMDNlYzYyMGEwN2I1MTI1NGExYzRiYWQ4NjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1YzFjNDYyZTJhMzlkNzQ3NTlmNWUxYjEyNmY3NjgzYTJiNzMwMTE4ZTE4ZjUxMjJiMDhjZWRlZWI2NTBlMjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlYTgyMTRmM2RjNjY5ZjVmYmFlMjQ2OGIzMDA2YzU0MWIwYjZjYThkNThmMGI5MmQ4YmNiNmJkNmU5NTQyMjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ad879b204b1b4cf7bcf3f8848fd6868f",
+      "statement": "The middleware defaults are tool_strategy FULL, invented_strategy RAISE and assistant_strategy PRESERVE.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L142-L149",
+          "version": "repo-lines-v1:sha256:42f4559a0514d089071fa85515aefd698c4efc2607a304c051c468ea4476351a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZkN2EwN2E4M2RkMTk5NmZiNTE2ODRiNDJhZWNhZjRlOTBmYjc4YmE3MjMwZTU0MmVkN2JkMDFkNDIzMDFiZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQxM2U5ZTMzYjc4YWUxNzE4NmUwM2EwMWY0MTA0YzFmNGMzODkyNDRkYzQyNGNmODAzY2I4ZTNlZmMxNWZkYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzQ5OTQ5NDNiNWMwNzBmZTQxMDRiOTU2OTAxYjA5ZGU1YjYyNTVhNjFlYTBmNTRhMDllOWJmMWMwZjNlNWM5OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjgxZTAyMjViYWZmNDk2NTM1YzgzNzExZjI1NjMwMTViNTFkZDk4YmUxNTBkMTZhMmJhOWQxYzQ2ZTFjYjg2YyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_b400ba246cf94b50a062d1a9bca3e4c5",
+      "statement": "TextDeidentifier refuses a pipeline without a recognizer and, after restoring, applies the invented-placeholder strategy: KEEP leaves, DROP removes, RAISE raises InventedPlaceholderError.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/_deidentify.py#L133-L155",
+          "version": "repo-lines-v1:sha256:5bcae355b683a8db854665e8abc5a6fa9ca311102271d3eb8260d802cfe1b1dc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4YzcxNmRkMGUxOWRiNWM3ZmZjZGNmZDYzNWUwNmEzZjQxYThmOTUwMTAyNjdhMGRiNmQyYmZkZDhhMmZkNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkZmEzYjYxY2ZjNGRlODM3YWE0MzQ2NTMwNGZiYjY1NmMzMTVlYjI3ZDgyNTY1MTVhYzdmYTM4NWJkOTdjYTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNzAyMTg5NzIyNzZmMTZiYTA0MzFiYTdjYTBjODQ3YjcxMjY0YmEzODM3ZWZiZWFkODc5ZWFmNzQ5Y2ZiMjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/_deidentify.py#L54-L69",
+          "version": "repo-lines-v1:sha256:8a3908f221f854a8507c210b67635b41befabf845364a2f776871582959c97e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZDdhMDdhODNkZDE5OTZmYjUxNjg0YjQyYWVjYWY0ZTkwZmI3OGJhNzIzMGU1NDJlZDdiZDAxZDQyMzAxYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NjM0MTIxMzA2NDljMGM4NmRjYzEzNDE2MTIzYTgzMDczZDRhMTgyNDNkMTQxYzg5Yzk3ZDViNmQ1OWNiYjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0MTExYzFkNGM5ODg1Y2UzNzMxMzMxZWYxNzMyOTNlZGFhMjk1NGFjZjBhMWE4NWVlN2NiMTc1NGNjYjUwNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmYzY2NDY5OGZlZDE5ZGZkZGQ5MWI4MzMxMmJiNWZiYjA0ZTg3NTc4YmE0OTJlYTVmZWQ5MzZkOTkzZGVlNTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4f893609e38945ddb3d72d5ccb404ef3",
+      "statement": "Streaming restoration wraps the recognizer's async stream decoder so a token split across chunks is buffered until complete.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/_deidentify.py#L83-L107",
+          "version": "repo-lines-v1:sha256:f8ed48554cfd2e7bd1e1b297fb3cc5d56ba6fed8a03eb5df814fb3da7df0e3c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYWQ3MDE5NWUwYmQzZmYwMjY3ZGY1ZGM4MTUwZGQxZTA2MWRmNDA3ZDBkNDA3YzQ5MWEwNjZkNTI5NTZkNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1YWI3NDI0MzVhOTliZWVjMGJhMTM0YzgwYTUxN2E2MGZiZTUzNGFmNWZhOTI5MTExN2ZkNjY5NTk1ZTBmMDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwODJkZDBlOTdlY2JhMjI0Yjc3MTI4NDAwYjYxYzBjYzE5ZTUyOTUzZTI1MjI0MWVmYjU1YzkzMDFmNDA1ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhZDNkNTMwMGIwZjM1YWUxMjk3M2I0NjJhNmU3NmFjMThkN2Q5NGI3OGZlYmZkNTNmNzU2NzdmNWNhZmIxNGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec47fe99d17b4a1a8b54b175ff7b2816",
+      "statement": "awrap_tool_call deanonymizes tool arguments into a new request under INPUT or FULL and anonymizes returned ToolMessages, including those inside a Command update, under OUTPUT or FULL; PASSTHROUGH touches neither.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L105-L124",
+          "version": "repo-lines-v1:sha256:6c976df01233c76bdc0f0a3b61de828f47ec79c49bfee7ef65843675d1936fa6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0ZWVmMjk2ZTFhNDk1N2JhMzIzZWRiNDMzZjkwYWE0MjM3NTAwNTIyMjVkMDA0YzcyNzMyMzNhN2FhMGVkMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwYWM4OTI1ZTRiOTRjYjBmNzUwYzg1ZGQ0MGQ0NDlkNTdhOTBlMDgxZDQzYzNiYjVlYzU2ZTQ0ZjI5ZDlkYjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhMDdiNjdjZmI3YjEzMWE1ZmNjYzgwNTY3Mzc3YTY5MzJmNzM5MTM3MjgwZDgyODU2ZDgxZGQ3OGMxYzdlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllYzUzZDhmZTQ0Zjc0ZWM5ZDQxOWJlNDAyYmExMTFkZjI4ZTdhODc4YjAyOTc4YWU3ODQxMGUzNGIzY2UzMzAifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L242-L294",
+          "version": "repo-lines-v1:sha256:23fe8947469038f432ecc31b78819b33d66d03b9eda1389154f192ba5e226d26:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMmNhYzcxY2Y0MWQ0MjIzYzBkZmYxMDU1YjNiYTUyZGFlNTdjOWIwNDJiNDkwMmU2NTAyMTMwMjVmNDVjYjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlNjY5OTNkYWVlNDYxZjQwNTViYTc0YWZjZDU0ODVmNWVkNzEzNDc2YThkZGMyYTE5ZGRkZDUyMmRmZmUyMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI0YTY4NjIyOGMzYmE2YTBkOGU4MmFhZjYyYThlYzY2YWE2OGEyMjBmZDdhZDFhZWY2Y2Q3MTAxOTNlNDE5ZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3ODI2ZTAwZGQ3MTcxMzRhYjA4MGNhYjE0NGNiNjNhYzE5ZGZmODE2OGVhN2JmYjhmOGI0NmQ0ZTNiMzcwYzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_49c8f300313b40fd9de8887c5d41852c",
+      "statement": "aafter_model restores message content in the agent state while tool_calls stay tokenized, so the checkpointer persists clear content.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L208-L226",
+          "version": "repo-lines-v1:sha256:b9d09db6e964c166f735f5e5cadbd3a6875f235faeea39abe282f5922c565187:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0NGYzMjg5YmU2YmJkYjA4N2NhODRkODhkY2U2NGQzMGVmNTQwZDM4NDNjMmU3NmJmZjk3NmVhMzVmZTlhMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzMGMwYzJjZTZmNWY5NmYxNmQ5YWY4Y2NlNTMxMzRlNTQ0NzQ2ZTAyN2FlY2RlNzNjN2FlYjQxMjU4OGJkYzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkZGRmNmVhODFiMjlmYzg5MWUxZjhkMjRmMTgxMTkzZDQwZmY2NGI5ZDY0N2M0MTBlNTk0MDE3Y2ZlYmJjYzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4YTc2YWNiM2Y5OWJkYjU2OWViYzc0NWVkNWZiNDliOWRkY2JhODc1YjdiN2QyNDdjOTE1N2IwYmI2NDUxZDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9fe9a4d5d06c4992ba09b27a7c578b16",
+      "statement": "abefore_model re-anonymizes AIMessage tool_call arguments as defense in depth, except under IGNORE.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L175-L206",
+          "version": "repo-lines-v1:sha256:c7ed86b507c5e6197951ff21e9636fc8252393393a9f1236a4d339c24b8eee6d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlYTYwYmFkNDNlOTg3NDBmODJhYzFkNDBkOWIyNWQwZjA4OGFlZmQxYmRhMGQxOTVjNzYxMjBjZWE1NmQ5MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzMGMwYzJjZTZmNWY5NmYxNmQ5YWY4Y2NlNTMxMzRlNTQ0NzQ2ZTAyN2FlY2RlNzNjN2FlYjQxMjU4OGJkYzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyYTk5ZTE2OWUxODU0NWI5MjBkMDBhNzg0NTJlMTgxZjJlZGJlOTNiNGI3NGY4MjczYzFkOWVkOTE5OGI0ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM1YTVmM2YxM2QxZjdjYmU1NTNmOTcxYjE0NjBkNzM4ODU5OGM1MTYwNDA3OTE5OTYyMTlhNWE5NGFkZTM5MWYifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L359-L390",
+          "version": "repo-lines-v1:sha256:469e80623f519c2d58e7f1ec425ec23a65d3be8830cb9ad07054ee1265ab0558:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1N2VjMmU1ZjZjYWU2ODYyNjY5YWY5YTBjYWUyNmJkODI0ZmY2YzIzNDUyZDg3YjIxYTE3MzcyZTM5ODE4YzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYTk5MzEwN2RhNzA0ODQ1NDNmM2VhMGMyZWI0YzM3NzI3M2FhNWE4ZTg4NzEyYTMwYjBhYjhhZTE5Mzc2MzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkOWMzMTE2MjBmMTNjODY5NmViYzE5YWNmNjNkZTJkMjZkNGEzMWM1NmRkZTU2MjA5ODQyZjRhZDk0MjJjMzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI1MTVkMWZmYzZmMzEyYWE4MGE2OWYxMjNiMDdiYmQ2MTU1NWYxNDIyZTE2ODJhNjI1NzZmNGEwMjA2MTA3OTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3c1354b9434e4490a72e2a2de509155b",
+      "statement": "An AIMessage contributes the ASSISTANT role under PRESERVE and USER under ANONYMIZE; IGNORE skips assistant messages entirely.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/langchain/middleware.py#L392-L402",
+          "version": "repo-lines-v1:sha256:25781c6a338fdcf96949e71c68a668b775e81250771ed0e302a00829b08ea0c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2MWRlYzlmODkwOGY5YWI2NDI4Zjc2ZWUxMTc5MzllNjE5MzJlZmRjNjA3MGEwODUxMDhlZTg3NDY5MTIzMjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5YzZkNmMwNjk1MTUxMzhmZjc2ZmIyZWRmY2QxMjIzOTZhOGRiNzMyZDExYmE1YWU1YjBhZmI5NmQ3OTk0MjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MWFkMzc5MjQ0YmIwYjg0ODY4ZDUyZDVjMjk1ODJjMjFhNWU4ZDYxYjQ1N2VmYWJjZGIwYzFmMWRlY2FjM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d473950029414c6181f190c336d3bf40",
+      "statement": "pii_hooks anonymizes user and assistant text parts before each model request, restores reply text parts, deanonymizes tool args and recursively re-anonymizes tool results per tool_strategy.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/pydantic_ai/hooks.py#L40-L156",
+          "version": "repo-lines-v1:sha256:b776d27fa05efddd8ef4ba1cf831c7e6280eeffe8677d4df3ccd1087d6281b22:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxYjJhNTJiMzU4ZmE4ZjVlMWMyYWFhZGRlNGNkZTI4ZGQxOGY2M2UyMWI0YmVhMTg1NWQ1NWQyMmI1NGY5MzJmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMGVhM2FhYjM5OTdiNzE0YzNmNzkxMDYxZTk3ZDQyNTI2NWE5OGY0ZWQ4MDhhNmU1ODlmMjFiZmYwZjY3ODU2IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhOThiMDYzZDliNDdlNjUzNzk2MjU1NzJjY2UxOTc2NjlkNTc2N2UxMmMxOGJlMDc1NjUyYjhjZDk4MWNlOGQ1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_f0ad75fb9c3b495f938ad399baacc547",
+      "statement": "The Claude Code hooks anonymize UserPromptSubmit prompts and PostToolUse outputs for an allowlist of tools and fields, restore PreToolUse inputs, key the thread on session_id with a default fallback, and pass unknown tools through.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/claude_code/hooks.py#L22-L38",
+          "version": "repo-lines-v1:sha256:f84f048f5c24dc14a3135cb4e3f20b1535592056c21aba1d4c60378b61b7f47e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhOWZmYmM0ZTI1NDY3NWU3NWQyMDE4YjI0N2MyZGQ0NDg3MmFlODQ3YTJkODlhZTU4OWQxYWVkM2FjNDI3NzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1M2E5MDE5ZWY4MTE3NmRiNjM4ZTk4YmRkNzUwNTU0YzVjYzRiMTQzMjc0YTJjMzJjMWU0NWI1ZWFhNTNkZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiY2MxMTU2MjZmMjE1ODg2NzExOGQ1MGFmNzk1MDhiYTUwMTgyNzQ0Y2IzMjY3ZTMyMTc1OGIzNzA4ZDVmNDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0YTMwOTBmMDNmNWIwNzgxYzU3NWFkY2U3MTQyMDk4NDlmNjZhNGE5NTBiNjk4MDFmMjNiYjUxOWRkOWFhOWEifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/claude_code/hooks.py#L88-L142",
+          "version": "repo-lines-v1:sha256:14f989e2d83712f3f6c7d633556eab51acf14f2aa975b9b8e34d44ce9bb1461e:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkZWQ3OTA1NzQzM2NmODZkN2UyMmEyZjhlYjdhYzJhMDhjZjAzODg3ODg1MDk5N2Q5MzdmZmExMzYxN2MyNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTYwMGE3M2QyZTAyZjM1MmI5MGZlZjFkOGQ2MzgxMWJhNGE4ZWUwYzFiZWFhN2FlNDY1OGYzNmFhMmUxOTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3MjIzMTA2ZmQ4NzQyYjcwZWEyMzNmOWRjMzU5ZjRiMDJiYmIwNjliNzI4M2VlZjc2MjQ5OTUxNmJkN2I5YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a2159e3a7a794e17af761667432090f4",
+      "statement": "The Claude Code runner calls piighost-api at PIIGHOST_API_URL (default http://localhost:8000), optionally appends debug records to PIIGHOST_HOOK_LOG, and does not catch client errors.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/claude_code/runner.py#L18-L71",
+          "version": "repo-lines-v1:sha256:bf491e9b16ff47f0eb5aa741d4bb67ee678a02202462a8b68b9685ba1fa2bf1b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2N2ZkZGY3ZTgzZDdmMzkwNWY2MjQxNjgzYWQ2YjMwYjM2ZmEyZmVhZjUxZTIxYjY0OTZhYmMxZDg1ZTIyNWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjNTIxODRmM2U0N2UwMDRkZDNkZmM1ZGQwZDE3ZWNkOTU4ZTYxNTE0OTU1OTM4MTYxYTNkY2JlMzEzMDZhMzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyNjZhMTBiNGU0YzZmMDc4ZjFmZjJhZWE0ODlkZjRhNTIzYTAxMGY5NmJhZWU0OGU1Mzc2MTUzY2U5MGJhMmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c616179624124fe19b6904afe3a399df",
+      "statement": "PIIQueryEngine anonymizes the query into the corpus thread, restores the answer, and refuses a streaming inner engine; PIINodeAnonymizer anonymizes node text before embedding.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/llama_index/query_engine.py#L30-L81",
+          "version": "repo-lines-v1:sha256:462c7edb97fae828eeb7044294f1337c8cacba440192996c38395974768bc4d9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0ZTExYzg1MDM1ZmIxNjBlNzQzNDg4M2M2OGM4OGZiOWI1MmU2MDFlZjdlYTJhZTJmOTkxZmIwOGNjMjQwZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmMjhlMTA2Y2I3M2E4NDJmZjhlMDg4MzA4MzdkNTIwZjk1NWI0YzA5NGE5NzBkMGU2M2Y0MDUyNWMxOGZjMjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwYmQ2NTNkMjA2Njg0MmExM2Q4MWI1OTY2ZTMxMzdjMmZkMTY3M2RjZWYyNWQ4MTVkN2MwZTVkMjJiOTlkOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/llama_index/transform.py#L28-L59",
+          "version": "repo-lines-v1:sha256:211a76a857a98d76cdbc22bd90566ca12918b178118b5fd3b05e4ae871ddbf64:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZWExMzc3ODAwYTY5Y2VhNTVlZjZhYzhkOTYzMWNmYmUyNGFkYWM4OWUxMDA1YTcyM2JjOTY5ZmJiNjc1NzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMmFlNTNjYWYxMTNiOTFlZGVjZGJhYTBhMzg2MDViYjE0MDRhMDZmZmVmMmE5MTU3NmEzOTNiZmIxODZmYzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwYmQ2NTNkMjA2Njg0MmExM2Q4MWI1OTY2ZTMxMzdjMmZkMTY3M2RjZWYyNWQ4MTVkN2MwZTVkMjJiOTlkOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1dd6521d34604671b3180d16b4370c26",
+      "statement": "PIIGhostClient implements the thread pipeline port over HTTP, sends the role on anonymize, returns empty tokens, and raises RemoteError on non-2xx responses.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/integrations/client/remote.py#L191-L208",
+          "version": "repo-lines-v1:sha256:71d20a5b3d5b6609faa7e8f53407ee593405b82b90decdc18bce4a6d3045f13b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZTliMzA3YmIyNzJlOWUxOGM1MTkzNzFmMDFlMGY4MmYwZDE3MGIwYzAzMDI1MDA5ZjYzNWZjMjI2ZGYwODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhMDYwMWQ0MzI5NjZmZjg1ZjE4ZWU5M2NmZTU0Y2Y2Y2I3NWQxMjgyZTQzZTIwY2FlMmEzZmFlN2YwNTVmMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiYWU2MzEyMGQwZGU1M2ZhMDQ5NTBlMzkzY2Y3MWFmYzk0ZTBiOGVlY2I3ODAwNmU2ZjQ4YzRlZGUyN2QyMTIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/integrations/client/remote.py#L89-L104",
+          "version": "repo-lines-v1:sha256:0a5b775ba9e7117701c03823c5f62e66b418c2f941e527bca4bc1859e62b076e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYTVlN2IxNjU0YjNkYzY5NmM5YjdlZWZkODFmMjI5YWNiYjEzMGIzZWJkNDlhM2QwMzQ1YWQ2NTU1NWYxOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjMDA3MjM4YjBlZjY3MDM1Mzg4MjQzOGFiZmM0ZmNjYTcxODM2NmRhMjAzYjI0OTQ4ZmU3NjRlNDM2MjNhYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmOTMwYmIyYTdiZTNjNWNiYTVhOGJlMzZkNmI1ZDkxMmFmNjYwYTBlZTNlZGU5MGEwYjk1ZWFhYzM3MDY1N2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxZjM1MzA3NDdjZGUzZDc4MTYzODQ1MTFjMGZlNDQwMDViZTc3ZjUyY2FmMDRkZjQxYjZmZjNiMjRmZWZjY2UifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

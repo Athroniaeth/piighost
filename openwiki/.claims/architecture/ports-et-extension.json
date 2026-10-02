@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:5a263be487839d2baa2272131359432b8f57cc4056d6dc1f0dc931a645a0d6b1",
+  "claims": [
+    {
+      "id": "claim_042c0cde04ff478995806d7e8dcfdca2",
+      "statement": "The pipeline depends on runtime_checkable Any* Protocol ports; a detector satisfies AnyDetector by exposing an async detect(text) returning detections, with overlaps resolved by later stages.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/detector/base.py#L8-L27",
+          "version": "repo-lines-v1:sha256:68a6e8783621f736268be05b59a9e20b74103f6913e681455d7200c14cb4a3ec:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzA2OWQzZjMyN2IwY2ZkMWQwODcyNzRlYzI3NTY1ODU0ZDg1MmIzMjI1NTNkMzkwMmM4OWY1M2YwMDBlZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjBkODVkZTRlZDdhYjgwMjFiNGE4ZGQ0ZmExNWVjNTE5MjVjZGZjY2RlMTgwNTg5NWE0YzhhM2MzYmE0OGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE1ZDkzMzU5NGExYzU0M2E3MDE3NTEzNDNiMzFiMzZiNzZmN2NhN2Q4NzQxZGVlYzgzZTg0NDcxZmMxYTc3MzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_67a13cb3857e404bb30d6c196b105157",
+      "statement": "Five ports deliberately ship no Base* template: detector, detection override, guard rail, conversation memory and cipher.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/guard/base.py#L32-L45",
+          "version": "repo-lines-v1:sha256:ad1bf4037a3fcc504f22ee47cc9c5d60267c0c4e854b68b9a47c1c21ad1e9303:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjZGFjMzBiMDhhMDMxNTU4NTE0NTU2MmU3YWYzNjRlYWNlMDllY2NhZDBmMTZiOGMzMjBmOWFkMDY4ZTE5ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlOWMxYWJhMjMyMjJmN2JhNGNkOGU0MDNkNzA5MGYxMzlkMzYxZDE1YzYwZWZhYTgxMjNhNWQ0NWJhYmZhMWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzYzYyNWY5MWRmYjhlNGMzZDFlYjFjN2NjNDU3NWNjOGE1NWJhOGE2N2E4ZmM1MjA1MjYwYTBiZDgyYTgyYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlNzg1ZjQwMWM2MDYwYjE1YzEzMGNhZDZmZWM5NzdjMzEwMWYxYmRhZmIyOWU5NjYwZmZhNTE3ZTlkN2IxYzAifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/override/base.py#L8-L17",
+          "version": "repo-lines-v1:sha256:5b5cf6844e8d301e3d6e2487256113a59c3e8c1e47ed682a1af6c16ada06c1aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzA2OWQzZjMyN2IwY2ZkMWQwODcyNzRlYzI3NTY1ODU0ZDg1MmIzMjI1NTNkMzkwMmM4OWY1M2YwMDBlZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2YTcxNTI1NzJlZTg0ZjEwOTA2Yzc0YjlmMmE5MjQzNGRkYWIwZTNjNDI4MTNiMDRlNTk3ZWZjZWM5NTFiMjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE1ZDkzMzU5NGExYzU0M2E3MDE3NTEzNDNiMzFiMzZiNzZmN2NhN2Q4NzQxZGVlYzgzZTg0NDcxZmMxYTc3MzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhZjNhMjlkNTIxYzc4NTFiM2EyODAzY2U0OTc4ZjJjZDY2M2U4NGI4YjA3YTI0OTk5ZmM3MzZkMDdiMmM0MzIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/base.py#L10-L14",
+          "version": "repo-lines-v1:sha256:bfcef2079ab996096ec5a2cf09590449d2deeece96aaca5ae38ae20646da7702:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTlhYjQzODI3OTkyMzU5ODgxMWUwNGY2NTA2ZTg4YjI4MTE4NWJiNTRlZWM3YWMwMzA3MzFmMDI1YTZlOGMwNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmY2MzUyNmM5OTVmZDM1NDdmZjZlMzE5ZDY1NTM2NzI5MTI4NzdhMGRkODMxODljMjg2NDIyMTE5NDllZWQ4ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjI1ZGZhOWUzNDY5ZjJkZWIxNTY0MmNiMTA5NzFmNjNmNzk5NGQ5YTE4OTMxMjU2YmMwMjY3MzA0ZTViYzkzOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTgxZDVkNjg5MzNjNmIwNjM5ODQ4Y2JjZTMxODFhMTExYjJkN2NjNzI5ZjY5MWJmMzMxMWQxZDU1MTQ4OGQwYiJ9"
+        },
+        {
+          "resource": "repo://src/piighost/crypto/cipher/base.py#L1-L17",
+          "version": "repo-lines-v1:sha256:7e5c8371810da9f081748ddc81f359c99723bce0397c9e66749965c15dace1b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhY2UzYzExMDhiNTg2NGFhYWQ2Mzk0OGYxOTY4ZjhiZjkzZDkzZDNkNTE3ZjQ4ZDdkZTNkYjNjMjY0ZDViNDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NjFjMGRiZjUzNDljNDZlZDg5MGFmNGMwYWRiMjdlMWRkNGJmZGYyNTBlZGIxODdlNTYzOTAzODgxZWVlODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMDU0YTkxNDdhODhmYzRjOTMwYzRjMTI3NWZkZDI3YWQyOTJlYjZmOTQ5MmQyNDlkMjEyYTkwZWE1M2I4OTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8f37ee6529ee46a497f59d536e4a57e0",
+      "statement": "BaseNERDetector applies the confidence threshold itself and splits a text longer than max_chars into overlapping chunks when auto_chunk is set, otherwise raising TextTooLongError.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/detector/ner/base.py#L26-L80",
+          "version": "repo-lines-v1:sha256:18d4998952e3d189531c9540dd1bbce90893f0423e8c618c3ee8cfdedd48d0cb:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlNzdmZTUyY2FmMDVmM2I5ZTg2ZTFiNzZkYjc2MWYxZjU1OTE2ODFiMjc4NmZmM2U3Y2I1ODFmYzkxYTg4ZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMzhmMTBhYjIwZmUyNzY3MzJmMDlhY2NlY2FjOTU1NmE3Y2YyMzA1OGM5ZjI5Zjc0M2EyM2IwNGViZTE4N2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjNzQyOTE4NzU2YjFjYzI2MTc0MjNjZTc2NTE4Yjc5ZjZlMDg1ZjRmZDM3OWRiM2JlOWU0Yjg1M2I0YWYyNzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwMjYzNmQwNjY3ODEyYmU5MDc0NDY0Yjg1YTUyM2E4NjlkZTFkMzI4ODU4NDJiZGIyZmQ5MjY3NjI4MWE2NWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8c9d54a05ad549668100eee30da25e02",
+      "statement": "Every component config model inherits _ComponentConfig, which forbids undeclared keys so a typo fails validation.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/common.py#L1-L13",
+          "version": "repo-lines-v1:sha256:519e38cedaf64b1e85a5bb0cfdbff989f212c5911f1ee433275346e3630ed01c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxZGEzYzNmNjIwZDY2MDBmNTViNjhhMjA5MDIzYzhjNzBiODA4YzkyM2M2OTkyYmFhMjBkNTA4YmY5ZTBhMDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjNjVhMWQxNTQyNDcwODY5YzVmYzgxYTY5NTE1MWIwYzJjMWVhNTlmZGFiMjY1MzQ1ODE0ZTkyN2FiZGFlY2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6abf69fd1c044db6b443735afc4167e9",
+      "statement": "DetectorConfig is a discriminated union on the type key; adding a detector config requires adding it to this union.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/detector.py#L172-L186",
+          "version": "repo-lines-v1:sha256:0582e0176d02828f02dd3c6436e585fc7691f33e887d683fccf2fb44d08b870c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmOTRkMjU4MGIyNjcwODMxZTg0M2JlMTkyYjk1OTc5YWY2ZjIwMjFkNTAxNWZjZDIyYjk4NGUwMGQ4YzAwNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwYzgzOTEyNTNiYTI4YjAyM2FmMzEwZGIyYWIwNzhkNGUxYjdhNmZmODVjNmY1MGU4NGQyOTE4MzQ3OGVjYTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyNzk1ZWUzMWMwODI0YzAxOTQwM2YwZjJlNjdiYzE1MzZmZjZhMDZiZWQxZmY0MDkzNTdjYjdmYjc2MjNiOGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3e86183613374479b994afe986fe48b0",
+      "statement": "The package root re-exports core symbols lazily through __getattr__ over a name-to-module dict, so importing piighost loads no optional extra.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/__init__.py#L18-L60",
+          "version": "repo-lines-v1:sha256:eb3da75ffb8c0fea07c99584e0d19691f8022c4743583c05385eef0ca341be20:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZTEwYTgwMjU2MjAyNzk3NDZhYmI1Zjg4Mzg3MGU1NTg5Y2EwMGRjZjlkMTA4ZTE1ZDdhNzUzZjFhNzFjOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2YzVmNzU2MTJjOTQ4ZGEwZjI5Yzg1ZGE2MWU5NDViOTNhOTA4MjNjMWFhNDc1Zjk1NzBiMGI3YWYyMzAzMzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyZjMzN2Y0NjY1NTJkM2YyNzQ0MjRlNjI4MTM3MDdlNmVkMDRjNjQxYmJlMDYxYmI4MWZkOTQxOTQ3MTJkNDYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bd1844a9453d46ceb30d144492f33285",
+      "statement": "The detector contract test holds every detector to the same span, source text, external label and a confidence in [0, 1].",
+      "evidence": [
+        {
+          "resource": "repo://tests/components/detector/test_contract.py#L145-L167",
+          "version": "repo-lines-v1:sha256:d9ac02a58738e95ece27631691250b22cfd2198d914170008892fc6b9298dc86:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MjMxYTBkODIxYmNhNmY5N2Y2ZmFiZjk3NDcwM2RmMzU2ZTkyMGEyMDI0YmZkM2ZiMzgxZjQxMDI3NjU2NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzMjM2ZDg0ODg3Y2FmNmQxMDMyMmU5NzlkNDNlZGFiYWY5OWRkNWRiY2M3MTJjY2Y1ZTVkYjhjOGFjNmJjZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3Njk4YWZiZThiZmMyNTIwNGUyY2EzMWIzZDc1M2MyNTM5MTJhYTYyNTY2ZDQ5MTY1MmE2ZjZkMDIzNGUzYjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a9507d30d1824d8a9a7b81b04eaf7a37",
+      "statement": "The regex catalog removal error message names piighost 2.0 while the package version is 1.10.0.",
+      "evidence": [
+        {
+          "resource": "repo://pyproject.toml#L1-L4",
+          "version": "repo-lines-v1:sha256:22cd66ac59df3a609208e86d95cb7b601df100fc2902d7546e1dfaa6c38107c6:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzAyYTgxYzM4MzZlZGVmMmQwYmExMWQyMzUzZmI2ZGFiYzc3NzE1MGE3Y2E4M2VhMGQ5ZTlhNzAzMTNmZWFiYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc0YjA1ZDJmMDMwMDUxYmFmZDhhMmQ1ODVmNTgxMTNiOWFiMTk3MTNlYmQyMGJkY2NhODQ0Y2E3NzJjN2E0NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjQ4ZjJkNjJjMTU4NjRhOGRmMmNhOWMwZDZmZGEzY2Y3OTE4ZGM4ZDg0OWJkYzU5ZDhmY2FhYzQxMGFmZTJjNSJ9"
+        },
+        {
+          "resource": "repo://src/piighost/config/models/detector.py#L60-L67",
+          "version": "repo-lines-v1:sha256:136826bdd9f952b28d611bb85fc59989d06ce1c337391981c6badc0ed0617122:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTBkZTI1ODcxOTYxNDkyNjA3MWM4ZmIxOWZkODY2MTUwNTU1ZjFiMDEzNTRmOGNkMTYwM2ExMDlhN2RkYWU0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU3ODA1YzNmZTdhYzYzMDc0ZjY5Y2RiMjViOWFjZDdhODY3OTJkZmU1NDA4MThhYzRmODc2NGI0OWU3ZDE0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjk2YWNiNmJhMmRjZGU2YTY5MGYzNDdiNjQ4N2JhZGMyZjQwNjMxOTliN2FkY2U4ODIxNjQ2NGUwZGVjNzdhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGY2YmYwMjY1YzNkNGE3MjE3NDY0MTU2ZjczOTViNmEzNzk4MTc1MDQzMjgwZTU0ZjVhZmFiOTA2MTJjY2FmNiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_360e30cfbdc5406898cc16f7605996eb",
+      "statement": "Placeholder preservation tags are str subclasses for the type checker; PreservesRecognizableIdentity is the intersection of identity and recognizability the middleware requires.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/tags.py#L1-L60",
+          "version": "repo-lines-v1:sha256:155f204116e238f9890ce4acf9e73216b7cb32920401a8a32594ccd499649669:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTkxMmE2MDBjNDIyNTNmZjBmYzA0ZmU1MzBkNzczOWE3ODY3ZjY3OTQ4YWUzNzgyMzZkMmM2M2U2M2NmMjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1ZDliOGQyNTNlZGFhYWNjNTU4NWMwODgwMWZkN2Q3N2Q5ZjFhYjQ5MGY1N2M3OGFlM2Q5ODQ1OWU3NTQ0NDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyYjIyMzFlMDE4YTQ5M2U1NzliY2MwMGU1YTMyOWY0YzlkODQxOTU3YjYyODU0OWM2YjNhYTc1YTZjNTAzYTkifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/placeholder/tags.py#L120-L130",
+          "version": "repo-lines-v1:sha256:b98d0d9d0bc47a68c7ef8695d541934dc97cba1c137e3b3c22b117bbae6aa792:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzZDkwNDRjOWUyYmQ1ZTZiZGRkZTBjMzhhNjI1YTdiYWEyMjNiY2VjMDkyNTg0N2ZlN2JmNDY4MDJlNDBkZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YjYzOGRjNWIwY2UwYzQxZmZmMjJmYzA3YjY1ZGM1MDU0NjNlNjQyYjExZjBlNjM5NWVmOTYxNzc5YThmYTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyYjI1NzhkODVmMDU0N2ZhOTE3ZGE3YjE4ZDIwNzg5OTE4MjlhNTM4MmM3OTEyOGJlMTZmNmYxMDg4ZjdhYjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3Mzg0NjA1ZDlhYTc0NDhlNjNkOWVhNGNkYjYzMjgzNTg2NDlhMmEwNTYxZDVhM2VkMzBhMDc5NDI1ODU0YTEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:057b753eef3f66a8310df8fa4e2703c358c20ff1d89ab6590620bd26febb323c",
+  "claims": [
+    {
+      "id": "claim_1b393d81dd9e49dc9adce9de72e47bda",
+      "statement": "docs/en/architecture.md states only the guard rails and memory backends lack a Base template, while the detector, override and cipher ports also have none.",
+      "evidence": [
+        {
+          "resource": "repo://docs/en/architecture.md#L109-L111",
+          "version": "repo-lines-v1:sha256:cab77f01d3dc30b8c98fb58abd877ceaeaaf32266e46ed558d56080c9d91cc4b:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWQ3ZmQ1NTNkZDA1Y2ExZjlkN2E1ZWFlMjgxZjBmZDBkOThlZTVlZWEzNDMzYzcwMGQxZWE5NGIzN2M5ZTEyNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGYxYzg4NDk0OTE5MTNhY2FhMGNkMTlkMWIyY2UwMjFjZGIzNjA0NTViYTE5NWY0NzllYTU4MGM4Njg4YzhmMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTg5ODI2ZjQ2MGVjMjAyZDA5ZDRhZWIzMGE0NGU1ZTEyZjQwZDM2NDkxMDhhMmE5YjI2MWQyZDEyOTg1OTgyNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDAxZjJlYzE3NTkzYzEwNTRlYjQ2MzY3ZDg0NTNlZjI0YTE3M2NlOTZiNzExN2Q5MWY5YTY4ZDQ0ZmVmOGIwMSJ9"
+        },
+        {
+          "resource": "repo://src/piighost/components/detector/base.py#L1-L27",
+          "version": "repo-lines-v1:sha256:b875f7ae276c3625ccf50c2c3f4ee2ccaafec96d4cb88c0b9e1b0674569f8b62:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyODc1OTY2ZjYyMGRhZjRhMWM2NjU1YzdkYTFkNGEwOGQxMzQ4NDMxNWMxZDJkMGE3ZWUzYzVlMTExZjA3YjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjBkODVkZTRlZDdhYjgwMjFiNGE4ZGQ0ZmExNWVjNTE5MjVjZGZjY2RlMTgwNTg5NWE0YzhhM2MzYmE0OGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/override/base.py#L8-L17",
+          "version": "repo-lines-v1:sha256:5b5cf6844e8d301e3d6e2487256113a59c3e8c1e47ed682a1af6c16ada06c1aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzA2OWQzZjMyN2IwY2ZkMWQwODcyNzRlYzI3NTY1ODU0ZDg1MmIzMjI1NTNkMzkwMmM4OWY1M2YwMDBlZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2YTcxNTI1NzJlZTg0ZjEwOTA2Yzc0YjlmMmE5MjQzNGRkYWIwZTNjNDI4MTNiMDRlNTk3ZWZjZWM5NTFiMjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE1ZDkzMzU5NGExYzU0M2E3MDE3NTEzNDNiMzFiMzZiNzZmN2NhN2Q4NzQxZGVlYzgzZTg0NDcxZmMxYTc3MzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhZjNhMjlkNTIxYzc4NTFiM2EyODAzY2U0OTc4ZjJjZDY2M2U4NGI4YjA3YTI0OTk5ZmM3MzZkMDdiMmM0MzIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/crypto/cipher/base.py#L1-L17",
+          "version": "repo-lines-v1:sha256:7e5c8371810da9f081748ddc81f359c99723bce0397c9e66749965c15dace1b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhY2UzYzExMDhiNTg2NGFhYWQ2Mzk0OGYxOTY4ZjhiZjkzZDkzZDNkNTE3ZjQ4ZDdkZTNkYjNjMjY0ZDViNDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NjFjMGRiZjUzNDljNDZlZDg5MGFmNGMwYWRiMjdlMWRkNGJmZGYyNTBlZGIxODdlNTYzOTAzODgxZWVlODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMDU0YTkxNDdhODhmYzRjOTMwYzRjMTI3NWZkZDI3YWQyOTJlYjZmOTQ5MmQyNDlkMjEyYTkwZWE1M2I4OTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b069010fcbef4d00a095783ed06c1df2",
+      "statement": "The regex catalog error message names piighost 2.0 while the package is version 1.10.0 and the changelog moved catalogs to the hub in 1.8.0.",
+      "evidence": [
+        {
+          "resource": "repo://CHANGELOG.md#L32-L40",
+          "version": "repo-lines-v1:sha256:c67ae1335ccbe2e4f70795ef480e05939f3c4aa7c5405367ccd5e777d59156d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjAzZTg3MDM0MWJjZjAxY2E4NjEzMjZmZmM5MjdmMjcxMzVkNWY5NTc4ODhiY2VlNzVjOTNhNmQ2ZTUyZWE1MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGVmNTljMTUyOTY5MDQ0MTRhY2M4OWFhMjlhNzZhOWYxODYwY2E0YjVmMmRhYzk3MjA2YjFlYTI2YjljZTBkNCJ9"
+        },
+        {
+          "resource": "repo://pyproject.toml#L1-L4",
+          "version": "repo-lines-v1:sha256:22cd66ac59df3a609208e86d95cb7b601df100fc2902d7546e1dfaa6c38107c6:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzAyYTgxYzM4MzZlZGVmMmQwYmExMWQyMzUzZmI2ZGFiYzc3NzE1MGE3Y2E4M2VhMGQ5ZTlhNzAzMTNmZWFiYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc0YjA1ZDJmMDMwMDUxYmFmZDhhMmQ1ODVmNTgxMTNiOWFiMTk3MTNlYmQyMGJkY2NhODQ0Y2E3NzJjN2E0NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjQ4ZjJkNjJjMTU4NjRhOGRmMmNhOWMwZDZmZGEzY2Y3OTE4ZGM4ZDg0OWJkYzU5ZDhmY2FhYzQxMGFmZTJjNSJ9"
+        },
+        {
+          "resource": "repo://src/piighost/config/models/detector.py#L60-L67",
+          "version": "repo-lines-v1:sha256:136826bdd9f952b28d611bb85fc59989d06ce1c337391981c6badc0ed0617122:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTBkZTI1ODcxOTYxNDkyNjA3MWM4ZmIxOWZkODY2MTUwNTU1ZjFiMDEzNTRmOGNkMTYwM2ExMDlhN2RkYWU0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU3ODA1YzNmZTdhYzYzMDc0ZjY5Y2RiMjViOWFjZDdhODY3OTJkZmU1NDA4MThhYzRmODc2NGI0OWU3ZDE0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjk2YWNiNmJhMmRjZGU2YTY5MGYzNDdiNjQ4N2JhZGMyZjQwNjMxOTliN2FkY2U4ODIxNjQ2NGUwZGVjNzdhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGY2YmYwMjY1YzNkNGE3MjE3NDY0MTU2ZjczOTViNmEzNzk4MTc1MDQzMjgwZTU0ZjVhZmFiOTA2MTJjY2FmNiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3259c0f2b5914387bfbca470a2809b9e",
+      "statement": "The LabelHashPlaceholderFactory docstring gives <<PERSON:6b86b273>> as the first token, while hashing the string PERSON:1 yields <<PERSON:09ef3b74>>.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/label_hash.py#L10-L40",
+          "version": "repo-lines-v1:sha256:c3cdfd49865ffe4dbdb5572f22b850f0e4ec519c1e13dd3b56c1fa3fdd0f2333:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxYmQ5OGVkYjc4ZjVjMTA5MzI1MjViM2RkYzVmNWE5MGE1OTllMDk1ZTY5MjA2OTRlY2ZlMjM4MDc1MGI4Y2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjY2MzhhYjUzYmNiOWY0MWZjMWQxMGVhMGM0ZmQwM2RkYjZjZjhiYjE0MmRkNTllNjg5OGFkY2M0OGU2MGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3NWE4YmQ3ZTljNjk1ZDhlNmZlYTM0ODVjMzA1ZjRiOWJmODg1MDYwNzNlZGZkNTJjNTM2ZGExODQ2ZjgyNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_814641a722854adb819365e8bb9e7b51",
+      "statement": "Label and redact factories emit <<PERSON>> and <<REDACT>> with the default << >> delimiters.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/label.py#L12-L28",
+          "version": "repo-lines-v1:sha256:2a71ceeba0e451574c11e94cd9a36e0305272f946874bc6410bc54bb68e407c2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkMWRiZDU1NDU1Y2M5NDllY2UzMjgwZmM1NzIyYjc1YjE1MjIwY2U1ZGE5MzQwM2JmMWQ1NDUwMjMxM2I5ZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NDhkMjQzNGE5YzFhN2E2NjVhZDI1NzJmYTc2M2NkOTJjODA5ZDM1NTljNWIwZjI1YjEyMWU1ZTY4YTAwNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwYmRlZmFlM2VkOWFjMjg3MDY1ZmVmNGUxODdiMDI0ZDVhYzc3MjhkMDExZDNjZjUyYTc2YzkzODQ0Yzg4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/placeholder/redact.py#L12-L28",
+          "version": "repo-lines-v1:sha256:4ea596baae1f65fad21bb2794bf356b39763ca5b6b58547a41e731e70360a1a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlZmJmNTY4ZTQ4Mjc0NjA2Y2UxMTc3NzNiZWJiMGY1NTA4Mzk2NWQxNTk3YjViZjA4ZjAxYTI1NGJjYmI5MzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ODA0NDk4ZDIzZTMwYWVlMTdlZTFhN2QzZmM2MjI2NGU1OWI1NDU5NGJjOWRmYzJiNWEzYzRiZjNkMjMyYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwYmRlZmFlM2VkOWFjMjg3MDY1ZmVmNGUxODdiMDI0ZDVhYzc3MjhkMDExZDNjZjUyYTc2YzkzODQ0Yzg4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9505bd1fde804bff942a8a9ba3241390",
+      "statement": "The memory hasher is chosen between HMAC-SHA256 and Argon2id by configuration.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/hasher.py#L35-L79",
+          "version": "repo-lines-v1:sha256:c4aff3e3fadf6d5ee7fe04025f2ba3d93f97a22c8e1f14141f712a6a0aa5e2d5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyNDFkZWFkMjA0Mjk1NzZjZjQzMWExZmY4MjA4YzA4MzgxZjE5NDVlYzU0ZTk0NWZmNjFlNWFmODE5YTdiNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzMzRlNDQwNzZjYzU3NzI4ZGFmOGYwODc3MTVkMzdjMjU3ZTZhODc4MmZkMDkyODM0ZDE5NDdmZjc2MDEwMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dc4d6a572bd4426bb55a0e971a48e819",
+      "statement": "The DetectionOverride docstring says lists apply after every detection read, while cached thread reads bypass the override.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L45-L60",
+          "version": "repo-lines-v1:sha256:4a75814c00c9c0e6d975b1fcb2bd22a06e3acf78038642a95433278028a0a42c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMzMxMjE3ODc4MjE1NmFjNjg4MDNmMGQyODEzMDZiMGYwZmRiMGJlNTA1ZGE1YWM1OTM0Nzg4OWRjZDJjYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzYzIwMWFkMzQzYmMyZTY3NWQ1MmYzODY1ZTQzODU4Nzg1YmJmM2RkMTg5NGJlODg4MTgzOTE5MmJiNDkyZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3N2ExMGVhOGMzZTUzNDhmOTIzZjY5YTFhOGE5ZmI2ZmQwODgyNjcwMWNjNDNkYWZhNzllZmVkMWY1NmQzODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNzRkMTFlYzJiMTM1ZTA1MjgzY2RjZmQ2ODAxMzZjZDk2NzMwMWRkMGY2OGQxNzY2OTE0ZDRjZTY0YTIwMGEifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L271-L274",
+          "version": "repo-lines-v1:sha256:0f776b8816c68ba64d5cedcb5a98c4d0eab81150687742aa024e093f039a755d:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmVhZWE4N2EyM2I5YzFjM2ZhNWIxZDg2ZjQ0NWU1YjU3OWQzOTU4ZjBlYTUyZjExODZjNjgyZTdlODE2NjViMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzFhMDQzYjZhMTA5NDBlODYwZjU5YzI5ZGYyY2YyNTU5NjNiM2RjZGI4NWEyNTEwN2FiNjFhNTU5MDI4NDE3NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWJhNDFhN2FlZjViZGFlOWZkNjI4ZGE2ZTU0YTFkYWU1OTUyZjEzZjRjYzRlMjhhMWM0NzViNDkyZjhhNGI1MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2E5ZWY3MWJhODM1ZThhNGY0NjU4MDA0ZmUwNDVjMTAxODQwNjkwNzk2Y2FjNjNkMTk2ODUwMmIyYzcyODUzZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_b6abe2a6ef8c431ca2ddd2aff642cfb4",
+      "statement": "docs/en/security.md attributes variant linking to a ConversationMemory class that does not exist; the port is AnyConversationMemory, which stores detections only, and ExactEntityLinker groups variants.",
+      "evidence": [
+        {
+          "resource": "repo://docs/en/security.md#L20-L25",
+          "version": "repo-lines-v1:sha256:0bfb361e4fee6542626e0facc1ed88107bcb68b9c651d8b98606bc9462c83a4e:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjZmOTY0YjVmYmExYWMwNDQyNDdiMTQ4MWNlMGM3ZDJkYzg4YmNmMzQ1YWQzOGM1YTYzN2E0NGM3ODE0ZTZkNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjNmYjgzNzNiZTgwNTQ0YTc5ZTQ4NTQ1ZGFhNzgwOGM0YmMxNTEwMTFkOWIyNTFmNzU0NzQwNTZmNDBlMDIzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODkzODMyYjI4ZTVhZWFjODIwY2RmZTk3YzYyYTJiMmZkOTFjNjA5MzUxMmQ0MDUwZWIxZDA3YTZjMmVhZjUyYSJ9"
+        },
+        {
+          "resource": "repo://src/piighost/components/linker/exact.py#L8-L21",
+          "version": "repo-lines-v1:sha256:8c58cf73c5f37759f578e3fdffd5b1d939d368d2cdb1341025a3a4e5d8aa7c02:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5OGE2YWMzMWY5YzJiYjAxNDJmMjk1YTYxNjFkOThkOGNiYjY4YzkxZmUyMzg4Yzk0ZTFlNTA3YjFiNGI1MGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZmMwMTY4MDE3MmVhNmM5YzY1ZjA4NTMwYjY4OGNmY2I4MmU4MTA4MzEzMDJiZDlhNDgzMWQ5NGYwNzE5MTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5NGNjNjA0MmExMmM0YWFmMWJmMDM2YjEwMjc2ODAyZTk1NGMwZTQ2NjJiYzA0MDJkOThjMWI2OWIzMTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/base.py#L1-L15",
+          "version": "repo-lines-v1:sha256:2ade0db0a5a7eb29136a154e0ad6c82c036d865c9d755b062b121186651d110f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwNmY3ZjQ3ZmViNmQxMGE3ZGU5YmMwOGNlZjczMmU4Y2ZlN2Q3YjY3YzY1OGU1MmFkN2M4ODRjYmZlNzlkZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzMDNlY2RkNGE0ZDEwZjE5YzczZmQ0MmZkMTI0MzdmZDMzNTRhODI2ODE2MDVkYTUyNTVhOTdhMzkwNjhkYmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4NTk1NDQwMzY5MWFmNWI4NTRlNjUwYjFlYzQzOTkzYmM3NzUyNzZiNTk5MTQ2NjZmN2RjNWY5MTg2OTkzMjkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4189690d90a74c6298e88ebc5e190e40",
+      "statement": "The FAQ says a Faker factory is on the roadmap while the roadmap lists Faker surrogates as a non-goal, and no Faker factory exists in the code.",
+      "evidence": [
+        {
+          "resource": "repo://docs/en/community/faq.md#L30-L33",
+          "version": "repo-lines-v1:sha256:8a3f879a56c8ad3aa43ef1192faf7dad86bc735f4eda3289e672292c117994c7:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjZkOGY3YWE3YTU2MmZiOTgzMzU4NTIxODAwYzkzNjkyMzUzZWY2ZjY4Zjc5ZWFlNDRiNzU2MDQ1NWQ5MzdjNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmU3MDllYzgzNGE3ODA0ZWM3MWIwMDNkMTY2YWEwZDVjOTZjZGE2YWM4NWMxZjYzOGVlOWUxMzBjM2NmNTllNyJ9"
+        },
+        {
+          "resource": "repo://docs/en/roadmap.md#L36-L41",
+          "version": "repo-lines-v1:sha256:f1881f81dfb503cb9a187067f879a03342d7325314dea6f8a4a8feb5753c1a0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDMyN2I0Yzk4NjZkYjY4ZGNjZjkyMDkzNDc3MDI0ZWE3ODZhOGZkYmM4OTYwMmY3MzRhYWU5MTcyNmNkODgyYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjgwOWU4YTZhN2I5NjhkOWM1YzEyMjk1NjZmN2E5ODZjZDY5YzY4OTA3YWJhNWEyOWQwOTY2OGVhMjZjMzMwOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWYwZjljZjY2MGY5NmM4YzYyMjEwNGI1M2NhMGQ3ODBjZjM1YzU0NGE4ZjI4MDdkMzYwZTQwYmE2YzQ1M2U1OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmU2ZWZhYzEwZjA5YTkzZjlmNzI0YmZiNTBkM2MxMmU2ODZhNjc1ODZlMGZhNmFlOGI2NjU0YzkwNmVjZjZiMCJ9"
+        },
+        {
+          "resource": "repo://src/piighost/components/placeholder/__init__.py",
+          "version": "repo-file-v1:sha256:c3dc85ed0ec71d1334e9bd4f7b0f2fbe3168a7821b18f85ae40b94fd483fa389"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}
