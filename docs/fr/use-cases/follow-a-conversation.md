@@ -109,7 +109,7 @@ L'application efface `conv-1`. `piighost` supprime sa mémoire et rend le compte
 | BR-CONV-05 | Avec le middleware LangChain ou la capacité Pydantic AI, un placeholder jamais émis est refusé par défaut, et peut être retiré ou gardé sur réglage. |
 | BR-CONV-06 | Le pipeline conversationnel utilisé seul laisse un placeholder inconnu tel quel. |
 | BR-CONV-07 | Une valeur citée d'abord par l'assistant reste en clair dans toute la conversation, sauf réglage contraire. |
-| BR-CONV-08 | Une correction remplace les détections d'un seul message, et les listes du serveur s'appliquent encore à la correction. |
+| BR-CONV-08 | Une correction remplace les détections d'un seul message, et la liste blanche et la liste noire de la configuration (section `[override]`) s'appliquent encore à la correction. |
 | BR-CONV-09 | Une correction qui ajoute ou retire une valeur dans un message ancien peut changer les numéros de toute la conversation. |
 | BR-CONV-10 | Un message identique renvoyé dans la même conversation reprend ses détections enregistrées, sans relancer le détecteur. |
 | BR-CONV-11 | L'effacement supprime toute la mémoire de la conversation et rend le nombre de messages et de détections supprimés. |

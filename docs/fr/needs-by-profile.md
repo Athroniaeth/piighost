@@ -26,9 +26,9 @@ Les scénarios complets, étape par étape avec leurs cas d'erreur, sont dans le
 
 **DPO-3. En tant que DPO, je veux forcer la protection d'une valeur, ou laisser en clair un terme public, sans attendre le détecteur, afin d'imposer la politique de l'entreprise.**
 
-- Une valeur de la liste blanche est masquée même si aucun détecteur ne la voit.
-- Un terme de la liste noire reste en clair même quand un détecteur le relève.
-- Voir [Imposer les listes du serveur](use-cases/enforce-server-lists.md) et [Listes d'override](examples/overrides.md).
+- Une valeur de la liste blanche de la configuration (section `[override]`, dans l'application ou dans `piighost-api`) est masquée même si aucun détecteur ne la voit.
+- Un terme de la liste noire de la même section reste en clair même quand un détecteur le relève.
+- Voir [Imposer une liste blanche et une liste noire](use-cases/enforce-server-lists.md) et [Listes d'override](examples/overrides.md).
 
 **DPO-4. En tant que DPO, je veux refuser un texte qui contient encore une donnée, afin qu'une détection manquée ne parte pas.**
 
@@ -218,14 +218,14 @@ Ce profil ne manipule jamais `piighost`. Il utilise l'application qu'un dévelop
 
 **USER-5. En tant qu'utilisateur, je veux que les termes publics restent lisibles, afin que la réponse garde son sens.**
 
-- Un nom de ville mis en liste noire reste en clair, et une date de réunion n'est pas masquée par un groupe de motifs génériques.
-- Voir [Imposer les listes du serveur](use-cases/enforce-server-lists.md) et [Limites](limitations.md).
+- Un nom de ville mis dans la liste noire de la configuration reste en clair, et une date de réunion n'est pas masquée par un groupe de motifs génériques.
+- Voir [Imposer une liste blanche et une liste noire](use-cases/enforce-server-lists.md) et [Limites](limitations.md).
 
 **USER-6. En tant qu'utilisateur, je veux corriger une détection, ajouter un nom oublié ou rendre lisible un terme masqué à tort, afin que l'assistant reçoive le bon texte.**
 
 - Après correction, le nom ajouté part en jeton et le terme retiré part en clair, dans le message corrigé.
-- Les listes du serveur gardent le dernier mot, si bien qu'un terme de la liste blanche reste masqué même si l'utilisateur le retire.
-- Voir [Imposer les listes du serveur](use-cases/enforce-server-lists.md) et le [client d'API](getting-started/api-client.md).
+- La liste blanche et la liste noire de la configuration gardent le dernier mot, si bien qu'un terme de la liste blanche reste masqué même si l'utilisateur le retire.
+- Voir [Imposer une liste blanche et une liste noire](use-cases/enforce-server-lists.md) et le [client d'API](getting-started/api-client.md).
 
 ---
 
