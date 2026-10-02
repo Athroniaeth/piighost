@@ -9,7 +9,7 @@ icon: lucide/download
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommandé) ou pip
 
-## Installation
+## Installer le socle
 
 Le socle n'a aucune dépendance optionnelle. Il suffit pour un pipeline local qui dé-identifie par regex ou par valeurs connues, sans modèle ni réseau.
 
@@ -48,6 +48,24 @@ Les détecteurs à modèle, le middleware et les backends optionnels sont des ex
     ```
 
 Les extras se combinent. Une mémoire de conversation Redis chiffrée s'installe avec `piighost[redis,crypto]`, en ajoutant `argon2` pour un hachage de clé plus résistant.
+
+## Vérifier l'installation
+
+Affichez la version installée.
+
+=== "uv"
+
+    ```bash
+    uv run python -c "import piighost; print(piighost.__version__)"
+    ```
+
+=== "pip"
+
+    ```bash
+    python -c "import piighost; print(piighost.__version__)"
+    ```
+
+La commande affiche un numéro de version, `2.0.0` par exemple. Une `ImportError` signifie que le paquet n'est pas installé dans l'environnement actif.
 
 ## Installation pour le développement
 

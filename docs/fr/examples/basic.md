@@ -35,7 +35,7 @@ Un pipeline enchaîne un détecteur, un linker et un anonymiseur. `anonymize` re
 Une même valeur citée plusieurs fois reçoit un seul token, donc le LLM garde le fil. `ExactEntityLinker` regroupe les occurrences par valeur et par label.
 
 ```python
---8<-- "snippets/basic_exact.py:exact"
+--8<-- "snippets/basic_exact.fr.py:exact"
 ```
 
 `ExactMatchDetector` détecte des valeurs littérales fixées, ce qui rend l'exemple reproductible sans charger de modèle. Pour du texte libre, remplacez-le par un détecteur NER ou LLM, voir la [référence des détecteurs](../reference/detectors.md).

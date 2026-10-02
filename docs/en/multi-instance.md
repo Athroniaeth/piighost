@@ -47,6 +47,22 @@ Point every worker at one Redis instance. The tokens are assigned over the union
 
 Now the turn-2 case resolves the other way, worker B reads `Patrick -> <<PERSON:1>>`{ .placeholder } straight from Redis and keeps it, because the store worker A wrote to is the store worker B reads from. Any worker that picks up the conversation reproduces the same token for the same value.
 
+## Check that the workers agree
+
+Build two pipelines from the same file, one per worker, and send one thread to each. Each pipeline keeps its own process cache, so only the shared Redis can make the second one reuse the first one's tokens.
+
+```python
+--8<-- "snippets/redis_two_workers.py:example"
+```
+
+The output should be:
+
+```text
+--8<-- "snippets/redis_two_workers.out"
+```
+
+`bob@corp.com`{ .pii }, new to the thread, takes `<<EMAIL:2>>`{ .placeholder }, and `alice@corp.com`{ .pii } keeps the `<<EMAIL:1>>`{ .placeholder } worker A gave it. Without the shared memory, worker B would number its message from scratch and give `<<EMAIL:1>>`{ .placeholder } to Bob. In production, run the same check against two worker processes behind the load balancer.
+
 The Redis backend can encrypt each stored value and hash each key. That protection is opt-in and all-or-nothing, so the config shown above, which sets both a hasher and a cipher, gets it, reading its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deploy a production pipeline](deployment.md), and every `[memory]` key is in the [configuration reference](configuration/toml.md).
 
 A SQL database is the other shared store. `type = "sqlalchemy"` gives the same cross-worker consistency backed by PostgreSQL (or any async SQLAlchemy driver), which suits a stack that already runs a relational database and wants the token mapping to survive restarts durably. It reads the database URL from `PIIGHOST_DATABASE_URL` and takes the same optional hasher and cipher as Redis.
@@ -91,3 +107,4 @@ The same trap hits LangGraph's `checkpointer`. `MemorySaver` is process-local, `
 - [Configuration reference](configuration/toml.md): every `[memory]` key, TOML and JSON.
 - [Security](security.md): the at-rest guarantees of the Redis backend and the backend comparison.
 - [Conversational pipeline](getting-started/conversation.md): how tokens stay consistent across a thread.
+- [Store conversations and protect traces](../../openwiki/exploitation/stockage-et-chiffrement.md) (in French): the storage rules, `BR-STO-01` to `BR-STO-08`, written for a DPO or an operator.

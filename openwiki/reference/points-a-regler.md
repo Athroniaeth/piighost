@@ -27,8 +27,8 @@ Décidé le 2026-10-02.
 
 Le 2026-10-02, sur les branches locales, rien n'est poussé.
 
-- **DEV-10.** `require_thread_id` est supprimé. Le middleware LangChain, les hooks Claude Code et `PIIGhostClient.detect` exigent un fil (`piighost` `97b1e78`), et le serveur répond 400 sans `thread_id` (`piighost-api` `7dec988`). La CLI garde `--thread-id default` pour une commande isolée.
-- **OPS-7.** La mémoire en processus est bornée à 10 000 fils et un jour par défaut (`4af48d3`). La mémoire Redis garde son `ttl` facultatif, sa persistance étant voulue.
+- **DEV-10.** `require_thread_id` est supprimé. Le middleware LangChain, les hooks Claude Code et `PIIGhostClient.detect` exigent une conversation (`piighost` `97b1e78`), et le serveur répond 400 sans `thread_id` (`piighost-api` `7dec988`). La CLI garde `--thread-id default` pour une commande isolée.
+- **OPS-7.** La mémoire en processus est bornée à 10 000 conversations et un jour par défaut (`4af48d3`). La mémoire Redis garde son `ttl` facultatif, sa persistance étant voulue.
 - **Documentation.** La réponse d'un outil passe par la détection complète, et un flux coupé rend son fragment (`3473217`).
 - **Tests d'acceptation.** AT-DPO-1-2, AT-DPO-2-2, AT-DPO-5-2, AT-DPO-6-1, AT-DEV-3-2, AT-OPS-2-1 et AT-OPS-3-1 dans `tests/acceptance/` (`21e5ac9`).
 

@@ -34,6 +34,8 @@ Not every public name carries the same guarantee. A stable name changes only on 
 | Configuration | `PipelineConfig`, `load_config`, `load_pipeline`, `load_thread_pipeline`, and the keys listed in the [TOML reference](../configuration/toml.md) |
 | Command line | `piighost validate`, `piighost schema`, `piighost anonymize` |
 | LangChain integration | `PIIAnonymizationMiddleware`, `ToolCallStrategy`, `InventedPlaceholderStrategy`, `EntityCreateByAssistantStrategy` |
+| Model detectors | `Gliner2Detector`, `SpacyDetector`, `TransformersDetector`, all three on the shared `BaseNERDetector` pass |
+| Guard rails | `DetectorGuardRail`, which re-runs any detector on the output |
 
 </div>
 
@@ -50,6 +52,9 @@ A minor release adds components, options and placeholder factories on top of the
 | `LLMDetector`, `LLMGuardRail` | The prompt and the structured-output schema depend on what a provider accepts, so both can be reshaped when a provider changes. |
 | `ModerationGuardRail` | Bound to a third-party Mistral moderation API whose categories and thresholds are outside this project. |
 | `BridgeDetector`, `AnySpanRunner` | Recent, and the span payload it accepts from a runner has not yet been exercised against enough runners to be frozen. |
+| `Gliner2PiiDetector` | A preset whose default labels follow one PII checkpoint, so they move when that checkpoint does. |
+| `PresidioDetector` | An adapter over Presidio's analyzer, whose recognizers and entity names belong to that project. |
+| `Gliner2GuardRail` | Recent, and its default task and labels follow one guardrail checkpoint. |
 
 </div>
 

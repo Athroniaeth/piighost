@@ -181,3 +181,4 @@ To change *what* the pipeline finds and restores, you swap the placeholder facto
 - [Placeholder factories](placeholder-factories.md): the uniqueness and findability constraint that drives `PreservesRecognizableIdentity`.
 - [Architecture](architecture.md): sequence diagrams of the LLM and tool channels.
 - [Limitations](limitations.md): how the strategy choice interacts with the rest of the pipeline.
+- [Let a tool act on the real values](../../openwiki/processus/laisser-un-outil-agir.md) (in French): the business rules of a tool call, `BR-TOOL-01` to `BR-TOOL-11`, and where each lives in the code.

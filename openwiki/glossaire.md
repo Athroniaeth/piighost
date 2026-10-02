@@ -1,7 +1,7 @@
 ---
 type: glossary
 title: Glossaire
-description: Définitions des termes de PIIGhost (dé-identification, jeton, détection, entité, fil de conversation, provenance, liste blanche et liste noire, garde-fou, identifiants, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
+description: Définitions des termes de PIIGhost (dé-identification, jeton, détection, entité, conversation, provenance, liste blanche et liste noire, garde-fou, identifiants, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
 tags: [glossary, vocabulary, de-identification, placeholder, entity, thread]
 sources:
   - id: openwiki-source-aa685735384e8973ddee846d
@@ -76,11 +76,11 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Fil de conversation (thread) | Une conversation isolée. Une valeur garde le même jeton sur tout le fil. | identifiant de fil, `--thread-id` | `thread_id` |
+| Conversation (thread) | Échange suivi d'un message à l'autre, isolé des autres échanges. Une valeur garde le même jeton sur toute la conversation. | identifiant de conversation, `--thread-id` | `thread_id` |
 | Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration n'y retombe seule : un appel sans identifiant est refusé. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
-| Provenance | Auteur de la première apparition d'une valeur dans le fil : l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
-| Mémoire de conversation | Stockage des détections de chaque message, par fil. Contient des données personnelles. Gardée dans le programme, elle garde au plus 10 000 fils, chacun un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
-| Effacement d'un fil | Suppression de toute la mémoire d'un fil, pour le droit à l'effacement. Renvoie le nombre de messages et de détections supprimés. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
+| Provenance | Auteur de la première apparition d'une valeur dans la conversation : l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
+| Mémoire de conversation | Stockage des détections de chaque message, par conversation. Contient des données personnelles. Gardée dans le programme, elle garde au plus 10 000 conversations, chacune un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
+| Effacement d'une conversation | Suppression de toute la mémoire d'une conversation, pour le droit à l'effacement. Renvoie le nombre de messages et de détections supprimés. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
 | Correction humaine | Jeu de détections corrigé par une personne pour un message, qui remplace celui du détecteur. | aucune forme visible | `anonymize_corrected` |
 | Décodeur de flux | Composant qui restaure une réponse diffusée au fil de l'eau, en retenant un jeton coupé jusqu'à ce qu'il soit entier. | « `<<PER` » retenu, puis « Jean Dupont » | `AsyncPlaceholderStreamDecoder`, `deanonymize_stream` |
 | Réglage d'outil | Ce que reçoit un outil (vraies valeurs ou jetons) et ce que lit le modèle de son résultat (masqué ou en clair). | « Complet », « Entrée seule », « Sortie seule », « Aucun » | `ToolCallStrategy` |

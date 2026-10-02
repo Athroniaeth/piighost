@@ -46,6 +46,21 @@ PIIGhost n'a pas d'écran. Une conversation est désignée par un identifiant qu
 | Le modèle | ne reçoit et n'écrit que des jetons |
 | Le DPO | demande l'effacement d'une conversation |
 
+### Le trajet d'un message dans une conversation
+
+```mermaid
+flowchart TD
+    A["Message de l'utilisateur, avec l'identifiant de la conversation"] --> B["Repérage des valeurs"]
+    B --> C["Mémoire de la conversation"]
+    C --> D{"Valeur déjà vue ?"}
+    D -- oui --> E["Même jeton qu'avant"]
+    D -- non --> F["Numéro suivant"]
+    E --> G["Le modèle répond avec des jetons"]
+    F --> G
+    G --> H["Restauration avec les valeurs de la conversation"]
+    C -. effacement .-> I["Mémoire vidée"]
+```
+
 ### Exemple de conversation
 
 | Tour | Auteur | Texte écrit | Texte vu par le modèle |
@@ -62,6 +77,8 @@ Si le modèle répond « Bonjour `<<PERSON:1>>`, saluez `<<PERSON:2>>`. », l'ut
 ### Corriger un repérage
 
 L'utilisateur, ou l'application en son nom, peut corriger les valeurs d'un message avant l'envoi : ajouter un nom oublié, ou rendre lisible un terme masqué à tort.
+
+Selon votre application, faites-le dans son écran de correction s'il en a un, ou demandez-le à l'équipe technique, qui applique la correction par `anonymize_corrected` (ou la route `/v1/anonymize/corrected` du serveur).
 
 1. Repérez le message à corriger.
 2. Ajoutez la valeur oubliée avec son type, ou retirez la valeur masquée à tort.
@@ -134,13 +151,15 @@ Une conversation lisible, avec les vraies valeurs. Après un effacement, ou apr�
 
 ## Pour les développeurs
 
+Le guide technique construit un pipeline de conversation pas à pas dans [Pipeline conversationnel](../../docs/fr/getting-started/conversation.md).
+
 ### Où vivent les règles
 
 | Règle | Emplacement |
 |---|---|
 | BR-CONV-01, BR-CONV-07 | `src/piighost/pipeline/thread.py:289-339` (`_thread_tokens` sur l'union des détections), `components/placeholder/base.py:145-156` |
 | BR-CONV-02 | `conversation_memory/memory.py` (stockage par `thread_id`), `pipeline/thread.py:219-231` (`deanonymize`) |
-| BR-CONV-03 | `integrations/langchain/middleware.py:47-66` (`_thread_id`), `integrations/claude_code/hooks.py:101-105`, `piighost-api` (`app.py`, `thread_id` requis sur les routes de fil) |
+| BR-CONV-03 | `integrations/langchain/middleware.py:47-66` (`_thread_id`), `integrations/claude_code/hooks.py:101-105`, `piighost-api` (`app.py`, `thread_id` requis sur les routes de conversation) |
 | BR-CONV-04 | `pipeline/thread.py:322-329`, `conversation_memory/memory.py` (`get_provenance`), `integrations/langchain/middleware.py:370` (`_message_role`) |
 | BR-CONV-05 | `pipeline/thread.py:219-231` (`deanonymize`) |
 | BR-CONV-06 | `integrations/_deidentify.py:133-155` (`_handle_invented`) |
@@ -171,7 +190,7 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 ### Pièges
 
 - **Aucune intégration ne retombe sur `default`.** Le middleware LangChain et les hooks Claude Code lèvent `MissingThreadIdError`, le serveur répond 400. Seule la commande `piighost anonymize` garde `--thread-id default`, pour une commande isolée.
-- **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union la décale : une correction (BR-CONV-07), mais aussi, d'après le code, l'expiration d'un message Redis avec `ttl` (`conversation_memory/redis_backend.py:200-228`). [à vérifier] : ce second cas n'a pas été rejoué. Pour trancher, écrivez deux messages dans un fil Redis avec un `ttl` court, laissez expirer le premier, puis comparez `thread_token_map`.
+- **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union la décale : une correction (BR-CONV-07), mais aussi, d'après le code, l'expiration d'un message Redis avec `ttl` (`conversation_memory/redis_backend.py:200-228`). [à vérifier] : ce second cas n'a pas été rejoué. Pour trancher, écrivez deux messages dans une conversation Redis avec un `ttl` court, laissez expirer le premier, puis comparez `thread_token_map`.
 - **La mémoire en processus oublie en silence.** Une conversation évincée ou expirée (BR-CONV-11) ne lève rien : ses jetons restent tels quels à la restauration. `max_threads=None` et `ttl=None` lèvent les bornes.
 - **La provenance porte sur la clé de valeur** (`value_key`), donc sur toutes les graphies d'une valeur.
 - **Le cache de jetons est mémorisé par processus** (256 cartes au plus, `_TOKEN_MEMO_MAX`). Voir [Stocker les conversations](../exploitation/stockage-et-chiffrement.md) pour l'effet sur l'effacement en multi-processus.
@@ -185,7 +204,7 @@ Aucun écart constaté sur cette page.
 
 | Test | Couvre |
 |---|---|
-| `tests/pipeline/test_thread.py` | Jeton stable, numéro suivant, isolement des fils, cache, effacement et mémo, provenance assistant, contrôle final, durée du mémo |
+| `tests/pipeline/test_thread.py` | Jeton stable, numéro suivant, isolement des conversations, cache, effacement et mémo, provenance assistant, contrôle final, durée du mémo |
 | `tests/pipeline/test_thread_hitl.py` | Ajout et retrait par correction, correction locale au message, correction remplacée |
 | `tests/integrations/langchain/test_middleware.py` (`TestThreadId`), `tests/integrations/test_claude_code_hooks.py` | Refus d'un appel sans identifiant (AT-DEV-10-1, AT-DEV-10-2) |
 | `tests/conversation_memory/test_in_memory.py` (`TestBounding`) | Bornes par défaut de la mémoire en processus (AT-OPS-7-1) |

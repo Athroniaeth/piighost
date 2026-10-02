@@ -29,6 +29,8 @@ flowchart LR
     PIIGhostError --> DetectorError
     DetectorError --> LabelMappingError
     DetectorError --> TextTooLongError
+    DetectorError --> BridgePayloadError
+    DetectorError --> BridgeSpanRangeError
     PIIGhostError --> TextError
     TextError --> EmptyFragmentError
     PIIGhostError --> AnonymizerError
@@ -55,7 +57,7 @@ flowchart LR
 *The `PIIGhostError` tree, each grouping class to the left of the errors it covers.*
 { .figure-caption }
 
-Of the thirty-three error classes, twenty are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, a grouping class that is also raised on its own.
+Of the thirty-five error classes, twenty-two are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, a grouping class that is also raised on its own.
 
 ## Data models
 
@@ -73,14 +75,16 @@ The invariants these errors enforce are in [Data models](models.md), and the por
 
 ## Detectors
 
-Module: `piighost.components.detector.ner`. `DetectorError` groups two failures of `BaseNERDetector`, so they reach the model-backed detectors only. A regex, exact-match, composite, or chunked detector raises neither.
+Module: `piighost.components.detector.ner`. `DetectorError` groups four failures. Two belong to `BaseNERDetector`, so they reach the model-backed detectors only, and two to `BridgeDetector`, which checks every span its runner returns rather than trusting it. A regex, exact-match, composite, or chunked detector raises none of them.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | two external labels map to one internal label, which would make the reverse lookup ambiguous |
 | `TextTooLongError` | `BaseNERDetector`, on detection | a text exceeds `max_chars` while `auto_chunk` is off, so a prefix-only scan is refused |
+| `BridgePayloadError` | `BridgeDetector`, on detection | the runner returns a span missing a field, or an offset that is not an integer, a float included |
+| `BridgeSpanRangeError` | `BridgeDetector`, on detection | the runner returns an empty or inverted span, one that overruns the text, or, in UTF-16 units, one that cuts a character in two |
 
-Both are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern the second.
+All four are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern `TextTooLongError` and the `offset_unit` that the bridge's offsets are read in.
 
 ## Text helpers
 

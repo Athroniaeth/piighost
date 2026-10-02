@@ -323,6 +323,7 @@ Optional. Discriminated on `type`. Re-checks the de-identified output for residu
 | `detector` | | A detector re-run on the output |
 | `llm` | `llm` | A chat model prompted to find residual PII |
 | `moderation` | `mistral` | A Mistral moderation model scoring the output |
+| `gliner2` | `gliner2` | A local GLiNER2 guardrail model classifying the output |
 
 ### `type = "detector"`
 
@@ -356,6 +357,23 @@ Scores the output with a Mistral moderation model. The credential is read from `
 |-----|------|---------|---------|
 | `model` | `str` | `mistral-moderation-latest` | The moderation model |
 | `threshold` | `float` | `0.5` | The category score at or above which the text is flagged |
+
+### `type = "gliner2"`
+
+Classifies the output with a GLiNER2 guardrail model that runs in the process, so it needs no credential. The checkpoint is downloaded on the first build, then read from the Hugging Face cache.
+
+| Key | Type | Default | Meaning |
+|-----|------|---------|---------|
+| `model` | `str` | `fastino/GLiNER2-Guardrails-PII-Multi` | The GLiNER2 checkpoint the guard classifies with |
+| `task` | `str` | `response_safety` | The classification task read from the model's answer |
+| `labels` | `list` | `["safe", "unsafe"]` | The answers the task chooses between, the unsafe one last, two at least |
+| `threshold` | `float` | `0.5` | The confidence at or above which an unsafe answer flags the output |
+
+```toml
+[guard]
+type = "gliner2"
+threshold = 0.5
+```
 
 ---
 
@@ -573,3 +591,4 @@ The same content in JSON, chosen by a `.json` suffix, is equivalent. A table bec
 - [Command-line interface](../reference/cli.md) for validating a file from the shell.
 - [Detectors reference](../reference/detectors.md) for the detector each `type` builds.
 - [LangChain middleware reference](../reference/langchain.md) for driving a thread pipeline in an agent.
+- [Configure a pipeline by file, hub and command line](../../../openwiki/exploitation/configuration-et-hub.md), in French, for the configuration rules `BR-CFG-01` to `BR-CFG-09` and where each lives in the code.

@@ -16,7 +16,7 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 `InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus, ce qui convient au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues, pour un résultat vérifiable sans modèle.
 
 ```python
---8<-- "snippets/conversation.py:setup"
+--8<-- "snippets/conversation.fr.py:setup"
 ```
 
 ## 2. Dé-identifier deux messages du même fil
@@ -24,16 +24,16 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 `anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire, il n'y a pas de fil par défaut partagé, si bien que deux appelants ne peuvent pas tomber dans le même fil et se fuiter mutuellement leurs données confidentielles. On envoie deux messages sur le fil `"thread-42"`.
 
 ```python
---8<-- "snippets/conversation.py:turns"
+--8<-- "snippets/conversation.fr.py:turns"
 
 
---8<-- "snippets/conversation.py:run"
+--8<-- "snippets/conversation.fr.py:run"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/conversation.out:turns"
+--8<-- "snippets/conversation.fr.out:turns"
 ```
 
 `Patrick`{ .pii } garde `<<PERSON:1>>`{ .placeholder } du premier au second message, et `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder }. Avec un `AnonymizationPipeline` ordinaire, chaque appel repartirait à `<<PERSON:1>>`{ .placeholder } sans lien avec le message précédent. La mémoire du fil est ce qui rend le numéro stable.
@@ -43,7 +43,7 @@ La sortie doit être :
 `deanonymize` reconstruit les jetons du fil depuis sa mémoire, donc n'importe quel texte qui les porte est restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
 
 ```python
---8<-- "snippets/conversation.py:restore"
+--8<-- "snippets/conversation.fr.py:restore"
 ```
 
 ## 4. Oublier un fil
@@ -51,7 +51,7 @@ La sortie doit être :
 `forget_thread` efface la mémoire d'un fil et renvoie le compte de ce qui a été supprimé. Utile pour respecter une demande d'effacement ou libérer la RAM à la fin d'une conversation.
 
 ```python
---8<-- "snippets/conversation.py:forget"
+--8<-- "snippets/conversation.fr.py:forget"
 ```
 
 ## Comment ça marche
@@ -62,3 +62,4 @@ La sortie doit être :
 
 - Pour partager la mémoire entre plusieurs processus, remplacez `InMemoryConversationMemory` par une mémoire persistante. Voir la [Référence TOML](../configuration/toml.md) pour la déclarer en configuration.
 - Pour brancher ce pipeline dans un agent LangGraph, voir le [Middleware LangChain](langchain.md).
+- Pour lire les règles de gestion d'une conversation, de `BR-CONV-01` à `BR-CONV-11`, voir [Suivre une conversation et restaurer la réponse](../../../openwiki/processus/suivre-une-conversation.md).

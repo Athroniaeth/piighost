@@ -204,3 +204,4 @@ Pour un autre framework, la même restauration est un cran plus bas, `pipeline.r
 - [Référence Pipeline](pipeline.md) pour le pipeline de thread que le middleware pilote.
 - [Stratégies d'appel d'outil](../tool-call-strategies.md) pour le raisonnement derrière chaque stratégie.
 - [Configuration TOML](../configuration/toml.md) pour construire le pipeline depuis un fichier.
+- [Afficher une réponse streamée](../../../openwiki/processus/afficher-une-reponse-streamee.md) et [Laisser un outil agir sur les vraies valeurs](../../../openwiki/processus/laisser-un-outil-agir.md) pour les règles de gestion du flux et des appels d'outil, et leur emplacement dans le code.

@@ -40,9 +40,12 @@ SNIPPETS_DIR = Path(__file__).resolve().parents[2] / "docs" / "snippets"
 SNIPPETS: list[Any] = [
     "quickstart.en.py",
     "quickstart.fr.py",
-    "first_pipeline.py",
-    "conversation.py",
-    "basic_exact.py",
+    "first_pipeline.en.py",
+    "first_pipeline.fr.py",
+    "conversation.en.py",
+    "conversation.fr.py",
+    "basic_exact.en.py",
+    "basic_exact.fr.py",
     "basic_factories.py",
     "testing.py",
     "test_testing.py",
@@ -72,7 +75,8 @@ SNIPPETS: list[Any] = [
     "placeholder_uuid.py",
     "placeholder_bracket.py",
     "placeholder_hashed_email.py",
-    "langchain_start.py",
+    "langchain_start.en.py",
+    "langchain_start.fr.py",
     "langchain_agent.py",
     "pydantic_ai_agent.py",
     "llama_index_rag.py",
@@ -119,8 +123,10 @@ SNIPPETS: list[Any] = [
     pytest.param("upgrading_catalogs.py", marks=pytest.mark.integration),
     pytest.param("redis_run.py", marks=pytest.mark.integration),
     pytest.param("redis_load.py", marks=pytest.mark.integration),
+    pytest.param("redis_two_workers.py", marks=pytest.mark.integration),
     # These call a piighost-api server, which the test starts.
-    pytest.param("server_client.py", marks=pytest.mark.integration),
+    pytest.param("server_client.en.py", marks=pytest.mark.integration),
+    pytest.param("server_client.fr.py", marks=pytest.mark.integration),
     pytest.param("server_forget.py", marks=pytest.mark.integration),
     pytest.param("server_api.py", marks=pytest.mark.integration),
     pytest.param("server_proxy.py", marks=pytest.mark.integration),
@@ -154,6 +160,7 @@ FILES = {
     "reference_langchain.py": {"pipeline.toml": "reference_langchain.toml"},
     "redis_run.py": {"pipeline.toml": "redis_pipeline.toml"},
     "redis_load.py": {"pipeline.toml": "redis_pipeline.toml"},
+    "redis_two_workers.py": {"pipeline.toml": "redis_pipeline.toml"},
     "toml_loaders.py": {
         "pipeline.toml": "loaders.pipeline.toml",
         "thread.toml": "loaders.thread.toml",
@@ -167,7 +174,8 @@ REQUIRES = {
     "observation_langfuse.py": "langfuse",
     "tool_call_middleware.fr.py": "langchain",
     "tool_call_middleware.en.py": "langchain",
-    "langchain_start.py": "langchain",
+    "langchain_start.en.py": "langchain",
+    "langchain_start.fr.py": "langchain",
     "langchain_agent.py": "langchain",
     "langchain_pipeline.py": "gliner2",
     "pydantic_ai_agent.py": "pydantic_ai",
@@ -185,10 +193,12 @@ REQUIRES = {
     "upgrading.py": "langchain",
     "redis_run.py": "fakeredis",
     "redis_load.py": "fakeredis",
+    "redis_two_workers.py": "fakeredis",
     "server_connect.py": "httpx",
     "server_middleware.py": "langchain",
     "server_proxy_upstream.py": "openai",
-    "server_client.py": "httpx",
+    "server_client.en.py": "httpx",
+    "server_client.fr.py": "httpx",
     "server_forget.py": "httpx",
     "server_api.py": "httpx",
     "server_proxy.py": "openai",
@@ -201,7 +211,13 @@ FAILS = {"reference_gliner2_guard.py": "piighost.exceptions.PIIRemainingError"}
 BANNERS = {"reference_gliner2_pipeline.py"}
 """The examples whose model prints a banner of its own first: the output ends on the .out."""
 
-SERVED = {"server_client.py", "server_forget.py", "server_api.py", "server_proxy.py"}
+SERVED = {
+    "server_client.en.py",
+    "server_client.fr.py",
+    "server_forget.py",
+    "server_api.py",
+    "server_proxy.py",
+}
 """The examples that call a piighost-api server, started for each on a free port."""
 
 KEYED = {"server_api.py"}

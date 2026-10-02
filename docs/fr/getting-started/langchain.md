@@ -4,7 +4,7 @@ icon: lucide/link
 
 # Middleware LangChain
 
-Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour que le LLM ne voie jamais que des jetons, pendant que vos outils reçoivent les vraies valeurs. L'utilisateur écrit `Patrick habite à Paris.`{ .pii }, le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }, et un outil de recherche reçoit quand même le vrai `Patrick`{ .pii } pour faire son travail. Vous construisez le middleware au-dessus d'un `ThreadAnonymizationPipeline`, déclarez un outil, puis exécutez un tour.
+Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour que le LLM ne voie jamais que des jetons, pendant que vos outils reçoivent les vraies valeurs. L'utilisateur demande `Où habite Patrick ?`, le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }, et un outil de recherche reçoit quand même le vrai `Patrick`{ .pii } pour faire son travail. Vous construisez le middleware au-dessus d'un `ThreadAnonymizationPipeline`, déclarez un outil, puis exécutez un tour.
 
 !!! note "Prérequis"
     `piighost` installé avec l'extra middleware, `pip install piighost[langchain]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). Le pipeline reprend les composants de la page [Pipeline conversationnel](conversation.md).
@@ -14,7 +14,7 @@ Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour qu
 Le middleware enrobe un `ThreadAnonymizationPipeline`, le même que celui de la page [Pipeline conversationnel](conversation.md). Son anonymiseur doit utiliser une fabrique de jetons délimités comme `LabelCounterPlaceholderFactory`, qui émet `<<PERSON:1>>`{ .placeholder }. Le middleware a besoin de cette grammaire pour retrouver un jeton, sinon il lève `UnrecognizableFactoryError` à la construction.
 
 ```python
---8<-- "snippets/langchain_start.py:pipeline"
+--8<-- "snippets/langchain_start.fr.py:pipeline"
 ```
 
 ## 2. Déclarer un outil qui a besoin de la vraie valeur
@@ -22,7 +22,7 @@ Le middleware enrobe un `ThreadAnonymizationPipeline`, le même que celui de la 
 Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas de `<<PERSON:1>>`{ .placeholder }. Écrivez l'outil comme d'habitude, contre les vraies valeurs. Le middleware les restaure avant l'appel.
 
 ```python
---8<-- "snippets/langchain_start.py:tool"
+--8<-- "snippets/langchain_start.fr.py:tool"
 ```
 
 ## 3. Enrober le pipeline dans le middleware
@@ -30,7 +30,7 @@ Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas
 `PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` restaure les arguments de l'outil à l'entrée et dé-identifie le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
 
 ```python
---8<-- "snippets/langchain_start.py:agent"
+--8<-- "snippets/langchain_start.fr.py:agent"
 ```
 
 ## 4. Exécuter un tour
@@ -38,13 +38,13 @@ Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas
 Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à ce fil.
 
 ```python
---8<-- "snippets/langchain_start.py:run"
+--8<-- "snippets/langchain_start.fr.py:run"
 ```
 
 Le message final est dé-identifié pour l'affichage, donc la réponse se lit avec les vraies valeurs :
 
 ```text
---8<-- "snippets/langchain_start.out"
+--8<-- "snippets/langchain_start.fr.out"
 ```
 
 ## Comment ça marche

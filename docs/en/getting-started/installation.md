@@ -9,7 +9,7 @@ icon: lucide/download
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
-## Installation
+## Install the core
 
 The core has no optional dependency. It is enough for a local pipeline that de-identifies by regex or by known values, with no model and no network.
 
@@ -48,6 +48,24 @@ Model-based detectors, the middleware, and the optional backends are extras to c
     ```
 
 Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`, adding `argon2` for a more resistant key hash.
+
+## Check the installation
+
+Print the installed version.
+
+=== "uv"
+
+    ```bash
+    uv run python -c "import piighost; print(piighost.__version__)"
+    ```
+
+=== "pip"
+
+    ```bash
+    python -c "import piighost; print(piighost.__version__)"
+    ```
+
+The command prints a version number, such as `2.0.0`. An `ImportError` means the package is not installed in the active environment.
 
 ## Development installation
 

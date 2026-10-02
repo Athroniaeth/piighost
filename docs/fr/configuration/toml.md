@@ -323,6 +323,7 @@ Optionnel. Discriminé sur `type`. Revérifie la sortie dé-identifiée pour des
 | `detector` | | Un détecteur réexécuté sur la sortie |
 | `llm` | `llm` | Un modèle de chat à qui l'on demande la PII résiduelle |
 | `moderation` | `mistral` | Un modèle de modération Mistral qui note la sortie |
+| `gliner2` | `gliner2` | Un modèle garde-fou GLiNER2 local qui classe la sortie |
 
 ### `type = "detector"`
 
@@ -356,6 +357,23 @@ Note la sortie avec un modèle de modération Mistral. L'identifiant est lu depu
 |-----|------|--------|---------------|
 | `model` | `str` | `mistral-moderation-latest` | Le modèle de modération |
 | `threshold` | `float` | `0.5` | Le score de catégorie au-dessus duquel le texte est signalé |
+
+### `type = "gliner2"`
+
+Classe la sortie avec un modèle garde-fou GLiNER2 qui tourne dans le processus, sans aucun identifiant. Le checkpoint est téléchargé à la première construction, puis lu depuis le cache Hugging Face.
+
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `model` | `str` | `fastino/GLiNER2-Guardrails-PII-Multi` | Le checkpoint GLiNER2 avec lequel le garde-fou classe |
+| `task` | `str` | `response_safety` | La tâche de classification lue dans la réponse du modèle |
+| `labels` | `list` | `["safe", "unsafe"]` | Les réponses entre lesquelles la tâche choisit, la réponse refusée en dernier, deux au moins |
+| `threshold` | `float` | `0.5` | La confiance à partir de laquelle une réponse refusée signale la sortie |
+
+```toml
+[guard]
+type = "gliner2"
+threshold = 0.5
+```
 
 ---
 
@@ -573,3 +591,4 @@ Le même contenu en JSON, choisi par un suffixe `.json`, est équivalent. Une ta
 - [Interface en ligne de commande](../reference/cli.md) pour valider un fichier depuis le shell.
 - [Référence Détecteurs](../reference/detectors.md) pour le détecteur que chaque `type` construit.
 - [Référence de l'intégration LangChain](../reference/langchain.md) pour piloter un pipeline de thread dans un agent.
+- [Configurer un pipeline par fichier, hub et ligne de commande](../../../openwiki/exploitation/configuration-et-hub.md) pour les règles de configuration, de `BR-CFG-01` à `BR-CFG-09`, et leur emplacement dans le code.

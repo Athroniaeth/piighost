@@ -18,7 +18,7 @@ The detector reads the text and returns detections, one per value found. The res
     A `RegexDetector` recognizes patterns, that is strings of characters following a fixed structure. For arbitrary names and locations, you pass it a dictionary mapping a label to a pattern. Here two patterns, one for first names, one for the city.
 
     ```python
-    --8<-- "snippets/first_pipeline.py:detector"
+    --8<-- "snippets/first_pipeline.en.py:detector"
     ```
 
     For formats that are not language-specific, such as email and URL, the [piighost hub](https://hub.piighost.dev) publishes ready-made catalogs. The pinned group below is fetched on the first build, then read from the on-disk cache.
@@ -42,7 +42,7 @@ The detector reads the text and returns detections, one per value found. The res
 One first name can appear several times. The linker groups the detections of the same value and the same label into a single entity, so every occurrence later receives the same token.
 
 ```python
---8<-- "snippets/first_pipeline.py:linker"
+--8<-- "snippets/first_pipeline.en.py:linker"
 ```
 
 ## 3. Assign a token to each entity
@@ -50,7 +50,7 @@ One first name can appear several times. The linker groups the detections of the
 The anonymizer replaces each entity with a placeholder, that is the token that takes its place in the text. The token depends on the chosen factory. `LabelCounterPlaceholderFactory` numbers per label, so `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
---8<-- "snippets/first_pipeline.py:anonymizer"
+--8<-- "snippets/first_pipeline.en.py:anonymizer"
 ```
 
 ## 4. Assemble and run
@@ -58,13 +58,13 @@ The anonymizer replaces each entity with a placeholder, that is the token that t
 `AnonymizationPipeline` chains the three components in order, detect, group, replace. Its `anonymize` call is asynchronous and returns a result whose `text` carries the de-identified sentence.
 
 ```python
---8<-- "snippets/first_pipeline.py:run"
+--8<-- "snippets/first_pipeline.en.py:run"
 ```
 
 The output should be:
 
 ```text
---8<-- "snippets/first_pipeline.out"
+--8<-- "snippets/first_pipeline.en.out"
 ```
 
 Each occurrence of `Patrick`{ .pii } receives the same `<<PERSON:1>>`{ .placeholder }, `Paris`{ .pii } keeps `<<LOCATION:1>>`{ .placeholder } at both appearances, and `Marie`{ .pii } receives the next number `<<PERSON:2>>`{ .placeholder }. The linker from step 2 is what makes this consistency possible.

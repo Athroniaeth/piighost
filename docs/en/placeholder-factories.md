@@ -4,7 +4,7 @@ icon: lucide/replace
 
 # Placeholder factories
 
-A *placeholder* is the synthetic token that takes the place of a detected value before the text reaches the LLM. Instead of sending `Patrick lives in Paris`{ .pii } to the LLM, the pipeline sends `<<PERSON:1>>`{ .placeholder } `lives in`  `<<LOCATION:1>>`{ .placeholder }. The original values stay in the conversation memory. The LLM never sees them.
+A *placeholder* is the synthetic token that takes the place of a detected value before the text reaches the LLM. Instead of sending `Patrick lives in Paris`{ .pii } to the LLM, the pipeline sends `<<PERSON:1>>`{ .placeholder } lives in `<<LOCATION:1>>`{ .placeholder }. The original values stay in the conversation memory. The LLM never sees them.
 
 !!! note "Why the name placeholder factory"
 

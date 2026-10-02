@@ -22,13 +22,13 @@ Passez une URL de base sous forme de chaîne et le client construit et possède 
 `anonymize` prend le texte et un `thread_id`, exactement comme le pipeline local. Le serveur possède la table des jetons, donc l'`Anonymization` renvoyée porte le texte mais un `.tokens` vide. Pour récupérer la valeur, appelez `deanonymize` avec le même `thread_id`, ce qui restaure via la table de fil du serveur.
 
 ```python
-    --8<-- "snippets/server_client.py:example"
+    --8<-- "snippets/server_client.fr.py:example"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/server_client.out"
+--8<-- "snippets/server_client.fr.out"
 ```
 
 `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } sur le serveur, et `deanonymize` renvoie le texte à jetons pour restauration. Rien de la table ne vit dans votre processus.
