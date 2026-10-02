@@ -18,21 +18,13 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
     Un `RegexDetector` reconnaît des motifs, c'est-à-dire des chaînes de caractères qui suivent une structure fixe. Pour des noms et des lieux arbitraires, on lui passe un dictionnaire qui associe un label à un motif. Ici deux motifs, un pour les prénoms, un pour la ville.
 
     ```python
-    from piighost.components.detector import RegexDetector
-
-    patterns = {
-        "PERSON": r"\b(?:Patrick|Marie)\b",
-        "LOCATION": r"\bParis\b",
-    }
-    detector = RegexDetector(patterns)
+    --8<-- "snippets/first_pipeline.py:detector"
     ```
 
     Pour les formats non spécifiques à une langue, comme l'email et l'URL, le [hub piighost](https://hub.piighost.dev) publie des catalogues tout faits. Le groupe épinglé ci-dessous est récupéré à la première construction, puis relu depuis le cache sur disque.
 
     ```python
-    from piighost.components.detector import RegexDetector
-
-    detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+    --8<-- "snippets/detector_hub.py:detector"
     ```
 
 === "GLiNER2 (NER)"
@@ -40,13 +32,7 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
     Un NER est un modèle d'IA qui, sur un texte, classe les mots selon une classification décidée à l'avance (nom, prénom, lieu, organisation). Contrairement à la regex, il n'a pas besoin de connaître les valeurs à l'avance, il détecte un prénom qu'il n'a jamais vu.
 
     ```python
-    from piighost.components.detector.ner import Gliner2Detector
-
-    detector = Gliner2Detector(
-        model="fastino/gliner2-multi-v1",
-        labels=["PERSON", "LOCATION"],
-        threshold=0.5,
-    )
+    --8<-- "snippets/detector_gliner2.py:detector"
     ```
 
     Le premier argument est un nom de modèle chargé par GLiNER2, ou une instance déjà chargée. `labels` fixe les catégories interrogées. `threshold` est la confiance minimale au-dessus de laquelle une détection est gardée.
@@ -56,9 +42,7 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
 Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détections d'une même valeur et d'un même label en une seule entité, pour que chaque occurrence reçoive plus tard le même jeton.
 
 ```python
-from piighost.components.linker import ExactEntityLinker
-
-linker = ExactEntityLinker()
+--8<-- "snippets/first_pipeline.py:linker"
 ```
 
 ## 3. Assigner un jeton à chaque entité
@@ -66,11 +50,7 @@ linker = ExactEntityLinker()
 L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton qui prend sa place dans le texte. Le jeton dépend de la factory choisie. `LabelCounterPlaceholderFactory` numérote par label, donc `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
+--8<-- "snippets/first_pipeline.py:anonymizer"
 ```
 
 ## 4. Assembler et lancer
@@ -78,26 +58,13 @@ anonymizer = Anonymizer(factory)
 `AnonymizationPipeline` enchaîne les trois composants dans l'ordre, détecter, regrouper, remplacer. Son appel `anonymize` est asynchrone et renvoie un résultat dont `text` porte la phrase dé-identifiée.
 
 ```python
-import asyncio
-
-from piighost.pipeline import AnonymizationPipeline
-
-pipeline = AnonymizationPipeline(detector, linker, anonymizer)
-
-
-async def main() -> None:
-    text = "Patrick habite à Paris. Patrick aime Paris. Marie aussi."
-    result = await pipeline.anonymize(text)
-    print(result.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/first_pipeline.py:run"
 ```
 
 La sortie doit être :
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>. <<PERSON:1>> aime <<LOCATION:1>>. <<PERSON:2>> aussi.
+--8<-- "snippets/first_pipeline.out"
 ```
 
 Chaque occurrence de `Patrick`{ .pii } reçoit le même `<<PERSON:1>>`{ .placeholder }, `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder } à ses deux apparitions, et `Marie`{ .pii } reçoit le numéro suivant `<<PERSON:2>>`{ .placeholder }. C'est le linker de l'étape 2 qui rend cette cohérence possible.

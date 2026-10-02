@@ -143,7 +143,10 @@ pygments_lang_class = true
 [project.markdown_extensions.pymdownx.snippets]
 # Unlike the paths above, which resolve against this file's folder, base_path
 # resolves against the folder zensical runs from: the repository root.
-base_path = ["docs/fr"]
+# docs/ as well: the code examples live in docs/snippets/, shared by both
+# languages and run by tests/docs/test_snippets.py. A missing file fails the build.
+base_path = ["docs/fr", "docs"]
+check_paths = true
 auto_append = ["includes/abbreviations.md"]
 
 [project.markdown_extensions.pymdownx.superfences]

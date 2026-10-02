@@ -16,26 +16,7 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 `InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus, ce qui convient au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues, pour un résultat vérifiable sans modèle.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.conversation_memory import InMemoryConversationMemory
-
-detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+--8<-- "snippets/conversation.py:setup"
 ```
 
 ## 2. Dé-identifier deux messages du même fil
@@ -43,22 +24,16 @@ pipeline = ThreadAnonymizationPipeline(
 `anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire, il n'y a pas de fil par défaut partagé, si bien que deux appelants ne peuvent pas tomber dans le même fil et se fuiter mutuellement leurs données confidentielles. On envoie deux messages sur le fil `"thread-42"`.
 
 ```python
-async def main() -> None:
-    first = await pipeline.anonymize("Patrick habite à Paris.", "thread-42")
-    print(first.text)
-
-    second = await pipeline.anonymize("Est-ce que Patrick aime Paris ?", "thread-42")
-    print(second.text)
+--8<-- "snippets/conversation.py:turns"
 
 
-asyncio.run(main())
+--8<-- "snippets/conversation.py:run"
 ```
 
 La sortie doit être :
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>.
-Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
+--8<-- "snippets/conversation.out:turns"
 ```
 
 `Patrick`{ .pii } garde `<<PERSON:1>>`{ .placeholder } du premier au second message, et `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder }. Avec un `AnonymizationPipeline` ordinaire, chaque appel repartirait à `<<PERSON:1>>`{ .placeholder } sans lien avec le message précédent. La mémoire du fil est ce qui rend le numéro stable.
@@ -68,9 +43,7 @@ Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
 `deanonymize` reconstruit les jetons du fil depuis sa mémoire, donc n'importe quel texte qui les porte est restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
 
 ```python
-    restored = await pipeline.deanonymize("Bonjour <<PERSON:1>> !", "thread-42")
-    print(restored)
-    # Bonjour Patrick !
+--8<-- "snippets/conversation.py:restore"
 ```
 
 ## 4. Oublier un fil
@@ -78,9 +51,7 @@ Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
 `forget_thread` efface la mémoire d'un fil et renvoie le compte de ce qui a été supprimé. Utile pour respecter une demande d'effacement ou libérer la RAM à la fin d'une conversation.
 
 ```python
-    forgotten = await pipeline.forget_thread("thread-42")
-    print(forgotten)
-    # Forgotten(messages=2, detections=4)
+--8<-- "snippets/conversation.py:forget"
 ```
 
 ## Comment ça marche

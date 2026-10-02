@@ -16,26 +16,7 @@ You will build a `ThreadAnonymizationPipeline` that keeps a stable token for the
 `InMemoryConversationMemory` keeps that state in a process dictionary. Nothing survives a restart and nothing is shared across processes, which suits development and tests. We keep the detector simple here with `ExactMatchDetector`, which spots known values, for a verifiable result with no model.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.conversation_memory import InMemoryConversationMemory
-
-detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+--8<-- "snippets/conversation.py:setup"
 ```
 
 ## 2. De-identify two messages of the same thread
@@ -43,22 +24,16 @@ pipeline = ThreadAnonymizationPipeline(
 `anonymize` takes the text and a `thread_id`. The `thread_id` is required, there is no shared default thread, so two callers cannot fall into the same thread and leak each other's confidential data. We send two messages on the thread `"thread-42"`.
 
 ```python
-async def main() -> None:
-    first = await pipeline.anonymize("Patrick habite à Paris.", "thread-42")
-    print(first.text)
-
-    second = await pipeline.anonymize("Est-ce que Patrick aime Paris ?", "thread-42")
-    print(second.text)
+--8<-- "snippets/conversation.py:turns"
 
 
-asyncio.run(main())
+--8<-- "snippets/conversation.py:run"
 ```
 
 The output should be:
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>.
-Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
+--8<-- "snippets/conversation.out:turns"
 ```
 
 `Patrick`{ .pii } keeps `<<PERSON:1>>`{ .placeholder } from the first message to the second, and `Paris`{ .pii } keeps `<<LOCATION:1>>`{ .placeholder }. With a plain `AnonymizationPipeline`, each call would restart at `<<PERSON:1>>`{ .placeholder } with no link to the previous message. The thread memory is what makes the number stable.
@@ -68,9 +43,7 @@ Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
 `deanonymize` rebuilds the thread's tokens from its memory, so any text carrying them is restored, including a model reply the pipeline never de-identified.
 
 ```python
-    restored = await pipeline.deanonymize("Bonjour <<PERSON:1>> !", "thread-42")
-    print(restored)
-    # Bonjour Patrick !
+--8<-- "snippets/conversation.py:restore"
 ```
 
 ## 4. Forget a thread
@@ -78,9 +51,7 @@ Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
 `forget_thread` erases a thread's memory and returns the count of what was dropped. Useful to honor an erasure request or to free RAM at the end of a conversation.
 
 ```python
-    forgotten = await pipeline.forget_thread("thread-42")
-    print(forgotten)
-    # Forgotten(messages=2, detections=4)
+--8<-- "snippets/conversation.py:forget"
 ```
 
 ## How it works
