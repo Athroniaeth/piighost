@@ -424,8 +424,8 @@ Un stockage local au processus, perdu au redémarrage et non partagé entre work
 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
-| `max_threads` | `int` | `None` | Plafond de threads gardés, éviction LRU au-delà (au moins 1) |
-| `ttl` | `float` | `None` | Expire un thread inactif paresseusement au prochain accès, en secondes (supérieur à 0) |
+| `max_threads` | `int` | `10000` | Plafond de threads gardés, éviction LRU au-delà (au moins 1) |
+| `ttl` | `float` | `86400` | Expire un thread inactif paresseusement au prochain accès, en secondes (supérieur à 0) |
 
 ```toml
 [memory]

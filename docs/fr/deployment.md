@@ -81,7 +81,7 @@ Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur
 
 ## Borner le store in-process
 
-Le `InMemoryConversationMemory` par défaut garde chaque fil dans un dict local au processus. Sans borne, un processus de longue durée qui n'appelle jamais `forget_thread` croît sans limite à mesure que de nouveaux fils arrivent. Fixez `max_threads` pour plafonner le nombre de fils gardés, en évinçant le moins récemment utilisé au-delà, et `ttl` pour expirer un fil ce nombre de secondes après sa dernière écriture, retiré paresseusement au prochain accès.
+Le `InMemoryConversationMemory` par défaut garde chaque fil dans un dict local au processus, borné à 10 000 fils et un jour d'inactivité, pour qu'un processus de longue durée qui n'appelle jamais `forget_thread` ne garde pas toutes les valeurs qu'il a vues. Ajustez `max_threads` pour plafonner le nombre de fils gardés, en évinçant le moins récemment utilisé au-delà, et `ttl` pour expirer un fil ce nombre de secondes après sa dernière écriture, retiré paresseusement au prochain accès.
 
 ```toml title="pipeline.toml"
 [memory]
