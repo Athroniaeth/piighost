@@ -56,6 +56,23 @@ Les scénarios complets, étape par étape avec leurs cas d'erreur, sont dans le
 
 - Voir [Documenter une AIPD](dpia.md) et [Conformité](compliance.md).
 
+**DPO-9. En tant que DPO, je veux qu'un détecteur en panne bloque le message plutôt que de le laisser passer, afin qu'une panne ne devienne pas une fuite.**
+
+- Quand le modèle d'un détecteur LLM rend une sortie illisible, le message est refusé avec une erreur au lieu de partir sans détection.
+- Un réglage explicite laisse passer le message, pour qui préfère la disponibilité à la protection.
+- Voir les [points de vigilance](#points-de-vigilance) et les [Garde-fous](reference/guard-rails.md).
+
+!!! warning "Limite connue"
+    Aujourd'hui, `LLMDetector` et `LLMGuardRail` rendent zéro détection sur une sortie illisible, et le message part sans protection.
+
+**DPO-10. En tant que DPO, je veux choisir sous quelle forme les corrections humaines sont conservées, afin que leur stockage ne devienne pas une copie des données.**
+
+- Une correction exportée vers un outil d'annotation, Langfuse par exemple, se conserve sous la forme choisie : jetons à la place des valeurs, valeurs en clair, ou entrée et sortie entièrement masquées.
+- Le développeur règle cette forme, le DPO la décide.
+
+!!! warning "Limite connue"
+    Le choix de la forme n'existe pas encore.
+
 ---
 
 ## Développeur
@@ -108,6 +125,18 @@ Les scénarios complets, étape par étape avec leurs cas d'erreur, sont dans le
 - "`<<PER`" puis "`SON:1>>`" en deux morceaux donnent "`Jean Dupont`{ .pii }" une seule fois.
 - Voir [Afficher une réponse streamée](use-cases/stream-a-reply.md).
 
+**DEV-10. En tant que développeur, je veux que chaque conversation soit nommée explicitement, afin que deux utilisateurs ne partagent jamais leurs jetons par accident.**
+
+- Un appel sans identifiant de conversation est refusé, par le middleware LangChain, par les hooks Claude Code et par le serveur d'API.
+- Une application dont les conversations n'ont pas besoin d'être séparées passe `"default"`.
+- Voir la [référence LangChain](reference/langchain.md) et [Suivre une conversation](use-cases/follow-a-conversation.md).
+
+**DEV-11. En tant que développeur, je veux choisir le sort d'une valeur que l'assistant introduit lui-même, afin de décider si le LLM garde ce qu'il sait d'elle.**
+
+- Par défaut, `Napoléon`{ .pii }, cité d'abord par l'assistant, reste en clair, même quand l'utilisateur le reprend ensuite.
+- Un réglage passe cette valeur en jeton, un autre n'analyse pas du tout les messages de l'assistant.
+- Voir la [référence LangChain](reference/langchain.md) et [Suivre une conversation](use-cases/follow-a-conversation.md).
+
 ---
 
 ## Exploitant
@@ -142,7 +171,18 @@ Les scénarios complets, étape par étape avec leurs cas d'erreur, sont dans le
 **OPS-6. En tant qu'exploitant, je veux charger une configuration relue depuis le hub par sa référence, afin de ne pas maintenir de copie locale.**
 
 - Une référence épinglée sur un commit est téléchargée au premier démarrage, puis lue depuis le cache.
+- Une référence sans commit, qui peut changer, est relue à chaque chargement et jamais mise en cache.
+- Le hub n'est joint qu'en HTTP ou HTTPS, et une configuration du hub qui embarque un modèle est refusée.
 - Voir la [référence du pipeline](reference/pipeline.md) et le [hub piighost](https://hub.piighost.dev).
+
+!!! note "Limite actuelle"
+    Le hub ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres, et répartir les labels entre motifs et modèle demande un format de configuration que le hub n'a pas encore.
+
+**OPS-7. En tant qu'exploitant, je veux que la mémoire en processus soit bornée par défaut, afin qu'un serveur qui tourne des semaines ne garde pas toutes les valeurs qu'il a vues.**
+
+- Sans réglage, la mémoire garde au plus 10 000 conversations, chacune un jour après son dernier message.
+- Les deux bornes se règlent dans la configuration.
+- Voir [Déploiement](deployment.md#borner-le-store-in-process) et la [référence de la mémoire](reference/memory.md).
 
 ---
 
@@ -180,6 +220,34 @@ Ce profil ne manipule jamais `piighost`. Il utilise l'application qu'un dévelop
 
 - Un nom de ville mis en liste noire reste en clair, et une date de réunion n'est pas masquée par un groupe de motifs génériques.
 - Voir [Imposer les listes du serveur](use-cases/enforce-server-lists.md) et [Limites](limitations.md).
+
+**USER-6. En tant qu'utilisateur, je veux corriger une détection, ajouter un nom oublié ou rendre lisible un terme masqué à tort, afin que l'assistant reçoive le bon texte.**
+
+- Après correction, le nom ajouté part en jeton et le terme retiré part en clair, dans le message corrigé.
+- Les listes du serveur gardent le dernier mot, si bien qu'un terme de la liste blanche reste masqué même si l'utilisateur le retire.
+- Voir [Imposer les listes du serveur](use-cases/enforce-server-lists.md) et le [client d'API](getting-started/api-client.md).
+
+---
+
+## Points de vigilance
+
+Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle principal. Ces cas définissent ce que `piighost` doit faire, et la story qui le porte.
+
+| Situation | Ce que fait `piighost` | Story |
+|---|---|---|
+| Le LLM détecteur rend une sortie illisible, un JSON cassé ou un champ manquant | Aucune détection, le message part sans protection | DPO-9 |
+| Le LLM garde-fou rend une sortie illisible | Aucun reste signalé, le texte passe | DPO-9 |
+| Le LLM détecteur cite une valeur absente du texte | La valeur n'est retrouvée nulle part dans le texte et n'est pas retenue | DPO-1 |
+| Le LLM détecteur oublie une valeur | Elle part en clair, sauf si un garde-fou relit le texte | DPO-4 |
+| Le texte analysé contient une balise qui imite la zone de données du prompt | La balise est neutralisée avant l'envoi au LLM détecteur | DPO-1 |
+| Le LLM principal invente un jeton, `<<PERSON:10>>`{ .placeholder } alors que le fil n'a que `<<PERSON:1>>`{ .placeholder } | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
+| Le LLM principal change la casse ou les chiffres d'un jeton, `<<Person:1>>`{ .placeholder } ou `<<PERSON:01>>`{ .placeholder } | Il n'est pas restauré, et il est traité comme un jeton inventé | DEV-8 |
+| Le LLM principal abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel | USER-1 |
+| Le LLM principal devine la vraie valeur derrière un jeton et l'écrit | La valeur est traitée comme introduite par l'assistant | DEV-11 |
+| L'utilisateur tape lui-même un jeton, `<<PERSON:2>>`{ .placeholder } | Il ne fait pas apparaître la valeur d'une autre personne | DPO-1 |
+| Le flux de réponse s'arrête au milieu d'un jeton | Le fragment est rendu tel quel, sans valeur réelle | USER-4 |
+| Le LLM principal coupe ou reformule un jeton dans un argument d'outil | Seul un jeton écrit en entier est restauré, l'outil reçoit le reste tel quel | DEV-4 |
+| Le serveur d'API est injoignable depuis les hooks Claude Code | Le hook échoue sans bloquer, et le prompt part en clair | DPO-9 |
 
 ---
 

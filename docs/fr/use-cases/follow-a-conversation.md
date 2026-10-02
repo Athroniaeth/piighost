@@ -58,7 +58,7 @@ Répond à : DEV-2, DEV-3, DEV-8, USER-1, USER-2, DPO-6
 
 ### A1. L'identifiant de conversation manque
 
-Avec le middleware LangChain, un appel sans identifiant de conversation est refusé par défaut, avec une erreur `MissingThreadIdError` qui indique comment le passer. Rien n'est envoyé au LLM. Si l'application a choisi de tolérer cet oubli, l'appel retombe sur une conversation partagée nommée `default`, avec un avertissement dans les journaux, et tous les utilisateurs sans identifiant partagent alors leurs placeholders.
+Un appel sans identifiant de conversation est refusé, avec une erreur `MissingThreadIdError` qui indique comment le passer, par le middleware LangChain comme par les hooks Claude Code. Le serveur d'API répond 400. Rien n'est envoyé au LLM. Une application dont les conversations n'ont pas besoin d'être séparées nomme elle-même la conversation `default`, que tous ses utilisateurs partagent alors avec leurs placeholders.
 
 ### A2. Le LLM écrit un placeholder qui n'a jamais été émis
 
@@ -113,7 +113,7 @@ L'application efface `conv-1`. `piighost` supprime sa mémoire et rend le compte
 | BR-CONV-09 | Une correction qui ajoute ou retire une valeur dans un message ancien peut changer les numéros de toute la conversation. |
 | BR-CONV-10 | Un message identique renvoyé dans la même conversation reprend ses détections enregistrées, sans relancer le détecteur. |
 | BR-CONV-11 | L'effacement supprime toute la mémoire de la conversation et rend le nombre de messages et de détections supprimés. |
-| BR-CONV-12 | Le middleware LangChain refuse par défaut un appel sans identifiant de conversation. |
+| BR-CONV-12 | Un appel sans identifiant de conversation est refusé, aucune intégration ne retombe d'elle-même sur une conversation partagée. |
 
 ## Postconditions
 
@@ -132,7 +132,7 @@ Le pipeline conversationnel est `ThreadAnonymizationPipeline`. Chaque méthode p
 - `thread_token_map(thread_id)` rend la correspondance placeholder vers valeur, utile pour vérifier une correction.
 - `forget_thread(thread_id)` efface la conversation et rend un `Forgotten`. La copie des correspondances gardée en mémoire vive est purgée dans le processus qui l'appelle. Les autres processus gardent la leur jusqu'à son éviction, d'où le paramètre `token_memo_ttl`.
 
-Le middleware LangChain lit `thread_id` dans `config["configurable"]`, lève `MissingThreadIdError` quand `require_thread_id=True` (défaut), et retombe sur `DEFAULT_THREAD_ID` avec un avertissement sinon. `invented_strategy` (`RAISE`, `DROP`, `KEEP`) règle les placeholders inventés et lève `InventedPlaceholderError`. `assistant_strategy` (`PRESERVE`, `ANONYMIZE`, `IGNORE`) règle les valeurs apportées par l'assistant.
+Le middleware LangChain lit `thread_id` dans `config["configurable"]`, et lève `MissingThreadIdError` quand il manque. `DEFAULT_THREAD_ID` vaut `"default"`, à passer explicitement. `invented_strategy` (`RAISE`, `DROP`, `KEEP`) règle les placeholders inventés et lève `InventedPlaceholderError`. `assistant_strategy` (`PRESERVE`, `ANONYMIZE`, `IGNORE`) règle les valeurs apportées par l'assistant.
 
 À lire ensuite.
 
