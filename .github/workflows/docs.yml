@@ -1,45 +1,49 @@
 name: Documentation
 
+# The documentation lives on docs.piighost.dev, built by piighost-docs from this
+# repository. Two jobs remain here: tell piighost-docs that its content changed,
+# and keep the old GitHub Pages addresses working, each one now a redirect to
+# its page on docs.piighost.dev.
 on:
-  # Only rebuild and redeploy the site when documentation actually changes; a
-  # code-only push to master no longer triggers a Pages deploy. This paths
-  # allowlist mirrors the paths-ignore list in ci.yml (its inverse).
   push:
     branches:
       - master
     paths:
-      - "**/*.md"
       - "docs/**"
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+      - "openwiki/**"
 
 jobs:
-  deploy:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      # A fine-grained token limited to piighost-docs, with Contents read and
+      # write only: that is all a repository_dispatch needs.
+      - run: |
+          gh api repos/Athroniaeth/piighost-docs/dispatches \
+            -f event_type=content-updated \
+            -f "client_payload[sha]=$SHA"
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          SHA: ${{ github.sha }}
+
+  redirects:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/configure-pages@v6
         with:
           enablement: true
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-3.13-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-3.13-
-      # Build with the lockfile-pinned zensical (dev group), not an unpinned pip install.
-      - run: uv sync --locked --dev --no-progress -q
-      - run: uv run zensical build --clean -f docs/zensical.toml
-      - run: uv run zensical build -f docs/zensical.fr.toml
+      - run: python docs/tools/redirects.py docs/site
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/site
