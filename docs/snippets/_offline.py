@@ -221,3 +221,45 @@ def offline_redis() -> None:
         "PIIGHOST_CIPHER_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     )
     Redis.from_url = lambda url, **kwargs: fakeredis.FakeAsyncRedis()
+
+
+def serve_locally() -> None:
+    """Send what the examples address to localhost:8000 to the test's server.
+
+    The pages assume a `piighost-api` on port 8000, a port the machine running
+    the tests may have taken. The test starts the server on a free port and
+    names it in PIIGHOST_DOCS_SERVER. Every request of httpx, which
+    PIIGhostClient sends, and of httpx2, which the OpenAI SDK sends, is pointed
+    there.
+    """
+    import os
+
+    host, _, port = os.environ["PIIGHOST_DOCS_SERVER"].rpartition(":")
+    for name in ("httpx", "httpx2"):
+        try:
+            module = importlib.import_module(name)
+        except ModuleNotFoundError:
+            continue
+        _redirect(module, host, int(port))
+
+
+def _redirect(module: Any, host: str, port: int) -> None:
+    """Point the transports of an httpx-like module from port 8000 to `host:port`."""
+
+    def redirect(request: Any) -> None:
+        if request.url.host in {"localhost", "127.0.0.1"} and request.url.port == 8000:
+            request.url = request.url.copy_with(host=host, port=port)
+
+    send = module.HTTPTransport.handle_request
+    send_async = module.AsyncHTTPTransport.handle_async_request
+
+    def handle_request(self: Any, request: Any) -> Any:
+        redirect(request)
+        return send(self, request)
+
+    async def handle_async_request(self: Any, request: Any) -> Any:
+        redirect(request)
+        return await send_async(self, request)
+
+    module.HTTPTransport.handle_request = handle_request
+    module.AsyncHTTPTransport.handle_async_request = handle_async_request
