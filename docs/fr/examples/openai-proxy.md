@@ -14,17 +14,7 @@ icon: lucide/link
 Changez seulement le `base_url`. L'`api_key` reste la clé du fournisseur.
 
 ```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://127.0.0.1:8000/openai/v1",
-    api_key="sk-...",
-)
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Write a short greeting to Jane Doe, jane.doe@example.com."}],
-)
-print(response.choices[0].message.content)
+--8<-- "snippets/server_proxy.py:client"
 ```
 
 Le fournisseur reçoit `<<PERSON:1>>`{ .placeholder } et `<<EMAIL:1>>`{ .placeholder }, et la réponse imprimée porte de nouveau `Jane Doe`{ .pii }. Le proxy relaie l'en-tête `Authorization` au fournisseur tel quel et ne demande aucune clé de serveur, donc les clés `API_KEY_` du serveur ne s'appliquent pas à `/openai/v1`.
@@ -49,11 +39,7 @@ export PIIGHOST_OPENAI_UPSTREAM="http://vllm.internal:8000/v1"
 Si vous le voulez pour un seul client, nommez l'URL de base du fournisseur dans l'en-tête `X-PIIGhost-Upstream` :
 
 ```python
-client = OpenAI(
-    base_url="http://127.0.0.1:8000/openai/v1",
-    api_key="sk-...",
-    default_headers={"X-PIIGhost-Upstream": "http://vllm.internal:8000/v1"},
-)
+--8<-- "snippets/server_proxy_upstream.py:example"
 ```
 
 Le proxy retire chaque en-tête `X-PIIGhost-*` avant de relayer, donc le fournisseur ne le voit jamais.
@@ -63,11 +49,7 @@ Le proxy retire chaque en-tête `X-PIIGhost-*` avant de relayer, donc le fournis
 Chaque requête s'exécute dans un thread neuf, oublié dès que la réponse est restaurée. Un client de chat renvoie tout l'historique à chaque tour, donc la numérotation reste cohérente au sein de chaque requête. Si vous voulez que le thread survive à la requête, par exemple pour restaurer plus tard une réponse stockée via `/v1/deanonymize`, fixez-le avec `X-PIIGhost-Thread-Id` :
 
 ```python
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "I am Jane Doe"}],
-    extra_headers={"X-PIIGhost-Thread-Id": "user-42"},
-)
+--8<-- "snippets/server_proxy.py:thread"
 ```
 
 Un thread fixé reste dans la mémoire du serveur jusqu'à ce que `DELETE /v1/threads/user-42` l'efface.
@@ -77,14 +59,7 @@ Un thread fixé reste dans la mémoire du serveur jusqu'à ce que `DELETE /v1/th
 `stream=True` fonctionne sans changement. Le proxy restaure chaque placeholder à l'arrivée des chunks, même quand le fournisseur coupe `<<PERSON:1>>`{ .placeholder } sur deux chunks.
 
 ```python
-stream = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "I am Jane Doe"}],
-    stream=True,
-)
-for chunk in stream:
-    if chunk.choices:
-        print(chunk.choices[0].delta.content or "", end="")
+--8<-- "snippets/server_proxy.py:stream"
 ```
 
 !!! warning "Limites"

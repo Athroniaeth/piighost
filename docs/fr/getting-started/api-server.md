@@ -134,26 +134,13 @@ Le serveur restaure chaque placeholder émis par le thread `demo`, quel que soit
 `PIIGhostClient` pilote les mêmes routes depuis Python, avec la clé dans ses `headers`.
 
 ```python
-import asyncio
-import os
-
-from piighost.integrations.client import PIIGhostClient
-
-
-async def main() -> None:
-    headers = {"Authorization": f"Bearer {os.environ['API_KEY_DEV']}"}
-    async with PIIGhostClient("http://127.0.0.1:8000", headers=headers) as client:
-        result = await client.anonymize("Hi, I am Jane Doe.", "demo")
-        print(result.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/server_api.py:example"
 ```
 
 La sortie doit être :
 
 ```text
-Hi, I am <<PERSON:1>>.
+--8<-- "snippets/server_api.out"
 ```
 
 `Jane Doe`{ .pii } garde `<<PERSON:1>>`{ .placeholder }, le token que le thread `demo` lui a donné à l'étape 4. Le client et ses intégrations sont décrits dans [Client distant](api-client.md).

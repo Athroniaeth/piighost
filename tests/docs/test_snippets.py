@@ -13,10 +13,20 @@ reaches it. A file named _*.py is such a helper, never shown.
 
 import importlib
 import inspect
+import json
+import os
 import re
 import runpy
+import shutil
+import socket
 import subprocess
 import sys
+import threading
+import time
+import urllib.request
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +90,9 @@ SNIPPETS: list[Any] = [
     "security_redactor.py",
     "upgrading.py",
     "toml_loaders.py",
+    "server_connect.py",
+    "server_middleware.py",
+    "server_proxy_upstream.py",
     # These reach the hub or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
     pytest.param("detector_hub.py", marks=pytest.mark.integration),
@@ -106,34 +119,31 @@ SNIPPETS: list[Any] = [
     pytest.param("upgrading_catalogs.py", marks=pytest.mark.integration),
     pytest.param("redis_run.py", marks=pytest.mark.integration),
     pytest.param("redis_load.py", marks=pytest.mark.integration),
+    # These call a piighost-api server, which the test starts.
+    pytest.param("server_client.py", marks=pytest.mark.integration),
+    pytest.param("server_forget.py", marks=pytest.mark.integration),
+    pytest.param("server_api.py", marks=pytest.mark.integration),
+    pytest.param("server_proxy.py", marks=pytest.mark.integration),
 ]
 """Every example, the ones that need the network or a model marked integration."""
 
-MIGRATED = [
-    "getting-started/quickstart.md",
-    "getting-started/first-pipeline.md",
-    "getting-started/conversation.md",
-    "examples/basic.md",
-    "examples/testing.md",
-    "examples/overrides.md",
-    "examples/detectors.md",
-    "extending.md",
-    "architecture.md",
-    "observation.md",
-    "tool-call-strategies.md",
-    "placeholder-factories.md",
-    "getting-started/langchain.md",
-    "examples/langchain.md",
-    "examples/pydantic-ai.md",
-    "examples/llama-index.md",
-    "getting-started/configuration.md",
-    "deployment.md",
-    "multi-instance.md",
-]
-"""The pages whose Python examples all come from docs/snippets/, in both languages."""
 
 DOCS_DIR = SNIPPETS_DIR.parent
 """The documentation root, holding one folder per language."""
+
+WRITTEN_BY_HAND = ("reference/", "configuration/", "security.md")
+"""The pages that write signatures, ports, import lists and sessions by hand.
+
+They do not run, so tests/docs/test_reference_signatures.py, whose
+CHECKED_PAGES names the same pages, compares them with the code instead.
+"""
+
+PAGES = sorted(
+    page.relative_to(DOCS_DIR / "en").as_posix()
+    for page in (DOCS_DIR / "en").rglob("*.md")
+    if not page.relative_to(DOCS_DIR / "en").as_posix().startswith(WRITTEN_BY_HAND)
+)
+"""Every other page, whose Python all comes from docs/snippets/."""
 
 FILES = {
     "overrides_config.py": {"piighost.toml": "overrides_config.toml"},
@@ -175,6 +185,13 @@ REQUIRES = {
     "upgrading.py": "langchain",
     "redis_run.py": "fakeredis",
     "redis_load.py": "fakeredis",
+    "server_connect.py": "httpx",
+    "server_middleware.py": "langchain",
+    "server_proxy_upstream.py": "openai",
+    "server_client.py": "httpx",
+    "server_forget.py": "httpx",
+    "server_api.py": "httpx",
+    "server_proxy.py": "openai",
 }
 """The optional package an example needs, skipped when it is absent."""
 
@@ -183,6 +200,21 @@ FAILS = {"reference_gliner2_guard.py": "piighost.exceptions.PIIRemainingError"}
 
 BANNERS = {"reference_gliner2_pipeline.py"}
 """The examples whose model prints a banner of its own first: the output ends on the .out."""
+
+SERVED = {"server_client.py", "server_forget.py", "server_api.py", "server_proxy.py"}
+"""The examples that call a piighost-api server, started for each on a free port."""
+
+KEYED = {"server_api.py"}
+"""The served examples that send an API key, so their server checks one."""
+
+SERVER_CONFIG = "server_config.toml"
+"""The configuration of that server, knowing the values the examples write."""
+
+UPSTREAM_SECRETS = ("Jane Doe", "jane.doe@example.com")
+"""What the fake OpenAI upstream must never receive in clear."""
+
+TOKEN = re.compile(r"<<[A-Z_]+:\d+>>")
+"""A token of the server's LabelCounterPlaceholderFactory."""
 
 TIMEOUT = 300
 """Seconds an example may take, a model download included."""
@@ -214,7 +246,9 @@ if asyncio.iscoroutine(result):
 """Run a file as `python <file>` does, a top-level await included, as a page may show one."""
 
 
-def _run(snippet: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
+def _run(
+    snippet: Path, cwd: Path, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     """Run an example as a reader would, or a test file under pytest."""
     command = [sys.executable, "-c", RUNNER, str(snippet)]
     if snippet.name.startswith("test_"):
@@ -228,8 +262,134 @@ def _run(snippet: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
             str(snippet),
         ]
     return subprocess.run(
-        command, cwd=cwd, capture_output=True, text=True, timeout=TIMEOUT, check=False
+        command,
+        cwd=cwd,
+        env={**os.environ, **(env or {})},
+        capture_output=True,
+        text=True,
+        timeout=TIMEOUT,
+        check=False,
     )
+
+
+def _free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+
+class _Upstream(BaseHTTPRequestHandler):
+    """An OpenAI provider that greets the tokens it receives, and fails on a clear value."""
+
+    def log_message(self, format: str, *args: Any) -> None:
+        """Keep the test output quiet."""
+
+    def do_POST(self) -> None:
+        """Answer a chat completion, streamed when asked."""
+        raw = self.rfile.read(int(self.headers["Content-Length"])).decode()
+        if any(secret in raw for secret in UPSTREAM_SECRETS):
+            self.send_error(500, "the provider received a value in clear")
+            return
+        body = json.loads(raw)
+        tokens = TOKEN.findall(str(body["messages"][-1]["content"]))
+        reply = f"Hello {', '.join(tokens)}."
+        if body.get("stream"):
+            self._stream(reply)
+            return
+        message = {"role": "assistant", "content": reply}
+        choice = {"index": 0, "message": message, "finish_reason": "stop"}
+        self._send("application/json", json.dumps(_completion([choice])))
+
+    def _stream(self, reply: str) -> None:
+        """Stream the reply in pieces of four characters, cutting its tokens."""
+        events = [
+            _completion([{"index": 0, "delta": {"content": reply[start : start + 4]}}])
+            for start in range(0, len(reply), 4)
+        ]
+        data = "".join(f"data: {json.dumps(event)}\n\n" for event in events)
+        self._send("text/event-stream", data + "data: [DONE]\n\n")
+
+    def _send(self, content_type: str, text: str) -> None:
+        payload = text.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
+def _completion(choices: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "id": "docs",
+        "object": "chat.completion",
+        "created": 0,
+        "model": "docs",
+        "choices": choices,
+    }
+
+
+def _api_keys(binary: Path) -> dict[str, str]:
+    """An API key and its pepper, generated as the server tutorial does."""
+    keys: dict[str, str] = {}
+    for command in ("generate", "pepper"):
+        printed = subprocess.run(
+            [str(binary.with_name("keyshield")), command],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        keys.update(re.findall(r'"(\w+)=([^"]+)"', printed))
+    return keys
+
+
+@contextmanager
+def _serving(name: str) -> Iterator[dict[str, str]]:
+    """A piighost-api server and a fake upstream, and what the example needs to reach them."""
+    found = os.environ.get("PIIGHOST_API_BIN") or shutil.which("piighost-api")
+    if not found:
+        pytest.skip("needs a piighost-api executable, on PATH or in PIIGHOST_API_BIN")
+    binary = Path(found)
+    upstream = ThreadingHTTPServer(("127.0.0.1", _free_port()), _Upstream)
+    threading.Thread(target=upstream.serve_forever, daemon=True).start()
+    port = _free_port()
+    keys = _api_keys(binary) if name in KEYED else {}
+    env = {
+        **os.environ,
+        **keys,
+        "PIIGHOST_OPENAI_UPSTREAM": f"http://127.0.0.1:{upstream.server_port}/v1",
+    }
+    if not keys:
+        env["PIIGHOST_ALLOW_ANONYMOUS"] = "true"
+    command = [str(binary), "serve", "--config", str(SNIPPETS_DIR / SERVER_CONFIG)]
+    server = subprocess.Popen(
+        [*command, "--port", str(port), "--log-level", "warning"],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        _wait_for(f"http://127.0.0.1:{port}/health", server)
+        yield {**keys, "PIIGHOST_DOCS_SERVER": f"127.0.0.1:{port}"}
+    finally:
+        server.terminate()
+        server.wait(timeout=30)
+        upstream.shutdown()
+
+
+def _wait_for(url: str, server: subprocess.Popen[str]) -> None:
+    deadline = time.monotonic() + TIMEOUT
+    while time.monotonic() < deadline:
+        if server.poll() is not None:
+            pytest.fail(
+                f"piighost-api stopped: {server.stdout and server.stdout.read()}"
+            )
+        try:
+            with urllib.request.urlopen(url, timeout=1):
+                return
+        except OSError:
+            time.sleep(0.2)
+    pytest.fail(f"piighost-api did not answer on {url}")
 
 
 @pytest.mark.parametrize("name", SNIPPETS)
@@ -244,7 +404,9 @@ def test_an_example_runs_and_prints_what_the_page_shows(
         (tmp_path / opened).write_text(
             (SNIPPETS_DIR / source).read_text(encoding="utf-8"), encoding="utf-8"
         )
-    result = _run(snippet, tmp_path)
+    with ExitStack() as stack:
+        env = stack.enter_context(_serving(name)) if name in SERVED else {}
+        result = _run(snippet, tmp_path, env)
     if name in FAILS:
         assert result.returncode != 0, result.stdout
         assert result.stderr.splitlines()[-1].startswith(FAILS[name]), result.stderr
@@ -337,9 +499,9 @@ def test_every_output_has_its_example() -> None:
 
 
 @pytest.mark.parametrize("lang", ["fr", "en"])
-@pytest.mark.parametrize("page", MIGRATED)
-def test_a_migrated_page_writes_no_python_by_hand(page: str, lang: str) -> None:
-    """A Python block of a migrated page is an include, so it cannot drift from its test."""
+@pytest.mark.parametrize("page", PAGES)
+def test_a_page_writes_no_python_by_hand(page: str, lang: str) -> None:
+    """A Python block of a page is an include, so it cannot drift from its test."""
     text = (DOCS_DIR / lang / page).read_text(encoding="utf-8")
     blocks = re.findall(
         r"^([ \t]*)```python\n(.*?)^\1```", text, flags=re.DOTALL | re.MULTILINE

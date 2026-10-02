@@ -14,22 +14,7 @@ Vous allez utiliser `PIIGhostClient` comme un pipeline de fil distant, interchan
 Passez une URL de base sous forme de chaîne et le client construit et possède son `httpx.AsyncClient`, fermé à la sortie du gestionnaire de contexte. Vous pouvez borner chaque requête avec `timeout`, joindre des en-têtes statiques via `headers` comme un token Authorization, et relancer une erreur de connexion `retries` fois, sans construire votre propre client. La grammaire de jetons par défaut correspond à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`, si bien que `<<PERSON:1>>`{ .placeholder } est reconnu comme un jeton.
 
 ```python
-import asyncio
-
-from piighost.integrations.client import PIIGhostClient
-
-
-async def main() -> None:
-    async with PIIGhostClient(
-        "http://localhost:8000",
-        timeout=10.0,
-        headers={"Authorization": "Bearer ..."},
-        retries=2,
-    ) as client:
-        ...
-
-
-asyncio.run(main())
+--8<-- "snippets/server_connect.py"
 ```
 
 ## 2. Dé-identifier et restaurer un message
@@ -37,19 +22,13 @@ asyncio.run(main())
 `anonymize` prend le texte et un `thread_id`, exactement comme le pipeline local. Le serveur possède la table des jetons, donc l'`Anonymization` renvoyée porte le texte mais un `.tokens` vide. Pour récupérer la valeur, appelez `deanonymize` avec le même `thread_id`, ce qui restaure via la table de fil du serveur.
 
 ```python
-    async with PIIGhostClient("http://localhost:8000") as client:
-        result = await client.anonymize("Patrick habite à Paris.", "thread-42")
-        print(result.text)
-
-        restored = await client.deanonymize(result.text, "thread-42")
-        print(restored)
+    --8<-- "snippets/server_client.py:example"
 ```
 
 La sortie doit être :
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>.
-Patrick habite à Paris.
+--8<-- "snippets/server_client.out"
 ```
 
 `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } sur le serveur, et `deanonymize` renvoie le texte à jetons pour restauration. Rien de la table ne vit dans votre processus.
@@ -59,10 +38,7 @@ Patrick habite à Paris.
 `forget_thread` efface le fil sur le serveur et renvoie le compte de ce qui a été supprimé, comme le pipeline local.
 
 ```python
-    async with PIIGhostClient("http://localhost:8000") as client:
-        forgotten = await client.forget_thread("thread-42")
-        print(forgotten)
-        # Forgotten(messages=1, detections=2)
+    --8<-- "snippets/server_forget.py:example"
 ```
 
 ## 4. Le glisser dans le middleware
@@ -70,17 +46,7 @@ Patrick habite à Paris.
 Comme `PIIGhostClient` implémente le port du pipeline de fil, il va partout où va un `ThreadAnonymizationPipeline` local, y compris dans `PIIAnonymizationMiddleware`. Le middleware le pilote avec les mêmes appels `anonymize` et `deanonymize`, sans savoir que le travail a lieu sur un serveur.
 
 ```python
-from langchain.agents import create_agent
-from piighost.integrations.client import PIIGhostClient
-from piighost.integrations.langchain import PIIAnonymizationMiddleware
-
-client = PIIGhostClient("http://localhost:8000")
-
-agent = create_agent(
-    model="openai:gpt-5.6-terra",
-    tools=[...],
-    middleware=[PIIAnonymizationMiddleware(pipeline=client)],
-)
+--8<-- "snippets/server_middleware.py:example"
 ```
 
 ## Comment ça marche

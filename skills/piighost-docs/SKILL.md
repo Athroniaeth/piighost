@@ -546,8 +546,9 @@ file per example, shared by the FR and EN pages, and the page includes it:
   every method of a port. A block that only imports is checked against the
   module's exports, a `>>>` block replays as a doctest. Any other Python in a
   reference page comes from `docs/snippets/`.
-- **A page listed in `MIGRATED`** fails the test if a Python block is written
-  in it by hand again.
+- **A Python block written by hand** fails the test on any page but the
+  reference pages, the configuration reference and the security page
+  (`WRITTEN_BY_HAND`).
 - **One file serves both languages**, which keeps the code identical, as the
   sync rules ask. Only an example whose data is translated gets a file per
   language (`quickstart.fr.py`, `quickstart.en.py`).

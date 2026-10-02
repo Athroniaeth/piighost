@@ -14,22 +14,7 @@ You will use `PIIGhostClient` as a drop-in remote thread pipeline. It implements
 Pass a base URL as a string and the client builds and owns its `httpx.AsyncClient`, closed when the context manager exits. You can bound each request with `timeout`, attach static `headers` such as an Authorization token, and retry a connection error `retries` times, without building your own client. The default token grammar matches the standard `LabelCounterPlaceholderFactory` a `piighost` server emits, so `<<PERSON:1>>`{ .placeholder } is recognized as a token.
 
 ```python
-import asyncio
-
-from piighost.integrations.client import PIIGhostClient
-
-
-async def main() -> None:
-    async with PIIGhostClient(
-        "http://localhost:8000",
-        timeout=10.0,
-        headers={"Authorization": "Bearer ..."},
-        retries=2,
-    ) as client:
-        ...
-
-
-asyncio.run(main())
+--8<-- "snippets/server_connect.py"
 ```
 
 ## 2. De-identify and restore a message
@@ -37,19 +22,13 @@ asyncio.run(main())
 `anonymize` takes the text and a `thread_id`, exactly like the local pipeline. The server owns the token mapping, so the returned `Anonymization` carries the text but an empty `.tokens`. To get the value back, call `deanonymize` with the same `thread_id`, which restores through the server's thread mapping.
 
 ```python
-    async with PIIGhostClient("http://localhost:8000") as client:
-        result = await client.anonymize("Patrick habite à Paris.", "thread-42")
-        print(result.text)
-
-        restored = await client.deanonymize(result.text, "thread-42")
-        print(restored)
+    --8<-- "snippets/server_client.py:example"
 ```
 
 The output should be:
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>.
-Patrick habite à Paris.
+--8<-- "snippets/server_client.out"
 ```
 
 `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder } on the server, and `deanonymize` sends the tokenized text back for restoration. Nothing about the mapping lives in your process.
@@ -59,10 +38,7 @@ Patrick habite à Paris.
 `forget_thread` erases the thread on the server and returns the count of what was dropped, the same as the local pipeline.
 
 ```python
-    async with PIIGhostClient("http://localhost:8000") as client:
-        forgotten = await client.forget_thread("thread-42")
-        print(forgotten)
-        # Forgotten(messages=1, detections=2)
+    --8<-- "snippets/server_forget.py:example"
 ```
 
 ## 4. Drop it into the middleware
@@ -70,17 +46,7 @@ Patrick habite à Paris.
 Because `PIIGhostClient` implements the thread pipeline port, it goes wherever a local `ThreadAnonymizationPipeline` goes, including inside `PIIAnonymizationMiddleware`. The middleware drives it with the same `anonymize` and `deanonymize` calls, unaware the work happens on a server.
 
 ```python
-from langchain.agents import create_agent
-from piighost.integrations.client import PIIGhostClient
-from piighost.integrations.langchain import PIIAnonymizationMiddleware
-
-client = PIIGhostClient("http://localhost:8000")
-
-agent = create_agent(
-    model="openai:gpt-5.6-terra",
-    tools=[...],
-    middleware=[PIIAnonymizationMiddleware(pipeline=client)],
-)
+--8<-- "snippets/server_middleware.py:example"
 ```
 
 ## How it works
