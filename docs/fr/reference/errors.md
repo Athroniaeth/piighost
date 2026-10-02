@@ -29,6 +29,7 @@ flowchart LR
     PIIGhostError --> DetectorError
     DetectorError --> LabelMappingError
     DetectorError --> TextTooLongError
+    DetectorError --> UnreadableOutputError
     DetectorError --> BridgePayloadError
     DetectorError --> BridgeSpanRangeError
     PIIGhostError --> TextError
@@ -75,16 +76,17 @@ Les invariants que ces erreurs font respecter sont dans [Référence des modèle
 
 ## Détecteurs
 
-Module : `piighost.components.detector.ner`. `DetectorError` regroupe quatre défaillances. Deux appartiennent à `BaseNERDetector`, elles ne touchent donc que les détecteurs à modèle, et deux à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
+Module : `piighost.components.detector.ner`. `DetectorError` regroupe cinq défaillances. Deux appartiennent à `BaseNERDetector`, elles ne touchent donc que les détecteurs à modèle, une à `LLMDetector` et donc à `LLMGuardRail`, et deux à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | deux labels externes pointent vers un même label interne, ce qui rendrait la recherche inverse ambiguë |
 | `TextTooLongError` | `BaseNERDetector`, à la détection | un texte dépasse `max_chars` alors que `auto_chunk` est désactivé, un scan limité au préfixe étant refusé |
+| `UnreadableOutputError` | `LLMDetector`, à la détection | le modèle rend une sortie que le détecteur ne sait pas lire, un JSON cassé ou un résultat sans son champ `entities`, alors que `fail_open` est désactivé |
 | `BridgePayloadError` | `BridgeDetector`, à la détection | le runner rend un span auquel il manque un champ, ou un décalage qui n'est pas un entier, un flottant compris |
 | `BridgeSpanRangeError` | `BridgeDetector`, à la détection | le runner rend un span vide ou inversé, qui dépasse le texte, ou, en unités UTF-16, qui coupe un caractère en deux |
 
-Les quatre sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent `TextTooLongError`, et l'`offset_unit` dans laquelle se lisent les décalages du bridge.
+Les cinq sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent `TextTooLongError`, l'argument `fail_open` qui gouverne `UnreadableOutputError`, et l'`offset_unit` dans laquelle se lisent les décalages du bridge.
 
 ## Utilitaires de texte
 

@@ -54,6 +54,10 @@ class LLMGuardRail(DetectorGuardRail):
     as-is. A custom prompt must contain a {labels} placeholder. When no custom
     prompt is given, the default prompt's placeholder examples follow prefix and
     suffix, so they match the delimiters the pipeline emits.
+
+    An output the model returns but the guard cannot read raises
+    UnreadableOutputError rather than report the text clean, unless fail_open is
+    set, as for LLMDetector.
     """
 
     def __init__(
@@ -64,6 +68,7 @@ class LLMGuardRail(DetectorGuardRail):
         provider: str | None = None,
         prefix: str = "<<",
         suffix: str = ">>",
+        fail_open: bool = False,
     ) -> None:
         """Build the internal LLMDetector with the guard prompt."""
         detector = LLMDetector(
@@ -71,5 +76,6 @@ class LLMGuardRail(DetectorGuardRail):
             labels=labels,
             prompt=prompt or _guard_prompt(prefix, suffix),
             provider=provider,
+            fail_open=fail_open,
         )
         super().__init__(detector)

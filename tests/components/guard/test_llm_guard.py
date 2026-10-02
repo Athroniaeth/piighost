@@ -7,7 +7,10 @@ needed. langchain-core comes with the dev group, so the tests always run.
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
+import pytest
+
 from piighost.components.guard import AnyGuardRail
+from piighost.exceptions import UnreadableOutputError
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
@@ -74,6 +77,28 @@ class TestCheck:
         verdict = await guard.check("nothing to see here")
         assert verdict.flagged is False
         assert verdict.detections == ()
+
+    async def test_an_unreadable_output_is_not_a_clean_verdict(self) -> None:
+        """An output the guard cannot read raises instead of passing the text (DPO-9)."""
+        from piighost.components.guard import LLMGuardRail
+
+        guard = LLMGuardRail(
+            model=_as_model(_CapturingModel(object(), [])), labels=["PERSON"]
+        )
+        with pytest.raises(UnreadableOutputError):
+            await guard.check("Emma slipped through")
+
+    async def test_fail_open_reads_an_unreadable_output_as_clean(self) -> None:
+        """With fail_open, an unreadable output leaves the verdict unflagged."""
+        from piighost.components.guard import LLMGuardRail
+
+        guard = LLMGuardRail(
+            model=_as_model(_CapturingModel(object(), [])),
+            labels=["PERSON"],
+            fail_open=True,
+        )
+        verdict = await guard.check("Emma slipped through")
+        assert verdict.flagged is False
 
     async def test_residual_pii_is_flagged_and_carried(self) -> None:
         """A value the model returns and that is in the text flags the verdict."""

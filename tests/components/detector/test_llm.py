@@ -8,8 +8,11 @@ import logging
 from types import SimpleNamespace
 
 import pytest
+from langchain_core.exceptions import OutputParserException
+from pydantic import ValidationError
 
 from piighost.components.detector import AnyDetector
+from piighost.exceptions import UnreadableOutputError
 from piighost.models import Span
 
 
@@ -22,6 +25,15 @@ def _extraction(*entities: tuple[str, str]) -> SimpleNamespace:
     return SimpleNamespace(entities=found)
 
 
+UNREADABLE_OUTPUTS = {
+    "no entities field": object(),
+    "no result": None,
+    "broken JSON": OutputParserException("Emma Lambert, not JSON"),
+    "wrong shape": ValidationError.from_exception_data("_Extraction", []),
+}
+"""What a broken model hands back, a result to read or an error the parser raises."""
+
+
 class _FakeStructured:
     """A stand-in for model.with_structured_output(schema), recording the prompt."""
 
@@ -31,6 +43,8 @@ class _FakeStructured:
 
     async def ainvoke(self, messages: object, **kwargs: object) -> object:
         self.last_messages = messages
+        if isinstance(self._result, Exception):
+            raise self._result
         return self._result
 
 
@@ -112,12 +126,49 @@ class TestDetect:
         assert len(detections) == 1
         assert detections[0].span == Span(3, 7)
 
-    async def test_malformed_output_fails_open(self) -> None:
-        """A result without an entities attribute yields no detection."""
+    @pytest.mark.parametrize(
+        "output", UNREADABLE_OUTPUTS.values(), ids=UNREADABLE_OUTPUTS.keys()
+    )
+    async def test_an_unreadable_output_refuses_the_message(
+        self, output: object
+    ) -> None:
+        """An output the detector cannot read raises instead of reading as no PII.
+
+        Regression: it used to yield zero detections, so a broken model sent the
+        message unprotected (DPO-9).
+        """
         from piighost.components.detector import LLMDetector
 
-        detector = LLMDetector(model=_FakeChatModel(object()), labels=["PERSON"])
-        assert await detector.detect("Emma only") == []
+        detector = LLMDetector(model=_FakeChatModel(output), labels=["PERSON"])
+        with pytest.raises(UnreadableOutputError):
+            await detector.detect("Emma only")
+
+    async def test_the_refusal_never_quotes_the_output(self) -> None:
+        """The refusal names the output's type, never its text, and chains no error."""
+        from piighost.components.detector import LLMDetector
+
+        output = UNREADABLE_OUTPUTS["broken JSON"]
+        detector = LLMDetector(model=_FakeChatModel(output), labels=["PERSON"])
+        with pytest.raises(UnreadableOutputError) as caught:
+            await detector.detect("Emma Lambert")
+        assert "Emma" not in str(caught.value)
+        assert caught.value.__suppress_context__ is True
+
+    @pytest.mark.parametrize(
+        "output", UNREADABLE_OUTPUTS.values(), ids=UNREADABLE_OUTPUTS.keys()
+    )
+    async def test_fail_open_lets_an_unreadable_output_through(
+        self, output: object, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """With fail_open, an unreadable output yields no detection and a warning."""
+        from piighost.components.detector import LLMDetector
+
+        detector = LLMDetector(
+            model=_FakeChatModel(output), labels=["PERSON"], fail_open=True
+        )
+        with caplog.at_level(logging.WARNING):
+            assert await detector.detect("Emma only") == []
+        assert "fail_open is set" in caplog.text
 
     async def test_empty_text_returns_empty(self) -> None:
         """Empty input yields no detection."""

@@ -89,6 +89,16 @@ class TextTooLongError(DetectorError):
     """
 
 
+class UnreadableOutputError(DetectorError):
+    """Raised when an LLM detector cannot read its model's output.
+
+    A broken JSON, a missing field or a result of the wrong shape says nothing
+    about the text, so reading it as zero detections would send the message
+    unprotected. The detector fails closed here, and the message is refused,
+    unless it was built with fail_open=True.
+    """
+
+
 class BridgePayloadError(DetectorError):
     """Raised when a bridged runner returns a span the detector cannot read.
 
