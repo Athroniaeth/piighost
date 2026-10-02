@@ -38,33 +38,11 @@ The failure is silent. No exception is raised, the pipeline produces valid token
 Point every worker at one Redis instance. The tokens are assigned over the union of a thread's detections, and that union lives in Redis, so every worker reads the same numbering. The `thread_id` stays the unit of isolation, so two users never share a token.
 
 ```toml title="pipeline.toml"
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
-
-[linker]
-type = "exact"
-
-[anonymizer.placeholder]
-type = "label_counter"
-
-[memory]
-type = "redis"
-url = "redis://redis.internal:6379/0"
-namespace = "piighost"
-ttl = 3600
-
-[memory.hasher]
-type = "argon2"
-
-[memory.cipher]
-type = "aesgcm"
+--8<-- "snippets/redis_pipeline.toml"
 ```
 
 ```python
-from piighost.config import load_thread_pipeline
-
-pipeline = load_thread_pipeline("pipeline.toml")
+--8<-- "snippets/redis_load.py:example"
 ```
 
 Now the turn-2 case resolves the other way, worker B reads `Patrick -> <<PERSON:1>>`{ .placeholder } straight from Redis and keeps it, because the store worker A wrote to is the store worker B reads from. Any worker that picks up the conversation reproduces the same token for the same value.

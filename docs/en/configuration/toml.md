@@ -27,10 +27,7 @@ The `config` extra is required (`pip install piighost[config]`), which pulls in 
 `load_config` parses and validates a file into a `PipelineConfig` without building any component, so no model loads. `load_pipeline` builds a stateless `AnonymizationPipeline` and raises `ConfigError` if the file declares a `[memory]` section, since a memory describes a thread pipeline. `load_thread_pipeline` builds a `ThreadAnonymizationPipeline` and raises `ConfigError` if the file declares no `[memory]` section.
 
 ```python
-from piighost.config import load_pipeline, load_thread_pipeline
-
-stateless = load_pipeline("pipeline.toml")       # no [memory]
-thread = load_thread_pipeline("thread.toml")     # has [memory]
+--8<-- "snippets/toml_loaders.py"
 ```
 
 ---
