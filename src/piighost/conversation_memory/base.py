@@ -37,7 +37,7 @@ Every caller that names it shares it, and with it the tokens of every value they
 sent, so name it only for a single conversation or a one-off command.
 """
 
-_SECURITY_DOC_URL = "https://athroniaeth.github.io/piighost/security/"
+_SECURITY_DOC_URL = "https://docs.piighost.dev/en/guide/security/"
 """Documentation page explaining the at-rest crypto options for a backend."""
 
 

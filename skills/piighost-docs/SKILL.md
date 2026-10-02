@@ -7,7 +7,7 @@ description: Use when writing, rewriting or reviewing any PIIGhost documentation
 
 ## Overview
 
-PIIGhost ships **two parallel documentation sites** built with [Zensical](https://zensical.org/), an English one (`docs/en/`) and a French one (`docs/fr/`). Both are deployed via GitHub Pages.
+PIIGhost ships **two parallel documentation sites**, an English one (`docs/en/`) and a French one (`docs/fr/`), written in the [Zensical](https://zensical.org/) dialect. `piighost-docs` builds them into docs.piighost.dev, the technical guide next to the business wiki (`openwiki/`), and reads the navigation from `docs/zensical.toml` and `docs/zensical.fr.toml`. The old GitHub Pages addresses redirect there.
 
 This skill owns both halves of a doc change, the **voice** (which mode the page serves, how the text reads, which words it uses) and the **plumbing** (Zensical build, CSS classes, Mermaid, tables, nav, EN/FR mirroring). Read the voice half before writing, the plumbing half before wiring.
 
@@ -392,21 +392,22 @@ docs/
 │   ├── getting-started/               # installation, quickstart, ...
 │   ├── reference/                     # API surface
 │   ├── stylesheets/extra.css          # CSS overrides
-│   └── includes/abbreviations.md      # snippet auto-loaded by zensical
+│   └── includes/abbreviations.md      # snippet auto-loaded on every page
 ├── fr/                                # mirrors en/, identical layout
 ├── overrides/main.html                # theme override (analytics)
-├── zensical.toml                      # EN site config (nav, theme, extensions)
-└── zensical.fr.toml                   # FR site config
+├── zensical.toml                      # EN nav, read by piighost-docs
+└── zensical.fr.toml                   # FR nav
 ```
 
 ## Build & verify
 
+The site is built by `piighost-docs`, which reads this checkout and fails on a broken link, a missing image, or an identifier the wiki does not define or defines twice:
+
 ```bash
-uv run zensical build --clean -f docs/zensical.toml  # build EN site (output: docs/site/)
-uv run zensical build -f docs/zensical.fr.toml       # build FR site (output: docs/site/fr/)
+PIIGHOST_CONTENT=$PWD pnpm -C ../piighost-docs/frontend content:check   # both languages and the wiki
 ```
 
-**Always rebuild both sites after a doc change.** CI (`.github/workflows/docs.yml`) runs both in production, so a broken FR build will only surface there if you forget locally.
+**Always check both languages after a doc change.** On master, `.github/workflows/docs.yml` asks `piighost-docs` to rebuild, and its deploy stops on the first broken page.
 
 The mechanical rules, the terminology, the EN/FR parity, the internal links and the nav are checked by a script that ships with this skill:
 
@@ -416,11 +417,10 @@ python3 skills/piighost-docs/scripts/audit.py   # exits non-zero on any finding
 
 It reads prose only, so an identifier such as `Anonymizer` or `deanonymize` never trips a prose rule. Beyond style it resolves every relative markdown link against the tree and compares each language's pages with its `nav` array both ways, so a moved page shows up as a dead link on one side and an orphan nav entry on the other. An `includes/` page is exempt from the nav check, being pulled in by a snippet. It is deliberately conservative on the apposition colon: a lead-in label of four words or fewer, an enumeration of two or more comma-separated items, and two coordinated alternatives are all left alone. A finding is a real violation, not a style opinion, so drive it to zero rather than arguing with it. It does not judge voice. Diátaxis mode fit, chaining, the running example and the padding tails are still yours to read.
 
-For iteration, use the dev server:
+For iteration, use the site's dev server, which reloads on a change here:
 
 ```bash
-uv run zensical serve -f docs/zensical.toml     # EN at localhost:8000
-uv run zensical serve -f docs/zensical.fr.toml  # FR (run separately)
+PIIGHOST_CONTENT=$PWD pnpm -C ../piighost-docs/frontend dev   # localhost:5173
 ```
 
 ## Page structure
@@ -722,7 +722,7 @@ Use French labels in the FR config, EN labels in the EN config. Group the nav by
 | Mermaid renders broken or empty | Used `<<abstract>>` or unescaped `<`/`>` in class members | Use plain `abstraction` text and `&lt;` / `&gt;` for tokens |
 | `Unresolved reference` IDE warnings on inline code | Pyrefly tries to resolve identifiers inside markdown tables | Ignore, these are false positives, builds pass |
 | Wide table runs under the nav or TOC sidebar | Negative margins on `.wide-table` | Remove the margins, default scroll is correct |
-| Doc change shows up only on EN site | Forgot to rebuild FR | Always run both `zensical build --clean -f docs/zensical.toml` and `zensical build -f docs/zensical.fr.toml` |
+| Doc change shows up only on EN site | The FR page was not updated | Update both languages, then run `content:check`, which reads both |
 | Anchor link broken on FR page (e.g. `#écrire-la-sienne`) | Slugifier with accent inconsistencies | Replace anchor link with prose pointer (« voir la section *X* plus bas ») |
 | Cell colours don't appear | Tagged the `<tr>` instead of each `<td>` | Move `class="c-..."` onto each `<td>` (per-cell, not per-row) |
 
@@ -775,7 +775,7 @@ Run this before calling a page done. It exists because an editor applying the ru
 **Mirror and build**
 
 - [ ] The other language carries the same change, same structure, same section order, same code.
-- [ ] `uv run zensical build --clean -f docs/zensical.toml` and `uv run zensical build -f docs/zensical.fr.toml` both print `No issues found`.
+- [ ] `PIIGHOST_CONTENT=$PWD pnpm -C ../piighost-docs/frontend content:check` prints `no problem`.
 - [ ] `python3 skills/piighost-docs/scripts/audit.py` prints `0 finding(s)`.
 
 ## See also
