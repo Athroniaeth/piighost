@@ -1,0 +1,21 @@
+[detector]
+type = "regex"
+catalogs = ["hub:piighost/generic:fab51b33"]
+
+[linker]
+type = "exact"
+
+[anonymizer.placeholder]
+type = "label_counter"
+
+[memory]
+type = "redis"
+url = "redis://redis.internal:6379/0"
+namespace = "piighost"
+ttl = 3600
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"

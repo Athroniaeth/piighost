@@ -203,3 +203,21 @@ def offline_llama_index(secrets: tuple[str, ...]) -> None:
 
     _module("llama_index.embeddings.openai", OpenAIEmbedding=OpenAIEmbedding)
     _module("llama_index.llms.openai", OpenAI=OpenAI)
+
+
+def offline_redis() -> None:
+    """Make every Redis URL reach a store held in memory, with the page's secrets.
+
+    The pages export the hasher pepper and the cipher key in the shell, and
+    point at a Redis of their own network.
+    """
+    import os
+
+    import fakeredis
+    from redis.asyncio import Redis
+
+    os.environ.setdefault("PIIGHOST_HASH_PEPPER", "a-long-random-string")
+    os.environ.setdefault(
+        "PIIGHOST_CIPHER_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    Redis.from_url = lambda url, **kwargs: fakeredis.FakeAsyncRedis()

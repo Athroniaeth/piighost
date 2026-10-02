@@ -23,27 +23,7 @@ The `config` extra reads the file, `redis` talks to the store, `crypto` provides
 A `[memory]` section turns the pipeline into a thread pipeline keeping per-thread state. Its `type = "redis"` names the store, `[memory.hasher]` keys each message into its storage key, and `[memory.cipher]` encrypts each stored value.
 
 ```toml title="pipeline.toml"
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
-
-[linker]
-type = "exact"
-
-[anonymizer.placeholder]
-type = "label_counter"
-
-[memory]
-type = "redis"
-url = "redis://redis.internal:6379/0"
-namespace = "piighost"
-ttl = 3600
-
-[memory.hasher]
-type = "argon2"
-
-[memory.cipher]
-type = "aesgcm"
+--8<-- "snippets/redis_pipeline.toml"
 ```
 
 `namespace` prefixes every key so `piighost` shares a Redis instance with other applications without collisions. `ttl` is the seconds a stored message lives before Redis evicts it, or you omit it to keep entries until the store decides to drop them. `label_counter` emits `<<PERSON:1>>`{ .placeholder }, a token that carries identity, which the [middleware](getting-started/langchain.md) needs to restore the value.
@@ -69,12 +49,7 @@ export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 `load_thread_pipeline` reads the file, builds every component, and returns the thread pipeline. It raises `ConfigError` if the file declares no `[memory]`, so a stateless config cannot be loaded here by mistake.
 
 ```python
-from piighost.config import load_thread_pipeline
-
-pipeline = load_thread_pipeline("pipeline.toml")
-
-result = await pipeline.anonymize("Patrick lives in Lyon.", thread_id="user-42")
-print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
+--8<-- "snippets/redis_run.py:example"
 ```
 
 The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token, and a different `thread_id` never sees it, so two users stay isolated. Behind the scenes the pipeline hashes the message into a Redis key and stores the detections encrypted, so a leak of the Redis disk reveals neither the message nor the confidential data.

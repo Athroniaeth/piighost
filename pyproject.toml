@@ -211,7 +211,7 @@ convention = "google"
 # docstring or an annotation added for the linter would be added to the page.
 "docs/snippets/**" = ["D", "ANN"]
 # A page may show a top-level await, as a notebook or `python -m asyncio` runs it.
-"docs/snippets/{architecture_pipeline,architecture_thread,upgrading}.py" = ["F704", "PLE1142"]
+"docs/snippets/{architecture_pipeline,architecture_thread,upgrading,redis_run}.py" = ["F704", "PLE1142"]
 # A reference example also reads a value as a session would, `span.length  # 17`.
 "docs/snippets/reference_*.py" = ["F704", "PLE1142", "B015", "B018"]
 

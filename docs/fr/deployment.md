@@ -23,27 +23,7 @@ L'extra `config` lit le fichier, `redis` parle au store, `crypto` fournit le cip
 Une section `[memory]` transforme le pipeline en pipeline de thread gardant un état par thread. Son `type = "redis"` nomme le store, `[memory.hasher]` cle chaque message dans sa clé de stockage, et `[memory.cipher]` chiffre chaque valeur stockée.
 
 ```toml title="pipeline.toml"
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
-
-[linker]
-type = "exact"
-
-[anonymizer.placeholder]
-type = "label_counter"
-
-[memory]
-type = "redis"
-url = "redis://redis.internal:6379/0"
-namespace = "piighost"
-ttl = 3600
-
-[memory.hasher]
-type = "argon2"
-
-[memory.cipher]
-type = "aesgcm"
+--8<-- "snippets/redis_pipeline.toml"
 ```
 
 `namespace` préfixe chaque clé pour que `piighost` partage une instance Redis avec d'autres applications sans collision. `ttl` est le nombre de secondes qu'un message stocké vit avant que Redis ne l'évince, ou vous l'omettez pour garder les entrées jusqu'à ce que le store décide de les supprimer. `label_counter` émet `<<PERSON:1>>`{ .placeholder }, un token qui porte l'identité, ce dont le [middleware](getting-started/langchain.md) a besoin pour restaurer la valeur.
@@ -69,12 +49,7 @@ export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 `load_thread_pipeline` lit le fichier, construit chaque composant, et renvoie le pipeline de thread. Il lève `ConfigError` si le fichier ne déclare pas de `[memory]`, de sorte qu'une configuration sans état ne peut pas être chargée ici par erreur.
 
 ```python
-from piighost.config import load_thread_pipeline
-
-pipeline = load_thread_pipeline("pipeline.toml")
-
-result = await pipeline.anonymize("Patrick lives in Lyon.", thread_id="user-42")
-print(result.text)  # <<PERSON:1>> lives in <<LOCATION:1>>.
+--8<-- "snippets/redis_run.py:example"
 ```
 
 Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur de `user-42` garde son token, et un autre `thread_id` ne la voit jamais, ce qui isole deux utilisateurs. En coulisses le pipeline hache le message en une clé Redis et stocke les détections chiffrées, si bien qu'une fuite du disque Redis ne révèle ni le message ni les données confidentielles.

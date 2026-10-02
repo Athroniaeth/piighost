@@ -79,6 +79,7 @@ SNIPPETS: list[Any] = [
     "reference_thread_pipeline.py",
     "security_redactor.py",
     "upgrading.py",
+    "toml_loaders.py",
     # These reach the hub or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
     pytest.param("detector_hub.py", marks=pytest.mark.integration),
@@ -103,6 +104,8 @@ SNIPPETS: list[Any] = [
     pytest.param("reference_gliner2_guard.py", marks=pytest.mark.integration),
     pytest.param("reference_gliner2_pipeline.py", marks=pytest.mark.integration),
     pytest.param("upgrading_catalogs.py", marks=pytest.mark.integration),
+    pytest.param("redis_run.py", marks=pytest.mark.integration),
+    pytest.param("redis_load.py", marks=pytest.mark.integration),
 ]
 """Every example, the ones that need the network or a model marked integration."""
 
@@ -124,6 +127,8 @@ MIGRATED = [
     "examples/pydantic-ai.md",
     "examples/llama-index.md",
     "getting-started/configuration.md",
+    "deployment.md",
+    "multi-instance.md",
 ]
 """The pages whose Python examples all come from docs/snippets/, in both languages."""
 
@@ -137,6 +142,12 @@ FILES = {
         "thread.toml": "loaders.thread.toml",
     },
     "reference_langchain.py": {"pipeline.toml": "reference_langchain.toml"},
+    "redis_run.py": {"pipeline.toml": "redis_pipeline.toml"},
+    "redis_load.py": {"pipeline.toml": "redis_pipeline.toml"},
+    "toml_loaders.py": {
+        "pipeline.toml": "loaders.pipeline.toml",
+        "thread.toml": "loaders.thread.toml",
+    },
 }
 """The files an example reads, copied from docs/snippets/ under the name it opens."""
 
@@ -162,6 +173,8 @@ REQUIRES = {
     "reference_gliner2_guard.py": "gliner2",
     "reference_gliner2_pipeline.py": "gliner2",
     "upgrading.py": "langchain",
+    "redis_run.py": "fakeredis",
+    "redis_load.py": "fakeredis",
 }
 """The optional package an example needs, skipped when it is absent."""
 

@@ -94,7 +94,7 @@ IMPORTS = [(where, code) for where, code in BLOCKS if _is_import(code)]
 DOCTESTS = [(where, code) for where, code in BLOCKS if _is_doctest(code)]
 """The blocks written as an interactive session."""
 
-CHECKED_PAGES = ("reference/", "security.md")
+CHECKED_PAGES = ("reference/", "configuration/", "security.md")
 """The pages whose every Python block is a signature, a class, an import or a session."""
 
 

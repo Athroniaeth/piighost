@@ -38,33 +38,11 @@ La panne est silencieuse. Aucune exception n'est levée, le pipeline produit un 
 Pointez tous les workers sur une seule instance Redis. Les tokens sont attribués sur l'union des détections d'un thread, et cette union vit dans Redis, donc tous les workers lisent la même numérotation. Le `thread_id` reste l'unité d'isolation, de sorte que deux utilisateurs ne partagent jamais un token.
 
 ```toml title="pipeline.toml"
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
-
-[linker]
-type = "exact"
-
-[anonymizer.placeholder]
-type = "label_counter"
-
-[memory]
-type = "redis"
-url = "redis://redis.internal:6379/0"
-namespace = "piighost"
-ttl = 3600
-
-[memory.hasher]
-type = "argon2"
-
-[memory.cipher]
-type = "aesgcm"
+--8<-- "snippets/redis_pipeline.toml"
 ```
 
 ```python
-from piighost.config import load_thread_pipeline
-
-pipeline = load_thread_pipeline("pipeline.toml")
+--8<-- "snippets/redis_load.py:example"
 ```
 
 Le cas du tour 2 se résout maintenant dans l'autre sens. Le worker B lit `Patrick -> <<PERSON:1>>`{ .placeholder } directement dans Redis et le garde, parce que le store où le worker A a écrit est le store que le worker B lit. Tout worker qui reprend la conversation reproduit le même token pour la même valeur.
