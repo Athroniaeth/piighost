@@ -1,0 +1,219 @@
+# Consignes de rédaction du wiki
+
+## Public visé
+
+Le wiki s'adresse à deux publics, dans cet ordre de priorité :
+
+1. **Les équipes métier / fonctionnelles** (chefs de projet, support,
+   opérationnels, gestion). Elles connaissent leur métier, mais **ne lisent
+   pas le code**. Elles ouvrent une page au milieu d'une tâche, ou parce
+   qu'un écran ne fait pas ce qu'elles attendent.
+2. **Les développeurs** : ils veulent savoir où vit chaque règle et comment la
+   modifier sans casse.
+
+Chaque page doit permettre à son lecteur de **faire ou décider quelque
+chose**. Ce qui ne l'y aide pas sort de la page.
+
+## Skills de rédaction
+
+Si l'hôte dispose des skills suivants, les utiliser pour chaque page :
+
+1. **`rediger-doc`** pour rédiger : la partie « Pour le métier » suit sa
+   référence doc métier, la partie « Pour les développeurs » sa référence
+   doc technique.
+2. **`custom-humanizer`** en mode **Retoucher**, en relecture finale de la
+   page.
+
+Adaptations imposées par le cycle OpenWiki :
+
+- ne lancer aucun sous-agent (le test « lecteur frais » de `rediger-doc` est
+  sauté) ;
+- n'écrire aucun fichier de bilan : un point non vérifiable se marque
+  `[à vérifier]` dans la page, avec le moyen de trancher ;
+- `custom-humanizer` ne touche ni aux titres (ancres), ni au code, ni aux
+  tableaux, ni aux diagrammes, ni au frontmatter.
+
+Sans ces skills, appliquer les règles ci-dessous, qui en sont le résumé.
+
+## Source de vérité
+
+- Le **code et les tests font foi**. Le texte décrit le comportement réel,
+  celui que l'utilisateur constate.
+- La **documentation existante** du dépôt (dossier de docs, README, ADR,
+  spécifications) est une source d'information factuelle **quand elle est
+  juste** : reprendre ses faits et son vocabulaire après les avoir vérifiés
+  dans le code. Quand elle contredit le code, le code l'emporte et l'écart
+  est signalé (voir « Écarts doc / code »).
+- Ne jamais inventer : ni règle, ni libellé, ni chiffre, ni commande. Si un
+  point n'est pas tranché dans le code, l'écrire (« non déterminé dans le
+  code »).
+- Vérifier chaque nombre : délais, montants, horaires, nombre d'étapes. Un
+  horaire qui dépend de la configuration du serveur ne reçoit pas d'heure
+  inventée.
+- Ne jamais recopier un secret (mot de passe, clé, token), même versionné :
+  donner seulement son nom et où le trouver.
+- Ne pas modifier la documentation existante du dépôt : le wiki la cite, il
+  ne la réécrit pas.
+
+## Mots de l'écran
+
+Dans les parties métier, employer les libellés exacts de l'interface (menus,
+boutons, champs, colonnes, messages, noms de profils), relevés dans les
+gabarits et les fichiers de traduction. S'y tenir, sans synonyme. Les écrire
+en **gras**, à l'identique, avec le chemin de navigation complet.
+
+Quand le nom d'un concept à l'écran diffère de son nom dans le code, donner
+la correspondance une fois dans le glossaire, puis employer le nom de l'écran
+dans le texte métier et le nom du code dans la partie développeurs.
+
+## Structure obligatoire d'une page de processus
+
+### 1. En bref
+
+Trois à cinq puces, sans aucun nom de code : à quoi sert le processus, qui
+est concerné, ce qu'il faut retenir.
+
+### 2. Pour le métier
+
+**Aucun identifiant technique** dans cette partie : ni classe, ni méthode,
+ni table, ni route, ni variable, ni commande, ni nom de rôle technique.
+Traduire sans simplifier : l'état d'un champ devient ce que l'utilisateur
+voit à l'écran, une tâche planifiée devient le moment réel où elle agit, une
+exception devient le message affiché puis ce que l'utilisateur doit faire.
+
+Sections, dans cet ordre (omettre celles qui ne servent pas) :
+
+1. **Qui peut faire quoi** : tableau profils × actions, si les droits
+   diffèrent.
+2. **Une section par tâche**, avec un titre qui dit la tâche. Chaque
+   procédure :
+   - part d'un chemin de navigation complet ;
+   - donne une action par étape, à l'impératif, avec le libellé exact ;
+   - indique le résultat attendu après chaque étape qui change l'écran ;
+   - signale les effets invisibles : e-mail envoyé, calcul relancé, document
+     généré ;
+   - avertit **avant** l'étape de toute action irréversible ou qui envoie
+     quelque chose ;
+   - se termine par **Comment vérifier**.
+3. **Règles à connaître** : règles de gestion numérotées (`RG-<DOMAINE>-NN`),
+   formulées en « Quand… alors… », avec un exemple concret daté pour chaque
+   règle non évidente. Utiliser un tableau de décision quand plusieurs
+   conditions se combinent. Expliquer le pourquoi en une phrase si cela aide
+   à appliquer la règle.
+4. **Ce que voit l'utilisateur final** (client, usager), si l'action a un
+   effet chez lui : écran, e-mail, document.
+5. **Questions fréquentes** : partir du symptôme constaté, puis
+   l'explication et ce qu'il faut faire.
+
+Une limite connue ou un bug toléré se décrit par son effet visible et par la
+conduite à tenir.
+
+### 3. Pour les développeurs
+
+Sections typées, sans les mélanger :
+
+1. **Où vivent les règles** (référence) : un tableau `RG-… | fichier:ligne`,
+   en reprenant les identifiants de la partie métier, plus les entités,
+   services et commandes liés.
+2. **Modifier…** (how-to), quand une modification courante existe : étapes
+   numérotées, en partant du modèle existant le plus proche dans le code,
+   avec une section **Vérifier** (test, commande ou requête).
+3. **Pièges** : comportements par défaut dangereux, erreurs avalées, valeurs
+   codées en dur, noms trompeurs.
+4. **Écarts doc / code** : un encadré « ⚠ Écart doc / code » par écart (ce
+   que dit la doc, ce que fait le code, `fichier:ligne`). Les écarts ne vont
+   **que** dans cette partie, jamais dans la partie métier. Chaque écart est
+   aussi listé dans `reference/ecarts-doc-code.md`.
+5. **Tests** : tests existants, et ce qu'ils ne couvrent pas.
+
+Marquer `[à vérifier]` toute affirmation qui dépend de code absent du dépôt
+(dépendances externes, `vendor/`, services tiers), avec le moyen de trancher.
+
+Les pages purement techniques (architecture, exploitation, tests) gardent un
+format technique, mais commencent aussi par un « En bref » lisible par un
+non-développeur.
+
+## Quickstart : router par intention
+
+Le quickstart oriente le lecteur selon ce qu'il veut faire, pas selon
+l'arborescence du wiki. Sections, dans cet ordre :
+
+1. **En bref** : ce que fait l'application, en une phrase, puis son cycle
+   de vie principal en 3 à 6 étapes numérotées ; les espaces ou applications
+   qui la composent ; à qui s'adresse le wiki ; le rappel que le code fait
+   foi, avec un lien vers le registre des écarts et vers le glossaire.
+2. **Je cherche à comprendre…** (public métier) : un tableau
+   `Besoin métier | Page à lire`. Chaque ligne formule un besoin comme le
+   lecteur le pense, avec ses mots, sans identifiant technique. Une ligne
+   par page métier, plus une ligne vers le glossaire et une vers le registre
+   des écarts. Suivi d'un diagramme du cycle de vie (10 boîtes au plus).
+3. **Je dois modifier…** (public développeur) : un tableau
+   `Type de changement | Lire d'abord | Puis`. « Lire d'abord » pointe vers la
+   page du wiki ; « Puis » donne les fichiers, services ou tests à ouvrir
+   ensuite. Une ligne par modification courante du dépôt.
+4. **Repères pour démarrer en local** : pile technique, services, où se
+   lancent les commandes, liens vers les pages exploitation et tests.
+5. **Les groupes du wiki** : une puce par groupe, avec les liens.
+6. **Points de vigilance transverses** : trois à six pièges qui traversent
+   plusieurs processus, chacun avec un lien.
+
+Toute page ajoutée, déplacée ou supprimée met à jour les deux tableaux de
+routage.
+
+## Pages attendues
+
+Organiser le wiki **par processus métier**, pas par module ou par écran.
+Couvrir au minimum :
+
+- **Glossaire** (page dédiée, liée depuis toutes les pages) : chaque terme et
+  sigle du métier, avec une définition métier d'une ou deux phrases, le
+  libellé de l'écran, puis, si utile, le nom technique correspondant.
+- **Registre des écarts doc / code** (`reference/ecarts-doc-code.md`).
+
+## Style
+
+- Une idée par phrase. Moins de 20 mots par phrase dans les parties métier,
+  moins de 25 dans les parties développeurs.
+- Commencer chaque section et chaque paragraphe par l'information principale.
+- Voix active, avec un acteur explicite.
+- S'adresser au lecteur avec « vous », consignes à l'impératif, au présent.
+- Un terme par concept dans toute la page. Développer chaque sigle à sa
+  première occurrence.
+- Supprimer : « permet de », « il suffit de », « simplement »,
+  « facilement », les phrases de narrateur, les mots creux, les faux
+  contrastes (« ce n'est pas X, c'est Y ») sauf s'ils répondent à une vraie
+  idée reçue du lecteur.
+- Les titres seuls doivent permettre de parcourir la page : en forme de tâche
+  ou de réponse, jamais « Généralités » ou « Divers ».
+- Tableaux pour comparer ou donner des valeurs (3 à 5 colonnes), pas pour
+  mettre en page de la prose. Listes numérotées pour les étapes.
+- Deux encadrés au maximum par page, hors « ⚠ Écart doc / code ».
+  `> [!WARNING]` est réservé à la perte de données, à la sécurité et aux
+  actions irréversibles.
+- Une liste suit le nombre annoncé.
+- Dates : JJ/MM/AAAA dans les parties métier, AAAA-MM-JJ dans les parties
+  développeurs.
+- Exemples : le plus petit exemple réaliste, avec des données fictives
+  crédibles.
+- Typographie française dans la prose : espace avant `;`, `:`, `!`, `?`,
+  guillemets « ».
+- Un diagramme Mermaid par processus, de 10 boîtes au plus, avec des
+  libellés métier. Dans les libellés : pas de `<br/>`, pas de `;`, pas de
+  chevron `<` ou `>` (donc pas de chemin de navigation avec chevrons), et
+  guillemets autour d'un libellé qui contient des parenthèses.
+
+## Avant de soumettre une page
+
+- [ ] La partie métier ne contient aucun identifiant technique.
+- [ ] Les libellés et chemins de navigation sont vérifiés dans les gabarits.
+- [ ] Chaque procédure a son point de départ, ses résultats attendus et sa
+      vérification.
+- [ ] Chaque règle est en « Quand… alors… », avec un exemple daté si elle
+      n'est pas évidente.
+- [ ] Les faits repris de la documentation existante sont vérifiés dans le
+      code.
+- [ ] Les écarts doc / code sont dans la partie développeurs et dans le
+      registre.
+- [ ] Les liens et les ancres internes fonctionnent.
+- [ ] Si la page est ajoutée, déplacée ou supprimée : les tableaux de
+      routage du quickstart sont à jour.
