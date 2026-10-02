@@ -125,6 +125,7 @@ class LLMDetectorConfig(_ComponentConfig):
     labels: list[str] | dict[str, str]
     prompt: str | None = None
     provider: str | None = None
+    fail_open: bool = False
 
     def build(self) -> AnyDetector:
         """Build an LLMDetector from the model, labels, prompt, and provider."""
@@ -135,4 +136,5 @@ class LLMDetectorConfig(_ComponentConfig):
             labels=self.labels,
             prompt=self.prompt,
             provider=self.provider,
+            fail_open=self.fail_open,
         )

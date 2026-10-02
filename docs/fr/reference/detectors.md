@@ -179,6 +179,7 @@ LLMDetector(
     prompt: str | None = None,
     provider: str | None = None,
     confidence: float = 1.0,
+    fail_open: bool = False,
 )
 ```
 
@@ -189,8 +190,11 @@ LLMDetector(
 | `prompt` | `str \| None` | Un prompt système personnalisé, ou `None` pour celui par défaut |
 | `provider` | `str \| None` | Le fournisseur passé à `init_chat_model` quand `model` est un nom |
 | `confidence` | `float` | Confiance portée sur chaque détection, 1.0 par défaut, pour qu'un détecteur LLM puisse être départagé face à un détecteur NER à la résolution des chevauchements |
+| `fail_open` | `bool` | Si une sortie que le détecteur ne sait pas lire passe comme zéro détection, `False` par défaut |
 
 Un `prompt` personnalisé doit contenir un placeholder `{labels}` et, selon le format f-string de LangChain, doubler toute autre accolade littérale en `{{` ou `}}`.
+
+Une sortie que le détecteur ne sait pas lire, un JSON cassé ou un résultat sans son champ `entities`, lève `UnreadableOutputError`. Un modèle en panne refuse donc le message au lieu de l'envoyer sans détection. L'erreur nomme le type de la sortie, jamais son texte. Avec `fail_open=True`, le message part sans détection et un avertissement est journalisé, pour un déploiement qui fait passer la disponibilité avant la protection.
 
 ```python
 --8<-- "snippets/reference_llm_detector.py:example"

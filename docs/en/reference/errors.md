@@ -29,6 +29,7 @@ flowchart LR
     PIIGhostError --> DetectorError
     DetectorError --> LabelMappingError
     DetectorError --> TextTooLongError
+    DetectorError --> UnreadableOutputError
     DetectorError --> BridgePayloadError
     DetectorError --> BridgeSpanRangeError
     PIIGhostError --> TextError
@@ -75,16 +76,17 @@ The invariants these errors enforce are in [Data models](models.md), and the por
 
 ## Detectors
 
-Module: `piighost.components.detector.ner`. `DetectorError` groups four failures. Two belong to `BaseNERDetector`, so they reach the model-backed detectors only, and two to `BridgeDetector`, which checks every span its runner returns rather than trusting it. A regex, exact-match, composite, or chunked detector raises none of them.
+Module: `piighost.components.detector.ner`. `DetectorError` groups five failures. Two belong to `BaseNERDetector`, so they reach the model-backed detectors only, one to `LLMDetector` and so to `LLMGuardRail`, and two to `BridgeDetector`, which checks every span its runner returns rather than trusting it. A regex, exact-match, composite, or chunked detector raises none of them.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | two external labels map to one internal label, which would make the reverse lookup ambiguous |
 | `TextTooLongError` | `BaseNERDetector`, on detection | a text exceeds `max_chars` while `auto_chunk` is off, so a prefix-only scan is refused |
+| `UnreadableOutputError` | `LLMDetector`, on detection | the model returns an output the detector cannot read, a broken JSON or a result without its `entities` field, while `fail_open` is off |
 | `BridgePayloadError` | `BridgeDetector`, on detection | the runner returns a span missing a field, or an offset that is not an integer, a float included |
 | `BridgeSpanRangeError` | `BridgeDetector`, on detection | the runner returns an empty or inverted span, one that overruns the text, or, in UTF-16 units, one that cuts a character in two |
 
-All four are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern `TextTooLongError` and the `offset_unit` that the bridge's offsets are read in.
+All five are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern `TextTooLongError`, the `fail_open` argument that governs `UnreadableOutputError`, and the `offset_unit` that the bridge's offsets are read in.
 
 ## Text helpers
 

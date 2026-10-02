@@ -62,10 +62,11 @@ LLMGuardRail(
     provider: str | None = None,
     prefix: str = "<<",
     suffix: str = ">>",
+    fail_open: bool = False,
 )
 ```
 
-A `str` model is loaded like `LLMDetector`'s. A loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. Requires `piighost[llm]`.
+A `str` model is loaded like `LLMDetector`'s. A loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. An output the guard cannot read raises `UnreadableOutputError` rather than report the text clean, unless `fail_open=True`, as for `LLMDetector`. Requires `piighost[llm]`.
 
 ## `Gliner2GuardRail`
 

@@ -179,6 +179,7 @@ LLMDetector(
     prompt: str | None = None,
     provider: str | None = None,
     confidence: float = 1.0,
+    fail_open: bool = False,
 )
 ```
 
@@ -189,8 +190,11 @@ LLMDetector(
 | `prompt` | `str \| None` | A custom system prompt, or `None` for the default |
 | `provider` | `str \| None` | The provider passed to `init_chat_model` when `model` is a name |
 | `confidence` | `float` | Confidence carried on every detection, default 1.0, so an LLM detector can be scored against a NER one at overlap resolution |
+| `fail_open` | `bool` | Whether an output the detector cannot read passes as zero detections, default `False` |
 
 A custom `prompt` must contain a `{labels}` placeholder and, per LangChain's f-string format, double any other literal curly brace as `{{` or `}}`.
+
+An output the detector cannot read, a broken JSON or a result without its `entities` field, raises `UnreadableOutputError`, so a failing model refuses the message instead of sending it undetected. The error names the type of the output, never its text. With `fail_open=True` the message goes on without detection and a warning is logged, for a deployment that puts availability before protection.
 
 ```python
 --8<-- "snippets/reference_llm_detector.py:example"
