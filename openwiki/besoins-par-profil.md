@@ -72,16 +72,16 @@ Chaque besoin est porté par un processus du wiki, qui donne le scénario et les
 
 - Quand le modèle d'un détecteur LLM rend une sortie illisible, le message doit être refusé avec une erreur au lieu de partir sans détection.
 - Un réglage explicite doit laisser passer le message, pour qui préfère la disponibilité à la protection.
+- Les hooks Claude Code doivent de même bloquer un prompt ou un appel d'outil quand le serveur ne répond pas, et remplacer une sortie d'outil par un avis.
 - Voir les [points de vigilance](#points-de-vigilance) et [Points à régler](reference/points-a-regler.md). Tests : [AT-DPO-9-…](tests/tests-d-acceptation.md).
-
-**Pas encore dans le code.** Ce comportement est décidé, le correctif n'est pas encore livré. Aujourd'hui, `LLMDetector` et `LLMGuardRail` rendent zéro détection sur une sortie illisible, et le message part sans protection.
 
 **DPO-10. En tant que DPO, je veux choisir sous quelle forme les corrections humaines sont conservées, afin que leur stockage ne devienne pas une copie des données.**
 
 - Une correction exportée vers un outil d'annotation, Langfuse par exemple, se conserve sous la forme choisie : jetons à la place des valeurs, valeurs en clair, ou entrée et sortie entièrement masquées.
 - Le développeur règle cette forme, le DPO la décide.
+- Sans choix explicite, la correction est conservée sous forme de jetons : l'export ne contient aucune valeur réelle.
 
-**Limite connue.** Le choix de la forme n'existe pas encore.
+**Limite connue.** Le choix de la forme n'existe pas encore dans le code.
 
 ---
 
@@ -242,19 +242,19 @@ Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle
 
 | Situation | Ce que fait `piighost` | Besoin |
 |---|---|---|
-| Le LLM détecteur rend une sortie illisible, un JSON cassé ou un champ manquant | Aucune détection, le message part sans protection | DPO-9 |
-| Le LLM garde-fou rend une sortie illisible | Aucun reste signalé, le texte passe | DPO-9 |
+| Le LLM détecteur rend une sortie illisible, un JSON cassé ou un champ manquant | Le message est refusé avec une erreur, sauf si l'échec ouvert est demandé | DPO-9 |
+| Le LLM garde-fou rend une sortie illisible | Le texte est refusé avec une erreur, sauf si l'échec ouvert est demandé | DPO-9 |
 | Le LLM détecteur cite une valeur absente du texte | La valeur n'est retrouvée nulle part dans le texte et n'est pas retenue | DPO-1 |
 | Le LLM détecteur oublie une valeur | Elle part en clair, sauf si un garde-fou relit le texte | DPO-4 |
 | Le texte analysé contient une balise qui imite la zone de données du prompt | La balise est neutralisée avant l'envoi au LLM détecteur | DPO-1 |
 | Le LLM principal invente un jeton, `<<PERSON:10>>` alors que la conversation n'a que `<<PERSON:1>>` | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
 | Le LLM principal change la casse ou les chiffres d'un jeton, `<<Person:1>>` ou `<<PERSON:01>>` | Il n'est pas restauré, et il est traité comme un jeton inventé | DEV-8 |
-| Le LLM principal abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel | USER-1 |
+| Le LLM principal abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel. Aucune valeur ne fuit, et ce comportement est accepté | USER-1 |
 | Le LLM principal devine la vraie valeur derrière un jeton et l'écrit | La valeur est traitée comme introduite par l'assistant | DEV-11 |
 | L'utilisateur tape lui-même un jeton, `<<PERSON:2>>` | Il ne fait pas apparaître la valeur d'une autre personne | DPO-1 |
 | Le flux de réponse s'arrête au milieu d'un jeton | Le fragment est rendu tel quel, sans valeur réelle | USER-4 |
 | Le LLM principal coupe ou reformule un jeton dans un argument d'outil | Seul un jeton écrit en entier est restauré, l'outil reçoit le reste tel quel | DEV-4 |
-| Le serveur d'API est injoignable depuis les hooks Claude Code | Le hook échoue sans bloquer, et le prompt part en clair | DPO-9 |
+| Le serveur d'API est injoignable depuis les hooks Claude Code | Le prompt ou l'appel d'outil est bloqué, la sortie d'outil remplacée par un avis, sauf si l'échec ouvert est demandé | DPO-9 |
 
 ---
 

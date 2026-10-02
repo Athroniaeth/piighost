@@ -132,6 +132,8 @@ await agent.ainvoke({"messages": messages})
 - **NER detectors.** Every adapter re-reads the text of a detection from the source and applies its threshold itself, whatever its model returns. A `Gliner2Detector` detection can therefore carry a slightly different text than before, the document's rather than the model's.
 - **Overrides.** Two detections on one span keep their detector order after a whitelist, as they do without one.
 - **In-process memory.** `InMemoryConversationMemory` is bounded by default to 10,000 threads and one day idle. An evicted or expired thread no longer restores its tokens. Pass `max_threads=None` and `ttl=None` to get the unbounded 1.x store back.
+- **LLM detector and guard.** An output `LLMDetector` or `LLMGuardRail` cannot read raises `UnreadableOutputError` instead of reading as zero detections, so the message is refused. Pass `fail_open=True`, or `fail_open = true` in a config, to send it on undetected as 1.x did.
+- **Claude Code hooks.** A hook that cannot de-identify, a server down for instance, blocks the prompt or the tool call and replaces a tool output by a notice. Set `PIIGHOST_HOOK_FAIL_OPEN=1` to let the text through in clear as 1.x did.
 
 A conversation memory written by 1.x keys the provenance of a value by its casefolded text, while 2.0 keys it by the value with its spaces collapsed. A value typed with an unusual space can lose its provenance across the upgrade. Purge the store, as for the Argon2 change below, if that matters to a thread in flight.
 

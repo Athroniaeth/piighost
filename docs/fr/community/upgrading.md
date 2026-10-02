@@ -132,6 +132,8 @@ await agent.ainvoke({"messages": messages})
 - **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
 - **Surcharges.** Deux détections sur un même span gardent l'ordre de leurs détecteurs après une liste blanche, comme sans elle.
 - **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 conversations et un jour d'inactivité. Une conversation évincée ou expirée ne restaure plus ses jetons. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
+- **Détecteur et garde-fou LLM.** Une sortie que `LLMDetector` ou `LLMGuardRail` ne sait pas lire lève `UnreadableOutputError` au lieu de compter comme zéro détection, donc le message est refusé. Passez `fail_open=True`, ou `fail_open = true` dans une configuration, pour l'envoyer sans détection comme le faisait la 1.x.
+- **Hooks Claude Code.** Un hook qui ne peut pas dé-identifier, quand le serveur est arrêté par exemple, bloque le prompt ou l'appel d'outil et remplace une sortie d'outil par un avis. Réglez `PIIGHOST_HOOK_FAIL_OPEN=1` pour laisser passer le texte en clair comme le faisait la 1.x.
 
 Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour une conversation en cours.
 

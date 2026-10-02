@@ -54,6 +54,13 @@ Sans ces skills, appliquer les règles ci-dessous, qui en sont le résumé.
   donner seulement son nom et où le trouver.
 - Ne pas modifier la documentation existante du dépôt : le wiki la cite, il
   ne la réécrit pas.
+- **Les besoins et les règles métier sont des décisions, pas une description
+  du code.** Ne jamais modifier le texte d'un besoin (`DPO-`, `DEV-`, `OPS-`,
+  `USER-`) ni d'une règle (`BR-`) pour le faire correspondre au code. Quand le
+  code s'en écarte, ajouter une ligne au registre des écarts
+  (`reference/ecarts-doc-code.md`) et laisser la règle telle quelle. Seul un
+  humain change une décision. Les emplacements de code, les tests et les
+  écarts restent à mettre à jour.
 
 ## Mots de l'écran
 

@@ -45,8 +45,8 @@ Les décisions qui restent à prendre sont dans [Points à régler](../reference
 | AT-DPO-6-2 | DPO-6 | Étant donné le serveur `piighost-api`, quand le client envoie `DELETE /v1/threads/t1`, alors la conversation est effacée | 200 et `{"messages": 2, "detections": 3}` | `piighost-api:tests/test_app.py::test_forget_thread_returns_counts`<br>`tests/integrations/client/test_client.py::TestForgetThread::test_deletes_and_returns_a_forgotten` | couvert (pipeline simulé côté serveur) |
 | AT-DPO-7-1 | DPO-7 | Étant donné un pipeline avec `observation_redactor`, quand « Hi Emma! » passe, alors les traces exportées ne contiennent que des jetons | Aucun attribut de span ne contient « Emma », le span `piighost.detect` porte un jeton | `tests/observation/test_pipeline_spans.py::TestRedaction::test_redactor_replaces_values_with_its_tokens`<br>`tests/observation/test_pipeline_spans.py::TestRedaction::test_redactor_removes_clear_values_from_payloads` | couvert (jeton « <<REDACT>> » et non « <<PERSON:1>> », le test utilise `RedactPlaceholderFactory`) |
 | AT-DPO-8-1 | DPO-8 | Étant donné la documentation, quand on ouvre `docs/fr/dpia.md` et `docs/en/dpia.md`, alors la page liste risques, mesures et réglages | Les deux pages existent et portent une section qui associe chaque risque à un réglage | aucun | absent (critère documentaire, `make lint` ne contrôle que le style des pages) |
-| AT-DPO-9-1 | DPO-9 | Étant donné un `LLMDetector` dont le modèle rend une sortie sans champ `entities`, quand un message passe, alors le pipeline lève une erreur | Une erreur levée, aucun texte rendu | `tests/components/detector/test_llm.py::TestDetect::test_malformed_output_fails_open` | absent (le test existant fige le comportement inverse, zéro détection) |
-| AT-DPO-9-2 | DPO-9 | Étant donné le même détecteur avec l'échec ouvert demandé explicitement, quand le message passe, alors il part sans détection et un avertissement est journalisé | Le texte inchangé, un avertissement | aucun | absent (réglage à créer) |
+| AT-DPO-9-1 | DPO-9 | Étant donné un `LLMDetector` dont le modèle rend une sortie sans champ `entities`, quand un message passe, alors le pipeline lève une erreur | Une erreur levée, aucun texte rendu | `tests/components/detector/test_llm.py::TestDetect::test_an_unreadable_output_refuses_the_message` | couvert |
+| AT-DPO-9-2 | DPO-9 | Étant donné le même détecteur avec l'échec ouvert demandé explicitement, quand le message passe, alors il part sans détection et un avertissement est journalisé | Le texte inchangé, un avertissement | `tests/components/detector/test_llm.py::TestDetect::test_fail_open_lets_an_unreadable_output_through` | couvert |
 | AT-DPO-10-1 | DPO-10 | Étant donné une correction humaine exportée sous la forme « jetons », quand le jeu de données est lu, alors il ne contient aucune valeur réelle | Le jeu porte « <<PERSON:1>> », jamais « Emma » | aucun | absent (fonction à concevoir) |
 
 ## Développeur (qui intègre `piighost`)
@@ -111,28 +111,27 @@ Les décisions qui restent à prendre sont dans [Points à régler](../reference
 
 | Profil | Couvert | Partiel | Absent | Total |
 |---|---|---|---|---|
-| DPO | 12 | 1 | 4 | 17 |
+| DPO | 14 | 1 | 2 | 17 |
 | DEV | 16 | 2 | 0 | 18 |
 | OPS | 10 | 3 | 0 | 13 |
 | USER | 9 | 1 | 2 | 12 |
-| Total | 47 | 7 | 6 | 60 |
+| Total | 49 | 7 | 4 | 60 |
 
 ## Manquants
 
 Classés par risque, une fuite d'abord.
 
-1. AT-DPO-9-1 et AT-DPO-9-2 (absents) : un détecteur LLM en panne doit bloquer le message. Le comportement est à changer avant le test, voir « À régler ».
-2. AT-USER-3-2 (partiel) : arguments d'outil restaurés dans le flux OpenAI. Défaut fonctionnel connu, l'outil reçoit un jeton.
-3. AT-DPO-2-1 (partiel) : un vrai groupe du hub (IBAN, NIR) masque ses valeurs. Seul un hub simulé est chargé.
-4. AT-DPO-10-1 (absent) : la forme de stockage des corrections humaines, fonction à concevoir.
-5. AT-OPS-3-1 (partiel) : le refus sans secrets est vérifié via `load_thread_pipeline`, pas au démarrage de `piighost-api`.
-6. AT-OPS-1-1 (partiel) : `serve` sur une référence du hub puis `POST /v1/anonymize` dans un seul test.
-7. AT-DEV-6-2 (partiel) : `piighost validate` sur une clé mal orthographiée, avec la clé nommée dans le message.
-8. AT-DEV-1-2 (partiel) : le SDK `openai` avec seulement `base_url` changé.
-9. AT-OPS-6-2 (partiel) : le cache disque vu à travers `load_pipeline`.
-10. AT-USER-5-2 (absent) : une date n'est pas masquée par un groupe générique. Dépend du contenu des groupes, à tester dans `piighost-hub`.
-11. AT-USER-1-2 (absent) : réponse affichée restaurée sous Claude Code, impossible tant qu'aucun hook ne réécrit la réponse.
-12. AT-DPO-8-1 (absent) : contenu de la page AIPD, contrôlable par un test de documentation.
+1. AT-USER-3-2 (partiel) : arguments d'outil restaurés dans le flux OpenAI. Défaut fonctionnel connu, l'outil reçoit un jeton.
+2. AT-DPO-2-1 (partiel) : un vrai groupe du hub (IBAN, NIR) masque ses valeurs. Seul un hub simulé est chargé.
+3. AT-DPO-10-1 (absent) : la forme de stockage des corrections humaines, fonction à concevoir.
+4. AT-OPS-3-1 (partiel) : le refus sans secrets est vérifié via `load_thread_pipeline`, pas au démarrage de `piighost-api`.
+5. AT-OPS-1-1 (partiel) : `serve` sur une référence du hub puis `POST /v1/anonymize` dans un seul test.
+6. AT-DEV-6-2 (partiel) : `piighost validate` sur une clé mal orthographiée, avec la clé nommée dans le message.
+7. AT-DEV-1-2 (partiel) : le SDK `openai` avec seulement `base_url` changé.
+8. AT-OPS-6-2 (partiel) : le cache disque vu à travers `load_pipeline`.
+9. AT-USER-5-2 (absent) : une date n'est pas masquée par un groupe générique. Dépend du contenu des groupes, à tester dans `piighost-hub`.
+10. AT-USER-1-2 (absent) : réponse affichée restaurée sous Claude Code, impossible tant qu'aucun hook ne réécrit la réponse.
+11. AT-DPO-8-1 (absent) : contenu de la page AIPD, contrôlable par un test de documentation.
 
 ## En trop ou hors liste
 
