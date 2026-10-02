@@ -2,6 +2,7 @@
 
 import importlib
 import importlib.util
+import inspect
 from typing import Any, cast
 
 import pytest
@@ -14,6 +15,7 @@ from piighost.components.placeholder import (
     PreservesRecognizableIdentity,
 )
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
+from piighost.conversation_memory.base import DEFAULT_THREAD_ID
 from piighost.exceptions import (
     InventedPlaceholderError,
     MissingThreadIdError,
@@ -147,23 +149,18 @@ class TestWhenInstalled:
 class TestThreadId:
     """The thread-id resolution guarding against cross-conversation leakage."""
 
-    def _thread_id(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        config: Any,
-        require_thread_id: bool,
-    ) -> str:
+    def _thread_id(self, monkeypatch: pytest.MonkeyPatch, config: Any) -> str:
         """Resolve the thread id against a stubbed LangGraph config."""
         module = importlib.import_module(_MODULE)
         monkeypatch.setattr(module, "get_config", lambda: config)
-        return cast(str, module._thread_id(require_thread_id))
+        return cast(str, module._thread_id())
 
     def test_reads_the_configured_thread_id(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The id declared in the LangGraph config is the thread the turn uses."""
         config = {"configurable": {"thread_id": "t1"}}
-        assert self._thread_id(monkeypatch, config, True) == "t1"
+        assert self._thread_id(monkeypatch, config) == "t1"
 
     @pytest.mark.parametrize(
         "config",
@@ -176,18 +173,24 @@ class TestThreadId:
             {"configurable": None},
         ],
     )
-    def test_missing_id_raises_when_required(
+    def test_a_missing_id_raises(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
-        """Without a thread id, require_thread_id refuses the shared default."""
-        with pytest.raises(MissingThreadIdError):
-            self._thread_id(monkeypatch, config, True)
+        """Without a thread id, the turn is refused, never routed to a shared thread."""
+        with pytest.raises(MissingThreadIdError, match="'default'"):
+            self._thread_id(monkeypatch, config)
 
-    def test_missing_id_falls_back_when_not_required(
+    def test_the_shared_thread_is_named_explicitly(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """With require_thread_id off, a missing id lands on the shared default."""
-        assert self._thread_id(monkeypatch, {"configurable": None}, False) == "default"
+        """A caller that needs no separation names DEFAULT_THREAD_ID itself."""
+        config = {"configurable": {"thread_id": DEFAULT_THREAD_ID}}
+        assert self._thread_id(monkeypatch, config) == DEFAULT_THREAD_ID
+
+    def test_the_opt_out_is_gone(self) -> None:
+        """require_thread_id no longer exists, so no flag reaches the shared thread."""
+        parameters = inspect.signature(PIIAnonymizationMiddleware).parameters
+        assert "require_thread_id" not in parameters
 
 
 class _FakeRequest:

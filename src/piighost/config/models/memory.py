@@ -8,6 +8,7 @@ from piighost.config.models.cipher import CipherConfig
 from piighost.config.models.common import _ComponentConfig
 from piighost.config.models.hasher import HasherConfig
 from piighost.conversation_memory.base import AnyConversationMemory
+from piighost.conversation_memory.memory import DEFAULT_MAX_THREADS, DEFAULT_TTL
 
 
 class InMemoryConfig(_ComponentConfig):
@@ -15,14 +16,14 @@ class InMemoryConfig(_ComponentConfig):
 
     Attributes:
         max_threads: The most threads to keep, evicting the least recently used
-            beyond it, or None for no bound.
+            beyond it, DEFAULT_MAX_THREADS unless set.
         ttl: The seconds a thread lives after its last write, expired lazily on
-            the next access, or None to keep it until eviction or forget.
+            the next access, DEFAULT_TTL unless set.
     """
 
     type: Literal["in_memory"]
-    max_threads: int | None = Field(default=None, ge=1)
-    ttl: float | None = Field(default=None, gt=0)
+    max_threads: int | None = Field(default=DEFAULT_MAX_THREADS, ge=1)
+    ttl: float | None = Field(default=DEFAULT_TTL, gt=0)
 
     def build(self) -> AnyConversationMemory:
         """Build an InMemoryConversationMemory with the configured bounds."""

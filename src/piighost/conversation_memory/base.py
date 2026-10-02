@@ -29,10 +29,11 @@ if TYPE_CHECKING:
     from piighost.crypto.hasher.base import AnyHasher
 
 DEFAULT_THREAD_ID = "default"
-"""The thread a caller lands in when it names none.
+"""The thread to name when conversations need no separation.
 
-Every caller that names no thread shares it, and with it the tokens of every
-value they sent, which is why the LangChain middleware refuses it by default.
+No integration falls back to it on its own: a turn without a thread id raises.
+Every caller that names it shares it, and with it the tokens of every value they
+sent, so name it only for a single conversation or a one-off command.
 """
 
 _SECURITY_DOC_URL = "https://athroniaeth.github.io/piighost/security/"

@@ -135,7 +135,7 @@ De-identifies a message in a thread, with tokens consistent across the thread.
 | Request field | Type | Default |
 |---|---|---|
 | `text` | string | required |
-| `thread_id` | string | `"default"` |
+| `thread_id` | string | required |
 | `role` | `"user"` or `"assistant"` | `"user"` |
 
 | Response field | Type | Description |
@@ -153,7 +153,7 @@ De-identifies a message again from a corrected detection set, for a human review
 |---|---|---|
 | `text` | string | required |
 | `detections` | list of objects with `text`, `label`, `start`, `end`, `confidence` | required |
-| `thread_id` | string | `"default"` |
+| `thread_id` | string | required |
 
 A corrected detection names its offsets `start` and `end`, not `start_pos` and `end_pos`. The response is `{"anonymized_text": "..."}`.
 
@@ -164,7 +164,7 @@ Restores every placeholder the thread issued, in any text, a model reply include
 | Request field | Type | Default |
 |---|---|---|
 | `text` | string | required |
-| `thread_id` | string | `"default"` |
+| `thread_id` | string | required |
 
 The response is `{"text": "..."}`.
 

@@ -135,7 +135,7 @@ Dé-identifie un message dans un thread, avec des tokens cohérents sur tout le 
 | Champ de requête | Type | Défaut |
 |---|---|---|
 | `text` | string | requis |
-| `thread_id` | string | `"default"` |
+| `thread_id` | string | requis |
 | `role` | `"user"` ou `"assistant"` | `"user"` |
 
 | Champ de réponse | Type | Description |
@@ -153,7 +153,7 @@ Dé-identifie à nouveau un message à partir d'un jeu de détections corrigé, 
 |---|---|---|
 | `text` | string | requis |
 | `detections` | liste d'objets avec `text`, `label`, `start`, `end`, `confidence` | requis |
-| `thread_id` | string | `"default"` |
+| `thread_id` | string | requis |
 
 Une détection corrigée nomme ses décalages `start` et `end`, pas `start_pos` et `end_pos`. La réponse est `{"anonymized_text": "..."}`.
 
@@ -164,7 +164,7 @@ Restaure chaque placeholder émis par le thread, dans n'importe quel texte, une 
 | Champ de requête | Type | Défaut |
 |---|---|---|
 | `text` | string | requis |
-| `thread_id` | string | `"default"` |
+| `thread_id` | string | requis |
 
 La réponse est `{"text": "..."}`.
 

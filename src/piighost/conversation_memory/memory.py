@@ -10,6 +10,20 @@ from piighost.text import value_key
 
 _Thread = dict[str, tuple[MessageRole, list[Detection]]]
 
+DEFAULT_MAX_THREADS = 10_000
+"""The threads a store keeps unless told otherwise, the least recently used evicted.
+
+Enough for a busy single process, low enough that a server running for weeks
+does not keep every conversation it ever saw.
+"""
+
+DEFAULT_TTL = 86_400.0
+"""The seconds a thread lives after its last write unless told otherwise, one day.
+
+A conversation idle longer than that loses its tokens, which a restore then
+leaves as they are.
+"""
+
 
 class InMemoryConversationMemory:
     """Hold each thread's message-to-detections cache in a process-local dict.
@@ -21,24 +35,24 @@ class InMemoryConversationMemory:
     also carries the role of its author, so a value's first occurrence dates its
     provenance.
 
-    Growth is bounded when configured. max_threads evicts the least recently used
-    thread once the count exceeds it, and ttl expires a thread that has not been
-    written for that many seconds, lazily on the next access. Left unset, the
-    store grows until forget_thread is called, so bound it or forget threads in a
-    long-lived process.
+    Growth is bounded by default. max_threads evicts the least recently used
+    thread once the count exceeds it, DEFAULT_MAX_THREADS unless given, and ttl
+    expires a thread that has not been written for that many seconds, lazily on
+    the next access, DEFAULT_TTL unless given. Passing None lifts a bound, so the
+    store grows until forget_thread is called.
     """
 
     def __init__(
         self,
-        max_threads: int | None = None,
-        ttl: float | None = None,
+        max_threads: int | None = DEFAULT_MAX_THREADS,
+        ttl: float | None = DEFAULT_TTL,
         time_source: Callable[[], float] = time.monotonic,
     ) -> None:
         """Start with no threads, under the given bounding and clock.
 
         max_threads caps how many threads are kept, evicting the least recently
         used beyond it. ttl expires a thread that many seconds after its last
-        write, dropped on the next access. time_source is the clock ttl reads,
+        write, dropped on the next access. None lifts either bound. time_source is the clock ttl reads,
         injectable for tests.
         """
         self._threads: OrderedDict[str, _Thread] = OrderedDict()

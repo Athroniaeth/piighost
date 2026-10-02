@@ -111,12 +111,27 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PII
 
 `offset_unit` is a required keyword, `OffsetUnit.CODE_POINT` for a runner written in Python, `OffsetUnit.UTF16` for one written in JavaScript. A JavaScript runner counts an emoji as two, so its offsets used to land one character late after one. An offset that is not an integer, `8.0` included, now raises `BridgePayloadError` instead of being truncated, and a span scored below `threshold` is dropped even when the runner ignored it. See the [detectors reference](../reference/detectors.md).
 
+### A thread is always named
+
+`require_thread_id` is removed from the LangChain middleware. A call whose LangGraph config carries no `thread_id` always raises `MissingThreadIdError`, and so does a Claude Code event without a `session_id`. `PIIGhostClient.detect` takes a required `thread_id`. If your conversations need no separation, name the `"default"` thread.
+
+```python
+# 1.x
+middleware = PIIAnonymizationMiddleware(pipeline, require_thread_id=False)
+agent.invoke({"messages": messages})
+
+# 2.0
+middleware = PIIAnonymizationMiddleware(pipeline)
+agent.invoke({"messages": messages}, config={"configurable": {"thread_id": "default"}})
+```
+
 ### Behaviours that changed
 
 - **Unicode spaces.** `RegexDetector` reads every Unicode space as an ordinary one, so a pattern that looked for a no-break space on purpose no longer finds one. Two values that differ only by their spaces are one value, and get one token.
 - **Hyphens.** Every Unicode hyphen joins two words in a whole-word search, the non-breaking one Word types included, so `Jean`{ .pii } is no longer found inside `Jean‑Paul`{ .pii } written with it.
 - **NER detectors.** Every adapter re-reads the text of a detection from the source and applies its threshold itself, whatever its model returns. A `Gliner2Detector` detection can therefore carry a slightly different text than before, the document's rather than the model's.
 - **Overrides.** Two detections on one span keep their detector order after a whitelist, as they do without one.
+- **In-process memory.** `InMemoryConversationMemory` is bounded by default to 10,000 threads and one day idle. An evicted or expired thread no longer restores its tokens. Pass `max_threads=None` and `ttl=None` to get the unbounded 1.x store back.
 
 A conversation memory written by 1.x keys the provenance of a value by its casefolded text, while 2.0 keys it by the value with its spaces collapsed. A value typed with an unusual space can lose its provenance across the upgrade. Purge the store, as for the Argon2 change below, if that matters to a thread in flight.
 
@@ -126,6 +141,7 @@ A conversation memory written by 1.x keys the provenance of a value by its casef
 
 - `--config` and `PIIGHOST_CONFIG` take a hub reference as well as a file path.
 - A configuration without a `[memory]` section is served with the in-process memory instead of being refused. Declare a `redis` memory to share the threads between instances.
+- `/v1/anonymize`, `/v1/anonymize/corrected` and `/v1/deanonymize` require a `thread_id`, and answer `400` without one instead of using the shared `"default"` thread.
 - `/v1/labels` reads the labels of a hub group from the hub.
 - Observation goes through the standard `OTEL_*` variables. `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` serve `dataset extract` only, and no `OPIK_*` variable is read.
 - The server reads no `REDIS_URL`, the Redis address is the `url` of the `[memory]` section.

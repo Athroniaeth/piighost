@@ -111,12 +111,27 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PII
 
 `offset_unit` est un mot-clé obligatoire, `OffsetUnit.CODE_POINT` pour un exécuteur écrit en Python, `OffsetUnit.UTF16` pour un exécuteur écrit en JavaScript. Un exécuteur JavaScript compte un emoji pour deux, si bien que ses décalages tombaient un caractère trop loin après chacun. Un décalage qui n'est pas un entier, `8.0` compris, lève maintenant `BridgePayloadError` au lieu d'être tronqué, et un span noté sous `threshold` est écarté même quand l'exécuteur l'a ignoré. Voir la [référence des détecteurs](../reference/detectors.md).
 
+### Un fil est toujours nommé
+
+`require_thread_id` est supprimé du middleware LangChain. Un appel dont la config LangGraph ne porte pas de `thread_id` lève toujours `MissingThreadIdError`, et un événement Claude Code sans `session_id` aussi. `PIIGhostClient.detect` prend un `thread_id` obligatoire. Si vos conversations n'ont pas besoin d'être séparées, nommez le fil `"default"`.
+
+```python
+# 1.x
+middleware = PIIAnonymizationMiddleware(pipeline, require_thread_id=False)
+agent.invoke({"messages": messages})
+
+# 2.0
+middleware = PIIAnonymizationMiddleware(pipeline)
+agent.invoke({"messages": messages}, config={"configurable": {"thread_id": "default"}})
+```
+
 ### Comportements qui changent
 
 - **Espaces Unicode.** `RegexDetector` lit toute espace Unicode comme une espace ordinaire, donc un motif qui cherchait exprès une espace insécable n'en trouve plus. Deux valeurs qui ne diffèrent que par leurs espaces sont une seule valeur, et reçoivent un seul jeton.
 - **Traits d'union.** Tout trait d'union Unicode relie deux mots dans une recherche par mot entier, y compris le trait d'union insécable que tape Word, donc `Jean`{ .pii } n'est plus trouvé dans `Jean‑Paul`{ .pii } écrit avec lui.
 - **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
 - **Surcharges.** Deux détections sur un même span gardent l'ordre de leurs détecteurs après une liste blanche, comme sans elle.
+- **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 fils et un jour d'inactivité. Un fil évincé ou expiré ne restaure plus ses tokens. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
 
 Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour un fil en cours.
 
@@ -126,6 +141,7 @@ Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeu
 
 - `--config` et `PIIGHOST_CONFIG` acceptent une référence du hub aussi bien qu'un chemin de fichier.
 - Une configuration sans section `[memory]` est servie avec la mémoire in-process au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les threads entre instances.
+- `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize` exigent un `thread_id`, et répondent `400` sans lui au lieu d'utiliser le fil partagé `"default"`.
 - `/v1/labels` lit les labels d'un groupe du hub sur le hub.
 - L'observation passe par les variables standard `OTEL_*`. `LANGFUSE_PUBLIC_KEY` et `LANGFUSE_SECRET_KEY` ne servent qu'à `dataset extract`, et aucune variable `OPIK_*` n'est lue.
 - Le serveur ne lit aucun `REDIS_URL`, l'adresse Redis est l'`url` de la section `[memory]`.

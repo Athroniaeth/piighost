@@ -424,8 +424,8 @@ A process-local store, lost on restart and not shared across workers.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
-| `max_threads` | `int` | `None` | Cap on kept threads, LRU eviction beyond it (at least 1) |
-| `ttl` | `float` | `None` | Expire an idle thread lazily on next access, in seconds (greater than 0) |
+| `max_threads` | `int` | `10000` | Cap on kept threads, LRU eviction beyond it (at least 1) |
+| `ttl` | `float` | `86400` | Expire an idle thread lazily on next access, in seconds (greater than 0) |
 
 ```toml
 [memory]
