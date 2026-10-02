@@ -10,27 +10,13 @@ Le chemin le plus court pour voir `piighost` à l'œuvre, sans télécharger de 
     `piighost` installé, voir [Installation](installation.md). Cet exemple n'utilise que le socle, sans extra.
 
 ```python
-import asyncio
-
-from piighost.components.detector import ExactMatchDetector
-from piighost.pipeline import AnonymizationPipeline
-
-detector = ExactMatchDetector({"John Doe": "PERSON", "Paris": "LOCATION"})
-pipeline = AnonymizationPipeline(detector)
-
-
-async def main() -> None:
-    result = await pipeline.anonymize("John Doe habite à Paris.")
-    print(result.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/quickstart.fr.py"
 ```
 
 La sortie doit être :
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>.
+--8<-- "snippets/quickstart.fr.out"
 ```
 
 ## Comment ça marche

@@ -513,6 +513,31 @@ When to tag:
 | Raw PII example: `Patrick`, `Marie`, `Paris` (when used as a value to anonymise) | `{ .pii }` |
 | Class / tag / method / parameter name: `LabelHashPlaceholderFactory`, `PreservesIdentity`, `abefore_model`, `tool_strategy` | none, plain inline code |
 
+## Code examples come from docs/snippets/
+
+A Python example is not written in the page. It lives in `docs/snippets/`, one
+file per example, shared by the FR and EN pages, and the page includes it:
+
+````markdown
+```python
+--8<-- "snippets/first_pipeline.py:run"
+```
+````
+
+- **A section** of a file is delimited by `# --8<-- [start:run]` and
+  `# --8<-- [end:run]`. Show a program step by step as sections of one file
+  that runs whole, not as fragments that never run together.
+- **The output a page shows** comes from the file's `.out`, included the same
+  way, so it is the output the code gives.
+- **`tests/docs/test_snippets.py` runs every file** and compares its output.
+  A new file goes in its `SNIPPETS` list; one that reaches the hub or loads a
+  model is marked `integration`.
+- **A page listed in `MIGRATED`** fails the test if a Python block is written
+  in it by hand again.
+- **One file serves both languages**, which keeps the code identical, as the
+  sync rules ask. Only an example whose data is translated gets a file per
+  language (`quickstart.fr.py`, `quickstart.en.py`).
+
 ## Mermaid diagrams
 
 Wrap a mermaid block, then add an italic caption tagged with `.figure-caption`:

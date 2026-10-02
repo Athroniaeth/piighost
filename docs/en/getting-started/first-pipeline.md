@@ -18,21 +18,13 @@ The detector reads the text and returns detections, one per value found. The res
     A `RegexDetector` recognizes patterns, that is strings of characters following a fixed structure. For arbitrary names and locations, you pass it a dictionary mapping a label to a pattern. Here two patterns, one for first names, one for the city.
 
     ```python
-    from piighost.components.detector import RegexDetector
-
-    patterns = {
-        "PERSON": r"\b(?:Patrick|Marie)\b",
-        "LOCATION": r"\bParis\b",
-    }
-    detector = RegexDetector(patterns)
+    --8<-- "snippets/first_pipeline.py:detector"
     ```
 
     For formats that are not language-specific, such as email and URL, the [piighost hub](https://hub.piighost.dev) publishes ready-made catalogs. The pinned group below is fetched on the first build, then read from the on-disk cache.
 
     ```python
-    from piighost.components.detector import RegexDetector
-
-    detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+    --8<-- "snippets/detector_hub.py:detector"
     ```
 
 === "GLiNER2 (NER)"
@@ -40,13 +32,7 @@ The detector reads the text and returns detections, one per value found. The res
     An NER is an AI model that, over a text, classifies words according to a classification decided in advance (name, first name, location, organization). Unlike the regex, it does not need to know the values in advance, it detects a first name it has never seen.
 
     ```python
-    from piighost.components.detector.ner import Gliner2Detector
-
-    detector = Gliner2Detector(
-        model="fastino/gliner2-multi-v1",
-        labels=["PERSON", "LOCATION"],
-        threshold=0.5,
-    )
+    --8<-- "snippets/detector_gliner2.py:detector"
     ```
 
     The first argument is a model name loaded by GLiNER2, or an already loaded instance. `labels` sets the queried categories. `threshold` is the minimum confidence above which a detection is kept.
@@ -56,9 +42,7 @@ The detector reads the text and returns detections, one per value found. The res
 One first name can appear several times. The linker groups the detections of the same value and the same label into a single entity, so every occurrence later receives the same token.
 
 ```python
-from piighost.components.linker import ExactEntityLinker
-
-linker = ExactEntityLinker()
+--8<-- "snippets/first_pipeline.py:linker"
 ```
 
 ## 3. Assign a token to each entity
@@ -66,11 +50,7 @@ linker = ExactEntityLinker()
 The anonymizer replaces each entity with a placeholder, that is the token that takes its place in the text. The token depends on the chosen factory. `LabelCounterPlaceholderFactory` numbers per label, so `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
+--8<-- "snippets/first_pipeline.py:anonymizer"
 ```
 
 ## 4. Assemble and run
@@ -78,26 +58,13 @@ anonymizer = Anonymizer(factory)
 `AnonymizationPipeline` chains the three components in order, detect, group, replace. Its `anonymize` call is asynchronous and returns a result whose `text` carries the de-identified sentence.
 
 ```python
-import asyncio
-
-from piighost.pipeline import AnonymizationPipeline
-
-pipeline = AnonymizationPipeline(detector, linker, anonymizer)
-
-
-async def main() -> None:
-    text = "Patrick habite à Paris. Patrick aime Paris. Marie aussi."
-    result = await pipeline.anonymize(text)
-    print(result.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/first_pipeline.py:run"
 ```
 
 The output should be:
 
 ```text
-<<PERSON:1>> habite à <<LOCATION:1>>. <<PERSON:1>> aime <<LOCATION:1>>. <<PERSON:2>> aussi.
+--8<-- "snippets/first_pipeline.out"
 ```
 
 Each occurrence of `Patrick`{ .pii } receives the same `<<PERSON:1>>`{ .placeholder }, `Paris`{ .pii } keeps `<<LOCATION:1>>`{ .placeholder } at both appearances, and `Marie`{ .pii } receives the next number `<<PERSON:2>>`{ .placeholder }. The linker from step 2 is what makes this consistency possible.

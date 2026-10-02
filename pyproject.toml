@@ -207,6 +207,9 @@ convention = "google"
 # API surface, so it carries no docstring of its own. The requirement holds for the
 # test functions inside it, which D102 still enforces, and D101 stays on for src.
 "tests/**" = ["D101"]
+# The documentation's examples are the code a page shows, line for line: a
+# docstring or an annotation added for the linter would be added to the page.
+"docs/snippets/**" = ["D", "ANN"]
 
 [tool.pyrefly]
 project-excludes = [
