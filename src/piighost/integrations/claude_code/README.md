@@ -65,5 +65,9 @@ later.
 
        export PIIGHOST_API_URL=http://localhost:8000
 
+   If the server cannot be reached, the hooks fail closed: a prompt or a tool
+   call is blocked and a tool output is replaced by a notice. Set
+   `PIIGHOST_HOOK_FAIL_OPEN=1` to let the text through in clear instead.
+
 3. Merge `settings.template.json` into your Claude Code `.claude/settings.json`,
    then start `claude`. The three hooks fire automatically.
