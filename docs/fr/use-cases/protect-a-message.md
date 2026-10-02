@@ -31,7 +31,7 @@ Répond à : DPO-1, DPO-2, DPO-4, DEV-1
 
 2. L'application transmet le message à `piighost` avant tout appel au LLM.
 3. Le détecteur relève deux valeurs, `Jean Dupont`{ .pii } comme personne (`PERSON`) et `jean.dupont@exemple.fr`{ .pii } comme adresse e-mail (`EMAIL`).
-4. Les listes du serveur s'appliquent, si elles sont configurées. Elles ajoutent ou retirent des valeurs, voir [Imposer les listes du serveur](enforce-server-lists.md).
+4. La liste blanche et la liste noire de la configuration (section `[override]`) s'appliquent, si elles sont configurées. Elles ajoutent ou retirent des valeurs, voir [Imposer une liste blanche et une liste noire](enforce-server-lists.md).
 5. Les détections qui se recouvrent sont départagées, pour qu'il n'en reste qu'une par passage du texte. Ici, rien ne se recouvre.
 6. Les occurrences d'une même valeur sont regroupées. Chaque valeur reçoit un placeholder qui nomme son type et un numéro.
 
@@ -61,7 +61,7 @@ Avec un garde-fou qui reconnaît les adresses e-mail, le traitement s'arrête av
 
 ### A2. Un terme public est pris pour une donnée personnelle
 
-Le détecteur lit le nom d'entreprise `Acme`{ .pii } comme une personne. "chez Acme" part alors sous la forme "chez `<<PERSON:2>>`{ .placeholder }", et le LLM perd une information dont il avait besoin. La liste noire du serveur garde ce terme en clair, voir [Imposer les listes du serveur](enforce-server-lists.md).
+Le détecteur lit le nom d'entreprise `Acme`{ .pii } comme une personne. "chez Acme" part alors sous la forme "chez `<<PERSON:2>>`{ .placeholder }", et le LLM perd une information dont il avait besoin. La liste noire de la configuration garde ce terme en clair, voir [Imposer une liste blanche et une liste noire](enforce-server-lists.md).
 
 ### A3. Deux détections se recouvrent
 

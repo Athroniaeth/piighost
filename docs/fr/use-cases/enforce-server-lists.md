@@ -2,16 +2,16 @@
 icon: lucide/list-checks
 ---
 
-# Imposer les listes du serveur
+# Imposer une liste blanche et une liste noire
 
-Le serveur impose deux listes au-dessus du détecteur. La liste blanche nomme des valeurs toujours dé-identifiées, même quand le détecteur les rate. La liste noire nomme des valeurs jamais dé-identifiées, même quand le détecteur les relève. Ces deux listes priment sur le détecteur comme sur une correction faite par une personne.
+La configuration du pipeline impose deux listes au-dessus du détecteur, dans sa section `[override]`, que ce pipeline tourne dans l'application ou dans le serveur `piighost-api`. La liste blanche nomme des valeurs toujours dé-identifiées, même quand le détecteur les rate. La liste noire nomme des valeurs jamais dé-identifiées, même quand le détecteur les relève. Ces deux listes priment sur le détecteur comme sur une correction faite par une personne.
 
 Répond à : DPO-3, USER-5, DPO-4, DPO-1
 
 ## Acteurs
 
 - Le DPO, qui décide des valeurs à toujours ou à ne jamais dé-identifier
-- L'équipe technique, qui écrit les listes dans la configuration du serveur
+- L'équipe technique, qui écrit les deux listes dans la section `[override]` de la configuration
 - L'utilisateur final, qui écrit son message en clair
 - `piighost`, qui applique les listes à chaque message
 - Le LLM, qui reçoit le texte dé-identifié
