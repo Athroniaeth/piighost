@@ -19,36 +19,7 @@ The stage runs right after detection, before overlap resolution and linking, so 
 Point a detector at the value, hand it to `DetectionOverride` as the blacklist, and pass the override to the pipeline. What the blacklist finds leaves the detection set, so the value reaches the model in clear.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.override import DetectionOverride
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import AnonymizationPipeline
-
-detector = ExactMatchDetector({"Emma": "PERSON", "Acme": "ORG"})
-blacklist = ExactMatchDetector({"Acme": "ORG"})
-override = DetectionOverride(blacklist=blacklist)
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    override=override,
-)
-
-
-async def main():
-    result = await pipeline.anonymize("Emma works at Acme.")
-    print(result.text)
-    # <<PERSON:1>> works at Acme.
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_blacklist.py"
 ```
 
 `blacklist_strategy` decides which detections a blacklist hit takes down.
@@ -60,48 +31,11 @@ asyncio.run(main())
 The three modes on one text, with a detector that mislabels `Acme`{ .pii } as a person and reads `Globex Ltd`{ .pii } as one organization.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.override import BlacklistStrategy, DetectionOverride
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import AnonymizationPipeline
-
-
-def build_pipeline(strategy: BlacklistStrategy) -> AnonymizationPipeline:
-    detector = ExactMatchDetector(
-        {"Emma": "PERSON", "Acme": "PERSON", "Globex Ltd": "ORG"}
-    )
-    blacklist = ExactMatchDetector({"Acme": "ORG", "Globex": "ORG"})
-    override = DetectionOverride(blacklist=blacklist, blacklist_strategy=strategy)
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    return AnonymizationPipeline(
-        detector,
-        linker,
-        anonymizer,
-        override=override,
-    )
-
-
-async def main():
-    text = "Emma works at Acme, formerly Globex Ltd."
-    for strategy in BlacklistStrategy:
-        pipeline = build_pipeline(strategy)
-        result = await pipeline.anonymize(text)
-        print(strategy.value, "->", result.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_blacklist_strategies.py"
 ```
 
 ```text
-exact -> <<PERSON:1>> works at <<PERSON:2>>, formerly <<ORG:1>>.
-value -> <<PERSON:1>> works at Acme, formerly <<ORG:1>>.
-overlap -> <<PERSON:1>> works at Acme, formerly Globex Ltd.
+--8<-- "snippets/overrides_blacklist_strategies.out"
 ```
 
 `EXACT` matched neither detection, since the blacklist says `Acme`{ .pii } is an organization where the detector says a person, and since the detector's span covers `Globex Ltd`{ .pii } where the blacklist covers `Globex`{ .pii } alone. `VALUE` compares whole values, so it cleared `Acme`{ .pii } and left `Globex Ltd`{ .pii }, whose text is not the blacklisted one. `OVERLAP` cleared both, the blacklisted span sitting inside the longer detection.
@@ -114,64 +48,13 @@ overlap -> <<PERSON:1>> works at Acme, formerly Globex Ltd.
 Point a detector at the pattern the primary detector misses, here a codename a regex describes exactly, and hand it over as the whitelist. Its hits enter the detection set whatever the primary detector saw.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import RegexDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.override import DetectionOverride
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import AnonymizationPipeline
-
-detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
-whitelist = RegexDetector({"CODENAME": r"ACME-[A-Z]+"})
-override = DetectionOverride(whitelist=whitelist)
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    override=override,
-)
-
-
-async def main():
-    result = await pipeline.anonymize("Ship ACME-FALCON to alice@example.com.")
-    print(result.text)
-    # Ship <<CODENAME:1>> to <<EMAIL:1>>.
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_whitelist_hub.py"
 ```
 
 A forced hit also replaces every detection it overlaps, so the whitelist label wins over the primary reading. Use that to correct a label, not only to add a detection.
 
 ```python
-from piighost.components.detector import ExactMatchDetector
-
-detector = ExactMatchDetector({"Emma": "PERSON", "Acme": "PERSON"})
-whitelist = ExactMatchDetector({"Acme": "ORG"})
-override = DetectionOverride(whitelist=whitelist)
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    override=override,
-)
-
-
-async def main():
-    result = await pipeline.anonymize("Acme hired Emma.")
-    print(result.text)
-    # <<ORG:1>> hired <<PERSON:1>>.
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_whitelist_exact.py:example"
 ```
 
 A forced value goes through linking and token assignment like any other detection, so the conversational pipeline stores it in memory and `deanonymize` restores it.
@@ -184,48 +67,11 @@ In a thread, a value the assistant wrote first stays in clear even when the whit
 - Use `WhitelistStrategy.FORCE` to tokenize a whitelisted value whoever wrote it first.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.override import DetectionOverride, WhitelistStrategy
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
-from piighost.pipeline import ThreadAnonymizationPipeline
-
-
-def build_pipeline(strategy: WhitelistStrategy) -> ThreadAnonymizationPipeline:
-    detector = ExactMatchDetector({})
-    whitelist = ExactMatchDetector({"Acme": "ORG"})
-    override = DetectionOverride(whitelist=whitelist, whitelist_strategy=strategy)
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    memory = InMemoryConversationMemory()
-    return ThreadAnonymizationPipeline(
-        detector,
-        linker,
-        anonymizer,
-        memory,
-        override=override,
-    )
-
-
-async def main():
-    for strategy in WhitelistStrategy:
-        pipeline = build_pipeline(strategy)
-        assistant = await pipeline.anonymize("Acme rocks", "t1", MessageRole.ASSISTANT)
-        user = await pipeline.anonymize("I love Acme", "t1")
-        print(strategy.value, "->", assistant.text, "|", user.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_whitelist_provenance.py"
 ```
 
 ```text
-respect_provenance -> Acme rocks | I love Acme
-force -> <<ORG:1>> rocks | I love <<ORG:1>>
+--8<-- "snippets/overrides_whitelist_provenance.out"
 ```
 
 ## 4. Decide who wins when the two lists contradict
@@ -237,55 +83,11 @@ A value both lists match is a contradiction, and `conflict_strategy` names the w
 - Use `OverrideConflictStrategy.RAISE` to refuse the contradiction. A whitelisted span overlapping a blacklisted one raises `ConflictingOverrideError` before either list is applied.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.override import DetectionOverride, OverrideConflictStrategy
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.exceptions import ConflictingOverrideError
-from piighost.pipeline import AnonymizationPipeline
-
-
-def build_pipeline(strategy: OverrideConflictStrategy) -> AnonymizationPipeline:
-    detector = ExactMatchDetector({"Emma": "PERSON"})
-    whitelist = ExactMatchDetector({"Acme": "ORG"})
-    blacklist = ExactMatchDetector({"Acme": "ORG"})
-    override = DetectionOverride(
-        whitelist=whitelist,
-        blacklist=blacklist,
-        conflict_strategy=strategy,
-    )
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    return AnonymizationPipeline(
-        detector,
-        linker,
-        anonymizer,
-        override=override,
-    )
-
-
-async def main():
-    for strategy in OverrideConflictStrategy:
-        pipeline = build_pipeline(strategy)
-        try:
-            result = await pipeline.anonymize("Emma works at Acme.")
-        except ConflictingOverrideError as error:
-            print(strategy.value, "->", type(error).__name__, error)
-        else:
-            print(strategy.value, "->", result.text)
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_conflict.py"
 ```
 
 ```text
-whitelist_wins -> <<PERSON:1>> works at <<ORG:1>>.
-blacklist_wins -> <<PERSON:1>> works at Acme.
-raise -> ConflictingOverrideError Overrides contradict each other on 'Acme': a whitelisted span overlaps a blacklisted one.
+--8<-- "snippets/overrides_conflict.out"
 ```
 
 `BLACKLIST_WINS` clears a forced hit through the blacklist strategy, so the default `VALUE` clears a forced value whatever label the whitelist attached to it. Under `EXACT` the two lists have to agree on the label for the blacklist to win.
@@ -295,41 +97,13 @@ raise -> ConflictingOverrideError Overrides contradict each other on 'Acme': a w
 Both lists are detector configs, `[override.whitelist]` and `[override.blacklist]`, and the three strategies are keys of `[override]`. The file below forces the codename and keeps a public mailbox in clear.
 
 ```toml
-[detector]
-type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
-
-[override]
-blacklist_strategy = "value"
-
-[override.whitelist]
-type = "regex"
-patterns = { CODENAME = 'ACME-[A-Z]+' }
-
-[override.blacklist]
-type = "exact"
-values = { "public@corp.com" = "EMAIL" }
+--8<-- "snippets/overrides_config.toml"
 ```
 
 `load_pipeline` parses the file and builds the pipeline, override included.
 
 ```python
-import asyncio
-
-from piighost.config import load_pipeline
-
-pipeline = load_pipeline("piighost.toml")
-
-
-async def main():
-    result = await pipeline.anonymize(
-        "Mail public@corp.com or alice@example.com about ACME-FALCON."
-    )
-    print(result.text)
-    # Mail public@corp.com or <<EMAIL:1>> about <<CODENAME:1>>.
-
-
-asyncio.run(main())
+--8<-- "snippets/overrides_config.py"
 ```
 
 For every key and every accepted value, see the [TOML configuration](../configuration/toml.md).

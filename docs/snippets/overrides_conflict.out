@@ -1,0 +1,3 @@
+whitelist_wins -> <<PERSON:1>> works at <<ORG:1>>.
+blacklist_wins -> <<PERSON:1>> works at Acme.
+raise -> ConflictingOverrideError Overrides contradict each other on 'Acme': a whitelisted span overlaps a blacklisted one.

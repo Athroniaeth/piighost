@@ -1,0 +1,3 @@
+[detector]
+type = "regex"
+catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]

@@ -15,6 +15,8 @@ from typing import Any
 
 import pytest
 
+from piighost.config import load_config
+
 SNIPPETS_DIR = Path(__file__).resolve().parents[2] / "docs" / "snippets"
 """Where the documentation's examples live."""
 
@@ -27,10 +29,22 @@ SNIPPETS: list[Any] = [
     "basic_factories.py",
     "testing.py",
     "test_testing.py",
+    "overrides_blacklist.py",
+    "overrides_blacklist_strategies.py",
+    "overrides_whitelist_exact.py",
+    "overrides_whitelist_provenance.py",
+    "overrides_conflict.py",
     # These reach the hub or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
     pytest.param("detector_hub.py", marks=pytest.mark.integration),
     pytest.param("detector_gliner2.py", marks=pytest.mark.integration),
+    pytest.param("overrides_whitelist_hub.py", marks=pytest.mark.integration),
+    pytest.param("overrides_config.py", marks=pytest.mark.integration),
+    pytest.param("detectors_hub.py", marks=pytest.mark.integration),
+    pytest.param("detectors_merge.py", marks=pytest.mark.integration),
+    pytest.param("detectors_pick.py", marks=pytest.mark.integration),
+    pytest.param("detectors_composite.py", marks=pytest.mark.integration),
+    pytest.param("detectors_chunked.py", marks=pytest.mark.integration),
 ]
 """Every example, the ones that need the network or a model marked integration."""
 
@@ -40,11 +54,16 @@ MIGRATED = [
     "getting-started/conversation.md",
     "examples/basic.md",
     "examples/testing.md",
+    "examples/overrides.md",
+    "examples/detectors.md",
 ]
 """The pages whose Python examples all come from docs/snippets/, in both languages."""
 
 DOCS_DIR = SNIPPETS_DIR.parent
 """The documentation root, holding one folder per language."""
+
+FILES = {"overrides_config.py": {"piighost.toml": "overrides_config.toml"}}
+"""The files an example reads, copied from docs/snippets/ under the name it opens."""
 
 REQUIRES = {"detector_gliner2.py": "gliner2"}
 """The optional package an example needs, skipped when it is absent."""
@@ -93,6 +112,10 @@ def test_an_example_runs_and_prints_what_the_page_shows(
     if name in REQUIRES:
         pytest.importorskip(REQUIRES[name])
     snippet = SNIPPETS_DIR / name
+    for opened, source in FILES.get(name, {}).items():
+        (tmp_path / opened).write_text(
+            (SNIPPETS_DIR / source).read_text(encoding="utf-8"), encoding="utf-8"
+        )
     result = _run(snippet, tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     expected = _expected(snippet)
@@ -105,6 +128,14 @@ def test_every_example_is_listed() -> None:
     listed = {_name(case) for case in SNIPPETS}
     on_disk = {path.name for path in SNIPPETS_DIR.glob("*.py")}
     assert on_disk == listed
+
+
+@pytest.mark.parametrize(
+    "config", sorted(path.name for path in SNIPPETS_DIR.glob("*.toml"))
+)
+def test_a_config_example_is_valid(config: str) -> None:
+    """A configuration a page shows parses, hub references included."""
+    load_config(SNIPPETS_DIR / config)
 
 
 def test_every_output_has_its_example() -> None:
