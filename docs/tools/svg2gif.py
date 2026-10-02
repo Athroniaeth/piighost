@@ -10,6 +10,9 @@ rasterizes. Instants where nothing moves are merged into a single long frame,
 which divides the GIF weight several times over.
 
     uv run --no-project svg2gif.py dark.svg out.gif --fps 20 --scale 1.0
+
+--bg bakes the page colour in, and --dots the charter's field of dots over it,
+1px every 22px: a GIF has no page behind it to show them.
 """
 
 import io
@@ -83,7 +86,8 @@ def load(path: str) -> tuple[str, Keyframes, dict[str, str], str]:
     src = Path(path).read_text(encoding="utf-8")
     style = _group(r"<style>(.*?)</style>", src, re.DOTALL)
     LOOP = float(_group(r"animation:\w+ ([\d.]+)s", style))
-    body = src[src.index("</style>") + 8 :].replace("</svg>", "")
+    # Only the root's closing tag: the logo of the title card nests an <svg>.
+    body = src[src.index("</style>") + 8 : src.rindex("</svg>")]
     kfs = {}
     for m in re.finditer(
         r"@keyframes (\w+)\{(.*?)\}(?=@keyframes|@media|\Z)", style, re.DOTALL
@@ -189,6 +193,7 @@ def render(
     scale: float = 1.0,
     bg: str | None = None,
     colors: int = 200,
+    dots: str | None = None,
 ) -> str:
     """Rasterize the animated SVG at svg_path into an animated GIF at out_path."""
     body, kfs, origin, vb = load(svg_path)
@@ -199,6 +204,13 @@ def render(
             x0, x1 = group_span(body, m.start())
             pivots[cid] = x0 if origin[cid] == "left" else x1
 
+    field = ""
+    if dots:
+        field = (
+            '<defs><pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">'
+            f'<circle cx="11" cy="11" r="0.75" fill="{dots}"/></pattern></defs>'
+            '<rect width="100%" height="100%" fill="url(#dots)"/>'
+        )
     n = round(LOOP * fps)
     print(f"  loop of {LOOP:.1f} s")
     step_cs = 100.0 / fps
@@ -216,7 +228,7 @@ def render(
     frames = []
     for j, t in enumerate(times):
         frame = build_frame(body, kfs, pivots, t)
-        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}">{frame}</svg>'
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}">{field}{frame}</svg>'
         png = cairosvg.svg2png(
             bytestring=svg.encode(), scale=scale, background_color=bg
         )
@@ -321,4 +333,5 @@ if __name__ == "__main__":
         scale=g("--scale", 1.0),
         bg=(a[a.index("--bg") + 1] if "--bg" in a else None),
         colors=int(g("--colors", 200)),
+        dots=(a[a.index("--dots") + 1] if "--dots" in a else None),
     )

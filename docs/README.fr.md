@@ -24,10 +24,7 @@ Le LLM ne reçoit donc que du texte dé-identifié. Quand il retourne des placeh
 La même mécanique protège les agents qui appellent des outils. Avec le middleware LangChain, un outil qui a besoin de la vraie adresse mail la reçoit en clair, alors que le LLM qui la fournit n'écrit que `<<EMAIL:1>>`.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/deid-chat-fr-dark.gif">
-    <img alt="Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="assets/deid-chat-fr-light.gif" width="760">
-  </picture>
+  <img alt="Un utilisateur discute avec un agent, les valeurs confidentielles sont remplacées par des placeholders avant d'atteindre le modèle puis restaurées pour l'utilisateur et pour les appels d'outils." src="assets/deid-chat-fr-dark.gif" width="760">
 </p>
 
 *Le LLM ne voit que des placeholders. L'outil reçoit la vraie adresse, l'utilisateur reçoit une réponse en clair, et le code de l'agent ne change pas.*
