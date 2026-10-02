@@ -191,6 +191,9 @@ classDiagram
     class PreservesShape {
         j***@mail.com
     }
+    class PreservesIdentity {
+        abstraction
+    }
     class PreservesLabeledIdentity {
         &lt;&lt;PERSON:1&gt;&gt;
     }

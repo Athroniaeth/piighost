@@ -204,3 +204,4 @@ For another framework, the same restoration is one step lower, `pipeline.recogni
 - [Pipeline reference](pipeline.md) for the thread pipeline the middleware drives.
 - [Tool-call strategies](../tool-call-strategies.md) for the reasoning behind each strategy.
 - [TOML configuration](../configuration/toml.md) for building the pipeline from a file.
+- [Show a streamed reply](../../../openwiki/processus/afficher-une-reponse-streamee.md) and [Let a tool act on the real values](../../../openwiki/processus/laisser-un-outil-agir.md), in French, for the business rules of streaming and tool calls and where each lives in the code.

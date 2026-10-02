@@ -47,6 +47,22 @@ Pointez tous les workers sur une seule instance Redis. Les tokens sont attribué
 
 Le cas du tour 2 se résout maintenant dans l'autre sens. Le worker B lit `Patrick -> <<PERSON:1>>`{ .placeholder } directement dans Redis et le garde, parce que le store où le worker A a écrit est le store que le worker B lit. Tout worker qui reprend la conversation reproduit le même token pour la même valeur.
 
+## Vérifier que les workers s'accordent
+
+Construisez deux pipelines depuis le même fichier, un par worker, et envoyez une même conversation à chacun. Chaque pipeline garde son propre cache de processus, donc seul le Redis partagé peut faire réutiliser au second les jetons du premier.
+
+```python
+--8<-- "snippets/redis_two_workers.py:example"
+```
+
+La sortie doit être :
+
+```text
+--8<-- "snippets/redis_two_workers.out"
+```
+
+`bob@corp.com`{ .pii }, nouveau dans la conversation, prend `<<EMAIL:2>>`{ .placeholder }, et `alice@corp.com`{ .pii } garde le `<<EMAIL:1>>`{ .placeholder } que le worker A lui a donné. Sans la mémoire partagée, le worker B numéroterait son message depuis zéro et donnerait `<<EMAIL:1>>`{ .placeholder } à Bob. En production, faites la même vérification sur deux processus workers derrière le répartiteur de charge.
+
 Le backend Redis peut chiffrer chaque valeur stockée et hacher chaque clé. Cette protection est optionnelle et tout ou rien, donc la config montrée ci-dessus, qui définit à la fois un hacheur et un cipher, en bénéficie, et lit son pepper et sa clé de cipher dans l'environnement. Ces secrets et la mise en place complète sont traités dans [Déployer un pipeline en production](deployment.md), et chaque clé `[memory]` est dans la [référence de configuration](configuration/toml.md).
 
 Une base SQL est l'autre store partagé. `type = "sqlalchemy"` offre la même cohérence entre workers, adossée à PostgreSQL (ou n'importe quel driver SQLAlchemy async), ce qui convient à une stack qui exécute déjà une base relationnelle et veut que la correspondance des tokens survive durablement aux redémarrages. Il lit l'URL de la base dans `PIIGHOST_DATABASE_URL` et prend le même hacheur et le même cipher optionnels que Redis.
@@ -91,3 +107,4 @@ Le même piège frappe le `checkpointer` de LangGraph. `MemorySaver` est local a
 - [Référence de configuration](configuration/toml.md) : chaque clé `[memory]`, en TOML et en JSON.
 - [Sécurité](security.md) : les garanties au repos du backend Redis et la comparaison des backends.
 - [Pipeline conversationnel](getting-started/conversation.md) : comment les tokens restent cohérents sur un thread.
+- [Stocker les conversations et protéger les traces](../../openwiki/exploitation/stockage-et-chiffrement.md) : les règles de stockage, de `BR-STO-01` à `BR-STO-08`, écrites pour un DPO ou un exploitant.

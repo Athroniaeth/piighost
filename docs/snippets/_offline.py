@@ -206,7 +206,7 @@ def offline_llama_index(secrets: tuple[str, ...]) -> None:
 
 
 def offline_redis() -> None:
-    """Make every Redis URL reach a store held in memory, with the page's secrets.
+    """Make every Redis URL reach one store held in memory, with the page's secrets.
 
     The pages export the hasher pepper and the cipher key in the shell, and
     point at a Redis of their own network.
@@ -220,7 +220,9 @@ def offline_redis() -> None:
     os.environ.setdefault(
         "PIIGHOST_CIPHER_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     )
-    Redis.from_url = lambda url, **kwargs: fakeredis.FakeAsyncRedis()
+    # One server for every client, as every worker of a deployment reaches one Redis.
+    server = fakeredis.FakeServer()
+    Redis.from_url = lambda url, **kwargs: fakeredis.FakeAsyncRedis(server=server)
 
 
 def serve_locally() -> None:

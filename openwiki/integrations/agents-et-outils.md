@@ -33,7 +33,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Avec Claude Code, la réponse affichée garde les jetons : aucun point d'accroche ne permet de la réécrire.
 - L'historique gardé par l'agent contient les vraies valeurs. Protégez-le comme une donnée personnelle.
 
-Les termes sont définis dans le [glossaire](../glossaire.md). Le mécanisme du fil est décrit dans [Suivre une conversation et restaurer la réponse](../processus/suivre-une-conversation.md).
+Les termes sont définis dans le [glossaire](../glossaire.md). Le mécanisme de la conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processus/suivre-une-conversation.md).
 
 ## Pour le métier
 
@@ -54,7 +54,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 ### Règles à connaître
 
-**BR-AGT-01.** Quand un agent LangChain est appelé sans identifiant de conversation, alors il s'arrête sur `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` Pourquoi : sans identifiant, toutes les conversations tomberaient dans le même fil et partageraient leurs jetons. Une application qui n'a pas besoin de séparer ses conversations passe `default` elle-même.
+**BR-AGT-01.** Quand un agent LangChain est appelé sans identifiant de conversation, alors il s'arrête sur `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` Pourquoi : sans identifiant, toutes les conversations n'en feraient qu'une et partageraient leurs jetons. Une application qui n'a pas besoin de séparer ses conversations passe `default` elle-même.
 
 **BR-AGT-02.** Quand le modèle écrit un jeton que PIIGhost n'a jamais émis, alors la réponse est refusée par défaut, avec `Deanonymized text holds tokens the pipeline never issued`. Deux autres choix existent : garder le jeton tel quel, ou le retirer du texte.
 
@@ -62,7 +62,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 **BR-AGT-04.** Quand le réglage d'outil est « Complet » ou « Sortie seule », alors le texte renvoyé par l'outil passe par le repérage complet et est masqué avant le modèle. Avec LangChain, seul le texte du message de l'outil est masqué. Avec Pydantic AI, un résultat structuré (liste, dictionnaire) est parcouru en entier.
 
-**BR-AGT-05.** Quand un événement de Claude Code n'a pas d'identifiant de session, alors il est refusé avec `The hook event carries no session_id, the thread its values belong to.` Aucun fil commun n'est utilisé.
+**BR-AGT-05.** Quand un événement de Claude Code n'a pas d'identifiant de session, alors il est refusé avec `The hook event carries no session_id, the thread its values belong to.` Aucune conversation commune n'est utilisée.
 
 **BR-AGT-06.** Quand un outil de Claude Code n'est pas dans la liste des outils traités, alors son résultat passe en clair. Outils traités : Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, notamment, n'y est pas.
 
@@ -104,7 +104,7 @@ Composants liés :
 - `TextDeidentifier` (`integrations/_deidentify.py`) : logique commune de masquage, restauration et jetons inventés, partagée par LangChain, Pydantic AI et LlamaIndex. Il refuse à la construction un pipeline sans `recognizer` (`UnrecognizableFactoryError`).
 - `PIIAnonymizationMiddleware` : `abefore_model`, `aafter_model`, `awrap_tool_call`.
 - `pii_hooks(pipeline, thread_id, ...)` : capacité Pydantic AI, `thread_id` fixe ou fonction du `RunContext`.
-- `PIINodeAnonymizer` et `PIIQueryEngine` (LlamaIndex) : masquage des nœuds avant embedding, puis masquage de la question et restauration de la réponse dans le même fil de corpus.
+- `PIINodeAnonymizer` et `PIIQueryEngine` (LlamaIndex) : masquage des nœuds avant embedding, puis masquage de la question et restauration de la réponse dans la même conversation de corpus.
 - `handle_hook(event, pipeline)` et `run()` (Claude Code) : `run` lit l'événement sur stdin et appelle `piighost-api` à `PIIGHOST_API_URL` (défaut `http://localhost:8000`).
 - `PIIGhostClient` : implémente `AnyThreadPipeline` en HTTP (`/v1/anonymize`, `/v1/deanonymize`, `/v1/detect`, `/v1/labels`, `/v1/threads/{id}/tokens`). Il lève `RemoteError` sur une réponse non 2xx.
 
@@ -141,7 +141,7 @@ Aucun écart constaté sur cette page. La lacune Grep est documentée dans `docs
 
 | Test | Couvre |
 |---|---|
-| `tests/integrations/langchain/test_middleware.py` | Identifiant de fil, contenu en blocs, chaque stratégie d'outil, `Command`, jetons inventés, provenance assistant, refus d'une fabrique non délimitée |
+| `tests/integrations/langchain/test_middleware.py` | Identifiant de conversation, contenu en blocs, chaque stratégie d'outil, `Command`, jetons inventés, provenance assistant, refus d'une fabrique non délimitée |
 | `tests/integrations/langchain/test_middleware_stream.py` | Restauration en flux |
 | `tests/integrations/test_pydantic_ai_hooks.py` | Capacité Pydantic AI |
 | `tests/integrations/llama_index/` | Transformation des nœuds, moteur de requête |

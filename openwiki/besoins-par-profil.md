@@ -66,15 +66,15 @@ Chaque besoin est porté par un processus du wiki, qui donne le scénario et les
 
 **DPO-8. En tant que DPO, je veux documenter l'analyse d'impact, afin de justifier le traitement.**
 
-- Voir la page AIPD de la documentation, `docs/fr/dpia.md`, et `docs/fr/compliance.md`. Tests : [AT-DPO-8-…](tests/tests-d-acceptation.md).
+- Voir [Comment documenter piighost dans une AIPD](../docs/fr/dpia.md) et la page [Conformité](../docs/fr/compliance.md) du guide technique. Tests : [AT-DPO-8-…](tests/tests-d-acceptation.md).
 
 **DPO-9. En tant que DPO, je veux qu'un détecteur en panne bloque le message plutôt que de le laisser passer, afin qu'une panne ne devienne pas une fuite.**
 
-- Quand le modèle d'un détecteur LLM rend une sortie illisible, le message est refusé avec une erreur au lieu de partir sans détection.
-- Un réglage explicite laisse passer le message, pour qui préfère la disponibilité à la protection.
+- Quand le modèle d'un détecteur LLM rend une sortie illisible, le message doit être refusé avec une erreur au lieu de partir sans détection.
+- Un réglage explicite doit laisser passer le message, pour qui préfère la disponibilité à la protection.
 - Voir les [points de vigilance](#points-de-vigilance) et [Points à régler](reference/points-a-regler.md). Tests : [AT-DPO-9-…](tests/tests-d-acceptation.md).
 
-**Limite connue.** Aujourd'hui, `LLMDetector` et `LLMGuardRail` rendent zéro détection sur une sortie illisible, et le message part sans protection.
+**Pas encore dans le code.** Ce comportement est décidé, le correctif n'est pas encore livré. Aujourd'hui, `LLMDetector` et `LLMGuardRail` rendent zéro détection sur une sortie illisible, et le message part sans protection.
 
 **DPO-10. En tant que DPO, je veux choisir sous quelle forme les corrections humaines sont conservées, afin que leur stockage ne devienne pas une copie des données.**
 
@@ -154,12 +154,12 @@ Chaque besoin est porté par un processus du wiki, qui donne le scénario et les
 **OPS-1. En tant qu'exploitant, je veux déployer une API de dé-identification partagée, afin que plusieurs applications utilisent un seul pipeline et un seul modèle.**
 
 - Le serveur démarre sur une configuration du hub et répond aux requêtes de dé-identification.
-- Voir le tutoriel `docs/fr/getting-started/api-server.md` et [Configurer un pipeline](exploitation/configuration-et-hub.md). Tests : [AT-OPS-1-…](tests/tests-d-acceptation.md).
+- Voir le tutoriel [Déployer une API de dé-identification](../docs/fr/getting-started/api-server.md) et [Configurer un pipeline](exploitation/configuration-et-hub.md). Tests : [AT-OPS-1-…](tests/tests-d-acceptation.md).
 
 **OPS-2. En tant qu'exploitant, je veux que la mémoire survive aux redémarrages et soit partagée entre instances, afin qu'une conversation ne perde pas ses jetons.**
 
 - Deux instances rendent le même `<<PERSON:1>>` pour « Jean Dupont » dans la même conversation.
-- Voir [Stocker les conversations et protéger les traces](exploitation/stockage-et-chiffrement.md) et [Suivre une conversation](processus/suivre-une-conversation.md). Tests : [AT-OPS-2-…](tests/tests-d-acceptation.md).
+- Voir [Stocker les conversations et protéger les traces](exploitation/stockage-et-chiffrement.md), [Suivre une conversation](processus/suivre-une-conversation.md) et, pour plusieurs instances derrière un répartiteur de charge, [Déploiement multi-instance](../docs/fr/multi-instance.md). Tests : [AT-OPS-2-…](tests/tests-d-acceptation.md).
 
 **OPS-3. En tant qu'exploitant, je veux fournir les secrets par l'environnement, afin qu'aucune clé ne soit écrite dans un fichier.**
 
@@ -171,12 +171,12 @@ Chaque besoin est porté par un processus du wiki, qui donne le scénario et les
 
 - Sans clé configurée, le serveur refuse de démarrer, sauf mode anonyme demandé explicitement.
 - Une requête trop grosse ou trop fréquente est refusée.
-- Voir la référence du serveur, `docs/fr/reference/api-cli.md` et `docs/fr/reference/api-endpoints.md`. Tests : [AT-OPS-4-…](tests/tests-d-acceptation.md).
+- Voir la [référence de la CLI du serveur](../docs/fr/reference/api-cli.md) et la [référence des endpoints de l'API](../docs/fr/reference/api-endpoints.md). Tests : [AT-OPS-4-…](tests/tests-d-acceptation.md).
 
 **OPS-5. En tant qu'exploitant, je veux traiter un long document sans que le modèle en tronque la fin, afin qu'aucune valeur en fin de texte ne parte en clair.**
 
 - Une valeur placée au-delà de la fenêtre du modèle est détectée quand le texte est découpé.
-- Voir `docs/fr/limitations.md` et [Ajouter ou remplacer un composant](architecture/ports-et-extension.md). Tests : [AT-OPS-5-…](tests/tests-d-acceptation.md).
+- Voir [Limites](../docs/fr/limitations.md) et [Ajouter ou remplacer un composant](architecture/ports-et-extension.md). Tests : [AT-OPS-5-…](tests/tests-d-acceptation.md).
 
 **OPS-6. En tant qu'exploitant, je veux charger une configuration relue depuis le hub par sa référence, afin de ne pas maintenir de copie locale.**
 
@@ -247,7 +247,7 @@ Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle
 | Le LLM détecteur cite une valeur absente du texte | La valeur n'est retrouvée nulle part dans le texte et n'est pas retenue | DPO-1 |
 | Le LLM détecteur oublie une valeur | Elle part en clair, sauf si un garde-fou relit le texte | DPO-4 |
 | Le texte analysé contient une balise qui imite la zone de données du prompt | La balise est neutralisée avant l'envoi au LLM détecteur | DPO-1 |
-| Le LLM principal invente un jeton, `<<PERSON:10>>` alors que le fil n'a que `<<PERSON:1>>` | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
+| Le LLM principal invente un jeton, `<<PERSON:10>>` alors que la conversation n'a que `<<PERSON:1>>` | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
 | Le LLM principal change la casse ou les chiffres d'un jeton, `<<Person:1>>` ou `<<PERSON:01>>` | Il n'est pas restauré, et il est traité comme un jeton inventé | DEV-8 |
 | Le LLM principal abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel | USER-1 |
 | Le LLM principal devine la vraie valeur derrière un jeton et l'écrit | La valeur est traitée comme introduite par l'assistant | DEV-11 |

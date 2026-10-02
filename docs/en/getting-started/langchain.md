@@ -4,7 +4,7 @@ icon: lucide/link
 
 # LangChain middleware
 
-You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM only ever sees tokens, while your tools receive the real values. The user writes `Patrick habite à Paris.`{ .pii }, the model reasons over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }, and a lookup tool still gets the real `Patrick`{ .pii } to do its job. You build the middleware over a `ThreadAnonymizationPipeline`, register a tool, and run one turn.
+You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM only ever sees tokens, while your tools receive the real values. The user asks `Where does Patrick live?`, the model reasons over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }, and a lookup tool still gets the real `Patrick`{ .pii } to do its job. You build the middleware over a `ThreadAnonymizationPipeline`, register a tool, and run one turn.
 
 !!! note "Prerequisites"
     `piighost` installed with the middleware extra, `pip install piighost[langchain]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The pipeline reuses the components from [Conversational pipeline](conversation.md).
@@ -14,7 +14,7 @@ You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM onl
 The middleware wraps a `ThreadAnonymizationPipeline`, the same one from the [Conversational pipeline](conversation.md) page. Its anonymizer must use a delimited token factory like `LabelCounterPlaceholderFactory`, which emits `<<PERSON:1>>`{ .placeholder }. The middleware needs that grammar to find a token again, otherwise it raises `UnrecognizableFactoryError` at construction.
 
 ```python
---8<-- "snippets/langchain_start.py:pipeline"
+--8<-- "snippets/langchain_start.en.py:pipeline"
 ```
 
 ## 2. Declare a tool that needs the real value
@@ -22,7 +22,7 @@ The middleware wraps a `ThreadAnonymizationPipeline`, the same one from the [Con
 A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>`{ .placeholder }. Write the tool as usual, against real values. The middleware restores them before the call.
 
 ```python
---8<-- "snippets/langchain_start.py:tool"
+--8<-- "snippets/langchain_start.en.py:tool"
 ```
 
 ## 3. Wrap the pipeline in the middleware
@@ -30,7 +30,7 @@ A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>
 `PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` restores the tool arguments on the way in and de-identifies the tool result on the way out, so the tool works on real values while the model still only sees tokens.
 
 ```python
---8<-- "snippets/langchain_start.py:agent"
+--8<-- "snippets/langchain_start.en.py:agent"
 ```
 
 ## 4. Run one turn
@@ -38,18 +38,18 @@ A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>
 The `thread_id` goes in the LangGraph config, under `configurable`. The middleware reads it from there and scopes every token to that thread.
 
 ```python
---8<-- "snippets/langchain_start.py:run"
+--8<-- "snippets/langchain_start.en.py:run"
 ```
 
 The final message is restored for display, so the answer reads with the real values:
 
 ```text
---8<-- "snippets/langchain_start.out"
+--8<-- "snippets/langchain_start.en.out"
 ```
 
 ## How it works
 
-The middleware is a thin adapter around the pipeline. Before the model call, `abefore_model` sends each message through `pipeline.anonymize`, so the LLM receives `Où habite <<PERSON:1>> ?` instead of the raw name. When the model calls `lookup_city` with `person="<<PERSON:1>>"`, `awrap_tool_call` under `ToolCallStrategy.FULL` restores the argument to `Patrick`{ .pii } before running the tool, then de-identifies the tool's string result. After the model call, `aafter_model` restores the reply for the user. The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step of the turn.
+The middleware is a thin adapter around the pipeline. Before the model call, `abefore_model` sends each message through `pipeline.anonymize`, so the LLM receives `Where does <<PERSON:1>> live?` instead of the raw name. When the model calls `lookup_city` with `person="<<PERSON:1>>"`, `awrap_tool_call` under `ToolCallStrategy.FULL` restores the argument to `Patrick`{ .pii } before running the tool, then de-identifies the tool's string result. After the model call, `aafter_model` restores the reply for the user. The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step of the turn.
 
 Two rules are worth knowing. A call without a thread id raises, rather than routing every conversation into one shared thread and leaking tokens across them. If your conversations need no separation, pass `"default"`. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuses a token that surfaces in the model's reply but was never issued by the pipeline, whether hallucinated or injected.
 

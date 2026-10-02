@@ -4,7 +4,7 @@ icon: lucide/replace
 
 # Placeholder factories
 
-Un *placeholder* est le token synthétique qui prend la place d'une valeur détectée avant que le texte n'atteigne le LLM. Au lieu d'envoyer `Patrick habite à Paris`{ .pii } au LLM, le pipeline transmet `<<PERSON:1>>`{ .placeholder } `habite à`  `<<LOCATION:1>>`{ .placeholder }. Les valeurs originales restent dans la mémoire de conversation, le LLM ne les voit jamais.
+Un *placeholder* est le token synthétique qui prend la place d'une valeur détectée avant que le texte n'atteigne le LLM. Au lieu d'envoyer `Patrick habite à Paris`{ .pii } au LLM, le pipeline transmet `<<PERSON:1>>`{ .placeholder } habite à `<<LOCATION:1>>`{ .placeholder }. Les valeurs originales restent dans la mémoire de conversation, le LLM ne les voit jamais.
 
 !!! note "Pourquoi le nom placeholder factory"
 
@@ -285,7 +285,7 @@ Voir [Stratégies d'appel outil](tool-call-strategies.md) pour la seule échappa
 
 ## Écrire la sienne
 
-Il suffit d'hériter de `AnyPlaceholderFactory[<tag>]` avec le bon tag de préservation, puis d'implémenter `create()`.
+Héritez de `AnyPlaceholderFactory[<tag>]` avec le tag de préservation qui correspond à vos garanties, puis implémentez `create()`.
 
 ???+ example "Factory id seul (id sans label) : `PreservesIdentityOnly`"
 

@@ -49,8 +49,10 @@ To go further:
     - [Quickstart](getting-started/quickstart.md)
     - [First pipeline](getting-started/first-pipeline.md)
     - [Conversational pipeline](getting-started/conversation.md)
+    - [Configuration file](getting-started/configuration.md)
     - [LangChain middleware](getting-started/langchain.md)
     - [API server](getting-started/api-server.md)
+    - [Remote client](getting-started/api-client.md)
 
 -   :lucide-wrench: __Recipes__
 
@@ -59,10 +61,25 @@ To go further:
     Solve a specific task.
 
     - [Basic usage](examples/basic.md)
-    - [LangChain integration](examples/langchain.md)
     - [Pre-built detectors](examples/detectors.md)
+    - [Override lists](examples/overrides.md)
     - [Extending PIIGhost](extending.md)
     - [Testing](examples/testing.md)
+    - [Deployment](deployment.md)
+    - [Multi-instance deployment](multi-instance.md)
+
+-   :lucide-plug: __Integrations__
+
+    ---
+
+    Plug `piighost` into an agent, a framework or a client.
+
+    - [LangChain integration](examples/langchain.md)
+    - [Pydantic AI integration](examples/pydantic-ai.md)
+    - [LlamaIndex integration](examples/llama-index.md)
+    - [Claude Code hooks](examples/claude-code.md)
+    - [OpenAI-compatible proxy](examples/openai-proxy.md)
+    - [Anthropic-compatible proxy](examples/anthropic-proxy.md)
 
 -   :lucide-book-open: __Reference__
 

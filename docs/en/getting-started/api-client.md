@@ -22,13 +22,13 @@ Pass a base URL as a string and the client builds and owns its `httpx.AsyncClien
 `anonymize` takes the text and a `thread_id`, exactly like the local pipeline. The server owns the token mapping, so the returned `Anonymization` carries the text but an empty `.tokens`. To get the value back, call `deanonymize` with the same `thread_id`, which restores through the server's thread mapping.
 
 ```python
-    --8<-- "snippets/server_client.py:example"
+    --8<-- "snippets/server_client.en.py:example"
 ```
 
 The output should be:
 
 ```text
---8<-- "snippets/server_client.out"
+--8<-- "snippets/server_client.en.out"
 ```
 
 `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder } on the server, and `deanonymize` sends the tokenized text back for restoration. Nothing about the mapping lives in your process.

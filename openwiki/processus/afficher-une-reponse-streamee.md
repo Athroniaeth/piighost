@@ -101,6 +101,8 @@ Une réponse qui s'écrit au fil de l'eau, avec les vraies valeurs. Un léger re
 
 ## Pour les développeurs
 
+Le guide technique décrit la mise en œuvre dans la section [Streaming de la référence LangChain](../../docs/fr/reference/langchain.md#streaming).
+
 ### Où vivent les règles
 
 | Règle | Emplacement |
@@ -110,6 +112,7 @@ Une réponse qui s'écrit au fil de l'eau, avec les vraies valeurs. Un léger re
 | BR-STREAM-05 | `streaming.py:186` et `236` (`flush`) |
 | BR-STREAM-06 | `integrations/_deidentify.py:83-107` (`deanonymize_stream`), `_handle_invented` lignes 133-155 |
 | BR-STREAM-07 | `integrations/langchain/middleware.py:206-218` (`deanonymize_stream`) |
+| BR-STREAM-08 | `piighost-api`, hors de ce dépôt : `routes/openai.py` (`_restore_sse_chunk`) et `routes/anthropic.py`, sur le décodeur de `components/placeholder/streaming.py` |
 
 Composants liés : `PlaceholderStreamDecoder` (synchrone, `factory.stream_decoder(replace)`), `AsyncPlaceholderStreamDecoder` (`pipeline.recognizer.async_stream_decoder(replace)`), `PIIAnonymizationMiddleware.deanonymize_stream(source, thread_id)`.
 

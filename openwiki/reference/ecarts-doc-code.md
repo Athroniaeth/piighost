@@ -113,7 +113,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | Docstring de `DetectionOverride` (`components/override/detector.py:51-53`) : les pipelines appliquent les listes « after every detection read ». |
 | Code | Une lecture depuis le cache de la conversation ne repasse pas par les listes (`pipeline/thread.py:271-274`). |
-| Page du wiki | [Imposer des valeurs toujours ou jamais masquées](../processus/imposer-une-liste-blanche-et-noire.md) |
+| Page du wiki | [Imposer une liste blanche et une liste noire](../processus/imposer-une-liste-blanche-et-noire.md) |
 | Effet | Une liste modifiée ne s'applique pas aux messages déjà analysés. [à vérifier] : si « detection read » désigne seulement l'appel au détecteur, la phrase est juste mais trompeuse. |
 
 ### ECART-07 : classe `ConversationMemory`
@@ -139,7 +139,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 | | |
 |---|---|
 | Doc | `docs/en/tool-call-strategies.md` et `docs/fr/tool-call-strategies.md`, ainsi que `placeholder-factories.md` dans les deux langues : la réponse d'un outil est parcourue « à la recherche des valeurs connues ». |
-| Code | Le résultat passe par le pipeline complet du fil, détection comprise (`integrations/langchain/middleware.py:253-272`). Une valeur jamais citée est détectée aussi. |
+| Code | Le résultat passe par le pipeline complet de la conversation, détection comprise (`integrations/langchain/middleware.py:253-272`). Une valeur jamais citée est détectée aussi. |
 | Page du wiki | [Laisser un outil agir sur les vraies valeurs](../processus/laisser-un-outil-agir.md) |
 | Effet | La doc sous-estimait la protection. Statut : doc corrigée le 2026-10-02 (`3473217`). |
 
@@ -159,5 +159,5 @@ Ces points ne contredisent aucune doc. Ils sont signalés dans les pages du wiki
 | Point | Page |
 |---|---|
 | La demande part-elle en clair dans Claude Code quand `piighost-api` est injoignable ? | [Brancher la protection sur un agent](../integrations/agents-et-outils.md) |
-| L'expiration d'un message Redis renumérote-t-elle les jetons du fil ? | [Suivre une conversation](../processus/suivre-une-conversation.md) |
+| L'expiration d'un message Redis renumérote-t-elle les jetons de la conversation ? | [Suivre une conversation](../processus/suivre-une-conversation.md) |
 | La surcharge d'une section entière par un objet JSON (`PIIGHOST_DETECTOR`) n'a pas de test. | [Configurer un pipeline](../exploitation/configuration-et-hub.md) |

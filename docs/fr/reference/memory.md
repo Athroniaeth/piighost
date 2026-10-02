@@ -33,6 +33,22 @@ Quatre méthodes async composent l'interface. Un backend les implémente toutes 
 
 Le pipeline pilote ces méthodes pour vous. Vous appelez la mémoire directement seulement pour pré-remplir ou inspecter un thread, et `create_schema()` sur le backend SQL au démarrage.
 
+### `Forgotten`
+
+```python
+@dataclass(frozen=True, slots=True)
+class Forgotten:
+    messages: int
+    detections: int
+```
+
+Ce que `forget` a effacé, rendu comme preuve pour une demande d'effacement. `forget_thread` sur un pipeline de conversation rend le même objet.
+
+| Champ | Type | Signification |
+|-------|------|---------------|
+| `messages` | `int` | Le nombre de messages en cache supprimés |
+| `detections` | `int` | Le nombre de détections supprimées dans ces messages |
+
 ## `InMemoryConversationMemory`
 
 ```python

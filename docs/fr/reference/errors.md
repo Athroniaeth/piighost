@@ -29,6 +29,8 @@ flowchart LR
     PIIGhostError --> DetectorError
     DetectorError --> LabelMappingError
     DetectorError --> TextTooLongError
+    DetectorError --> BridgePayloadError
+    DetectorError --> BridgeSpanRangeError
     PIIGhostError --> TextError
     TextError --> EmptyFragmentError
     PIIGhostError --> AnonymizerError
@@ -55,7 +57,7 @@ flowchart LR
 *L'arbre `PIIGhostError`, chaque classe de regroupement à gauche des erreurs qu'elle couvre.*
 { .figure-caption }
 
-Sur les trente-trois classes d'erreur, vingt sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, une classe de regroupement qui est aussi levée pour elle-même.
+Sur les trente-cinq classes d'erreur, vingt-deux sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, une classe de regroupement qui est aussi levée pour elle-même.
 
 ## Modèles de données
 
@@ -73,14 +75,16 @@ Les invariants que ces erreurs font respecter sont dans [Référence des modèle
 
 ## Détecteurs
 
-Module : `piighost.components.detector.ner`. `DetectorError` regroupe deux défaillances de `BaseNERDetector`, elles ne touchent donc que les détecteurs à modèle. Un détecteur regex, exact-match, composite ou chunked ne lève ni l'une ni l'autre.
+Module : `piighost.components.detector.ner`. `DetectorError` regroupe quatre défaillances. Deux appartiennent à `BaseNERDetector`, elles ne touchent donc que les détecteurs à modèle, et deux à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | deux labels externes pointent vers un même label interne, ce qui rendrait la recherche inverse ambiguë |
 | `TextTooLongError` | `BaseNERDetector`, à la détection | un texte dépasse `max_chars` alors que `auto_chunk` est désactivé, un scan limité au préfixe étant refusé |
+| `BridgePayloadError` | `BridgeDetector`, à la détection | le runner rend un span auquel il manque un champ, ou un décalage qui n'est pas un entier, un flottant compris |
+| `BridgeSpanRangeError` | `BridgeDetector`, à la détection | le runner rend un span vide ou inversé, qui dépasse le texte, ou, en unités UTF-16, qui coupe un caractère en deux |
 
-Les deux sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent la seconde.
+Les quatre sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent `TextTooLongError`, et l'`offset_unit` dans laquelle se lisent les décalages du bridge.
 
 ## Utilitaires de texte
 

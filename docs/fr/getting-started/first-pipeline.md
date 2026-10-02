@@ -18,7 +18,7 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
     Un `RegexDetector` reconnaît des motifs, c'est-à-dire des chaînes de caractères qui suivent une structure fixe. Pour des noms et des lieux arbitraires, on lui passe un dictionnaire qui associe un label à un motif. Ici deux motifs, un pour les prénoms, un pour la ville.
 
     ```python
-    --8<-- "snippets/first_pipeline.py:detector"
+    --8<-- "snippets/first_pipeline.fr.py:detector"
     ```
 
     Pour les formats non spécifiques à une langue, comme l'email et l'URL, le [hub piighost](https://hub.piighost.dev) publie des catalogues tout faits. Le groupe épinglé ci-dessous est récupéré à la première construction, puis relu depuis le cache sur disque.
@@ -42,7 +42,7 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
 Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détections d'une même valeur et d'un même label en une seule entité, pour que chaque occurrence reçoive plus tard le même jeton.
 
 ```python
---8<-- "snippets/first_pipeline.py:linker"
+--8<-- "snippets/first_pipeline.fr.py:linker"
 ```
 
 ## 3. Assigner un jeton à chaque entité
@@ -50,7 +50,7 @@ Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détect
 L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton qui prend sa place dans le texte. Le jeton dépend de la factory choisie. `LabelCounterPlaceholderFactory` numérote par label, donc `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
---8<-- "snippets/first_pipeline.py:anonymizer"
+--8<-- "snippets/first_pipeline.fr.py:anonymizer"
 ```
 
 ## 4. Assembler et lancer
@@ -58,13 +58,13 @@ L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton
 `AnonymizationPipeline` enchaîne les trois composants dans l'ordre, détecter, regrouper, remplacer. Son appel `anonymize` est asynchrone et renvoie un résultat dont `text` porte la phrase dé-identifiée.
 
 ```python
---8<-- "snippets/first_pipeline.py:run"
+--8<-- "snippets/first_pipeline.fr.py:run"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/first_pipeline.out"
+--8<-- "snippets/first_pipeline.fr.out"
 ```
 
 Chaque occurrence de `Patrick`{ .pii } reçoit le même `<<PERSON:1>>`{ .placeholder }, `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder } à ses deux apparitions, et `Marie`{ .pii } reçoit le numéro suivant `<<PERSON:2>>`{ .placeholder }. C'est le linker de l'étape 2 qui rend cette cohérence possible.

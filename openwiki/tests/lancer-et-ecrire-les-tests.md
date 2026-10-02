@@ -29,7 +29,7 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 - PIIGhost a plus de mille tests automatiques. Ils tournent en quelques secondes sans télécharger de modèle d'IA.
 - Les tests qui chargent de vrais modèles sont à part. Ils tournent chaque nuit sur GitHub.
 - Avant toute fusion, un contrôle bloquant vérifie la mise en forme, les types, la sécurité du code et la documentation.
-- Une partie des tests (32 le 01/10/2026) n'est lancée par aucune tâche automatique, faute des bibliothèques nécessaires. Voir [Ce qui ne tourne nulle part en CI](#ce-qui-ne-tourne-nulle-part-en-ci).
+- Une partie des tests (32 le 2026-10-01) n'est lancée par aucune tâche automatique, faute des bibliothèques nécessaires. Voir [Ce qui ne tourne nulle part en CI](#ce-qui-ne-tourne-nulle-part-en-ci).
 
 Les termes sont définis dans le [glossaire](../glossaire.md).
 
@@ -48,7 +48,7 @@ Les termes sont définis dans le [glossaire](../glossaire.md).
 
 ### Vérifier
 
-Le 01/10/2026, sur `develop`, `uv run pytest -q` affiche `1128 passed, 32 skipped, 3 deselected`. Les 3 tests désélectionnés sont les tests `integration`.
+Le 2026-10-01, sur `develop`, `uv run pytest -q` affiche `1128 passed, 32 skipped, 3 deselected`. Les 3 tests désélectionnés sont les tests `integration`.
 
 ## Ce que contrôle `make lint`
 
@@ -108,7 +108,7 @@ Le groupe `dev` installe les extras `config, argon2, crypto, redis, mistral, lan
 - Dans la tâche `tests`, les tests qui demandent ces bibliothèques par `importorskip` sont sautés.
 - Dans `integration.yml`, ces bibliothèques sont installées, mais `-m integration` ne sélectionne que les 3 tests marqués.
 
-Les tests sautés et non marqués ne tournent donc dans aucune tâche. Le 01/10/2026, ce sont 32 tests, parmi lesquels :
+Les tests sautés et non marqués ne tournent donc dans aucune tâche. Le 2026-10-01, ce sont 32 tests, parmi lesquels :
 
 - `tests/integrations/llama_index/` (les deux fichiers) ;
 - les entrées `gliner2`, `transformers`, `presidio` et `spacy` de `tests/components/detector/test_contract.py` ;

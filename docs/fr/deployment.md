@@ -148,3 +148,4 @@ Pour servir une configuration du hub plutôt qu'un fichier, posez `PIIGHOST_CONF
 - [Déploiement multi-instance](multi-instance.md) : pourquoi la mémoire Redis partagée est requise derrière un load balancer.
 - [Sécurité](security.md) : le modèle de menace au repos et la comparaison des backends.
 - [Pipeline conversationnel](getting-started/conversation.md) : l'API du pipeline de thread que le middleware pilote.
+- [Stocker les conversations et protéger les traces](../../openwiki/exploitation/stockage-et-chiffrement.md) : les règles de stockage, de `BR-STO-01` à `BR-STO-08`, écrites pour un DPO ou un exploitant.

@@ -196,9 +196,10 @@ stable.
 L'anonymiseur (`AnyAnonymizer`) applique enfin le remplacement. Il demande un token à la
 factory pour chaque entité, puis remplace chaque détection par son token.
 
-Conséquence de l'étape 5, le remplacement par positions se fait de droite à gauche, pour
-que remplacer une zone ne décale pas les positions des zones encore à traiter. Cela
-suppose des spans non chevauchants, ce que l'étape 5 garantit.
+Conséquence de l'étape 5, le remplacement construit un nouveau texte en un seul passage
+sur les spans, de gauche à droite, en recopiant le texte entre eux, si bien qu'aucun
+remplacement ne décale la position d'un autre. Cela suppose des spans non chevauchants, ce
+que l'étape 5 garantit.
 
 ---
 
@@ -383,7 +384,7 @@ qui suit encore la grammaire des placeholders n'a pas été émis par le pipelin
 | Occurrences ratées par le détecteur | Expander (`AnyDetectionExpander`) |
 | Détections qui se chevauchent | Résolveur de spans (`AnyOverlapResolver`) |
 | Entités équivalentes à fusionner | Résolveur d'entités (`AnyEntityResolver`) |
-| Produire le texte sans corruption | Anonymiseur, remplacement droite à gauche |
+| Produire le texte sans corruption | Anonymiseur, un seul passage de gauche à droite |
 | Revenir en arrière sur un texte quelconque | `deanonymize`, remplacement token par token |
 | Cohérence sur toute la conversation | Mémoire par `thread_id`, ordre first-seen |
 | Valeur venant du modèle, pas de l'utilisateur | Provenance en mémoire (`MessageRole`) |

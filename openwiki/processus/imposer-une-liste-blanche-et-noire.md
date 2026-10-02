@@ -34,6 +34,20 @@ Besoins couverts : DPO-3, USER-5 et USER-6, décrits dans [Besoins par profil](.
 
 PIIGhost n'a pas d'écran. La liste blanche et la liste noire sont écrites par l'équipe technique, dans le code ou dans la section `[override]` du fichier de configuration, celui de l'application ou celui du serveur `piighost-api`. Le DPO décide de leur contenu. Les tâches ci-dessous disent quoi demander.
 
+### Le trajet d'un message à travers les listes
+
+```mermaid
+flowchart TD
+    A["Message de l'utilisateur"] --> B["Repérage par le détecteur"]
+    B --> C["Liste noire : la valeur reste en clair"]
+    B --> D["Liste blanche : la valeur est masquée, même ratée"]
+    C --> E{"Les deux listes visent le même passage ?"}
+    D --> E
+    E -- "réglage de conflit" --> F["Remplacement par jeton"]
+    F --> G["Contrôle final, qui ignore la liste noire"]
+    G --> H["Envoi au modèle"]
+```
+
 ### Exemple suivi d'un bout à l'autre
 
 La liste blanche contient la forme « PRJ- suivi de quatre chiffres », avec le type `PROJET`. La liste noire contient « Acme », le nom de l'entreprise. Le détecteur lit « Acme » comme une personne et ne connaît pas les numéros de dossier.
@@ -114,6 +128,8 @@ Rien de différent : la réponse restaurée contient les vraies valeurs. Seul le
 
 ## Pour les développeurs
 
+Le guide technique montre les deux listes à l'œuvre dans [Comment forcer une détection ou laisser une valeur en clair](../../docs/fr/examples/overrides.md).
+
 ### Où vivent les règles
 
 | Règle | Emplacement |
@@ -165,7 +181,7 @@ Puis lancez `piighost anonymize --config <votre fichier> "Claire Dubois travaill
 
 - **Les listes sont des détecteurs complets.** Une liste regex lourde ou un détecteur à modèle relance un calcul à chaque message, et une seconde fois pour le contrôle final (`cleared_values`).
 - **`forces_value` relance la liste blanche sur chaque valeur d'entité** introduite par l'assistant, sous `FORCE`.
-- **Une détection en cache n'est pas repassée dans les listes** (BR-LIST-08). Pour appliquer une nouvelle liste à une conversation en cours, effacez le fil (`forget_thread`) ou corrigez le message par `anonymize_corrected`.
+- **Une détection en cache n'est pas repassée dans les listes** (BR-LIST-08). Pour appliquer une nouvelle liste à une conversation en cours, effacez la conversation (`forget_thread`) ou corrigez le message par `anonymize_corrected`.
 - **`ExactMatchDetector` est d'abord un outil de test.** Utilisé comme liste blanche dans `DetectionOverride`, il survit aux corrections humaines. Utilisé seul comme détecteur principal, non.
 
 ### Écarts doc / code

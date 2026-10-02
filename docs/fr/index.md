@@ -49,8 +49,10 @@ Pour aller plus loin :
     - [Quickstart](getting-started/quickstart.md)
     - [Premier pipeline](getting-started/first-pipeline.md)
     - [Pipeline conversationnel](getting-started/conversation.md)
+    - [Fichier de configuration](getting-started/configuration.md)
     - [Middleware LangChain](getting-started/langchain.md)
     - [Serveur d'API](getting-started/api-server.md)
+    - [Client distant](getting-started/api-client.md)
 
 -   :lucide-wrench: __Recettes__
 
@@ -59,10 +61,25 @@ Pour aller plus loin :
     Résoudre une tâche précise.
 
     - [Usage basique](examples/basic.md)
-    - [Intégration LangChain](examples/langchain.md)
     - [Détecteurs prêts à l'emploi](examples/detectors.md)
+    - [Listes d'override](examples/overrides.md)
     - [Étendre PIIGhost](extending.md)
     - [Tests](examples/testing.md)
+    - [Déploiement](deployment.md)
+    - [Déploiement multi-instance](multi-instance.md)
+
+-   :lucide-plug: __Intégrations__
+
+    ---
+
+    Brancher `piighost` dans un agent, un framework ou un client.
+
+    - [Intégration LangChain](examples/langchain.md)
+    - [Intégration Pydantic AI](examples/pydantic-ai.md)
+    - [Intégration LlamaIndex](examples/llama-index.md)
+    - [Hooks Claude Code](examples/claude-code.md)
+    - [Proxy compatible OpenAI](examples/openai-proxy.md)
+    - [Proxy compatible Anthropic](examples/anthropic-proxy.md)
 
 -   :lucide-book-open: __Référence__
 

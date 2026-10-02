@@ -42,7 +42,7 @@ of detections, one per value found, with its position, its type, and a confidenc
 
 ```mermaid
 flowchart LR
-    T["Patrick habite à Paris"] --> D{{"AnyDetector"}}
+    T["Patrick lives in Paris"] --> D{{"AnyDetector"}}
     D --> R1["PERSON (0,7) 0.95"]
     D --> R2["LOCATION (17,22) 0.92"]
 ```
@@ -88,7 +88,7 @@ model can no longer tell them apart, and you can no longer go back without ambig
 you need an identity per individual.
 
 ```text
-Patrick écrit à Marie  →  <<PERSON:1>> écrit à <<PERSON:2>>
+Patrick writes to Marie  →  <<PERSON:1>> writes to <<PERSON:2>>
 ```
 
 `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }, `Marie`{ .pii } becomes
@@ -105,9 +105,9 @@ Hence a new step, going from detections to entities. That is the linker
 
 ```mermaid
 flowchart LR
-    D["détections :\nPatrick(0,7)\npatrick(30,37)\nMarie(15,20)"] --> L{{"ExactEntityLinker"}}
-    L --> E1["Entité PERSON 'patrick'\n+ toutes ses occurrences"]
-    L --> E2["Entité PERSON 'marie'"]
+    D["detections:\nPatrick(0,7)\npatrick(30,37)\nMarie(15,20)"] --> L{{"ExactEntityLinker"}}
+    L --> E1["Entity PERSON 'patrick'\n+ all its occurrences"]
+    L --> E2["Entity PERSON 'marie'"]
 ```
 
 *The linker groups the detections of the same value into one entity, which will receive a
@@ -188,9 +188,9 @@ token.
 The anonymizer (`AnyAnonymizer`) finally applies the replacement. It asks the factory for
 a token for each entity, then replaces each detection with its token.
 
-Consequence of step 5, the replacement by positions is done right to left, so that
-replacing one area does not shift the positions of the areas still to process. This
-assumes non-overlapping spans, which step 5 guarantees.
+Consequence of step 5, the replacement builds a new text in one pass over the spans,
+left to right, copying the text between them, so no replacement shifts the position of
+another. This assumes non-overlapping spans, which step 5 guarantees.
 
 ---
 
@@ -202,13 +202,13 @@ text returns exactly that mapping, one entity per emitted token.
 
 Restoration replaces, in a text, each known token with the value of its entity. It is
 not limited to the text the pipeline produced. The model often generates a new response
-containing a token, for example "Bien sûr, `<<PERSON:1>>`{ .placeholder } !". This
+containing a token, for example "Of course, `<<PERSON:1>>`{ .placeholder }!". This
 sentence was never produced by the pipeline, but since you know the token-to-value pair,
 you replace the token in any text.
 
 ```mermaid
 flowchart LR
-    IN["texte porteur de tokens"] --> D["deanonymize :\nremplace chaque token connu\npar la valeur de son entité"] --> OUT["texte restauré"]
+    IN["text carrying tokens"] --> D["deanonymize:\nreplaces every known token\nwith the value of its entity"] --> OUT["restored text"]
 ```
 
 *Restoration replaces known tokens with their value, in any text.*
@@ -234,8 +234,8 @@ pipeline has no memory. It starts from scratch on each call, and the counter res
 1. Over two messages, you would get this.
 
 ```text
-Message 1 : "Patrick appelle Marie"   →  <<PERSON:1>> appelle <<PERSON:2>>
-Message 2 : "Marie rappelle Patrick"  →  <<PERSON:1>> rappelle <<PERSON:2>>
+Message 1: "Patrick calls Marie"        →  <<PERSON:1>> calls <<PERSON:2>>
+Message 2: "Marie calls Patrick back"  →  <<PERSON:1>> calls <<PERSON:2>> back
 ```
 
 `Marie`{ .pii } is `<<PERSON:2>>`{ .placeholder } in message 1 then
@@ -252,10 +252,10 @@ seen again in a later message therefore recovers their entity, and their token, 
 of creating a new one.
 
 ```text
-Message 1 : "Patrick appelle Marie"   →  <<PERSON:1>> appelle <<PERSON:2>>
-   mémoire : patrick→1, marie→2
-Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
-   (réutilise la mémoire, aucun nouveau compteur)
+Message 1: "Patrick calls Marie"        →  <<PERSON:1>> calls <<PERSON:2>>
+   memory: patrick→1, marie→2
+Message 2: "Marie calls Patrick back"  →  <<PERSON:2>> calls <<PERSON:1>> back
+   (reuses the memory, no new counter)
 ```
 
 ### The rules that follow
@@ -369,7 +369,7 @@ token still following the placeholder grammar was not emitted by the pipeline.
 | Occurrences missed by the detector | Expander (`AnyDetectionExpander`) |
 | Detections that overlap | Span resolver (`AnyOverlapResolver`) |
 | Equivalent entities to merge | Entity resolver (`AnyEntityResolver`) |
-| Producing the text without corruption | Anonymizer, right-to-left replacement |
+| Producing the text without corruption | Anonymizer, one left-to-right pass |
 | Going back on an arbitrary text | `deanonymize`, token-by-token replacement |
 | Consistency across the whole conversation | Memory per `thread_id`, first-seen order |
 | A value from the model, not the user | Provenance in memory (`MessageRole`) |

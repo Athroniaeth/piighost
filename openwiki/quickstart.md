@@ -43,7 +43,7 @@ Le wiki s'adresse d'abord aux personnes qui décident de la protection des donn�
 | Ce que le modèle voit vraiment d'un message | [Protéger un message avant l'envoi au modèle](processus/proteger-un-message.md) |
 | Pourquoi un nom est resté en clair, ou à moitié | [Protéger un message avant l'envoi au modèle](processus/proteger-un-message.md#questions-fréquentes) |
 | Comment une personne garde le même jeton d'un message à l'autre | [Suivre une conversation et restaurer la réponse](processus/suivre-une-conversation.md) |
-| Ce qui se passe quand on corrige un message à la main | [Suivre une conversation et restaurer la réponse](processus/suivre-une-conversation.md#règles-à-connaître) |
+| Ce qui se passe quand on corrige un message à la main | [Suivre une conversation et restaurer la réponse](processus/suivre-une-conversation.md#corriger-un-repérage) |
 | Comment effacer une conversation (droit à l'effacement) | [Suivre une conversation et restaurer la réponse](processus/suivre-une-conversation.md) |
 | Garder le nom de l'entreprise en clair, ou toujours masquer un code interne | [Imposer une liste blanche et une liste noire](processus/imposer-une-liste-blanche-et-noire.md) |
 | Ce que reçoit un outil de l'agent, et ce que le modèle lit de son résultat | [Laisser un outil agir sur les vraies valeurs](processus/laisser-un-outil-agir.md) |
@@ -75,7 +75,7 @@ flowchart LR
 | Ajouter un détecteur | [Ajouter ou remplacer un composant](architecture/ports-et-extension.md#ajouter-un-détecteur) | `components/detector/regex.py` ou `ner/spacy.py`, `config/models/detector_model.py`, `tests/components/detector/test_contract.py` |
 | Changer l'arbitrage des chevauchements | [Protéger un message](processus/proteger-un-message.md) | `components/overlap_resolver/`, `tests/components/overlap_resolver/` |
 | Changer la forme des jetons | [Glossaire](glossaire.md), [Ajouter ou remplacer un composant](architecture/ports-et-extension.md#jetons-typés) | `components/placeholder/`, `tags.py`, `tests/components/placeholder/` |
-| Toucher au fil de conversation ou à la correction humaine | [Suivre une conversation](processus/suivre-une-conversation.md) | `pipeline/thread.py`, `tests/pipeline/test_thread.py`, `test_thread_hitl.py` |
+| Toucher à la conversation ou à la correction humaine | [Suivre une conversation](processus/suivre-une-conversation.md) | `pipeline/thread.py`, `tests/pipeline/test_thread.py`, `test_thread_hitl.py` |
 | Modifier la liste blanche ou la liste noire | [Imposer une liste blanche et une liste noire](processus/imposer-une-liste-blanche-et-noire.md) | `components/override/`, `tests/components/override/test_override.py` |
 | Changer le traitement des appels d'outil | [Laisser un outil agir](processus/laisser-un-outil-agir.md) | `integrations/langchain/middleware.py` (`awrap_tool_call`), `integrations/pydantic_ai/hooks.py`, `tests/integrations/langchain/test_middleware.py` |
 | Changer la restauration en flux | [Afficher une réponse streamée](processus/afficher-une-reponse-streamee.md) | `components/placeholder/streaming.py`, `tests/components/placeholder/test_streaming*.py` |

@@ -33,6 +33,22 @@ Four async methods make up the interface. A backend implements all four, whateve
 
 The pipeline drives these for you. You call the memory directly only to pre-seed or inspect a thread, and `create_schema()` on the SQL backend at startup.
 
+### `Forgotten`
+
+```python
+@dataclass(frozen=True, slots=True)
+class Forgotten:
+    messages: int
+    detections: int
+```
+
+What `forget` erased, returned as evidence for a right-to-erasure request. `forget_thread` on a thread pipeline returns the same object.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `messages` | `int` | How many cached messages were dropped |
+| `detections` | `int` | How many detections across those messages were dropped |
+
 ## `InMemoryConversationMemory`
 
 ```python
