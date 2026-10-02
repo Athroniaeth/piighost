@@ -35,6 +35,44 @@ Pour aller plus loin :
 - [Pourquoi dé-identifier ?](why-anonymize.md), le spectre des fournisseurs, le détail juridique (CLOUD Act, FISA 702, Schrems II) et les cas d'usage
 - [Comment PIIGhost se compare](comparison.md), les alternatives et leurs compromis
 
+## Selon votre profil
+
+<div class="grid cards" markdown>
+
+-   :lucide-scale: __Responsable conformité__
+
+    ---
+
+    Aucune donnée confidentielle ne part en clair, et vous pouvez le prouver.
+
+    [Vos besoins](needs-by-profile.md#responsable-conformite-dpo)
+
+-   :lucide-code: __Développeur__
+
+    ---
+
+    La protection s'ajoute à votre agent sans réécrire sa logique.
+
+    [Vos besoins](needs-by-profile.md#developpeur)
+
+-   :lucide-server: __Exploitant__
+
+    ---
+
+    Un serveur partagé, une mémoire chiffrée, des secrets hors des fichiers.
+
+    [Vos besoins](needs-by-profile.md#exploitant)
+
+-   :lucide-message-circle: __Utilisateur de l'application__
+
+    ---
+
+    Il lit ses vraies informations et ne voit jamais un jeton.
+
+    [Ses besoins](needs-by-profile.md#utilisateur-de-lapplication)
+
+</div>
+
 ## Par où commencer
 
 <div class="grid cards" markdown>
