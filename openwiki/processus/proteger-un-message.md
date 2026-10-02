@@ -203,7 +203,7 @@ Puis `echo "Tél. 06 12 34 56 78" | uv run piighost anonymize --config <fichier>
 - **`RegexDetector` compile sous `re.ASCII`.** `\d` ne prend que 0 à 9, et `\w` s'arrête au premier caractère accentué.
 - **Un détecteur seul peut rendre des détections qui se chevauchent.** Le port l'autorise. Ne testez jamais un détecteur en sortant de la chaîne avant le résolveur.
 - **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste noire ne peuvent pas en être exemptées (`pipeline/base.py:318-322`).
-- **`LLMDetector` échoue en ouvert.** Une sortie du modèle sans champ `entities` donne zéro détection, et le message part sans protection (`components/detector/llm.py:166-172`). Voir le point de vigilance DPO-9 dans [Besoins par profil](../besoins-par-profil.md#points-de-vigilance).
+- **`LLMDetector` échoue fermé.** Une sortie du modèle illisible, sans champ `entities` ou que le parseur rejette, lève `UnreadableOutputError` et le message est refusé (`components/detector/llm.py:174-181`, `_unreadable` en `:203`). `fail_open=True` la lit comme zéro détection, et le message part alors sans protection. Voir DPO-9 dans [Besoins par profil](../besoins-par-profil.md#points-de-vigilance).
 
 ### Écarts doc / code
 
