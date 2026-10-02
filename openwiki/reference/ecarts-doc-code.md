@@ -3,9 +3,6 @@ type: reference
 title: Registre des écarts doc / code
 description: Chaque écart constaté entre la documentation existante de PIIGhost (docs/, AGENTS.md, docstrings) et le comportement du code, avec la source de chaque côté et la page du wiki concernée.
 tags: [reference, documentation, discrepancies, review]
-verified:
-  - by: openwiki/0.6.1
-    at: 2026-10-01T18:36:49.731Z
 sources:
   - id: openwiki-source-ca6cb4b1a14fd7969dfae3ec
     resource: repo://CHANGELOG.md
@@ -45,7 +42,7 @@ sources:
     resource: repo://src/piighost/crypto/cipher/base.py
   - id: openwiki-source-07566b3f03a831d37fa4fbce
     resource: repo://src/piighost/pipeline/thread.py
-generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
+generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
 # Registre des écarts doc / code
@@ -54,7 +51,7 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 - Cette page liste les endroits où la documentation existante dit autre chose que le code.
 - Le code fait foi : le wiki décrit toujours ce que fait le code.
-- Aucun écart n'est corrigé ici. Chacun attend une décision du mainteneur : corriger la doc, ou corriger le code.
+- Aucun écart n'est corrigé ici. Chacun attend une décision du mainteneur : corriger la doc, ou corriger le code. Un écart réglé garde son entrée, avec son statut.
 - Les écarts relevés portent sur la documentation pour développeurs et sur un exemple de la FAQ. Aucun ne change ce que voit l'utilisateur final.
 
 Les termes sont définis dans le [glossaire](../glossaire.md). Retour au [quickstart](../quickstart.md).
@@ -110,13 +107,13 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 | Page du wiki | [Stocker les conversations et protéger les traces](../exploitation/stockage-et-chiffrement.md) |
 | Effet | Un lecteur peut croire qu'Argon2id est toujours actif. |
 
-### ECART-06 : listes serveur et lecture du cache
+### ECART-06 : liste blanche, liste noire et lecture du cache
 
 | | |
 |---|---|
 | Doc | Docstring de `DetectionOverride` (`components/override/detector.py:51-53`) : les pipelines appliquent les listes « after every detection read ». |
 | Code | Une lecture depuis le cache de la conversation ne repasse pas par les listes (`pipeline/thread.py:271-274`). |
-| Page du wiki | [Imposer des valeurs toujours ou jamais masquées](../processus/imposer-des-listes-serveur.md) |
+| Page du wiki | [Imposer des valeurs toujours ou jamais masquées](../processus/imposer-une-liste-blanche-et-noire.md) |
 | Effet | Une liste modifiée ne s'applique pas aux messages déjà analysés. [à vérifier] : si « detection read » désigne seulement l'appel au détecteur, la phrase est juste mais trompeuse. |
 
 ### ECART-07 : classe `ConversationMemory`
@@ -136,6 +133,24 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 | Code | Aucune fabrique Faker dans `src/` (`components/placeholder/` ne contient que `redact`, `label`, `label_counter`, `label_hash`, `mask`). |
 | Page du wiki | [Glossaire](../glossaire.md) |
 | Effet | Deux pages de la doc se contredisent sur une fonction annoncée aux utilisateurs. C'est le seul écart visible par un public non développeur. |
+
+### ECART-09 : résultat d'un outil
+
+| | |
+|---|---|
+| Doc | `docs/en/tool-call-strategies.md` et `docs/fr/tool-call-strategies.md`, ainsi que `placeholder-factories.md` dans les deux langues : la réponse d'un outil est parcourue « à la recherche des valeurs connues ». |
+| Code | Le résultat passe par le pipeline complet du fil, détection comprise (`integrations/langchain/middleware.py:253-272`). Une valeur jamais citée est détectée aussi. |
+| Page du wiki | [Laisser un outil agir sur les vraies valeurs](../processus/laisser-un-outil-agir.md) |
+| Effet | La doc sous-estimait la protection. Statut : doc corrigée le 2026-10-02 (`3473217`). |
+
+### ECART-10 : flux coupé au milieu d'un jeton
+
+| | |
+|---|---|
+| Doc | `docs/en/reference/langchain.md` et `docs/fr/reference/langchain.md` : l'affichage en flux « ne montre jamais de token cassé ». |
+| Code | En fin de flux, `flush` rend tel quel le reste retenu (`components/placeholder/streaming.py:186`), donc un flux coupé dans un jeton affiche son début. |
+| Page du wiki | [Afficher une réponse streamée](../processus/afficher-une-reponse-streamee.md) |
+| Effet | Cas rare, sans fuite de valeur. Statut : doc corrigée le 2026-10-02 (`3473217`). |
 
 ## Points à vérifier, sans écart établi
 
