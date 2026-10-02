@@ -203,8 +203,8 @@ class MiddlewareError(PIIGhostError):
     subclasses, UnrecognizableFactoryError and InventedPlaceholderError, are
     raised by the TextDeidentifier those integrations share with the LangChain
     middleware, so they reach any caller that de-identifies text through an
-    integration. Only MissingThreadIdError is specific to the LangChain
-    middleware.
+    integration. MissingThreadIdError is raised by the LangChain middleware and
+    the Claude Code hooks.
 
     Catch this to handle any of them at once, or catch one of its subclasses to
     react to a specific violation.
@@ -229,10 +229,12 @@ class InventedPlaceholderError(MiddlewareError):
 
 
 class MissingThreadIdError(MiddlewareError):
-    """Raised when a thread id is required but absent from the LangGraph config.
+    """Raised when an integration receives a turn that names no thread.
 
-    With require_thread_id set, the middleware refuses to fall back to the shared
-    default thread rather than route unrelated conversations into one bucket.
+    The LangChain middleware raises it for a LangGraph config without a
+    thread_id, the Claude Code hooks for an event without a session_id. Neither
+    falls back to a shared thread, which would route unrelated conversations
+    into one bucket. A caller that needs no separation names DEFAULT_THREAD_ID.
     """
 
 

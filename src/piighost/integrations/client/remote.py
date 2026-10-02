@@ -16,11 +16,7 @@ from piighost.components.placeholder.label_counter import (
     LabelCounterPlaceholderFactory,
 )
 from piighost.components.placeholder.tags import PreservesRecognizableIdentity
-from piighost.conversation_memory.base import (
-    DEFAULT_THREAD_ID,
-    Forgotten,
-    MessageRole,
-)
+from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.exceptions import RemoteError
 from piighost.models import Detection, Entity, Span
 
@@ -136,9 +132,7 @@ class PIIGhostClient:
             detections=cast(int, data["detections"]),
         )
 
-    async def detect(
-        self, text: str, thread_id: str = DEFAULT_THREAD_ID
-    ) -> list[Entity]:
+    async def detect(self, text: str, thread_id: str) -> list[Entity]:
         """Preview the entities a message's PII groups into, without anonymizing.
 
         The server runs detection and linking but does not tokenize the text or
