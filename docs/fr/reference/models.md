@@ -135,7 +135,7 @@ Elle dérive de `DetectionError`.
 
 Module : `piighost.models.entity`
 
-Les détections identifiées comme une même valeur, regroupées par l'étage de liaison. Le groupe partage un token et se restaure en une seule valeur.
+Les détections identifiées comme une même valeur, regroupées par l'étage de liaison. Le groupe partage un jeton et se restaure en une seule valeur.
 
 ### Champs
 

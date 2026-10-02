@@ -17,10 +17,10 @@ icon: lucide/message-circle-question
     Non, par conception. Un validateur de checksum rejette une valeur dont les chiffres ne calculent pas, ce que produit exactement du bruit d'OCR ou une faute de frappe. La rejeter ferait fuiter la PII qu'il était censé attraper. Le détecteur `regex` matche sur la forme seule et penche vers la sur-détection, la direction sûre pour la dé-identification. Si vous devez resserrer un match, ajoutez un motif plus strict plutôt qu'un validateur.
 
 ??? question "Comment configurer un pipeline ?"
-    Écrivez un fichier TOML ou JSON décrivant chaque étage, puis chargez-le. `load_pipeline` construit un pipeline sans état, `load_thread_pipeline` construit un pipeline de thread avec une mémoire de conversation, et le suffixe du fichier choisit le parser. Chaque section et chaque `type` de composant sont dans la [référence de configuration](../configuration/toml.md). L'extra `config` est requis (`pip install piighost[config]`).
+    Écrivez un fichier TOML ou JSON décrivant chaque étage, puis chargez-le. `load_pipeline` construit un pipeline sans état, `load_thread_pipeline` construit un pipeline de conversation avec une mémoire de conversation, et le suffixe du fichier choisit le parser. Chaque section et chaque `type` de composant sont dans la [référence de configuration](../configuration/toml.md). L'extra `config` est requis (`pip install piighost[config]`).
 
 ??? question "Quelle latence est ajoutée par le pipeline ?"
-    Le pipeline lui-même est de l'ordre de la milliseconde (regex et lookups). Le vrai coût vient du détecteur. GLiNER2 sur CPU pour un message de 200 tokens, c'est typiquement 50 à 200 ms. Un LLM utilisé comme détecteur, plusieurs centaines de millisecondes. Un pipeline de thread cache les détections de chaque message, donc renvoyer un message dans un thread évite la détection. Une mesure sur votre charge réelle reste recommandée avant de dimensionner la production.
+    Le pipeline lui-même est de l'ordre de la milliseconde (regex et lookups). Le vrai coût vient du détecteur. GLiNER2 sur CPU pour un message de 200 tokens, c'est typiquement 50 à 200 ms. Un LLM utilisé comme détecteur, plusieurs centaines de millisecondes. Un pipeline de conversation cache les détections de chaque message, donc renvoyer un message dans une conversation évite la détection. Une mesure sur votre charge réelle reste recommandée avant de dimensionner la production.
 
 ??? question "`piighost` fonctionne-t-il 100 % offline ?"
     Oui. Avec un détecteur local (`gliner2`, `spacy`, `regex`, `exact`), aucune donnée ne quitte votre processus. Un catalogue du hub épinglé sur un commit est récupéré à la première construction, puis relu depuis le cache sur disque, et cette récupération n'envoie aucun texte au hub. Le middleware ne transmet au LLM que du texte déjà dé-identifié. C'est la raison principale de l'adoption de `piighost`, garder un LLM hébergé sous contraintes RGPD sans exfiltrer de PII brutes. Voir [Pourquoi dé-identifier ?](../why-anonymize.md) pour le contexte juridique.
@@ -28,8 +28,8 @@ icon: lucide/message-circle-question
 ??? question "Mes placeholders doivent-ils avoir ce format `<<PERSON:1>>` ?"
     Non. Le format est piloté par la placeholder factory choisie dans `[anonymizer.placeholder]`. `label_counter` produit `<<PERSON:1>>`{ .placeholder }, `label_hash` produit `<<PERSON:a1b2c3d4>>`{ .placeholder }, `label` produit `<<PERSON>>`{ .placeholder } sans compteur, `mask` produit `P***`{ .placeholder }, et vous pouvez écrire votre propre factory. Voir [Placeholder factories](../placeholder-factories.md).
 
-??? question "Puis-je obtenir de fausses valeurs réalistes plutôt que des tokens ?"
-    Pas encore. Une factory Faker qui émet des valeurs réalistes (un nom plausible à la place de `Patrick`{ .pii }) est sur la [roadmap](../roadmap.md) mais pas réimplémentée en v2. Aujourd'hui les factories émettent des tokens synthétiques ou des masques, jamais une valeur qui ressemble à du vrai.
+??? question "Puis-je obtenir de fausses valeurs réalistes plutôt que des jetons ?"
+    Pas encore. Une factory Faker qui émet des valeurs réalistes (un nom plausible à la place de `Patrick`{ .pii }) est sur la [roadmap](../roadmap.md) mais pas réimplémentée en v2. Aujourd'hui les factories émettent des jetons synthétiques ou des masques, jamais une valeur qui ressemble à du vrai.
 
 ??? question "Le LLM voit-il les vraies données confidentielles quand il appelle un outil ?"
     Cela dépend de la stratégie d'appel outil. Avec la valeur par défaut (`FULL`), non. Le middleware restaure les arguments juste avant l'exécution de l'outil, puis dé-identifie à nouveau la réponse avant qu'elle ne retourne au LLM. L'outil voit les vraies valeurs, le LLM ne voit que les placeholders. Les modes `INPUT`, `OUTPUT` et `PASSTHROUGH` modifient ce comportement, voir la question suivante et [Stratégies d'appel outil](../tool-call-strategies.md). Diagramme complet dans [Architecture](../architecture.md).
@@ -40,14 +40,14 @@ icon: lucide/message-circle-question
 ??? question "Que se passe-t-il si le LLM hallucine une donnée confidentielle qui n'était pas dans l'entrée ?"
     Elle n'est **pas** dé-identifiée par `piighost`. Le linking d'entités travaille sur les détections issues de l'entrée, pas sur des valeurs inventées. Un guard de données confidentielles résiduelles peut re-vérifier la sortie et la refuser, voir la section guard de la [référence de configuration](../configuration/toml.md) et [Limites](../limitations.md).
 
-??? question "La mémoire de conversation est-elle partagée entre threads ?"
-    Non. La mémoire est scopée par `thread_id`. Deux conversations parallèles ne voient pas les tokens l'une de l'autre, ce qui évite les fuites latérales entre utilisateurs. Le `thread_id` est extrait automatiquement de la config LangGraph.
+??? question "La mémoire de conversation est-elle partagée entre conversations ?"
+    Non. La mémoire est scopée par `thread_id`. Deux conversations parallèles ne voient pas les jetons l'une de l'autre, ce qui évite les fuites latérales entre utilisateurs. Le `thread_id` est extrait automatiquement de la config LangGraph.
 
 ??? question "Comment faire tourner plus d'un worker derrière un load balancer ?"
     Utilisez la mémoire de conversation Redis, partagée par tous les workers. La mémoire en RAM est locale au processus, donc deux workers numéroteraient la même valeur différemment en pleine conversation. Voir [Déploiement multi-instance](../multi-instance.md) pour le piège et la parade, et [Déployer un pipeline en production](../deployment.md) pour la mise en place complète.
 
 ??? question "Puis-je utiliser `piighost` sans LangChain ?"
-    Oui. Les pipelines sans état et de thread sont utilisables seuls, sans middleware. Voir [Comment dé-identifier un texte et le restaurer](../examples/basic.md).
+    Oui. Les pipelines sans état et de conversation sont utilisables seuls, sans middleware. Voir [Comment dé-identifier un texte et le restaurer](../examples/basic.md).
 
 ??? question "`piighost` chiffre-t-il les données stockées ?"
     La mémoire de conversation Redis, oui. Elle chiffre chaque valeur stockée en AES-GCM et hache chaque clé, en lisant son pepper et sa clé de cipher dans l'environnement. La mémoire en RAM ne chiffre rien et sert au développement seulement. Voir [Sécurité](../security.md) pour le modèle de menace au repos.

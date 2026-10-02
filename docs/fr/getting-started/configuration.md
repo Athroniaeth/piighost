@@ -177,7 +177,7 @@ Les deux orthographes partagent `<<PERSON:1>>`{ .placeholder }. Retirez la secti
 
 ## 7. Garder les jetons d'un message à l'autre
 
-Chaque exécution de `run.py` repart de zéro dans la numérotation, car le pipeline ne garde rien d'un appel au suivant. Ajoutez une section `[memory]` à la fin du fichier, qui lui donne un stockage par fil et change le chargeur que vous appelez.
+Chaque exécution de `run.py` repart de zéro dans la numérotation, car le pipeline ne garde rien d'un appel au suivant. Ajoutez une section `[memory]` à la fin du fichier, qui lui donne un stockage par conversation et change le chargeur que vous appelez.
 
 ```toml
 --8<-- "snippets/configuration/memory.toml"
@@ -203,7 +203,7 @@ La trace se termine sur :
 --8<-- "snippets/configuration/memory.out"
 ```
 
-Un fichier qui porte une mémoire décrit un pipeline conversationnel, donc il passe par `load_thread_pipeline`. Écrivez `thread.py`, qui envoie deux messages sur le fil `"thread-42"`.
+Un fichier qui porte une mémoire décrit un pipeline conversationnel, donc il passe par `load_thread_pipeline`. Écrivez `thread.py`, qui envoie deux messages sur la conversation `"thread-42"`.
 
 ```python
 --8<-- "snippets/configuration/thread.py"

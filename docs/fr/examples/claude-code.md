@@ -12,7 +12,7 @@ Trois hooks couvrent un tour :
 - **`PostToolUse`** dé-identifie la sortie d'un outil avant que le modèle ne la lise.
 - **`PreToolUse`** restaure les vraies valeurs dans l'entrée d'un outil avant que l'outil ne s'exécute.
 
-Ainsi le modèle ne voit que des placeholders comme `<<PERSON:1>>`, tandis que les outils qui s'exécutent vraiment (Bash, Read, Edit, ...) reçoivent les vraies valeurs. Le `session_id` de Claude Code sert de thread de dé-identification, donc une valeur garde le même token sur toute la session.
+Ainsi le modèle ne voit que des placeholders comme `<<PERSON:1>>`, tandis que les outils qui s'exécutent vraiment (Bash, Read, Edit, ...) reçoivent les vraies valeurs. Le `session_id` de Claude Code nomme la conversation de dé-identification, donc une valeur garde le même jeton sur toute la session.
 
 !!! note "Prérequis"
     `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur `piighost-api` en cours d'exécution, voir [Déployer une API de dé-identification](../getting-started/api-server.md). Le hook est un client léger, il transmet chaque événement à l'API, qui possède le pipeline et la mémoire de conversation. Il n'envoie aucune clé d'API, donc démarrez le serveur avec `PIIGHOST_ALLOW_ANONYMOUS=true` et gardez-le sur un hôte que vous seul pouvez joindre.
@@ -107,4 +107,4 @@ Sollicitez l'outil, lisez le log pour trouver quels champs portent le texte, et 
 
 ## L'utiliser par programmation
 
-L'API publique tient en deux fonctions. `handle_hook(event, pipeline)` est un dispatch pur qui prend un événement parsé et n'importe quel pipeline de thread (un `ThreadAnonymizationPipeline` local ou un `PIIGhostClient` distant) et renvoie l'enveloppe de mutation, ou `None` pour laisser passer. `run()` est le point d'entrée stdin/stdout que le module invoque. Pilotez `handle_hook` directement pour tester le comportement ou l'intégrer dans votre propre runner.
+L'API publique tient en deux fonctions. `handle_hook(event, pipeline)` est un dispatch pur qui prend un événement parsé et n'importe quel pipeline de conversation (un `ThreadAnonymizationPipeline` local ou un `PIIGhostClient` distant) et renvoie l'enveloppe de mutation, ou `None` pour laisser passer. `run()` est le point d'entrée stdin/stdout que le module invoque. Pilotez `handle_hook` directement pour tester le comportement ou l'intégrer dans votre propre runner.

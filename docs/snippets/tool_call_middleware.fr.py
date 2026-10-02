@@ -13,7 +13,7 @@ from piighost.integrations.langchain import (
 )
 
 middleware = PIIAnonymizationMiddleware(
-    pipeline,  # tokens PreservesRecognizableIdentity, sinon UnrecognizableFactoryError
+    pipeline,  # jetons PreservesRecognizableIdentity, sinon UnrecognizableFactoryError
     tool_strategy=ToolCallStrategy.FULL,
     invented_strategy=InventedPlaceholderStrategy.DROP,
     assistant_strategy=EntityCreateByAssistantStrategy.PRESERVE,

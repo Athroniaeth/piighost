@@ -29,28 +29,28 @@ Deux choses coexistent donc à tout moment. Le texte dé-identifié, qui peut ci
     - **Compromission de la mémoire du processus** : le mapping `placeholder` vers valeur d'origine vit en RAM le temps du traitement. Un attaquant qui lit la mémoire du processus récupère les données confidentielles en clair, quel que soit le backend.
     - **Store persistant non chiffré** : la mémoire en RAM (`InMemoryConversationMemory`) ne chiffre rien, elle sert au développement et au mono-processus. Un backend persistant construit sans crypto stocke ses valeurs en clair, donc un vol disque expose les données confidentielles. Configurez un hasher et un cipher sur le backend Redis ou SQL pour chiffrer au repos.
     - **Placeholders inventés par le LLM** : si le LLM fabrique un placeholder qui n'a jamais été émis, `piighost` ne peut pas le rattacher à une valeur puisqu'il n'est dans aucun mapping. Le middleware refuse par défaut ces jetons (`InventedPlaceholderError`). Voir [Limites](limitations.md).
-    - **Ré-identification par le contexte** : un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. "Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants" désigne une personne sans nommer sa PII. Le détecteur ne voit que des tokens, pas cette inférence.
+    - **Ré-identification par le contexte** : un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. "Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants" désigne une personne sans nommer sa PII. Le détecteur ne voit que des jetons, pas cette inférence.
     - **Détecteurs faillibles** : un détecteur est au mieux. Une donnée confidentielle qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
-    - **Valeurs introduites par l'assistant sous PRESERVE** : avec le défaut `EntityCreateByAssistantStrategy.PRESERVE`, une valeur que le modèle a lui-même introduite reste en clair pour tout le fil, puisque le modèle la connaît déjà, et elle reste en clair même quand un message utilisateur ultérieur la reprend, car le fil date la valeur à sa première occurrence. Utilisez `ANONYMIZE` pour tokeniser aussi les valeurs introduites par l'assistant.
+    - **Valeurs introduites par l'assistant sous PRESERVE** : avec le défaut `EntityCreateByAssistantStrategy.PRESERVE`, une valeur que le modèle a lui-même introduite reste en clair pour toute la conversation, puisque le modèle la connaît déjà, et elle reste en clair même quand un message utilisateur ultérieur la reprend, car la conversation date la valeur à sa première occurrence. Utilisez `ANONYMIZE` pour dé-identifier aussi les valeurs introduites par l'assistant.
     - **Journaux applicatifs en amont** : `piighost` ne journalise jamais de données confidentielles brutes, mais votre application peut le faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
 
 ## L'état LangGraph après le tour du modèle
 
 Le middleware restaure les données confidentielles pour l'affichage. Après `aafter_model`, le contenu de chaque message porte à nouveau les vraies valeurs, l'utilisateur voit `jean@mail.com`{ .pii } et non `<<EMAIL:1>>`{ .placeholder }. Ce contenu restauré vit dans l'état LangGraph, et un checkpointer qui persiste l'état persiste des données confidentielles en clair dans le contenu des messages. C'est voulu, l'état est votre surface d'affichage, mais cela signifie que le store du checkpointer contient des données sensibles et doit être protégé comme le mapping lui-même.
 
-Les appels d'outils sont traités différemment. Les `tool_calls` d'un `AIMessage` restent tokenisés dans l'état. Le middleware ne restaure un argument d'outil que pour l'exécution de l'outil, sur une requête neuve, et ne réécrit jamais la valeur restaurée dans l'état, si bien que le checkpointer ne persiste jamais de valeur en clair dans un appel d'outil. Un résultat d'outil conservé comme `ToolMessage` reste lui aussi tokenisé dans l'état, une UI qui affiche les sorties d'outils depuis l'état voit donc des tokens, pas des données confidentielles.
+Les appels d'outils sont traités différemment. Les `tool_calls` d'un `AIMessage` gardent leurs jetons dans l'état. Le middleware ne restaure un argument d'outil que pour l'exécution de l'outil, sur une requête neuve, et ne réécrit jamais la valeur restaurée dans l'état, si bien que le checkpointer ne persiste jamais de valeur en clair dans un appel d'outil. Un résultat d'outil conservé comme `ToolMessage` garde lui aussi ses jetons dans l'état, une UI qui affiche les sorties d'outils depuis l'état voit donc des jetons, pas des données confidentielles.
 
-## Injection de token dans l'entrée utilisateur
+## Injection de jeton dans l'entrée utilisateur
 
-Un token est restauré en une valeur parce qu'il ressemble à un token émis par le
+Un jeton est restauré en une valeur parce qu'il ressemble à un jeton émis par le
 pipeline. Un utilisateur qui tape `<<PERSON:2>>`{ .placeholder } dans l'entrée
 pourrait sinon le voir restauré en la valeur de la deuxième entité, et lire une
-valeur qui n'est pas la sienne. L'anonymiseur neutralise tout token tapé par
+valeur qui n'est pas la sienne. L'anonymiseur neutralise tout jeton tapé par
 l'utilisateur avant le rendu, en insérant un caractère invisible dans le
-délimiteur pour que la chaîne ne corresponde plus à la grammaire des tokens.
+délimiteur pour que la chaîne ne corresponde plus à la grammaire des jetons.
 Seules les portions littérales entre les entités détectées sont neutralisées,
-jamais les tokens que le pipeline insère, si bien qu'un vrai token est toujours
-restauré et un token injecté ne l'est pas. Le comportement est actif par défaut
+jamais les jetons que le pipeline insère, si bien qu'un vrai jeton est toujours
+restauré et un jeton injecté ne l'est pas. Le comportement est actif par défaut
 et se désactive avec `escape_existing_tokens=False` sur l'`Anonymizer`.
 
 ## Le mapping est fait de données confidentielles en clair
@@ -118,11 +118,11 @@ La dataclass `Detection` porte la forme brute de la valeur détectée dans son c
 La librairie ne masque délibérément pas ce champ. Si vous transférez des instances `Detection` ou `Entity` vers des logs, des traces ou un reporter d'erreurs, faites le scrub vous-même. Deux recettes simples.
 
 - Filtrer `to_dict()` avant sérialisation (retirer la clé `text`).
-- Encapsuler votre logger structuré dans un redactor qui reconnaît les `Detection` et remplace `text` par un marqueur de longueur.
+- Encapsuler votre logger structuré dans un masqueur qui reconnaît les `Detection` et remplace `text` par un marqueur de longueur.
 
 `piighost` lui-même n'écrit jamais de données confidentielles dans aucun logger. La discipline ci-dessus est nécessaire dans votre propre code.
 
-## Redaction des payloads d'observation
+## Caviardage des payloads d'observation
 
 Le pipeline trace ses étapes via OpenTelemetry. Chaque étape produit un span avec son propre payload d'entrée et de sortie, poussé vers le backend de trace que vous avez branché. Par défaut ces payloads contiennent le texte en clair et les valeurs des détections, ce qui rend les traces utilisables comme jeux d'annotation, mais dangereuses sur un backend qui n'a pas le droit de voir des données confidentielles.
 
@@ -135,8 +135,8 @@ payload d'observation : "<<REDACT>> habite à <<REDACT>>."
 
 Concrètement :
 
-- les payloads de texte voient chaque span de détection remplacé par le token de la factory. L'union des spans est fusionnée avant remplacement, donc aucun fragment en clair d'une détection ne survit au remplacement d'une autre,
-- les `Detection` et `Entity` sérialisées portent le token de la factory à la place de leur champ `text`. Le label, la position et le nombre d'occurrences restent visibles pour le débogage,
+- les payloads de texte voient chaque span de détection remplacé par le jeton de la factory. L'union des spans est fusionnée avant remplacement, donc aucun fragment en clair d'une détection ne survit au remplacement d'une autre,
+- les `Detection` et `Entity` sérialisées portent le jeton de la factory à la place de leur champ `text`. Le label, la position et le nombre d'occurrences restent visibles pour le débogage,
 - les payloads déjà dé-identifiés passent inchangés puisqu'ils ne contiennent que des placeholders.
 
 Pour surfacer plus de structure (par exemple une numérotation distincte par valeur en environnement de dev), passer une autre factory.
@@ -145,7 +145,7 @@ Pour surfacer plus de structure (par exemple une numérotation distincte par val
 --8<-- "snippets/security_redactor.py:example"
 ```
 
-N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le redactor d'observation est indépendant de la factory qui sert à la dé-identification réelle, donc on peut afficher du `<<PERSON:1>>`{ .placeholder } côté trace tout en envoyant un autre schéma de placeholder au LLM. Laisser `observation_redactor` à `None` trace le texte en clair, à réserver à un backend de confiance. Ce défaut est traité comme un choix explicite. Avec un tracer provider réellement configuré et sans redactor, le pipeline avertit une fois que ses traces portent des données confidentielles en clair, et `trace_clear_text=True` l'assume et tait l'avertissement.
+N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le masqueur d'observation est indépendant de la factory qui sert à la dé-identification réelle, donc on peut afficher du `<<PERSON:1>>`{ .placeholder } côté trace tout en envoyant un autre schéma de placeholder au LLM. Laisser `observation_redactor` à `None` trace le texte en clair, à réserver à un backend de confiance. Ce défaut est traité comme un choix explicite. Avec un tracer provider réellement configuré et sans masqueur, le pipeline avertit une fois que ses traces portent des données confidentielles en clair, et `trace_clear_text=True` l'assume et tait l'avertissement.
 
 ## Décisions de conception qui soutiennent le modèle de menaces
 

@@ -4,14 +4,14 @@ icon: lucide/cloud
 
 # Client distant
 
-Vous allez utiliser `PIIGhostClient` comme un pipeline de fil distant, interchangeable avec un pipeline local. Il implémente le même port qu'un `ThreadAnonymizationPipeline` local, mais chaque appel s'exécute contre un serveur `piighost-api` en HTTP. Vous le pointez sur une URL de base, dé-identifiez un message, le restaurez, puis glissez ce même client dans le middleware LangChain là où irait un pipeline local. Cela garde le modèle NER hors de l'hôte applicatif, sur un serveur partagé, un nœud GPU ou un pod d'inférence dédié.
+Vous allez utiliser `PIIGhostClient` comme un pipeline de conversation distant, interchangeable avec un pipeline local. Il implémente le même port qu'un `ThreadAnonymizationPipeline` local, mais chaque appel s'exécute contre un serveur `piighost-api` en HTTP. Vous le pointez sur une URL de base, dé-identifiez un message, le restaurez, puis glissez ce même client dans le middleware LangChain là où irait un pipeline local. Cela garde le modèle NER hors de l'hôte applicatif, sur un serveur partagé, un nœud GPU ou un pod d'inférence dédié.
 
 !!! note "Prérequis"
     `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur `piighost-api` joignable, voir [Déployer une API de dé-identification](api-server.md). On en suppose ici un sur `http://localhost:8000`.
 
 ## 1. Ouvrir un client
 
-Passez une URL de base sous forme de chaîne et le client construit et possède son `httpx.AsyncClient`, fermé à la sortie du gestionnaire de contexte. Vous pouvez borner chaque requête avec `timeout`, joindre des en-têtes statiques via `headers` comme un token Authorization, et relancer une erreur de connexion `retries` fois, sans construire votre propre client. La grammaire de jetons par défaut correspond à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`, si bien que `<<PERSON:1>>`{ .placeholder } est reconnu comme un jeton.
+Passez une URL de base sous forme de chaîne et le client construit et possède son `httpx.AsyncClient`, fermé à la sortie du gestionnaire de contexte. Vous pouvez borner chaque requête avec `timeout`, joindre des en-têtes statiques via `headers` comme un jeton Authorization, et relancer une erreur de connexion `retries` fois, sans construire votre propre client. La grammaire de jetons par défaut correspond à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`, si bien que `<<PERSON:1>>`{ .placeholder } est reconnu comme un jeton.
 
 ```python
 --8<-- "snippets/server_connect.py"
@@ -19,7 +19,7 @@ Passez une URL de base sous forme de chaîne et le client construit et possède 
 
 ## 2. Dé-identifier et restaurer un message
 
-`anonymize` prend le texte et un `thread_id`, exactement comme le pipeline local. Le serveur possède la table des jetons, donc l'`Anonymization` renvoyée porte le texte mais un `.tokens` vide. Pour récupérer la valeur, appelez `deanonymize` avec le même `thread_id`, ce qui restaure via la table de fil du serveur.
+`anonymize` prend le texte et un `thread_id`, exactement comme le pipeline local. Le serveur possède la table des jetons, donc l'`Anonymization` renvoyée porte le texte mais un `.tokens` vide. Pour récupérer la valeur, appelez `deanonymize` avec le même `thread_id`, ce qui restaure via la table de conversation du serveur.
 
 ```python
     --8<-- "snippets/server_client.fr.py:example"
@@ -33,9 +33,9 @@ La sortie doit être :
 
 `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } sur le serveur, et `deanonymize` renvoie le texte à jetons pour restauration. Rien de la table ne vit dans votre processus.
 
-## 3. Oublier un fil
+## 3. Oublier une conversation
 
-`forget_thread` efface le fil sur le serveur et renvoie le compte de ce qui a été supprimé, comme le pipeline local.
+`forget_thread` efface la conversation sur le serveur et renvoie le compte de ce qui a été supprimé, comme le pipeline local.
 
 ```python
     --8<-- "snippets/server_forget.py:example"
@@ -43,7 +43,7 @@ La sortie doit être :
 
 ## 4. Le glisser dans le middleware
 
-Comme `PIIGhostClient` implémente le port du pipeline de fil, il va partout où va un `ThreadAnonymizationPipeline` local, y compris dans `PIIAnonymizationMiddleware`. Le middleware le pilote avec les mêmes appels `anonymize` et `deanonymize`, sans savoir que le travail a lieu sur un serveur.
+Comme `PIIGhostClient` implémente le port du pipeline de conversation, il va partout où va un `ThreadAnonymizationPipeline` local, y compris dans `PIIAnonymizationMiddleware`. Le middleware le pilote avec les mêmes appels `anonymize` et `deanonymize`, sans savoir que le travail a lieu sur un serveur.
 
 ```python
 --8<-- "snippets/server_middleware.py:example"

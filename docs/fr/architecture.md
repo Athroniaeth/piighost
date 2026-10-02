@@ -12,7 +12,7 @@ de dé-identification s'assemble en injectant les adaptateurs voulus derrière l
 qu'il attend.
 
 !!! note "Dé-identification, pas anonymisation"
-    Par défaut `piighost` garde le lien entre une valeur et son token, pour pouvoir
+    Par défaut `piighost` garde le lien entre une valeur et son jeton, pour pouvoir
     restaurer la valeur. C'est de la dé-identification réversible, au sens du RGPD une
     pseudonymisation, et non de l'anonymisation. Le terme anonymisation reste réservé à
     une suppression irréversible, par exemple avec `RedactPlaceholderFactory`.
@@ -165,7 +165,7 @@ chacune.
 | Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Rattrape les occurrences ratées d'une valeur déjà détectée. |
 | Linker | `AnyEntityLinker` | `ExactEntityLinker` | Regroupe les détections d'une même valeur en une `Entity`. |
 | Résolveur d'entités | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Réconcilie les entités qui partagent une détection. |
-| Anonymiseur | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Remplace chaque entité par son token. |
+| Anonymiseur | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Remplace chaque entité par son jeton. |
 | Garde-fou | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-vérifie la sortie, lève `PIIRemainingError` sur donnée confidentielle résiduelle. |
 
 </div>
@@ -178,8 +178,8 @@ détections, juste après la détection, avant la résolution des spans.
 
 ## Le composant placeholder et ses tags de préservation
 
-L'anonymiseur délègue la forme du token à une **placeholder factory**
-(`AnyPlaceholderFactory`). Ce qui change entre deux factories, c'est **ce que le token
+L'anonymiseur délègue la forme du jeton à une **placeholder factory**
+(`AnyPlaceholderFactory`). Ce qui change entre deux factories, c'est **ce que le jeton
 préserve** de la valeur d'origine.
 
 ```mermaid
@@ -211,11 +211,11 @@ classDiagram
     PreservesIdentity <|-- PreservesLabeledIdentity
 ```
 
-*Les tags de préservation, du token qui ne garde rien à celui qui identifie chaque
+*Les tags de préservation, du jeton qui ne garde rien à celui qui identifie chaque
 entité.*
 { .figure-caption }
 
-Chaque tag est une sous-classe de `str`, donc un token est une vraie chaîne qui porte
+Chaque tag est une sous-classe de `str`, donc un jeton est une vraie chaîne qui porte
 son niveau de préservation dans son propre type. Ces tags sont des types fantômes, ils
 n'existent que pour le vérificateur de types. Le middleware exige un tag qui préserve
 l'identité (`PreservesRecognizableIdentity`), donc brancher une factory `<<PERSON>>`
@@ -236,7 +236,7 @@ Les factories fournies vont du moins au plus informatif. `RedactPlaceholderFacto
 
 `AnonymizationPipeline` traite un texte isolé. Il détecte, applique les étapes
 optionnelles présentes, groupe en entités, dé-identifie, puis passe la sortie au
-garde-fou. Sa méthode `deanonymize` reçoit le mapping token vers entité produit par
+garde-fou. Sa méthode `deanonymize` reçoit le mapping jeton vers entité produit par
 `anonymize` et restaure les valeurs.
 
 ```python
@@ -264,8 +264,8 @@ conversation** (`AnyConversationMemory`), passée en argument obligatoire. Un ag
 enchaîne des messages, et le même `Patrick`{ .pii } doit garder le même
 `<<PERSON:1>>`{ .placeholder } du premier au dernier.
 
-Les tokens sont attribués sur **l'union des détections de tous les messages** du
-thread, pas sur un message seul. Une valeur revue plus tard retrouve donc son token au
+Les jetons sont attribués sur **l'union des détections de tous les messages** de la
+conversation, pas sur un message seul. Une valeur revue plus tard retrouve donc son jeton au
 lieu d'en créer un nouveau. Le rendu, lui, reste par message, seuls les spans du
 message courant sont remplacés, car les détections de messages différents ne partagent
 pas le même espace d'offsets.
@@ -274,18 +274,18 @@ pas le même espace d'offsets.
 --8<-- "snippets/architecture_thread.py:example"
 ```
 
-- Le `thread_id` est **obligatoire**, il n'y a pas de thread partagé par défaut, donc
-  deux appelants ne peuvent pas tomber dans le même thread et fuiter leurs données confidentielles.
-- `deanonymize` reconstruit les tokens du thread depuis la mémoire, donc **n'importe
-  quel** texte porteur de ces tokens est restauré, y compris une réponse du modèle que
+- Le `thread_id` est **obligatoire**, il n'y a pas de conversation partagée par défaut, donc
+  deux appelants ne peuvent pas tomber dans la même conversation et fuiter leurs données confidentielles.
+- `deanonymize` reconstruit les jetons de la conversation depuis la mémoire, donc **n'importe
+  quel** texte porteur de ces jetons est restauré, y compris une réponse du modèle que
   le pipeline n'a jamais dé-identifiée.
-- `forget_thread` efface toute la mémoire d'un thread et rend le compte de ce qui a été
+- `forget_thread` efface toute la mémoire d'une conversation et rend le compte de ce qui a été
   supprimé, pour le droit à l'oubli.
 
 ### La provenance des valeurs
 
-Une valeur dont la première occurrence dans le thread vient d'un message du modèle
-n'est pas une donnée confidentielle de l'utilisateur. La tokeniser priverait le modèle de sa connaissance du
+Une valeur dont la première occurrence dans la conversation vient d'un message du modèle
+n'est pas une donnée confidentielle de l'utilisateur. La dé-identifier priverait le modèle de sa connaissance du
 monde. La mémoire enregistre donc le **rôle** de la première occurrence de chaque
 valeur (`MessageRole.USER` ou `MessageRole.ASSISTANT`), et le pipeline laisse en clair
 les valeurs introduites par l'assistant.
@@ -300,14 +300,14 @@ adaptateurs.
 - `InMemoryConversationMemory` garde tout dans un dictionnaire du processus. Simple,
   suffisant pour un seul worker.
 - `RedisConversationMemory` persiste dans Redis, pour un déploiement multi-worker où
-  chaque worker doit voir les threads des autres.
+  chaque worker doit voir les conversations des autres.
 
 Le backend Redis stocke des données confidentielles en clair par nature, le mapping inverse. Deux
 composants **crypto** le protègent. Un `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`)
 transforme chaque message en clé déterministe sans révéler le texte. Un `AnyCipher`
 (`AesGcmCipher`) chiffre les détections au repos, de sorte qu'une fuite de la base ne
 révèle ni le message ni les valeurs. Le `thread_id` reste en clair comme préfixe de clé,
-pour qu'un thread puisse être énuméré et oublié.
+pour qu'une conversation puisse être énumérée et oubliée.
 
 ---
 
@@ -348,8 +348,8 @@ sequenceDiagram
   données, puis en dé-identifiant sa réponse.
 
 Le middleware exige au type une factory qui préserve l'identité. Il reconnaît aussi les
-tokens que le modèle **invente** (`InventedPlaceholderStrategy`), car après restauration
-tout token qui suit encore la grammaire des placeholders n'a pas été émis par le
+jetons que le modèle **invente** (`InventedPlaceholderStrategy`), car après restauration
+tout jeton qui suit encore la grammaire des placeholders n'a pas été émis par le
 pipeline. Le détail des stratégies d'outil est dans
 [Stratégies d'appel outil](tool-call-strategies.md).
 
@@ -361,7 +361,7 @@ pipeline. Le détail des stratégies d'outil est dans
 (`AnyObservationTracer`), une couture au-dessus d'OpenTelemetry. Sans backend configuré,
 une implémentation no-op ne trace rien et ne coûte rien, donc le pipeline peut toujours
 émettre sans vérifier si le traçage est actif. Un `observation_redactor` optionnel
-remplace les valeurs des traces par des tokens, pour un backend qui n'a pas le droit de
+remplace les valeurs des traces par des jetons, pour un backend qui n'a pas le droit de
 voir les données confidentielles.
 
 ---
@@ -402,7 +402,7 @@ entre coroutines sans risque.
 
 - [Conception du pipeline](conception.md), pourquoi chaque étape existe et dans quel
   ordre
-- [Placeholder factories](placeholder-factories.md), les familles de tokens et ce
+- [Placeholder factories](placeholder-factories.md), les familles de jetons et ce
   qu'elles préservent
 - [Stratégies d'appel outil](tool-call-strategies.md), le détail de `awrap_tool_call`
 - [Étendre PIIGhost](extending.md), brancher son propre adaptateur derrière un port

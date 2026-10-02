@@ -22,7 +22,7 @@ PII
 
 Secret
 :   Identifiant d'accès qui ne doit jamais atteindre un modèle, comme une clé
-    d'API, un token d'accès, une clé privée ou une chaîne de connexion. Les
+    d'API, un jeton d'accès, une clé privée ou une chaîne de connexion. Les
     secrets sont l'autre partie des données confidentielles. Ils sont détectés
     par les catalogues du hub `piighost/secrets` et `piighost/secrets-extended`,
     tirés par exemple avec `catalogs = ["hub:piighost/secrets:d822d04c"]`. Les
@@ -42,13 +42,13 @@ Anonymisation
     garde aucune correspondance vers la valeur.
 
 Placeholder
-:   Token qui remplace une valeur dans le texte dé-identifié, par exemple
+:   Jeton qui remplace une valeur dans le texte dé-identifié, par exemple
     `<<PERSON:1>>`{ .placeholder } ou `<<EMAIL:1>>`{ .placeholder }. L'apparence
     d'un placeholder est décidée par une placeholder factory.
 
 Placeholder factory
-:   Composant qui produit les placeholders. Il décide la forme du token et ce que
-    le token préserve, c'est-à-dire un label, une identité stable, les deux ou
+:   Composant qui produit les placeholders. Il décide la forme du jeton et ce que
+    le jeton préserve, c'est-à-dire un label, une identité stable, les deux ou
     rien. Factories fournies : `RedactPlaceholderFactory`,
     `LabelPlaceholderFactory`, `LabelCounterPlaceholderFactory`,
     `LabelHashPlaceholderFactory` et `MaskPlaceholderFactory`.
@@ -111,30 +111,30 @@ Guard rail
     valeur résiduelle demeure. Un guard rail peut relancer un détecteur
     (`DetectorGuardRail`) ou interroger un LLM (`LLMGuardRail`).
 
-Thread
-:   Portée de conversation identifiée par un `thread_id`. La mémoire est isolée
-    par thread, donc deux conversations parallèles ne partagent jamais leurs
-    données confidentielles. Un placeholder reste stable sur tous les messages d'un même thread.
+Conversation (thread)
+:   Suite de messages identifiée par un `thread_id`. La mémoire est isolée
+    par conversation, donc deux conversations parallèles ne partagent jamais leurs
+    données confidentielles. Un placeholder reste stable sur tous les messages d'une même conversation.
 
 thread_id
-:   Chaîne qui identifie un thread. Le pipeline de thread et le middleware s'en
+:   Chaîne qui identifie une conversation. Le pipeline de conversation et le middleware s'en
     servent pour cadrer la mémoire et router chaque message vers la bonne
     conversation.
 
 Mémoire de conversation
-:   Stockage qui accumule les entités d'un thread au fil des messages, de sorte
+:   Stockage qui accumule les entités d'une conversation au fil des messages, de sorte
     qu'une valeur vue dans un message garde son placeholder dans le suivant.
     `InMemoryConversationMemory` la tient dans le processus.
     `RedisConversationMemory` la persiste dans Redis, avec les valeurs chiffrées
     par un cipher et les clés hachées.
 
 Recognizer
-:   Grammaire de tokens que le middleware utilise pour retrouver les placeholders
+:   Grammaire de jetons que le middleware utilise pour retrouver les placeholders
     d'un pipeline dans une réponse LLM, sans passer par l'anonymiseur. Un pipeline
     l'expose via `recognizer`, un `BaseDelimitedPlaceholderFactory` ou `None`.
 
 Tag de préservation de placeholder
-:   Type fantôme sur une placeholder factory qui énonce ce que ses tokens
+:   Type fantôme sur une placeholder factory qui énonce ce que ses jetons
     préservent : `PreservesNothing`, `PreservesLabel`, `PreservesIdentity` ou
     `PreservesLabeledIdentity`. Le middleware exige `PreservesRecognizableIdentity`
     pour pouvoir restaurer les valeurs, et rejette une factory qui ne le fournit pas,
