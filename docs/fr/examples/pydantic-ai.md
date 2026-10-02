@@ -18,15 +18,7 @@ La capability couvre les messages, le prompt utilisateur et les réponses du mod
 `Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. Seul le détecteur est requis, car le pipeline de thread fournit par défaut son linker, son anonymiseur, et un stockage de conversation en mémoire. L'anonymiseur par défaut émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que `pii_hooks` sait retrouver.
 
 ```python
-from piighost.components.detector.ner import Gliner2Detector
-from piighost.pipeline import ThreadAnonymizationPipeline
-
-detector = Gliner2Detector(
-    "fastino/gliner2-multi-v1",
-    labels=["PERSON", "LOCATION"],
-    threshold=0.5,
-)
-pipeline = ThreadAnonymizationPipeline(detector)
+--8<-- "snippets/pydantic_ai_pipeline.py"
 ```
 
 ## 2. Attacher la capability à l'agent
@@ -34,11 +26,7 @@ pipeline = ThreadAnonymizationPipeline(detector)
 `pii_hooks` prend le pipeline et un identifiant de thread, puis renvoie une capability Pydantic AI. Enregistrez-la avec `capabilities=[...]`. L'identifiant de thread cadre les jetons, une valeur garde donc un seul jeton pour toute la conversation. C'est une chaîne fixe ici. Passez un appelable sur le contexte d'exécution, par exemple `lambda ctx: ctx.deps.thread_id`, pour le lire à chaque exécution.
 
 ```python
-from pydantic_ai import Agent
-from piighost.integrations.pydantic_ai import pii_hooks
-
-hooks = pii_hooks(pipeline, "thread-42")
-agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
+--8<-- "snippets/pydantic_ai_agent.py:agent"
 ```
 
 ## 3. Lancer un tour
@@ -46,15 +34,7 @@ agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
 La capability dé-identifie le prompt avant que le modèle ne le lise et restaure la réponse pour l'affichage, le modèle travaille donc sur `<<PERSON:1>>`{ .placeholder } pendant que vous lisez `Patrick`{ .pii }.
 
 ```python
-import asyncio
-
-
-async def main() -> None:
-    result = await agent.run("Where does Patrick live?")
-    print(result.output)
-
-
-asyncio.run(main())
+--8<-- "snippets/pydantic_ai_agent.py:run"
 ```
 
 ## Qui voit quoi
@@ -71,13 +51,7 @@ Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à
 Après la restauration, chaque jeton émis est revenu à sa valeur, un jeton qui suit encore la grammaire a donc été inventé par le modèle, par hallucination ou par injection de prompt. `pii_hooks` prend un `invented_strategy` qui décide de ce qui se passe alors. `RAISE` le refuse, le défaut fail-closed. `KEEP` le laisse. `DROP` le retire.
 
 ```python
-from piighost.integrations.langchain import InventedPlaceholderStrategy
-
-hooks = pii_hooks(
-    pipeline,
-    "thread-42",
-    invented_strategy=InventedPlaceholderStrategy.DROP,
-)
+--8<-- "snippets/pydantic_ai_agent.py:invented"
 ```
 
 ## Appels d'outils
@@ -85,9 +59,7 @@ hooks = pii_hooks(
 `pii_hooks` traite aussi la frontière des outils, pilotée par `tool_strategy`, le même enum que le middleware LangChain. Sous `FULL`, le défaut, les arguments d'un appel d'outil sont restaurés avant l'exécution, un outil qui a besoin de `Patrick`{ .pii } le reçoit et non `<<PERSON:1>>`{ .placeholder }, et le résultat texte de l'outil est dé-identifié à nouveau avant que le modèle ne le lise, le modèle continue donc de voir des jetons. `INPUT` ne restaure que les arguments, `OUTPUT` ne dé-identifie à nouveau que le résultat, et `PASSTHROUGH` ne touche à rien.
 
 ```python
-from piighost.integrations.langchain import ToolCallStrategy
-
-hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
+--8<-- "snippets/pydantic_ai_agent.py:tools"
 ```
 
 ## Valeurs de l'assistant
@@ -95,13 +67,7 @@ hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
 Toute valeur n'est pas une donnée confidentielle de l'utilisateur. Quand le modèle introduit lui-même une valeur tirée de sa connaissance du monde, la tokeniser la lui cacherait au tour suivant sans rien protéger côté utilisateur. `assistant_strategy` décide du sort d'une valeur introduite par l'assistant, encore le même enum que le middleware. Sous `PRESERVE`, le défaut, elle reste en clair, le modèle garde donc sa propre connaissance et seule une valeur utilisateur connue est tokenisée. `ANONYMIZE` la tokenise quand même, et `IGNORE` saute entièrement les messages de l'assistant, économisant le détecteur.
 
 ```python
-from piighost.integrations.langchain import EntityCreateByAssistantStrategy
-
-hooks = pii_hooks(
-    pipeline,
-    "thread-42",
-    assistant_strategy=EntityCreateByAssistantStrategy.ANONYMIZE,
-)
+--8<-- "snippets/pydantic_ai_agent.py:assistant"
 ```
 
 ## Et ensuite

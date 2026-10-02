@@ -19,28 +19,7 @@ Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [
 `Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. L'anonymiseur utilise `LabelCounterPlaceholderFactory`, qui émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que le middleware sait retrouver.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector.ner import Gliner2Detector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.conversation_memory import InMemoryConversationMemory
-
-detector = Gliner2Detector(
-    "fastino/gliner2-multi-v1",
-    labels=["PERSON", "LOCATION"],
-    threshold=0.5,
-)
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+--8<-- "snippets/langchain_pipeline.py"
 ```
 
 ## 2. Déclarer un outil qui a besoin de la vraie valeur
@@ -48,14 +27,7 @@ pipeline = ThreadAnonymizationPipeline(
 Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas de `<<PERSON:1>>`{ .placeholder }. Écrivez-le contre les vraies valeurs. Sous `ToolCallStrategy.FULL`, le middleware restaure l'argument avant l'appel, puis dé-identifie le résultat.
 
 ```python
-from langchain.tools import tool
-
-
-@tool
-def lookup_city(person: str) -> str:
-    """Return the city where a person lives."""
-    directory = {"Patrick": "Paris"}
-    return directory.get(person, "unknown")
+--8<-- "snippets/langchain_agent.py:tool"
 ```
 
 ## 3. Dire au modèle que les jetons sont des données
@@ -63,15 +35,7 @@ def lookup_city(person: str) -> str:
 Le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } au lieu d'un nom. Un court system prompt l'empêche de commenter le jeton ou de refuser de le passer à un outil.
 
 ```python
-SYSTEM_PROMPT = """\
-You are a helpful assistant. Some inputs contain placeholders like <<PERSON:1>> \
-that stand in for real values withheld for privacy.
-
-Treat each placeholder as if it were the real value. Never comment on its \
-format, never say it is a token, and pass it to tools unchanged as an argument. \
-If the user asks about the content of a placeholder, say the data is withheld \
-and you cannot reveal it.
-"""
+--8<-- "snippets/langchain_agent.py:system_prompt"
 ```
 
 ## 4. Enrober le pipeline et créer l'agent
@@ -79,23 +43,7 @@ and you cannot reveal it.
 `PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` restaure les arguments de l'outil à l'entrée et dé-identifie le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
 
 ```python
-from langchain.agents import create_agent
-from piighost.integrations.langchain import (
-    PIIAnonymizationMiddleware,
-    ToolCallStrategy,
-)
-
-agent = create_agent(
-    model="openai:gpt-5.6-terra",
-    system_prompt=SYSTEM_PROMPT,
-    tools=[lookup_city],
-    middleware=[
-        PIIAnonymizationMiddleware(
-            pipeline=pipeline,
-            tool_strategy=ToolCallStrategy.FULL,
-        )
-    ],
-)
+--8<-- "snippets/langchain_agent.py:agent"
 ```
 
 ## 5. Exécuter un tour
@@ -103,24 +51,13 @@ agent = create_agent(
 Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à ce fil.
 
 ```python
-import asyncio
-
-
-async def main() -> None:
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": "Where does Patrick live?"}]},
-        config={"configurable": {"thread_id": "thread-42"}},
-    )
-    print(result["messages"][-1].content)
-
-
-asyncio.run(main())
+--8<-- "snippets/langchain_agent.py:run"
 ```
 
 La réponse est dé-identifiée pour l'affichage, donc elle se lit avec les vraies valeurs :
 
 ```text
-Patrick lives in Paris.
+--8<-- "snippets/langchain_agent.out"
 ```
 
 ## Qui voit quoi

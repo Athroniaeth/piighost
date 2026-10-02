@@ -19,28 +19,7 @@ For the minimal version with a stub detector, start with the [LangChain middlewa
 `Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction. Pass `labels` to tell it which entity types to query. The anonymizer uses `LabelCounterPlaceholderFactory`, which emits the delimited `<<PERSON:1>>`{ .placeholder } the middleware can find again.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector.ner import Gliner2Detector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import ThreadAnonymizationPipeline
-from piighost.conversation_memory import InMemoryConversationMemory
-
-detector = Gliner2Detector(
-    "fastino/gliner2-multi-v1",
-    labels=["PERSON", "LOCATION"],
-    threshold=0.5,
-)
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+--8<-- "snippets/langchain_pipeline.py"
 ```
 
 ## 2. Declare a tool that needs the real value
@@ -48,14 +27,7 @@ pipeline = ThreadAnonymizationPipeline(
 A tool that looks a person up by name needs `Patrick`{ .pii }, not `<<PERSON:1>>`{ .placeholder }. Write it against real values. Under `ToolCallStrategy.FULL`, the middleware restores the argument before the call, then de-identifies the result.
 
 ```python
-from langchain.tools import tool
-
-
-@tool
-def lookup_city(person: str) -> str:
-    """Return the city where a person lives."""
-    directory = {"Patrick": "Paris"}
-    return directory.get(person, "unknown")
+--8<-- "snippets/langchain_agent.py:tool"
 ```
 
 ## 3. Tell the model that tokens are data
@@ -63,15 +35,7 @@ def lookup_city(person: str) -> str:
 The model reasons over `<<PERSON:1>>`{ .placeholder } instead of a name. A short system prompt keeps it from commenting on the token or refusing to pass it to a tool.
 
 ```python
-SYSTEM_PROMPT = """\
-You are a helpful assistant. Some inputs contain placeholders like <<PERSON:1>> \
-that stand in for real values withheld for privacy.
-
-Treat each placeholder as if it were the real value. Never comment on its \
-format, never say it is a token, and pass it to tools unchanged as an argument. \
-If the user asks about the content of a placeholder, say the data is withheld \
-and you cannot reveal it.
-"""
+--8<-- "snippets/langchain_agent.py:system_prompt"
 ```
 
 ## 4. Wrap the pipeline and create the agent
@@ -79,23 +43,7 @@ and you cannot reveal it.
 `PIIAnonymizationMiddleware` takes the pipeline. `tool_strategy=ToolCallStrategy.FULL` restores the tool arguments on the way in and de-identifies the tool result on the way out, so the tool works on real values while the model still only sees tokens.
 
 ```python
-from langchain.agents import create_agent
-from piighost.integrations.langchain import (
-    PIIAnonymizationMiddleware,
-    ToolCallStrategy,
-)
-
-agent = create_agent(
-    model="openai:gpt-5.6-terra",
-    system_prompt=SYSTEM_PROMPT,
-    tools=[lookup_city],
-    middleware=[
-        PIIAnonymizationMiddleware(
-            pipeline=pipeline,
-            tool_strategy=ToolCallStrategy.FULL,
-        )
-    ],
-)
+--8<-- "snippets/langchain_agent.py:agent"
 ```
 
 ## 5. Run one turn
@@ -103,24 +51,13 @@ agent = create_agent(
 The `thread_id` goes in the LangGraph config, under `configurable`. The middleware reads it there and scopes every token to that thread.
 
 ```python
-import asyncio
-
-
-async def main() -> None:
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": "Where does Patrick live?"}]},
-        config={"configurable": {"thread_id": "thread-42"}},
-    )
-    print(result["messages"][-1].content)
-
-
-asyncio.run(main())
+--8<-- "snippets/langchain_agent.py:run"
 ```
 
 The reply is restored for display, so it reads with the real values:
 
 ```text
-Patrick lives in Paris.
+--8<-- "snippets/langchain_agent.out"
 ```
 
 ## Who sees what
