@@ -361,7 +361,7 @@ component type carries a `build()` method. Assembling the pipeline amounts to ca
 `build()` on each model.
 
 ```python
---8<-- "snippets/architecture_loaders.py"
+--8<-- "snippets/loaders.py"
 ```
 
 A file without a `[memory]` section builds a pipeline, a file that declares one builds a conversation pipeline. Each loader refuses the other kind.

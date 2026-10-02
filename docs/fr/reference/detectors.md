@@ -38,6 +38,7 @@ Chaque détecteur NER a besoin de son propre extra (`gliner2`, `spacy`, `transfo
 Le port que tout détecteur implémente. Une seule méthode asynchrone, donc une implémentation peut attendre une I/O comme un serveur de modèle ou une API LLM sans bloquer le pipeline.
 
 ```python
+@runtime_checkable
 class AnyDetector(Protocol):
     async def detect(self, text: str) -> list[Detection]: ...
 ```
@@ -74,11 +75,7 @@ RegexDetector(patterns: dict[str, str])
 | `patterns` | `dict[str, str]` | Correspondance d'un label vers le pattern regex à appliquer (requis) |
 
 ```python
-from piighost.components.detector import RegexDetector
-
-detector = RegexDetector({"EMAIL": r"[\w.+-]+@[\w.-]+\.\w{2,}"})
-detections = await detector.detect("write to alice@example.com")
-# [Detection(span=Span(9, 26), text="alice@example.com", label="EMAIL", confidence=1.0)]
+--8<-- "snippets/reference_detectors.py:regex"
 ```
 
 ### `from_hub`
@@ -95,10 +92,7 @@ Construit un détecteur à partir des regex que porte une référence du [hub pi
 | `hub` | `str \| None` | Origine du hub à interroger. Par défaut `PIIGHOST_HUB_URL`, puis le hub public |
 
 ```python
-from piighost.components.detector import RegexDetector
-
-detector = RegexDetector.from_hub("piighost/logs:fd79aec6")
-detections = await detector.detect("mail me at a@b.co from 10.0.0.1")
+--8<-- "snippets/reference_regex_hub.py:from_hub"
 ```
 
 Une référence épinglée sur un commit est immuable : la réponse est mise en cache sous `~/.cache/piighost/hub` et relue depuis le disque aux appels suivants. Une référence pointant vers un tag ou vers `latest` bouge, elle est donc récupérée à chaque fois : servir une version périmée détecterait silencieusement moins que ce que l'appelant a demandé.
@@ -125,12 +119,7 @@ CompositeDetector(detectors: list[AnyDetector])
 | `detectors` | `list[AnyDetector]` | Les détecteurs enfants à exécuter, dans l'ordre (requis) |
 
 ```python
-from piighost.components.detector import CompositeDetector, RegexDetector
-from piighost.components.detector.ner import Gliner2Detector
-
-email_detector = RegexDetector({"EMAIL": r"[\w.+-]+@[\w.-]+\.\w{2,}"})
-person_detector = Gliner2Detector(model="fastino/gliner2-multi-v1", labels=["PERSON"])
-detector = CompositeDetector([email_detector, person_detector])
+--8<-- "snippets/reference_composite.py"
 ```
 
 ---
@@ -151,10 +140,7 @@ ExactMatchDetector(values: dict[str, str], case_sensitive: bool = False)
 | `case_sensitive` | `bool` | Si la correspondance respecte la casse. `False` par défaut |
 
 ```python
-from piighost.components.detector import ExactMatchDetector
-
-detector = ExactMatchDetector({"Patrick": "PERSON", "Lyon": "LOCATION"})
-detections = await detector.detect("Patrick lives in Lyon")
+--8<-- "snippets/reference_detectors.py:exact"
 ```
 
 ---
@@ -175,11 +161,7 @@ ChunkedDetector(detector: AnyDetector, splitter: AnySplitter | None = None)
 | `splitter` | `AnySplitter \| None` | Le splitter, ou `None` pour un `RecursiveCharacterTextSplitter` par défaut |
 
 ```python
-from piighost.components.detector import ChunkedDetector
-from piighost.components.detector.ner import SpacyDetector
-
-spacy_detector = SpacyDetector(model="en_core_web_sm")
-detector = ChunkedDetector(spacy_detector)
+--8<-- "snippets/reference_chunked.py"
 ```
 
 ---
@@ -211,13 +193,7 @@ LLMDetector(
 Un `prompt` personnalisé doit contenir un placeholder `{labels}` et, selon le format f-string de LangChain, doubler toute autre accolade littérale en `{{` ou `}}`.
 
 ```python
-from piighost.components.detector import LLMDetector
-
-detector = LLMDetector(
-    model="gpt-5.6-terra",
-    labels=["PERSON", "EMAIL"],
-    provider="openai",
-)
+--8<-- "snippets/reference_llm_detector.py:example"
 ```
 
 ---
@@ -379,18 +355,7 @@ L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes
 Les deux unités concordent sur un texte sans un tel caractère, et s'écartent d'une unité après chacun. Un décalage JavaScript lu comme un point de code tombe un caractère trop loin, et la première lettre de la valeur reste en clair. Un exécuteur JavaScript déclare donc `UTF16`, et le détecteur convertit.
 
 ```python
-from piighost.components.detector.ner import BridgeDetector, OffsetUnit
-
-
-async def runner(text: str, labels: list[str], threshold: float):
-    return [{"start": 0, "end": 10, "label": "person", "score": 0.92}]
-
-
-detector = BridgeDetector(
-    runner, {"PERSON": "person"}, offset_unit=OffsetUnit.CODE_POINT, threshold=0.4
-)
-await detector.detect("Emma Rossi works at Acme.")
-# [Detection(span=Span(0, 10), text="Emma Rossi", label="PERSON", confidence=0.92)]
+--8<-- "snippets/reference_detectors.py:bridge"
 ```
 
 Un exécuteur est du code étranger, souvent atteint au travers d'une frontière de langage, donc sa réponse est vérifiée plutôt que crue.
@@ -426,12 +391,7 @@ Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelab
 Deux labels externes mappant vers un même label interne lèvent `LabelMappingError`, car la recherche inverse serait ambiguë.
 
 ```python
-from piighost.components.detector.ner import TransformersDetector
-
-detector = TransformersDetector(
-    pipeline="dslim/bert-base-NER",
-    labels={"PERSON": "PER", "LOCATION": "LOC"},
-)
+--8<-- "snippets/reference_transformers.py"
 ```
 
 ---
@@ -455,11 +415,7 @@ Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous f
 Construisez un détecteur à partir d'un groupe avec [`from_hub`](#from_hub). `pull` (`piighost.hub`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre, donc plusieurs groupes se fusionnent par fusion de dict, l'entrée de droite prenant le dessus sur un même label.
 
 ```python
-from piighost.components.detector import RegexDetector
-from piighost.hub import pull
-
-detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
-merged = RegexDetector({**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")})
+--8<-- "snippets/reference_regex_hub.py:merge"
 ```
 
 Une référence épinglée sur un commit, les huit caractères hexadécimaux après le dernier deux-points, est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, hors ligne compris. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
@@ -504,10 +460,7 @@ La règle vaut pour tous les patterns, ceux du hub compris, donc un pattern n'a 
 Les deux fonctions sont publiques dans `piighost.text`, pour un détecteur ou un linker personnalisé qui doit suivre la même règle.
 
 ```python
-from piighost.text import normalize_spaces, value_key
-
-normalize_spaces("06\u00a012\u202f34")  # "06 12 34", même longueur
-value_key("Paul\u00a0Martin") == value_key("paul  MARTIN")  # True, la même valeur
+--8<-- "snippets/reference_text.fr.py:example"
 ```
 
 ## Recherche par mot entier

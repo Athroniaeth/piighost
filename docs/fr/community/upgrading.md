@@ -81,12 +81,7 @@ from piighost.components.detector.patterns import FR_PATTERNS, GENERIC_PATTERNS
 detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 
 # 2.0
-from piighost.hub import pull
-
-detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
-detector = RegexDetector(
-    {**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")}
-)
+--8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
 Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque, donc un pipeline n'atteint le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés : `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic:fab51b33`.
@@ -104,7 +99,7 @@ Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au charge
 from piighost.integrations.middleware import AssistantEntityStrategy, PIIAnonymizationMiddleware
 
 # 2.0
-from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PIIAnonymizationMiddleware
+--8<-- "snippets/upgrading.py:aliases"
 ```
 
 ### `BridgeDetector` prend une unité de décalage
@@ -118,11 +113,11 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy, PII
 ```python
 # 1.x
 middleware = PIIAnonymizationMiddleware(pipeline, require_thread_id=False)
-agent.invoke({"messages": messages})
+await agent.ainvoke({"messages": messages})
 
 # 2.0
-middleware = PIIAnonymizationMiddleware(pipeline)
-agent.invoke({"messages": messages}, config={"configurable": {"thread_id": "default"}})
+--8<-- "snippets/upgrading.py:middleware"
+--8<-- "snippets/upgrading.py:invoke"
 ```
 
 ### Comportements qui changent

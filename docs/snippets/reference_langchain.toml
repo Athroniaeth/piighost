@@ -1,0 +1,6 @@
+[detector]
+type = "exact"
+values = { Patrick = "PERSON", Paris = "LOCATION" }
+
+[memory]
+type = "in_memory"

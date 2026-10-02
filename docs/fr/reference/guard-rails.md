@@ -25,30 +25,7 @@ from piighost.components.guard import (
 `AnonymizationPipeline` prend un argument `guard` optionnel, désactivé par défaut. Une fois défini, le garde-fou s'exécute sur la sortie rendue après dé-identification, et le pipeline lève `PIIRemainingError` si le garde-fou signale quelque chose d'inattendu.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import ExactMatchDetector, RegexDetector
-from piighost.components.guard import DetectorGuardRail
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.exceptions import PIIRemainingError
-from piighost.hub import pull
-from piighost.pipeline import AnonymizationPipeline
-
-# The primary detector only knows the literal name. The guard re-runs a broader
-# email and phone regex over the short output to catch structured PII it missed.
-guard_detector = RegexDetector({**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/us:29d5c0a5")})
-pipeline = AnonymizationPipeline(
-    ExactMatchDetector({"Emma Doe": "PERSON"}),
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
-    guard=DetectorGuardRail(guard_detector),
-)
-
-try:
-    result = await pipeline.anonymize("Emma Doe, reachable at emma@acme.com.")
-except PIIRemainingError as error:
-    print(error)             # Anonymized text still contains PII: ['EMAIL']
-    print(error.detections)  # the residual detections behind the flag
+--8<-- "snippets/reference_guard.py"
 ```
 
 La version exécutable est [`examples/guard_rail.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail.py), qui utilise aussi un garde-fou en autonome en appelant `await guard.check(text)` et en lisant le verdict sans lever d'exception. La version à modèle local est [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
@@ -68,13 +45,7 @@ Cela n'a de valeur qu'avec un détecteur différent de celui du pipeline, réex�
 Le détecteur complémentaire est souvent un modèle, parce que les formes qu'un regex attrape bien sont justement celles que la passe primaire a déjà prises. Ce qui passe au travers, c'est un nom, une adresse, une raison sociale :
 
 ```python
-DetectorGuardRail(
-    Gliner2Detector(
-        model="fastino/GLiNER2-Guardrails-PII-Multi",
-        labels=["person", "address"],
-        threshold=0.5,
-    )
-)
+--8<-- "snippets/reference_guard_gliner2.py:example"
 ```
 
 Cela localise ce qui a fuité, ce qu'un garde adossé à un détecteur apporte face à un classifieur. Pour un verdict au niveau du texte issu du même checkpoint, sans spans et en une seule passe, voir [`Gliner2GuardRail`](#gliner2guardrail).
@@ -114,20 +85,7 @@ C'est `ModerationGuardRail` sans l'appel d'API, et cette différence est tout l'
 Un modèle `str` est chargé avec `GLiNER2.from_pretrained`, et une instance déjà chargée est utilisée telle quelle, ce qui permet de partager un même checkpoint entre ce garde et un `Gliner2Detector`. La paire `labels` est lue par position, la réponse refusée en dernier, donc une autre tâche du même modèle se lit pareil, et `task="response_refusal"` avec `labels=("compliance", "refusal")` signale un refus. Requiert `piighost[gliner2]`.
 
 ```python
-from piighost.components.detector import RegexDetector
-from piighost.components.guard import Gliner2GuardRail
-from piighost.pipeline import AnonymizationPipeline
-
-pipeline = AnonymizationPipeline(
-    RegexDetector({"EMAIL": r"[\w.+-]+@[\w.-]+\.\w{2,}"}),
-    guard=Gliner2GuardRail(),
-)
-
-await pipeline.anonymize("Write to a@b.co about the invoice.")
-# Write to <<EMAIL:1>> about the invoice.
-
-await pipeline.anonymize("Write to John Doe, 12 rue des Lilas, 75008 Paris.")
-# PIIRemainingError: A guard flagged residual PII (score 0.997)
+--8<-- "snippets/reference_gliner2_guard.py"
 ```
 
 Étant un verdict au niveau du texte, il ne localise rien, `detections` reste vide et seul `score` est renseigné. Associez-le à un `DetectorGuardRail` s'il vous faut savoir quelle valeur a fuité. Les placeholders qu'émet le pipeline ne le déclenchent pas, et `<<EMAIL:1>>` est classé `safe` à 0,989. La version exécutable est [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).

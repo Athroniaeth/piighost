@@ -1,0 +1,2 @@
+Anonymized text still contains PII: ['EMAIL']
+[Detection(span=Span(start=27, end=40), text='emma@acme.com', label='EMAIL', confidence=1.0)]

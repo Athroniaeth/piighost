@@ -39,7 +39,7 @@ Nécessite l'extra `langchain` (`pip install piighost[langchain]`), qui tire `la
 
 ```python
 PIIAnonymizationMiddleware(
-    pipeline: AnyThreadPipeline,
+    pipeline: AnyThreadPipeline[IdentityT],
     tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
@@ -48,7 +48,7 @@ PIIAnonymizationMiddleware(
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `pipeline` | `AnyThreadPipeline` | Le pipeline de thread qui dé-identifie et restaure (requis) |
+| `pipeline` | `AnyThreadPipeline[IdentityT]` | Le pipeline de thread qui dé-identifie et restaure (requis) |
 | `tool_strategy` | `ToolCallStrategy` | Comment les deux directions d'un appel d'outil sont traitées |
 | `invented_strategy` | `InventedPlaceholderStrategy` | Comment un token que le pipeline n'a jamais émis est traité après restauration |
 | `assistant_strategy` | `EntityCreateByAssistantStrategy` | Comment les valeurs introduites par l'assistant sont traitées |
@@ -67,7 +67,7 @@ Dé-identifie les messages utilisateur et modèle avant que le modèle ne les vo
 
 Renvoie `{"messages": [...]}` quand un message change, `None` sinon.
 
-```python
+```text
 # before: [HumanMessage("Email Patrick in Paris")]
 # after:  [HumanMessage("Email <<PERSON:1>> in <<LOCATION:1>>")]
 ```
@@ -76,7 +76,7 @@ Renvoie `{"messages": [...]}` quand un message change, `None` sinon.
 
 Restaure les messages utilisateur et modèle pour l'affichage via `pipeline.deanonymize()`, puis applique `invented_strategy` au texte restauré. Renvoie `{"messages": [...]}` quand un message change, `None` sinon.
 
-```python
+```text
 # before: [AIMessage("Sent to <<PERSON:1>>.")]
 # after:  [AIMessage("Sent to Patrick.")]
 ```
@@ -89,7 +89,7 @@ La restauration des arguments descend dans les conteneurs `dict`, `list` et `tup
 
 La réponse est dé-identifiée quelle que soit la forme renvoyée par l'outil, son `ToolMessage` directement ou un `Command` dont la mise à jour d'état le porte, la forme qu'utilise un outil qui écrit aussi dans l'état. Une mise à jour d'état est parcourue comme une correspondance de clés d'état ou comme une séquence de paires clé-valeur, chacune portant un message ou une séquence de messages, donc les quatre formes que LangGraph accepte sont couvertes. Un contenu fait d'une liste de blocs de texte est traité comme une chaîne simple, bloc par bloc.
 
-```python
+```text
 # model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
 #                       restore args
 # tool receives: send_email(to="Patrick", subject="Hi")
@@ -174,35 +174,7 @@ sequenceDiagram
 ## Exemple
 
 ```python
-from langchain.agents import create_agent
-from langchain_core.tools import tool
-
-from piighost.config import load_thread_pipeline
-from piighost.integrations.langchain import PIIAnonymizationMiddleware
-
-
-@tool
-def get_info(person: str) -> str:
-    """Return information about a person."""
-    return f"{person} is a software engineer in Paris."
-
-
-pipeline = load_thread_pipeline("pipeline.toml")
-middleware = PIIAnonymizationMiddleware(pipeline)
-
-agent = create_agent(
-    model="openai:gpt-5.6-terra",
-    system_prompt="You are a helpful assistant. Treat placeholders as real values.",
-    tools=[get_info],
-    middleware=[middleware],
-)
-
-config = {"configurable": {"thread_id": "conv-1"}}
-result = await agent.ainvoke(
-    {"messages": [{"role": "user", "content": "Who is Patrick?"}]},
-    config,
-)
-print(result["messages"][-1].content)
+--8<-- "snippets/reference_langchain.py:invoke"
 ```
 
 Le pipeline doit être un pipeline de thread dont la factory de placeholders est délimitée, comme `label`, `label_counter` ou `label_hash`. Passez un thread id à chaque appel via `config["configurable"]["thread_id"]`, sans quoi l'appel lève `MissingThreadIdError`.
@@ -218,21 +190,7 @@ Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un a
 `source` est un itérateur asynchrone des chunks de texte du modèle. `thread_id` est l'id avec lequel vous avez lancé l'agent, puisqu'une boucle de streaming manuelle est hors de la config LangGraph que lisent les hooks.
 
 ```python
-config = {"configurable": {"thread_id": "conv-1"}}
-
-
-async def model_text():
-    async for chunk, _meta in agent.astream(
-        {"messages": [{"role": "user", "content": "Who is Patrick?"}]},
-        config,
-        stream_mode="messages",
-    ):
-        if isinstance(chunk.content, str):
-            yield chunk.content
-
-
-async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
-    print(restored, end="", flush=True)
+--8<-- "snippets/reference_langchain.py:stream"
 ```
 
 Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de token cassé. Seul un flux qui s'interrompt au milieu d'un token rend son fragment tel quel, `<<PER`{ .placeholder } par exemple, qui ne contient aucune vraie valeur.

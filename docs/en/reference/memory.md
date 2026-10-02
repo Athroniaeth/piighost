@@ -36,12 +36,16 @@ The pipeline drives these for you. You call the memory directly only to pre-seed
 ## `InMemoryConversationMemory`
 
 ```python
-InMemoryConversationMemory(max_threads: int | None = 10_000, ttl: float | None = 86_400.0)
+InMemoryConversationMemory(
+    max_threads: int | None = 10_000,
+    ttl: float | None = 86_400.0,
+    time_source: Callable[[], float] = time.monotonic,
+)
 ```
 
 A process-local per-thread cache in a dict. It suits development, tests, and single-process deployments. Nothing survives a restart and nothing is shared across workers, so behind a load balancer two workers number the same value differently. It needs no optional extra and is the default when a `ThreadAnonymizationPipeline` is built without a memory.
 
-The store is bounded by default, to 10,000 threads (`DEFAULT_MAX_THREADS`) and one day idle (`DEFAULT_TTL`). `max_threads` evicts the least-recently-used thread. `ttl` expires an idle thread lazily on the next access, after which its tokens are no longer restored. `None` lifts a bound, and the store then grows until `forget_thread` is called.
+The store is bounded by default, to 10,000 threads (`DEFAULT_MAX_THREADS`) and one day idle (`DEFAULT_TTL`). `max_threads` evicts the least-recently-used thread. `ttl` expires an idle thread lazily on the next access, after which its tokens are no longer restored. `None` lifts a bound, and the store then grows until `forget_thread` is called. `time_source` is the clock `ttl` reads, injectable for tests.
 
 ## `RedisConversationMemory`
 

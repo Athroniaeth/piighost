@@ -540,6 +540,12 @@ file per example, shared by the FR and EN pages, and the page includes it:
 - **A class a page shows** (a port, a template, a built-in factory) is listed
   in `SHOWN_CLASSES`, which compares its signatures and bases with the real
   class.
+- **A reference page writes its signatures and ports by hand**, since they
+  do not run. `tests/docs/test_reference_signatures.py` compares each with the
+  source through its syntax tree: parameters, types, defaults, decorators, and
+  every method of a port. A block that only imports is checked against the
+  module's exports, a `>>>` block replays as a doctest. Any other Python in a
+  reference page comes from `docs/snippets/`.
 - **A page listed in `MIGRATED`** fails the test if a Python block is written
   in it by hand again.
 - **One file serves both languages**, which keeps the code identical, as the
