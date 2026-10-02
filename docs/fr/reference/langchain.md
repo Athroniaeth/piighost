@@ -235,7 +235,7 @@ async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
     print(restored, end="", flush=True)
 ```
 
-Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre jamais de token cassé.
+Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de token cassé. Seul un flux qui s'interrompt au milieu d'un token rend son fragment tel quel, `<<PER`{ .placeholder } par exemple, qui ne contient aucune vraie valeur.
 
 Pour un autre framework, la même restauration est un cran plus bas, `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui restaure un token.
 

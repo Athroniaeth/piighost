@@ -24,12 +24,10 @@ Dans `abefore_model`, le middleware envoie au LLM un texte dé-identifié *exact
 
 ### Le canal outil : remplacement de chaîne, fragile
 
-Dans `awrap_tool_call`, le LLM produit les arguments d'outil en combinant, fragmentant, paraphrasant les tokens qu'il vient de voir. Ce texte arbitraire n'a jamais été produit par le pipeline, il n'est donc pas mémorisé. Idem pour la réponse de l'outil, `piighost` ne l'a jamais vue.
+Dans `awrap_tool_call`, le LLM produit les arguments d'outil en combinant, fragmentant, paraphrasant les tokens qu'il vient de voir. Ce texte arbitraire n'a jamais été produit par le pipeline, il n'est donc pas mémorisé. La réponse de l'outil, elle, est un texte que `piighost` n'a jamais vu. Les deux directions sont donc traitées différemment.
 
-Les deux directions retombent donc sur du **remplacement de chaîne brut**.
-
-- *Arguments d'outil (LLM vers outil)*, on parcourt les arguments à la recherche des tokens connus et on remplace chacun par la valeur originale de son entité, `<<EMAIL:1>>`{ .placeholder } redevient `jean@mail.com`{ .pii }.
-- *Réponse de l'outil (outil vers LLM)*, on parcourt la réponse à la recherche des valeurs connues et on remplace chacune par le token correspondant.
+- *Arguments d'outil (LLM vers outil)*, faute de mapping pour ce texte, on retombe sur du **remplacement de chaîne brut**. On parcourt les arguments à la recherche des tokens connus et on remplace chacun par la valeur originale de son entité, `<<EMAIL:1>>`{ .placeholder } redevient `jean@mail.com`{ .pii }.
+- *Réponse de l'outil (outil vers LLM)*, la réponse passe dans le pipeline du fil, détection comprise, comme un message de l'utilisateur. Une valeur déjà vue reprend son token, et une valeur que la conversation n'a jamais citée, un e-mail renvoyé par un CRM par exemple, est détectée et reçoit le sien.
 
 Le remplacement brut n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le token `<<PERSON>>`{ .placeholder }, impossible de savoir laquelle restaurer dans les arguments. C'est la raison structurelle pour laquelle le middleware n'accepte que des factories dont les tokens préservent une identité retrouvable. Voir [Placeholder factories](placeholder-factories.md).
 
