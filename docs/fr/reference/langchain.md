@@ -41,7 +41,6 @@ Nécessite l'extra `langchain` (`pip install piighost[langchain]`), qui tire `la
 PIIAnonymizationMiddleware(
     pipeline: AnyThreadPipeline,
     tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-    require_thread_id: bool = True,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
 )
@@ -51,13 +50,12 @@ PIIAnonymizationMiddleware(
 |-----------|------|-------------|
 | `pipeline` | `AnyThreadPipeline` | Le pipeline de thread qui dé-identifie et restaure (requis) |
 | `tool_strategy` | `ToolCallStrategy` | Comment les deux directions d'un appel d'outil sont traitées |
-| `require_thread_id` | `bool` | Si un thread id absent lève, plutôt que de retomber sur un thread partagé |
 | `invented_strategy` | `InventedPlaceholderStrategy` | Comment un token que le pipeline n'a jamais émis est traité après restauration |
 | `assistant_strategy` | `EntityCreateByAssistantStrategy` | Comment les valeurs introduites par l'assistant sont traitées |
 
 Le pipeline doit exposer un reconnaisseur de tokens délimités via `pipeline.recognizer`, pour qu'un token inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte au type-checking pour les appelants typés.
 
-`require_thread_id` vaut `True` par défaut, donc un thread id absent lève `MissingThreadIdError` plutôt que de router chaque conversation vers le thread `"default"` partagé, ce qui ferait fuiter l'état des placeholders d'une conversation à l'autre. Passez `False` pour choisir sciemment ce repli partagé, en usage mono-conversation ou sans état.
+Chaque appel de l'agent porte un thread id dans sa config LangGraph. Un appel qui n'en porte pas lève `MissingThreadIdError`, plutôt que de router chaque conversation vers un thread partagé, ce qui ferait fuiter l'état des placeholders d'une conversation à l'autre. Si vos conversations n'ont pas besoin d'être séparées, nommez vous-même le thread `"default"` (`DEFAULT_THREAD_ID`).
 
 ---
 
@@ -207,7 +205,7 @@ result = await agent.ainvoke(
 print(result["messages"][-1].content)
 ```
 
-Le pipeline doit être un pipeline de thread dont la factory de placeholders est délimitée, comme `label`, `label_counter` ou `label_hash`. Passez un thread id à chaque appel via `config["configurable"]["thread_id"]`, puisque `require_thread_id` vaut `True` par défaut.
+Le pipeline doit être un pipeline de thread dont la factory de placeholders est délimitée, comme `label`, `label_counter` ou `label_hash`. Passez un thread id à chaque appel via `config["configurable"]["thread_id"]`, sans quoi l'appel lève `MissingThreadIdError`.
 
 ---
 
@@ -237,7 +235,7 @@ async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
     print(restored, end="", flush=True)
 ```
 
-Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre jamais de token cassé.
+Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de token cassé. Seul un flux qui s'interrompt au milieu d'un token rend son fragment tel quel, `<<PER`{ .placeholder } par exemple, qui ne contient aucune vraie valeur.
 
 Pour un autre framework, la même restauration est un cran plus bas, `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui restaure un token.
 

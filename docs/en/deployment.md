@@ -81,7 +81,7 @@ The `thread_id` scopes the conversation. The same value in a later message of `u
 
 ## Bound the in-memory store
 
-The default `InMemoryConversationMemory` keeps every thread in a process-local dict. Left unbounded, a long-lived process that never calls `forget_thread` grows without limit as new threads arrive. Set `max_threads` to cap how many threads are kept, evicting the least recently used beyond it, and `ttl` to expire a thread that many seconds after its last write, dropped lazily on the next access.
+The default `InMemoryConversationMemory` keeps every thread in a process-local dict, bounded to 10,000 threads and one day idle, so a long-lived process that never calls `forget_thread` does not keep every value it saw. Adjust `max_threads` to cap how many threads are kept, evicting the least recently used beyond it, and `ttl` to expire a thread that many seconds after its last write, dropped lazily on the next access.
 
 ```toml title="pipeline.toml"
 [memory]

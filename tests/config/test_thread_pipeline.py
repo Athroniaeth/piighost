@@ -7,6 +7,7 @@ import pytest
 from piighost.config import PipelineConfig, load_pipeline, load_thread_pipeline
 from piighost.config.models.memory import InMemoryConfig
 from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.conversation_memory.memory import DEFAULT_MAX_THREADS, DEFAULT_TTL
 from piighost.exceptions import ConfigError
 from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
 
@@ -52,6 +53,11 @@ class TestInMemoryConfig:
         """The in_memory config builds an InMemoryConversationMemory."""
         memory = InMemoryConfig(type="in_memory").build()
         assert isinstance(memory, InMemoryConversationMemory)
+
+    def test_a_bare_section_is_bounded_like_the_store(self) -> None:
+        """A section with no bound carries the store's default bounds."""
+        config = InMemoryConfig(type="in_memory")
+        assert (config.max_threads, config.ttl) == (DEFAULT_MAX_THREADS, DEFAULT_TTL)
 
 
 class TestLoadThreadPipeline:

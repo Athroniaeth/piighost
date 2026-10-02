@@ -11,7 +11,7 @@ A thread pipeline keeps one placeholder per value for the length of a conversati
 
 ## Why one process is not enough
 
-`InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment. Nothing survives a restart and nothing is shared across processes. It can be bounded with `max_threads` and `ttl` to cap its growth, though a multi-worker deployment still needs a shared backend.
+`InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment. Nothing survives a restart and nothing is shared across processes. It is bounded by default, `max_threads` and `ttl` adjusting its growth, though a multi-worker deployment still needs a shared backend.
 
 The problem appears the moment a load balancer routes the same `thread_id` to more than one worker. Each worker holds its own memory, and these memories do not talk to each other. A value tokenized as `<<PERSON:1>>`{ .placeholder } on worker A is unknown to worker B, which numbers it fresh.
 

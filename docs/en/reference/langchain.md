@@ -41,7 +41,6 @@ Extends `AgentMiddleware` and hooks the agent loop at three points.
 PIIAnonymizationMiddleware(
     pipeline: AnyThreadPipeline,
     tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-    require_thread_id: bool = True,
     invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
 )
@@ -51,13 +50,12 @@ PIIAnonymizationMiddleware(
 |-----------|------|-------------|
 | `pipeline` | `AnyThreadPipeline` | The thread pipeline that de-identifies and restores (required) |
 | `tool_strategy` | `ToolCallStrategy` | How the two directions of a tool call are handled |
-| `require_thread_id` | `bool` | Whether a missing thread id raises, rather than falling back to a shared thread |
 | `invented_strategy` | `InventedPlaceholderStrategy` | How a token the pipeline never issued is treated after restoration |
 | `assistant_strategy` | `EntityCreateByAssistantStrategy` | How values the assistant introduces are treated |
 
 The pipeline must expose a delimited token recognizer through `pipeline.recognizer`, so a token the model invented can be found again. A pipeline whose placeholder factory is not delimited (a mask, for example) has no recognizer, and the constructor raises `UnrecognizableFactoryError`. The `IdentityT` type bound enforces the same at type-check time for typed callers.
 
-`require_thread_id` defaults to `True`, so a missing thread id raises `MissingThreadIdError` rather than routing every conversation into the shared `"default"` thread, which would leak placeholder state across conversations. Pass `False` to opt into that shared fallback for single-conversation or stateless use.
+Every agent call carries a thread id in its LangGraph config. A call without one raises `MissingThreadIdError`, rather than routing every conversation into a shared thread, which would leak placeholder state across conversations. If your conversations need no separation, name the `"default"` thread (`DEFAULT_THREAD_ID`) yourself.
 
 ---
 
@@ -207,7 +205,7 @@ result = await agent.ainvoke(
 print(result["messages"][-1].content)
 ```
 
-The pipeline must be a thread pipeline whose placeholder factory is delimited, such as `label`, `label_counter`, or `label_hash`. Pass a thread id on every call through `config["configurable"]["thread_id"]`, since `require_thread_id` defaults to `True`.
+The pipeline must be a thread pipeline whose placeholder factory is delimited, such as `label`, `label_counter`, or `label_hash`. Pass a thread id on every call through `config["configurable"]["thread_id"]`, or the call raises `MissingThreadIdError`.
 
 ---
 
@@ -237,7 +235,7 @@ async for restored in middleware.deanonymize_stream(model_text(), "conv-1"):
     print(restored, end="", flush=True)
 ```
 
-A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display never shows a broken token.
+A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display shows no broken token. Only a stream that stops in the middle of a token emits its fragment as is, `<<PER`{ .placeholder } for example, which holds no real value.
 
 For another framework, the same restoration is one step lower, `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar, with `replace` a coroutine that restores one token.
 

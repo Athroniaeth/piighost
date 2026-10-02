@@ -11,7 +11,7 @@ Un pipeline de thread garde un placeholder par valeur pour toute la durée d'une
 
 ## Pourquoi un seul processus ne suffit pas
 
-`InMemoryConversationMemory` garde les détections de chaque thread dans un dictionnaire qui vit dans un seul processus. Elle convient au développement, aux tests, et à un déploiement mono-processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Elle peut être bornée avec `max_threads` et `ttl` pour plafonner sa croissance, mais un déploiement multi-worker a toujours besoin d'un backend partagé.
+`InMemoryConversationMemory` garde les détections de chaque thread dans un dictionnaire qui vit dans un seul processus. Elle convient au développement, aux tests, et à un déploiement mono-processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Elle est bornée par défaut, `max_threads` et `ttl` ajustant sa croissance, mais un déploiement multi-worker a toujours besoin d'un backend partagé.
 
 Le problème apparaît dès qu'un load balancer route le même `thread_id` vers plus d'un worker. Chaque worker tient sa propre mémoire, et ces mémoires ne se parlent pas. Une valeur tokenisée en `<<PERSON:1>>`{ .placeholder } sur le worker A est inconnue du worker B, qui la numérote à neuf.
 

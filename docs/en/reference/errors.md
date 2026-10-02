@@ -130,7 +130,7 @@ Module: `piighost.integrations`. `MiddlewareError` groups the failures of the in
 |-----------|-----------|-------------|
 | `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | the pipeline exposes no token recognizer, its placeholder factory having no re-findable grammar |
 | `InventedPlaceholderError` | `TextDeidentifier.deanonymize` and `deanonymize_stream` | restored text still holds a token the pipeline never issued, under the `RAISE` invented-placeholder strategy |
-| `MissingThreadIdError` | the LangChain middleware, on each turn | the LangGraph config carries no `thread_id` while `require_thread_id` is set |
+| `MissingThreadIdError` | the LangChain middleware and the Claude Code hooks, on each turn | the LangGraph config carries no `thread_id`, or the hook event no `session_id` |
 
 The three are covered in [LangChain integration](langchain.md), with the strategies that decide whether the second is raised at all.
 

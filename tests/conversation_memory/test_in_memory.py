@@ -6,6 +6,7 @@ from piighost.conversation_memory import (
     InMemoryConversationMemory,
     MessageRole,
 )
+from piighost.conversation_memory.memory import DEFAULT_MAX_THREADS, DEFAULT_TTL
 from piighost.models import Detection, Span
 
 
@@ -180,6 +181,34 @@ class TestBounding:
         clock["now"] = 1070.0  # 70s later, past the 60s ttl
         assert await memory.get_detections("t1") == []
         assert await memory.get_detections("t1", "m1") is None
+
+    async def test_the_default_store_caps_its_thread_count(self) -> None:
+        """Built with no bound, the store still evicts past DEFAULT_MAX_THREADS."""
+        memory = InMemoryConversationMemory()
+        for index in range(DEFAULT_MAX_THREADS + 1):
+            await memory.remember(f"t{index}", "m1", [_detection("Emma")])
+        assert await memory.get_detections("t0") == []
+        assert await memory.get_detections("t1") == [_detection("Emma")]
+
+    async def test_the_default_store_expires_an_idle_thread(self) -> None:
+        """Built with no ttl, a thread idle past DEFAULT_TTL is dropped."""
+        clock = {"now": 1000.0}
+        memory = InMemoryConversationMemory(time_source=lambda: clock["now"])
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        clock["now"] += DEFAULT_TTL + 1
+        assert await memory.get_detections("t1") == []
+
+    async def test_none_lifts_both_bounds(self) -> None:
+        """max_threads=None and ttl=None keep every thread, knowingly unbounded."""
+        clock = {"now": 1000.0}
+        memory = InMemoryConversationMemory(
+            max_threads=None, ttl=None, time_source=lambda: clock["now"]
+        )
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        for index in range(DEFAULT_MAX_THREADS):
+            await memory.remember(f"other{index}", "m1", [_detection("Liam")])
+        clock["now"] += DEFAULT_TTL + 1
+        assert await memory.get_detections("t1") == [_detection("Emma")]
 
 
 class TestProvenance:
