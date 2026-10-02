@@ -1,0 +1,3 @@
+[entity_resolver]
+type = "fuzzy"
+threshold = 0.85

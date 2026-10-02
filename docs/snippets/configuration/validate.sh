@@ -1,0 +1,1 @@
+piighost validate pipeline.toml

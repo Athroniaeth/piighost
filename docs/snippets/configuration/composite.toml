@@ -1,0 +1,14 @@
+[detector]
+type = "composite"
+
+[[detector.detectors]]
+type = "regex"
+catalogs = ["hub:piighost/generic:fab51b33"]
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
+
+[[detector.detectors]]
+type = "exact"
+values = { Patrick = "PERSON", Patrik = "PERSON" }
+
+[anonymizer.placeholder]
+type = "label_counter"

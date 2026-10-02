@@ -21,6 +21,10 @@ uv run pytest tests/docs                  # the examples that need nothing
 uv run pytest tests/docs -m integration   # the ones that reach the hub or load a model
 ```
 
+The configuration tutorial keeps its files in `configuration/`, which
+`tests/docs/test_configuration_tutorial.py` replays step by step, the CLI
+commands included.
+
 A new file goes in the `SNIPPETS` list of that test, and a page whose examples
 all come from here goes in `MIGRATED`, after which a Python block written by
 hand in it fails the test. An example only differs between languages when its
