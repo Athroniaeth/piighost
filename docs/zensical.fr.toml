@@ -57,6 +57,15 @@ nav = [
         ]},
     ] },
     { "Concepts" = [
+        { "Besoins par profil" = "needs-by-profile.md" },
+        { "Cas d'utilisation" = [
+            { "Vue d'ensemble" = "use-cases/index.md" },
+            { "Protéger un message" = "use-cases/protect-a-message.md" },
+            { "Suivre une conversation" = "use-cases/follow-a-conversation.md" },
+            { "Laisser un outil agir" = "use-cases/call-a-tool.md" },
+            { "Afficher une réponse streamée" = "use-cases/stream-a-reply.md" },
+            { "Imposer les listes du serveur" = "use-cases/enforce-server-lists.md" },
+        ]},
         { "Pourquoi dé-identifier ?" = "why-anonymize.md" },
         { "Comment PIIGhost se compare" = "comparison.md" },
         { "Architecture" = "architecture.md" },
