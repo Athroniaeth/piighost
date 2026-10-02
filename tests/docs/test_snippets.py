@@ -123,7 +123,7 @@ def test_a_migrated_page_writes_no_python_by_hand(page: str, lang: str) -> None:
     """A Python block of a migrated page is an include, so it cannot drift from its test."""
     text = (DOCS_DIR / lang / page).read_text(encoding="utf-8")
     blocks = re.findall(
-        r"^(\s*)```python\n(.*?)^\1```", text, flags=re.DOTALL | re.MULTILINE
+        r"^([ \t]*)```python\n(.*?)^\1```", text, flags=re.DOTALL | re.MULTILINE
     )
     written = [body for _, body in blocks if "--8<--" not in body]
     assert written == []
