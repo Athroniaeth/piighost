@@ -1,0 +1,14 @@
+[detector]
+type = "regex"
+catalogs = ["hub:piighost/generic:fab51b33"]
+
+[override]
+blacklist_strategy = "value"
+
+[override.whitelist]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+[override.blacklist]
+type = "exact"
+values = { "public@corp.com" = "EMAIL" }
