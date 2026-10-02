@@ -127,7 +127,7 @@ La sortie doit être :
 {"text":"Thanks Jane Doe, I will write to jane.doe@example.com."}
 ```
 
-Le serveur restaure chaque placeholder émis par le thread `demo`, quel que soit le texte qui le porte.
+Le serveur restaure chaque placeholder émis par la conversation `demo`, quel que soit le texte qui le porte.
 
 ## 6. L'appeler depuis Python
 
@@ -143,11 +143,11 @@ La sortie doit être :
 --8<-- "snippets/server_api.out"
 ```
 
-`Jane Doe`{ .pii } garde `<<PERSON:1>>`{ .placeholder }, le token que le thread `demo` lui a donné à l'étape 4. Le client et ses intégrations sont décrits dans [Client distant](api-client.md).
+`Jane Doe`{ .pii } garde `<<PERSON:1>>`{ .placeholder }, le jeton que la conversation `demo` lui a donné à l'étape 4. Le client et ses intégrations sont décrits dans [Client distant](api-client.md).
 
 ## Comment ça marche
 
-Le serveur charge un seul pipeline conversationnel au démarrage et exécute chaque route dessus. Une configuration qui ne déclare pas de section `[memory]`, comme les deux configurations du hub de cette page, est servie avec la mémoire in-process, donc les threads vivent dans le processus du serveur et disparaissent quand il s'arrête. Pour les garder d'un redémarrage à l'autre, ou les partager entre plusieurs instances, déclarez une mémoire Redis, comme le montre [Déployer un pipeline en production](../deployment.md).
+Le serveur charge un seul pipeline conversationnel au démarrage et exécute chaque route dessus. Une configuration qui ne déclare pas de section `[memory]`, comme les deux configurations du hub de cette page, est servie avec la mémoire in-process, donc les conversations vivent dans le processus du serveur et disparaissent quand il s'arrête. Pour les garder d'un redémarrage à l'autre, ou les partager entre plusieurs instances, déclarez une mémoire Redis, comme le montre [Déployer un pipeline en production](../deployment.md).
 
 ## Et ensuite
 

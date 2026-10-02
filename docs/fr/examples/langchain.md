@@ -48,7 +48,7 @@ Le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } au lieu d'un nom. Un cour
 
 ## 5. Exécuter un tour
 
-Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à ce fil.
+Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à cette conversation.
 
 ```python
 --8<-- "snippets/langchain_agent.py:run"

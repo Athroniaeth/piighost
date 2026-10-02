@@ -45,7 +45,7 @@ piighost-api serve --config hub:piighost/support-en:286909f6 --host 0.0.0.0 --po
 
 - Sans `--config` ni `PIIGHOST_CONFIG`, la commande imprime `Missing --config or PIIGHOST_CONFIG.` avec une indication d'usage et sort en `1`. Un chemin de fichier qui n'existe pas sort en `1` avec `Configuration file not found:`.
 - Une référence du hub charge la configuration complète que le [hub piighost](https://hub.piighost.dev) publie sous ce nom. Une référence épinglée à un commit est récupérée au premier démarrage, puis lue dans le cache disque.
-- Une configuration qui ne déclare pas de section `[memory]` est servie avec la mémoire in-process, `in_memory`. Ses threads vivent dans le processus du serveur, donc chaque instance tient les siens. Plusieurs instances derrière un load balancer demandent une mémoire `redis` ou `sqlalchemy` partagée, voir [Déploiement multi-instance](../multi-instance.md).
+- Une configuration qui ne déclare pas de section `[memory]` est servie avec la mémoire in-process, `in_memory`. Ses conversations vivent dans le processus du serveur, donc chaque instance tient les siennes. Plusieurs instances derrière un load balancer demandent une mémoire `redis` ou `sqlalchemy` partagée, voir [Déploiement multi-instance](../multi-instance.md).
 - Toute section de premier niveau se surcharge avec une variable `PIIGHOST_` qui porte un objet JSON, comme pour un fichier, voir [Surcharges d'environnement](../configuration/toml.md). `PIIGHOST_MEMORY` ajoute ainsi une mémoire partagée à une configuration du hub, celle ci-dessous demandant `piighost[crypto]` pour son cipher.
 - Sans clé dans une variable `API_KEY_`, le serveur refuse de démarrer sauf si `PIIGHOST_ALLOW_ANONYMOUS` est posée.
 

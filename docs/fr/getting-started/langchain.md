@@ -9,7 +9,7 @@ Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour qu
 !!! note "Prérequis"
     `piighost` installé avec l'extra middleware, `pip install piighost[langchain]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). Le pipeline reprend les composants de la page [Pipeline conversationnel](conversation.md).
 
-## 1. Construire le pipeline de fil
+## 1. Construire le pipeline de conversation
 
 Le middleware enrobe un `ThreadAnonymizationPipeline`, le même que celui de la page [Pipeline conversationnel](conversation.md). Son anonymiseur doit utiliser une fabrique de jetons délimités comme `LabelCounterPlaceholderFactory`, qui émet `<<PERSON:1>>`{ .placeholder }. Le middleware a besoin de cette grammaire pour retrouver un jeton, sinon il lève `UnrecognizableFactoryError` à la construction.
 
@@ -35,7 +35,7 @@ Un outil qui cherche une personne par son nom a besoin de `Patrick`{ .pii }, pas
 
 ## 4. Exécuter un tour
 
-Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à ce fil.
+Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l'y lit et rattache chaque jeton à cette conversation.
 
 ```python
 --8<-- "snippets/langchain_start.fr.py:run"
@@ -51,7 +51,7 @@ Le message final est dé-identifié pour l'affichage, donc la réponse se lit av
 
 Le middleware est un adaptateur mince autour du pipeline. Avant l'appel du modèle, `abefore_model` fait passer chaque message dans `pipeline.anonymize`, si bien que le LLM reçoit `Où habite <<PERSON:1>> ?` au lieu du vrai nom. Quand le modèle appelle `lookup_city` avec `person="<<PERSON:1>>"`, `awrap_tool_call` sous `ToolCallStrategy.FULL` restaure l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis dé-identifie à nouveau le résultat texte de l'outil. Après l'appel du modèle, `aafter_model` restaure la réponse pour l'utilisateur. Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape du tour.
 
-Deux règles méritent d'être connues. Un appel sans identifiant de fil échoue, plutôt que de router toutes les conversations dans un seul fil partagé et de fuiter les jetons entre elles. Si vos conversations n'ont pas besoin d'être séparées, passez `"default"`. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuse un jeton qui apparaît dans la réponse du modèle mais que le pipeline n'a jamais émis, qu'il soit halluciné ou injecté.
+Deux règles méritent d'être connues. Un appel sans identifiant de conversation échoue, plutôt que de router toutes les conversations dans une seule conversation partagée et de fuiter les jetons entre elles. Si vos conversations n'ont pas besoin d'être séparées, passez `"default"`. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuse un jeton qui apparaît dans la réponse du modèle mais que le pipeline n'a jamais émis, qu'il soit halluciné ou injecté.
 
 ## Et ensuite
 

@@ -6,13 +6,13 @@ icon: lucide/scan-text
 
 Module : `piighost.components.anonymizer`
 
-L'anonymizer est l'étage de rendu d'un pipeline. Il prend les entités liées et le texte source, demande à une placeholder factory un token par entité, et réécrit le texte pour que chaque occurrence d'une entité devienne son token. Il inverse aussi la correspondance pour restaurer l'original.
+L'anonymizer est l'étage de rendu d'un pipeline. Il prend les entités liées et le texte source, demande à une placeholder factory un jeton par entité, et réécrit le texte pour que chaque occurrence d'une entité devienne son jeton. Il inverse aussi la correspondance pour restaurer l'original.
 
 ---
 
 ## `Anonymization`
 
-Le résultat de la dé-identification d'un texte. Le texte réécrit associé au token qui a remplacé chaque entité. Un dataclass gelé.
+Le résultat de la dé-identification d'un texte. Le texte réécrit associé au jeton qui a remplacé chaque entité. Un dataclass gelé.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -23,16 +23,16 @@ class Anonymization(Generic[PreservationT_co]):
 
 | Attribut | Type | Description |
 |----------|------|-------------|
-| `text` | `str` | Le texte avec chaque occurrence d'entité remplacée par son token |
-| `tokens` | `Mapping[Entity, str]` | Le token qui a remplacé chaque entité |
+| `text` | `str` | Le texte avec chaque occurrence d'entité remplacée par son jeton |
+| `tokens` | `Mapping[Entity, str]` | Le jeton qui a remplacé chaque entité |
 
-La correspondance est typée par ce que la factory préserve, donc un appelant peut l'inverser pour restaurer seulement quand les tokens préservent l'identité.
+La correspondance est typée par ce que la factory préserve, donc un appelant peut l'inverser pour restaurer seulement quand les jetons préservent l'identité.
 
 ---
 
 ## `Anonymizer`
 
-Remplace les spans de chaque entité par le token qu'une factory lui assigne. Il édite les spans de gauche à droite en une passe, ce qui reste correct car les étages en amont les laissent sans chevauchement, donc aucune édition ne décale un offset dont une autre a encore besoin. Sans état. Rien n'est retenu d'un appel à l'autre.
+Remplace les spans de chaque entité par le jeton qu'une factory lui assigne. Il édite les spans de gauche à droite en une passe, ce qui reste correct car les étages en amont les laissent sans chevauchement, donc aucune édition ne décale un offset dont une autre a encore besoin. Sans état. Rien n'est retenu d'un appel à l'autre.
 
 ### Constructeur
 
@@ -42,8 +42,8 @@ Anonymizer(ph_factory: AnyPlaceholderFactory[PreservationT], escape_existing_tok
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `ph_factory` | `AnyPlaceholderFactory[PreservationT]` | La placeholder factory qui assigne un token à chaque entité (requis) |
-| `escape_existing_tokens` | `bool` | Neutralise les tokens saisis par l'utilisateur dans l'entrée pour qu'ils ne puissent pas se faire passer pour des tokens de la factory et détourner une valeur à la restauration. Ne s'applique que quand la factory émet une grammaire délimitée reconnaissable. Vaut `True` par défaut |
+| `ph_factory` | `AnyPlaceholderFactory[PreservationT]` | La placeholder factory qui assigne un jeton à chaque entité (requis) |
+| `escape_existing_tokens` | `bool` | Neutralise les jetons saisis par l'utilisateur dans l'entrée pour qu'ils ne puissent pas se faire passer pour des jetons de la factory et détourner une valeur à la restauration. Ne s'applique que quand la factory émet une grammaire délimitée reconnaissable. Vaut `True` par défaut |
 
 La factory est exposée ensuite via la propriété `factory`.
 
@@ -51,7 +51,7 @@ La factory est exposée ensuite via la propriété `factory`.
 
 #### `anonymize(text, entities) -> Anonymization`
 
-Assigne un token à chaque entité, rend le texte contre ces tokens, et renvoie les deux dans une `Anonymization`.
+Assigne un jeton à chaque entité, rend le texte contre ces jetons, et renvoie les deux dans une `Anonymization`.
 
 ```python
 --8<-- "snippets/reference_anonymizer.py:anonymize"
@@ -59,7 +59,7 @@ Assigne un token à chaque entité, rend le texte contre ces tokens, et renvoie 
 
 #### `create(entities) -> Mapping[Entity, str]`
 
-Renvoie le token que chaque entité obtient, sans toucher au texte. Séparer l'assignation des tokens du rendu permet à un appelant d'assigner les tokens sur un ensemble d'entités, comme toute une conversation, puis de rendre plusieurs textes contre ces mêmes tokens.
+Renvoie le jeton que chaque entité obtient, sans toucher au texte. Séparer l'assignation des jetons du rendu permet à un appelant d'assigner les jetons sur un ensemble d'entités, comme toute une conversation, puis de rendre plusieurs textes contre ces mêmes jetons.
 
 ```python
 --8<-- "snippets/reference_anonymizer.py:create"
@@ -67,9 +67,9 @@ Renvoie le token que chaque entité obtient, sans toucher au texte. Séparer l'a
 
 #### `render(text, entities, tokens) -> str`
 
-Renvoie `text` avec les spans de chaque entité remplacés par le token donné. Utilisé par le pipeline de thread pour rendre un message contre des tokens assignés sur tout le thread.
+Renvoie `text` avec les spans de chaque entité remplacés par le jeton donné. Utilisé par le pipeline de conversation pour rendre un message contre des jetons assignés sur toute la conversation.
 
-Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout token saisi par l'utilisateur dans les portions littérales entre les spans d'entités, en y insérant un espace de largeur nulle, pour qu'il ne puisse pas être restauré comme un vrai token. Les spans d'entités et leurs offsets restent intacts.
+Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout jeton saisi par l'utilisateur dans les portions littérales entre les spans d'entités, en y insérant un espace de largeur nulle, pour qu'il ne puisse pas être restauré comme un vrai jeton. Les spans d'entités et leurs offsets restent intacts.
 
 Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de résolution des chevauchements doit s'exécuter d'abord, donc un chevauchement ici préfère échouer plutôt que d'introduire un fragment en clair d'une détection dans une autre.
 
@@ -79,9 +79,9 @@ Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de réso
 
 #### `deanonymize(text, tokens) -> str`
 
-Renvoie le texte avec chaque token connu remplacé par la valeur de son entité, en lisant la correspondance à l'envers. Tout texte portant ces tokens est restauré, y compris un texte que le pipeline n'a jamais produit. Les tokens absents de la correspondance sont laissés intacts.
+Renvoie le texte avec chaque jeton connu remplacé par la valeur de son entité, en lisant la correspondance à l'envers. Tout texte portant ces jetons est restauré, y compris un texte que le pipeline n'a jamais produit. Les jetons absents de la correspondance sont laissés intacts.
 
-La restauration n'est sans ambiguïté que si les tokens préservent l'identité, car deux entités partageant un même token se confondent en une seule valeur.
+La restauration n'est sans ambiguïté que si les jetons préservent l'identité, car deux entités partageant un même jeton se confondent en une seule valeur.
 
 ```python
 --8<-- "snippets/reference_anonymizer.py:deanonymize"
@@ -91,7 +91,7 @@ La restauration n'est sans ambiguïté que si les tokens préservent l'identité
 
 ## `AnyAnonymizer` (protocole)
 
-Le port que tout anonymizer implémente. Générique sur ce que ses tokens préservent, donc un consommateur comme le middleware peut exiger un anonymizer dont les tokens préservent l'identité et rejeter celui dont les tokens ne la préservent pas, à la vérification de types.
+Le port que tout anonymizer implémente. Générique sur ce que ses jetons préservent, donc un consommateur comme le middleware peut exiger un anonymizer dont les jetons préservent l'identité et rejeter celui dont les jetons ne la préservent pas, à la vérification de types.
 
 ```python
 @runtime_checkable
@@ -116,7 +116,7 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
 
 ## `BaseAnonymizer`
 
-Le template que `Anonymizer` étend. Il tient les étapes partagées. Demander à la factory un token par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie, la règle qui réécrit le texte à partir des entités et de leurs tokens.
+Le template que `Anonymizer` étend. Il tient les étapes partagées. Demander à la factory un jeton par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie, la règle qui réécrit le texte à partir des entités et de leurs jetons.
 
 ```python
 class BaseAnonymizer(ABC, Generic[PreservationT]):
@@ -133,5 +133,5 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
 ## Voir aussi
 
 - [Référence Pipeline](pipeline.md) pour le pipeline qui pilote l'anonymizer.
-- [Placeholder factories](../placeholder-factories.md) pour les tokens que l'anonymizer émet.
+- [Placeholder factories](../placeholder-factories.md) pour les jetons que l'anonymizer émet.
 - [Étendre PIIGhost](../extending.md) pour écrire son propre anonymizer.

@@ -35,7 +35,7 @@ Patrick = "PERSON"
 piighost-api serve --config patrick.toml
 ```
 
-Lancez-le dans le shell où votre `API_KEY_DEV` est exportée, puisque le serveur refuse de démarrer sans clé. Pointez Claude Code dessus comme plus haut, puis demandez "What is the first letter of my name, Patrick?". Le modèle ne peut pas répondre, puisque la requête qu'il a reçue porte `<<PERSON:1>>`{ .placeholder }. La réponse que vous lisez est restaurée, donc elle affiche toujours `Patrick`{ .pii } là où le modèle a écrit le token.
+Lancez-le dans le shell où votre `API_KEY_DEV` est exportée, puisque le serveur refuse de démarrer sans clé. Pointez Claude Code dessus comme plus haut, puis demandez "What is the first letter of my name, Patrick?". Le modèle ne peut pas répondre, puisque la requête qu'il a reçue porte `<<PERSON:1>>`{ .placeholder }. La réponse que vous lisez est restaurée, donc elle affiche toujours `Patrick`{ .pii } là où le modèle a écrit le jeton.
 
 ## Choisir l'upstream
 
@@ -45,7 +45,7 @@ Sans en-tête, le proxy relaie vers `https://api.anthropic.com/v1`. Si vous voul
 export PIIGHOST_ANTHROPIC_UPSTREAM="https://gateway.internal/v1"
 ```
 
-Si vous la voulez pour une seule requête, nommez l'URL de base de la passerelle dans l'en-tête `X-PIIGhost-Upstream`. Chaque requête s'exécute dans un thread neuf, oublié une fois la réponse restaurée, ce qui correspond à Claude Code qui renvoie tout l'historique à chaque tour. Fixez un thread avec `X-PIIGhost-Thread-Id` seulement si vous gérez vous-même sa durée de vie.
+Si vous la voulez pour une seule requête, nommez l'URL de base de la passerelle dans l'en-tête `X-PIIGhost-Upstream`. Chaque requête s'exécute dans une conversation neuve, oubliée une fois la réponse restaurée, ce qui correspond à Claude Code qui renvoie tout l'historique à chaque tour. Fixez une conversation avec `X-PIIGhost-Thread-Id` seulement si vous gérez vous-même sa durée de vie.
 
 ## Guider le modèle avec une note
 

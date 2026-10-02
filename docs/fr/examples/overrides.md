@@ -57,14 +57,14 @@ Un hit forcé remplace aussi toute détection qu'il chevauche, donc le label de 
 --8<-- "snippets/overrides_whitelist_exact.py:example"
 ```
 
-Une valeur forcée passe par la liaison et l'attribution de token comme n'importe quelle détection, donc le pipeline conversationnel la stocke en mémoire et `deanonymize` la restaure.
+Une valeur forcée passe par la liaison et l'attribution de jeton comme n'importe quelle détection, donc le pipeline conversationnel la stocke en mémoire et `deanonymize` la restaure.
 
 ## 3. Tokeniser une valeur introduite par l'assistant
 
-Dans un thread, une valeur que l'assistant a écrite le premier reste en clair même si la whitelist la trouve. Le modèle a produit cette valeur parce qu'elle était utile dans le contexte et il ne sait pas qu'elle est confidentielle, donc la remplacer lui retirerait sa connaissance du monde et signalerait que cette valeur précise est sensible. `whitelist_strategy` décide qui l'emporte.
+Dans une conversation, une valeur que l'assistant a écrite le premier reste en clair même si la whitelist la trouve. Le modèle a produit cette valeur parce qu'elle était utile dans le contexte et il ne sait pas qu'elle est confidentielle, donc la remplacer lui retirerait sa connaissance du monde et signalerait que cette valeur précise est sensible. `whitelist_strategy` décide qui l'emporte.
 
-- Gardez `WhitelistStrategy.RESPECT_PROVENANCE`, le défaut, pour laisser en clair une valeur introduite par l'assistant. La whitelist garantit toujours que la valeur est détectée, et la même valeur introduite par l'utilisateur est bien tokenisée.
-- Utilisez `WhitelistStrategy.FORCE` pour tokeniser une valeur whitelistée quel que soit celui qui l'a écrite le premier.
+- Gardez `WhitelistStrategy.RESPECT_PROVENANCE`, le défaut, pour laisser en clair une valeur introduite par l'assistant. La whitelist garantit toujours que la valeur est détectée, et la même valeur introduite par l'utilisateur est bien dé-identifiée.
+- Utilisez `WhitelistStrategy.FORCE` pour dé-identifier une valeur whitelistée quel que soit celui qui l'a écrite le premier.
 
 ```python
 --8<-- "snippets/overrides_whitelist_provenance.py"

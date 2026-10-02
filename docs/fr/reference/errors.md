@@ -132,8 +132,8 @@ Module : `piighost.integrations`. `MiddlewareError` regroupe les défaillances d
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
-| `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | le pipeline n'expose aucun recognizer de token, sa placeholder factory n'ayant pas de grammaire retrouvable |
-| `InventedPlaceholderError` | `TextDeidentifier.deanonymize` et `deanonymize_stream` | le texte restauré porte encore un token que le pipeline n'a jamais émis, sous la stratégie `RAISE` de placeholder inventé |
+| `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | le pipeline n'expose aucun recognizer de jeton, sa placeholder factory n'ayant pas de grammaire retrouvable |
+| `InventedPlaceholderError` | `TextDeidentifier.deanonymize` et `deanonymize_stream` | le texte restauré porte encore un jeton que le pipeline n'a jamais émis, sous la stratégie `RAISE` de placeholder inventé |
 | `MissingThreadIdError` | le middleware LangChain et les hooks Claude Code, à chaque tour | la config LangGraph ne porte pas de `thread_id`, ou l'événement du hook pas de `session_id` |
 
 Les trois sont traitées dans [Intégration LangChain](langchain.md), avec les stratégies qui décident si la deuxième est levée du tout.
@@ -178,7 +178,7 @@ Trois erreurs exposent les valeurs derrière la défaillance en attributs. Toute
 | Exception | Attribut | Contient |
 |-----------|----------|----------|
 | `PIIRemainingError` | `detections` | les détections résiduelles derrière le signalement, vide quand le garde-fou raisonne par score et ne localise rien |
-| `InventedPlaceholderError` | `tokens` | les tokens inventés, dans leur ordre d'apparition |
+| `InventedPlaceholderError` | `tokens` | les jetons inventés, dans leur ordre d'apparition |
 | `RemoteError` | `status_code` | le statut HTTP renvoyé par le serveur |
 
 ## `PIIGhostSecurityWarning`
@@ -190,7 +190,7 @@ Un `UserWarning`, en dehors de l'arbre `PIIGhostError`, donc il ne fait jamais �
 | `warn_plaintext`, appelé depuis `RedisConversationMemory` et `SqlAlchemyConversationMemory` | un backend persistant est construit sans hacheur ni cipher, donc son store garde les données confidentielles en clair |
 | `BaseAnonymizationPipeline.__init__` | aucun `observation_redactor` n'est posé, `trace_clear_text` est désactivé, et le tracer exporte, donc les traces enregistreraient du texte en clair |
 
-La comparaison des backends est dans [Référence de la mémoire de conversation](memory.md), et le redactor dans [Observation](../observation.md).
+La comparaison des backends est dans [Référence de la mémoire de conversation](memory.md), et le masqueur dans [Observation](../observation.md).
 
 ## Voir aussi
 

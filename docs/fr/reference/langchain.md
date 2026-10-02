@@ -6,7 +6,7 @@ icon: lucide/blend
 
 Module : `piighost.integrations.langchain`
 
-`PIIAnonymizationMiddleware` est un `AgentMiddleware` LangChain qui dé-identifie les données confidentielles autour de la frontière modèle et outils d'un agent. Il lit le thread id depuis la config LangGraph, dé-identifie les messages avant que le modèle ne les voie, les restaure ensuite pour l'affichage, et route les appels d'outil selon une stratégie choisie. Toute la détection, l'attribution des tokens et le remplacement sont délégués à un `ThreadAnonymizationPipeline`.
+`PIIAnonymizationMiddleware` est un `AgentMiddleware` LangChain qui dé-identifie les données confidentielles autour de la frontière modèle et outils d'un agent. Il lit l'identifiant de conversation depuis la config LangGraph, dé-identifie les messages avant que le modèle ne les voie, les restaure ensuite pour l'affichage, et route les appels d'outil selon une stratégie choisie. Toute la détection, l'attribution des jetons et le remplacement sont délégués à un `ThreadAnonymizationPipeline`.
 
 ```python
 from piighost.integrations.langchain import (
@@ -48,14 +48,14 @@ PIIAnonymizationMiddleware(
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `pipeline` | `AnyThreadPipeline[IdentityT]` | Le pipeline de thread qui dé-identifie et restaure (requis) |
+| `pipeline` | `AnyThreadPipeline[IdentityT]` | Le pipeline de conversation qui dé-identifie et restaure (requis) |
 | `tool_strategy` | `ToolCallStrategy` | Comment les deux directions d'un appel d'outil sont traitées |
-| `invented_strategy` | `InventedPlaceholderStrategy` | Comment un token que le pipeline n'a jamais émis est traité après restauration |
+| `invented_strategy` | `InventedPlaceholderStrategy` | Comment un jeton que le pipeline n'a jamais émis est traité après restauration |
 | `assistant_strategy` | `EntityCreateByAssistantStrategy` | Comment les valeurs introduites par l'assistant sont traitées |
 
-Le pipeline doit exposer un reconnaisseur de tokens délimités via `pipeline.recognizer`, pour qu'un token inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte au type-checking pour les appelants typés.
+Le pipeline doit exposer un reconnaisseur de jetons délimités via `pipeline.recognizer`, pour qu'un jeton inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte au type-checking pour les appelants typés.
 
-Chaque appel de l'agent porte un thread id dans sa config LangGraph. Un appel qui n'en porte pas lève `MissingThreadIdError`, plutôt que de router chaque conversation vers un thread partagé, ce qui ferait fuiter l'état des placeholders d'une conversation à l'autre. Si vos conversations n'ont pas besoin d'être séparées, nommez vous-même le thread `"default"` (`DEFAULT_THREAD_ID`).
+Chaque appel de l'agent porte un identifiant de conversation dans sa config LangGraph. Un appel qui n'en porte pas lève `MissingThreadIdError`, plutôt que de router chaque conversation vers une conversation partagée, ce qui ferait fuiter l'état des placeholders d'une conversation à l'autre. Si vos conversations n'ont pas besoin d'être séparées, nommez vous-même la conversation `"default"` (`DEFAULT_THREAD_ID`).
 
 ---
 
@@ -111,7 +111,7 @@ Comment les deux directions d'un appel d'outil sont traitées. Les directions so
 | Valeur | Arguments | Réponse |
 |--------|-----------|---------|
 | `INPUT` | restaurés en vraies valeurs | laissée telle que l'outil l'a renvoyée |
-| `OUTPUT` | laissés tokenisés | dé-identifiée |
+| `OUTPUT` | laissés en jetons | dé-identifiée |
 | `FULL` | restaurés en vraies valeurs | dé-identifiée |
 | `PASSTHROUGH` | inchangés | inchangée |
 
@@ -119,19 +119,19 @@ Comment les deux directions d'un appel d'outil sont traitées. Les directions so
 
 ### `InventedPlaceholderStrategy`
 
-Comment un token que le pipeline n'a jamais émis est traité. Après restauration, chaque token émis a été remplacé par sa valeur, donc tout token qui suit encore la grammaire des placeholders a été inventé par le modèle, qu'il soit halluciné ou injecté.
+Comment un jeton que le pipeline n'a jamais émis est traité. Après restauration, chaque jeton émis a été remplacé par sa valeur, donc tout jeton qui suit encore la grammaire des placeholders a été inventé par le modèle, qu'il soit halluciné ou injecté.
 
 | Valeur | Effet |
 |--------|-------|
-| `KEEP` | laisse le token inventé dans le texte |
-| `DROP` | retire le token inventé |
+| `KEEP` | laisse le jeton inventé dans le texte |
+| `DROP` | retire le jeton inventé |
 | `RAISE` | lève `InventedPlaceholderError` |
 
 `RAISE` est la valeur par défaut.
 
 ### `EntityCreateByAssistantStrategy`
 
-Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans le thread. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité.
+Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans la conversation. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité.
 
 | Valeur | Effet |
 |--------|-------|
@@ -177,13 +177,13 @@ sequenceDiagram
 --8<-- "snippets/reference_langchain.py:invoke"
 ```
 
-Le pipeline doit être un pipeline de thread dont la factory de placeholders est délimitée, comme `label`, `label_counter` ou `label_hash`. Passez un thread id à chaque appel via `config["configurable"]["thread_id"]`, sans quoi l'appel lève `MissingThreadIdError`.
+Le pipeline doit être un pipeline de conversation dont la factory de placeholders est délimitée, comme `label`, `label_counter` ou `label_hash`. Passez un identifiant de conversation à chaque appel via `config["configurable"]["thread_id"]`, sans quoi l'appel lève `MissingThreadIdError`.
 
 ---
 
 ## Streaming
 
-Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un affichage en direct qui streame la réponse montrerait les placeholders jusqu'à ce qu'elle se termine. Pour un affichage token par token, enveloppez `deanonymize_stream` autour de votre propre boucle de streaming. Il ne tamponne qu'un token coupé entre deux chunks, restaure chaque token dès qu'il est complet, et applique `invented_strategy` par token restauré.
+Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un affichage en direct qui streame la réponse montrerait les placeholders jusqu'à ce qu'elle se termine. Pour un affichage token par token, enveloppez `deanonymize_stream` autour de votre propre boucle de streaming. Il ne tamponne qu'un jeton coupé entre deux chunks, restaure chaque jeton dès qu'il est complet, et applique `invented_strategy` par jeton restauré.
 
 ### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
 
@@ -193,15 +193,15 @@ Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un a
 --8<-- "snippets/reference_langchain.py:stream"
 ```
 
-Un token coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de token cassé. Seul un flux qui s'interrompt au milieu d'un token rend son fragment tel quel, `<<PER`{ .placeholder } par exemple, qui ne contient aucune vraie valeur.
+Un jeton coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de jeton cassé. Seul un flux qui s'interrompt au milieu d'un jeton rend son fragment tel quel, `<<PER`{ .placeholder } par exemple, qui ne contient aucune vraie valeur.
 
-Pour un autre framework, la même restauration est un cran plus bas, `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui restaure un token.
+Pour un autre framework, la même restauration est un cran plus bas, `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui restaure un jeton.
 
 ---
 
 ## Voir aussi
 
-- [Référence Pipeline](pipeline.md) pour le pipeline de thread que le middleware pilote.
+- [Référence Pipeline](pipeline.md) pour le pipeline de conversation que le middleware pilote.
 - [Stratégies d'appel d'outil](../tool-call-strategies.md) pour le raisonnement derrière chaque stratégie.
 - [Configuration TOML](../configuration/toml.md) pour construire le pipeline depuis un fichier.
 - [Afficher une réponse streamée](../../../openwiki/processus/afficher-une-reponse-streamee.md) et [Laisser un outil agir sur les vraies valeurs](../../../openwiki/processus/laisser-un-outil-agir.md) pour les règles de gestion du flux et des appels d'outil, et leur emplacement dans le code.

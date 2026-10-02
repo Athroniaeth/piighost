@@ -6,7 +6,7 @@ icon: lucide/eye
 
 `piighost` émet une trace OpenTelemetry à chaque dé-identification. Chaque appel
 ouvre un span racine et un span enfant par étape du pipeline. On voit ainsi où
-une valeur a été détectée, comment elle a été liée, quel token l'a remplacée et si
+une valeur a été détectée, comment elle a été liée, quel jeton l'a remplacée et si
 le guard rail a laissé passer. Le traçage est optionnel et n'est jamais requis
 pour dé-identifier.
 
@@ -65,8 +65,8 @@ flowchart TD
 
 Le span racine enregistre le texte d'entrée et le texte dé-identifié final.
 `detect` enregistre les détections et leur nombre. `link` enregistre les
-entités. `render` enregistre le texte dé-identifié et le nombre de tokens. `guard`
-enregistre s'il a levé un drapeau et les labels vus. Le pipeline de thread
+entités. `render` enregistre le texte dé-identifié et le nombre de jetons. `guard`
+enregistre s'il a levé un drapeau et les labels vus. Le pipeline de conversation
 diffère. Il exécute la résolution de chevauchement et l'expansion dans
 `_detect` et la résolution d'entités dans `_thread_tokens`, si bien qu'aucune de
 ces étapes n'obtient de span propre, laissant `detect`, `link` et `render` sous
@@ -94,7 +94,7 @@ chaque payload est caviardé au travers avant de sortir du processus.
 --8<-- "snippets/observation_redactor.py:example"
 ```
 
-Avec le redactor défini, le span `detect` enregistre `<<PERSON>>`{ .placeholder }
+Avec le masqueur défini, le span `detect` enregistre `<<PERSON>>`{ .placeholder }
 au lieu de `Patrick`{ .pii }, et le payload d'entrée montre le texte caviardé. Le
 compromis est direct. Une trace caviardée est sûre à envoyer vers n'importe quel
 backend mais ne peut plus servir de jeu de données d'annotation, puisque les
@@ -105,11 +105,11 @@ valeurs en clair ont disparu.
 | `observation_redactor` | Payloads des traces | Sûr pour un backend non fiable | Utilisable comme jeu de données |
 |---|---|---|---|
 | `None` (défaut) | valeurs en clair | non | oui |
-| une placeholder factory | tokens caviardés | oui | non |
+| une placeholder factory | jetons caviardés | oui | non |
 
 </div>
 
-Le traçage en clair reste le défaut, pour que les traces gardent leur valeur d'annotation, mais c'est un choix explicite. Sans redactor et avec un tracer provider réellement configuré, le pipeline avertit une fois à la construction que ses traces portent des données confidentielles en clair. Passez `trace_clear_text=True` pour l'assumer et taire l'avertissement, ou un `observation_redactor` pour caviarder les payloads.
+Le traçage en clair reste le défaut, pour que les traces gardent leur valeur d'annotation, mais c'est un choix explicite. Sans masqueur et avec un tracer provider réellement configuré, le pipeline avertit une fois à la construction que ses traces portent des données confidentielles en clair. Passez `trace_clear_text=True` pour l'assumer et taire l'avertissement, ou un `observation_redactor` pour caviarder les payloads.
 
 ```python
 --8<-- "snippets/observation_clear_text.py:example"

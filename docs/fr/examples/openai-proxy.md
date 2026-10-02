@@ -44,15 +44,15 @@ Si vous le voulez pour un seul client, nommez l'URL de base du fournisseur dans 
 
 Le proxy retire chaque en-tête `X-PIIGhost-*` avant de relayer, donc le fournisseur ne le voit jamais.
 
-## Garder un thread d'une requête à l'autre
+## Garder une conversation d'une requête à l'autre
 
-Chaque requête s'exécute dans un thread neuf, oublié dès que la réponse est restaurée. Un client de chat renvoie tout l'historique à chaque tour, donc la numérotation reste cohérente au sein de chaque requête. Si vous voulez que le thread survive à la requête, par exemple pour restaurer plus tard une réponse stockée via `/v1/deanonymize`, fixez-le avec `X-PIIGhost-Thread-Id` :
+Chaque requête s'exécute dans une conversation neuve, oubliée dès que la réponse est restaurée. Un client de chat renvoie tout l'historique à chaque tour, donc la numérotation reste cohérente au sein de chaque requête. Si vous voulez que la conversation survive à la requête, par exemple pour restaurer plus tard une réponse stockée via `/v1/deanonymize`, fixez-la avec `X-PIIGhost-Thread-Id` :
 
 ```python
 --8<-- "snippets/server_proxy.py:thread"
 ```
 
-Un thread fixé reste dans la mémoire du serveur jusqu'à ce que `DELETE /v1/threads/user-42` l'efface.
+Une conversation fixée reste dans la mémoire du serveur jusqu'à ce que `DELETE /v1/threads/user-42` l'efface.
 
 ## Streamer la réponse
 

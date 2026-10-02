@@ -70,7 +70,7 @@ Le motif `EMAIL` de `hub:piighost/generic` n'accepte que les lettres latines, le
 
 Une valeur structurée peut arriver déformée par de l'OCR, un caractère lu de travers. Un validateur par checksum rejetterait alors un IBAN ou un NIR réel mais mal transcrit, et cette PII repartirait en clair vers le LLM. `piighost` préfère garder un faux positif de forme plutôt que laisser fuiter une vraie valeur abîmée. C'est un choix de sécurité, échouer du côté qui détecte.
 
-La contrepartie est que `RegexDetector` peut détecter des chaînes qui ont la forme d'une PII sans en être une (une suite de chiffres qui ressemble à une carte). Le coût d'un tel faux positif est bénin, un token de plus. Le coût du faux négatif inverse serait une fuite.
+La contrepartie est que `RegexDetector` peut détecter des chaînes qui ont la forme d'une PII sans en être une (une suite de chiffres qui ressemble à une carte). Le coût d'un tel faux positif est bénin, un jeton de plus. Le coût du faux négatif inverse serait une fuite.
 
 **Mitigation** : affiner les motifs si les faux positifs de forme gênent une charge précise. Ne pas réintroduire de filtre par checksum en amont d'un texte qui peut venir d'OCR. Si vos entrées sont saisies au clavier et ne passent jamais par de l'OCR, le compromis s'inverse et vous pouvez écrire votre propre détecteur avec validation par checksum, le port `AnyDetector` est ouvert. Voir [Étendre PIIGhost](extending.md).
 
@@ -80,15 +80,15 @@ La factory de placeholder décide de ce qui distingue deux entités. Certaines f
 
 - `RedactPlaceholderFactory` ramène toute valeur sur `<<REDACT>>`{ .placeholder }. `LabelPlaceholderFactory` ramène toute valeur d'un même label sur `<<PERSON>>`{ .placeholder }. Ces deux familles ne distinguent pas les entités, donc elles ne sont pas réversibles.
 - `MaskPlaceholderFactory` garde un fragment de la valeur, `j***@mail.com`{ .placeholder }. Deux valeurs de forme voisine peuvent se confondre sur un même masque, et un masque peut aussi se confondre avec une vraie valeur dans une réponse d'outil.
-- `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }) donnent un token distinct par entité et se retrouvent dans le texte, donc elles restent réversibles sans ambiguïté.
+- `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }) donnent un jeton distinct par entité et se retrouvent dans le texte, donc elles restent réversibles sans ambiguïté.
 
 **Mitigation** : voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète et le choix par usage.
 
 ## La restauration n'est fiable que sous identité
 
-Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Deux propriétés se combinent dans le token. Le **typage** dit de quelle sorte de valeur il s'agit, personne, lieu, email. L'**identité** dit de laquelle il s'agit parmi celles du même type. Chaque factory porte un tag de préservation qui déclare ce que son token garde des deux.
+Restaurer une valeur à partir d'un placeholder suppose que le placeholder identifie une entité unique. Deux propriétés se combinent dans le jeton. Le **typage** dit de quelle sorte de valeur il s'agit, personne, lieu, email. L'**identité** dit de laquelle il s'agit parmi celles du même type. Chaque factory porte un tag de préservation qui déclare ce que son jeton garde des deux.
 
-| Factory | Tag de préservation | Token émis | Typage | Identité | Restauration |
+| Factory | Tag de préservation | Jeton émis | Typage | Identité | Restauration |
 |---|---|---|---|---|---|
 | `RedactPlaceholderFactory` | `PreservesNothing` | `<<REDACT>>`{ .placeholder } | non | non | impossible |
 | `LabelPlaceholderFactory` | `PreservesLabel` | `<<PERSON>>`{ .placeholder } | oui | non | impossible |
@@ -98,10 +98,10 @@ Restaurer une valeur à partir d'un placeholder suppose que le placeholder ident
 
 Sur `Patrick et Marie habitent à Paris`{ .pii }, la différence se voit tout de suite.
 
-- Avec `LabelPlaceholderFactory`, les deux personnes deviennent le même `<<PERSON>>`{ .placeholder }. Le type est là, l'identité non, donc rien ne dit lequel des deux tokens valait `Patrick`{ .pii }.
-- Avec `LabelCounterPlaceholderFactory`, `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } et `Marie`{ .pii } devient `<<PERSON:2>>`{ .placeholder }. Chaque token retombe sur une seule valeur, la restauration est sans ambiguïté.
+- Avec `LabelPlaceholderFactory`, les deux personnes deviennent le même `<<PERSON>>`{ .placeholder }. Le type est là, l'identité non, donc rien ne dit lequel des deux jetons valait `Patrick`{ .pii }.
+- Avec `LabelCounterPlaceholderFactory`, `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } et `Marie`{ .pii } devient `<<PERSON:2>>`{ .placeholder }. Chaque jeton retombe sur une seule valeur, la restauration est sans ambiguïté.
 
-Le middleware `PIIAnonymizationMiddleware` impose cette contrainte au niveau du type. Il exige une factory `PreservesRecognizableIdentity`, c'est-à-dire un token unique par entité et reconnaissable dans un texte. Une factory qui ne remplit pas ce contrat est refusée à la construction (`UnrecognizableFactoryError`). La frontière d'appel d'outil s'appuie sur du remplacement de chaîne, elle a besoin de tokens uniques pour rester réversible.
+Le middleware `PIIAnonymizationMiddleware` impose cette contrainte au niveau du type. Il exige une factory `PreservesRecognizableIdentity`, c'est-à-dire un jeton unique par entité et reconnaissable dans un texte. Une factory qui ne remplit pas ce contrat est refusée à la construction (`UnrecognizableFactoryError`). La frontière d'appel d'outil s'appuie sur du remplacement de chaîne, elle a besoin de jetons uniques pour rester réversible.
 
 **Mitigation** : garder `LabelCounterPlaceholderFactory` ou `LabelHashPlaceholderFactory` avec le middleware. Voir [Stratégies d'appel outil](tool-call-strategies.md) pour les modes `FULL`, `INPUT`, `OUTPUT` et `PASSTHROUGH`.
 
@@ -109,25 +109,25 @@ Le middleware `PIIAnonymizationMiddleware` impose cette contrainte au niveau du 
 
 La restauration fonctionne sur les valeurs vues à l'entrée. Si le LLM hallucine un nom qui n'a jamais figuré dans les messages de l'utilisateur, par exemple en inventant un nom de client plausible, cette PII n'est dans aucun mapping. Elle ne peut donc pas être rattachée à une valeur d'origine.
 
-Le middleware détecte un cas voisin, le placeholder inventé. Si le LLM fabrique un jeton qui ressemble à un placeholder mais n'a jamais été émis, `piighost` le repère (le token n'a pas de valeur associée) et le refuse par défaut (`InventedPlaceholderError`, stratégie `RAISE`). Les stratégies `KEEP` et `DROP` existent pour d'autres politiques.
+Le middleware détecte un cas voisin, le placeholder inventé. Si le LLM fabrique un jeton qui ressemble à un placeholder mais n'a jamais été émis, `piighost` le repère (le jeton n'a pas de valeur associée) et le refuse par défaut (`InventedPlaceholderError`, stratégie `RAISE`). Les stratégies `KEEP` et `DROP` existent pour d'autres politiques.
 
 **Mitigation** : exécuter une étape de re-détection sur la sortie du LLM au niveau applicatif, et décider s'il faut supprimer, signaler ou re-dé-identifier avant l'affichage. Un garde-fou (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-vérifie la sortie dé-identifiée et signale des données confidentielles résiduelles, à charge pour l'appelant de lever `PIIRemainingError`.
 
 ## La mémoire est locale au processus par défaut
 
-`InMemoryConversationMemory` garde le mapping thread par thread dans un dictionnaire du processus. Rien ne survit à un redémarrage, rien n'est partagé entre processus. Dès que vous passez à l'échelle horizontalement, deux workers ont deux mémoires et deux espaces de placeholders indépendants, donc la même entité peut recevoir deux tokens différents selon le worker qui la traite.
+`InMemoryConversationMemory` garde le mapping conversation par conversation dans un dictionnaire du processus. Rien ne survit à un redémarrage, rien n'est partagé entre processus. Dès que vous passez à l'échelle horizontalement, deux workers ont deux mémoires et deux espaces de placeholders indépendants, donc la même entité peut recevoir deux jetons différents selon le worker qui la traite.
 
 **Mitigation** : configurer `RedisConversationMemory` pour partager le mapping entre workers et le faire survivre à un redémarrage. Ce backend peut chiffrer les valeurs et hacher les clés (optionnel, tout ou rien). Le backend en mémoire est borné par défaut, `max_threads` et `ttl` ajustent la limite de sa croissance dans un processus de longue durée. Voir [Sécurité](security.md) et [Déploiement](deployment.md).
 
-## Un thread isole le mapping
+## Une conversation isole le mapping
 
-La mémoire est cloisonnée par `thread_id`. Deux conversations séparées ne partagent aucun placeholder, ce qui est voulu, mais implique que la même personne dans deux threads reçoit deux tokens sans lien. Le middleware exige un `thread_id` et ne se rabat pas sur un thread partagé par défaut, pour éviter qu'une conversation ne voie le mapping d'une autre.
+La mémoire est cloisonnée par `thread_id`. Deux conversations séparées ne partagent aucun placeholder, ce qui est voulu, mais implique que la même personne dans deux conversations reçoit deux jetons sans lien. Le middleware exige un `thread_id` et ne se rabat pas sur une conversation partagée par défaut, pour éviter qu'une conversation ne voie le mapping d'une autre.
 
 **Mitigation** : propager un `thread_id` stable et par conversation. Appeler `forget_thread` pour purger une conversation de la mémoire quand elle n'a plus lieu d'être.
 
 ## La latence ajoutée n'est pas encore mesurée
 
-Il n'existe pas de benchmark officiel de la latence ajoutée par le pipeline sur des charges typiques. Le surcoût dépend du détecteur (inférence du NER choisi), de la longueur du texte, et de la présence de valeurs déjà connues dans la mémoire du thread.
+Il n'existe pas de benchmark officiel de la latence ajoutée par le pipeline sur des charges typiques. Le surcoût dépend du détecteur (inférence du NER choisi), de la longueur du texte, et de la présence de valeurs déjà connues dans la mémoire de la conversation.
 
 **Mitigation** : mesurer sur votre propre charge avant de dimensionner le trafic de production. Garder les détecteurs sur GPU quand c'est possible pour les chemins à forte densité NER.
 

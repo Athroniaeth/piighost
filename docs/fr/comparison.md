@@ -11,9 +11,9 @@ Ce tableau n'est pas neutre. Ses lignes sont les capacités pour lesquelles `pii
 | **Détection** | regex / NER / LLM | NER + regex + règles + checksum | regex + validateurs | ML/NER | ML + infoTypes | regex + NER |
 | **Traitement de la PII** | jeton réversible (mémoire / Redis) | masque / jeton | masque / hash | masque | jeton crypto (sans état) | jeton réversible (vault) |
 | **Restauration transparente pour l'utilisateur** | ✅ | ⚠️ manuel (`decrypt`) | ❌ | ❌ | ⚠️ ré-id par API | ✅ |
-| **Cohérent sur toute la conversation** | ✅ par thread | ❌ | ❌ | ❌ | ✅ déterministe | ✅ par session |
+| **Cohérent sur toute la conversation** | ✅ par conversation | ❌ | ❌ | ❌ | ✅ déterministe | ✅ par session |
 | **Frontière outils** (l'outil reçoit la vraie valeur, le LLM le jeton) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Streaming** (restauration token par token) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| **Streaming** (restauration pendant le flux) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | **Étapes configurables après détection** (liaison, fuzzy, expansion, guard) | ✅ | ⚠️ opérateurs seulement | ❌ | ❌ | ⚠️ transformations | ❌ |
 | **Unité traitée** | texte / conversation | texte | texte / conversation | texte / documents | texte / dataset | texte / conversation |
 | **Auto-hébergé (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |

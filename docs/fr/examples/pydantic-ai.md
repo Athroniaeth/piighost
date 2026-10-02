@@ -15,7 +15,7 @@ La capability couvre les messages, le prompt utilisateur et les réponses du mod
 
 ## 1. Construire le pipeline sur un détecteur GLiNER2
 
-`Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. Seul le détecteur est requis, car le pipeline de thread fournit par défaut son linker, son anonymiseur, et un stockage de conversation en mémoire. L'anonymiseur par défaut émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que `pii_hooks` sait retrouver.
+`Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. Seul le détecteur est requis, car le pipeline de conversation fournit par défaut son linker, son anonymiseur, et un stockage de conversation en mémoire. L'anonymiseur par défaut émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que `pii_hooks` sait retrouver.
 
 ```python
 --8<-- "snippets/pydantic_ai_pipeline.py"
@@ -23,7 +23,7 @@ La capability couvre les messages, le prompt utilisateur et les réponses du mod
 
 ## 2. Attacher la capability à l'agent
 
-`pii_hooks` prend le pipeline et un identifiant de thread, puis renvoie une capability Pydantic AI. Enregistrez-la avec `capabilities=[...]`. L'identifiant de thread cadre les jetons, une valeur garde donc un seul jeton pour toute la conversation. C'est une chaîne fixe ici. Passez un appelable sur le contexte d'exécution, par exemple `lambda ctx: ctx.deps.thread_id`, pour le lire à chaque exécution.
+`pii_hooks` prend le pipeline et un identifiant de conversation, puis renvoie une capability Pydantic AI. Enregistrez-la avec `capabilities=[...]`. L'identifiant de conversation cadre les jetons, une valeur garde donc un seul jeton pour toute la conversation. C'est une chaîne fixe ici. Passez un appelable sur le contexte d'exécution, par exemple `lambda ctx: ctx.deps.thread_id`, pour le lire à chaque exécution.
 
 ```python
 --8<-- "snippets/pydantic_ai_agent.py:agent"
@@ -64,7 +64,7 @@ Après la restauration, chaque jeton émis est revenu à sa valeur, un jeton qui
 
 ## Valeurs de l'assistant
 
-Toute valeur n'est pas une donnée confidentielle de l'utilisateur. Quand le modèle introduit lui-même une valeur tirée de sa connaissance du monde, la tokeniser la lui cacherait au tour suivant sans rien protéger côté utilisateur. `assistant_strategy` décide du sort d'une valeur introduite par l'assistant, encore le même enum que le middleware. Sous `PRESERVE`, le défaut, elle reste en clair, le modèle garde donc sa propre connaissance et seule une valeur utilisateur connue est tokenisée. `ANONYMIZE` la tokenise quand même, et `IGNORE` saute entièrement les messages de l'assistant, économisant le détecteur.
+Toute valeur n'est pas une donnée confidentielle de l'utilisateur. Quand le modèle introduit lui-même une valeur tirée de sa connaissance du monde, la dé-identifier la lui cacherait au tour suivant sans rien protéger côté utilisateur. `assistant_strategy` décide du sort d'une valeur introduite par l'assistant, encore le même enum que le middleware. Sous `PRESERVE`, le défaut, elle reste en clair, le modèle garde donc sa propre connaissance et seule une valeur utilisateur connue est dé-identifiée. `ANONYMIZE` la dé-identifie quand même, et `IGNORE` saute entièrement les messages de l'assistant, économisant le détecteur.
 
 ```python
 --8<-- "snippets/pydantic_ai_agent.py:assistant"

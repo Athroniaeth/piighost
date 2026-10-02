@@ -76,7 +76,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `TEXT` | Le texte à dé-identifier, ou `-` pour lire stdin |
 | `--config PATH` | Un fichier de config de pipeline (TOML ou JSON), ou une référence du hub |
 | `--api URL` | URL de base d'un serveur `piighost-api`, utilisé via le client HTTP |
-| `--thread-id ID` | Thread id pour l'API ou une config à mémoire (défaut `default`) |
+| `--thread-id ID` | Identifiant de conversation pour l'API ou une config à mémoire (défaut `default`) |
 | `--json` | Imprime le texte dé-identifié et les détections en JSON |
 
 `--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`, les détections étant celles que le texte a remplacées, après les chevauchements, les overrides et l'expander. Une configuration qui ne passe pas la validation affiche le même message que `validate` et sort avec le code `1`. Quand un catalogue du hub ne peut pas être tiré, la commande imprime `Could not pull a hub catalog:` suivi de la cause et sort avec le code `1`. `--api` n'envoie aucune clé d'API, donc il ne joint qu'un serveur démarré avec `PIIGHOST_ALLOW_ANONYMOUS`, voir [CLI du serveur](api-cli.md).

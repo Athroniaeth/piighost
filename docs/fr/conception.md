@@ -12,7 +12,7 @@ l'ordre des étapes et les choix techniques ne sont plus arbitraires, ils décou
 problème.
 
 !!! note "Dé-identification, pas anonymisation"
-    `piighost` garde le lien entre une valeur et son token pour pouvoir la restaurer.
+    `piighost` garde le lien entre une valeur et son jeton pour pouvoir la restaurer.
     C'est de la dé-identification réversible. On réserve le mot anonymisation à une
     suppression irréversible, par exemple avec `RedactPlaceholderFactory`.
 
@@ -25,7 +25,7 @@ problème.
 ## Étape 1, savoir quoi remplacer, le détecteur
 
 Dé-identifier, c'est remplacer une valeur sensible par un *placeholder*, c'est-à-dire le
-*token* qui prend sa place dans le texte. Sur un texte libre, on ne sait pas d'avance où
+*jeton* qui prend sa place dans le texte. Sur un texte libre, on ne sait pas d'avance où
 sont les données confidentielles ni de quel type. La première brique est donc la détection.
 
 Deux approches classiques se complètent.
@@ -68,7 +68,7 @@ clair.
 ## Étape 2, dire de quel type il s'agit, le placeholder typé
 
 Avec la détection, on connaît le type de chaque valeur. Le placeholder le plus simple
-serait un token constant, le même pour tout, comme `<<REDACT>>`{ .placeholder }. On
+serait un jeton constant, le même pour tout, comme `<<REDACT>>`{ .placeholder }. On
 l'enrichit avec le type, `<<PERSON>>`{ .placeholder } ou `<<EMAIL>>`{ .placeholder }.
 
 Pourquoi est-ce utile. Parce que le modèle qui lit le texte dé-identifié a besoin du
@@ -76,8 +76,8 @@ type pour raisonner. "Contacte `<<PERSON>>`{ .placeholder } à
 `<<EMAIL>>`{ .placeholder }" reste exploitable, "Contacte `<<REDACT>>`{ .placeholder }
 à `<<REDACT>>`{ .placeholder }" ne l'est plus.
 
-La placeholder factory (`AnyPlaceholderFactory`) décide de la forme du token. Elle prend
-une entité et rend son token. C'est elle qu'on change pour passer de
+La placeholder factory (`AnyPlaceholderFactory`) décide de la forme du jeton. Elle prend
+une entité et rend son jeton. C'est elle qu'on change pour passer de
 `<<REDACT>>`{ .placeholder } à `<<PERSON>>`{ .placeholder }.
 
 ---
@@ -97,7 +97,7 @@ Patrick écrit à Marie  →  <<PERSON:1>> écrit à <<PERSON:2>>
 
 Mais une même personne apparaît souvent plusieurs fois, parfois orthographiée
 différemment (`Patrick`{ .pii }, `patrick`{ .pii }). Toutes ces occurrences doivent partager le même
-token. Une détection isolée ne suffit donc pas. Il faut une notion au-dessus, l'entité,
+jeton. Une détection isolée ne suffit donc pas. Il faut une notion au-dessus, l'entité,
 qui regroupe toutes les détections désignant la même valeur.
 
 D'où une nouvelle étape, passer des détections aux entités. C'est le linker
@@ -111,11 +111,11 @@ flowchart LR
     L --> E2["Entité PERSON 'marie'"]
 ```
 
-*Le linker regroupe les détections d'une même valeur en une entité, qui recevra un token
+*Le linker regroupe les détections d'une même valeur en une entité, qui recevra un jeton
 unique.*
 { .figure-caption }
 
-C'est l'entité, pas la détection, qui reçoit un token. Toutes les occurrences d'une
+C'est l'entité, pas la détection, qui reçoit un jeton. Toutes les occurrences d'une
 entité partagent donc le même `<<PERSON:1>>`{ .placeholder }.
 
 ---
@@ -145,7 +145,7 @@ même zone, des détections se chevauchent. Exemple classique, un NER propose `L
 sur `Paris`{ .pii } et un autre `PERSON` sur la même position, ou deux modèles donnent des
 bornes légèrement différentes.
 
-Si on laissait passer ces chevauchements jusqu'au remplacement, on produirait des tokens
+Si on laissait passer ces chevauchements jusqu'au remplacement, on produirait des jetons
 imbriqués et un texte corrompu. Il faut donc résoudre les conflits de positions avant de
 regrouper en entités.
 
@@ -174,7 +174,7 @@ occurrences ratées, puis on groupe en entités, et on résout les identités en
 
 Après le linking, deux entités peuvent encore désigner la même personne, par exemple
 `Patrick`{ .pii } et `Patric`{ .pii } (faute de frappe), ou provenir de détecteurs différents qui
-partagent une détection. Les réconcilier évite de donner deux tokens à une seule
+partagent une détection. Les réconcilier évite de donner deux jetons à une seule
 personne.
 
 C'est le résolveur d'entités (`AnyEntityResolver`).
@@ -186,15 +186,15 @@ C'est le résolveur d'entités (`AnyEntityResolver`).
 - `SeparateEntityResolver` fait l'inverse, il sépare des entités qui n'auraient pas dû
   se confondre.
 
-À ce stade, on a une liste d'entités propres, chacune devant recevoir un token unique et
+À ce stade, on a une liste d'entités propres, chacune devant recevoir un jeton unique et
 stable.
 
 ---
 
 ## Étape 7, produire le texte, l'anonymiseur
 
-L'anonymiseur (`AnyAnonymizer`) applique enfin le remplacement. Il demande un token à la
-factory pour chaque entité, puis remplace chaque détection par son token.
+L'anonymiseur (`AnyAnonymizer`) applique enfin le remplacement. Il demande un jeton à la
+factory pour chaque entité, puis remplace chaque détection par son jeton.
 
 Conséquence de l'étape 5, le remplacement construit un nouveau texte en un seul passage
 sur les spans, de gauche à droite, en recopiant le texte entre eux, si bien qu'aucun
@@ -207,26 +207,26 @@ que l'étape 5 garantit.
 
 Dé-identifier ne sert que si l'on peut restaurer les vraies valeurs pour l'utilisateur.
 Pour cela il faut savoir que `<<PERSON:1>>`{ .placeholder } valait `Patrick`{ .pii }.
-La dé-identification d'un texte rend justement ce mapping, une entité par token émis.
+La dé-identification d'un texte rend justement ce mapping, une entité par jeton émis.
 
-La restauration remplace, dans un texte, chaque token connu par la valeur de son entité.
+La restauration remplace, dans un texte, chaque jeton connu par la valeur de son entité.
 Elle ne se limite pas au texte que le pipeline a produit. Le modèle génère souvent une
-réponse nouvelle contenant un token, par exemple "Bien sûr,
+réponse nouvelle contenant un jeton, par exemple "Bien sûr,
 `<<PERSON:1>>`{ .placeholder } !". Cette phrase n'a jamais été produite par le pipeline,
-mais comme on connaît le couple token vers valeur, on remplace le token dans n'importe
+mais comme on connaît le couple jeton vers valeur, on remplace le jeton dans n'importe
 quel texte.
 
 ```mermaid
 flowchart LR
-    IN["texte porteur de tokens"] --> D["deanonymize :\nremplace chaque token connu\npar la valeur de son entité"] --> OUT["texte restauré"]
+    IN["texte porteur de jetons"] --> D["deanonymize :\nremplace chaque jeton connu\npar la valeur de son entité"] --> OUT["texte restauré"]
 ```
 
-*La restauration remplace les tokens connus par leur valeur, dans n'importe quel
+*La restauration remplace les jetons connus par leur valeur, dans n'importe quel
 texte.*
 { .figure-caption }
 
-La restauration n'est sans ambiguïté que si les tokens préservent l'identité. Deux
-entités qui partageraient un token, comme avec `<<PERSON>>`{ .placeholder }, se
+La restauration n'est sans ambiguïté que si les jetons préservent l'identité. Deux
+entités qui partageraient un jeton, comme avec `<<PERSON>>`{ .placeholder }, se
 confondraient sur une seule valeur. C'est pourquoi le mode réversible impose une factory
 qui identifie chaque entité, `<<PERSON:1>>`{ .placeholder } et non
 `<<PERSON>>`{ .placeholder }.
@@ -252,16 +252,16 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:1>> rappelle <<PERSON:2>>
 
 `Marie`{ .pii } est `<<PERSON:2>>`{ .placeholder } au message 1 puis
 `<<PERSON:1>>`{ .placeholder } au message 2. Les identités se croisent, et plus rien
-n'est réversible de façon cohérente sur le fil. Une conversation porte donc un état
+n'est réversible de façon cohérente sur la conversation. Une conversation porte donc un état
 partagé d'un message au suivant.
 
 ### La mémoire de conversation
 
 `ThreadAnonymizationPipeline` ajoute cet état, une mémoire (`AnyConversationMemory`) qui
-persiste, par thread, les détections de chaque message. Les tokens sont ensuite
-attribués sur l'union des détections de tous les messages du thread, pas sur un message
+persiste, par conversation, les détections de chaque message. Les jetons sont ensuite
+attribués sur l'union des détections de tous les messages de la conversation, pas sur un message
 seul. Une personne revue dans un message ultérieur retrouve donc son entité, et son
-token, au lieu d'en créer un nouveau.
+jeton, au lieu d'en créer un nouveau.
 
 ```text
 Message 1 : "Patrick appelle Marie"   →  <<PERSON:1>> appelle <<PERSON:2>>
@@ -275,16 +275,16 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
 - **Ordre figé au premier vu.** Le compteur d'une entité est attribué à sa première
   apparition dans la conversation et ne bouge plus. Sans cette règle, une nouvelle
   entité tôt dans son message volerait le compteur d'une plus ancienne.
-- **Isolation par `thread_id`.** Le `thread_id` est obligatoire, il n'y a pas de thread
-  partagé par défaut, pour que deux appelants ne tombent pas dans le même fil et ne
-  fuitent pas leurs données confidentielles. `forget_thread` peut tout effacer d'un fil, pour le droit à
+- **Isolation par `thread_id`.** Le `thread_id` est obligatoire, il n'y a pas de conversation
+  partagée par défaut, pour que deux appelants ne tombent pas dans la même conversation et ne
+  fuitent pas leurs données confidentielles. `forget_thread` peut tout effacer d'une conversation, pour le droit à
   l'oubli.
 
 ### Le rendu reste par message
 
 Les détections d'une entité viennent de messages différents, dont les positions n'ont
-pas de référentiel commun. On ne peut donc pas remplacer par positions à l'échelle du
-thread. Les tokens sont attribués sur tout le thread, mais le rendu ne remplace que les
+pas de référentiel commun. On ne peut donc pas remplacer par positions à l'échelle de la
+conversation. Les jetons sont attribués sur toute la conversation, mais le rendu ne remplace que les
 spans du message courant, ceux dont les offsets valent dans ce message.
 
 ---
@@ -292,7 +292,7 @@ spans du message courant, ceux dont les offsets valent dans ce message.
 ## Étape 10, la provenance des valeurs
 
 Toute valeur d'un message n'est pas une donnée confidentielle à protéger. Si le modèle mentionne une
-personnalité publique de sa connaissance du monde, la tokeniser la lui cacherait au tour
+personnalité publique de sa connaissance du monde, la dé-identifier la lui cacherait au tour
 suivant, sans rien protéger de l'utilisateur.
 
 La mémoire enregistre donc le rôle de la première occurrence de chaque valeur,
@@ -327,14 +327,14 @@ bloquant.
 
 Sur un seul worker, la mémoire tient dans un dictionnaire du processus
 (`InMemoryConversationMemory`). Un déploiement multi-worker en a besoin d'une partagée,
-`RedisConversationMemory`, pour qu'un worker voie les threads d'un autre.
+`RedisConversationMemory`, pour qu'un worker voie les conversations d'un autre.
 
 Mais le mapping inverse est fait de données confidentielles en clair. Une fuite du store la révélerait. Deux
 composants crypto protègent le backend Redis. Un hasher (`AnyHasher`) transforme chaque
 message en clé déterministe sans révéler le texte. Un cipher (`AnyCipher`) chiffre les
 détections au repos, de sorte qu'une fuite de la base ne rende ni le message ni les valeurs.
-Le `thread_id` reste en clair comme préfixe de clé, pour qu'un thread puisse être
-énuméré et oublié.
+Le `thread_id` reste en clair comme préfixe de clé, pour qu'une conversation puisse être
+énumérée et oubliée.
 
 ---
 
@@ -366,8 +366,8 @@ C'est le `PIIAnonymizationMiddleware`, qui intervient en trois points.
 
 Le middleware ne contient aucune logique de dé-identification, il délègue tout au
 pipeline conversationnel. C'est un simple adaptateur entre le monde LangChain et le
-coeur. Il exige au type une factory qui préserve l'identité, et il reconnaît les tokens
-que le modèle invente (`InventedPlaceholderStrategy`), car après restauration tout token
+coeur. Il exige au type une factory qui préserve l'identité, et il reconnaît les jetons
+que le modèle invente (`InventedPlaceholderStrategy`), car après restauration tout jeton
 qui suit encore la grammaire des placeholders n'a pas été émis par le pipeline.
 
 ---
@@ -385,7 +385,7 @@ qui suit encore la grammaire des placeholders n'a pas été émis par le pipelin
 | Détections qui se chevauchent | Résolveur de spans (`AnyOverlapResolver`) |
 | Entités équivalentes à fusionner | Résolveur d'entités (`AnyEntityResolver`) |
 | Produire le texte sans corruption | Anonymiseur, un seul passage de gauche à droite |
-| Revenir en arrière sur un texte quelconque | `deanonymize`, remplacement token par token |
+| Revenir en arrière sur un texte quelconque | `deanonymize`, remplacement jeton par jeton |
 | Cohérence sur toute la conversation | Mémoire par `thread_id`, ordre first-seen |
 | Valeur venant du modèle, pas de l'utilisateur | Provenance en mémoire (`MessageRole`) |
 | I/O sans bloquer et calcul lourd | Asynchrone et déport en thread de l'inférence |
@@ -400,6 +400,6 @@ qui suit encore la grammaire des placeholders n'a pas été émis par le pipelin
 ## Voir aussi
 
 - [Architecture](architecture.md), la carte des couches et l'API de chaque composant
-- [Placeholder factories](placeholder-factories.md), les familles de tokens et ce
+- [Placeholder factories](placeholder-factories.md), les familles de jetons et ce
   qu'elles préservent
 - [Stratégies d'appel outil](tool-call-strategies.md), le détail de `awrap_tool_call`

@@ -53,7 +53,7 @@ Sinon, une route de proxy répond avec le statut de l'upstream.
 | Champ | Type | Description |
 |---|---|---|
 | `label` | string | Le label de l'entité, comme `PERSON` |
-| `placeholder` | string | Le token qui remplace l'entité, vide sur `/v1/detect` |
+| `placeholder` | string | Le jeton qui remplace l'entité, vide sur `/v1/detect` |
 | `detections` | liste de `Detection` | Chaque occurrence de l'entité dans le texte |
 
 ### `Detection`
@@ -115,7 +115,7 @@ Les labels sont collectés dans la seule section `[detector]`, le détecteur du 
 
 ### `POST /v1/detect`
 
-Exécute le détecteur et le linker sur un texte et renvoie les entités, sans placeholders. La mémoire du thread n'est ni lue ni écrite, et les étapes d'override, de chevauchement, d'expansion et de garde-fou ne s'exécutent pas.
+Exécute le détecteur et le linker sur un texte et renvoie les entités, sans placeholders. La mémoire de la conversation n'est ni lue ni écrite, et les étapes d'override, de chevauchement, d'expansion et de garde-fou ne s'exécutent pas.
 
 | Champ de requête | Type | Défaut |
 |---|---|---|
@@ -130,7 +130,7 @@ Pour le texte `Write to jane.doe@example.com`, la réponse est :
 
 ### `POST /v1/anonymize`
 
-Dé-identifie un message dans un thread, avec des tokens cohérents sur tout le thread.
+Dé-identifie un message dans une conversation, avec des jetons cohérents sur toute la conversation.
 
 | Champ de requête | Type | Défaut |
 |---|---|---|
@@ -141,13 +141,13 @@ Dé-identifie un message dans un thread, avec des tokens cohérents sur tout le 
 | Champ de réponse | Type | Description |
 |---|---|---|
 | `anonymized_text` | string | Le texte où chaque valeur est remplacée par son placeholder |
-| `entities` | liste de `Entity` | Les entités de ce message qui ont reçu un token |
+| `entities` | liste de `Entity` | Les entités de ce message qui ont reçu un jeton |
 
-`role` date les valeurs qu'un message introduit. Une valeur écrite d'abord par l'assistant ne reçoit pas de token et reste en clair.
+`role` date les valeurs qu'un message introduit. Une valeur écrite d'abord par l'assistant ne reçoit pas de jeton et reste en clair.
 
 ### `POST /v1/anonymize/corrected`
 
-Dé-identifie à nouveau un message à partir d'un jeu de détections corrigé, pour une étape de relecture humaine. Le jeu remplace les détections du message dans la mémoire du thread, après l'override configuré, et la détection ne s'exécute pas de nouveau.
+Dé-identifie à nouveau un message à partir d'un jeu de détections corrigé, pour une étape de relecture humaine. Le jeu remplace les détections du message dans la mémoire de la conversation, après l'override configuré, et la détection ne s'exécute pas de nouveau.
 
 | Champ de requête | Type | Défaut |
 |---|---|---|
@@ -159,7 +159,7 @@ Une détection corrigée nomme ses décalages `start` et `end`, pas `start_pos` 
 
 ### `POST /v1/deanonymize`
 
-Restaure chaque placeholder émis par le thread, dans n'importe quel texte, une réponse de modèle comprise. Un token que le thread n'a jamais émis reste tel quel.
+Restaure chaque placeholder émis par la conversation, dans n'importe quel texte, une réponse de modèle comprise. Un jeton que la conversation n'a jamais émis reste tel quel.
 
 | Champ de requête | Type | Défaut |
 |---|---|---|
@@ -170,7 +170,7 @@ La réponse est `{"text": "..."}`.
 
 ### `GET /v1/threads/{thread_id}/tokens`
 
-Renvoie la table placeholder vers valeur du thread, pour un client qui restaure lui-même un stream.
+Renvoie la table placeholder vers valeur de la conversation, pour un client qui restaure lui-même un stream.
 
 ```json
 {"tokens": {"<<PERSON:1>>": "Jane Doe", "<<EMAIL:1>>": "jane.doe@example.com"}}
@@ -178,7 +178,7 @@ Renvoie la table placeholder vers valeur du thread, pour un client qui restaure 
 
 ### `DELETE /v1/threads/{thread_id}`
 
-Efface le thread de la mémoire et indique ce qui a été supprimé. Un thread qui n'existe pas indique zéro.
+Efface la conversation de la mémoire et indique ce qui a été supprimé. Une conversation qui n'existe pas indique zéro.
 
 ```json
 {"messages": 1, "detections": 2}
@@ -193,7 +193,7 @@ Préfixe : `/openai/v1`
 | En-tête de requête | Effet |
 |---|---|
 | `X-PIIGhost-Upstream` | URL de base de l'upstream, `PIIGHOST_OPENAI_UPSTREAM` en son absence |
-| `X-PIIGhost-Thread-Id` | Thread fixe gardé après la requête. En son absence, chaque requête reçoit un thread neuf, oublié une fois la réponse restaurée |
+| `X-PIIGhost-Thread-Id` | Conversation fixe gardée après la requête. En son absence, chaque requête reçoit une conversation neuve, oubliée une fois la réponse restaurée |
 
 Seuls `Authorization`, `Content-Type`, `x-api-key`, `anthropic-version` et `anthropic-beta` sont relayés à l'upstream.
 
@@ -225,7 +225,7 @@ Préfixe : `/anthropic/v1`
 | En-tête de requête | Effet |
 |---|---|
 | `X-PIIGhost-Upstream` | URL de base de l'upstream, `PIIGHOST_ANTHROPIC_UPSTREAM` en son absence |
-| `X-PIIGhost-Thread-Id` | Thread fixe gardé après la requête. En son absence, chaque requête reçoit un thread neuf, oublié une fois la réponse restaurée |
+| `X-PIIGhost-Thread-Id` | Conversation fixe gardée après la requête. En son absence, chaque requête reçoit une conversation neuve, oubliée une fois la réponse restaurée |
 
 Chaque en-tête de requête est relayé sauf ceux de saut à saut (`Connection`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade`), `Host`, `Content-Length`, `Accept-Encoding` et tout en-tête `X-PIIGhost-*`. Les paramètres de requête sont relayés.
 

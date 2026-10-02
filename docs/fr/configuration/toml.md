@@ -20,11 +20,11 @@ L'extra `config` est requis (`pip install piighost[config]`), qui tire `pydantic
 |----------|---------|-----------|---------|
 | `load_config(path)` | `PipelineConfig` | rien, valide seulement | quelconque |
 | `load_pipeline(path)` | `AnonymizationPipeline` | un pipeline sans état | rejette une section `[memory]` |
-| `load_thread_pipeline(path)` | `ThreadAnonymizationPipeline` | un pipeline de thread | requiert une section `[memory]` |
+| `load_thread_pipeline(path)` | `ThreadAnonymizationPipeline` | un pipeline de conversation | requiert une section `[memory]` |
 
 </div>
 
-`load_config` analyse et valide un fichier en `PipelineConfig` sans construire de composant, donc aucun modèle ne charge. `load_pipeline` construit un `AnonymizationPipeline` sans état et lève `ConfigError` si le fichier déclare une section `[memory]`, car une mémoire décrit un pipeline de thread. `load_thread_pipeline` construit un `ThreadAnonymizationPipeline` et lève `ConfigError` si le fichier ne déclare aucune section `[memory]`.
+`load_config` analyse et valide un fichier en `PipelineConfig` sans construire de composant, donc aucun modèle ne charge. `load_pipeline` construit un `AnonymizationPipeline` sans état et lève `ConfigError` si le fichier déclare une section `[memory]`, car une mémoire décrit un pipeline de conversation. `load_thread_pipeline` construit un `ThreadAnonymizationPipeline` et lève `ConfigError` si le fichier ne déclare aucune section `[memory]`.
 
 ```python
 --8<-- "snippets/toml_loaders.py"
@@ -93,7 +93,7 @@ Les clés de premier niveau d'un `PipelineConfig`.
 | Section | Requise | Signification |
 |---------|---------|---------------|
 | `name` | non | Un nom de pipeline optionnel, un scalaire de premier niveau surchargeable par `PIIGHOST_NAME` |
-| `token_memo_ttl` | non | Les secondes pendant lesquelles la carte de tokens mémoïsée d'un thread est gardée, un scalaire de premier niveau, exige un `[memory]` |
+| `token_memo_ttl` | non | Les secondes pendant lesquelles la carte de jetons mémoïsée d'une conversation est gardée, un scalaire de premier niveau, exige un `[memory]` |
 | `[detector]` | oui | L'étage de détection |
 | `[linker]` | non | Le linker d'entités, par défaut `ExactEntityLinker` |
 | `[anonymizer]` | non | L'étage de rendu, par défaut un `Anonymizer` avec une factory label-counter |
@@ -103,7 +103,7 @@ Les clés de premier niveau d'un `PipelineConfig`.
 | `[guard]` | non | Revérifie la sortie pour des données confidentielles résiduelles |
 | `[override]` | non | Force ou écarte des détections via une whitelist et une blacklist |
 | `[observation_redactor]` | non | Une factory de placeholders caviardant les charges de trace |
-| `[memory]` | non | La mémoire de conversation. Sa présence fait un pipeline de thread |
+| `[memory]` | non | La mémoire de conversation. Sa présence fait un pipeline de conversation |
 
 </div>
 
@@ -243,7 +243,7 @@ Optionnel. Par défaut un `Anonymizer` avec une factory label-counter. Quand il 
 
 <div class="wide-table" markdown="1">
 
-| `type` | Token | Clés |
+| `type` | Jeton | Clés |
 |--------|-------|------|
 | `redact` | `<<REDACT>>`{ .placeholder } | |
 | `label` | `<<PERSON>>`{ .placeholder } | |
@@ -388,7 +388,7 @@ Optionnel. Force des détections via une whitelist et en écarte via une blackli
 | `[override.whitelist]` | détecteur | | Un détecteur dont les hits sont forcés dans l'ensemble |
 | `[override.blacklist]` | détecteur | | Un détecteur dont les hits invalident des détections |
 | `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de blacklist invalide, même valeur quelles que soient ses espaces et sa casse, même span et label, ou tout span en chevauchement |
-| `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de whitelist laisse en clair une valeur introduite par l'assistant, ou la tokenise quand même |
+| `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de whitelist laisse en clair une valeur introduite par l'assistant, ou la dé-identifie quand même |
 | `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
 
 </div>
@@ -410,7 +410,7 @@ values = { "public@corp.com" = "EMAIL" }
 
 ## `[observation_redactor]`
 
-Optionnel. Une config de factory de placeholders, mêmes valeurs de `type` que `[anonymizer.placeholder]`, caviardant les charges envoyées à un backend de traçage pour qu'une trace porte des tokens, pas des valeurs brutes.
+Optionnel. Une config de factory de placeholders, mêmes valeurs de `type` que `[anonymizer.placeholder]`, caviardant les charges envoyées à un backend de traçage pour qu'une trace porte des jetons, pas des valeurs brutes.
 
 ```toml
 [observation_redactor]
@@ -423,9 +423,9 @@ Omettre la section trace le texte en clair et les valeurs détectées, et un tra
 
 ## `[memory]`
 
-Optionnel. Sa présence fait du pipeline un `ThreadAnonymizationPipeline` qui garde un état par thread. Discriminé sur `type`.
+Optionnel. Sa présence fait du pipeline un `ThreadAnonymizationPipeline` qui garde un état par conversation. Discriminé sur `type`.
 
-Le scalaire `token_memo_ttl` va avec, au premier niveau plutôt que dans cette section, puisqu'il borne la carte de tokens mémoïsée du pipeline et non le store. Le poser sans `[memory]` lève une erreur, un pipeline sans état ne mémoïsant rien. Pourquoi il compte sur un déploiement multi-worker est dans [Déploiement multi-instance](../multi-instance.md).
+Le scalaire `token_memo_ttl` va avec, au premier niveau plutôt que dans cette section, puisqu'il borne la carte de jetons mémoïsée du pipeline et non le store. Le poser sans `[memory]` lève une erreur, un pipeline sans état ne mémoïsant rien. Pourquoi il compte sur un déploiement multi-worker est dans [Déploiement multi-instance](../multi-instance.md).
 
 | `type` | Extra | Stockage |
 |--------|-------|----------|
@@ -439,8 +439,8 @@ Un stockage local au processus, perdu au redémarrage et non partagé entre work
 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
-| `max_threads` | `int` | `10000` | Plafond de threads gardés, éviction LRU au-delà (au moins 1) |
-| `ttl` | `float` | `86400` | Expire un thread inactif paresseusement au prochain accès, en secondes (supérieur à 0) |
+| `max_threads` | `int` | `10000` | Plafond de conversations gardées, éviction LRU au-delà (au moins 1) |
+| `ttl` | `float` | `86400` | Expire une conversation inactive paresseusement au prochain accès, en secondes (supérieur à 0) |
 
 ```toml
 [memory]
@@ -501,7 +501,7 @@ Un stockage durable et multi-worker adossé à n'importe quelle base supportée 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
 | `url_env` | `str` | `PIIGHOST_DATABASE_URL` | La variable d'environnement contenant l'URL async de la base |
-| `table_name` | `str` | `piighost_conversation_messages` | La table stockant les messages par thread |
+| `table_name` | `str` | `piighost_conversation_messages` | La table stockant les messages par conversation |
 | `[memory.hasher]` | hacheur | | Optionnel (les deux ou aucun). Le hacheur qui indexe chaque message |
 | `[memory.cipher]` | cipher | | Optionnel (les deux ou aucun). Le cipher qui chiffre chaque valeur |
 
@@ -590,5 +590,5 @@ Le même contenu en JSON, choisi par un suffixe `.json`, est équivalent. Une ta
 - `examples/config/` dans le dépôt pour six fichiers exécutables, `detector_only.toml`, `minimal.toml`, `minimal.json`, `pipeline.toml`, `thread_redis.toml` et `thread_sqlalchemy.toml`, tous les six chargés par `examples/config/run.py`.
 - [Interface en ligne de commande](../reference/cli.md) pour valider un fichier depuis le shell.
 - [Référence Détecteurs](../reference/detectors.md) pour le détecteur que chaque `type` construit.
-- [Référence de l'intégration LangChain](../reference/langchain.md) pour piloter un pipeline de thread dans un agent.
+- [Référence de l'intégration LangChain](../reference/langchain.md) pour piloter un pipeline de conversation dans un agent.
 - [Configurer un pipeline par fichier, hub et ligne de commande](../../../openwiki/exploitation/configuration-et-hub.md) pour les règles de configuration, de `BR-CFG-01` à `BR-CFG-09`, et leur emplacement dans le code.

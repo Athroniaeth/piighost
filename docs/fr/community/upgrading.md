@@ -111,9 +111,9 @@ from piighost.integrations.middleware import AssistantEntityStrategy, PIIAnonymi
 
 `offset_unit` est un mot-clé obligatoire, `OffsetUnit.CODE_POINT` pour un exécuteur écrit en Python, `OffsetUnit.UTF16` pour un exécuteur écrit en JavaScript. Un exécuteur JavaScript compte un emoji pour deux, si bien que ses décalages tombaient un caractère trop loin après chacun. Un décalage qui n'est pas un entier, `8.0` compris, lève maintenant `BridgePayloadError` au lieu d'être tronqué, et un span noté sous `threshold` est écarté même quand l'exécuteur l'a ignoré. Voir la [référence des détecteurs](../reference/detectors.md).
 
-### Un fil est toujours nommé
+### Une conversation est toujours nommée
 
-`require_thread_id` est supprimé du middleware LangChain. Un appel dont la config LangGraph ne porte pas de `thread_id` lève toujours `MissingThreadIdError`, et un événement Claude Code sans `session_id` aussi. `PIIGhostClient.detect` prend un `thread_id` obligatoire. Si vos conversations n'ont pas besoin d'être séparées, nommez le fil `"default"`.
+`require_thread_id` est supprimé du middleware LangChain. Un appel dont la config LangGraph ne porte pas de `thread_id` lève toujours `MissingThreadIdError`, et un événement Claude Code sans `session_id` aussi. `PIIGhostClient.detect` prend un `thread_id` obligatoire. Si vos conversations n'ont pas besoin d'être séparées, nommez la conversation `"default"`.
 
 ```python
 # 1.x
@@ -131,17 +131,17 @@ await agent.ainvoke({"messages": messages})
 - **Traits d'union.** Tout trait d'union Unicode relie deux mots dans une recherche par mot entier, y compris le trait d'union insécable que tape Word, donc `Jean`{ .pii } n'est plus trouvé dans `Jean‑Paul`{ .pii } écrit avec lui.
 - **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
 - **Surcharges.** Deux détections sur un même span gardent l'ordre de leurs détecteurs après une liste blanche, comme sans elle.
-- **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 fils et un jour d'inactivité. Un fil évincé ou expiré ne restaure plus ses tokens. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
+- **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 conversations et un jour d'inactivité. Une conversation évincée ou expirée ne restaure plus ses jetons. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
 
-Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour un fil en cours.
+Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour une conversation en cours.
 
 ### Le serveur d'API
 
 `piighost-api` demande `piighost>=2.0,<3`, et sa configuration suit les règles de la 2.0 ci-dessus, références du hub de `catalogs` comprises.
 
 - `--config` et `PIIGHOST_CONFIG` acceptent une référence du hub aussi bien qu'un chemin de fichier.
-- Une configuration sans section `[memory]` est servie avec la mémoire in-process au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les threads entre instances.
-- `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize` exigent un `thread_id`, et répondent `400` sans lui au lieu d'utiliser le fil partagé `"default"`.
+- Une configuration sans section `[memory]` est servie avec la mémoire in-process au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les conversations entre instances.
+- `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize` exigent un `thread_id`, et répondent `400` sans lui au lieu d'utiliser la conversation partagée `"default"`.
 - `/v1/labels` lit les labels d'un groupe du hub sur le hub.
 - L'observation passe par les variables standard `OTEL_*`. `LANGFUSE_PUBLIC_KEY` et `LANGFUSE_SECRET_KEY` ne servent qu'à `dataset extract`, et aucune variable `OPIK_*` n'est lue.
 - Le serveur ne lit aucun `REDIS_URL`, l'adresse Redis est l'`url` de la section `[memory]`.
@@ -155,7 +155,7 @@ Les routes et les variables sont listées dans [Endpoints de l'API](../reference
 
 Cela concerne une mémoire de conversation Redis ou SQLAlchemy construite avec `type = "argon2"`. Un déploiement sur `sha256`, ou sans hasher du tout, n'est pas concerné.
 
-Les entrées stockées sont orphelines, pas corrompues. Le pipeline ne trouve rien sous la nouvelle clé, considère le message comme jamais vu, et le redétecte. Un thread en cours repart donc avec une numérotation de tokens remise à zéro, et une même valeur peut atterrir sur un numéro différent de celui que le modèle lisait jusque-là.
+Les entrées stockées sont orphelines, pas corrompues. Le pipeline ne trouve rien sous la nouvelle clé, considère le message comme jamais vu, et le redétecte. Une conversation en cours repart donc avec une numérotation de jetons remise à zéro, et une même valeur peut atterrir sur un numéro différent de celui que le modèle lisait jusque-là.
 
 Purgez le store pendant la montée de version, avant de redémarrer l'application :
 
