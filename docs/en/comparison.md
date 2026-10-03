@@ -4,23 +4,74 @@ icon: lucide/scale
 
 # How PIIGhost compares
 
-This table is not neutral. Its rows are the capabilities `piighost` was built for, so it naturally comes out ahead. It is here to show what most other tools leave out, not to declare a winner. For a job `piighost` is not built for, such as releasing a whole dataset, a k-anonymity tool is the right choice.
+`piighost` combines four properties a conversational agent needs: restore the reply for the user, keep the same placeholder over the whole conversation, hand the real value to tools, and restore while the reply streams. None of the tools below combines all four. Each one is better than `piighost` at something else, and its entry says what.
 
-| Capability | `piighost` | Presidio | LangChain PII | Cloud (AWS/Azure) | Google DLP | pii-redactor |
-|---|---|---|---|---|---|---|
-| **Detection** | regex / NER / LLM | NER + regex + rules + checksum | regex + validators | ML/NER | ML + infoTypes | regex + NER |
-| **PII handling** | reversible token (memory/Redis) | mask / token | mask / hash | mask | crypto token (stateless) | reversible token (vault) |
-| **Transparent restore for the user** | ✅ | ⚠️ manual (`decrypt`) | ❌ | ❌ | ⚠️ re-id via API | ✅ |
-| **Consistent across a conversation** | ✅ per thread | ❌ | ❌ | ❌ | ✅ deterministic | ✅ per session |
-| **Tool boundary** (tool gets the real value, LLM gets the token) | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Streaming** (token-by-token restore) | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Configurable post-detection stages** (linking, fuzzy, expansion, guard) | ✅ | ⚠️ operators only | ❌ | ❌ | ⚠️ transforms | ❌ |
-| **Unit processed** | text / conversation | text | text / conversation | text / documents | text / dataset | text / conversation |
-| **Self-hosted (OSS)** | ✅ | ✅ | ✅ | ❌ cloud | ❌ cloud | ✅ |
-| **License** | MIT | MIT | MIT | Commercial | Commercial | MIT |
+Open a solution to see how it differs from `piighost`.
 
-Notes: **LangChain PII** here is the Python `PIIMiddleware`. The JS `piiRedactionMiddleware` is the opposite trade-off, reversible but no streaming. **Cloud** groups AWS Comprehend and Azure AI Language, and Azure's Conversation mode only detects, it does not restore.
+??? note "`piighost`, its choices and its limits"
 
-Detection-only models (spaCy, GLiNER, Piiranha) and dataset anonymizers (ARX, Amnesia) sit in a different category. The first only find PII, the second transform a whole tabular dataset with k-anonymity or differential privacy, so they are not de-identifying a live conversation.
+    - Detects with regexes, NER models (GLiNER2, spaCy, Transformers, Presidio) or an LLM, alone or combined.
+    - Replaces each value with a reversible placeholder, the same over the whole conversation, kept in memory or in Redis.
+    - Restores the reply for the user, while it streams too, and hands the real value to the agent's tools.
+    - Choice: no checksum validation (Luhn, IBAN check digits). A value damaged by OCR is still detected, at the cost of false positives.
+    - Choice: de-identification is reversible. Under the GDPR it is pseudonymization, and the mapping is personal data to protect.
+    - Does not: guarantee that no value escapes. A detector misses values, and a guard rail only flags them.
+    - Does not: restore a value the LLM makes up, or share the memory between processes without Redis.
+    - Does not: transform a whole dataset. The added latency is not measured yet.
 
-See [Limitations](limitations.md) for what `piighost` does not do and the trade-offs behind these choices.
+??? note "Presidio (Microsoft, MIT)"
+
+    - Detects with NER, regexes, rules and check digits.
+    - Masks, or replaces with an encrypted token.
+    - Restores only by hand, with `decrypt`.
+    - Does not keep the same token from one message to the next.
+    - Nothing for tools or for streaming.
+    - Better at: validating a format by its check digits, on typed text.
+    - `piighost` can use it as a detector, with `PresidioDetector`.
+
+??? note "LangChain PII (`PIIMiddleware`, MIT)"
+
+    - Detects with regexes and validators.
+    - Masks or hashes, with no restoration for the user.
+    - Protects the tool boundary and the stream.
+    - Keeps no placeholder over the conversation.
+    - The JS version (`piiRedactionMiddleware`) makes the opposite trade-off: it restores, without streaming.
+    - Better at: nothing more to install in a LangChain agent, when the user does not need to read their real values.
+
+??? note "AWS Comprehend and Azure AI Language (cloud, paid)"
+
+    - Detect with machine learning and mask.
+    - No restoration. Azure's Conversation mode only detects.
+    - Nothing for the conversation, tools or streaming.
+    - The text goes to the cloud provider.
+    - Better at: models the provider maintains, to mask documents in a cloud already in place.
+
+??? note "Google DLP (cloud, paid)"
+
+    - Detects with machine learning and predefined types (infoTypes).
+    - Replaces with a stateless encrypted token, always the same for the same value.
+    - Restores through an API call.
+    - Nothing for tools or streaming.
+    - The text goes to Google.
+    - Better at: transforming whole datasets in Google Cloud.
+
+??? note "pii-redactor (MIT)"
+
+    - The closest to `piighost`.
+    - Detects with regexes and NER.
+    - Replaces with a reversible token kept in a vault, the same over the session, and restores while streaming.
+    - Does not hand the real value to tools.
+    - No configurable step after detection (linking, fuzzy matching, expansion, guard rail).
+
+??? note "Detection-only models (spaCy, GLiNER, Piiranha)"
+
+    - Find the data without replacing or restoring it.
+    - Building blocks rather than competitors: `piighost` uses them as detectors, Piiranha through `TransformersDetector`.
+
+??? note "Dataset anonymizers (ARX, Amnesia)"
+
+    - Transform a whole table with k-anonymity or differential privacy.
+    - The result is anonymous and irreversible, where `piighost` is reversible.
+    - Better at: publishing or sharing a dataset. Not made for a live conversation.
+
+See [Limitations](limitations.md) for what `piighost` does not do, and the reasoning behind these choices.
