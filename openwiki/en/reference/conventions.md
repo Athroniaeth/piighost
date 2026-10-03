@@ -10,10 +10,7 @@ generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 
 ## In short
 
-- Some rules of PIIGhost do not come from the need of a profile. They are choices made while writing the library, such as the shape of placeholders.
-- This page gathers them, with the reason for each and where it lives in the code.
-- When a choice supports a business rule, the convention cites its identifier.
-- To propose another choice, open a discussion. These conventions bind the rest of the library.
+Writing PIIGhost called for choices that nothing imposes from outside, such as the shape of a placeholder or the behavior of a default setting. This page gathers them so that they do not stay implicit. For each one, it gives the reason for the choice and where it applies in the code, and cites the business rule it supports when there is one. These conventions bind the rest of the library, so changing one calls for a discussion first.
 
 ## Placeholders
 

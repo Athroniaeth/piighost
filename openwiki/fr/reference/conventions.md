@@ -10,10 +10,7 @@ generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 
 ## En bref
 
-- Certaines règles de PIIGhost ne viennent pas d'un besoin de profil. Ce sont des choix faits en écrivant la librairie, comme la forme des jetons.
-- Cette page les rassemble, avec la raison de chacun et l'endroit du code où il vit.
-- Quand un choix soutient une règle de gestion, la convention cite son identifiant.
-- Pour proposer un autre choix, ouvrez une discussion. Ces conventions engagent tout le reste de la librairie.
+Écrire PIIGhost a demandé des choix que rien n'impose de l'extérieur, comme la forme d'un jeton ou le comportement d'un réglage par défaut. Cette page les rassemble pour qu'ils ne restent pas implicites. Pour chacun, elle donne la raison du choix et l'endroit du code où il s'applique, et cite la règle de gestion qu'il soutient quand il y en a une. Ces conventions engagent le reste de la librairie, donc en changer une demande d'en discuter d'abord.
 
 ## Les jetons
 
