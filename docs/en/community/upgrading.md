@@ -28,7 +28,7 @@ Not every public name carries the same guarantee. A stable name changes only on 
 
 | Surface | What it covers |
 |---|---|
-| Package root | Every name in `piighost.__all__`: `AnonymizationPipeline`, `ThreadAnonymizationPipeline`, `Anonymizer`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector`, `LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`, `Detection`, `Entity`, `Span`, `PIIGhostError` |
+| Package root | Every name in `piighost.__all__`, that is `AnonymizationPipeline`, `ThreadAnonymizationPipeline`, `Anonymizer`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector`, `LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`, `Detection`, `Entity`, `Span`, `PIIGhostError` |
 | Ports and templates | Every `Any*` protocol and its `Base*` template, one pair per pipeline stage |
 | Data models | `Detection`, `Entity` and `Span`, frozen dataclasses with a stable field set |
 | Configuration | `PipelineConfig`, `load_config`, `load_pipeline`, `load_thread_pipeline`, and the keys listed in the [TOML reference](../configuration/toml.md) |
@@ -89,7 +89,7 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 --8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
-A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards. A pipeline therefore reaches the network once. The hub groups have moved on since the catalogs were copied: `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `hub:piighost/generic:fab51b33`.
+A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards. A pipeline therefore reaches the network once. The hub groups have moved on since the catalogs were copied. The group `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `hub:piighost/generic:fab51b33`.
 
 ### The 1.x aliases are removed
 

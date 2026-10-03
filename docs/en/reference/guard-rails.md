@@ -107,7 +107,7 @@ This guard classifies the text, it does not detect values. It therefore catches 
 
 ## `GuardVerdict` and `PIIRemainingError`
 
-`check` returns a frozen `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])`. The detail depends on the guard: a score from a moderation model, or the residual detections from a detector. Both are optional.
+`check` returns a frozen `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])`. The detail depends on the guard. It is a score from a moderation model, or the residual detections from a detector. Both are optional.
 
 When a guard flags confidential values, the pipeline raises `PIIRemainingError` (a subclass of `GuardError`, itself a `PIIGhostError`). Its message names the leaked labels or the score. Its `detections` attribute holds the residual detections. It stays empty for a score-based guard, which localizes nothing.
 

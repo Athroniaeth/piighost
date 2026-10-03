@@ -4,7 +4,7 @@ icon: lucide/list-checks
 
 # Roadmap
 
-This page tracks what is still pending for `piighost`, and the capabilities it deliberately leaves out. Everything the v2 rewrite has shipped is documented in the rest of the site: pluggable detectors, entity linking and resolution, placeholder factories, the guard for residual confidential data, the Redis conversation memory with encrypted values, TOML and JSON configuration, the LangChain middleware, and OpenTelemetry observation.
+This page tracks what is still pending for `piighost`, and the capabilities it deliberately leaves out. Everything the v2 rewrite has shipped is documented in the rest of the site. That covers pluggable detectors, entity linking and resolution, placeholder factories, the guard for residual confidential data, the Redis conversation memory with encrypted values, TOML and JSON configuration, the LangChain middleware, and OpenTelemetry observation.
 
 !!! note "How to read this page"
     This roadmap is not a calendar commitment. It lists the items identified as still missing, not a promise to build them in order.
@@ -27,11 +27,11 @@ The conversation memory caches each message's detections per thread, so resendin
 
 ## ~~Agent-harness integration~~
 
-~~Now shipped for Claude Code, through its hook system. `piighost.integrations.claude_code` de-identifies the prompt and tool outputs, and restores tool inputs. It drives a thin client to `piighost-api`. See [De-identify Claude Code with hooks](examples/claude-code.md). The OpenAI-compatible proxy in `piighost-api` still covers any harness that lets an application change its `base_url`. Beside the hooks, `piighost-api` also ships an Anthropic-compatible proxy endpoint, for harnesses that speak Anthropic's Messages API. That proxy reuses what the core already does: de-identification and restoration, streaming reassembly, and tool-boundary handling. See [De-identify Claude Code with the Anthropic proxy](examples/anthropic-proxy.md).~~
+~~Now shipped for Claude Code, through its hook system. `piighost.integrations.claude_code` de-identifies the prompt and tool outputs, and restores tool inputs. It drives a thin client to `piighost-api`. See [De-identify Claude Code with hooks](examples/claude-code.md). The OpenAI-compatible proxy in `piighost-api` still covers any harness that lets an application change its `base_url`. Beside the hooks, `piighost-api` also ships an Anthropic-compatible proxy endpoint, for harnesses that speak Anthropic's Messages API. That proxy reuses what the core already does, that is de-identification and restoration, streaming reassembly, and tool-boundary handling. See [De-identify Claude Code with the Anthropic proxy](examples/anthropic-proxy.md).~~
 
 ## Local in-browser document app (WebAssembly)
 
-A document-de-identification web app that runs entirely in the browser answers the confidentiality and consent constraints raised repeatedly around client data. With it, a regulated professional can de-identify a client file without any data leaving the machine. The engine already exists. The project website runs the real `piighost` in the browser through Pyodide, with GLiNER detection in the browser too. The library itself therefore needs no reimplementation. What remains to build is the application around it: client-side document parsing (PDF, DOCX) and OCR, a review step where the user validates or completes the de-identification, and a share step. This is a separate application built on the library, not a library feature.
+A document-de-identification web app that runs entirely in the browser answers the confidentiality and consent constraints raised repeatedly around client data. With it, a regulated professional can de-identify a client file without any data leaving the machine. The engine already exists. The project website runs the real `piighost` in the browser through Pyodide, with GLiNER detection in the browser too. The library itself therefore needs no reimplementation. What remains to build is the application around it. It includes client-side document parsing (PDF, DOCX) and OCR, a review step where the user validates or completes the de-identification, and a share step. This is a separate application built on the library, not a library feature.
 
 ## Non-goals
 

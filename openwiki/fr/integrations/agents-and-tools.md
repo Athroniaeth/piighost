@@ -54,17 +54,17 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 ### Règles à connaître
 
-**BR-AGT-01.** Quand un agent LangChain est appelé sans identifiant de conversation, alors il s'arrête sur `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` Pourquoi : sans identifiant, toutes les conversations n'en feraient qu'une et partageraient leurs jetons. Une application qui n'a pas besoin de séparer ses conversations passe `default` elle-même.
+**BR-AGT-01.** Quand un agent LangChain est appelé sans identifiant de conversation, alors il s'arrête sur `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` La raison est que sans identifiant, toutes les conversations n'en feraient qu'une et partageraient leurs jetons. Une application qui n'a pas besoin de séparer ses conversations passe `default` elle-même.
 
-**BR-AGT-02.** Quand le modèle écrit un jeton que PIIGhost n'a jamais émis, alors la réponse est refusée par défaut, avec `Deanonymized text holds tokens the pipeline never issued`. Deux autres choix existent : garder le jeton tel quel, ou le retirer du texte.
+**BR-AGT-02.** Quand le modèle écrit un jeton que PIIGhost n'a jamais émis, alors la réponse est refusée par défaut, avec `Deanonymized text holds tokens the pipeline never issued`. Les deux autres choix sont de garder le jeton tel quel ou de le retirer du texte.
 
-**BR-AGT-03.** Quand l'assistant cite le premier une valeur, alors elle reste en clair par défaut. Exemple : l'assistant répond « Le siège est à Lyon ». « Lyon » n'est pas masqué au tour suivant, parce qu'il vient de l'assistant. Deux autres choix : la masquer comme une donnée de l'utilisateur, ou ne pas analyser du tout les messages de l'assistant.
+**BR-AGT-03.** Quand l'assistant cite le premier une valeur, alors elle reste en clair par défaut. Par exemple, l'assistant répond « Le siège est à Lyon ». « Lyon » n'est pas masqué au tour suivant, parce qu'il vient de l'assistant. Les deux autres choix sont de la masquer comme une donnée de l'utilisateur ou de ne pas analyser du tout les messages de l'assistant.
 
 **BR-AGT-04.** Quand le réglage d'outil est « Complet » ou « Sortie seule », alors le texte renvoyé par l'outil passe par le repérage complet et est masqué avant le modèle. Avec LangChain, seul le texte du message de l'outil est masqué. Avec Pydantic AI, un résultat structuré (liste, dictionnaire) est parcouru en entier.
 
 **BR-AGT-05.** Quand un événement de Claude Code n'a pas d'identifiant de session, alors il est refusé avec `The hook event carries no session_id, the thread its values belong to.` Aucune conversation commune n'est utilisée.
 
-**BR-AGT-06.** Quand un outil de Claude Code n'est pas dans la liste des outils traités, alors son résultat passe en clair. Outils traités : Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, notamment, n'y est pas.
+**BR-AGT-06.** Quand un outil de Claude Code n'est pas dans la liste des outils traités, alors son résultat passe en clair. Les outils traités sont Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, notamment, n'y est pas.
 
 **BR-AGT-07.** Quand la réponse du modèle est diffusée au fil de l'eau, alors l'affichage montre des jetons jusqu'à la fin du message, sauf si l'application branche le décodeur de flux prévu. Voir [Afficher une réponse streamée](../processes/show-a-streamed-reply.md).
 

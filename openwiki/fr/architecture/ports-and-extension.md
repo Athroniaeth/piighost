@@ -38,17 +38,17 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 ## En bref
 
-- PIIGhost est une suite d'étapes interchangeables : on remplace un détecteur ou une règle sans toucher aux autres étapes.
+- PIIGhost est une suite d'étapes interchangeables. On remplace un détecteur ou une règle sans toucher aux autres étapes.
 - Chaque étape suit un contrat écrit une fois. Toute pièce qui respecte ce contrat peut prendre sa place.
 - Le fichier de configuration fabrique ces pièces. Les pièces, elles, ignorent tout du fichier de configuration.
 - Les briques lourdes (modèles d'IA, bases de données) ne s'installent que si vous les demandez.
-- Le type du jeton choisi est vérifié avant l'exécution : une combinaison incompatible est refusée tôt.
+- Le type du jeton choisi est vérifié avant l'exécution, donc une combinaison incompatible est refusée tôt.
 
 Cette page est technique. Pour le déroulé d'un message, lisez [Protéger un message avant l'envoi au modèle](../processes/protect-a-message.md). Les termes sont définis dans le [glossaire](../glossary.md).
 
 ## Comment le code est découpé
 
-Chaque étape vit dans un paquet de `src/piighost/components/`. Son `base.py` déclare le **port** : un `Protocol` marqué `runtime_checkable`, nommé `Any*`. Le pipeline dépend du port, jamais d'une classe concrète. Un objet satisfait le port dès qu'il a la bonne méthode, sans héritage.
+Chaque étape vit dans un paquet de `src/piighost/components/`. Son `base.py` déclare le **port**, c'est-à-dire un `Protocol` marqué `runtime_checkable`, nommé `Any*`. Le pipeline dépend du port, jamais d'une classe concrète. Un objet satisfait le port dès qu'il a la bonne méthode, sans héritage.
 
 Quand plusieurs adaptateurs partagent un squelette, ce squelette vit dans un gabarit `Base*` (patron Template Method). L'adaptateur ne fournit alors que l'étape qui varie, par exemple `_key` pour un linker ou `_reduce` pour un résolveur de chevauchements.
 
@@ -81,7 +81,7 @@ Les ports sans gabarit expliquent cette absence dans leur docstring. Leurs impl�
 
 ### Le détecteur NER partagé
 
-`BaseNERDetector` (`components/detector/ner/base.py`) porte la passe commune aux modèles : correspondance des étiquettes, seuil de confiance appliqué quel que soit le modèle, découpage d'un texte trop long en morceaux qui se chevauchent. Un texte plus long que `max_chars` est découpé si `auto_chunk` est actif (par défaut). Sinon, le détecteur lève `TextTooLongError`.
+`BaseNERDetector` (`components/detector/ner/base.py`) porte la passe commune aux modèles, c'est-à-dire la correspondance des étiquettes, le seuil de confiance appliqué quel que soit le modèle et le découpage d'un texte trop long en morceaux qui se chevauchent. Un texte plus long que `max_chars` est découpé si `auto_chunk` est actif (par défaut). Sinon, le détecteur lève `TextTooLongError`.
 
 ## Couplage à sens unique entre configuration et cœur
 
@@ -95,14 +95,14 @@ Le cœur ne dépend que de `typing-extensions`. Tout le reste est un extra de `p
 
 ## Jetons typés
 
-Les fabriques de jetons portent une étiquette de préservation (`components/placeholder/tags.py`). Ces étiquettes sont des sous-classes de `str` qui n'existent que pour le vérificateur de types. Elles disent si le jeton garde le type de valeur, l'identité, la forme, et s'il peut être retrouvé dans un texte. Le middleware exige `PreservesRecognizableIdentity` : un jeton qui identifie une seule valeur et qu'on peut retrouver. Passer une fabrique de masques au middleware devient donc une erreur de typage.
+Les fabriques de jetons portent une étiquette de préservation (`components/placeholder/tags.py`). Ces étiquettes sont des sous-classes de `str` qui n'existent que pour le vérificateur de types. Elles disent si le jeton garde le type de valeur, l'identité, la forme, et s'il peut être retrouvé dans un texte. Le middleware exige `PreservesRecognizableIdentity`, c'est-à-dire un jeton qui identifie une seule valeur et qu'on peut retrouver. Passer une fabrique de masques au middleware devient donc une erreur de typage.
 
 ## Ajouter un détecteur
 
 1. Copiez l'adaptateur le plus proche. Pour un modèle NER, partez de `components/detector/ner/spacy.py` et héritez de `BaseNERDetector`. Sinon, partez de `components/detector/regex.py` et implémentez `async def detect(self, text: str) -> list[Detection]`.
 2. Si le module importe une dépendance lourde, gardez l'import dans le module, derrière un test `find_spec`, et exposez la classe par le `__getattr__` du paquet.
 3. Ajoutez l'extra dans `[project.optional-dependencies]` de `pyproject.toml`, puis dans l'extra `all`.
-4. Écrivez le modèle de configuration à côté de ses voisins dans `config/models/detector_model.py` : `type: Literal["..."]`, champs validés, `build()` qui importe l'adaptateur localement.
+4. Écrivez le modèle de configuration à côté de ses voisins dans `config/models/detector_model.py`. Il porte un `type: Literal["..."]`, des champs validés et un `build()` qui importe l'adaptateur localement.
 5. Ajoutez ce modèle à l'union `DetectorConfig` de `config/models/detector.py`.
 6. Ajoutez un constructeur à la liste `DETECTORS` de `tests/components/detector/test_contract.py`.
 7. Si le module est guardé, ajoutez la ligne `(module, dépendance, extra)` à `OPTIONAL_DEPENDENCY_GUARDS` dans `tests/regression/test_imports.py`.
@@ -114,7 +114,7 @@ uv run pytest tests/components/detector/test_contract.py tests/regression/test_i
 make lint
 ```
 
-Pour votre détecteur, le test de contrat doit rapporter la même chose que pour les autres détecteurs : le même span en points de code, le même texte relu dans la source et la même étiquette externe.
+Pour votre détecteur, le test de contrat doit rapporter la même chose que pour les autres détecteurs, c'est-à-dire le même span en points de code, le même texte relu dans la source et la même étiquette externe.
 
 ## Pièges
 
@@ -131,7 +131,7 @@ Pour votre détecteur, le test de contrat doit rapporter la même chose que pour
 
 > ⚠ Écart doc / code
 > **Doc** : le message d'erreur de `config/models/detector.py:62-66` dit que les catalogues intégrés ont été retirés « in piighost 2.0 ».
-> **Code** : la version du paquet est `1.10.0` (`pyproject.toml:3`). Le `CHANGELOG.md` place le passage des catalogues au hub en 1.8.0. [à vérifier] : demandez au mainteneur si « 2.0 » désigne la réécriture interne ou une version à venir.
+> **Code** : la version du paquet est `1.10.0` (`pyproject.toml:3`). Le `CHANGELOG.md` place le passage des catalogues au hub en 1.8.0. [à vérifier] Demandez au mainteneur si « 2.0 » désigne la réécriture interne ou une version à venir.
 
 Ces écarts sont aussi listés dans le [registre des écarts](../reference/doc-code-gaps.md).
 
@@ -143,6 +143,6 @@ Ces écarts sont aussi listés dans le [registre des écarts](../reference/doc-c
 | `tests/regression/test_imports.py` | L'API publique s'importe, chaque module s'importe sans extra, chaque garde nomme son extra. |
 | `tests/config/` | Chaque modèle de configuration se valide et se construit. |
 
-Aucun test n'impose le couplage à sens unique. La règle « le cœur n'importe jamais `piighost.config` » tient par revue de code. Pour la contrôler : `grep -rn "piighost.config" src/piighost --include=*.py | grep -v "^src/piighost/config\|^src/piighost/cli"` doit être vide.
+Aucun test n'impose le couplage à sens unique. La règle « le cœur n'importe jamais `piighost.config` » tient par revue de code. Pour la contrôler, `grep -rn "piighost.config" src/piighost --include=*.py | grep -v "^src/piighost/config\|^src/piighost/cli"` doit être vide.
 
 Pour lancer les tests, voir [Lancer et écrire les tests](../tests/run-and-write-tests.md). Pour la configuration, voir [Configurer un pipeline](../operations/configuration-and-hub.md).

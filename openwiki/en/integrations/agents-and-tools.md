@@ -54,17 +54,17 @@ Four settings decide what the tool receives and what the model reads. The choice
 
 ### Rules to know
 
-**BR-AGT-01.** When a LangChain agent is called without a conversation identifier, then it stops on `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` Why: without an identifier, all conversations would become one and share their placeholders. An application that does not need to separate its conversations passes `default` itself.
+**BR-AGT-01.** When a LangChain agent is called without a conversation identifier, then it stops on `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` The reason is that without an identifier, all conversations would become one and share their placeholders. An application that does not need to separate its conversations passes `default` itself.
 
-**BR-AGT-02.** When the model writes a placeholder that PIIGhost never issued, then the reply is refused by default, with `Deanonymized text holds tokens the pipeline never issued`. Two other choices exist: keep the placeholder as is, or remove it from the text.
+**BR-AGT-02.** When the model writes a placeholder that PIIGhost never issued, then the reply is refused by default, with `Deanonymized text holds tokens the pipeline never issued`. The two other choices are to keep the placeholder as is or to remove it from the text.
 
-**BR-AGT-03.** When the assistant is the first to quote a value, then it stays in clear by default. Example: the assistant answers "The head office is in Lyon". "Lyon" is not masked at the next turn, because it comes from the assistant. Two other choices: mask it like user data, or not analyze the assistant's messages at all.
+**BR-AGT-03.** When the assistant is the first to quote a value, then it stays in clear by default. For example, the assistant answers "The head office is in Lyon". "Lyon" is not masked at the next turn, because it comes from the assistant. The two other choices are to mask it like user data or to not analyze the assistant's messages at all.
 
 **BR-AGT-04.** When the tool setting is "Full" or "Output only", then the text returned by the tool goes through full detection and is masked before the model. With LangChain, only the text of the tool message is masked. With Pydantic AI, a structured result (list, dictionary) is walked through entirely.
 
 **BR-AGT-05.** When a Claude Code event has no session identifier, then it is refused with `The hook event carries no session_id, the thread its values belong to.` No shared conversation is used.
 
-**BR-AGT-06.** When a Claude Code tool is not in the list of handled tools, then its result passes in clear. Handled tools: Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, in particular, is not among them.
+**BR-AGT-06.** When a Claude Code tool is not in the list of handled tools, then its result passes in clear. The handled tools are Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, in particular, is not among them.
 
 **BR-AGT-07.** When the model's reply is streamed as it is produced, then the display shows placeholders until the end of the message, unless the application plugs in the provided stream decoder. See [Show a streamed reply](../processes/show-a-streamed-reply.md).
 

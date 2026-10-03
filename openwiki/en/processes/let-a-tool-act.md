@@ -21,9 +21,9 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - An agent calls tools, for example to send an e-mail. The model only knows the placeholders and writes them in the call.
 - By default, PIIGhost puts the real values back into the arguments just before execution, then masks the tool result before the model reads it.
-- The tool result goes through full detection: an address the conversation never quoted is masked too.
+- The tool result goes through full detection, so an address the conversation never quoted is masked too.
 - Three other settings exist. Two of them let the result go to the model in clear.
-- A placeholder invented by the model in an argument blocks the call by default: the tool does not run.
+- A placeholder invented by the model in an argument blocks the call by default. The tool does not run.
 
 Needs covered: DEV-4, DEV-8, USER-3 and DPO-1, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). Plugging PIIGhost into an agent is described in [Plug the protection into an agent and its tools](../integrations/agents-and-tools.md).
 
@@ -81,7 +81,7 @@ The known address takes its placeholder again. The new address takes the next nu
 
 **BR-TOOL-02.** When the setting is "Input only", then the arguments are restored and the result goes to the model as the tool returned it.
 
-**BR-TOOL-03.** When the setting is "Output only", then the tool receives the placeholders and its result is masked. Example: the sending tool receives `<<EMAIL:1>>` and would send the e-mail to an address that does not exist.
+**BR-TOOL-03.** When the setting is "Output only", then the tool receives the placeholders and its result is masked. For example, the sending tool receives `<<EMAIL:1>>` and would send the e-mail to an address that does not exist.
 
 **BR-TOOL-04.** When the setting is "None", then PIIGhost touches neither the arguments nor the result.
 
@@ -89,7 +89,7 @@ The known address takes its placeholder again. The new address takes the next nu
 
 **BR-TOOL-06.** When a value first appears in the result of a tool, then it counts as a user value and stays masked for the rest of the conversation.
 
-**BR-TOOL-07.** When the model writes in an argument a placeholder that was never issued, then the call is refused by default, before execution: `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. No e-mail goes out. With the invented-placeholder setting "drop", the tool receives `{"to": ""}`. With "keep", it receives `{"to": "<<EMAIL:7>>"}`.
+**BR-TOOL-07.** When the model writes in an argument a placeholder that was never issued, then the call is refused by default, before execution, with the message `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. No e-mail goes out. With the invented-placeholder setting "drop", the tool receives `{"to": ""}`. With "keep", it receives `{"to": "<<EMAIL:7>>"}`.
 
 **BR-TOOL-08.** When the arguments contain lists or nested objects, then each text they contain is restored, and the other values (numbers, booleans) stay intact.
 
@@ -101,13 +101,13 @@ The known address takes its placeholder again. The new address takes the next nu
 
 ### What the end user sees
 
-The result of the action: the e-mail arrives at the right address, the case looked up is the right one. The final reply of the model is restored as described in [Follow a conversation and restore the reply](follow-a-conversation.md).
+The user sees the result of the action. The e-mail arrives at the right address, the case looked up is the right one. The final reply of the model is restored as described in [Follow a conversation and restore the reply](follow-a-conversation.md).
 
 ### Frequently asked questions
 
 **A tool received `<<EMAIL:1>>` instead of the address.** The tool setting is "Output only" or "None" (BR-TOOL-03, BR-TOOL-04). Switch it to "Full" if the tool must act on the real address.
 
-**The tool call stops with `Deanonymized text holds tokens the pipeline never issued`.** The model wrote an unknown placeholder in an argument (BR-TOOL-07). Keep the refusal: it prevents an e-mail sent to an invented address.
+**The tool call stops with `Deanonymized text holds tokens the pipeline never issued`.** The model wrote an unknown placeholder in an argument (BR-TOOL-07). Keep the refusal, because it prevents an e-mail sent to an invented address.
 
 **The result of a tool went to the model in clear.** The setting is "Input only" or "None" (BR-TOOL-02, BR-TOOL-04).
 

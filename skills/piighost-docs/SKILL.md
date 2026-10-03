@@ -201,7 +201,7 @@ Banned for the inverse direction: « désanonymiser », « dé-anonymiser », «
 |---|---|---|
 | No semicolon | `...à leur place ; l'utilisateur voit...` | `...à leur place. L'utilisateur voit...` |
 | No em dash | `Le détecteur lit le texte — puis renvoie...` | `Le détecteur lit le texte, puis renvoie...` |
-| No mid-sentence colon for apposition (colon introduces a list, nothing else) | `des motifs : des chaînes qui...` | `des motifs, c'est-à-dire des chaînes qui...` |
+| No colon in the middle of a sentence. A colon only ends a line that announces what follows (a title, a list, a block), or follows the label of a list item (`- Concept : explication`) | `des motifs : des chaînes qui...` | `des motifs, c'est-à-dire des chaînes qui...` |
 | Straight double quotes, never `«` `»` | `« Bonjour »` | `"Bonjour"` |
 | `piighost` in code font, lowercase, in body text | `**PIIGhost** est une librairie...` | `` `piighost` est une librairie...`` |
 | Blank line after a heading, between paragraphs, before the first bullet | list glued to its paragraph | blank line |

@@ -64,7 +64,7 @@ Le 2026-10-01, sur `develop`, `uv run pytest -q` affiche `1128 passed, 32 skippe
 
 | Dossier | Contenu |
 |---|---|
-| `tests/components/` | Un sous-dossier par étape : détecteurs, liste blanche et liste noire, chevauchements, expansion, liens, résolveurs, anonymiseur, jetons, garde-fous |
+| `tests/components/` | Un sous-dossier par étape, c'est-à-dire détecteurs, liste blanche et liste noire, chevauchements, expansion, liens, résolveurs, anonymiseur, jetons, garde-fous |
 | `tests/pipeline/` | Pipeline simple, pipeline de conversation, correction humaine, listes intégrées au pipeline |
 | `tests/conversation_memory/`, `tests/crypto/` | Stockages et chiffrement |
 | `tests/config/`, `tests/cli/`, `tests/test_hub.py` | Configuration, ligne de commande, hub |

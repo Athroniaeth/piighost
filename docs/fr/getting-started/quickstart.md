@@ -21,7 +21,7 @@ La sortie doit être :
 
 ## Comment ça marche
 
-`ExactMatchDetector` repère les occurrences exactes, aux frontières de mots, des valeurs du dictionnaire fourni. Le détecteur suffit à lui seul, parce que le pipeline complète les étapes obligatoires avec leurs valeurs par défaut. Il regroupe les détections d'une même valeur et d'un même label avec un `ExactEntityLinker`, puis remplace chaque entité avec un `LabelCounterPlaceholderFactory` qui numérote par label. Les placeholders obtenus sont `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }. La résolution de chevauchement s'exécute par défaut. Les étapes optionnelles restent désactivées : expansion d'entités, résolution d'entités, override et garde-fou. C'est suffisant pour un premier essai, sans aucun modèle à charger.
+`ExactMatchDetector` repère les occurrences exactes, aux frontières de mots, des valeurs du dictionnaire fourni. Le détecteur suffit à lui seul, parce que le pipeline complète les étapes obligatoires avec leurs valeurs par défaut. Il regroupe les détections d'une même valeur et d'un même label avec un `ExactEntityLinker`, puis remplace chaque entité avec un `LabelCounterPlaceholderFactory` qui numérote par label. Les placeholders obtenus sont `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }. La résolution de chevauchement s'exécute par défaut. Les étapes optionnelles (expansion d'entités, résolution d'entités, override et garde-fou) restent désactivées. C'est suffisant pour un premier essai, sans aucun modèle à charger.
 
 ## Et ensuite
 

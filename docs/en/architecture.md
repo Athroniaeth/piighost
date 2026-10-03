@@ -69,7 +69,7 @@ flowchart TB
   ports. No external dependency, no pydantic, no I/O.
 - **Application.** The pipeline orchestration, which depends only on the core ports.
   This is where `anonymize`, `deanonymize`, and `forget_thread` live.
-- **Adapters.** The concrete implementations of the ports: detectors, resolvers,
+- **Adapters.** The concrete implementations of the ports, that is detectors, resolvers,
   factories, guard rails, memory backends, observation, HTTP client, middleware. Each
   adapter imports the core, never the reverse.
 - **Config.** The composition root. It is the only place allowed to know both the ports

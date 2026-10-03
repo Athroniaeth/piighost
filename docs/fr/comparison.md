@@ -4,7 +4,7 @@ icon: lucide/scale
 
 # Comment PIIGhost se compare
 
-`piighost` réunit quatre propriétés dont un agent conversationnel a besoin : restaurer la réponse pour l'utilisateur, garder le même jeton sur toute la conversation, donner la vraie valeur aux outils, et restaurer pendant le flux. Aucun des outils ci-dessous ne les réunit toutes. Chacun fait en revanche mieux que `piighost` sur un autre terrain, et sa fiche le dit.
+`piighost` réunit quatre propriétés dont un agent conversationnel a besoin. Il restaure la réponse pour l'utilisateur, garde le même jeton sur toute la conversation, donne la vraie valeur aux outils, et restaure pendant le flux. Aucun des outils ci-dessous ne les réunit toutes. Chacun fait en revanche mieux que `piighost` sur un autre terrain, et sa fiche le dit.
 
 Ouvrez une solution pour voir ses différences avec `piighost`.
 
@@ -96,7 +96,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
 ??? note "Modèles de détection seule (spaCy, GLiNER, Piiranha)"
 
     - Repèrent les données sans les remplacer ni les restaurer.
-    - Ce ne sont pas des concurrents mais des briques : `piighost` les utilise comme détecteurs, Piiranha via `TransformersDetector`.
+    - Ce ne sont pas des concurrents mais des briques. `piighost` les utilise comme détecteurs, Piiranha via `TransformersDetector`.
 
 ??? note "Anonymiseurs de jeux de données (ARX, Amnesia)"
 

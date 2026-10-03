@@ -21,11 +21,11 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-- Two lists, written in the `[override]` section of the configuration, correct the detector: the whitelist always masks, the blacklist never masks.
+- Two lists, written in the `[override]` section of the configuration, correct the detector. The whitelist always masks, the blacklist never masks.
 - The configuration is the pipeline's, whether it runs in the application or in the `piighost-api` server.
 - These lists come before everything else, including a correction made by hand by a person.
 - A blacklisted value goes to the model in clear, and the final check does not block it.
-- When both lists target the same value, the whitelist wins by default: the value is masked.
+- When both lists target the same value, the whitelist wins by default, so the value is masked.
 - A changed list only applies to the new messages of a conversation already under way.
 
 Needs covered: DPO-3, USER-5 and USER-6, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). The full path of a message is in [Protect a message before it is sent to the model](protect-a-message.md).
@@ -68,7 +68,7 @@ Typical case: your company name is read as a person's name, and the model needs 
 3. If a longer value contains it ("Acme Services" for "Acme"), say whether the longer value must also stay in clear.
 4. Send the list to the technical team.
 
-**How to check**: have a test sentence protected. Example: "Claire Dubois works at Acme." must give "`<<PERSON:1>>` works at Acme."
+**How to check**: have a test sentence protected. For example, "Claire Dubois works at Acme." must give "`<<PERSON:1>>` works at Acme."
 
 ### Force the masking of a value
 
@@ -94,7 +94,7 @@ Typical case: your internal code names are never spotted.
 | Exact | only a detection with the same position and the same type | `<<PERSON:1>>` works at `<<PERSON:2>>`, then at `<<ORG:1>>`. |
 | Overlap | any detection that touches the value, even a longer one | `<<PERSON:1>>` works at Acme, then at Globex SA. |
 
-Why "Same value" by default: the blacklist names a value, and the type written next to it is only a guess about what the detector will say.
+"Same value" is the default because the blacklist names a value, and the type written next to it is only a guess about what the detector will say.
 
 **BR-LIST-04.** When both lists target the same passage, then the conflict setting decides:
 
@@ -104,19 +104,19 @@ Why "Same value" by default: the blacklist names a value, and the type written n
 | The blacklist wins | in clear: `Acme` |
 | Refuse | stop with `Overrides contradict each other on 'Acme': a whitelisted span overlaps a blacklisted one.` |
 
-Why this default: when in doubt, masking protects.
+This default comes from a simple principle. When in doubt, masking protects.
 
-**BR-LIST-05.** When the assistant is the first to quote a whitelisted value, then it stays in clear by default. A "force" setting masks it anyway. Why: masking a value the model brought itself takes useful knowledge away from it. The masking also signals to it that this precise value is sensitive.
+**BR-LIST-05.** When the assistant is the first to quote a whitelisted value, then it stays in clear by default. A "force" setting masks it anyway. The reason is that masking a value the model brought itself takes useful knowledge away from it. The masking also signals to it that this precise value is sensitive.
 
-**BR-LIST-06.** When a person corrects the values of a message by hand, then both lists still apply to the correction and take precedence over it. Example: the user removes "PRJ-0042" from the masked values of their message, but the number stays masked.
+**BR-LIST-06.** When a person corrects the values of a message by hand, then both lists still apply to the correction and take precedence over it. For example, the user removes "PRJ-0042" from the masked values of their message, but the number stays masked.
 
 **BR-LIST-07.** When the final check rereads the protected text, then it ignores the blacklisted values. Any other value left in clear blocks the sending.
 
-**BR-LIST-08.** When a list changes during a conversation, then a message already analyzed keeps its old result, even when sent again unchanged. Example: on 2026-10-02, "Acme" enters the whitelist. The message sent on 2026-10-01 in the same conversation keeps "Acme" in clear. Only new messages apply the list.
+**BR-LIST-08.** When a list changes during a conversation, then a message already analyzed keeps its old result, even when sent again unchanged. For example, on 2026-10-02, "Acme" enters the whitelist. The message sent on 2026-10-01 in the same conversation keeps "Acme" in clear. Only new messages apply the list.
 
 ### What the end user sees
 
-Nothing different: the restored reply contains the real values. Only the model sees the difference between a masked value and a value kept in clear.
+Nothing different. The restored reply contains the real values. Only the model sees the difference between a masked value and a value kept in clear.
 
 ### Frequently asked questions
 

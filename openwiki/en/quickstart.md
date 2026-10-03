@@ -26,7 +26,7 @@ PIIGhost masks the confidential data of a text before an AI model reads it, then
 Life cycle of a message:
 
 1. The user writes in clear text.
-2. PIIGhost spots the sensitive values: names, e-mails, phone numbers, secrets.
+2. PIIGhost spots the sensitive values, for example names, e-mails, phone numbers or secrets.
 3. It replaces them with placeholders like `<<PERSON:1>>`, stable over the whole conversation.
 4. The model replies using these placeholders.
 5. PIIGhost puts the real values back in the displayed reply.
@@ -109,7 +109,7 @@ flowchart LR
 
 1. **The conversation identifier decides how placeholders are shared.** A call without an identifier is refused, by LangChain, the Claude Code hooks and the server. An application that names `default` shares its placeholders between all its users. Only the `piighost` command falls back to `default`, for an isolated command. See [Follow a conversation](processes/follow-a-conversation.md#rules-to-know).
 2. **Correcting an old message can renumber the placeholders**, and a reply of the model can then be restored with the name of another person. See [Follow a conversation](processes/follow-a-conversation.md#rules-to-know).
-3. **The memory and the agent history contain data in clear text.** So does everything that is not processed: a Claude Code tool that is not listed (Grep), or a tool result under the "Input only" or "None" strategy. Encrypt the storage, and protect the LangGraph or Pydantic AI history. See [Store conversations](operations/storage-and-encryption.md) and [Plug the protection into an agent](integrations/agents-and-tools.md#pitfalls).
+3. **The memory and the agent history contain data in clear text.** So does everything that is not processed, that is a Claude Code tool that is not listed (Grep), or a tool result under the "Input only" or "None" strategy. Encrypt the storage, and protect the LangGraph or Pydantic AI history. See [Store conversations](operations/storage-and-encryption.md) and [Plug the protection into an agent](integrations/agents-and-tools.md#pitfalls).
 4. **The technical traces carry the text in clear by default.** Configure a trace redactor before you send them to a third-party service. See [Store conversations and protect traces](operations/storage-and-encryption.md#redact-the-traces).
 5. **Erasing a conversation only clears the process that receives the request.** When `token_memo_ttl` is not set, the other processes keep a temporary copy. See [Store conversations](operations/storage-and-encryption.md#rules-to-know).
 6. **A model-based detector or guard rail fails open.** An unreadable output of the model gives zero detections, and the message leaves without protection. See the [watch points](needs-by-profile.md#watch-points).

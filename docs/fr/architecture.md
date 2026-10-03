@@ -71,7 +71,7 @@ coeur.*
   gelées) et les ports. Aucune dépendance externe, pas de pydantic, pas d'I/O.
 - **Application.** L'orchestration du pipeline, qui ne dépend que des ports du coeur.
   C'est là que vivent `anonymize`, `deanonymize` et `forget_thread`.
-- **Adaptateurs.** Les implémentations concrètes des ports : détecteurs, résolveurs,
+- **Adaptateurs.** Les implémentations concrètes des ports, c'est-à-dire les détecteurs, résolveurs,
   factories, gardes-fous, backends de mémoire, observation, client HTTP, middleware.
   Chaque adaptateur importe le coeur, jamais le contraire.
 - **Config.** Le point de composition. C'est le seul endroit autorisé à connaître à la

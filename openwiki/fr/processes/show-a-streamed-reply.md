@@ -71,9 +71,9 @@ L'utilisateur a lu « Bonjour Jean Dupont, je vous écris à jean.dupont@exemple
 
 **BR-STREAM-03.** Quand un morceau finit par un seul « `<` », alors ce caractère est retenu, pour qu'un délimiteur coupé en deux se recolle.
 
-**BR-STREAM-04.** Quand une ouverture reste sans fermeture sur plus de 128 caractères, alors elle est relâchée telle quelle, car aucun jeton n'est aussi long. Exemple : « Utilisez cout << x pour » suivi de « afficher » s'affiche avec un léger retard, sans perte de texte.
+**BR-STREAM-04.** Quand une ouverture reste sans fermeture sur plus de 128 caractères, alors elle est relâchée telle quelle, car aucun jeton n'est aussi long. Par exemple, « Utilisez cout << x pour » suivi de « afficher » s'affiche avec un léger retard, sans perte de texte.
 
-**BR-STREAM-05.** Quand le flux s'arrête au milieu d'un jeton, alors le reste retenu est affiché tel quel, sans restauration. Exemple : « Bonjour Jean Dupont, à bientôt <<EMA ». Le morceau ne contient aucune vraie valeur.
+**BR-STREAM-05.** Quand le flux s'arrête au milieu d'un jeton, alors le reste retenu est affiché tel quel, sans restauration. Par exemple, « Bonjour Jean Dupont, à bientôt <<EMA » s'affiche tel quel. Le morceau ne contient aucune vraie valeur.
 
 **BR-STREAM-06.** Quand un jeton complété n'a jamais été émis, alors le réglage des jetons inventés s'applique. Par défaut, il refuse le jeton, ce qui interrompt le flux. Les deux autres choix retirent le jeton ou le gardent.
 
@@ -112,7 +112,7 @@ Le guide technique décrit la mise en œuvre dans la section [Streaming de la r�
 | BR-STREAM-05 | `streaming.py:186` et `236` (`flush`) |
 | BR-STREAM-06 | `integrations/_deidentify.py:83-107` (`deanonymize_stream`), `_handle_invented` lignes 133-155 |
 | BR-STREAM-07 | `integrations/langchain/middleware.py:206-218` (`deanonymize_stream`) |
-| BR-STREAM-08 | `piighost-api`, hors de ce dépôt : `routes/openai.py` (`_restore_sse_chunk`) et `routes/anthropic.py`, sur le décodeur de `components/placeholder/streaming.py` |
+| BR-STREAM-08 | `piighost-api`, hors de ce dépôt, dans `routes/openai.py` (`_restore_sse_chunk`) et `routes/anthropic.py`, sur le décodeur de `components/placeholder/streaming.py` |
 
 Composants liés : `PlaceholderStreamDecoder` (synchrone, `factory.stream_decoder(replace)`), `AsyncPlaceholderStreamDecoder` (`pipeline.recognizer.async_stream_decoder(replace)`), `PIIAnonymizationMiddleware.deanonymize_stream(source, thread_id)`.
 

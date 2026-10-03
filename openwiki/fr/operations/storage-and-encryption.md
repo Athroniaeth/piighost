@@ -38,7 +38,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## En bref
 
 - Pour rendre la réponse lisible, PIIGhost garde, pour chaque conversation, les valeurs sensibles trouvées dans chaque message. Ce stockage contient donc des données personnelles.
-- Trois lieux de stockage existent : la mémoire du programme (perdue au redémarrage), Redis et une base SQL.
+- Les trois lieux de stockage sont la mémoire du programme (perdue au redémarrage), Redis et une base SQL.
 - Redis et la base SQL peuvent chiffrer ce qu'ils gardent. Le chiffrement exige deux secrets fournis par l'environnement du serveur.
 - Effacer une conversation supprime son stockage. Sur un serveur à plusieurs processus, une copie temporaire peut survivre dans les autres processus tant qu'aucune durée de vie n'est réglée.
 - Les traces techniques contiennent par défaut le texte en clair. Un réglage les remplace par des jetons.
@@ -57,24 +57,24 @@ Recommandation : `in_memory` pour le développement et les tests, Redis ou SQL d
 
 ### Ce qui est stocké
 
-Pour chaque message : son empreinte, le rôle de son auteur (`user` ou `assistant`) et ses détections (position, texte, étiquette, confiance). Le texte des détections est la donnée sensible.
+Chaque message est stocké avec son empreinte, le rôle de son auteur (`user` ou `assistant`) et ses détections (position, texte, étiquette, confiance). Le texte des détections est la donnée sensible.
 
 - Redis : `{namespace}:{thread_id}:msg:{empreinte}` contient le rôle et les détections. `{namespace}:{thread_id}:index` contient l'ordre d'arrivée des messages (`conversation_memory/redis_backend.py:7-12`).
 - SQL : une ligne par message dans `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
 
 ## Règles à connaître
 
-**BR-STO-01.** Quand vous fournissez un hacheur sans chiffreur, ou un chiffreur sans hacheur, alors la construction échoue. En code : `ValueError("Provide both a hasher and a cipher, or neither")`. En configuration : `ConfigError("Configure both a hasher and a cipher, or neither")`. Hacher les clés en laissant les valeurs en clair ne protège rien.
+**BR-STO-01.** Quand vous fournissez un hacheur sans chiffreur, ou un chiffreur sans hacheur, alors la construction échoue. En code, l'erreur est `ValueError("Provide both a hasher and a cipher, or neither")`. En configuration, c'est `ConfigError("Configure both a hasher and a cipher, or neither")`. Hacher les clés en laissant les valeurs en clair ne protège rien.
 
-**BR-STO-02.** Quand Redis ou une base SQL est construit sans chiffrement, alors un `PIIGhostSecurityWarning` est émis. Exception : une base SQLite ne déclenche pas l'avertissement (`conversation_memory/sqlalchemy_backend.py:99-100`).
+**BR-STO-02.** Quand Redis ou une base SQL est construit sans chiffrement, alors un `PIIGhostSecurityWarning` est émis. Une base SQLite fait exception et ne déclenche pas l'avertissement (`conversation_memory/sqlalchemy_backend.py:99-100`).
 
 **BR-STO-03.** Quand le chiffrement est actif, alors l'identifiant de conversation reste en clair. Il sert de préfixe de clé Redis et de colonne SQL, pour pouvoir lister et effacer une conversation. N'y mettez pas de donnée personnelle (une adresse e-mail, un nom).
 
-**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations. Au-delà, la moins récemment utilisée est évincée. Chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, et elle est retirée au prochain accès. `max_threads` et `ttl` changent ces bornes. Exemple : une conversation écrite le 02/10/2026 à 9 h et plus touchée ensuite est oubliée le 03/10/2026 à partir de 9 h.
+**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations. Au-delà, la moins récemment utilisée est évincée. Chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, et elle est retirée au prochain accès. `max_threads` et `ttl` changent ces bornes. Par exemple, une conversation écrite le 02/10/2026 à 9 h et plus touchée ensuite est oubliée le 03/10/2026 à partir de 9 h.
 
 **BR-STO-05.** Quand Redis a un `ttl`, alors chaque message expire ce nombre de secondes après son écriture. L'index de la conversation reçoit la même durée à chaque nouveau message. La base SQL n'a aucune expiration. Effacez les conversations vous-même.
 
-**BR-STO-06.** Quand une conversation est effacée, alors son stockage et le cache de jetons du processus qui reçoit la demande sont vidés. Les autres processus gardent leur cache jusqu'à son éviction (256 cartes au plus) ou jusqu'à `token_memo_ttl`. Exemple : sur un serveur à 4 processus, une demande d'effacement reçue par le processus 1 laisse les valeurs dans le cache des processus 2 à 4 tant que `token_memo_ttl` n'est pas réglé.
+**BR-STO-06.** Quand une conversation est effacée, alors son stockage et le cache de jetons du processus qui reçoit la demande sont vidés. Les autres processus gardent leur cache jusqu'à son éviction (256 cartes au plus) ou jusqu'à `token_memo_ttl`. Par exemple, sur un serveur à 4 processus, une demande d'effacement reçue par le processus 1 laisse les valeurs dans le cache des processus 2 à 4 tant que `token_memo_ttl` n'est pas réglé.
 
 **BR-STO-07.** Quand la clé de chiffrement ne fait pas 16, 24 ou 32 octets une fois décodée du base64, alors la construction échoue avec `InvalidKeyLengthError`.
 

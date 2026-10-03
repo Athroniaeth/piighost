@@ -4,7 +4,7 @@ icon: lucide/play
 
 # First pipeline
 
-You will build a pipeline that detects arbitrary names and locations, not only values known in advance, and watch it run at each step. Two detectors fit this: an NER model (GLiNER2) or a catalog of regex patterns. You start from a detector, add the three remaining components one at a time, then run the pipeline on a sentence.
+You will build a pipeline that detects arbitrary names and locations, not only values known in advance, and watch it run at each step. Two detectors fit this, an NER model (GLiNER2) or a catalog of regex patterns. You start from a detector, add the three remaining components one at a time, then run the pipeline on a sentence.
 
 !!! note "Prerequisites"
     `piighost` installed, see [Installation](installation.md). The regex path uses only the core, no extra. The GLiNER2 path needs the `gliner2` extra and downloads a model on first load.
@@ -47,7 +47,7 @@ One first name can appear several times. The linker groups the detections of the
 
 ## 3. Assign a token to each entity
 
-The anonymizer replaces each entity with a placeholder, that is the token that takes its place in the text. The token depends on the chosen factory. `LabelCounterPlaceholderFactory` numbers the tokens per label: `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
+The anonymizer replaces each entity with a placeholder, that is the token that takes its place in the text. The token depends on the chosen factory. `LabelCounterPlaceholderFactory` numbers the tokens per label. This gives `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
 --8<-- "snippets/first_pipeline.en.py:anonymizer"
@@ -55,7 +55,7 @@ The anonymizer replaces each entity with a placeholder, that is the token that t
 
 ## 4. Assemble and run
 
-`AnonymizationPipeline` chains the three components in order: detect, group, replace. Its `anonymize` method is asynchronous. It returns a result whose `text` attribute carries the de-identified sentence.
+`AnonymizationPipeline` chains the three components in order. It detects, groups, then replaces. Its `anonymize` method is asynchronous. It returns a result whose `text` attribute carries the de-identified sentence.
 
 ```python
 --8<-- "snippets/first_pipeline.en.py:run"

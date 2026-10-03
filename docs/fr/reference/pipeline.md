@@ -17,7 +17,7 @@ Les deux renvoient une [`Anonymization`](anonymizer.md#anonymization), le texte 
 
 Module : `piighost.pipeline`
 
-Dé-identifie un seul texte à travers les étages, dans cet ordre : détecter les données confidentielles, appliquer l'override du serveur, résoudre les spans qui se chevauchent, retrouver les occurrences manquées, grouper les détections en entités, résoudre les conflits d'entités, remplacer par des jetons, puis revérifier avec un guard. Chaque appel à `anonymize()` est indépendant.
+Dé-identifie un seul texte à travers les étages. Dans l'ordre, ces étages détectent les données confidentielles, appliquent l'override du serveur, résolvent les spans qui se chevauchent, retrouvent les occurrences manquées, groupent les détections en entités, résolvent les conflits d'entités, remplacent par des jetons, puis revérifient avec un guard. Chaque appel à `anonymize()` est indépendant.
 
 ### Constructeur
 
@@ -208,7 +208,7 @@ class AnyThreadPipeline(Protocol[PreservationT_co]):
 
 Module : `piighost.pipeline`
 
-La machinerie partagée que les deux pipelines étendent. Elle tient les composants d'étage et les étapes communes à tous les pipelines : les étages optionnels de chevauchement, de recherche d'occurrences et de résolution d'entités, la vérification du guard, et les payloads d'observation. Les pipelines concrets ajoutent leur propre `anonymize`, sur un texte seul ou sur une conversation.
+La machinerie partagée que les deux pipelines étendent. Elle tient les composants d'étage et les étapes communes à tous les pipelines, c'est-à-dire les étages optionnels de chevauchement, de recherche d'occurrences et de résolution d'entités, la vérification du guard, et les payloads d'observation. Les pipelines concrets ajoutent leur propre `anonymize`, sur un texte seul ou sur une conversation.
 
 ---
 

@@ -21,7 +21,7 @@ The output should be:
 
 ## How it works
 
-`ExactMatchDetector` spots exact occurrences, at word boundaries, of the values in the dictionary you pass. Given only a detector, the pipeline fills the required stages with their defaults. It groups the detections of the same value and label with an `ExactEntityLinker`, then replaces each entity with a `LabelCounterPlaceholderFactory` that numbers per label. The resulting placeholders are `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }. Overlap resolution runs by default. The optional stages stay disabled: entity expansion, entity resolution, override, and guard. That is enough for a first try, with no model to load.
+`ExactMatchDetector` spots exact occurrences, at word boundaries, of the values in the dictionary you pass. Given only a detector, the pipeline fills the required stages with their defaults. It groups the detections of the same value and label with an `ExactEntityLinker`, then replaces each entity with a `LabelCounterPlaceholderFactory` that numbers per label. The resulting placeholders are `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }. Overlap resolution runs by default. The optional stages (entity expansion, entity resolution, override, and guard) stay disabled. That is enough for a first try, with no model to load.
 
 ## What's next
 

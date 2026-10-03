@@ -12,7 +12,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - An acceptance test checks one criterion of a need from [Needs by profile](../needs-by-profile.md), with literal values and through the public entry points.
 - Each test carries the identifier `AT-<need>-<n>`, the same in every language.
-- The page compares each test with the existing suite: covered, partial or missing.
+- The page compares each test with the existing suite and marks it covered, partial or missing.
 - The tests written to fill the gaps are in `tests/acceptance/`.
 
 An acceptance test checks one acceptance criterion of a story from the inventory of needs by profile (DPO, DEV, OPS, USER). It stands outside the code, goes through the public API, the CLI or the HTTP server, and checks an observable result with literal values. One criterion gives one test, identified `AT-<story>-<n>`.
@@ -137,7 +137,7 @@ Ranked by risk, starting with those that can cause a leak.
 
 ### a. Tests with no acceptance value or duplicated
 
-- `tests/pipeline/test_thread.py::TestDefaults::test_the_default_pipeline_stays_thread_stable` duplicates `tests/pipeline/test_thread.py::TestThreadConsistency::test_a_value_keeps_its_token_across_messages`: same messages, same assertions, and the `_pipeline()` of the second builds exactly the default components of the first. One of the two is enough, or the first can limit itself to checking the defaults.
+- `tests/pipeline/test_thread.py::TestDefaults::test_the_default_pipeline_stays_thread_stable` duplicates `tests/pipeline/test_thread.py::TestThreadConsistency::test_a_value_keeps_its_token_across_messages`. The messages and the assertions are the same, and the `_pipeline()` of the second builds exactly the default components of the first. One of the two is enough, or the first can limit itself to checking the defaults.
 - `piighost-api:tests/test_app.py::test_lifespan_auth_failure` has a misleading name. It checks that a malformed key plus `PIIGHOST_ALLOW_ANONYMOUS=true` starts without authentication. This case overlaps `piighost-api:tests/test_auth.py::test_startup_allows_anonymous_with_explicit_opt_in`. The useful case, a malformed key without opt-in, is not tested.
 - Fragility rather than duplicate: `tests/integrations/llama_index/` fails at collection when you run a subset that first collects a file of `tests/integrations/`. The test folder then shadows the `llama_index` package, and `llama_index.core` is missing. In the full suite, this folder is only skipped. Story USER-1 is therefore never checked for LlamaIndex by `uv run pytest`.
 - The unit tests of `TextDeidentifier` (`tests/integrations/test_deidentify.py`, `tests/integrations/test_deidentify_stream.py`) overlap those of the middleware, but they test the core shared by two integrations. They stay useful as unit tests.

@@ -12,7 +12,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Un test d'acceptation vérifie un critère d'un besoin de [Besoins par profil](../needs-by-profile.md), avec des valeurs littérales et par les points d'entrée publics.
 - Chaque test porte l'identifiant `AT-<besoin>-<n>`, le même dans toutes les langues.
-- La page confronte chaque test à la suite existante : couvert, partiel ou absent.
+- La page confronte chaque test à la suite existante et le marque couvert, partiel ou absent.
 - Les tests écrits pour combler les manques sont dans `tests/acceptance/`.
 
 Un test d'acceptation vérifie un critère d'acceptation d'une story de l'inventaire des besoins par profil (DPO, DEV, OPS, USER). Il se place à l'extérieur du code, passe par l'API publique, la CLI ou le serveur HTTP, et contrôle un résultat observable avec des valeurs littérales. Un critère donne un test, identifié `AT-<story>-<n>`.
@@ -137,7 +137,7 @@ Classés par risque, en commençant par ceux qui peuvent causer une fuite.
 
 ### a. Tests sans valeur d'acceptation ou en double
 
-- `tests/pipeline/test_thread.py::TestDefaults::test_the_default_pipeline_stays_thread_stable` double `tests/pipeline/test_thread.py::TestThreadConsistency::test_a_value_keeps_its_token_across_messages` : mêmes messages, mêmes assertions, et le `_pipeline()` du second construit exactement les composants par défaut du premier. L'un des deux suffit, ou le premier peut se limiter à vérifier les défauts.
+- `tests/pipeline/test_thread.py::TestDefaults::test_the_default_pipeline_stays_thread_stable` double `tests/pipeline/test_thread.py::TestThreadConsistency::test_a_value_keeps_its_token_across_messages`. Les messages et les assertions sont les mêmes, et le `_pipeline()` du second construit exactement les composants par défaut du premier. L'un des deux suffit, ou le premier peut se limiter à vérifier les défauts.
 - `piighost-api:tests/test_app.py::test_lifespan_auth_failure` porte un nom trompeur. Il vérifie qu'une clé mal formée plus `PIIGHOST_ALLOW_ANONYMOUS=true` démarre sans authentification. Ce cas recoupe `piighost-api:tests/test_auth.py::test_startup_allows_anonymous_with_explicit_opt_in`. Le cas utile, une clé mal formée sans opt-in, n'est pas testé.
 - Fragilité plutôt que doublon : `tests/integrations/llama_index/` échoue à la collecte quand on lance un sous-ensemble qui collecte d'abord un fichier de `tests/integrations/`. Le dossier de test masque alors le paquet `llama_index`, puis `llama_index.core` manque. Dans la suite complète, ce dossier est seulement ignoré. La story USER-1 n'est donc jamais vérifiée pour LlamaIndex par `uv run pytest`.
 - Les tests unitaires de `TextDeidentifier` (`tests/integrations/test_deidentify.py`, `tests/integrations/test_deidentify_stream.py`) recoupent ceux du middleware, mais ils testent le cœur partagé par deux intégrations. Ils restent utiles comme tests unitaires.

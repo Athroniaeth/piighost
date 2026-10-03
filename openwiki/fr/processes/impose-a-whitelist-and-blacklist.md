@@ -21,11 +21,11 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-- Deux listes, écrites dans la section `[override]` de la configuration, corrigent le détecteur : la liste blanche masque toujours, la liste noire ne masque jamais.
+- Deux listes, écrites dans la section `[override]` de la configuration, corrigent le détecteur. La liste blanche masque toujours, la liste noire ne masque jamais.
 - La configuration est celle du pipeline, qu'il tourne dans l'application ou dans le serveur `piighost-api`.
 - Ces listes passent avant tout le reste, y compris avant une correction faite à la main par une personne.
 - Une valeur de la liste noire part au modèle en clair, et le contrôle final ne la bloque pas.
-- Quand les deux listes visent la même valeur, la liste blanche gagne par défaut : la valeur est masquée.
+- Quand les deux listes visent la même valeur, la liste blanche gagne par défaut, donc la valeur est masquée.
 - Une liste modifiée ne s'applique qu'aux messages nouveaux d'une conversation déjà commencée.
 
 Besoins couverts : DPO-3, USER-5 et USER-6, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Le déroulé complet d'un message est dans [Protéger un message avant l'envoi au modèle](protect-a-message.md).
@@ -68,7 +68,7 @@ Cas typique : le nom de votre entreprise est lu comme un nom de personne, et le 
 3. Si une valeur plus longue la contient (« Acme Services » pour « Acme »), dites si la valeur longue doit aussi rester en clair.
 4. Transmettez la liste à l'équipe technique.
 
-**Comment vérifier** : faites protéger une phrase de test. Exemple : « Claire Dubois travaille chez Acme. » doit donner « `<<PERSON:1>>` travaille chez Acme. »
+**Comment vérifier** : faites protéger une phrase de test. Par exemple, « Claire Dubois travaille chez Acme. » doit donner « `<<PERSON:1>>` travaille chez Acme. »
 
 ### Forcer le masquage d'une valeur
 
@@ -94,7 +94,7 @@ Cas typique : vos noms de code internes ne sont jamais repérés.
 | Exact | seulement une détection de même position et de même type | `<<PERSON:1>>` travaille chez `<<PERSON:2>>`, puis chez `<<ORG:1>>`. |
 | Chevauchement | toute détection qui touche la valeur, même plus longue | `<<PERSON:1>>` travaille chez Acme, puis chez Globex SA. |
 
-Pourquoi « Même valeur » par défaut : la liste noire nomme une valeur, et le type écrit à côté n'est qu'une supposition sur ce que dira le détecteur.
+« Même valeur » est le défaut parce que la liste noire nomme une valeur, et le type écrit à côté n'est qu'une supposition sur ce que dira le détecteur.
 
 **BR-LIST-04.** Quand les deux listes visent le même passage, alors le réglage de conflit décide :
 
@@ -104,19 +104,19 @@ Pourquoi « Même valeur » par défaut : la liste noire nomme une valeur, et le
 | La liste noire gagne | en clair : `Acme` |
 | Refuser | arrêt avec `Overrides contradict each other on 'Acme': a whitelisted span overlaps a blacklisted one.` |
 
-Pourquoi ce défaut : en cas de doute, masquer protège.
+Ce défaut vient d'un principe simple. En cas de doute, masquer protège.
 
-**BR-LIST-05.** Quand l'assistant cite le premier une valeur de la liste blanche, alors elle reste en clair par défaut. Un réglage « forcer » la masque quand même. Pourquoi : masquer une valeur que le modèle a lui-même apportée lui retire une connaissance utile. Le masquage lui signale aussi que cette valeur précise est sensible.
+**BR-LIST-05.** Quand l'assistant cite le premier une valeur de la liste blanche, alors elle reste en clair par défaut. Un réglage « forcer » la masque quand même. La raison est que masquer une valeur que le modèle a lui-même apportée lui retire une connaissance utile. Le masquage lui signale aussi que cette valeur précise est sensible.
 
-**BR-LIST-06.** Quand une personne corrige à la main les valeurs d'un message, alors les deux listes s'appliquent encore à sa correction et l'emportent sur elle. Exemple : l'utilisateur retire « PRJ-0042 » des valeurs masquées de son message, mais le numéro reste masqué.
+**BR-LIST-06.** Quand une personne corrige à la main les valeurs d'un message, alors les deux listes s'appliquent encore à sa correction et l'emportent sur elle. Par exemple, l'utilisateur retire « PRJ-0042 » des valeurs masquées de son message, mais le numéro reste masqué.
 
 **BR-LIST-07.** Quand le contrôle final relit le texte protégé, alors il ignore les valeurs de la liste noire. Toute autre valeur restée en clair bloque l'envoi.
 
-**BR-LIST-08.** Quand une liste change pendant une conversation, alors un message déjà analysé garde son ancien résultat, même renvoyé à l'identique. Exemple : le 02/10/2026, « Acme » entre dans la liste blanche. Le message envoyé le 01/10/2026 dans la même conversation reste avec « Acme » en clair. Seuls les nouveaux messages appliquent la liste.
+**BR-LIST-08.** Quand une liste change pendant une conversation, alors un message déjà analysé garde son ancien résultat, même renvoyé à l'identique. Par exemple, le 02/10/2026, « Acme » entre dans la liste blanche. Le message envoyé le 01/10/2026 dans la même conversation reste avec « Acme » en clair. Seuls les nouveaux messages appliquent la liste.
 
 ### Ce que voit l'utilisateur final
 
-Rien de différent : la réponse restaurée contient les vraies valeurs. Seul le modèle voit la différence entre une valeur masquée et une valeur gardée en clair.
+Rien de différent. La réponse restaurée contient les vraies valeurs. Seul le modèle voit la différence entre une valeur masquée et une valeur gardée en clair.
 
 ### Questions fréquentes
 

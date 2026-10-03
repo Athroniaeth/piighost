@@ -11,8 +11,8 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-- Four profiles expect different things from PIIGhost: the compliance officer (DPO), the developer, the operator and the application user.
-- Each need carries an identifier in English, the same in every language: `DPO-n`, `DEV-n`, `OPS-n`, `USER-n`.
+- Four profiles expect different things from PIIGhost. These are the compliance officer (DPO), the developer, the operator and the application user.
+- Each need carries an identifier in English, the same in every language, of the form `DPO-n`, `DEV-n`, `OPS-n` or `USER-n`.
 - Each need gives observable criteria and the domain documentation page that delivers it.
 - The watch points, at the end of the page, list the unexpected answers of a model and the need that covers them.
 
@@ -77,7 +77,7 @@ Each need is carried by a process of the domain documentation, which gives the s
 
 **DPO-10. As a DPO, I want to choose in which form human corrections are kept, so that their storage does not become a copy of the data.**
 
-- A correction exported to an annotation tool, Langfuse for example, is kept in the chosen form: placeholders instead of the values, values in clear text, or input and output fully masked.
+- A correction exported to an annotation tool, Langfuse for example, is kept in the chosen form. The possible forms are placeholders instead of the values, values in clear text, or input and output fully masked.
 - The developer sets this form, the DPO decides it.
 - Without an explicit choice, the correction is kept as placeholders. The export then contains no real value.
 

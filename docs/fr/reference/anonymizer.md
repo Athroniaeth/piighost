@@ -116,7 +116,7 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
 
 ## `BaseAnonymizer`
 
-Le template que `Anonymizer` étend. Il tient les étapes partagées : demander à la factory un jeton par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie. `render` est la règle qui réécrit le texte à partir des entités et de leurs jetons.
+Le template que `Anonymizer` étend. Il tient les étapes partagées, c'est-à-dire demander à la factory un jeton par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie. `render` est la règle qui réécrit le texte à partir des entités et de leurs jetons.
 
 ```python
 class BaseAnonymizer(ABC, Generic[PreservationT]):

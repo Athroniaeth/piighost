@@ -38,7 +38,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## In short
 
 - To make the reply readable, PIIGhost keeps, for each conversation, the sensitive values found in each message. This storage therefore contains personal data.
-- Three storage locations exist: the program memory (lost on restart), Redis and a SQL database.
+- The three storage locations are the program memory (lost on restart), Redis and a SQL database.
 - Redis and the SQL database can encrypt what they keep. Encryption requires two secrets supplied by the server's environment.
 - Erasing a conversation deletes its storage. On a server with several processes, a temporary copy can survive in the other processes as long as no lifetime is set.
 - Technical traces contain the clear text by default. A setting replaces it with placeholders.
@@ -57,24 +57,24 @@ Recommendation: `in_memory` for development and tests, Redis or SQL as soon as s
 
 ### What is stored
 
-For each message: its digest, the role of its author (`user` or `assistant`) and its detections (position, text, label, confidence). The text of the detections is the sensitive data.
+Each message is stored with its digest, the role of its author (`user` or `assistant`) and its detections (position, text, label, confidence). The text of the detections is the sensitive data.
 
 - Redis: `{namespace}:{thread_id}:msg:{digest}` holds the role and the detections. `{namespace}:{thread_id}:index` holds the arrival order of the messages (`conversation_memory/redis_backend.py:7-12`).
 - SQL: one row per message in `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
 
 ## Rules to know
 
-**BR-STO-01.** When you supply a hasher without a cipher, or a cipher without a hasher, then the build fails. In code: `ValueError("Provide both a hasher and a cipher, or neither")`. In configuration: `ConfigError("Configure both a hasher and a cipher, or neither")`. Hashing the keys while leaving the values in clear protects nothing.
+**BR-STO-01.** When you supply a hasher without a cipher, or a cipher without a hasher, then the build fails. In code, the error is `ValueError("Provide both a hasher and a cipher, or neither")`. In configuration, it is `ConfigError("Configure both a hasher and a cipher, or neither")`. Hashing the keys while leaving the values in clear protects nothing.
 
-**BR-STO-02.** When Redis or a SQL database is built without encryption, then a `PIIGhostSecurityWarning` is emitted. Exception: a SQLite database does not trigger the warning (`conversation_memory/sqlalchemy_backend.py:99-100`).
+**BR-STO-02.** When Redis or a SQL database is built without encryption, then a `PIIGhostSecurityWarning` is emitted. A SQLite database is the exception and does not trigger the warning (`conversation_memory/sqlalchemy_backend.py:99-100`).
 
 **BR-STO-03.** When encryption is active, then the conversation identifier stays in clear. It serves as the Redis key prefix and as a SQL column, so that a conversation can be listed and erased. Do not put personal data in it (an e-mail address, a name).
 
-**BR-STO-04.** When the program memory is created without settings, then it keeps at most 10,000 conversations. Beyond that, the least recently used one is evicted. Each conversation expires one day (86,400 seconds) after its last write, and it is dropped at the next access. `max_threads` and `ttl` change these bounds. Example: a conversation written on 2026-10-02 at 9:00 and not touched afterwards is forgotten from 2026-10-03 at 9:00.
+**BR-STO-04.** When the program memory is created without settings, then it keeps at most 10,000 conversations. Beyond that, the least recently used one is evicted. Each conversation expires one day (86,400 seconds) after its last write, and it is dropped at the next access. `max_threads` and `ttl` change these bounds. For example, a conversation written on 2026-10-02 at 9:00 and not touched afterwards is forgotten from 2026-10-03 at 9:00.
 
 **BR-STO-05.** When Redis has a `ttl`, then each message expires this number of seconds after its write. The conversation index receives the same lifetime at each new message. The SQL database has no expiration. Erase the conversations yourself.
 
-**BR-STO-06.** When a conversation is erased, then its storage and the placeholder cache of the process that receives the request are emptied. The other processes keep their cache until its eviction (256 maps at most) or until `token_memo_ttl`. Example: on a server with 4 processes, an erasure request received by process 1 leaves the values in the cache of processes 2 to 4 as long as `token_memo_ttl` is not set.
+**BR-STO-06.** When a conversation is erased, then its storage and the placeholder cache of the process that receives the request are emptied. The other processes keep their cache until its eviction (256 maps at most) or until `token_memo_ttl`. For example, on a server with 4 processes, an erasure request received by process 1 leaves the values in the cache of processes 2 to 4 as long as `token_memo_ttl` is not set.
 
 **BR-STO-07.** When the encryption key is not 16, 24 or 32 bytes once decoded from base64, then the build fails with `InvalidKeyLengthError`.
 

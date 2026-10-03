@@ -49,14 +49,14 @@ Placeholder
 Placeholder factory
 :   Composant qui produit les placeholders. Il décide la forme du jeton et ce que
     le jeton préserve, c'est-à-dire un label, une identité stable, les deux ou
-    rien. Factories fournies : `RedactPlaceholderFactory`,
+    rien. Les factories fournies sont `RedactPlaceholderFactory`,
     `LabelPlaceholderFactory`, `LabelCounterPlaceholderFactory`,
     `LabelHashPlaceholderFactory` et `MaskPlaceholderFactory`.
 
 Détecteur
 :   Composant qui trouve les données confidentielles dans un texte et retourne des détections. Les
     détecteurs implémentent le protocole `AnyDetector` et sont interchangeables.
-    Trois familles existent, chacune sous son entrée : regex, NER et LLM.
+    Les trois familles sont regex, NER et LLM, chacune sous son entrée.
 
 Détecteur regex
 :   Détecteur qui reconnaît des motifs fixes, c'est-à-dire des chaînes de
@@ -136,7 +136,7 @@ Recognizer
 
 Tag de préservation de placeholder
 :   Type fantôme (un type qui ne sert qu'au vérificateur de types) posé sur
-    une placeholder factory, qui énonce ce que ses jetons préservent :
+    une placeholder factory, qui énonce ce que ses jetons préservent. Les tags sont
     `PreservesNothing`, `PreservesLabel`, `PreservesIdentity` ou
     `PreservesLabeledIdentity`. Le middleware exige `PreservesRecognizableIdentity`
     pour pouvoir restaurer les valeurs. Il rejette une factory qui ne fournit pas

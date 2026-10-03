@@ -27,8 +27,8 @@ Cinq familles de factories se placent à des points différents de ce spectre, e
 
     Les jetons de cette documentation suivent une règle simple.
 
-    - **Jeton synthétique** (qui ne ressemble à aucune valeur réelle), encadré par `<<` et `>>`. Exemples : `<<REDACT>>`{ .placeholder }, `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }, `<<REDACT:a1b2c3d4>>`{ .placeholder }. Les délimiteurs servent deux objectifs. Un LLM ou un humain qui relit ne confond jamais le jeton avec un mot du texte ou une balise HTML/XML émise par le modèle. Et le middleware peut retrouver le jeton pour faire son remplacement de chaîne, y compris repérer un jeton que le modèle aurait inventé.
-    - **Jeton qui réplique le format d'une valeur réelle** (réaliste hashé, masqué), sans délimiteur. Exemples : `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder }, `j***@mail.com`{ .placeholder }. L'absence de délimiteur est délibérée. Le jeton doit paraître naturel, pour qu'un outil aval qui valide le format (regex email, longueur de carte) l'accepte.
+    - **Jeton synthétique** (qui ne ressemble à aucune valeur réelle), encadré par `<<` et `>>`. Par exemple `<<REDACT>>`{ .placeholder }, `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }, `<<REDACT:a1b2c3d4>>`{ .placeholder }. Les délimiteurs servent deux objectifs. Un LLM ou un humain qui relit ne confond jamais le jeton avec un mot du texte ou une balise HTML/XML émise par le modèle. Et le middleware peut retrouver le jeton pour faire son remplacement de chaîne, y compris repérer un jeton que le modèle aurait inventé.
+    - **Jeton qui réplique le format d'une valeur réelle** (réaliste hashé, masqué), sans délimiteur. Par exemple `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder }, `j***@mail.com`{ .placeholder }. L'absence de délimiteur est délibérée. Le jeton doit paraître naturel, pour qu'un outil aval qui valide le format (regex email, longueur de carte) l'accepte.
 
     La règle vaut aussi pour toute factory que vous écrirez. Jeton purement opaque, encadrez-le. Jeton qui imite une vraie valeur, laissez-le brut.
 
@@ -94,7 +94,7 @@ Chaque factory porte un **type fantôme** qui résume le niveau de préservation
 
 Deux tableaux lisent ces familles sous deux angles. Le tableau **Confidentialité** montre ce qui fuit vers le LLM, du point de vue de l'attaquant et de la vie privée. Le tableau **Exploitation** montre ce que l'agent et le système peuvent faire avec le jeton, du point de vue des capacités fonctionnelles. La même réponse peut être bonne d'un côté et problématique de l'autre, et les deux tableaux rendent cette tension explicite.
 
-Les deux tableaux partagent le même code couleur : bleu = meilleur, vert = correct, jaune = partiel, rouge = problématique.
+Les deux tableaux partagent le même code couleur. Bleu = meilleur, vert = correct, jaune = partiel, rouge = problématique.
 
 #### Confidentialité (ce qui fuit vers le LLM)
 
@@ -248,7 +248,7 @@ Le but est de produire une version assainie d'un document, par exemple le caviar
 
 Le LLM raisonne sur la conversation, et les outils (CRM, BDD, mail) ont besoin des vraies valeurs au moment de l'appel. Le middleware fait du remplacement de chaîne sur les arguments d'outil, **il exige donc un jeton unique par entité et retrouvable**.
 
-Conséquence directe : seules les familles avec identité préservée *et* grammaire retrouvable sont compatibles, c'est-à-dire l'id seul et le type + id opaque. `Aucune information`, `Type seul` et `Valeur partielle` sont rejetées au type-check. Le réaliste hashé préserve l'identité mais n'est pas retrouvable, donc il ne passe pas la contrainte du middleware.
+Par conséquent, seules les familles avec identité préservée *et* grammaire retrouvable sont compatibles, c'est-à-dire l'id seul et le type + id opaque. `Aucune information`, `Type seul` et `Valeur partielle` sont rejetées au type-check. Le réaliste hashé préserve l'identité mais n'est pas retrouvable, donc il ne passe pas la contrainte du middleware.
 
 | Besoin | Famille recommandée | Pourquoi |
 |---|---|---|
@@ -267,7 +267,7 @@ Le tag de préservation existe pour que ce choix soit visible par le type-checke
 
 ## Pourquoi `PIIAnonymizationMiddleware` exige une identité retrouvable
 
-Le middleware travaille sur trois frontières : les **messages d'entrée** (LLM in), les **messages de sortie** (LLM out) et les **appels d'outil**. Les deux premières s'appuient sur la mémoire de conversation, les appels d'outil non.
+Le middleware travaille sur trois frontières, les **messages d'entrée** (LLM in), les **messages de sortie** (LLM out) et les **appels d'outil**. Les deux premières s'appuient sur la mémoire de conversation, les appels d'outil non.
 
 **Messages d'entrée et sortie.** Quand `abefore_model` dé-identifie un message, le pipeline mémorise le mapping entité vers jeton. La réponse du LLM est restaurée en relisant ce mapping à l'envers. Cette opération fonctionne avec n'importe quelle factory, qu'il y ait ou non collision de jetons.
 
@@ -277,7 +277,7 @@ Cette substitution n'est non ambiguë **que si chaque entité a un jeton unique*
 
 `PIIAnonymizationMiddleware` reproduit la contrainte au runtime. À la construction, il demande au pipeline un *recognizer*, l'objet qui sait retrouver ses propres jetons. Une factory délimitée est son propre recognizer. Une factory sans grammaire, comme un masque, n'en a pas, et le middleware lève alors `UnrecognizableFactoryError`. Cette vérification rattrape les pipelines non typés ou distants qui auraient contourné le type-checker.
 
-La grammaire du recognizer est bornée, ce n'est pas "n'importe quoi entre les délimiteurs". La forme interne est un label, puis éventuellement un deux-points et un identifiant : `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. Un label commence par une lettre ou un underscore, puis lettres, chiffres, underscores, espaces ou tirets, si bien qu'un label en plusieurs mots émis par un détecteur, comme `date of birth`, reste reconnu. L'identifiant après le deux-points est alphanumérique, un ordinal ou un digest hexadécimal. Un contenu délimité arbitraire n'est pas un jeton. Un décalage C++ `cout << x >> y` ou un passage markdown ne déclenche donc jamais le garde-fou des jetons inventés. Une réponse en streaming qui ouvre `<<` sans le refermer est relâchée plutôt que bufferisée indéfiniment.
+La grammaire du recognizer est bornée, ce n'est pas "n'importe quoi entre les délimiteurs". La forme interne est un label, puis éventuellement un deux-points et un identifiant, comme `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder } ou `<<PERSON:a1b2c3d4>>`{ .placeholder }. Un label commence par une lettre ou un underscore, puis lettres, chiffres, underscores, espaces ou tirets, si bien qu'un label en plusieurs mots émis par un détecteur, comme `date of birth`, reste reconnu. L'identifiant après le deux-points est alphanumérique, un ordinal ou un digest hexadécimal. Un contenu délimité arbitraire n'est pas un jeton. Un décalage C++ `cout << x >> y` ou un passage markdown ne déclenche donc jamais le garde-fou des jetons inventés. Une réponse en streaming qui ouvre `<<` sans le refermer est relâchée plutôt que bufferisée indéfiniment.
 
 Voir [Stratégies d'appel outil](tool-call-strategies.md) pour la seule échappatoire, `ToolCallStrategy.PASSTHROUGH`, qui ne traverse jamais la frontière outil en clair.
 

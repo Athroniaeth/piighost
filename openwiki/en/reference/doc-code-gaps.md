@@ -51,7 +51,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - This page lists the places where the existing documentation says something other than the code.
 - The code is authoritative: the domain documentation always describes what the code does.
-- No gap is fixed here. Each one awaits a decision from the maintainer: fix the doc, or fix the code. A settled gap keeps its entry, with its status.
+- No gap is fixed here. Each one awaits a decision from the maintainer, to fix the doc or to fix the code. A settled gap keeps its entry, with its status.
 - The gaps found concern the developer documentation and one FAQ example. None changes what the end user sees.
 
 The terms are defined in the [glossary](../glossary.md). Back to [Get started with the PIIGhost domain documentation](../quickstart.md).
@@ -67,7 +67,7 @@ Each entry gives what the doc says, what the code does, the domain documentation
 | | |
 |---|---|
 | Doc | `AGENTS.md:7`, `:26` and `:82`: each stage has an `Any*` port and a `Base*` template. `docs/en/architecture.md:109-111` and `docs/fr/architecture.md:112`: only two ports have no template, the guard rails and the memory. |
-| Code | Five ports have no template: `components/detector/base.py:9`, `components/override/base.py:9-17`, `components/guard/base.py:42`, `conversation_memory/base.py:10-14`, `crypto/cipher/base.py:7-10`. |
+| Code | Five ports have no template. They are declared in `components/detector/base.py:9`, `components/override/base.py:9-17`, `components/guard/base.py:42`, `conversation_memory/base.py:10-14`, `crypto/cipher/base.py:7-10`. |
 | Domain documentation page | [Add or replace a component](../architecture/ports-and-extension.md) |
 | Effect | A contributor can look for a `BaseDetector` that does not exist. |
 
