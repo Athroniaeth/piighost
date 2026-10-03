@@ -216,8 +216,11 @@ Couvrir au minimum :
 - **Registre des écarts doc / code** (`reference/doc-code-gaps.md`).
 - **Décisions de conception** (`reference/decisions.md`) : les décisions
   qui ont construit le système de dé-identification, dans l'ordre où elles se
-  sont posées. Chacune a un identifiant `DEC-NN`, puis un contexte, la
-  décision, sa raison, ses conséquences et son emplacement dans le code. Une
+  sont posées. Chacune est un titre `### DEC-NN : titre`, suivi d'une
+  explication en prose pour un lecteur métier, sans rubriques imposées. Elle
+  dit le problème, le choix fait et ce qu'il change, avec un exemple quand il
+  aide. Elle ne montre que ce que les décisions précédentes ont introduit. Elle
+  finit par l'endroit du code où elle vit et les règles qui en découlent. Une
   décision nouvelle prend le numéro suivant, au bon endroit dans l'ordre. Une
   raison écrite par le mainteneur ne se réécrit pas, elle se complète.
 - **Besoins par profil** (`needs-by-profile.md`) et **tests d'acceptation**
