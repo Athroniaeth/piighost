@@ -21,19 +21,26 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-PIIGhost masks the confidential data of a text before an AI model reads it, then puts the real values back in the reply.
+**What PIIGhost is.** PIIGhost hides the confidential data of a text before an AI model reads it, then puts the real values back in the reply. It is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is used remotely through the `piighost-api` server. It is configured with a TOML or JSON file and the `piighost` command.
 
-Life cycle of a message:
+The path of a message:
 
-1. The user writes in clear text.
-2. PIIGhost spots the sensitive values, for example names, e-mails, phone numbers or secrets.
-3. It replaces them with placeholders like `<<PERSON:1>>`, stable over the whole conversation.
-4. The model replies using these placeholders.
+1. The user writes a message with their real data, for example their name and email.
+2. PIIGhost finds the sensitive values, for example names, emails, phone numbers or secrets.
+3. It replaces them with placeholders. A placeholder is a stand-in text, such as `<<PERSON:1>>`, which stays the same over the whole conversation.
+4. The model replies with these placeholders.
 5. PIIGhost puts the real values back in the displayed reply.
 
-PIIGhost is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is driven remotely through the companion server `piighost-api`. You configure it with a TOML or JSON file and with the `piighost` command.
+**What this domain documentation is.** It describes what PIIGhost must do. How to use it is in the technical documentation. It defines:
 
-The domain documentation is first for the people who decide on data protection (DPO, compliance, product, support), then for developers. What each profile expects is in [Needs by profile](needs-by-profile.md). The code and the tests are the source of truth. The gaps with the existing documentation are in the [gap register](reference/doc-code-gaps.md). The terms are in the [glossary](glossary.md).
+- the needs of each profile, that is the compliance officer, the developer, the operator and the application user.
+- the rules each process follows, each with its identifier, such as `BR-MSG-05`.
+- the acceptance tests that check each need.
+- where in the code each rule applies.
+
+**Its goal.** De-identifying a conversation with an LLM is still a new practice, and its rules are written down nowhere. This documentation writes them down, so that they can be discussed, checked and improved together. Anyone can propose a need or challenge a rule.
+
+**How to read it.** Start with [Needs by profile](needs-by-profile.md) to find what concerns your profile. When they disagree, the code and the tests are right. When this documentation does not match the code, the gap is recorded in the [gap register](reference/doc-code-gaps.md). The terms are defined in the [glossary](glossary.md).
 
 ## I want to understand…
 

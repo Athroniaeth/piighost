@@ -173,10 +173,20 @@ non-développeur.
 Le quickstart oriente le lecteur selon ce qu'il veut faire, pas selon
 l'arborescence du wiki. Sections, dans cet ordre :
 
-1. **En bref** : ce que fait l'application, en une phrase, puis son cycle
-   de vie principal en 3 à 6 étapes numérotées ; les espaces ou applications
-   qui la composent ; à qui s'adresse le wiki ; le rappel que le code fait
-   foi, avec un lien vers le registre des écarts et vers le glossaire.
+1. **En bref** : quatre blocs, chacun ouvert par un libellé en gras.
+   - **Ce qu'est PIIGhost** : ce qu'il fait en une phrase, ce qu'il est
+     (bibliothèque, intégrations, configuration), puis le trajet d'un
+     message en 3 à 6 étapes numérotées, chaque terme défini à sa première
+     apparition.
+   - **Ce qu'est cette documentation métier** : ce qu'elle décrit, la
+     différence avec la documentation technique, et la liste de ce qu'on y
+     définit (besoins par profil, règles, tests d'acceptation, emplacement
+     dans le code).
+   - **Son objectif** : écrire des règles qui n'existent nulle part ailleurs,
+     pour les discuter et les faire évoluer ensemble.
+   - **Comment la lire** : par où commencer, le rappel que le code et les
+     tests ont raison en cas de désaccord, avec un lien vers le registre des
+     écarts et vers le glossaire.
 2. **Je cherche à comprendre…** (public métier) : un tableau
    `Besoin métier | Page à lire`. Chaque ligne formule un besoin comme le
    lecteur le pense, avec ses mots, sans identifiant technique. Une ligne

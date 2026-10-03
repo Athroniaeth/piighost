@@ -21,19 +21,26 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA le lise, puis remet les vraies valeurs dans la réponse.
+**Ce qu'est PIIGhost.** PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA le lise, puis remet les vraies valeurs dans la réponse. C'est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou s'utilise à distance par le serveur `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`.
 
-Cycle de vie d'un message :
+Le trajet d'un message :
 
-1. L'utilisateur écrit en clair.
+1. L'utilisateur écrit son message avec ses vraies données, par exemple son nom et son e-mail.
 2. PIIGhost repère les valeurs sensibles, par exemple les noms, les e-mails, les téléphones ou les secrets.
-3. Il les remplace par des jetons comme `<<PERSON:1>>`, stables dans toute la conversation.
-4. Le modèle répond en utilisant ces jetons.
+3. Il les remplace par des jetons. Un jeton est un texte de remplacement, comme `<<PERSON:1>>`, qui reste le même dans toute la conversation.
+4. Le modèle répond avec ces jetons.
 5. PIIGhost remet les vraies valeurs dans la réponse affichée.
 
-PIIGhost est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou se pilote à distance par le serveur compagnon `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`.
+**Ce qu'est cette documentation métier.** Elle décrit ce que PIIGhost doit faire. La façon de l'utiliser est dans la documentation technique. On y définit :
 
-La documentation métier s'adresse d'abord aux personnes qui décident de la protection des données (DPO, conformité, produit, support), puis aux développeurs. Ce que chaque profil attend est dans [Besoins par profil](needs-by-profile.md). Le code et les tests font foi. Les écarts avec la documentation existante sont dans le [registre des écarts](reference/doc-code-gaps.md). Les termes sont dans le [glossaire](glossary.md).
+- les besoins de chaque profil, c'est-à-dire le responsable conformité, le développeur, l'exploitant et l'utilisateur de l'application.
+- les règles que suit chaque traitement, chacune avec son identifiant, comme `BR-MSG-05`.
+- les tests d'acceptation qui vérifient chaque besoin.
+- l'endroit du code où chaque règle s'applique.
+
+**Son objectif.** Dé-identifier une conversation avec un LLM est une pratique encore nouvelle, et ses règles ne sont écrites nulle part. Cette documentation les écrit, pour qu'on puisse les discuter, les vérifier et les faire évoluer ensemble. Chacun peut proposer un besoin ou contester une règle.
+
+**Comment la lire.** Commencez par [Besoins par profil](needs-by-profile.md) pour trouver ce qui concerne votre profil. En cas de désaccord, le code et les tests ont raison. Quand cette documentation ne correspond pas au code, l'écart est noté dans le [registre des écarts](reference/doc-code-gaps.md). Les termes sont définis dans le [glossaire](glossary.md).
 
 ## Je cherche à comprendre…
 
