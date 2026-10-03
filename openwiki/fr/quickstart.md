@@ -87,7 +87,7 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 - **Exploitation** : [Configurer un pipeline par fichier, hub et ligne de commande](operations/configuration-and-hub.md), [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md).
 - **Architecture** : [Ajouter ou remplacer un composant du pipeline](architecture/ports-and-extension.md).
 - **Tests** : [Lancer et écrire les tests](tests/run-and-write-tests.md), [Tests d'acceptation](tests/acceptance-tests.md).
-- **Référence** : [Glossaire](glossary.md), [Registre des écarts doc / code](reference/doc-code-gaps.md), [Conventions et choix techniques](reference/conventions.md), [Points à régler](reference/open-points.md).
+- **Référence** : [Glossaire](glossary.md), [Registre des écarts doc / code](reference/doc-code-gaps.md), [Décisions de conception](reference/decisions.md), [Points à régler](reference/open-points.md).
 
 ## Points de vigilance transverses
 

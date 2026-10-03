@@ -214,11 +214,12 @@ Couvrir au minimum :
   sigle du métier, avec une définition métier d'une ou deux phrases, le
   libellé de l'écran, puis, si utile, le nom technique correspondant.
 - **Registre des écarts doc / code** (`reference/doc-code-gaps.md`).
-- **Conventions et choix techniques** (`reference/conventions.md`) : les
-  choix faits en écrivant la librairie sans qu'un besoin les impose, comme
-  la forme des jetons. Chacun avec sa raison et son emplacement dans le
-  code. Une raison déjà écrite par le mainteneur ne se réécrit pas, elle se
-  complète.
+- **Décisions de conception** (`reference/decisions.md`) : les décisions
+  qui ont construit le système de dé-identification, dans l'ordre où elles se
+  sont posées. Chacune a un identifiant `DEC-NN`, puis un contexte, la
+  décision, sa raison, ses conséquences et son emplacement dans le code. Une
+  décision nouvelle prend le numéro suivant, au bon endroit dans l'ordre. Une
+  raison écrite par le mainteneur ne se réécrit pas, elle se complète.
 - **Besoins par profil** (`needs-by-profile.md`) et **tests d'acceptation**
   (`tests/acceptance-tests.md`) : chaque processus cite les besoins qu'il
   couvre, et chaque besoin ses tests.
@@ -227,7 +228,7 @@ Couvrir au minimum :
 
 Les identifiants sont en anglais, les mêmes quelle que soit la langue de la
 page : besoins `DPO-n`, `DEV-n`, `OPS-n`, `USER-n` ; règles
-`BR-<DOMAINE>-NN` ; tests d'acceptation `AT-<besoin>-<n>` ; écarts
+`BR-<DOMAINE>-NN` ; décisions de conception `DEC-NN` ; tests d'acceptation `AT-<besoin>-<n>` ; écarts
 `ECART-NN`. Un identifiant publié ne change plus de sens : une règle retirée
 laisse son numéro libre.
 
