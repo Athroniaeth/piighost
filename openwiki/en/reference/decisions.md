@@ -10,7 +10,7 @@ generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 
 ## In short
 
-The de-identification system was built in steps, and each new need called for a decision. To replace a confidential value with a placeholder, it first had to be found in the text, at a precise position. For the model to still understand the text, the placeholder had to say what type of data it stands for. To tell two people apart, it needed an identifier, and so a way to group the detections of one person. For the user to read their real data, the mapping between each placeholder and its value had to be kept. Then came the conversation, the tools of an agent, streaming and production.
+The de-identification system was built in steps, and each new need called for a decision. To replace a confidential value with a placeholder, it first had to be found in the text, at a precise position. For the model to still understand the text, the placeholder had to say what type of data it stands for. To tell two people apart, the placeholder needed an identifier. So it had to be known which detections refer to the same person. For the user to read their real data, the mapping between each placeholder and its value had to be kept. Then came the conversation, the tools of an agent, streaming and production.
 
 This page tells these decisions in the order they arose. Each one carries a `DEC-NN` identifier and gives its context, what was decided, why, its consequences and the place in the code where it lives. It also cites the business rules that follow from it. The technical documentation describes the components that apply these decisions, in [Pipeline design](../../../docs/en/conception.md). These decisions bind the rest of the library, so changing one calls for a discussion first.
 
@@ -26,31 +26,31 @@ This page tells these decisions in the order they arose. Each one carries a `DEC
 **DEC-02. Find each value and its exact position.**
 
 - **Context**: to replace a value, you need to know where it starts and where it ends in the text.
-- **Decision**: a detector returns spans, meaning a start and end position, with a type and a confidence. Two families complement each other. Regular expressions recognize fixed formats (email, IBAN, phone number). Named entity recognition (NER) models recognize free text (name, place). An LLM detector names values without positions, and PIIGhost searches for them in the text itself.
-- **Why**: no family covers everything. Several detectors can run together.
-- **Consequences**: a value that no detector sees goes out in clear text. A value invented by an LLM, absent from the text, is ignored. A value is masked on its shape alone, without a checksum, so that a value damaged by character recognition is still detected. Regular expressions are in ASCII, and any Unicode space counts as an ordinary space.
+- **Decision**: a detector returns spans. A span is a start and end position, with the type of the data and a confidence score. Two families of detectors complement each other. Regular expressions recognize fixed formats, such as an email, an IBAN or a phone number. Named entity recognition (NER) models recognize free text, such as a name or a place. An LLM detector names values without giving their position, and PIIGhost searches for them in the text.
+- **Why**: no family covers everything, so several detectors can run together.
+- **Consequences**: a value that no detector sees goes out in clear text. A value invented by an LLM is ignored, because it is not in the text. A value is masked on its shape alone, without checking its check digits. A value damaged by character recognition is therefore still detected. Regular expressions are in ASCII, and any Unicode space counts as an ordinary space.
 - **In the code**: `components/detector/`, `text/normalization.py`. Rules BR-MSG-06, BR-MSG-07, BR-MSG-10.
 
 **DEC-03. Wrap each placeholder in `<<` and `>>`.**
 
-- **Context**: a notation was needed to write a placeholder in the text.
-- **Decision**: a placeholder is wrapped in two doubled angle brackets, as in `<<PERSON:1>>`.
-- **Why**: this sequence is rare in ordinary text, so a regular expression finds a placeholder easily. It also tells the model that it is reading masked data.
-- **Consequences**: a text that already contains this sequence needs a precaution, see DEC-13. A label starts with a letter or `_`, then contains letters, digits, `_`, spaces or hyphens.
-- **In the code**: `components/placeholder/streaming.py` (`DEFAULT_PREFIX`, `DEFAULT_SUFFIX`, `LABEL_INNER`).
+- **Context**: a way to write a placeholder in the text was needed.
+- **Decision**: a placeholder is wrapped in two doubled angle brackets, as in `<<REDACT>>`.
+- **Why**: this sequence of characters is rare in ordinary text. A regular expression therefore finds a placeholder easily. It also tells the model that it is reading masked data.
+- **Consequences**: a user can type this sequence themselves. This case needs a precaution, see DEC-13.
+- **In the code**: `components/placeholder/streaming.py` (`DEFAULT_PREFIX`, `DEFAULT_SUFFIX`).
 
 **DEC-04. Say in the placeholder what type of data it stands for.**
 
-- **Context**: a model that reads `<<1>>` does not know whether it is a person, an address or an email, and answers poorly.
-- **Decision**: the placeholder carries the type of the data, its label. The label comes from the NER model, or from the name given to the pattern in the regular expression detector.
-- **Why**: with `<<PERSON:1>>`, the model knows it is talking to a person, and can write "Hello `<<PERSON:1>>`".
-- **Consequences**: a detector can map the labels of its model to the ones you want to see in the placeholders.
-- **In the code**: `components/detector/ner/base.py` (label mapping).
+- **Context**: if every piece of data becomes `<<REDACT>>`, the model does not know whether it is a person, an address or an email. It therefore answers poorly.
+- **Decision**: the placeholder says the type of the data, called the label, as in `<<PERSON>>`. The label comes from the NER model, or from the name given to the pattern in the regular expression detector.
+- **Why**: with `<<PERSON>>`, the model knows it is a person. It can therefore write "Hello `<<PERSON>>`".
+- **Consequences**: two people still get the same placeholder, see DEC-05. A detector can map the labels of its model to the ones you want to see in the placeholders. A label starts with a letter or `_`, then contains letters, digits, `_`, spaces or hyphens.
+- **In the code**: `components/detector/ner/base.py` (label mapping), `components/placeholder/streaming.py` (`LABEL_INNER`).
 
 **DEC-05. Give each individual their own identifier.**
 
-- **Context**: two people in the same text must not become the same placeholder, or the model confuses them.
-- **Decision**: the placeholder adds an identifier to the type. By default, it is a number counted per type, starting at 1, in order of appearance (`<<PERSON:1>>`, `<<PERSON:2>>`). Another form uses the SHA-256 hash of "type:rank", never of the value.
+- **Context**: with `<<PERSON>>`, two people in the same text get the same placeholder, and the model confuses them.
+- **Decision**: the placeholder adds an identifier after the type, as in `<<PERSON:1>>`. By default, it is a number counted per type, starting at 1, in order of appearance. Another form uses a SHA-256 hash, computed on the type and the rank, never on the value.
 - **Why**: the number is readable by the model. The hash hides no secret, and nothing can be inferred from it about the value.
 - **Consequences**: you need to know which detections refer to the same individual, see DEC-06.
 - **In the code**: `components/placeholder/label_counter.py`, `components/placeholder/label_hash.py`. Rule BR-MSG-01.
@@ -66,7 +66,7 @@ This page tells these decisions in the order they arose. Each one carries a `DEC
 **DEC-07. Keep only one span when two detections overlap.**
 
 - **Context**: two detectors can find spans that overlap, for example "Jean" and "Jean Dupont".
-- **Decision**: only one span is kept. By default, the surest detection wins, and on a tie, the first declared detector. Another setting keeps the union of the spans.
+- **Decision**: only one span is kept. By default, the surest detection wins, and on a tie, the first declared detector. Another setting keeps a single span that covers both.
 - **Why**: replacement assumes disjoint spans. Two overlapping replacements would damage the text.
 - **Consequences**: this stage cannot be turned off.
 - **In the code**: `components/overlap_resolver/`. Rule BR-MSG-05.
@@ -158,7 +158,7 @@ This page tells these decisions in the order they arose. Each one carries a `DEC
 **DEC-18. Protect the stored mapping.**
 
 - **Context**: the mapping between placeholders and values holds the confidential data in clear text, see DEC-08.
-- **Decision**: with Redis, the keys go through HMAC then Argon2id with a pepper, and the values are encrypted with AES-GCM. The secrets are read only from the environment, never from a configuration file. Observation traces can be masked.
+- **Decision**: with Redis, the keys are hashed with HMAC then Argon2id, with a pepper, that is a secret added before hashing, and the values are encrypted with AES-GCM. The secrets are read only from the environment, never from a configuration file. Observation traces can be masked.
 - **Why**: a storage leak must not hand over the data.
 - **Consequences**: the conversation identifier stays readable, so that a conversation can be erased. A storage without encryption emits a warning.
 - **In the code**: `crypto/`, `conversation_memory/redis_backend.py`. Rules BR-STO-01, BR-STO-02, BR-STO-03, BR-STO-08.
@@ -183,7 +183,7 @@ This page tells these decisions in the order they arose. Each one carries a `DEC
 **DEC-21. Make each stage a replaceable port.**
 
 - **Context**: each team has its own detectors, its storage and its constraints.
-- **Decision**: each stage of the pipeline has an interface, and most have a base template. Only the detector is required. The configuration knows the core of the library, never the reverse.
+- **Decision**: each stage of the pipeline is a port, that is an interface you can replace. Most also have a base template to complete. Only the detector is required. The configuration knows the core of the library, never the reverse.
 - **Why**: you replace a stage without touching the others.
 - **Consequences**: the core holds no rule specific to a language. Lists of French words or domain terms go in the hub groups.
 - **In the code**: `components/*/base.py`. See [Add or replace a pipeline component](../architecture/ports-and-extension.md).
