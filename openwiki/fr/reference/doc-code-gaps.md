@@ -51,7 +51,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Cette page liste les endroits où la documentation existante dit autre chose que le code.
 - Le code fait foi : la documentation métier décrit toujours ce que fait le code.
-- Aucun écart n'est corrigé ici. Chacun attend une décision du mainteneur : corriger la doc, ou corriger le code. Un écart réglé garde son entrée, avec son statut.
+- Aucun écart n'est corrigé ici. Chacun attend une décision du mainteneur, corriger la doc ou corriger le code. Un écart réglé garde son entrée, avec son statut.
 - Les écarts relevés portent sur la documentation pour développeurs et sur un exemple de la FAQ. Aucun ne change ce que voit l'utilisateur final.
 
 Les termes sont définis dans le [glossaire](../glossary.md). Retour au [quickstart](../quickstart.md).
@@ -67,7 +67,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page de la docum
 | | |
 |---|---|
 | Doc | `AGENTS.md:7`, `:26` et `:82` : chaque étape a un port `Any*` et un gabarit `Base*`. `docs/en/architecture.md:109-111` et `docs/fr/architecture.md:112` : seuls deux ports n'ont pas de gabarit, les garde-fous et la mémoire. |
-| Code | Cinq ports n'ont pas de gabarit : `components/detector/base.py:9`, `components/override/base.py:9-17`, `components/guard/base.py:42`, `conversation_memory/base.py:10-14`, `crypto/cipher/base.py:7-10`. |
+| Code | Cinq ports n'ont pas de gabarit. Ils sont déclarés dans `components/detector/base.py:9`, `components/override/base.py:9-17`, `components/guard/base.py:42`, `conversation_memory/base.py:10-14`, `crypto/cipher/base.py:7-10`. |
 | Page de la documentation métier | [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md) |
 | Effet | Un contributeur peut chercher un `BaseDetector` qui n'existe pas. |
 

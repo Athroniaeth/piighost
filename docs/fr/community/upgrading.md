@@ -28,7 +28,7 @@ Les noms publics n'offrent pas tous la même garantie. Un nom stable ne change q
 
 | Surface | Ce que ça couvre |
 |---|---|
-| Racine du package | Tous les noms de `piighost.__all__` : `AnonymizationPipeline`, `ThreadAnonymizationPipeline`, `Anonymizer`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector`, `LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`, `Detection`, `Entity`, `Span`, `PIIGhostError` |
+| Racine du package | Tous les noms de `piighost.__all__`, c'est-à-dire `AnonymizationPipeline`, `ThreadAnonymizationPipeline`, `Anonymizer`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector`, `LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`, `Detection`, `Entity`, `Span`, `PIIGhostError` |
 | Ports et templates | Chaque protocole `Any*` et son template `Base*`, une paire par étage du pipeline |
 | Modèles de données | `Detection`, `Entity` et `Span`, dataclasses gelées dont les champs sont stables |
 | Configuration | `PipelineConfig`, `load_config`, `load_pipeline`, `load_thread_pipeline`, et les clés listées dans la [référence TOML](../configuration/toml.md) |
@@ -89,7 +89,7 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 --8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
-Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque. Un pipeline n'atteint donc le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés : `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic:fab51b33`.
+Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque. Un pipeline n'atteint donc le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés. Le groupe `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic:fab51b33`.
 
 ### Les alias de la 1.x sont supprimés
 

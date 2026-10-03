@@ -7,7 +7,7 @@ icon: lucide/gauge
 This page measures how many confidential values a configured `piighost` pipeline hides, and what each stage adds over calling a NER model directly. The figures come from a benchmark run on 2026-09-29 on five data sets, English and French, with `piighost` 1.10.0.
 
 !!! note "A strict count"
-    A value counts as hidden only when every one of its characters is masked. A partial mask is a leak: `Paul <<PERSON:1>>`{ .placeholder } leaves `Paul`{ .pii } in clear, so it counts as a miss for `Paul Lemoine`{ .pii }. NER papers report an overlap match, where a partly masked value counts as found. This count is stricter, and its numbers are lower for that reason.
+    A value counts as hidden only when every one of its characters is masked. A partial mask is a leak. `Paul <<PERSON:1>>`{ .placeholder } leaves `Paul`{ .pii } in clear, so it counts as a miss for `Paul Lemoine`{ .pii }. NER papers report an overlap match, where a partly masked value counts as found. This count is stricter, and its numbers are lower for that reason.
 
 ## The question
 
@@ -57,7 +57,7 @@ The French sets run the `fr-notarial` config, TAB runs `support-en`. The publish
 
 ## Where the gain comes from
 
-On the generated deeds with GLiNER2, rung by rung: 36 % for A, 66 % for B, 94 % for D, 95 % for E and F.
+On the generated deeds with GLiNER2, rung by rung, the scores are 36 % for A, 66 % for B, 94 % for D, 95 % for E and F.
 
 - **Chunking** gives 31 to 33 points on the generated deeds and 53 to 64 on the long ones. A model reads a fixed window, and without chunking it never sees past it. On the long deeds, rung A only reads page one and misses every value after it.
 - **The regex rules** give 28 to 40 points. They handle every value with a fixed shape. Emails, IBANs, social security numbers, company numbers, phones and dates reach 100 %, where the model alone finds at most a fifth of them. The formulae of a deed ("Monsieur", "Maître", "née", "demeurant", "section") catch the names and addresses the model misses.

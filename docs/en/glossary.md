@@ -14,7 +14,7 @@ Confidential data
 
 PII
 :   Personally Identifiable Information, the personal-data part of confidential
-    data. Any value that can identify a person:
+    data. Any value that can identify a person, that is
     name, address, phone number, email, location, organization, account number.
     `piighost` finds and replaces PII so a downstream LLM never sees the raw
     value.
@@ -46,15 +46,15 @@ Placeholder
 
 Placeholder factory
 :   The component that produces placeholders. It decides the token shape and what
-    the token preserves: a label, a stable identity, both, or nothing. Built-in
+    the token preserves, that is a label, a stable identity, both, or nothing. Built-in
     factories include `RedactPlaceholderFactory`, `LabelPlaceholderFactory`,
     `LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`, and
     `MaskPlaceholderFactory`.
 
 Detector
 :   The component that finds confidential data in a text and returns detections. Detectors
-    implement the `AnyDetector` protocol and are interchangeable. Three families
-    exist, listed under their own entries: regex, NER, and LLM.
+    implement the `AnyDetector` protocol and are interchangeable. The three families
+    are regex, NER, and LLM, listed under their own entries.
 
 Regex detector
 :   A detector that recognizes fixed patterns, character strings that follow a
@@ -79,7 +79,7 @@ Span
     `Span`.
 
 Detection
-:   One occurrence of a value spotted by a detector: a `Span`, the matched text, a
+:   One occurrence of a value spotted by a detector, that is a `Span`, the matched text, a
     label, and a confidence in the range 0 to 1. Detecting `Patrick`{ .pii } as
     `PERSON` at `(0, 7)` with confidence `0.95` is one `Detection`.
 
@@ -129,7 +129,7 @@ Recognizer
 
 Placeholder preservation tag
 :   A phantom type (a type that exists only for the type checker) on a
-    placeholder factory, stating what its tokens preserve:
+    placeholder factory, stating what its tokens preserve. The tags are
     `PreservesNothing`, `PreservesLabel`, `PreservesIdentity`, or
     `PreservesLabeledIdentity`. The middleware requires `PreservesRecognizableIdentity`
     so it can restore values. It rejects a factory without this tag at type-check time.

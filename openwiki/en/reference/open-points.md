@@ -18,7 +18,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 Decided on 2026-10-02.
 
-- **DPO-10, storage form of corrections.** Design the export of human validations, to Langfuse for example, with three forms to choose from: placeholders instead of the values, values in clear, input and output fully redacted. The default form is placeholders (decided on 2026-10-02).
+- **DPO-10, storage form of corrections.** Design the export of human validations, to Langfuse for example, with three forms to choose from, that is placeholders instead of the values, values in clear, input and output fully redacted. The default form is placeholders (decided on 2026-10-02).
 - **OPS-6, models on the hub.** The rejection of model configurations is temporary. It needs a format that splits the labels between patterns and model, because each NER model is stronger on some labels.
 
 ## Done
@@ -26,7 +26,7 @@ Decided on 2026-10-02.
 Done on 2026-10-02, on the local branches. Nothing is pushed.
 
 - **DPO-9.** `LLMDetector` and `LLMGuardRail` raise `UnreadableOutputError` on unreadable output, and `fail_open=True` restores fail open with a warning (`4d47d65`). The Claude Code hooks exit with code 2 for a prompt or a tool call they cannot de-identify, replace a tool output with a notice, and `PIIGHOST_HOOK_FAIL_OPEN=1` lets the text through (`5ec03d1`).
-- **Placeholders with damaged delimiters.** Accepted and documented: a placeholder such as `<< PERSON:1 >>` is not restored and the user reads it as is, without any value leaking.
+- **Placeholders with damaged delimiters.** Accepted and documented. A placeholder such as `<< PERSON:1 >>` is not restored and the user reads it as is, without any value leaking.
 - **Rights of the OpenWiki job.** It does not rewrite the text of a need or of a business rule. A disagreement with the code becomes a line in the gap register (`INSTRUCTIONS.md`).
 
 - **DEV-10.** `require_thread_id` is removed. The LangChain middleware, the Claude Code hooks and `PIIGhostClient.detect` require a conversation (`piighost` `97b1e78`), and the server responds 400 without `thread_id` (`piighost-api` `7dec988`). The CLI keeps `--thread-id default` for a standalone command.

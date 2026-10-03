@@ -57,7 +57,7 @@ Les jeux français tournent avec la config `fr-notarial`, TAB avec `support-en`.
 
 ## D'où vient le gain
 
-Sur les actes générés avec GLiNER2, marche par marche : 36 % pour A, 66 % pour B, 94 % pour D, 95 % pour E et F.
+Sur les actes générés avec GLiNER2, marche par marche, les scores sont de 36 % pour A, 66 % pour B, 94 % pour D, 95 % pour E et F.
 
 - **Le découpage** apporte 31 à 33 points sur les actes générés et 53 à 64 sur les longs. Un modèle lit une fenêtre fixe, et sans découpage il ne voit jamais au-delà. Sur les actes longs, la marche A ne lit que la première page et rate toutes les valeurs qui suivent.
 - **Les règles regex** apportent 28 à 40 points. Elles prennent en charge toutes les valeurs à forme fixe. Les e-mails, IBAN, numéros de sécurité sociale, numéros d'entreprise, téléphones et dates atteignent 100 %, là où le modèle seul en trouve au plus un cinquième. Les formules d'un acte ("Monsieur", "Maître", "née", "demeurant", "section") rattrapent les noms et les adresses que le modèle rate.

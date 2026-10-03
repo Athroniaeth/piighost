@@ -107,7 +107,7 @@ Ce garde-fou classe le texte, il ne détecte pas de valeurs. Il attrape donc des
 
 ## `GuardVerdict` et `PIIRemainingError`
 
-`check` renvoie un `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])` gelé. Le détail dépend du garde-fou : un score depuis un modèle de modération, ou les détections résiduelles depuis un détecteur. Les deux sont optionnels.
+`check` renvoie un `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])` gelé. Le détail dépend du garde-fou. C'est un score depuis un modèle de modération, ou les détections résiduelles depuis un détecteur. Les deux sont optionnels.
 
 Quand un garde-fou signale des valeurs confidentielles, le pipeline lève `PIIRemainingError` (une sous-classe de `GuardError`, elle-même une `PIIGhostError`). Son message nomme les labels fuités ou le score. Son attribut `detections` contient les détections résiduelles. Il reste vide pour un garde-fou basé sur un score, qui ne localise rien.
 

@@ -71,9 +71,9 @@ The user read "Hello Jean Dupont, I am writing to you at jean.dupont@exemple.fr.
 
 **BR-STREAM-03.** When a chunk ends with a single "`<`", then this character is held back, so that a delimiter cut in two joins up again.
 
-**BR-STREAM-04.** When an opening stays unclosed for more than 128 characters, then it is released as is, because no placeholder is that long. Example: "Use cout << x to" followed by "print" is shown with a slight delay, without any loss of text.
+**BR-STREAM-04.** When an opening stays unclosed for more than 128 characters, then it is released as is, because no placeholder is that long. For example, "Use cout << x to" followed by "print" is shown with a slight delay, without any loss of text.
 
-**BR-STREAM-05.** When the stream stops in the middle of a placeholder, then the held-back remainder is shown as is, without restoration. Example: "Hello Jean Dupont, see you soon <<EMA". The fragment contains no real value.
+**BR-STREAM-05.** When the stream stops in the middle of a placeholder, then the held-back remainder is shown as is, without restoration. For example, "Hello Jean Dupont, see you soon <<EMA" is shown as is. The fragment contains no real value.
 
 **BR-STREAM-06.** When a completed placeholder was never issued, then the invented placeholder setting applies. By default, it refuses the placeholder, which interrupts the stream. The two other choices drop the placeholder or keep it.
 
@@ -112,7 +112,7 @@ The technical guide describes the implementation in the [Streaming section of th
 | BR-STREAM-05 | `streaming.py:186` and `236` (`flush`) |
 | BR-STREAM-06 | `integrations/_deidentify.py:83-107` (`deanonymize_stream`), `_handle_invented` on lines 133-155 |
 | BR-STREAM-07 | `integrations/langchain/middleware.py:206-218` (`deanonymize_stream`) |
-| BR-STREAM-08 | `piighost-api`, outside this repository: `routes/openai.py` (`_restore_sse_chunk`) and `routes/anthropic.py`, on the decoder of `components/placeholder/streaming.py` |
+| BR-STREAM-08 | `piighost-api`, outside this repository, in `routes/openai.py` (`_restore_sse_chunk`) and `routes/anthropic.py`, on the decoder of `components/placeholder/streaming.py` |
 
 Related components: `PlaceholderStreamDecoder` (synchronous, `factory.stream_decoder(replace)`), `AsyncPlaceholderStreamDecoder` (`pipeline.recognizer.async_stream_decoder(replace)`), `PIIAnonymizationMiddleware.deanonymize_stream(source, thread_id)`.
 

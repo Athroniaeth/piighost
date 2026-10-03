@@ -39,9 +39,9 @@ For the context of each term, start from [Get started with the PIIGhost domain d
 
 | Term | Definition | What you see | Technical name |
 |---|---|---|---|
-| Confidential data | Everything PIIGhost protects: personal data and secrets. | the original value, before protection | none |
-| Personal data (PII) | Value that can identify a person: name, address, phone, e-mail. PII stands for *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | label `PERSON`, `EMAIL`… |
-| Secret | Access credential that must never reach a model: API key, password, private key. | an API key in a message | hub group `piighost/logs` |
+| Confidential data | Everything PIIGhost protects, that is personal data and secrets. | the original value, before protection | none |
+| Personal data (PII) | Value that can identify a person, for example a name, an address, a phone or an e-mail. PII stands for *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | label `PERSON`, `EMAIL`… |
+| Secret | Access credential that must never reach a model, for example an API key, a password or a private key. | an API key in a message | hub group `piighost/logs` |
 | De-identification | Replacement of confidential data with placeholders, keeping what is needed to restore them. In the sense of the GDPR (General Data Protection Regulation), it is a pseudonymization. | `Hello <<PERSON:1>>` | default pipeline |
 | Anonymization | Removal with no way back. PIIGhost achieves it only with a placeholder that keeps nothing. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restoration | Putting the real values back in place of the placeholders, in the reply shown to the user. | `Hello Patrick` in the reply | `deanonymize` |
@@ -55,8 +55,8 @@ For the context of each term, start from [Get started with the PIIGhost domain d
 | Hashed placeholder | Numbered placeholder whose number is displayed as a hash. The hash comes from the type and the number, never from the value. | `<<PERSON:09ef3b74>>` | `LabelHashPlaceholderFactory` |
 | Type placeholder | Placeholder that keeps only the type. Two people receive the same placeholder, so restoration is not reliable. | `<<PERSON>>` | `LabelPlaceholderFactory` |
 | Mask | Value of which only the first characters stay visible. No restoration. | `J*******` | `MaskPlaceholderFactory` |
-| Invented placeholder | Placeholder in the right format that PIIGhost never issued: the model hallucinated it or a text injected it. | `Deanonymized text holds tokens the pipeline never issued: […]` | `InventedPlaceholderError` |
-| Preservation tag | What a type of placeholder keeps: the type, the identity, the shape, the ability to be found again. Used for the check before execution. | no visible form | `PreservesRecognizableIdentity`… |
+| Invented placeholder | Placeholder in the right format that PIIGhost never issued, because the model hallucinated it or a text injected it. | `Deanonymized text holds tokens the pipeline never issued: […]` | `InventedPlaceholderError` |
+| Preservation tag | What a type of placeholder keeps, that is the type, the identity, the shape, the ability to be found again. Used for the check before execution. | no visible form | `PreservesRecognizableIdentity`… |
 
 ## What PIIGhost spots
 
@@ -65,8 +65,8 @@ For the context of each term, start from [Get started with the PIIGhost domain d
 | Detector | Component that finds the sensitive values in a text. By pattern, by AI model or by large language model. | key `[detector]` | `AnyDetector` |
 | Pattern (regex) | Expression that recognizes a value by its shape. The pattern checks no checksum (Luhn, IBAN). A value damaged by character recognition is therefore still detected. | key `patterns` | `RegexDetector` |
 | Catalog | List of patterns published on the hub and called by its reference. | `hub:piighost/generic:fab51b33` | `catalogs`, `hub.pull` |
-| NER | *Named Entity Recognition*: AI model that classifies words as person, place, organization. | key `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
-| Detection | One occurrence found: position, text, type and confidence between 0 and 1. | one line of `piighost anonymize --json` | `Detection` |
+| NER | *Named Entity Recognition*. AI model that classifies words as person, place, organization. | key `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
+| Detection | One occurrence found, with its position, text, type and confidence between 0 and 1. | one line of `piighost anonymize --json` | `Detection` |
 | Position (span) | Character interval `[start, end)` of a detection in the text. | `"start": 10, "end": 35` | `Span` |
 | Entity | All the occurrences of the same value and the same type. They share a single placeholder. | `Patrick` and `patrick` both give `<<PERSON:1>>` | `Entity`, `ExactEntityLinker` |
 | Overlap | Two detections that cover common characters. Depending on the resolver, only one detection is kept, or their union. | no visible form | `ConfidenceOverlapResolver`, `MergeOverlapResolver` |
@@ -78,7 +78,7 @@ For the context of each term, start from [Get started with the PIIGhost domain d
 |---|---|---|---|
 | Conversation (thread) | Exchange followed from one message to the next, isolated from the other exchanges. A value keeps the same placeholder over the whole conversation. | conversation identifier, `--thread-id` | `thread_id` |
 | Default thread | Shared thread that the application names itself when its conversations do not need to be separated. No integration falls back to it on its own. A call without a conversation identifier is refused. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
-| Provenance | Author of the first appearance of a value in the conversation: the user or the assistant. A value brought by the assistant stays in clear text by default. | no visible form | `MessageRole`, `get_provenance` |
+| Provenance | Author of the first appearance of a value in the conversation, that is the user or the assistant. A value brought by the assistant stays in clear text by default. | no visible form | `MessageRole`, `get_provenance` |
 | Conversation memory | Storage of the detections of each message, per conversation. Contains personal data. When kept in the program, it keeps at most 10,000 conversations. Each one is forgotten one day after its last message. | key `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
 | Conversation erasure | Removal of the whole memory of a conversation, for the right to erasure. Returns the number of messages and detections removed. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
 | Human correction | Set of detections corrected by a person for a message, which replaces the one from the detector. | no visible form | `anonymize_corrected` |
@@ -107,7 +107,7 @@ The identifiers are in English, the same whatever the language of the page.
 
 | Term | Definition | What you see | Technical name |
 |---|---|---|---|
-| Need | What a profile expects from PIIGhost, with its observable criteria. The prefix names the profile: compliance officer, developer, operator, application user. | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Needs by profile](needs-by-profile.md) |
+| Need | What a profile expects from PIIGhost, with its observable criteria. The prefix names the profile (compliance officer, developer, operator, application user). | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Needs by profile](needs-by-profile.md) |
 | Business rule | Rule written as "When…, then…" in a process page. *BR* stands for *business rule*, followed by the domain. | `BR-MSG-05`, `BR-CONV-03` | "Rules to know" sections |
 | Acceptance test | Test that checks one criterion of a need. | `AT-DPO-1-2` | [Acceptance tests](tests/acceptance-tests.md), `tests/acceptance/` |
 | Gap | Place where the documentation and the code diverge. | `ECART-09` | [Gap register](reference/doc-code-gaps.md) |

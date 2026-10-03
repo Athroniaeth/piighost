@@ -39,9 +39,9 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Données confidentielles | Tout ce que PIIGhost protège : les données personnelles et les secrets. | la valeur d'origine, avant protection | aucun |
-| Donnée personnelle (PII) | Valeur qui peut identifier une personne : nom, adresse, téléphone, e-mail. PII signifie *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | étiquette `PERSON`, `EMAIL`… |
-| Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle : clé d'API, mot de passe, clé privée. | une clé d'API dans un message | groupe du hub `piighost/logs` |
+| Données confidentielles | Tout ce que PIIGhost protège, c'est-à-dire les données personnelles et les secrets. | la valeur d'origine, avant protection | aucun |
+| Donnée personnelle (PII) | Valeur qui peut identifier une personne, par exemple un nom, une adresse, un téléphone ou un e-mail. PII signifie *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | étiquette `PERSON`, `EMAIL`… |
+| Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle, par exemple une clé d'API, un mot de passe ou une clé privée. | une clé d'API dans un message | groupe du hub `piighost/logs` |
 | Dé-identification | Remplacement des données confidentielles par des jetons, en gardant de quoi les restaurer. Au sens du RGPD (règlement général sur la protection des données), c'est une pseudonymisation. | `Bonjour <<PERSON:1>>` | pipeline par défaut |
 | Anonymisation | Suppression sans retour possible. PIIGhost ne l'obtient qu'avec un jeton qui ne garde rien. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restauration | Remise des vraies valeurs à la place des jetons, dans la réponse montrée à l'utilisateur. | `Bonjour Patrick` dans la réponse | `deanonymize` |
@@ -55,8 +55,8 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Jeton haché | Jeton numéroté dont le numéro est affiché sous forme d'empreinte. L'empreinte vient du type et du numéro, jamais de la valeur. | `<<PERSON:09ef3b74>>` | `LabelHashPlaceholderFactory` |
 | Jeton de type | Jeton qui ne garde que le type. Deux personnes reçoivent le même jeton, donc la restauration n'est pas fiable. | `<<PERSON>>` | `LabelPlaceholderFactory` |
 | Masque | Valeur dont seuls les premiers caractères restent visibles. Pas de restauration. | `J*******` | `MaskPlaceholderFactory` |
-| Jeton inventé | Jeton au bon format que PIIGhost n'a jamais émis : le modèle l'a halluciné ou un texte l'a injecté. | `Deanonymized text holds tokens the pipeline never issued: […]` | `InventedPlaceholderError` |
-| Étiquette de préservation | Ce qu'un type de jeton garde : le type, l'identité, la forme, la possibilité d'être retrouvé. Sert au contrôle avant exécution. | aucune forme visible | `PreservesRecognizableIdentity`… |
+| Jeton inventé | Jeton au bon format que PIIGhost n'a jamais émis, parce que le modèle l'a halluciné ou qu'un texte l'a injecté. | `Deanonymized text holds tokens the pipeline never issued: […]` | `InventedPlaceholderError` |
+| Étiquette de préservation | Ce qu'un type de jeton garde, c'est-à-dire le type, l'identité, la forme, la possibilité d'être retrouvé. Sert au contrôle avant exécution. | aucune forme visible | `PreservesRecognizableIdentity`… |
 
 ## Ce que PIIGhost repère
 
@@ -65,8 +65,8 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Détecteur | Composant qui trouve les valeurs sensibles dans un texte. Par motif, par modèle d'IA ou par grand modèle de langage. | clé `[detector]` | `AnyDetector` |
 | Motif (regex) | Expression qui reconnaît une valeur à sa forme. Le motif ne vérifie pas de clé de contrôle (Luhn, IBAN). Une valeur abîmée par une reconnaissance de caractères reste donc détectée. | clé `patterns` | `RegexDetector` |
 | Catalogue | Liste de motifs publiée sur le hub et appelée par sa référence. | `hub:piighost/generic:fab51b33` | `catalogs`, `hub.pull` |
-| NER | *Named Entity Recognition*, reconnaissance d'entités nommées : modèle d'IA qui classe les mots en personne, lieu, organisation. | clé `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
-| Détection | Une occurrence trouvée : position, texte, type et confiance entre 0 et 1. | une ligne de `piighost anonymize --json` | `Detection` |
+| NER | *Named Entity Recognition*, reconnaissance d'entités nommées. Modèle d'IA qui classe les mots en personne, lieu, organisation. | clé `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
+| Détection | Une occurrence trouvée, avec sa position, son texte, son type et sa confiance entre 0 et 1. | une ligne de `piighost anonymize --json` | `Detection` |
 | Position (span) | Intervalle de caractères `[début, fin)` d'une détection dans le texte. | `"start": 10, "end": 35` | `Span` |
 | Entité | Toutes les occurrences d'une même valeur et d'un même type. Elles partagent un seul jeton. | `Patrick` et `patrick` donnent tous deux `<<PERSON:1>>` | `Entity`, `ExactEntityLinker` |
 | Chevauchement | Deux détections qui couvrent des caractères communs. Selon le résolveur, une seule détection est gardée, ou bien leur union. | aucune forme visible | `ConfidenceOverlapResolver`, `MergeOverlapResolver` |
@@ -78,7 +78,7 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 |---|---|---|---|
 | Conversation (thread) | Échange suivi d'un message à l'autre, isolé des autres échanges. Une valeur garde le même jeton sur toute la conversation. | identifiant de conversation, `--thread-id` | `thread_id` |
 | Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration ne s'y rabat d'elle-même. Un appel sans identifiant de conversation est refusé. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
-| Provenance | Auteur de la première apparition d'une valeur dans la conversation : l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
+| Provenance | Auteur de la première apparition d'une valeur dans la conversation, c'est-à-dire l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
 | Mémoire de conversation | Stockage des détections de chaque message, par conversation. Contient des données personnelles. Quand elle est gardée dans le programme, elle conserve au plus 10 000 conversations. Chacune est oubliée un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
 | Effacement d'une conversation | Suppression de toute la mémoire d'une conversation, pour le droit à l'effacement. Renvoie le nombre de messages et de détections supprimés. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
 | Correction humaine | Jeu de détections corrigé par une personne pour un message, qui remplace celui du détecteur. | aucune forme visible | `anonymize_corrected` |
@@ -107,7 +107,7 @@ Les identifiants sont en anglais, les mêmes quelle que soit la langue de la pag
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Besoin | Ce qu'un profil attend de PIIGhost, avec ses critères observables. Le préfixe nomme le profil : responsable conformité, développeur, exploitant, utilisateur de l'application. | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Besoins par profil](needs-by-profile.md) |
+| Besoin | Ce qu'un profil attend de PIIGhost, avec ses critères observables. Le préfixe nomme le profil (responsable conformité, développeur, exploitant, utilisateur de l'application). | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Besoins par profil](needs-by-profile.md) |
 | Règle de gestion | Règle formulée en « Quand… alors… » dans une page de processus. *BR* signifie *business rule*, suivi du domaine. | `BR-MSG-05`, `BR-CONV-03` | parties « Règles à connaître » |
 | Test d'acceptation | Test qui vérifie un critère d'un besoin. | `AT-DPO-1-2` | [Tests d'acceptation](tests/acceptance-tests.md), `tests/acceptance/` |
 | Écart | Endroit où la documentation et le code divergent. | `ECART-09` | [Registre des écarts](reference/doc-code-gaps.md) |

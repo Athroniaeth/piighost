@@ -13,7 +13,7 @@ This page complements [`SECURITY.md`](https://github.com/Athroniaeth/piighost/bl
 
 Take a message that contains `jean@mail.com`{ .pii }. `piighost` detects the value, replaces it with `<<EMAIL:1>>`{ .placeholder }, and sends the de-identified text to the LLM. The LLM only ever sees `<<EMAIL:1>>`{ .placeholder }. When the response comes back, `piighost` reinjects `jean@mail.com`{ .pii } in place of the placeholder, and the user sees the real value.
 
-Two things therefore coexist at all times: the de-identified text, which can travel to the LLM safely, and the mapping `<<EMAIL:1>>`{ .placeholder } to `jean@mail.com`{ .pii }, which must never leave your perimeter. The threat model lives in that separation.
+Two things therefore coexist at all times. The first is the de-identified text, which can travel to the LLM safely. The second is the mapping `<<EMAIL:1>>`{ .placeholder } to `jean@mail.com`{ .pii }, which must never leave your perimeter. The threat model lives in that separation.
 
 ## What `piighost` protects against
 

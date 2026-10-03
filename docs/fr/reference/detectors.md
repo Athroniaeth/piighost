@@ -84,7 +84,7 @@ RegexDetector(patterns: dict[str, str])
 RegexDetector.from_hub(ref: str, *, hub: str | None = None) -> RegexDetector
 ```
 
-Construit un détecteur à partir des regex que porte une référence du [hub piighost](https://hub.piighost.dev). Le hub est un registre de regex de dé-identification testées, adressées par `namespace/name` et un sélecteur optionnel : un tag, ou les huit caractères hexadécimaux d'un commit.
+Construit un détecteur à partir des regex que porte une référence du [hub piighost](https://hub.piighost.dev). Le hub est un registre de regex de dé-identification testées, adressées par `namespace/name` et un sélecteur optionnel, soit un tag, soit les huit caractères hexadécimaux d'un commit.
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|

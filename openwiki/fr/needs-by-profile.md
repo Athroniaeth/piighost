@@ -11,8 +11,8 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-- Quatre profils attendent des choses différentes de PIIGhost : le responsable conformité (DPO), le développeur, l'exploitant et l'utilisateur de l'application.
-- Chaque besoin porte un identifiant en anglais, le même dans toutes les langues : `DPO-n`, `DEV-n`, `OPS-n`, `USER-n`.
+- Quatre profils attendent des choses différentes de PIIGhost. Ce sont le responsable conformité (DPO), le développeur, l'exploitant et l'utilisateur de l'application.
+- Chaque besoin porte un identifiant en anglais, le même dans toutes les langues, de la forme `DPO-n`, `DEV-n`, `OPS-n` ou `USER-n`.
 - Chaque besoin donne des critères observables et la page de la documentation métier qui le livre.
 - Les points de vigilance, en fin de page, listent les réponses imprévues d'un modèle et le besoin qui les couvre.
 
@@ -77,7 +77,7 @@ Chaque besoin est porté par un processus de la documentation métier, qui donne
 
 **DPO-10. En tant que DPO, je veux choisir sous quelle forme les corrections humaines sont conservées, afin que leur stockage ne devienne pas une copie des données.**
 
-- Une correction exportée vers un outil d'annotation, Langfuse par exemple, se conserve sous la forme choisie : jetons à la place des valeurs, valeurs en clair, ou entrée et sortie entièrement masquées.
+- Une correction exportée vers un outil d'annotation, Langfuse par exemple, se conserve sous la forme choisie. Les formes possibles sont les jetons à la place des valeurs, les valeurs en clair, ou l'entrée et la sortie entièrement masquées.
 - Le développeur règle cette forme, le DPO la décide.
 - Sans choix explicite, la correction est conservée sous forme de jetons. L'export ne contient alors aucune valeur réelle.
 

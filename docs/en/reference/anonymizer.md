@@ -116,7 +116,7 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
 
 ## `BaseAnonymizer`
 
-The template `Anonymizer` extends. It holds the shared steps: ask the factory for one token per entity through `create`, compose them into an `Anonymization` in `anonymize`, and reverse the mapping in `deanonymize`. A subclass defines `render`, the only step that varies. `render` is the rule that rewrites the text given the entities and their tokens.
+The template `Anonymizer` extends. It holds the shared steps, that is ask the factory for one token per entity through `create`, compose them into an `Anonymization` in `anonymize`, and reverse the mapping in `deanonymize`. A subclass defines `render`, the only step that varies. `render` is the rule that rewrites the text given the entities and their tokens.
 
 ```python
 class BaseAnonymizer(ABC, Generic[PreservationT]):

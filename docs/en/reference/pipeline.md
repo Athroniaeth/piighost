@@ -17,7 +17,7 @@ Both return an [`Anonymization`](anonymizer.md#anonymization), the de-identified
 
 Module: `piighost.pipeline`
 
-De-identify a single text through the stages, in order: detect the confidential data, apply the server override, resolve overlapping spans, expand missed occurrences, link detections into entities, resolve entity conflicts, replace with tokens, and re-check with a guard. Each `anonymize()` call is independent.
+De-identify a single text through the stages. In order, they detect the confidential data, apply the server override, resolve overlapping spans, expand missed occurrences, link detections into entities, resolve entity conflicts, replace with tokens, and re-check with a guard. Each `anonymize()` call is independent.
 
 ### Constructor
 
@@ -208,7 +208,7 @@ class AnyThreadPipeline(Protocol[PreservationT_co]):
 
 Module: `piighost.pipeline`
 
-The shared machinery both pipelines extend. It holds the stage components and the steps common to every pipeline: the optional overlap, expand, and entity-resolve stages, the guard check, and the observation payloads. The concrete pipelines add their own `anonymize`, over a single text or over a conversation.
+The shared machinery both pipelines extend. It holds the stage components and the steps common to every pipeline, that is the optional overlap, expand, and entity-resolve stages, the guard check, and the observation payloads. The concrete pipelines add their own `anonymize`, over a single text or over a conversation.
 
 ---
 

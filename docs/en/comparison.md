@@ -4,7 +4,7 @@ icon: lucide/scale
 
 # How PIIGhost compares
 
-`piighost` combines four properties a conversational agent needs: restore the reply for the user, keep the same placeholder over the whole conversation, hand the real value to tools, and restore while the reply streams. None of the tools below combines all four. Each one is better than `piighost` at something else, and its entry says what.
+`piighost` combines four properties a conversational agent needs. It restores the reply for the user, keeps the same placeholder over the whole conversation, hands the real value to tools, and restores while the reply streams. None of the tools below combines all four. Each one is better than `piighost` at something else, and its entry says what.
 
 Open a solution to see how it differs from `piighost`.
 
@@ -96,7 +96,7 @@ Open a solution to see how it differs from `piighost`.
 ??? note "Detection-only models (spaCy, GLiNER, Piiranha)"
 
     - Find the data without replacing or restoring it.
-    - Building blocks rather than competitors: `piighost` uses them as detectors, Piiranha through `TransformersDetector`.
+    - Building blocks rather than competitors. `piighost` uses them as detectors, Piiranha through `TransformersDetector`.
 
 ??? note "Dataset anonymizers (ARX, Amnesia)"
 

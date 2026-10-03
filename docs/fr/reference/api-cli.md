@@ -79,7 +79,7 @@ piighost-api serve --config hub:piighost/support-en:286909f6
 
 </div>
 
-Le pipeline lit ses propres secrets : `PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `PIIGHOST_DATABASE_URL` et `MISTRAL_API_KEY`. `PIIGHOST_HUB_URL` nomme un hub privé. Ces variables sont listées dans la [Référence TOML](../configuration/toml.md). Les autres variables `OTEL_*`, en-têtes compris, sont lues par l'exporteur OpenTelemetry lui-même, voir [Observation](../observation.md).
+Le pipeline lit ses propres secrets (`PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `PIIGHOST_DATABASE_URL` et `MISTRAL_API_KEY`). `PIIGHOST_HUB_URL` nomme un hub privé. Ces variables sont listées dans la [Référence TOML](../configuration/toml.md). Les autres variables `OTEL_*`, en-têtes compris, sont lues par l'exporteur OpenTelemetry lui-même, voir [Observation](../observation.md).
 
 L'image Docker en lit quatre de plus, listées dans [Déployer un pipeline en production](../deployment.md).
 

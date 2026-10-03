@@ -289,7 +289,7 @@ on the next turn, protecting nothing of the user.
 The memory therefore records the role of each value's first occurrence,
 `MessageRole.USER` or `MessageRole.ASSISTANT`. A value whose first occurrence comes from
 a model message is left in clear, because it is not the user's confidential data. The middleware controls
-this behavior through `EntityCreateByAssistantStrategy`, which offers three choices: preserve, de-identify anyway, or ignore
+this behavior through `EntityCreateByAssistantStrategy`, which offers three choices. It can preserve, de-identify anyway, or ignore
 the model's messages.
 
 ---

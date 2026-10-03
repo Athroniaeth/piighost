@@ -38,7 +38,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Avant d'envoyer un texte au modèle, PIIGhost y repère les valeurs sensibles et les remplace par des jetons comme `<<PERSON:1>>`.
 - Une même valeur reçoit un seul jeton dans tout le texte, même écrite avec une autre casse ou d'autres espaces.
-- La réponse du modèle est ensuite restaurée : chaque jeton redevient la vraie valeur.
+- La réponse du modèle est ensuite restaurée. Chaque jeton redevient la vraie valeur.
 - Une valeur que le détecteur ne voit pas part en clair, sauf si un contrôle final est activé. Ce contrôle bloque alors l'envoi.
 - Les motifs ne vérifient pas les clés de contrôle (carte, IBAN). Une valeur mal recopiée reste masquée.
 
@@ -57,7 +57,7 @@ PIIGhost n'a pas d'écran. Ce que vous pouvez constater, c'est le texte reçu pa
 | PIIGhost | repère les valeurs, les remplace par des jetons, garde la correspondance |
 | Le modèle | reçoit le texte protégé, et seulement lui |
 
-Avant tout envoi, au moins un détecteur doit être configuré. PIIGhost n'embarque aucun motif : les types protégés sont ceux des détecteurs et des groupes de motifs que la configuration charge.
+Avant tout envoi, au moins un détecteur doit être configuré. PIIGhost n'embarque aucun motif, donc les types protégés sont ceux des détecteurs et des groupes de motifs que la configuration charge.
 
 ### Le trajet d'un message
 
@@ -73,14 +73,14 @@ flowchart TD
     H --> I["Texte envoyé au modèle"]
 ```
 
-Exemple suivi d'un bout à l'autre : l'utilisateur écrit « Écrivez à Jean Dupont, jean.dupont@exemple.fr ».
+Dans l'exemple suivi d'un bout à l'autre, l'utilisateur écrit « Écrivez à Jean Dupont, jean.dupont@exemple.fr ».
 
-1. **Repérage.** Un ou plusieurs détecteurs cherchent les valeurs : par forme (e-mail, téléphone), par modèle d'IA (noms, lieux) ou par grand modèle de langage. Ici, « Jean Dupont » est repéré comme personne et « jean.dupont@exemple.fr » comme e-mail.
+1. **Repérage.** Un ou plusieurs détecteurs cherchent les valeurs par forme (e-mail, téléphone), par modèle d'IA (noms, lieux) ou par grand modèle de langage. Ici, « Jean Dupont » est repéré comme personne et « jean.dupont@exemple.fr » comme e-mail.
 2. **Liste blanche et liste noire.** Les valeurs à toujours masquer ou à ne jamais masquer, écrites dans la configuration, sont appliquées. Voir [Imposer une liste blanche et une liste noire](impose-a-whitelist-and-blacklist.md).
 3. **Chevauchements.** Quand deux repérages se recouvrent, un seul passage est gardé. Ici, rien ne se recouvre.
 4. **Occurrences oubliées** (étape facultative). Chaque valeur trouvée est recherchée ailleurs dans le texte.
 5. **Regroupement.** Les occurrences d'une même valeur et d'un même type forment un seul groupe.
-6. **Remplacement.** Chaque groupe reçoit un jeton : « Jean Dupont » devient `<<PERSON:1>>`, l'adresse devient `<<EMAIL:1>>`.
+6. **Remplacement.** Chaque groupe reçoit un jeton. « Jean Dupont » devient `<<PERSON:1>>`, l'adresse devient `<<EMAIL:1>>`.
 7. **Contrôle final** (facultatif). Le texte protégé est relu pour y chercher un reste de valeur sensible.
 
 Le modèle reçoit « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ». PIIGhost garde la correspondance entre chaque jeton et sa valeur, pour restaurer la réponse.
@@ -89,13 +89,13 @@ Le modèle reçoit « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ». PIIGhost gar
 
 ### Règles à connaître
 
-**BR-MSG-01.** Quand une valeur est repérée, alors elle reçoit un jeton qui nomme son type et un numéro, compté par type dans l'ordre d'apparition. Exemple : « Jean Dupont écrit à Marie Curie » devient « `<<PERSON:1>>` écrit à `<<PERSON:2>>` ».
+**BR-MSG-01.** Quand une valeur est repérée, alors elle reçoit un jeton qui nomme son type et un numéro, compté par type dans l'ordre d'apparition. Par exemple, « Jean Dupont écrit à Marie Curie » devient « `<<PERSON:1>>` écrit à `<<PERSON:2>>` ».
 
-**BR-MSG-02.** Quand une valeur revient sous une autre casse ou avec d'autres espaces, alors elle reçoit le même jeton. Exemple : « Patrick a appelé. Rappelez patrick demain. » devient « `<<PERSON:1>>` a appelé. Rappelez `<<PERSON:1>>` demain. »
+**BR-MSG-02.** Quand une valeur revient sous une autre casse ou avec d'autres espaces, alors elle reçoit le même jeton. Par exemple, « Patrick a appelé. Rappelez patrick demain. » devient « `<<PERSON:1>>` a appelé. Rappelez `<<PERSON:1>>` demain. »
 
 **BR-MSG-03.** Quand une valeur a plusieurs graphies, alors la restauration remet partout la première graphie rencontrée. Dans l'exemple précédent, la réponse restaurée affiche « Patrick » aux deux endroits.
 
-**BR-MSG-04.** Quand un nom est collé à un autre par un trait d'union, alors il n'est pas reconnu comme le même mot. Exemple : « Patrick » repéré ne masque pas « Jean-Patrick ». Pourquoi : un prénom court ne doit pas être relié à un prénom composé différent.
+**BR-MSG-04.** Quand un nom est collé à un autre par un trait d'union, alors il n'est pas reconnu comme le même mot. Par exemple, « Patrick » repéré ne masque pas « Jean-Patrick ». La raison est qu'un prénom court ne doit pas être relié à un prénom composé différent.
 
 **BR-MSG-05.** Quand deux repérages se recouvrent, alors un seul passage est toujours gardé, et le plus sûr gagne (réglage par défaut). Le reste du plus long passage peut alors partir en clair. Un second réglage masque toute la zone couverte :
 
@@ -106,15 +106,15 @@ Le modèle reçoit « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ». PIIGhost gar
 
 Ici, un motif sûr à 100 % a trouvé « Wirth » et un modèle sûr à 70 % a trouvé « Loni M. Wirth ». À égalité parfaite de confiance et de position, le premier détecteur déclaré gagne. Avec l'union, la zone prend le type du repérage le plus sûr, et à confiance égale celui du plus long.
 
-**BR-MSG-06.** Quand une valeur est écrite avec une espace insécable ou fine, alors un motif écrit avec une espace normale la trouve quand même. Exemple : « 06 12 34 56 78 » tapé dans un traitement de texte, avec des espaces insécables, devient `<<PHONE:1>>`.
+**BR-MSG-06.** Quand une valeur est écrite avec une espace insécable ou fine, alors un motif écrit avec une espace normale la trouve quand même. Par exemple, « 06 12 34 56 78 » tapé dans un traitement de texte, avec des espaces insécables, devient `<<PHONE:1>>`.
 
-**BR-MSG-07.** Quand un motif reconnaît la forme d'une carte ou d'un IBAN, alors la valeur est masquée sans vérifier sa clé de contrôle. Pourquoi : une valeur abîmée par une reconnaissance de caractères aurait une clé fausse, et la rejeter la laisserait partir en clair.
+**BR-MSG-07.** Quand un motif reconnaît la forme d'une carte ou d'un IBAN, alors la valeur est masquée sans vérifier sa clé de contrôle. La raison est qu'une valeur abîmée par une reconnaissance de caractères aurait une clé fausse, et que la rejeter la laisserait partir en clair.
 
-**BR-MSG-08.** Quand un message contient une clé d'API, alors elle n'est masquée que si la configuration charge un groupe de motifs de secrets ou un modèle qui cherche les secrets. Le groupe `piighost/logs` du hub est un tel groupe. Exemple : avec ce groupe, une clé OpenAI part sous la forme `<<OPENAI_API_KEY:1>>`.
+**BR-MSG-08.** Quand un message contient une clé d'API, alors elle n'est masquée que si la configuration charge un groupe de motifs de secrets ou un modèle qui cherche les secrets. Le groupe `piighost/logs` du hub est un tel groupe. Par exemple, avec ce groupe, une clé OpenAI part sous la forme `<<OPENAI_API_KEY:1>>`.
 
-**BR-MSG-09.** Quand l'utilisateur tape lui-même un texte qui a la forme d'un jeton, alors ce texte est neutralisé par un caractère invisible. Exemple : « Claire écrit `<<PERSON:2>>` ici » ne pourra pas se faire passer pour un vrai jeton à la restauration. Pourquoi : sinon, un jeton tapé à la main pourrait récupérer la valeur d'une autre personne.
+**BR-MSG-09.** Quand l'utilisateur tape lui-même un texte qui a la forme d'un jeton, alors ce texte est neutralisé par un caractère invisible. Par exemple, « Claire écrit `<<PERSON:2>>` ici » ne pourra pas se faire passer pour un vrai jeton à la restauration. Sans cela, un jeton tapé à la main pourrait récupérer la valeur d'une autre personne.
 
-**BR-MSG-10.** Quand le détecteur ne voit pas une valeur et qu'aucun contrôle final n'est activé, alors la valeur part en clair. Exemple : « Écrivez à `<<PERSON:1>>`, jean.dupont@exemple.fr » si les e-mails ne sont pas reconnus.
+**BR-MSG-10.** Quand le détecteur ne voit pas une valeur et qu'aucun contrôle final n'est activé, alors la valeur part en clair. Par exemple, si les e-mails ne sont pas reconnus, le texte devient « Écrivez à `<<PERSON:1>>`, jean.dupont@exemple.fr ».
 
 **BR-MSG-11.** Quand le contrôle final trouve une valeur sensible dans le texte protégé, alors l'envoi est bloqué avec `Anonymized text still contains PII: ['EMAIL']`. Le message nomme les types restants, jamais les valeurs.
 
@@ -122,7 +122,7 @@ Ici, un motif sûr à 100 % a trouvé « Wirth » et un modèle sûr à 70 % a t
 
 ### Ce que voit l'utilisateur final
 
-Rien : il écrit en clair et lit une réponse en clair. Seul le modèle voit les jetons. Si le contrôle final bloque un message, l'application reçoit une erreur. Le message affiché à l'utilisateur dépend alors de l'application.
+Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les jetons. Si le contrôle final bloque un message, l'application reçoit une erreur. Le message affiché à l'utilisateur dépend alors de l'application.
 
 ### Questions fréquentes
 
@@ -132,7 +132,7 @@ Rien : il écrit en clair et lit une réponse en clair. Seul le modèle voit les
 
 **Le nom de l'entreprise est remplacé par `<<PERSON:2>>`.** Le détecteur le prend pour une personne, et le modèle perd une information utile. Faites-le mettre dans la liste noire, voir [Imposer une liste blanche et une liste noire](impose-a-whitelist-and-blacklist.md).
 
-**Un numéro de carte faux a été masqué.** C'est voulu : aucune clé de contrôle n'est vérifiée (BR-MSG-07).
+**Un numéro de carte faux a été masqué.** C'est voulu, parce qu'aucune clé de contrôle n'est vérifiée (BR-MSG-07).
 
 **Une clé d'API est partie en clair.** Aucun groupe de motifs de secrets n'est chargé (BR-MSG-08). Faites ajouter le groupe `piighost/logs` à la configuration.
 
@@ -159,7 +159,7 @@ Rien : il écrit en clair et lit une réponse en clair. Seul le modèle voit les
 | BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |
 
-Valeurs par défaut quand seul le détecteur est fourni : `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())`, `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). L'expansion, la résolution d'entités, la liste blanche et la liste noire (`override`) et le contrôle final (`guard`) sont désactivés.
+Quand seul le détecteur est fourni, les valeurs par défaut sont `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` et `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). L'expansion, la résolution d'entités, la liste blanche et la liste noire (`override`) et le contrôle final (`guard`) sont désactivés.
 
 ```python
 import asyncio
@@ -184,7 +184,7 @@ asyncio.run(main())
 ### Modifier une étape
 
 1. Choisissez le port de l'étape (voir [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md)).
-2. Passez votre composant au constructeur : `AnonymizationPipeline(detector, overlap_resolver=MergeOverlapResolver())`, ou en configuration `[overlap_resolver] type = "merge"`.
+2. Passez votre composant au constructeur, `AnonymizationPipeline(detector, overlap_resolver=MergeOverlapResolver())`, ou en configuration `[overlap_resolver] type = "merge"`.
 3. Pour le contrôle final, passez `guard=DetectorGuardRail(un_détecteur)`.
 
 #### Vérifier

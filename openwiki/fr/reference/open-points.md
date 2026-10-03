@@ -18,7 +18,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 Décidé le 2026-10-02.
 
-- **DPO-10, forme de stockage des corrections.** Concevoir l'export des validations humaines, vers Langfuse par exemple, avec trois formes au choix : jetons à la place des valeurs, valeurs en clair, entrée et sortie entièrement masquées. La forme par défaut est les jetons (décidé le 2026-10-02).
+- **DPO-10, forme de stockage des corrections.** Concevoir l'export des validations humaines, vers Langfuse par exemple, avec trois formes au choix, c'est-à-dire jetons à la place des valeurs, valeurs en clair, entrée et sortie entièrement masquées. La forme par défaut est les jetons (décidé le 2026-10-02).
 - **OPS-6, modèles sur le hub.** Le refus des configurations à modèle est temporaire. Il faut un format qui répartit les labels entre motifs et modèle, parce que chaque modèle NER est plus fort sur certains labels.
 
 ## Fait
@@ -26,7 +26,7 @@ Décidé le 2026-10-02.
 Fait le 2026-10-02, sur les branches locales. Rien n'est poussé.
 
 - **DPO-9.** `LLMDetector` et `LLMGuardRail` lèvent `UnreadableOutputError` sur une sortie illisible, et `fail_open=True` rétablit l'échec ouvert avec un avertissement (`4d47d65`). Les hooks Claude Code sortent en code 2 pour un prompt ou un appel d'outil qu'ils ne peuvent pas dé-identifier, remplacent une sortie d'outil par un avis, et `PIIGHOST_HOOK_FAIL_OPEN=1` laisse passer le texte (`5ec03d1`).
-- **Jetons aux délimiteurs abîmés.** Accepté et documenté : un jeton comme `<< PERSON:1 >>` n'est pas restauré et l'utilisateur le lit tel quel, sans qu'aucune valeur ne fuie.
+- **Jetons aux délimiteurs abîmés.** Accepté et documenté. Un jeton comme `<< PERSON:1 >>` n'est pas restauré et l'utilisateur le lit tel quel, sans qu'aucune valeur ne fuie.
 - **Droits du job OpenWiki.** Il ne réécrit pas le texte d'un besoin ni d'une règle métier. Un désaccord avec le code devient une ligne du registre des écarts (`INSTRUCTIONS.md`).
 
 - **DEV-10.** `require_thread_id` est supprimé. Le middleware LangChain, les hooks Claude Code et `PIIGhostClient.detect` exigent une conversation (`piighost` `97b1e78`), et le serveur répond 400 sans `thread_id` (`piighost-api` `7dec988`). La CLI garde `--thread-id default` pour une commande isolée.

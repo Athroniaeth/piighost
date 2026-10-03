@@ -38,7 +38,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Before a text goes to the model, PIIGhost finds the sensitive values in it and replaces them with placeholders such as `<<PERSON:1>>`.
 - A given value receives a single placeholder across the whole text, even when written with a different case or different spaces.
-- The model's reply is then restored: each placeholder becomes the real value again.
+- The model's reply is then restored. Each placeholder becomes the real value again.
 - A value that the detector does not see leaves in clear text, unless a final check is enabled. The final check then blocks the sending.
 - Patterns do not check the check digits (card, IBAN). A badly copied value stays masked.
 
@@ -57,7 +57,7 @@ PIIGhost has no screen. What you can observe is the text the model receives and 
 | PIIGhost | finds the values, replaces them with placeholders, keeps the mapping |
 | The model | receives the protected text, and only that text |
 
-Before anything is sent, at least one detector must be configured. PIIGhost ships no pattern: the protected types are those of the detectors and pattern groups that the configuration loads.
+Before anything is sent, at least one detector must be configured. PIIGhost ships no pattern, so the protected types are those of the detectors and pattern groups that the configuration loads.
 
 ### The path of a message
 
@@ -73,14 +73,14 @@ flowchart TD
     H --> I["Text sent to the model"]
 ```
 
-Example followed from end to end: the user writes "Write to Jean Dupont, jean.dupont@exemple.fr".
+In the example followed from end to end, the user writes "Write to Jean Dupont, jean.dupont@exemple.fr".
 
-1. **Detection.** One or more detectors look for the values: by shape (email, phone), by AI model (names, places) or by large language model. Here, "Jean Dupont" is detected as a person and "jean.dupont@exemple.fr" as an email.
+1. **Detection.** One or more detectors look for the values by shape (email, phone), by AI model (names, places) or by large language model. Here, "Jean Dupont" is detected as a person and "jean.dupont@exemple.fr" as an email.
 2. **Whitelist and blacklist.** The values to always mask or never mask, written in the configuration, are applied. See [Impose a whitelist and a blacklist](impose-a-whitelist-and-blacklist.md).
 3. **Overlaps.** When two detections overlap, only one span is kept. Here, nothing overlaps.
 4. **Missed occurrences** (optional stage). Each value found is searched for elsewhere in the text.
 5. **Grouping.** The occurrences of the same value with the same type form a single group.
-6. **Replacement.** Each group receives a placeholder: "Jean Dupont" becomes `<<PERSON:1>>`, the address becomes `<<EMAIL:1>>`.
+6. **Replacement.** Each group receives a placeholder. "Jean Dupont" becomes `<<PERSON:1>>`, the address becomes `<<EMAIL:1>>`.
 7. **Final check** (optional). The protected text is read again to look for any remaining sensitive value.
 
 The model receives "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`". PIIGhost keeps the mapping between each placeholder and its value, to restore the reply.
@@ -89,13 +89,13 @@ The model receives "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`". PIIGhost keeps the 
 
 ### Rules to know
 
-**BR-MSG-01.** When a value is detected, then it receives a placeholder that names its type and a number, counted per type in order of appearance. Example: "Jean Dupont writes to Marie Curie" becomes "`<<PERSON:1>>` writes to `<<PERSON:2>>`".
+**BR-MSG-01.** When a value is detected, then it receives a placeholder that names its type and a number, counted per type in order of appearance. For example, "Jean Dupont writes to Marie Curie" becomes "`<<PERSON:1>>` writes to `<<PERSON:2>>`".
 
-**BR-MSG-02.** When a value comes back with a different case or different spaces, then it receives the same placeholder. Example: "Patrick called. Call patrick back tomorrow." becomes "`<<PERSON:1>>` called. Call `<<PERSON:1>>` back tomorrow."
+**BR-MSG-02.** When a value comes back with a different case or different spaces, then it receives the same placeholder. For example, "Patrick called. Call patrick back tomorrow." becomes "`<<PERSON:1>>` called. Call `<<PERSON:1>>` back tomorrow."
 
 **BR-MSG-03.** When a value has several spellings, then the restoration puts back the first spelling encountered everywhere. In the previous example, the restored reply shows "Patrick" in both places.
 
-**BR-MSG-04.** When a name is joined to another by a hyphen, then it is not recognized as the same word. Example: a detected "Patrick" does not mask "Jean-Patrick". Why: a short first name must not be linked to a different compound first name.
+**BR-MSG-04.** When a name is joined to another by a hyphen, then it is not recognized as the same word. For example, a detected "Patrick" does not mask "Jean-Patrick". The reason is that a short first name must not be linked to a different compound first name.
 
 **BR-MSG-05.** When two detections overlap, then only one span is always kept, and the surest one wins (default setting). The rest of the longer span can then leave in clear text. A second setting masks the whole covered area:
 
@@ -106,15 +106,15 @@ The model receives "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`". PIIGhost keeps the 
 
 Here, a pattern that is 100% sure found "Wirth" and a model that is 70% sure found "Loni M. Wirth". On a perfect tie of confidence and position, the first declared detector wins. With the union, the area takes the type of the surest detection, and on equal confidence the type of the longest one.
 
-**BR-MSG-06.** When a value is written with a non-breaking or thin space, then a pattern written with a normal space still finds it. Example: "06 12 34 56 78" typed in a word processor, with non-breaking spaces, becomes `<<PHONE:1>>`.
+**BR-MSG-06.** When a value is written with a non-breaking or thin space, then a pattern written with a normal space still finds it. For example, "06 12 34 56 78" typed in a word processor, with non-breaking spaces, becomes `<<PHONE:1>>`.
 
-**BR-MSG-07.** When a pattern recognizes the shape of a card or an IBAN, then the value is masked without checking its check digits. Why: a value damaged by character recognition would have wrong check digits, and rejecting it would let it leave in clear text.
+**BR-MSG-07.** When a pattern recognizes the shape of a card or an IBAN, then the value is masked without checking its check digits. The reason is that a value damaged by character recognition would have wrong check digits, and rejecting it would let it leave in clear text.
 
-**BR-MSG-08.** When a message contains an API key, then it is masked only if the configuration loads a pattern group for secrets or a model that looks for secrets. The `piighost/logs` group of the hub is such a group. Example: with this group, an OpenAI key leaves as `<<OPENAI_API_KEY:1>>`.
+**BR-MSG-08.** When a message contains an API key, then it is masked only if the configuration loads a pattern group for secrets or a model that looks for secrets. The `piighost/logs` group of the hub is such a group. For example, with this group, an OpenAI key leaves as `<<OPENAI_API_KEY:1>>`.
 
-**BR-MSG-09.** When the user types a text that has the shape of a placeholder, then this text is neutralized with an invisible character. Example: "Claire writes `<<PERSON:2>>` here" cannot pass for a real placeholder at restoration. Why: otherwise, a hand-typed placeholder could retrieve the value of another person.
+**BR-MSG-09.** When the user types a text that has the shape of a placeholder, then this text is neutralized with an invisible character. For example, "Claire writes `<<PERSON:2>>` here" cannot pass for a real placeholder at restoration. Without this, a hand-typed placeholder could retrieve the value of another person.
 
-**BR-MSG-10.** When the detector does not see a value and no final check is enabled, then the value leaves in clear text. Example: "Write to `<<PERSON:1>>`, jean.dupont@exemple.fr" if emails are not recognized.
+**BR-MSG-10.** When the detector does not see a value and no final check is enabled, then the value leaves in clear text. For example, if emails are not recognized, the text becomes "Write to `<<PERSON:1>>`, jean.dupont@exemple.fr".
 
 **BR-MSG-11.** When the final check finds a sensitive value in the protected text, then the sending is blocked with `Anonymized text still contains PII: ['EMAIL']`. The message names the remaining types, never the values.
 
@@ -122,7 +122,7 @@ Here, a pattern that is 100% sure found "Wirth" and a model that is 70% sure fou
 
 ### What the end user sees
 
-Nothing: the user writes in clear text and reads a reply in clear text. Only the model sees the placeholders. If the final check blocks a message, the application receives an error. The message shown to the user then depends on the application.
+Nothing. The user writes in clear text and reads a reply in clear text. Only the model sees the placeholders. If the final check blocks a message, the application receives an error. The message shown to the user then depends on the application.
 
 ### Frequently asked questions
 
@@ -132,7 +132,7 @@ Nothing: the user writes in clear text and reads a reply in clear text. Only the
 
 **The company name is replaced by `<<PERSON:2>>`.** The detector takes it for a person, and the model loses useful information. Have it put in the blacklist, see [Impose a whitelist and a blacklist](impose-a-whitelist-and-blacklist.md).
 
-**A wrong card number was masked.** This is intended: no check digit is checked (BR-MSG-07).
+**A wrong card number was masked.** This is intended, because no check digit is checked (BR-MSG-07).
 
 **An API key left in clear text.** No pattern group for secrets is loaded (BR-MSG-08). Have the `piighost/logs` group added to the configuration.
 
@@ -159,7 +159,7 @@ Nothing: the user writes in clear text and reads a reply in clear text. Only the
 | BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |
 
-Default values when only the detector is provided: `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())`, `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). Expansion, entity resolution, the whitelist and blacklist (`override`) and the final check (`guard`) are disabled.
+When only the detector is provided, the default values are `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` and `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). Expansion, entity resolution, the whitelist and blacklist (`override`) and the final check (`guard`) are disabled.
 
 ```python
 import asyncio
@@ -184,7 +184,7 @@ asyncio.run(main())
 ### Change a stage
 
 1. Choose the port of the stage (see [Add or replace a component](../architecture/ports-and-extension.md)).
-2. Pass your component to the constructor: `AnonymizationPipeline(detector, overlap_resolver=MergeOverlapResolver())`, or in configuration `[overlap_resolver] type = "merge"`.
+2. Pass your component to the constructor, `AnonymizationPipeline(detector, overlap_resolver=MergeOverlapResolver())`, or in configuration `[overlap_resolver] type = "merge"`.
 3. For the final check, pass `guard=DetectorGuardRail(a_detector)`.
 
 #### Check

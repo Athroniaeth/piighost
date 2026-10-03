@@ -4,7 +4,7 @@ icon: lucide/play
 
 # Premier pipeline
 
-Vous allez construire un pipeline qui détecte des noms et des lieux arbitraires, pas seulement des valeurs connues d'avance, et le voir tourner à chaque étape. Deux détecteurs conviennent pour ça : un modèle NER (GLiNER2) ou un catalogue de motifs regex. Vous partez d'un détecteur, ajoutez les trois composants restants un par un, puis lancez le pipeline sur une phrase.
+Vous allez construire un pipeline qui détecte des noms et des lieux arbitraires, pas seulement des valeurs connues d'avance, et le voir tourner à chaque étape. Deux détecteurs conviennent pour ça, un modèle NER (GLiNER2) ou un catalogue de motifs regex. Vous partez d'un détecteur, ajoutez les trois composants restants un par un, puis lancez le pipeline sur une phrase.
 
 !!! note "Prérequis"
     `piighost` installé, voir [Installation](installation.md). Le chemin regex n'utilise que le socle, sans extra. Le chemin GLiNER2 demande l'extra `gliner2` et télécharge un modèle au premier chargement.
@@ -47,7 +47,7 @@ Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détect
 
 ## 3. Assigner un jeton à chaque entité
 
-L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton qui prend sa place dans le texte. Le jeton dépend de la factory choisie. `LabelCounterPlaceholderFactory` numérote les jetons par label : `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
+L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton qui prend sa place dans le texte. Le jeton dépend de la factory choisie. `LabelCounterPlaceholderFactory` numérote les jetons par label. Cela donne `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
 --8<-- "snippets/first_pipeline.fr.py:anonymizer"
@@ -55,7 +55,7 @@ L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton
 
 ## 4. Assembler et lancer
 
-`AnonymizationPipeline` enchaîne les trois composants dans l'ordre : détecter, regrouper, remplacer. Sa méthode `anonymize` est asynchrone. Elle renvoie un résultat dont l'attribut `text` porte la phrase dé-identifiée.
+`AnonymizationPipeline` enchaîne les trois composants dans l'ordre. Il détecte, regroupe, puis remplace. Sa méthode `anonymize` est asynchrone. Elle renvoie un résultat dont l'attribut `text` porte la phrase dé-identifiée.
 
 ```python
 --8<-- "snippets/first_pipeline.fr.py:run"

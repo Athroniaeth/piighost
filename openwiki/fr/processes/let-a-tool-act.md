@@ -21,9 +21,9 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Un agent appelle des outils, par exemple pour envoyer un e-mail. Le modèle ne connaît que les jetons et les écrit dans l'appel.
 - Par défaut, PIIGhost remet les vraies valeurs dans les arguments juste avant l'exécution, puis masque le résultat de l'outil avant que le modèle le lise.
-- Le résultat de l'outil passe par le repérage complet : une adresse que la conversation n'a jamais citée est masquée aussi.
+- Le résultat de l'outil passe par le repérage complet, donc une adresse que la conversation n'a jamais citée est masquée aussi.
 - Trois autres réglages existent. Deux d'entre eux laissent le résultat partir en clair vers le modèle.
-- Un jeton inventé par le modèle dans un argument bloque l'appel par défaut : l'outil ne s'exécute pas.
+- Un jeton inventé par le modèle dans un argument bloque l'appel par défaut. L'outil ne s'exécute pas.
 
 Besoins couverts : DEV-4, DEV-8, USER-3 et DPO-1, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Le branchement de PIIGhost sur un agent est décrit dans [Brancher la protection sur un agent et ses outils](../integrations/agents-and-tools.md).
 
@@ -81,7 +81,7 @@ L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant.
 
 **BR-TOOL-02.** Quand le réglage est « Entrée seule », alors les arguments sont restaurés et le résultat part au modèle tel que l'outil l'a renvoyé.
 
-**BR-TOOL-03.** Quand le réglage est « Sortie seule », alors l'outil reçoit les jetons et son résultat est masqué. Exemple : l'outil d'envoi reçoit `<<EMAIL:1>>` et enverrait l'e-mail à une adresse qui n'existe pas.
+**BR-TOOL-03.** Quand le réglage est « Sortie seule », alors l'outil reçoit les jetons et son résultat est masqué. Par exemple, l'outil d'envoi reçoit `<<EMAIL:1>>` et enverrait l'e-mail à une adresse qui n'existe pas.
 
 **BR-TOOL-04.** Quand le réglage est « Aucun », alors PIIGhost ne touche ni aux arguments ni au résultat.
 
@@ -89,7 +89,7 @@ L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant.
 
 **BR-TOOL-06.** Quand une valeur apparaît d'abord dans le résultat d'un outil, alors elle compte comme une valeur de l'utilisateur et reste masquée dans la suite de la conversation.
 
-**BR-TOOL-07.** Quand le modèle écrit dans un argument un jeton jamais émis, alors l'appel est refusé par défaut, avant l'exécution : `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. Aucun e-mail ne part. Avec le réglage de jeton inventé « retirer », l'outil reçoit `{"to": ""}`. Avec « garder », il reçoit `{"to": "<<EMAIL:7>>"}`.
+**BR-TOOL-07.** Quand le modèle écrit dans un argument un jeton jamais émis, alors l'appel est refusé par défaut, avant l'exécution, avec le message `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. Aucun e-mail ne part. Avec le réglage de jeton inventé « retirer », l'outil reçoit `{"to": ""}`. Avec « garder », il reçoit `{"to": "<<EMAIL:7>>"}`.
 
 **BR-TOOL-08.** Quand les arguments contiennent des listes ou des objets imbriqués, alors chaque texte qu'ils contiennent est restauré, et les autres valeurs (nombres, booléens) restent intactes.
 
@@ -101,13 +101,13 @@ L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant.
 
 ### Ce que voit l'utilisateur final
 
-Le résultat de l'action : l'e-mail arrive à la bonne adresse, le dossier cherché est le bon. La réponse finale du modèle est restaurée comme décrit dans [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
+L'utilisateur voit le résultat de l'action. L'e-mail arrive à la bonne adresse, le dossier cherché est le bon. La réponse finale du modèle est restaurée comme décrit dans [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
 
 ### Questions fréquentes
 
 **Un outil a reçu `<<EMAIL:1>>` au lieu de l'adresse.** Le réglage d'outil est « Sortie seule » ou « Aucun » (BR-TOOL-03, BR-TOOL-04). Passez-le à « Complet » si l'outil doit agir sur la vraie adresse.
 
-**L'appel d'outil s'arrête avec `Deanonymized text holds tokens the pipeline never issued`.** Le modèle a écrit un jeton inconnu dans un argument (BR-TOOL-07). Gardez le refus : il évite un e-mail envoyé à une adresse inventée.
+**L'appel d'outil s'arrête avec `Deanonymized text holds tokens the pipeline never issued`.** Le modèle a écrit un jeton inconnu dans un argument (BR-TOOL-07). Gardez le refus, parce qu'il évite un e-mail envoyé à une adresse inventée.
 
 **Le résultat d'un outil est parti en clair vers le modèle.** Le réglage est « Entrée seule » ou « Aucun » (BR-TOOL-02, BR-TOOL-04).
 

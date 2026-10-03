@@ -27,8 +27,8 @@ Five families of factories sit at different points on that spectrum, and the cho
 
     Tokens in this documentation follow a simple rule.
 
-    - **Synthetic token** (does not look like any real value), wrapped in `<<` and `>>`. Examples: `<<REDACT>>`{ .placeholder }, `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }, `<<REDACT:a1b2c3d4>>`{ .placeholder }. The delimiters serve two purposes. An LLM or a human re-reading never mistakes the token for a regular word or for an HTML/XML tag the model might emit. And the middleware can find the token again to run its string replacement, including spotting a token the model invented.
-    - **Token that replicates a real value's format** (realistic hashed, masked), no delimiters. Examples: `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder }, `j***@mail.com`{ .placeholder }. The absence of delimiters is deliberate. The token has to look natural, so that a downstream tool that validates a format (email regex, card length) still accepts it.
+    - **Synthetic token** (does not look like any real value), wrapped in `<<` and `>>`. For example `<<REDACT>>`{ .placeholder }, `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }, `<<REDACT:a1b2c3d4>>`{ .placeholder }. The delimiters serve two purposes. An LLM or a human re-reading never mistakes the token for a regular word or for an HTML/XML tag the model might emit. And the middleware can find the token again to run its string replacement, including spotting a token the model invented.
+    - **Token that replicates a real value's format** (realistic hashed, masked), no delimiters. For example `a1b2c3d4@anonymized.local`{ .placeholder }, `Patient_a1b2c3d4`{ .placeholder }, `j***@mail.com`{ .placeholder }. The absence of delimiters is deliberate. The token has to look natural, so that a downstream tool that validates a format (email regex, card length) still accepts it.
 
     The rule also applies to any factory you write. Purely opaque token, wrap it. Token that mimics a real value, leave it raw.
 
@@ -94,7 +94,7 @@ Every factory carries a **phantom type** that summarises the preservation level 
 
 Two tables read these families from two angles. The **Confidentiality** table shows what leaks to the LLM, from the attacker and privacy point of view. The **Exploitation** table shows what the agent and the system can do with the token, from the point of view of functional capabilities. The same answer can be good in one and problematic in the other, and the two tables make this tension explicit.
 
-Both tables share the same colour code: blue = best, green = acceptable, yellow = partial, red = problematic.
+Both tables share the same colour code. Blue = best, green = acceptable, yellow = partial, red = problematic.
 
 #### Confidentiality (what leaks to the LLM)
 
@@ -248,7 +248,7 @@ The goal is to produce a sanitised version of a document, for example redacting 
 
 The LLM reasons about the conversation, and tools (CRM, DB, mail) need real values at call time. The middleware does string replacement on tool arguments, **so it requires a unique and findable token per entity**.
 
-Direct consequence: only families with preserved identity *and* a findable grammar are compatible, that is id only and type + id opaque. `No information`, `Type only` and `Partial value` are rejected at type-check. Realistic hashed preserves identity but is not findable, so it fails the middleware constraint.
+As a direct consequence, only families with preserved identity *and* a findable grammar are compatible, that is id only and type + id opaque. `No information`, `Type only` and `Partial value` are rejected at type-check. Realistic hashed preserves identity but is not findable, so it fails the middleware constraint.
 
 | Need | Recommended family | Why |
 |---|---|---|
@@ -267,7 +267,7 @@ The preservation tag exists so this choice is visible to the type-checker, not b
 
 ## Why `PIIAnonymizationMiddleware` requires a findable identity
 
-The middleware operates on three boundaries: **input messages** (LLM in), **output messages** (LLM out), and **tool calls**. The first two rely on the conversation memory. The tool calls do not.
+The middleware operates on three boundaries, **input messages** (LLM in), **output messages** (LLM out), and **tool calls**. The first two rely on the conversation memory. The tool calls do not.
 
 **Input and output messages.** When `abefore_model` de-identifies a message, the pipeline records the entity-to-token mapping. The reply from the LLM is restored by reading that mapping in reverse. This works for any factory, whether or not tokens collide.
 
@@ -277,7 +277,7 @@ That substitution is unambiguous **only if every entity maps to a unique token**
 
 `PIIAnonymizationMiddleware` mirrors that constraint at runtime. At construction, it asks the pipeline for a *recognizer*, the object that knows how to find its own tokens. A delimited factory is its own recognizer. A factory with no grammar, such as a mask, has none, and the middleware then raises `UnrecognizableFactoryError`. This runtime check catches untyped or remote pipelines that bypassed the type-checker.
 
-The recognizer's grammar is bounded, not "anything between the delimiters". The inner form is a label, then an optional colon and identifier: `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. A label starts with a letter or underscore, then letters, digits, underscores, spaces, or hyphens, so a multi-word label a detector emits, such as `date of birth`, still fits. The identifier after the colon is alphanumeric, an ordinal or a hex digest. Arbitrary delimited content is not a token. A C++ shift `cout << x >> y` or a markdown run therefore never trips the invented-token guard. A streaming reply that opens `<<` without closing it is released rather than buffered indefinitely.
+The recognizer's grammar is bounded, not "anything between the delimiters". The inner form is a label, then an optional colon and identifier, such as `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder } or `<<PERSON:a1b2c3d4>>`{ .placeholder }. A label starts with a letter or underscore, then letters, digits, underscores, spaces, or hyphens, so a multi-word label a detector emits, such as `date of birth`, still fits. The identifier after the colon is alphanumeric, an ordinal or a hex digest. Arbitrary delimited content is not a token. A C++ shift `cout << x >> y` or a markdown run therefore never trips the invented-token guard. A streaming reply that opens `<<` without closing it is released rather than buffered indefinitely.
 
 See [Tool-call strategies](tool-call-strategies.md) for the only escape hatch, `ToolCallStrategy.PASSTHROUGH`, where the tool boundary is never crossed in clear text.
 

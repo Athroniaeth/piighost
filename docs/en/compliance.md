@@ -11,7 +11,7 @@ The detectors and modes `piighost` ships line up against two regulatory framewor
 
 ## HIPAA Safe Harbor
 
-HIPAA is the United States health-data law. Its Safe Harbor method sets two conditions: you remove 18 categories of identifiers from a record, and you hold no actual knowledge that the remainder could re-identify someone. The record is then no longer protected health information and leaves the scope of the rule. Safe Harbor is a de-identification target, not a lossless transform, because it destroys data that depends on exact dates or places.
+HIPAA is the United States health-data law. Its Safe Harbor method sets two conditions. You remove 18 categories of identifiers from a record, and you hold no actual knowledge that the remainder could re-identify someone. The record is then no longer protected health information and leaves the scope of the rule. Safe Harbor is a de-identification target, not a lossless transform, because it destroys data that depends on exact dates or places.
 
 The table below maps each of the 18 identifiers onto the detectors `piighost` ships and the regex catalogs of the hub. "Custom" means no hub catalog carries a pattern for that identifier. You cover it with a `RegexDetector` pattern for your local format, or with the `LLMDetector`.
 
@@ -116,7 +116,7 @@ The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as
 
 - For you, the controller holding the mapping, the de-identified text stays personal data. Every obligation of the GDPR applies to the whole processing, the mapping included.
 - An LLM provider that processes the text on your behalf is your processor. Under Guidelines 02/2026, the text is then assessed from your perspective, so it stays personal data for the provider too.
-- An LLM provider that uses the text for its own purposes is assessed from its own perspective. The judgment leaves open that the text is not personal data for it, but only if both conditions of paragraph 77 hold. `piighost` meets the first condition by design, since the mapping never leaves your side. The second condition depends on two things. First, what the text still carries in clear: the context, the quasi-identifiers, a PII the detector missed. Second, what the provider can cross-check the text with. See [Security](security.md) and [Limitations](limitations.md).
+- An LLM provider that uses the text for its own purposes is assessed from its own perspective. The judgment leaves open that the text is not personal data for it, but only if both conditions of paragraph 77 hold. `piighost` meets the first condition by design, since the mapping never leaves your side. The second condition depends on two things. First, what the text still carries in clear, that is the context, the quasi-identifiers, a PII the detector missed. Second, what the provider can cross-check the text with. See [Security](security.md) and [Limitations](limitations.md).
 - You must tell data subjects that their messages reach an LLM provider. This duty is assessed from your point of view, at the time of collection. So it holds whatever the provider's position. In that notice, call the processing pseudonymization, not anonymization or de-identification, as paragraph 40 of Guidelines 02/2026 asks.
 - A DPIA that treats the de-identified text as personal data for the provider stays valid whichever way these questions are settled.
 
