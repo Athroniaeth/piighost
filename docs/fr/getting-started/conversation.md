@@ -62,4 +62,4 @@ La sortie doit être :
 
 - Pour partager la mémoire entre plusieurs processus, remplacez `InMemoryConversationMemory` par une mémoire persistante. Voir la [Référence TOML](../configuration/toml.md) pour la déclarer en configuration.
 - Pour brancher ce pipeline dans un agent LangGraph, voir le [Middleware LangChain](langchain.md).
-- Pour lire les règles de gestion d'une conversation, de `BR-CONV-01` à `BR-CONV-11`, voir [Suivre une conversation et restaurer la réponse](../../../openwiki/processus/suivre-une-conversation.md).
+- Pour lire les règles de gestion d'une conversation, de `BR-CONV-01` à `BR-CONV-11`, voir [Suivre une conversation et restaurer la réponse](../../../openwiki/fr/processes/follow-a-conversation.md).

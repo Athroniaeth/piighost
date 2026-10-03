@@ -114,4 +114,4 @@ Pour chaque clé et chaque valeur acceptée, voir la [configuration TOML](../con
 - [Référence du pipeline](../reference/pipeline.md) pour le paramètre `override` et l'ordre des étapes.
 - [Garde-fous](../reference/guard-rails.md) pour le contrôle de sortie dont la blacklist exempte une valeur.
 - [Configuration TOML](../configuration/toml.md) pour les clés de `[override]`.
-- [Imposer une liste blanche et une liste noire](../../../openwiki/processus/imposer-une-liste-blanche-et-noire.md) pour les règles de gestion des deux listes, de `BR-LIST-01` à `BR-LIST-08`.
+- [Imposer une liste blanche et une liste noire](../../../openwiki/fr/processes/impose-a-whitelist-and-blacklist.md) pour les règles de gestion des deux listes, de `BR-LIST-01` à `BR-LIST-08`.

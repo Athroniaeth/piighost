@@ -35,6 +35,25 @@ Adaptations imposées par le cycle OpenWiki :
 
 Sans ces skills, appliquer les règles ci-dessous, qui en sont le résumé.
 
+## Deux langues, les mêmes pages
+
+Le wiki existe en anglais et en français, toujours les deux :
+`openwiki/en/` et `openwiki/fr/`. Chaque page existe dans les deux dossiers,
+au **même chemin**, en anglais (`processes/protect-a-message.md`), avec la
+même structure, les mêmes identifiants et les mêmes liens vers le code.
+
+- Toute page créée, modifiée, déplacée ou supprimée l'est dans les deux
+  langues, dans la même mise à jour. Une page dans une seule langue est une
+  erreur.
+- Seule la prose se traduit. Le code, les identifiants (`BR-MSG-05`,
+  `DPO-9`), les noms de fichiers et les libellés `fichier:ligne` restent
+  identiques.
+- Les ancres de titre suivent la langue de la page : un lien vers une section
+  vise le titre de cette langue.
+- Vocabulaire : *dé-identifier*, *restaurer*, *jeton*, *conversation* en
+  français ; *de-identify*, *restore*, *placeholder*, *conversation* en
+  anglais.
+
 ## Source de vérité
 
 - Le **code et les tests font foi**. Le texte décrit le comportement réel,
@@ -58,7 +77,7 @@ Sans ces skills, appliquer les règles ci-dessous, qui en sont le résumé.
   du code.** Ne jamais modifier le texte d'un besoin (`DPO-`, `DEV-`, `OPS-`,
   `USER-`) ni d'une règle (`BR-`) pour le faire correspondre au code. Quand le
   code s'en écarte, ajouter une ligne au registre des écarts
-  (`reference/ecarts-doc-code.md`) et laisser la règle telle quelle. Seul un
+  (`reference/doc-code-gaps.md`) et laisser la règle telle quelle. Seul un
   humain change une décision. Les emplacements de code, les tests et les
   écarts restent à mettre à jour.
 
@@ -132,7 +151,7 @@ Sections typées, sans les mélanger :
 4. **Écarts doc / code** : un encadré « ⚠ Écart doc / code » par écart (ce
    que dit la doc, ce que fait le code, `fichier:ligne`). Les écarts ne vont
    **que** dans cette partie, jamais dans la partie métier. Chaque écart est
-   aussi listé dans `reference/ecarts-doc-code.md`.
+   aussi listé dans `reference/doc-code-gaps.md`.
 5. **Tests** : tests existants, et ce qu'ils ne couvrent pas.
 
 Marquer `[à vérifier]` toute affirmation qui dépend de code absent du dépôt
@@ -177,9 +196,9 @@ Couvrir au minimum :
 - **Glossaire** (page dédiée, liée depuis toutes les pages) : chaque terme et
   sigle du métier, avec une définition métier d'une ou deux phrases, le
   libellé de l'écran, puis, si utile, le nom technique correspondant.
-- **Registre des écarts doc / code** (`reference/ecarts-doc-code.md`).
-- **Besoins par profil** (`besoins-par-profil.md`) et **tests d'acceptation**
-  (`tests/tests-d-acceptation.md`) : chaque processus cite les besoins qu'il
+- **Registre des écarts doc / code** (`reference/doc-code-gaps.md`).
+- **Besoins par profil** (`needs-by-profile.md`) et **tests d'acceptation**
+  (`tests/acceptance-tests.md`) : chaque processus cite les besoins qu'il
   couvre, et chaque besoin ses tests.
 
 ## Identifiants

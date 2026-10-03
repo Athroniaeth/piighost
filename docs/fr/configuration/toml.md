@@ -591,4 +591,4 @@ Le même contenu en JSON, choisi par un suffixe `.json`, est équivalent. Une ta
 - [Interface en ligne de commande](../reference/cli.md) pour valider un fichier depuis le shell.
 - [Référence Détecteurs](../reference/detectors.md) pour le détecteur que chaque `type` construit.
 - [Référence de l'intégration LangChain](../reference/langchain.md) pour piloter un pipeline de conversation dans un agent.
-- [Configurer un pipeline par fichier, hub et ligne de commande](../../../openwiki/exploitation/configuration-et-hub.md) pour les règles de configuration, de `BR-CFG-01` à `BR-CFG-09`, et leur emplacement dans le code.
+- [Configurer un pipeline par fichier, hub et ligne de commande](../../../openwiki/fr/operations/configuration-and-hub.md) pour les règles de configuration, de `BR-CFG-01` à `BR-CFG-09`, et leur emplacement dans le code.

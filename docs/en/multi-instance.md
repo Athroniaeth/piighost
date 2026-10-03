@@ -107,4 +107,4 @@ The same trap hits LangGraph's `checkpointer`. `MemorySaver` is process-local, `
 - [Configuration reference](configuration/toml.md): every `[memory]` key, TOML and JSON.
 - [Security](security.md): the at-rest guarantees of the Redis backend and the backend comparison.
 - [Conversational pipeline](getting-started/conversation.md): how tokens stay consistent across a thread.
-- [Store conversations and protect traces](../../openwiki/exploitation/stockage-et-chiffrement.md) (in French): the storage rules, `BR-STO-01` to `BR-STO-08`, written for a DPO or an operator.
+- [Store conversations and protect traces](../../openwiki/en/operations/storage-and-encryption.md): the storage rules, `BR-STO-01` to `BR-STO-08`, written for a DPO or an operator.

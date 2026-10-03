@@ -591,4 +591,4 @@ The same content in JSON, chosen by a `.json` suffix, is equivalent. A table bec
 - [Command-line interface](../reference/cli.md) for validating a file from the shell.
 - [Detectors reference](../reference/detectors.md) for the detector each `type` builds.
 - [LangChain middleware reference](../reference/langchain.md) for driving a thread pipeline in an agent.
-- [Configure a pipeline by file, hub and command line](../../../openwiki/exploitation/configuration-et-hub.md), in French, for the configuration rules `BR-CFG-01` to `BR-CFG-09` and where each lives in the code.
+- [Configure a pipeline by file, hub and command line](../../../openwiki/en/operations/configuration-and-hub.md), for the configuration rules `BR-CFG-01` to `BR-CFG-09` and where each lives in the code.

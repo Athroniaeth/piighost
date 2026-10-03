@@ -1,77 +1,77 @@
 {
   "schemaVersion": 1,
   "pages": {
-    "/openwiki/architecture/ports-et-extension.md": {
+    "/openwiki/fr/architecture/ports-and-extension.md": {
       "pageVersion": "sha256:5a263be487839d2baa2272131359432b8f57cc4056d6dc1f0dc931a645a0d6b1",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/exploitation/configuration-et-hub.md": {
+    "/openwiki/fr/operations/configuration-and-hub.md": {
       "pageVersion": "sha256:3a95ecf5b0b1999bc57f2e9c0d19ac3f28c3079c19898d17cf0e0abb1cc29751",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/exploitation/stockage-et-chiffrement.md": {
+    "/openwiki/fr/operations/storage-and-encryption.md": {
       "pageVersion": "sha256:fb7267f4fa1174868d189e36a258dd50ce86e1d99771260f94dca551a31b0b21",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/glossaire.md": {
+    "/openwiki/fr/glossary.md": {
       "pageVersion": "sha256:1360106213eccdb23ba16b9b3f5b0d5995cce2373e58549aa3f1c7ce15bdb9a1",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/integrations/agents-et-outils.md": {
+    "/openwiki/fr/integrations/agents-and-tools.md": {
       "pageVersion": "sha256:f44843302962c6586ebe6a9a99b5632503e3c2b3c7acd3f63769b7148bbcfebe",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/processus/imposer-une-liste-blanche-et-noire.md": {
+    "/openwiki/fr/processes/impose-a-whitelist-and-blacklist.md": {
       "pageVersion": "sha256:f3fb68e95ad73bf894a81d3f349e2c839bde4afdca7f4e95d5d879f5118663e9",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/processus/proteger-un-message.md": {
+    "/openwiki/fr/processes/protect-a-message.md": {
       "pageVersion": "sha256:adb6b7f2e1197fe1d25cfc8614026eb0325e11f1e5de1c1be96523b69fb75f9b",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/processus/suivre-une-conversation.md": {
+    "/openwiki/fr/processes/follow-a-conversation.md": {
       "pageVersion": "sha256:fb68b20ae3625583cf092dbc3f1957dc72019f7188293dd99b2ad2627d6fa183",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/quickstart.md": {
+    "/openwiki/fr/quickstart.md": {
       "pageVersion": "sha256:d4c01360ddd8acd7388a9d566d17e278acfae662d0f67f123e2892d6057fbb99",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/reference/ecarts-doc-code.md": {
+    "/openwiki/fr/reference/doc-code-gaps.md": {
       "pageVersion": "sha256:057b753eef3f66a8310df8fa4e2703c358c20ff1d89ab6590620bd26febb323c",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/tests/lancer-et-ecrire-les-tests.md": {
+    "/openwiki/fr/tests/run-and-write-tests.md": {
       "pageVersion": "sha256:2e71443bf4e60ecdf046791148007f5de7b41ff9b92d22d7f8ba8088ec256fc4",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",

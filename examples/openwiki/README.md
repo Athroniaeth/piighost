@@ -1,6 +1,6 @@
 # OpenWiki brief and writing skills
 
-The files used to generate the French wiki in [`openwiki/`](../../openwiki/quickstart.md) with [OpenWiki](https://github.com/langchain-ai/openwiki) 0.6.1, driven from Claude Code. They are kept here as an example of a custom brief, not as project conventions: the project's own skills live in [`skills/`](../../skills).
+The files used to generate the French wiki in [`openwiki/`](../../openwiki/fr/quickstart.md) with [OpenWiki](https://github.com/langchain-ai/openwiki) 0.6.1, driven from Claude Code. They are kept here as an example of a custom brief, not as project conventions: the project's own skills live in [`skills/`](../../skills).
 
 | File | Role |
 |---|---|
@@ -21,4 +21,4 @@ Restart Claude Code in the repository, then ask: "Initialize OpenWiki for this r
 
 ## What to expect
 
-The brief targets applications with screens. PIIGhost is a library with none, so the run read "screen labels" as the visible outputs (tokens, error messages, CLI output, configuration keys) and invented no navigation path. Business procedures therefore often end with "ask the technical team". The doc/code register it produced is in [`openwiki/reference/ecarts-doc-code.md`](../../openwiki/reference/ecarts-doc-code.md).
+The brief targets applications with screens. PIIGhost is a library with none, so the run read "screen labels" as the visible outputs (tokens, error messages, CLI output, configuration keys) and invented no navigation path. Business procedures therefore often end with "ask the technical team". The doc/code register it produced is in [`openwiki/reference/ecarts-doc-code.md`](../../openwiki/fr/reference/doc-code-gaps.md).

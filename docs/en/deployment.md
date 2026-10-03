@@ -148,4 +148,4 @@ To serve a hub configuration instead of a file, set `PIIGHOST_CONFIG` to its ref
 - [Multi-instance deployment](multi-instance.md): why the shared Redis memory is required behind a load balancer.
 - [Security](security.md): the at-rest threat model and the backend comparison.
 - [Conversational pipeline](getting-started/conversation.md): the thread pipeline API the middleware drives.
-- [Store conversations and protect traces](../../openwiki/exploitation/stockage-et-chiffrement.md) (in French): the storage rules, `BR-STO-01` to `BR-STO-08`, written for a DPO or an operator.
+- [Store conversations and protect traces](../../openwiki/en/operations/storage-and-encryption.md): the storage rules, `BR-STO-01` to `BR-STO-08`, written for a DPO or an operator.
