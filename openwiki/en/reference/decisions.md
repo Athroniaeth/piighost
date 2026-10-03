@@ -1,7 +1,7 @@
 ---
 type: reference
 title: Design decisions
-description: The decisions that built the PIIGhost de-identification system, in the order they arose, each with its identifier, its context, its reason, its consequences and the place in the code where it lives.
+description: The decisions that built the PIIGhost de-identification system, in the order they arose, each explained with an example, and the place in the code where it lives.
 tags: [decisions, conventions, placeholder, detection, conversation, security]
 generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 ---
@@ -10,189 +10,253 @@ generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 
 ## In short
 
-The de-identification system was built in steps, and each new need called for a decision. To replace a confidential value with a placeholder, it first had to be found in the text, at a precise position. For the model to still understand the text, the placeholder had to say what type of data it stands for. To tell two people apart, the placeholder needed an identifier. So it had to be known which detections refer to the same person. For the user to read their real data, the mapping between each placeholder and its value had to be kept. Then came the conversation, the tools of an agent, streaming and production.
+The de-identification system was built in steps, and each new need called for a decision. To replace a confidential value with a placeholder, the system first had to find it in the text, at a precise position. For the model to still understand the text, the placeholder had to say what type of data it stands for. To tell two people apart, the placeholder needed an identifier. So the system had to know which detections refer to the same person. For the user to read their real data, the mapping between each placeholder and its value had to be kept. Then came the conversation, the tools of an agent, streaming and production.
 
-This page tells these decisions in the order they arose. Each one carries a `DEC-NN` identifier and gives its context, what was decided, why, its consequences and the place in the code where it lives. It also cites the business rules that follow from it. The technical documentation describes the components that apply these decisions, in [Pipeline design](../../../docs/en/conception.md). These decisions bind the rest of the library, so changing one calls for a discussion first.
+This page presents these decisions in the order they arose. Each one carries a `DEC-NN` identifier. It explains the problem, the choice made and what it changes, with an example when one helps. It ends with the place in the code where it is implemented, and the business rules that follow from it. Together, these decisions make up the pipeline, the sequence of steps that goes from the original text to the protected text. The technical documentation describes the components of this pipeline, in [Pipeline design](../../../docs/en/conception.md). The rest of the library depends on these decisions, so discuss any change before making it.
 
 ## De-identify a text
 
-**DEC-01. Replace each confidential value with a placeholder.**
+### DEC-01: Replace each confidential value with a placeholder
 
-- **Context**: a text must go to an AI model without its confidential data, but the model must still be able to answer it.
-- **Decision**: each value is replaced with a placeholder, a replacement text. It is neither deleted nor scrambled.
-- **Why**: a sentence stripped of its names loses its meaning. With a placeholder in its place, the sentence stays readable, and the model can answer by reusing the placeholder.
-- **Consequences**: the rest of the system exists to produce these placeholders, keep them consistent and turn them back into values.
+A text must go to an AI model without its confidential data. Yet the model must still be able to answer it. Deleting the data does not work, because a sentence stripped of its names loses its meaning. "Tell Jean Dupont his appointment has moved" would become "Tell his appointment has moved", and the model would no longer know whom to tell.
 
-**DEC-02. Find each value and its exact position.**
+So PIIGhost replaces each value with a placeholder, a short text that stands in its place. By default, the value is neither deleted nor masked letter by letter. The sentence stays readable, and the model can answer by reusing the placeholder. The rest of the system exists to produce these placeholders, keep them consistent and turn them back into values.
 
-- **Context**: to replace a value, you need to know where it starts and where it ends in the text.
-- **Decision**: a detector returns spans. A span is a start and end position, with the type of the data and a confidence score. Two families of detectors complement each other. Regular expressions recognize fixed formats, such as an email, an IBAN or a phone number. Named entity recognition (NER) models recognize free text, such as a name or a place. An LLM detector names values without giving their position, and PIIGhost searches for them in the text.
-- **Why**: no family covers everything, so several detectors can run together.
-- **Consequences**: a value that no detector sees goes out in clear text. A value invented by an LLM is ignored, because it is not in the text. A value is masked on its shape alone, without checking its check digits. A value damaged by character recognition is therefore still detected. Regular expressions are in ASCII, and any Unicode space counts as an ordinary space.
-- **In the code**: `components/detector/`, `text/normalization.py`. Rules BR-MSG-06, BR-MSG-07, BR-MSG-10.
+### DEC-02: Find each value and its exact position
 
-**DEC-03. Wrap each placeholder in `<<` and `>>`.**
+To replace a value, you need to know where it starts and where it ends in the text. That is the job of a detector. Each value it finds is called a detection. A detection gives a span, a start and end position, with the type of the data and a confidence score. This score is a number between 0 and 1 that says how sure the detector is.
 
-- **Context**: a way to write a placeholder in the text was needed.
-- **Decision**: a placeholder is wrapped in two doubled angle brackets, as in `<<REDACT>>`.
-- **Why**: this sequence of characters is rare in ordinary text. A regular expression therefore finds a placeholder easily. It also tells the model that it is reading masked data.
-- **Consequences**: a user can type this sequence themselves. This case needs a precaution, see DEC-13.
-- **In the code**: `components/placeholder/streaming.py` (`DEFAULT_PREFIX`, `DEFAULT_SUFFIX`).
+No detector finds everything, so several can run together. Two families complement each other:
 
-**DEC-04. Say in the placeholder what type of data it stands for.**
+- Regular expressions: these are patterns that recognize fixed formats, such as an email, an IBAN or a phone number.
+- NER models: these are AI models trained to recognize, in free text, the names of people, places or organizations.
 
-- **Context**: if every piece of data becomes `<<REDACT>>`, the model does not know whether it is a person, an address or an email. It therefore answers poorly.
-- **Decision**: the placeholder says the type of the data, called the label, as in `<<PERSON>>`. The label comes from the NER model, or from the name given to the pattern in the regular expression detector.
-- **Why**: with `<<PERSON>>`, the model knows it is a person. It can therefore write "Hello `<<PERSON>>`".
-- **Consequences**: two people still get the same placeholder, see DEC-05. A detector can map the labels of its model to the ones you want to see in the placeholders. A label starts with a letter or `_`, then contains letters, digits, `_`, spaces or hyphens.
-- **In the code**: `components/detector/ner/base.py` (label mapping), `components/placeholder/streaming.py` (`LABEL_INNER`).
+An LLM detector works differently. An LLM is a large language model, queried like an assistant. It names values without giving their position, and PIIGhost then finds them in the text on its own. A value the LLM makes up is therefore ignored, because it is not in the text.
 
-**DEC-05. Give each individual their own identifier.**
+This way of detecting has three limits. First, a value no detector sees goes out unmasked. Second, a regular expression recognizes a value by its shape alone. It does not verify the check digits, the verification digits an IBAN carries. An IBAN damaged by character recognition (OCR) is thus still detected, even if its check digits have become wrong. Third, a regular expression only recognizes basic digits and Latin letters. An Arabic-Indic digit, for example, is not read as a digit. Any Unicode space, such as a non-breaking space, does count as an ordinary space.
 
-- **Context**: with `<<PERSON>>`, two people in the same text get the same placeholder, and the model confuses them.
-- **Decision**: the placeholder adds an identifier after the type, as in `<<PERSON:1>>`. By default, it is a number counted per type, starting at 1, in order of appearance. Another form uses a SHA-256 hash, computed on the type and the rank, never on the value.
-- **Why**: the number is readable by the model. The hash hides no secret, and nothing can be inferred from it about the value.
-- **Consequences**: you need to know which detections refer to the same individual, see DEC-06.
-- **In the code**: `components/placeholder/label_counter.py`, `components/placeholder/label_hash.py`. Rule BR-MSG-01.
+Implemented in `components/detector/` and `text/normalization.py`. Rules BR-MSG-06, BR-MSG-07 and BR-MSG-10 follow from it.
 
-**DEC-06. Group the detections of one individual.**
+### DEC-03: Wrap each placeholder in `<<` and `>>`
 
-- **Context**: the same person appears several times in a text, sometimes written differently. All their occurrences must get the same placeholder.
-- **Decision**: detections that share the same value and the same type form an entity, which gets a single placeholder. Two values that differ only in their spaces or their case count as the same. As an option, a search catches the occurrences a detector missed, and an approximate match joins close spellings.
-- **Why**: without this grouping, "Jean Dupont" and "jean dupont" would get two placeholders, and the model would think it is talking about two people.
-- **Consequences**: on restoration, a value written in several ways comes back in the first spelling encountered.
-- **In the code**: `components/linker/`, `components/expander/`, `components/entity_resolver/`, `text/normalization.py` (`value_key`). Rules BR-MSG-02, BR-MSG-03, BR-MSG-12.
+A placeholder needs a form that stands out in the text. PIIGhost wraps it in double angle brackets, as in `<<REDACT>>`.
 
-**DEC-07. Keep only one span when two detections overlap.**
+This sequence of characters is rare in ordinary text. A program therefore finds each placeholder easily, with a regular expression. The brackets also tell the model that it is reading masked data, not a word of the sentence.
 
-- **Context**: two detectors can find spans that overlap, for example "Jean" and "Jean Dupont".
-- **Decision**: only one span is kept. By default, the surest detection wins, and on a tie, the first declared detector. Another setting keeps a single span that covers both.
-- **Why**: replacement assumes disjoint spans. Two overlapping replacements would damage the text.
-- **Consequences**: this stage cannot be turned off.
-- **In the code**: `components/overlap_resolver/`. Rule BR-MSG-05.
+Nothing stops a user from typing this sequence themselves, though. PIIGhost neutralizes a placeholder typed by hand, see DEC-13.
 
-**DEC-08. Keep the mapping to restore the real values.**
+Implemented in `components/placeholder/streaming.py` (`DEFAULT_PREFIX`, `DEFAULT_SUFFIX`).
 
-- **Context**: the user must read the answer with their real data, not with placeholders.
-- **Decision**: PIIGhost keeps, for each placeholder, the value it replaces. In the model's answer, each known placeholder is replaced with its value, from the longest placeholder to the shortest.
-- **Why**: without a mapping, no restoration is possible. The longest-to-shortest order prevents `<<PERSON:1>>` from replacing the start of `<<PERSON:10>>`.
-- **Consequences**: under the GDPR, this is pseudonymization, not anonymization. The mapping is personal data to protect, see DEC-18.
-- **In the code**: `components/anonymizer/base.py`. Rule BR-CONV-05.
+### DEC-04: Say in the placeholder what type of data it stands for
 
-**DEC-09. Let people correct the detection.**
+If every value becomes `<<REDACT>>`, the model no longer knows what it reads. In "Summarize the exchange between `<<REDACT>>` and `<<REDACT>>`", it does not know whether these are two people, two companies or two email addresses. So it answers badly.
 
-- **Context**: a detector misses values and masks others by mistake.
-- **Decision**: two lists apply to every detection. The whitelist masks a value even if the detector missed it. The blacklist leaves a value in clear text even if the detector found it. A person can also correct the values of a message by hand.
-- **Why**: a server or a team knows its own sensitive values, and its false positives.
-- **Consequences**: a manual correction applies only to its message, and the two lists still apply on top of it.
-- **In the code**: `components/override/`, `pipeline/thread.py`. Rules BR-LIST-01, BR-LIST-02, BR-CONV-07.
+So the placeholder states the type of the data, called the label, as in `<<PERSON>>` or `<<EMAIL>>`. With `<<PERSON>>`, the model knows it is a person. It can write "Hello `<<PERSON>>`".
 
-**DEC-10. Reread the protected text before sending it, as an option.**
+The label comes from the detector. For a NER model, it is the category the model gives. For a regular expression, it is the name you give it, for example `EMAIL`. A detector can also translate its model's labels into the ones you want to see in the placeholders.
 
-- **Context**: a value missed by every detector goes out in clear text.
-- **Decision**: a final check, the guard rail, can reread the already protected text. If it finds confidential data there, the sending is blocked.
-- **Why**: it is a second line of defense, with a different tool than the detectors.
-- **Consequences**: the guard rail reports a value, but it does not always locate it. It slows down the sending.
-- **In the code**: `components/guard/`. Rules BR-MSG-10, BR-MSG-11.
+A label is written in unaccented letters, digits, `_`, spaces or hyphens, and starts with a letter or `_`. `DATE_OF_BIRTH` works, `PRÉNOM` does not.
 
-## Keep a conversation
+One problem remains. Two people still get the same placeholder, see DEC-05.
 
-**DEC-11. Keep the same placeholder for the whole conversation.**
+Implemented in `components/detector/ner/base.py` (label translation) and `components/placeholder/streaming.py` (`LABEL_INNER`).
 
-- **Context**: a conversation has several messages. If "Jean Dupont" becomes `<<PERSON:1>>` in the first message and `<<PERSON:2>>` in the third, the model thinks it is talking about two people.
-- **Decision**: a memory keeps the detections of each message of the conversation. Placeholders are assigned over all the messages, and a value gets its placeholder back each time it reappears. Each conversation has its own placeholders.
-- **Why**: running the pipeline again message by message is not enough, because the numbers would change from one message to the next.
-- **Consequences**: the memory grows with the conversations, see DEC-19. Several instances of the service must share the same memory to give the same placeholders.
-- **In the code**: `pipeline/thread.py`, `conversation_memory/`. Rules BR-CONV-01, BR-CONV-02, BR-CONV-10.
+### DEC-05: Give each individual their own identifier
 
-**DEC-12. Require the conversation identifier.**
+With `<<PERSON>>`, two people in the same text get the same placeholder. "Summarize the exchange between `<<PERSON>>` and `<<PERSON>>`" no longer says who spoke, and the model mixes them up.
 
-- **Context**: without an identifier, two users would share the same memory, and one could read the values of the other.
-- **Decision**: each call names its conversation. A call without an identifier fails, instead of falling back on a shared conversation.
-- **Why**: a leak between conversations must be impossible by accident.
-- **Consequences**: an application that really wants a shared conversation must name it itself.
-- **In the code**: `pipeline/thread.py`, `integrations/`. Rules BR-CONV-03, BR-AGT-01, BR-AGT-05.
+So the placeholder adds an identifier after the label, as in `<<PERSON:1>>` and `<<PERSON:2>>`. By default, it is a number counted per label, from 1, in order of appearance. The model reads it easily.
 
-**DEC-13. Neutralize a placeholder typed by the user.**
+Another form replaces the number with a fingerprint, as in `<<PERSON:a1b2c3d4>>`. A fingerprint is a string of characters computed from a text, here with the SHA-256 algorithm. PIIGhost computes it from the label and the sequence number, never from the value. It needs no secret key, and reveals nothing about the value. Its only purpose is that two neighboring placeholders do not look consecutive.
 
-- **Context**: a user can write `<<PERSON:2>>` themselves to make the value of another person appear in the answer.
-- **Decision**: a user text that has the shape of a placeholder is neutralized by an invisible character (U+200B), and is no longer recognized as a placeholder.
-- **Why**: only the placeholders issued by PIIGhost must be restorable.
-- **Consequences**: the invisible character stays in the restored text.
-- **In the code**: `components/anonymizer/span.py`. Rule BR-MSG-09.
+To assign these identifiers, you need to know which detections refer to the same individual, see DEC-06.
 
-**DEC-14. Refuse a placeholder invented by the model.**
+Implemented in `components/placeholder/label_counter.py` and `components/placeholder/label_hash.py`. Rule BR-MSG-01 follows from it.
 
-- **Context**: a model can write a placeholder in the right format that PIIGhost never issued, by mistake or under an injection.
-- **Decision**: by default, the answer or the tool call is refused. Two other settings remove the placeholder or keep it as is.
-- **Why**: displaying an invented placeholder, or sending it to a tool, would act on data that does not exist.
-- **In the code**: `integrations/_deidentify.py`. Rules BR-CONV-06, BR-TOOL-07, BR-STREAM-06.
+### DEC-06: Group the detections of the same individual
 
-**DEC-15. Leave in clear text a value that the assistant mentions first.**
+The same person often appears several times in a text, sometimes written differently. All their occurrences must get the same placeholder. Otherwise, "Jean Dupont" and "jean dupont" would get two placeholders, and the model would think it is reading about two people.
 
-- **Context**: the model can introduce a value itself, a city name for example, that the user never wrote.
-- **Decision**: by default, a value first mentioned by the assistant stays in clear text for the whole conversation. Two other settings mask it or ignore it.
-- **Why**: this value does not come from the user, so it is not part of their data to protect.
-- **In the code**: `integrations/langchain/middleware.py` (`EntityCreateByAssistantStrategy`). Rules BR-CONV-04, BR-AGT-03.
+So PIIGhost groups the detections that have the same value and the same label. This group is called an entity, and it gets a single placeholder. Two values that differ only in spacing or capitalization count as the same value.
+
+Two options go further. One option searches the text for other occurrences of a value already found, in case a detector missed them. Another brings together close spellings, such as "Jean Dupont" and "Jean Dupond", through approximate matching. This matching can also bring two truly different people under one placeholder.
+
+An entity keeps only one spelling. When the reply is restored (see DEC-08), the entity comes back with the spelling that appeared first. If "Jean Dupont" appears before "jean dupont", both come back written "Jean Dupont".
+
+Implemented in `components/linker/`, `components/expander/`, `components/entity_resolver/` and `text/normalization.py` (`value_key`). Rules BR-MSG-02, BR-MSG-03 and BR-MSG-12 follow from it.
+
+### DEC-07: Keep a single span when two detections overlap
+
+Two detectors can find spans that overlap. One finds "Jean", the other "Jean Dupont". PIIGhost can only replace spans that do not overlap. If any remain when replacing, it refuses the text rather than leave a piece of it unmasked.
+
+So a single span is kept. By default, the detection with the highest confidence score wins. On an equal score, the detection that starts earliest wins, then the shortest. The order of the detectors only breaks a tie between two detections of the exact same span.
+
+This setting has a cost. If "Jean" has the best score, only "Jean" is replaced, and "Dupont" goes out unmasked. The other setting, merging, avoids this leak. It keeps a single span that covers both, here "Jean Dupont", with the label of the surest detection.
+
+This step cannot be turned off.
+
+Implemented in `components/overlap_resolver/`. Rule BR-MSG-05 follows from it.
+
+### DEC-08: Keep the mapping to restore the real values
+
+The user must read the reply with their real data, not with placeholders. So PIIGhost records the value each placeholder replaces. This table is called the mapping. Without it, no restoration is possible.
+
+In the model's reply, each known placeholder is replaced with its value. "Hello `<<PERSON:1>>`" becomes "Hello Jean Dupont" again. A restored value is never examined a second time. A real value that looks like a placeholder is therefore shown as is.
+
+The real values can be recovered. Under the GDPR, this is therefore pseudonymization, not anonymization. The mapping is itself personal data to protect, see DEC-18.
+
+Implemented in `components/anonymizer/base.py`. Rule BR-CONV-05 follows from it.
+
+### DEC-09: Let people correct the detection
+
+A detector makes two kinds of mistakes. It misses some values, and it masks others by mistake. A server or a team knows its own sensitive values, and the words the detector masks by mistake.
+
+So two lists, set by the server, override the detector:
+
+- The whitelist: it masks a value, even if the detector missed it.
+- The blacklist: it leaves a value unmasked, even if the detector found it.
+
+The meaning is the opposite of the usual one, where a whitelist allows. Here, the whitelist forces masking. A whitelist holding the client code `CLI-4821` masks it everywhere. A blacklist holding "Doctor" keeps this word from being taken for a name. If a value is on both lists, it is masked by default.
+
+A person can also correct the values of a message by hand. This correction holds for that message only, and the two lists still apply on top of it.
+
+Implemented in `components/override/` and `pipeline/thread.py`. Rules BR-LIST-01, BR-LIST-02 and BR-CONV-07 follow from it.
+
+### DEC-10: Reread the protected text before sending, as an option
+
+A value every detector missed goes out unmasked. A final check, called the guard rail, can reread the already de-identified text before it is sent. If it still finds confidential data there, the text is not sent.
+
+The guard rail is a second line of defense. It can use a different tool from the detectors, such as a classification model or an LLM. It reports a leak, but does not always say where the value is. It also makes sending slower.
+
+Implemented in `components/guard/`. Rules BR-MSG-10 and BR-MSG-11 follow from it.
+
+## Hold a conversation
+
+### DEC-11: Keep the same placeholder for the whole conversation
+
+A conversation has several messages. If "Jean Dupont" becomes `<<PERSON:1>>` in the first message and `<<PERSON:2>>` in the third, the model thinks it is reading about two people. De-identifying each message on its own is therefore not enough, because the numbers would change from one message to the next.
+
+PIIGhost keeps one memory per conversation, which holds the detections of each message. The numbers are counted over the whole conversation, not message by message. So "Jean Dupont" keeps `<<PERSON:1>>` each time he comes back. Each conversation has its own placeholders, so `<<PERSON:1>>` can stand for two different people in two conversations.
+
+The memory grows with the conversations, see DEC-19. If the service runs on several servers, they must share the same memory to give the same placeholders.
+
+Implemented in `pipeline/thread.py` and `conversation_memory/`. Rules BR-CONV-01, BR-CONV-02 and BR-CONV-10 follow from it.
+
+### DEC-12: Require the conversation identifier
+
+Each conversation has its own memory, looked up by the conversation's identifier. Without an identifier, two users would share the same memory, and one could read the other's values.
+
+So every de-identification or restoration request must give the identifier of its conversation. A request without an identifier fails, instead of falling back to a shared conversation. A leak between conversations cannot happen by accident. An application that really wants a shared conversation gives the same identifier to all its requests, for example `default`.
+
+Implemented in `pipeline/thread.py` and `integrations/`. Rules BR-CONV-03, BR-AGT-01 and BR-AGT-05 follow from it.
+
+### DEC-13: Neutralize a placeholder typed by the user
+
+A user can write `<<PERSON:2>>` in their own message. Without a safeguard, this text would be restored in the reply, and would show the value of another person in the conversation.
+
+So PIIGhost neutralizes any user text shaped like a placeholder. It slips in an invisible character, the zero-width space (U+200B), and the text is no longer recognized as a placeholder. Only the placeholders PIIGhost issued can be restored.
+
+The user sees their text again as they typed it. The invisible character stays in it, though, and a copy and paste carries it along.
+
+Implemented in `components/anonymizer/span.py`. Rule BR-MSG-09 follows from it.
+
+### DEC-14: Refuse a placeholder the model made up
+
+A model can write a well-formed placeholder that PIIGhost never issued, such as `<<PERSON:7>>` in a conversation with only two people. It does so by mistake, or because a malicious text told it to. That attack is called a prompt injection, the prompt being the text of instructions given to the model.
+
+This placeholder matches no value. Shown to the user, it would mislead them. Sent to a tool (see DEC-16), it would make the agent act on data that does not exist. So by default, the reply or the tool call is refused. Two other settings drop the placeholder, or keep it as is.
+
+Implemented in `integrations/_deidentify.py`. Rules BR-CONV-06, BR-TOOL-07 and BR-STREAM-06 follow from it.
+
+### DEC-15: Leave unmasked a value the assistant mentions first
+
+The model can mention a value the user never wrote. For example, it suggests "Lyon" for a meeting. This value does not come from the user, so it is not part of their data to protect.
+
+By default, a value the assistant mentions first stays unmasked for the whole conversation. It stays unmasked even if the user writes it later, and even if it is on the whitelist (see DEC-09), unless that list is set to force masking.
+
+Two other settings exist. The first masks this value like user data. The second does not analyze the assistant's messages at all, which saves the detection.
+
+Implemented in `integrations/langchain/middleware.py` (`EntityCreateByAssistantStrategy`). Rules BR-CONV-04 and BR-AGT-03 follow from it.
 
 ## Let an agent act
 
-**DEC-16. Give the real value to the tools, and the placeholder to the model.**
+### DEC-16: Give the real value to tools, and the placeholder to the model
 
-- **Context**: an agent calls tools, for example to send an email. The tool needs the real address, and the model must never see it.
-- **Decision**: by default, the arguments of a tool are restored before the call, and its result is de-identified before it goes back to the model. Three other settings limit this processing.
-- **Why**: this is what lets an agent act on real data without exposing it to the model.
-- **Consequences**: the result of a tool goes through the full detection of the conversation. The agent history keeps the calls with their placeholders.
-- **In the code**: `integrations/langchain/middleware.py` (`ToolCallStrategy.FULL`). Rules BR-TOOL-01, BR-TOOL-05, BR-TOOL-10.
+An agent calls tools, for example to send an email. The tool needs the real address. The model must never see it.
 
-**DEC-17. Restore the answer while it arrives.**
+By default, PIIGhost restores a tool's arguments before the call. The model asks to write to `<<EMAIL:1>>`, and the tool receives the real address. The tool's result is then de-identified before it goes back to the model. An agent can thus act on real data without showing it to the model.
 
-- **Context**: a model can send its answer piece by piece. A placeholder can then arrive cut in two, `<<PER` then `SON:1>>`.
-- **Decision**: a decoder holds back a started placeholder until it is complete, then restores it. A lone `<` at the end of a piece is held back too. Past 128 characters without a closing sequence, the held text is released as is.
-- **Why**: restoring each piece separately would let cut placeholders through.
-- **Consequences**: a stream stopped in the middle of a placeholder shows the held fragment, without restoration.
-- **In the code**: `components/placeholder/streaming.py`. Rules BR-STREAM-02 to BR-STREAM-05.
+Three other settings exist. One only restores the arguments. Another only de-identifies the result. The last does neither. With the first and the last, the tool's result reaches the model unmasked.
+
+A tool's result goes through the same detection as the messages of the conversation. The history the agent records keeps tool calls with their placeholders, never with the real values.
+
+Implemented in `integrations/langchain/middleware.py` (`ToolCallStrategy.FULL`). Rules BR-TOOL-01, BR-TOOL-05 and BR-TOOL-10 follow from it.
+
+### DEC-17: Restore the reply while it arrives
+
+A model can send its reply piece by piece, as a stream. A placeholder can then arrive cut in two, `<<PER` in one piece then `SON:1>>` in the next. Restoring each piece on its own would let these cut placeholders through, and the user would see them.
+
+So PIIGhost holds back a partial placeholder until it is complete, then restores it. A lone `<` at the end of a piece is held back too, because it can open a placeholder. A `<<` left open for more than 128 characters can no longer be a placeholder. The held text is then shown as is.
+
+If the stream stops in the middle of a placeholder, the held fragment is shown as is, without restoration.
+
+Implemented in `components/placeholder/streaming.py`. Rules BR-STREAM-02 to BR-STREAM-05 follow from it.
 
 ## Go to production
 
-**DEC-18. Protect the stored mapping.**
+### DEC-18: Protect the stored memory
 
-- **Context**: the mapping between placeholders and values holds the confidential data in clear text, see DEC-08.
-- **Decision**: with Redis, the keys are hashed with HMAC then Argon2id, with a pepper, that is a secret added before hashing, and the values are encrypted with AES-GCM. The secrets are read only from the environment, never from a configuration file. Observation traces can be masked.
-- **Why**: a storage leak must not hand over the data.
-- **Consequences**: the conversation identifier stays readable, so that a conversation can be erased. A storage without encryption emits a warning.
-- **In the code**: `crypto/`, `conversation_memory/redis_backend.py`. Rules BR-STO-01, BR-STO-02, BR-STO-03, BR-STO-08.
+A conversation's memory keeps the detections of each message, so the confidential data in clear text, see DEC-11. A storage leak must not give this data away.
 
-**DEC-19. Fail on the side that protects.**
+This memory can live in Redis, a database shared between servers, or in a SQL database. PIIGhost can then protect what it stores, if both protections are configured together:
 
-- **Context**: a component can break down, and a memory can grow without end.
-- **Decision**: each default setting picks the side that protects. An LLM detector whose output is unreadable refuses the message. The Claude Code hooks block if the server does not answer. The in-process memory keeps at most 10,000 conversations, and forgets a conversation after one day without activity.
-- **Why**: a failure must never become a leak.
-- **Consequences**: an explicit setting lets data through, for those who prefer availability to protection.
-- **In the code**: `components/detector/llm.py`, `integrations/claude_code/runner.py`, `conversation_memory/memory.py`. Need DPO-9, rules BR-STO-04, BR-CONV-11.
+- The keys: each message is stored under its fingerprint, computed with a pepper, a secret added before the computation. The fingerprint uses HMAC-SHA256, or Argon2id, which is slower to attack.
+- The values: the detections of each message are encrypted with AES-GCM, a standard encryption.
 
-**DEC-20. Configure a pipeline through a file and through the hub.**
+Without these two protections, the memory is stored in clear text, and PIIGhost emits a warning. Secrets are read only from the server's environment variables, never from a configuration file. The conversation identifier stays readable, so that a conversation can be erased.
 
-- **Context**: a team must deploy the same pipeline on several servers, without writing code.
-- **Decision**: a pipeline is described in a TOML or JSON file. Pattern groups come from the hub, through a reference. A reference pinned to a commit is cached. A tag or `latest` is read again every time.
-- **Why**: a pinned reference never changes, while an outdated version would detect less without saying so.
-- **In the code**: `config/`, `hub.py`.
+Observation traces follow each step of the pipeline. By default, they hold the text in clear. A setting masks them with placeholders. Without this setting, PIIGhost emits a warning as soon as the traces are actually sent.
+
+Implemented in `crypto/`, `conversation_memory/redis_backend.py` and `conversation_memory/sqlalchemy_backend.py`. Rules BR-STO-01, BR-STO-02, BR-STO-03 and BR-STO-08 follow from it.
+
+### DEC-19: Fail on the side that protects
+
+A component can break down, and a memory can grow without limit. A breakdown must never become a leak. So each default setting picks the side that protects:
+
+- An LLM detector whose output is unreadable refuses the message, instead of letting it go out without detection.
+- The Claude Code hooks, the points where PIIGhost rereads what the Claude Code coding assistant sends, block the action if the PIIGhost server does not answer.
+- The built-in memory, which lives in the application without a database, holds at most 10,000 conversations. It forgets a conversation one day after its last message.
+
+A forgotten conversation loses its placeholders. A placeholder it held is then shown as is, without restoration.
+
+Each protection can be lifted by an explicit setting, for those who prefer availability to protection. The LLM detector and the hooks then let the text through, and the memory has no limit.
+
+Implemented in `components/detector/llm.py`, `integrations/claude_code/runner.py` and `conversation_memory/memory.py`. It meets need DPO-9, and rules BR-STO-04 and BR-CONV-11 follow from it.
+
+### DEC-20: Configure a pipeline from a file and from the hub
+
+A team must be able to deploy the same pipeline on several servers, without writing code. So a pipeline is described in a TOML or JSON file.
+
+PIIGhost ships no regular expression itself. Groups of regular expressions, specific to a country or a profession, come from the hub, PIIGhost's shared catalog. Without a hub group, no email or IBAN is recognized by regular expression. The hub also provides complete configurations.
+
+The file names a group by a reference. A reference can point to a frozen version, by its identifier, as in `:2f602547`. This version never changes, so PIIGhost keeps a local copy. A reference by name, or `latest` for the newest version, can change. So PIIGhost downloads it at each load, because a stale copy would detect fewer values without saying so.
+
+Implemented in `config/` and `hub.py`.
 
 ## The architecture
 
-**DEC-21. Make each stage a replaceable port.**
+### DEC-21: Make each step a replaceable port
 
-- **Context**: each team has its own detectors, its storage and its constraints.
-- **Decision**: each stage of the pipeline is a port, that is an interface you can replace. Most also have a base template to complete. Only the detector is required. The configuration knows the core of the library, never the reverse.
-- **Why**: you replace a stage without touching the others.
-- **Consequences**: the core holds no rule specific to a language. Lists of French words or domain terms go in the hub groups.
-- **In the code**: `components/*/base.py`. See [Add or replace a pipeline component](../architecture/ports-and-extension.md).
+Each team has its own detectors, its storage and its constraints. So each step of the pipeline is a port, an interface you can replace. You change the detector or the storage without touching the other steps. Most steps also provide a shared skeleton that a new component fills in. Only the detector is required.
 
-**DEC-22. Make everything asynchronous.**
+The configuration file knows how to build each component, but no component depends on this file. So you can use PIIGhost from code, without any configuration. The core of the library holds no rule specific to a language. Lists of French words or of a profession go in the hub groups.
 
-- **Context**: model detectors and remote servers answer with a delay.
-- **Decision**: each stage of the pipeline is asynchronous.
-- **Why**: the pipeline waits for a model or a server without blocking the rest of the application.
-- **In the code**: `pipeline/base.py`.
+Implemented in `components/*/base.py`. See [Add or replace a pipeline component](../architecture/ports-and-extension.md).
+
+### DEC-22: Make the steps that wait asynchronous
+
+Model detectors and remote servers take time to answer. So the steps that wait for them are asynchronous, which means they let the application handle other requests while they wait. This is the case for detection, the lists and the guard rail. The steps that only compute, such as grouping or replacement, stay ordinary.
+
+Implemented in `pipeline/base.py`.
 
 The terms are defined in the [Glossary](../glossary.md).
