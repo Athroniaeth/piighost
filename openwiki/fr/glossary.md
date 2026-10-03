@@ -101,7 +101,7 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Hub | Registre en ligne de motifs et de configurations, adressés par référence. | `https://hub.piighost.dev`, variable `PIIGHOST_HUB_URL` | `piighost.hub` |
 | Masqueur de traces | Fabrique de jetons appliquée aux traces techniques, pour qu'elles ne contiennent pas de données en clair. | clé `[observation_redactor]` | `observation_redactor` |
 
-## Identifiants du wiki
+## Identifiants de la documentation métier
 
 Les identifiants sont en anglais, les mêmes quelle que soit la langue de la page.
 

@@ -35,6 +35,13 @@ Adaptations imposées par le cycle OpenWiki :
 
 Sans ces skills, appliquer les règles ci-dessous, qui en sont le résumé.
 
+## Le nom de cette documentation
+
+Pour le lecteur, ce n'est pas un wiki : c'est la **documentation métier**
+(*domain documentation* en anglais), à côté de la documentation technique.
+Ne jamais écrire « wiki » dans les pages. OpenWiki reste le nom de l'outil qui
+la tient à jour, et `openwiki/` celui du dossier.
+
 ## Deux langues, les mêmes pages
 
 Le wiki existe en anglais et en français, toujours les deux :

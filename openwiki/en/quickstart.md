@@ -1,7 +1,7 @@
 ---
 type: guide
-title: Get started with the PIIGhost wiki
-description: Entry point of the PIIGhost wiki, which routes by need (understand a protection rule or change the code), summarizes the path of a message and lists the pitfalls that cut across several processes.
+title: Get started with the PIIGhost domain documentation
+description: Entry point of the PIIGhost domain documentation, which routes by need (understand a protection rule or change the code), summarizes the path of a message and lists the pitfalls that cut across several processes.
 tags: [quickstart, overview, routing, pii, de-identification]
 sources:
   - id: openwiki-source-05ccef8d4cf1698187f20464
@@ -17,7 +17,7 @@ sources:
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-# Get started with the PIIGhost wiki
+# Get started with the PIIGhost domain documentation
 
 ## In short
 
@@ -33,7 +33,7 @@ Life cycle of a message:
 
 PIIGhost is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is driven remotely through the companion server `piighost-api`. You configure it with a TOML or JSON file and with the `piighost` command.
 
-The wiki is first for the people who decide on data protection (DPO, compliance, product, support), then for developers. What each profile expects is in [Needs by profile](needs-by-profile.md). The code and the tests are the source of truth. The gaps with the existing documentation are in the [gap register](reference/doc-code-gaps.md). The terms are in the [glossary](glossary.md).
+The domain documentation is first for the people who decide on data protection (DPO, compliance, product, support), then for developers. What each profile expects is in [Needs by profile](needs-by-profile.md). The code and the tests are the source of truth. The gaps with the existing documentation are in the [gap register](reference/doc-code-gaps.md). The terms are in the [glossary](glossary.md).
 
 ## I want to understand…
 
@@ -95,7 +95,7 @@ flowchart LR
 - **Services**: none for the tests. Redis, an SQL database or `piighost-api` are used only in operation. See [Store conversations](operations/storage-and-encryption.md) and [Configure a pipeline](operations/configuration-and-hub.md).
 - **Examples**: standalone scripts in `examples/`, run with `uv run examples/<script>.py`.
 
-## The wiki groups
+## The domain documentation groups
 
 - **Needs**: [Needs by profile](needs-by-profile.md).
 - **Processes**: [Protect a message](processes/protect-a-message.md), [Follow a conversation](processes/follow-a-conversation.md), [Impose a whitelist and a blacklist](processes/impose-a-whitelist-and-blacklist.md), [Let a tool act](processes/let-a-tool-act.md), [Show a streamed reply](processes/show-a-streamed-reply.md).
