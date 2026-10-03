@@ -8,17 +8,6 @@ icon: lucide/scale
 
 Open a solution to see how it differs from `piighost`.
 
-??? note "`piighost`, its choices and its limits"
-
-    - Detects with regexes, NER models (GLiNER2, spaCy, Transformers, Presidio) or an LLM, alone or combined.
-    - Replaces each value with a reversible placeholder, the same over the whole conversation, kept in memory or in Redis.
-    - Restores the reply for the user, while it streams too, and hands the real value to the agent's tools.
-    - Choice: no checksum validation (Luhn, IBAN check digits). A value damaged by OCR is still detected, at the cost of false positives.
-    - Choice: de-identification is reversible. Under the GDPR it is pseudonymization, and the mapping is personal data to protect.
-    - Does not: guarantee that no value escapes. A detector misses values, and a guard rail only flags them.
-    - Does not: restore a value the LLM makes up, or share the memory between processes without Redis.
-    - Does not: transform a whole dataset. The added latency is not measured yet.
-
 ??? note "Presidio (Microsoft)"
 
     | | `piighost` | Presidio |

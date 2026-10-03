@@ -8,17 +8,6 @@ icon: lucide/scale
 
 Ouvrez une solution pour voir ses différences avec `piighost`.
 
-??? note "`piighost`, ses choix et ses limites"
-
-    - Détecte avec des regex, des modèles NER (GLiNER2, spaCy, Transformers, Presidio) ou un LLM, seuls ou combinés.
-    - Remplace chaque valeur par un jeton réversible, le même sur toute la conversation, gardé en mémoire ou dans Redis.
-    - Restaure la réponse pour l'utilisateur, y compris pendant le flux, et donne la vraie valeur aux outils de l'agent.
-    - Choix : aucune validation par checksum (Luhn, clé IBAN). Une valeur abîmée par l'OCR reste détectée, au prix de faux positifs.
-    - Choix : la dé-identification est réversible. Au sens du RGPD c'est une pseudonymisation, et la table de correspondance est une donnée personnelle à protéger.
-    - Ne fait pas : garantir qu'aucune valeur n'échappe. Un détecteur rate des valeurs, et un garde-fou ne fait que les signaler.
-    - Ne fait pas : restaurer une valeur que le LLM invente, ni partager la mémoire entre processus sans Redis.
-    - Ne fait pas : transformer un jeu de données entier. La latence ajoutée n'est pas encore mesurée.
-
 ??? note "Presidio (Microsoft)"
 
     | | `piighost` | Presidio |
