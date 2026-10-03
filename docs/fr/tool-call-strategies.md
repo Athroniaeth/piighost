@@ -181,4 +181,4 @@ Pour changer *ce que* le pipeline retrouve et restaure, c'est la placeholder fac
 - [Placeholder factories](placeholder-factories.md) : la contrainte d'unicité et de retrouvabilité qui motive `PreservesRecognizableIdentity`.
 - [Architecture](architecture.md) : diagrammes de séquence des canaux LLM et outil.
 - [Limites](limitations.md) : interactions entre le choix de stratégie et le reste du pipeline.
-- [Laisser un outil agir sur les vraies valeurs](../../openwiki/processus/laisser-un-outil-agir.md) : les règles de gestion d'un appel d'outil, de `BR-TOOL-01` à `BR-TOOL-11`, et leur emplacement dans le code.
+- [Laisser un outil agir sur les vraies valeurs](../../openwiki/fr/processes/let-a-tool-act.md) : les règles de gestion d'un appel d'outil, de `BR-TOOL-01` à `BR-TOOL-11`, et leur emplacement dans le code.

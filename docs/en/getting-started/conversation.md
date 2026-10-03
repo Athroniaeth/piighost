@@ -62,4 +62,4 @@ The output should be:
 
 - To share the memory across several processes, replace `InMemoryConversationMemory` with a persistent memory. See the [TOML reference](../configuration/toml.md) to declare it in configuration.
 - To plug this pipeline into a LangGraph agent, see the [LangChain middleware](langchain.md).
-- To read the business rules a conversation follows, `BR-CONV-01` to `BR-CONV-11`, see [Follow a conversation and restore the reply](../../../openwiki/processus/suivre-une-conversation.md), in French.
+- To read the business rules a conversation follows, `BR-CONV-01` to `BR-CONV-11`, see [Follow a conversation and restore the reply](../../../openwiki/en/processes/follow-a-conversation.md).
