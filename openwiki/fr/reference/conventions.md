@@ -10,7 +10,7 @@ generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 
 ## En bref
 
-Écrire PIIGhost a demandé des choix que rien n'impose de l'extérieur, comme la forme d'un jeton ou le comportement d'un réglage par défaut. Cette page les rassemble pour qu'ils ne restent pas implicites. Pour chacun, elle donne la raison du choix et l'endroit du code où il s'applique, et cite la règle de gestion qu'il soutient quand il y en a une. Ces conventions engagent le reste de la librairie, donc en changer une demande d'en discuter d'abord.
+La dé-identification a demandé des choix au fur et à mesure que PIIGhost a évolué. Il a d'abord dé-identifié un texte isolé, puis une conversation entière, puis les échanges d'un agent avec ses outils. Chaque étape a fixé des conventions, comme la forme d'un jeton ou le comportement d'un réglage par défaut. Cette page les rassemble pour qu'elles ne restent pas implicites. Pour chacune, elle donne la raison du choix et l'endroit du code où il s'applique, et cite la règle de gestion qu'elle soutient quand il y en a une. Ces conventions engagent le reste de la librairie, donc en changer une demande d'en discuter d'abord.
 
 ## Les jetons
 
