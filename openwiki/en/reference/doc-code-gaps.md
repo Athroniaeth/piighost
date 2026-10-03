@@ -1,7 +1,7 @@
 ---
 type: reference
 title: Doc / code gap register
-description: Each gap found between the existing PIIGhost documentation (docs/, AGENTS.md, docstrings) and the behavior of the code, with the source on each side and the wiki page concerned.
+description: Each gap found between the existing PIIGhost documentation (docs/, AGENTS.md, docstrings) and the behavior of the code, with the source on each side and the domain documentation page concerned.
 tags: [reference, documentation, discrepancies, review]
 sources:
   - id: openwiki-source-ca6cb4b1a14fd7969dfae3ec
@@ -50,15 +50,15 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## In short
 
 - This page lists the places where the existing documentation says something other than the code.
-- The code is authoritative: the wiki always describes what the code does.
+- The code is authoritative: the domain documentation always describes what the code does.
 - No gap is fixed here. Each one awaits a decision from the maintainer: fix the doc, or fix the code. A settled gap keeps its entry, with its status.
 - The gaps found concern the developer documentation and one FAQ example. None changes what the end user sees.
 
-The terms are defined in the [glossary](../glossary.md). Back to [Get started with the PIIGhost wiki](../quickstart.md).
+The terms are defined in the [glossary](../glossary.md). Back to [Get started with the PIIGhost domain documentation](../quickstart.md).
 
 ## Read an entry
 
-Each entry gives what the doc says, what the code does, the wiki page that covers it and the effect of the gap. When the French version of the doc (`docs/fr/`) repeats the gap, it is cited too. `AGENTS.md` and `CLAUDE.md` are ignored by git in this repository (`.gitignore:186`). Their gaps therefore only affect agents that work locally.
+Each entry gives what the doc says, what the code does, the domain documentation page that covers it and the effect of the gap. When the French version of the doc (`docs/fr/`) repeats the gap, it is cited too. `AGENTS.md` and `CLAUDE.md` are ignored by git in this repository (`.gitignore:186`). Their gaps therefore only affect agents that work locally.
 
 ## Gaps
 
@@ -68,7 +68,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `AGENTS.md:7`, `:26` and `:82`: each stage has an `Any*` port and a `Base*` template. `docs/en/architecture.md:109-111` and `docs/fr/architecture.md:112`: only two ports have no template, the guard rails and the memory. |
 | Code | Five ports have no template: `components/detector/base.py:9`, `components/override/base.py:9-17`, `components/guard/base.py:42`, `conversation_memory/base.py:10-14`, `crypto/cipher/base.py:7-10`. |
-| Wiki page | [Add or replace a component](../architecture/ports-and-extension.md) |
+| Domain documentation page | [Add or replace a component](../architecture/ports-and-extension.md) |
 | Effect | A contributor can look for a `BaseDetector` that does not exist. |
 
 ### ECART-02: version cited in an error message
@@ -77,7 +77,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | Message of `config/models/detector.py:62-66`: the built-in catalogs were removed "in piighost 2.0". |
 | Code | The package is at `1.10.0` (`pyproject.toml:3`). `CHANGELOG.md` places the move of the catalogs to the hub in 1.8.0. |
-| Wiki page | [Add or replace a component](../architecture/ports-and-extension.md) |
+| Domain documentation page | [Add or replace a component](../architecture/ports-and-extension.md) |
 | Effect | A 1.x user reads a version that does not exist. [to check]: "2.0" may mean the internal rewrite ("v2"), not a published version number. |
 
 ### ECART-03: hashed placeholder example
@@ -86,7 +86,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | Docstring of `components/placeholder/label_hash.py:14` and `AGENTS.md:45`: the first placeholder is `<<PERSON:6b86b273>>`. |
 | Code | `label_hash.py:35-40` hashes the string `PERSON:1`. The first placeholder is `<<PERSON:09ef3b74>>`. `6b86b273` is the digest of the string `1` alone. |
-| Wiki page | [Glossary](../glossary.md) |
+| Domain documentation page | [Glossary](../glossary.md) |
 | Effect | A reader who compares a real placeholder to the example believes in a bug. The `docs/` pages use a neutral example (`<<PERSON:a1b2c3d4>>`) and are not affected. |
 
 ### ECART-04: shape of the label and redaction placeholders
@@ -95,7 +95,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `AGENTS.md:45` illustrates the "label" axis with `<PERSON>` and `[REDACT]`. |
 | Code | The factories emit `<<PERSON>>` (`components/placeholder/label.py:26-28`) and `<<REDACT>>` (`redact.py:25-28`), with the `<<` and `>>` delimiters by default. |
-| Wiki page | [Glossary](../glossary.md) |
+| Domain documentation page | [Glossary](../glossary.md) |
 | Effect | Low: the shape of the delimiters is poorly illustrated. |
 
 ### ECART-05: hasher of the Redis memory
@@ -104,7 +104,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `AGENTS.md:49`: the Redis backend hashes the keys "with Argon2id". |
 | Code | The hasher is a choice, HMAC-SHA256 or Argon2id (`config/models/hasher.py:76-79`). Without a hasher, the key is a non-secret SHA-256 (`conversation_memory/base.py:73-77`). |
-| Wiki page | [Store conversations and protect traces](../operations/storage-and-encryption.md) |
+| Domain documentation page | [Store conversations and protect traces](../operations/storage-and-encryption.md) |
 | Effect | A reader can believe that Argon2id is always active. |
 
 ### ECART-06: whitelist, blacklist and cache reads
@@ -113,7 +113,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | Docstring of `DetectionOverride` (`components/override/detector.py:51-53`): the pipelines apply the lists "after every detection read". |
 | Code | A read from the conversation cache does not go through the lists again (`pipeline/thread.py:271-274`). |
-| Wiki page | [Impose a whitelist and a blacklist](../processes/impose-a-whitelist-and-blacklist.md) |
+| Domain documentation page | [Impose a whitelist and a blacklist](../processes/impose-a-whitelist-and-blacklist.md) |
 | Effect | A modified list does not apply to messages already analyzed. [to check]: if "detection read" means only the call to the detector, the sentence is correct but misleading. |
 
 ### ECART-07: `ConversationMemory` class
@@ -122,7 +122,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `docs/en/security.md:23` and `:57`, `docs/fr/security.md:23` and `:58`: "the `ConversationMemory` links variants" and carries the link between value and placeholder. |
 | Code | No `ConversationMemory` class. The port is `AnyConversationMemory` (`conversation_memory/base.py:106`). The grouping of the variants is done by `ExactEntityLinker` (`components/linker/exact.py:8-21`), not by the memory, which stores only detections (`conversation_memory/base.py:1-8`). |
-| Wiki page | [Follow a conversation and restore the reply](../processes/follow-a-conversation.md) |
+| Domain documentation page | [Follow a conversation and restore the reply](../processes/follow-a-conversation.md) |
 | Effect | A reader looks for a missing class and attributes the grouping to the wrong component. |
 
 ### ECART-08: Faker, planned or ruled out
@@ -131,7 +131,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `docs/en/community/faq.md:32` and `docs/fr/community/faq.md:32`: a Faker factory "is on the roadmap". `docs/en/roadmap.md:40` and `docs/fr/roadmap.md:40` list it under the "Non-goals", ruled out on purpose. |
 | Code | No Faker factory in `src/` (`components/placeholder/` contains only `redact`, `label`, `label_counter`, `label_hash`, `mask`). |
-| Wiki page | [Glossary](../glossary.md) |
+| Domain documentation page | [Glossary](../glossary.md) |
 | Effect | Two doc pages contradict each other on a feature announced to users. It is the only gap visible to a non-developer audience. |
 
 ### ECART-09: result of a tool
@@ -140,7 +140,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `docs/en/tool-call-strategies.md` and `docs/fr/tool-call-strategies.md`, as well as `placeholder-factories.md` in both languages: the reply of a tool is scanned "for the known values". |
 | Code | The result goes through the full conversation pipeline, detection included (`integrations/langchain/middleware.py:253-272`). A value never cited before in the conversation is detected too. |
-| Wiki page | [Let a tool act on the real values](../processes/let-a-tool-act.md) |
+| Domain documentation page | [Let a tool act on the real values](../processes/let-a-tool-act.md) |
 | Effect | The doc underestimated the protection. Status: doc fixed on 2026-10-02 (`3473217`). |
 
 ### ECART-10: stream cut in the middle of a placeholder
@@ -149,12 +149,12 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 |---|---|
 | Doc | `docs/en/reference/langchain.md` and `docs/fr/reference/langchain.md`: the streamed display "never shows a broken token". |
 | Code | At the end of the stream, `flush` returns the held remainder as is (`components/placeholder/streaming.py:186`). A stream cut inside a placeholder therefore shows the beginning of that placeholder. |
-| Wiki page | [Show a streamed reply](../processes/show-a-streamed-reply.md) |
+| Domain documentation page | [Show a streamed reply](../processes/show-a-streamed-reply.md) |
 | Effect | Rare case, with no value leak. Status: doc fixed on 2026-10-02 (`3473217`). |
 
 ## Points to check, with no established gap
 
-These points contradict no doc. They are flagged in the wiki pages with the means to decide.
+These points contradict no doc. They are flagged in the pages of the domain documentation with the means to decide.
 
 | Point | Page |
 |---|---|

@@ -1,7 +1,7 @@
 ---
 type: guide
 title: Besoins par profil
-description: Les besoins du responsable conformité, du développeur, de l'exploitant et de l'utilisateur de l'application, chacun avec ses critères observables, la page du wiki qui le livre, et les points de vigilance quand un modèle répond mal.
+description: Les besoins du responsable conformité, du développeur, de l'exploitant et de l'utilisateur de l'application, chacun avec ses critères observables, la page de la documentation métier qui le livre, et les points de vigilance quand un modèle répond mal.
 tags: [personas, user-stories, dpo, developer, operator, end-user, vigilance]
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
@@ -13,12 +13,12 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Quatre profils attendent des choses différentes de PIIGhost : le responsable conformité (DPO), le développeur, l'exploitant et l'utilisateur de l'application.
 - Chaque besoin porte un identifiant en anglais, le même dans toutes les langues : `DPO-n`, `DEV-n`, `OPS-n`, `USER-n`.
-- Chaque besoin donne des critères observables et la page du wiki qui le livre.
+- Chaque besoin donne des critères observables et la page de la documentation métier qui le livre.
 - Les points de vigilance, en fin de page, listent les réponses imprévues d'un modèle et le besoin qui les couvre.
 
 `piighost` sert quatre profils, qui n'en attendent pas la même chose. Le responsable conformité veut qu'aucune donnée confidentielle ne sorte. Le développeur veut intégrer `piighost` sans réécrire son application. L'exploitant veut le faire tourner en production. L'utilisateur de l'application ne doit jamais s'en apercevoir.
 
-Chaque besoin est porté par un processus du wiki, qui donne le scénario et les règles, et par des tests d'acceptation, listés dans [Tests d'acceptation](tests/acceptance-tests.md). Les termes sont définis dans le [glossaire](glossary.md).
+Chaque besoin est porté par un processus de la documentation métier, qui donne le scénario et les règles, et par des tests d'acceptation, listés dans [Tests d'acceptation](tests/acceptance-tests.md). Les termes sont définis dans le [glossaire](glossary.md).
 
 ---
 

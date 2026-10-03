@@ -1,7 +1,7 @@
 ---
 type: guide
-title: Démarrer avec le wiki PIIGhost
-description: Point d'entrée du wiki PIIGhost, qui oriente selon le besoin (comprendre une règle de protection ou modifier le code), résume le trajet d'un message et liste les pièges qui traversent plusieurs processus.
+title: Démarrer avec la documentation métier de PIIGhost
+description: Point d'entrée de la documentation métier de PIIGhost, qui oriente selon le besoin (comprendre une règle de protection ou modifier le code), résume le trajet d'un message et liste les pièges qui traversent plusieurs processus.
 tags: [quickstart, overview, routing, pii, de-identification]
 sources:
   - id: openwiki-source-05ccef8d4cf1698187f20464
@@ -17,7 +17,7 @@ sources:
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-# Démarrer avec le wiki PIIGhost
+# Démarrer avec la documentation métier de PIIGhost
 
 ## En bref
 
@@ -33,7 +33,7 @@ Cycle de vie d'un message :
 
 PIIGhost est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou se pilote à distance par le serveur compagnon `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`.
 
-Le wiki s'adresse d'abord aux personnes qui décident de la protection des données (DPO, conformité, produit, support), puis aux développeurs. Ce que chaque profil attend est dans [Besoins par profil](needs-by-profile.md). Le code et les tests font foi. Les écarts avec la documentation existante sont dans le [registre des écarts](reference/doc-code-gaps.md). Les termes sont dans le [glossaire](glossary.md).
+La documentation métier s'adresse d'abord aux personnes qui décident de la protection des données (DPO, conformité, produit, support), puis aux développeurs. Ce que chaque profil attend est dans [Besoins par profil](needs-by-profile.md). Le code et les tests font foi. Les écarts avec la documentation existante sont dans le [registre des écarts](reference/doc-code-gaps.md). Les termes sont dans le [glossaire](glossary.md).
 
 ## Je cherche à comprendre…
 
@@ -95,7 +95,7 @@ flowchart LR
 - **Services** : aucun pour les tests. Redis, une base SQL ou `piighost-api` ne servent qu'en exploitation. Voir [Stocker les conversations](operations/storage-and-encryption.md) et [Configurer un pipeline](operations/configuration-and-hub.md).
 - **Exemples** : scripts autonomes dans `examples/`, lancés par `uv run examples/<script>.py`.
 
-## Les groupes du wiki
+## Les groupes de la documentation métier
 
 - **Besoins** : [Besoins par profil](needs-by-profile.md).
 - **Processus** : [Protéger un message](processes/protect-a-message.md), [Suivre une conversation](processes/follow-a-conversation.md), [Imposer une liste blanche et une liste noire](processes/impose-a-whitelist-and-blacklist.md), [Laisser un outil agir](processes/let-a-tool-act.md), [Afficher une réponse streamée](processes/show-a-streamed-reply.md).

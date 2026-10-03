@@ -1,7 +1,7 @@
 ---
 type: guide
 title: Needs by profile
-description: The needs of the compliance officer, the developer, the operator and the application user, each with its observable criteria, the wiki page that delivers it, and the watch points when a model answers badly.
+description: The needs of the compliance officer, the developer, the operator and the application user, each with its observable criteria, the domain documentation page that delivers it, and the watch points when a model answers badly.
 tags: [personas, user-stories, dpo, developer, operator, end-user, vigilance]
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
@@ -13,12 +13,12 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Four profiles expect different things from PIIGhost: the compliance officer (DPO), the developer, the operator and the application user.
 - Each need carries an identifier in English, the same in every language: `DPO-n`, `DEV-n`, `OPS-n`, `USER-n`.
-- Each need gives observable criteria and the wiki page that delivers it.
+- Each need gives observable criteria and the domain documentation page that delivers it.
 - The watch points, at the end of the page, list the unexpected answers of a model and the need that covers them.
 
 `piighost` serves four profiles, who do not expect the same thing from it. The compliance officer wants no confidential data to leave, the developer wants to integrate it without rewriting their application, the operator wants to run it in production, and the application user must never notice it.
 
-Each need is carried by a wiki process, which gives the scenario and the rules, and by acceptance tests, listed in [Acceptance tests](tests/acceptance-tests.md). The terms are defined in the [glossary](glossary.md).
+Each need is carried by a process of the domain documentation, which gives the scenario and the rules, and by acceptance tests, listed in [Acceptance tests](tests/acceptance-tests.md). The terms are defined in the [glossary](glossary.md).
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 type: reference
 title: Registre des écarts doc / code
-description: Chaque écart constaté entre la documentation existante de PIIGhost (docs/, AGENTS.md, docstrings) et le comportement du code, avec la source de chaque côté et la page du wiki concernée.
+description: Chaque écart constaté entre la documentation existante de PIIGhost (docs/, AGENTS.md, docstrings) et le comportement du code, avec la source de chaque côté et la page de la documentation métier concernée.
 tags: [reference, documentation, discrepancies, review]
 sources:
   - id: openwiki-source-ca6cb4b1a14fd7969dfae3ec
@@ -50,7 +50,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## En bref
 
 - Cette page liste les endroits où la documentation existante dit autre chose que le code.
-- Le code fait foi : le wiki décrit toujours ce que fait le code.
+- Le code fait foi : la documentation métier décrit toujours ce que fait le code.
 - Aucun écart n'est corrigé ici. Chacun attend une décision du mainteneur : corriger la doc, ou corriger le code. Un écart réglé garde son entrée, avec son statut.
 - Les écarts relevés portent sur la documentation pour développeurs et sur un exemple de la FAQ. Aucun ne change ce que voit l'utilisateur final.
 
@@ -58,7 +58,7 @@ Les termes sont définis dans le [glossaire](../glossary.md). Retour au [quickst
 
 ## Lire une entrée
 
-Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui en parle et l'effet de l'écart. Quand la version française de la doc (`docs/fr/`) répète l'écart, elle est citée aussi. `AGENTS.md` et `CLAUDE.md` sont ignorés par git dans ce dépôt (`.gitignore:186`). Leurs écarts ne touchent donc que les agents qui travaillent en local.
+Chaque entrée donne ce que dit la doc, ce que fait le code, la page de la documentation métier qui en parle et l'effet de l'écart. Quand la version française de la doc (`docs/fr/`) répète l'écart, elle est citée aussi. `AGENTS.md` et `CLAUDE.md` sont ignorés par git dans ce dépôt (`.gitignore:186`). Leurs écarts ne touchent donc que les agents qui travaillent en local.
 
 ## Écarts
 
@@ -68,7 +68,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `AGENTS.md:7`, `:26` et `:82` : chaque étape a un port `Any*` et un gabarit `Base*`. `docs/en/architecture.md:109-111` et `docs/fr/architecture.md:112` : seuls deux ports n'ont pas de gabarit, les garde-fous et la mémoire. |
 | Code | Cinq ports n'ont pas de gabarit : `components/detector/base.py:9`, `components/override/base.py:9-17`, `components/guard/base.py:42`, `conversation_memory/base.py:10-14`, `crypto/cipher/base.py:7-10`. |
-| Page du wiki | [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md) |
+| Page de la documentation métier | [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md) |
 | Effet | Un contributeur peut chercher un `BaseDetector` qui n'existe pas. |
 
 ### ECART-02 : version citée dans un message d'erreur
@@ -77,7 +77,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | Message de `config/models/detector.py:62-66` : les catalogues intégrés ont été retirés « in piighost 2.0 ». |
 | Code | Le paquet est en `1.10.0` (`pyproject.toml:3`). `CHANGELOG.md` place le passage des catalogues au hub en 1.8.0. |
-| Page du wiki | [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md) |
+| Page de la documentation métier | [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md) |
 | Effet | Un utilisateur en 1.x lit une version qui n'existe pas. [à vérifier] : « 2.0 » désigne peut-être la réécriture interne (« v2 »), pas un numéro de version publié. |
 
 ### ECART-03 : exemple de jeton haché
@@ -86,7 +86,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | Docstring de `components/placeholder/label_hash.py:14` et `AGENTS.md:45` : le premier jeton est `<<PERSON:6b86b273>>`. |
 | Code | `label_hash.py:35-40` hache la chaîne `PERSON:1`. Le premier jeton est `<<PERSON:09ef3b74>>`. `6b86b273` est l'empreinte de la chaîne `1` seule. |
-| Page du wiki | [Glossaire](../glossary.md) |
+| Page de la documentation métier | [Glossaire](../glossary.md) |
 | Effet | Un lecteur qui compare un jeton réel à l'exemple croit à un bug. Les pages de `docs/` utilisent un exemple neutre (`<<PERSON:a1b2c3d4>>`) et ne sont pas concernées. |
 
 ### ECART-04 : forme des jetons de type et de caviardage
@@ -95,7 +95,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `AGENTS.md:45` illustre l'axe « étiquette » par `<PERSON>` et `[REDACT]`. |
 | Code | Les fabriques émettent `<<PERSON>>` (`components/placeholder/label.py:26-28`) et `<<REDACT>>` (`redact.py:25-28`), avec les délimiteurs `<<` et `>>` par défaut. |
-| Page du wiki | [Glossaire](../glossary.md) |
+| Page de la documentation métier | [Glossaire](../glossary.md) |
 | Effet | Faible : la forme des délimiteurs est mal illustrée. |
 
 ### ECART-05 : hacheur de la mémoire Redis
@@ -104,7 +104,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `AGENTS.md:49` : le backend Redis hache les clés « with Argon2id ». |
 | Code | Le hacheur est au choix, HMAC-SHA256 ou Argon2id (`config/models/hasher.py:76-79`). Sans hacheur, la clé est un SHA-256 non secret (`conversation_memory/base.py:73-77`). |
-| Page du wiki | [Stocker les conversations et protéger les traces](../operations/storage-and-encryption.md) |
+| Page de la documentation métier | [Stocker les conversations et protéger les traces](../operations/storage-and-encryption.md) |
 | Effet | Un lecteur peut croire qu'Argon2id est toujours actif. |
 
 ### ECART-06 : liste blanche, liste noire et lecture du cache
@@ -113,7 +113,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | Docstring de `DetectionOverride` (`components/override/detector.py:51-53`) : les pipelines appliquent les listes « after every detection read ». |
 | Code | Une lecture depuis le cache de la conversation ne repasse pas par les listes (`pipeline/thread.py:271-274`). |
-| Page du wiki | [Imposer une liste blanche et une liste noire](../processes/impose-a-whitelist-and-blacklist.md) |
+| Page de la documentation métier | [Imposer une liste blanche et une liste noire](../processes/impose-a-whitelist-and-blacklist.md) |
 | Effet | Une liste modifiée ne s'applique pas aux messages déjà analysés. [à vérifier] : si « detection read » désigne seulement l'appel au détecteur, la phrase est juste mais trompeuse. |
 
 ### ECART-07 : classe `ConversationMemory`
@@ -122,7 +122,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `docs/en/security.md:23` et `:57`, `docs/fr/security.md:23` et `:58` : « la `ConversationMemory` lie les variantes » et porte le lien entre valeur et jeton. |
 | Code | Aucune classe `ConversationMemory`. Le port est `AnyConversationMemory` (`conversation_memory/base.py:106`). Le regroupement des variantes est fait par `ExactEntityLinker` (`components/linker/exact.py:8-21`), pas par la mémoire, qui ne stocke que des détections (`conversation_memory/base.py:1-8`). |
-| Page du wiki | [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md) |
+| Page de la documentation métier | [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md) |
 | Effet | Un lecteur cherche une classe absente et attribue le regroupement au mauvais composant. |
 
 ### ECART-08 : Faker, prévu ou écarté
@@ -131,7 +131,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `docs/en/community/faq.md:32` et `docs/fr/community/faq.md:32` : une fabrique Faker « est sur la roadmap ». `docs/en/roadmap.md:40` et `docs/fr/roadmap.md:40` la classent dans les « Non-goals », écartée à dessein. |
 | Code | Aucune fabrique Faker dans `src/` (`components/placeholder/` ne contient que `redact`, `label`, `label_counter`, `label_hash`, `mask`). |
-| Page du wiki | [Glossaire](../glossary.md) |
+| Page de la documentation métier | [Glossaire](../glossary.md) |
 | Effet | Deux pages de la doc se contredisent sur une fonction annoncée aux utilisateurs. C'est le seul écart visible par un public non développeur. |
 
 ### ECART-09 : résultat d'un outil
@@ -140,7 +140,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `docs/en/tool-call-strategies.md` et `docs/fr/tool-call-strategies.md`, ainsi que `placeholder-factories.md` dans les deux langues : la réponse d'un outil est parcourue « à la recherche des valeurs connues ». |
 | Code | Le résultat passe par le pipeline complet de la conversation, détection comprise (`integrations/langchain/middleware.py:253-272`). Une valeur jamais citée avant dans la conversation est détectée aussi. |
-| Page du wiki | [Laisser un outil agir sur les vraies valeurs](../processes/let-a-tool-act.md) |
+| Page de la documentation métier | [Laisser un outil agir sur les vraies valeurs](../processes/let-a-tool-act.md) |
 | Effet | La doc sous-estimait la protection. Statut : doc corrigée le 2026-10-02 (`3473217`). |
 
 ### ECART-10 : flux coupé au milieu d'un jeton
@@ -149,12 +149,12 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 |---|---|
 | Doc | `docs/en/reference/langchain.md` et `docs/fr/reference/langchain.md` : l'affichage en flux « ne montre jamais de token cassé ». |
 | Code | En fin de flux, `flush` rend tel quel le reste retenu (`components/placeholder/streaming.py:186`). Un flux coupé au milieu d'un jeton affiche donc le début de ce jeton. |
-| Page du wiki | [Afficher une réponse streamée](../processes/show-a-streamed-reply.md) |
+| Page de la documentation métier | [Afficher une réponse streamée](../processes/show-a-streamed-reply.md) |
 | Effet | Cas rare, sans fuite de valeur. Statut : doc corrigée le 2026-10-02 (`3473217`). |
 
 ## Points à vérifier, sans écart établi
 
-Ces points ne contredisent aucune doc. Ils sont signalés dans les pages du wiki avec le moyen de trancher.
+Ces points ne contredisent aucune doc. Ils sont signalés dans les pages de la documentation métier avec le moyen de trancher.
 
 | Point | Page |
 |---|---|
