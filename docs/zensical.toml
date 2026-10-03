@@ -73,6 +73,7 @@ nav = [
   ]},
   { "Community" = [
     { "Contributing" = "community/contributing.md" },
+    { "Change piighost's code" = "community/changing-the-code.md" },
     { "Code of conduct" = "community/code-of-conduct.md" },
     { "Bug reports" = "community/bug-reports.md" },
     { "Versions and upgrades" = "community/upgrading.md" },

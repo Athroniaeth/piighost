@@ -182,18 +182,18 @@ l'arborescence du wiki. Sections, dans cet ordre :
    lecteur le pense, avec ses mots, sans identifiant technique. Une ligne
    par page métier, plus une ligne vers le glossaire et une vers le registre
    des écarts. Suivi d'un diagramme du cycle de vie (10 boîtes au plus).
-3. **Je dois modifier…** (public développeur) : un tableau
-   `Type de changement | Lire d'abord | Puis`. « Lire d'abord » pointe vers la
-   page du wiki ; « Puis » donne les fichiers, services ou tests à ouvrir
-   ensuite. Une ligne par modification courante du dépôt.
-4. **Repères pour démarrer en local** : pile technique, services, où se
-   lancent les commandes, liens vers les pages exploitation et tests.
-5. **Les groupes du wiki** : une puce par groupe, avec les liens.
-6. **Points de vigilance transverses** : trois à six pièges qui traversent
+3. **Modifier le code** : une seule phrase qui renvoie vers la page
+   « Modifier le code de piighost » de la documentation technique
+   (`docs/<langue>/community/changing-the-code.md`). Le tableau des
+   changements courants et les repères pour démarrer en local vivent dans
+   cette page, pas dans la documentation métier.
+4. **Les groupes de la documentation métier** : une puce par groupe, avec les liens.
+5. **Points de vigilance transverses** : trois à six pièges qui traversent
    plusieurs processus, chacun avec un lien.
 
-Toute page ajoutée, déplacée ou supprimée met à jour les deux tableaux de
-routage.
+Toute page ajoutée, déplacée ou supprimée met à jour le tableau de routage,
+et le tableau de la page « Modifier le code de piighost » quand un fichier
+qu'il cite change.
 
 ## Pages attendues
 
