@@ -50,7 +50,7 @@ flowchart TD
     D --> E["Le modèle lit le résultat masqué"]
 ```
 
-Exemple : la conversation contient déjà « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` », issu de « Écrivez à Jean Dupont, jean.dupont@exemple.fr ».
+Exemple : la conversation contient déjà « Écrivez à Jean Dupont, jean.dupont@exemple.fr ». Le modèle l'a lu sous la forme « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ».
 
 | Étape | Contenu |
 |---|---|
@@ -61,7 +61,7 @@ Exemple : la conversation contient déjà « Écrivez à `<<PERSON:1>>`, `<<EMAI
 
 L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant. L'e-mail est parti à la bonne adresse.
 
-**Comment vérifier** : dans une trace de l'agent, l'argument reçu par l'outil porte la vraie adresse, et le message suivant envoyé au modèle n'en contient aucune.
+**Comment vérifier** : dans une trace de l'agent, l'argument reçu par l'outil porte la vraie adresse, et le message suivant envoyé au modèle ne contient aucune adresse en clair.
 
 ### Choisir le réglage d'outil
 
@@ -89,11 +89,11 @@ L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant.
 
 **BR-TOOL-06.** Quand une valeur apparaît d'abord dans le résultat d'un outil, alors elle compte comme une valeur de l'utilisateur et reste masquée dans la suite de la conversation.
 
-**BR-TOOL-07.** Quand le modèle écrit dans un argument un jeton jamais émis, alors l'appel est refusé par défaut, avant l'exécution : `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. Aucun e-mail ne part. Avec « retirer », l'outil reçoit `{"to": ""}`. Avec « garder », il reçoit `{"to": "<<EMAIL:7>>"}`.
+**BR-TOOL-07.** Quand le modèle écrit dans un argument un jeton jamais émis, alors l'appel est refusé par défaut, avant l'exécution : `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. Aucun e-mail ne part. Avec le réglage de jeton inventé « retirer », l'outil reçoit `{"to": ""}`. Avec « garder », il reçoit `{"to": "<<EMAIL:7>>"}`.
 
 **BR-TOOL-08.** Quand les arguments contiennent des listes ou des objets imbriqués, alors chaque texte qu'ils contiennent est restauré, et les autres valeurs (nombres, booléens) restent intactes.
 
-**BR-TOOL-09.** Quand le modèle écrit lui-même une valeur en clair dans un argument, alors, avec LangChain, l'historique est masqué à nouveau avant l'appel suivant. Une valeur connue reprend son jeton. Une valeur que le modèle a apportée lui-même reste en clair, comme toute valeur citée d'abord par l'assistant.
+**BR-TOOL-09.** Quand le modèle écrit lui-même une valeur en clair dans un argument, alors l'intégration LangChain masque à nouveau l'historique avant l'appel suivant. Une valeur connue reprend son jeton. Une valeur que le modèle a apportée lui-même reste en clair, comme toute valeur citée d'abord par l'assistant.
 
 **BR-TOOL-10.** Quand l'agent garde son historique, alors l'appel d'outil y reste écrit avec ses jetons. Les vraies valeurs n'existent que pendant l'exécution de l'outil.
 
@@ -172,4 +172,4 @@ L'écart sur le résultat d'un outil (la doc parlait d'un remplacement des seule
 | `tests/integrations/test_pydantic_ai_hooks.py` (`TestTools`) | L'outil reçoit la valeur, son résultat est masqué |
 | `piighost-api:tests/routes/test_rewrite.py` | Arguments restaurés par le proxy, hors flux |
 
-Non couvert : la restauration des arguments d'outil dans le flux du proxy OpenAI (AT-USER-3-2), qui n'existe pas.
+Non couvert : la restauration des arguments d'outil dans le flux du proxy OpenAI (AT-USER-3-2). Cette restauration n'existe pas.

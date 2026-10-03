@@ -4,9 +4,9 @@ icon: lucide/link
 
 # Garder les données confidentielles hors d'un pipeline RAG LlamaIndex
 
-Vous voulez un RAG LlamaIndex où ni le fournisseur d'embeddings ni le LLM ne voient de données confidentielles. `piighost` fournit deux composants : `PIINodeAnonymizer`, un transform d'ingestion qui dé-identifie chaque node avant l'embedding, et `PIIQueryEngine`, un wrapper qui dé-identifie la requête et restaure la réponse. Les deux partagent un pipeline de conversation, donc une valeur garde le même jeton à travers le corpus et la requête.
+Vous voulez un RAG LlamaIndex où ni le fournisseur d'embeddings ni le LLM ne voient de données confidentielles. `piighost` fournit deux composants. `PIINodeAnonymizer` est un transform d'ingestion qui dé-identifie chaque node avant l'embedding. `PIIQueryEngine` est un wrapper qui dé-identifie la requête et restaure la réponse. Les deux partagent un pipeline de conversation, donc une valeur garde le même jeton à travers le corpus et la requête.
 
-Pour la même idée orchestrée à la main sur un flux RAG simple, voir le script `examples/langchain/rag.py`. Cette page l'emballe en objets LlamaIndex réutilisables.
+Pour la même idée orchestrée à la main sur un flux RAG simple, voir le script `examples/langchain/rag.py`. Cette page emballe cette idée en objets LlamaIndex réutilisables.
 
 !!! note "Prérequis"
     `piighost` installé avec l'extra llama-index, `pip install piighost[llama-index]`, plus `llama-index-embeddings-openai` et `llama-index-llms-openai` et un `OPENAI_API_KEY`.
@@ -29,13 +29,13 @@ Placez `PIINodeAnonymizer` dans les transformations avant le modèle d'embedding
 
 ## 3. Envelopper le query engine
 
-`PIIQueryEngine` dé-identifie la requête dans la même conversation, donc le retrieval concorde avec le corpus dé-identifié, et restaure la réponse pour l'utilisateur.
+`PIIQueryEngine` dé-identifie la requête dans la même conversation que le corpus, et restaure la réponse pour l'utilisateur. Le retrieval concorde donc avec le corpus dé-identifié.
 
 ```python
 --8<-- "snippets/llama_index_rag.py:query"
 ```
 
-Le LLM a répondu sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }. L'utilisateur voit `Patrick`{ .pii } et `Paris`{ .pii } restaurés. Le retrieval tourne sur l'espace dé-identifié, ce qui échange un peu de qualité contre le fait de garder les données confidentielles hors de l'appel d'embedding.
+Le LLM a répondu sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }. L'utilisateur voit `Patrick`{ .pii } et `Paris`{ .pii } restaurés. Le retrieval tourne sur l'espace dé-identifié. Il y perd un peu de qualité, en échange de quoi les données confidentielles restent hors de l'appel d'embedding.
 
 ## Voir aussi
 

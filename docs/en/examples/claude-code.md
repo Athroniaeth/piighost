@@ -4,7 +4,7 @@ icon: lucide/terminal
 
 # De-identify Claude Code with hooks
 
-Claude Code speaks Anthropic's Messages API, not the OpenAI shape, so you cannot point it at the OpenAI-compatible proxy. Instead, `piighost` plugs into Claude Code's own hook system, small commands the harness runs at fixed points in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code. The [Anthropic-compatible proxy](anthropic-proxy.md) is the other route, through Claude Code's base URL.
+You cannot point Claude Code at the OpenAI-compatible proxy, because it speaks Anthropic's Messages API, not the OpenAI shape. Instead, `piighost` plugs into Claude Code's own hook system. A hook is a small command that Claude Code runs at a fixed point in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code. The other route is the [Anthropic-compatible proxy](anthropic-proxy.md), plugged in through Claude Code's base URL.
 
 Three hooks cover a turn:
 
@@ -15,7 +15,7 @@ Three hooks cover a turn:
 So the model only ever sees placeholders like `<<PERSON:1>>`, while the tools that actually run (Bash, Read, Edit, ...) receive the real values. The Claude Code `session_id` is used as the de-identification thread, so a value keeps the same token for the whole session.
 
 !!! note "Prerequisites"
-    `piighost` installed with the client extra, `pip install piighost[client]`, and a running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md). The hook is a thin client, it forwards each event to the API, which owns the pipeline and the conversation memory. It sends no API key, so start the server with `PIIGHOST_ALLOW_ANONYMOUS=true` and keep it on a host only you can reach.
+    `piighost` installed with the client extra, `pip install piighost[client]`, and a running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md). The hook is a thin client. It forwards each event to the API, which owns the pipeline and the conversation memory. The hook sends no API key. So start the server with `PIIGHOST_ALLOW_ANONYMOUS=true`, and keep it on a host only you can reach.
 
 ## Wire the hooks
 
@@ -84,7 +84,7 @@ export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 
 ## Which fields get de-identified
 
-A prompt and a tool input are plain enough to de-identify wholesale, but a tool's output is a structured object where only some fields hold model-facing text. The `PostToolUse` hook therefore de-identifies a per-tool allowlist of text fields rather than the whole payload, so it never mangles a path, an exit code, or a line number:
+A prompt and a tool input are plain enough to de-identify wholesale. A tool's output, though, is a structured object where only some fields hold model-facing text. The `PostToolUse` hook therefore does not de-identify the whole payload, so it never mangles a path, an exit code, or a line number. It de-identifies a per-tool allowlist of text fields:
 
 | Tool | De-identified fields |
 |------|-------------------|
@@ -99,18 +99,18 @@ A prompt and a tool input are plain enough to de-identify wholesale, but a tool'
 
 !!! warning "The allowlist fails open"
 
-    A tool that is not in the list, or an output whose shape is unexpected, passes through untouched, so its text reaches the model in clear. `Grep` is the notable gap: its matches are lines of the files it searched, and the list does not cover it yet. Until it does, either keep `Grep` out of the session or extend the list as described below.
+    A tool that is not in the list, or an output whose shape is unexpected, passes through untouched. Its text therefore reaches the model in clear. The notable gap is `Grep`, which the list does not cover yet. Its matches are lines of the files it searched. Until it does, either keep `Grep` out of the session or extend the list as described below.
 
 ## Discover a new tool's shape
 
-To extend the allowlist to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` before starting Claude Code. The runner then logs each hook call to a JSONL file, and a tool output it passed through is logged whole, so you can see the real field names:
+To extend the allowlist to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` before starting Claude Code. The runner then logs each hook call to a JSONL file. A tool output it passed through is logged whole, so you can see the real field names:
 
 ```bash
 export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 ```
 
-Exercise the tool, read the log to find which fields carry the text, and add the tool to the allowlist in the integration. The log holds clear text, so delete it afterwards.
+Exercise the tool, read the log to find which fields carry the text, and add the tool to the allowlist in the integration. The log holds clear text. Delete it afterwards.
 
 ## Use it programmatically
 
-The public API is two functions. `handle_hook(event, pipeline)` is a pure dispatch that takes a parsed event and any thread pipeline (a local `ThreadAnonymizationPipeline` or a remote `PIIGhostClient`) and returns the mutation envelope, or `None` to pass through. `run()` is the stdin/stdout entrypoint the module invokes. Drive `handle_hook` directly to test the behaviour or to embed it in your own runner.
+The public API is two functions. `handle_hook(event, pipeline)` is a pure dispatch. It takes a parsed event and any thread pipeline (a local `ThreadAnonymizationPipeline` or a remote `PIIGhostClient`). It returns the mutation envelope, or `None` to pass through. `run()` is the stdin/stdout entrypoint the module invokes. Drive `handle_hook` directly to test the behaviour or to embed it in your own runner.

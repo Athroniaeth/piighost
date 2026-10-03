@@ -7,7 +7,7 @@ tags:
 
 # Étendre PIIGhost
 
-Chaque étape du pipeline est un **port**, un `Protocol` que vous satisfaites en implémentant sa méthode unique. Aucune classe de base à hériter, et rien d'autre dans le pipeline ne change. Vous pouvez aussi sous-classer un patron `Base*` là où il en existe un, qui fournit le squelette commun et vous laisse un seul point d'extension.
+Chaque étape du pipeline est un **port**, un `Protocol` que vous satisfaites en implémentant sa méthode unique. Aucune classe de base à hériter, et rien d'autre dans le pipeline ne change. Là où un patron `Base*` existe, vous pouvez aussi le sous-classer. Ce patron fournit le squelette commun et vous laisse un seul point d'extension.
 
 ```mermaid
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
     A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-*Le pipeline injecte un composant par port. Seul le détecteur est requis, le linker, l'anonymiseur et le résolveur de chevauchements retombent sur des composants intégrés, et seules les étapes expand, entity-resolve, guard et override sont désactivées par défaut.*
+*Le pipeline injecte un composant par port. Seul le détecteur est requis. Le linker, l'anonymiseur et le résolveur de chevauchements utilisent par défaut des composants intégrés. Seules les étapes expand, entity-resolve, guard et override sont désactivées par défaut.*
 { .figure-caption }
 
 Les ports vivent dans le `base.py` de chaque composant, sous `piighost.components.*`. Les modèles de données qu'ils échangent vivent dans `piighost.models`.
@@ -54,7 +54,7 @@ Pour alimenter un détecteur depuis une liste de valeurs figée dans les tests, 
 
 ### Pour les modèles NER, sous-classez `BaseNERDetector`
 
-Les détecteurs adossés à un modèle (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) étendent tous `BaseNERDetector`. Il traduit le label qu'un modèle émet en interne vers le label qui apparaît dans `Detection.label`, si bien que vous pouvez interroger un modèle avec les chaînes qu'il détecte le mieux tout en produisant des labels propres en aval. Passez `labels` sous forme de liste pour un mapping identité, ou sous forme de dictionnaire `{émis: interne}` pour renommer.
+Les détecteurs adossés à un modèle (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) étendent tous `BaseNERDetector`. `BaseNERDetector` traduit le label qu'un modèle émet en interne vers le label qui apparaît dans `Detection.label`. Vous pouvez ainsi interroger un modèle avec les chaînes qu'il détecte le mieux, tout en produisant des labels propres en aval. Passez `labels` sous forme de liste pour garder chaque label tel quel (mapping identité), ou sous forme de dictionnaire `{émis: interne}` pour renommer.
 
 ```python
 --8<-- "snippets/extending_gliner2.py:example"
@@ -70,7 +70,7 @@ Les détecteurs adossés à un modèle (`Gliner2Detector`, `SpacyDetector`, `Tra
 
 ## Un résolveur de chevauchements personnalisé
 
-Un résolveur de chevauchements réconcilie les détections dont les spans se chevauchent en un ensemble non chevauchant. Le port :
+Un résolveur de chevauchements reçoit des détections dont les spans se chevauchent, et en tire un ensemble de détections sans chevauchement. Le port :
 
 ```python
 --8<-- "snippets/ports.py:overlap_resolver"
@@ -96,7 +96,7 @@ Un expandeur trouve les occurrences qu'un détecteur a manquées, comme la rép�
 --8<-- "snippets/ports.py:expander"
 ```
 
-Sous-classez `BaseDetectionExpander`. Il conserve les détections d'origine et, pour chacune, ajoute une détection à chaque occurrence supplémentaire que votre `_find_occurrences` renvoie, en reprenant le label et la confiance de la détection source. Une occurrence qui chevauche une détection déjà retenue est écartée, car l'expander passe après le résolveur de chevauchements et le rendu refuse deux spans qui se recouvrent. Les valeurs sont cherchées de la plus longue à la plus courte, donc un nom complet prend sa place avant son prénom.
+Sous-classez `BaseDetectionExpander`. Il conserve les détections d'origine. Pour chacune, il ajoute une détection à chaque occurrence supplémentaire que renvoie votre `_find_occurrences`. Chaque détection ajoutée reprend le label et la confiance de la détection source. Une occurrence qui chevauche une détection déjà retenue est écartée, car l'expander passe après le résolveur de chevauchements et le rendu refuse deux spans qui se recouvrent. Les valeurs sont cherchées de la plus longue à la plus courte, donc un nom complet prend sa place avant son prénom.
 
 ???+ example "Répétitions par mot entier"
 
@@ -110,13 +110,13 @@ Le `WordBoundaryExpander` intégré fait exactement cela. L'étape est optionnel
 
 ## Un linker d'entités personnalisé
 
-Un linker regroupe les détections qui réfèrent à la même valeur en entités, si bien que chaque occurrence partage un placeholder. Le port :
+Un linker regroupe en entités les détections qui réfèrent à la même valeur. Toutes les occurrences d'une valeur partagent ainsi un placeholder. Le port :
 
 ```python
 --8<-- "snippets/ports.py:linker"
 ```
 
-Sous-classez `BaseEntityLinker`. Il regroupe les détections par une clé que vous calculez dans `_key`, une entité par clé distincte, en gardant l'ordre de première occurrence.
+Sous-classez `BaseEntityLinker`. Il regroupe les détections selon une clé que vous calculez dans `_key`. Il crée une entité par clé distincte, dans l'ordre de première occurrence.
 
 ???+ example "Regrouper par valeur exacte et label"
 
@@ -124,7 +124,7 @@ Sous-classez `BaseEntityLinker`. Il regroupe les détections par une clé que vo
     --8<-- "snippets/extending.py:case_sensitive_linker"
     ```
 
-L'`ExactEntityLinker` intégré regroupe sur la clé de valeur, les mêmes mots quelles que soient leurs espaces et leur casse, si bien que `Patrick`{ .pii } et `patrick`{ .pii } deviennent une seule entité. Utilisez `piighost.text.value_key` dans votre propre linker pour suivre la même règle, voir [Espaces Unicode](reference/detectors.md#espaces-unicode).
+L'`ExactEntityLinker` intégré regroupe selon la clé de valeur. Cette clé est la même pour les mêmes mots, quelles que soient leurs espaces et leur casse. `Patrick`{ .pii } et `patrick`{ .pii } deviennent donc une seule entité. Utilisez `piighost.text.value_key` dans votre propre linker pour suivre la même règle, voir [Espaces Unicode](reference/detectors.md#espaces-unicode).
 
 ---
 
@@ -136,7 +136,7 @@ Un résolveur d'entités réconcilie les entités qui ne devraient pas coexister
 --8<-- "snippets/ports.py:entity_resolver"
 ```
 
-Sous-classez `BaseEntityResolver`. Il regroupe les entités qui partagent une détection et confie chaque groupe à votre `_reduce`, qui renvoie un ensemble cohérent, soit en fusionnant le groupe en une entité, soit en les gardant séparées. Les composants intégrés :
+Sous-classez `BaseEntityResolver`. Il regroupe les entités qui partagent une détection et confie chaque groupe à votre `_reduce`. Votre `_reduce` renvoie un ensemble cohérent, soit en fusionnant le groupe en une entité, soit en gardant les entités séparées. Les composants intégrés :
 
 - `MergeEntityResolver` fusionne les entités qui partagent une détection, par union-find.
 - `SeparateEntityResolver` les garde séparées, en donnant chaque détection partagée à une entité.
@@ -148,13 +148,13 @@ L'étape est optionnelle.
 
 ## Une fabrique de placeholders personnalisée
 
-Une fabrique de placeholders transforme les entités en leurs jetons de remplacement. Elle est générique sur un **tag de préservation**, un type fantôme qui déclare ce que ses jetons préservent, dont le type-checker se sert pour verrouiller un consommateur comme le middleware. Le port :
+Une fabrique de placeholders transforme les entités en leurs jetons de remplacement. Elle est générique sur un **tag de préservation**, un type fantôme qui déclare ce que ses jetons préservent. Le type-checker se sert de ce tag pour verrouiller un consommateur comme le middleware. Le port :
 
 ```python
 --8<-- "snippets/ports.py:placeholder_factory"
 ```
 
-Un jeton est une instance du tag, qui est une sous-classe de `str`, donc c'est une vraie chaîne qui porte son niveau de préservation dans son propre type. `create` doit être déterministe. Les mêmes entités produisent les mêmes jetons à chaque appel, car le pipeline l'appelle plusieurs fois par exécution.
+Un jeton est une instance du tag, et le tag est une sous-classe de `str`. Le jeton est donc une vraie chaîne, qui porte son niveau de préservation dans son propre type. `create` doit être déterministe. Les mêmes entités produisent les mêmes jetons à chaque appel, car le pipeline l'appelle plusieurs fois par exécution.
 
 ???+ example "Fabrique de labels entre crochets"
 
@@ -162,7 +162,7 @@ Un jeton est une instance du tag, qui est une sous-classe de `str`, donc c'est u
     --8<-- "snippets/extending.py:bracket_factory"
     ```
 
-`PreservesLabel` dit que le jeton révèle le type mais pas une identité unique, donc cette fabrique convient au caviardage à usage unique, pas au middleware. Pour un jeton que le middleware sait dé-identifier et retrouver, taguez-le `PreservesRecognizableIdentity` (ou un sous-tag comme `PreservesLabeledIdentityOpaque`) et utilisez une grammaire délimitée comme `<<PERSON:1>>`{ .placeholder }. Pour envelopper une forme interne dans des délimiteurs sans écrire l'enveloppe vous-même, sous-classez `BaseDelimitedPlaceholderFactory`. Voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète des tags et des exemples détaillés.
+`PreservesLabel` dit que le jeton révèle le type mais pas une identité unique. Cette fabrique convient donc au caviardage à usage unique, pas au middleware. Pour un jeton que le middleware sait dé-identifier et retrouver, taguez-le `PreservesRecognizableIdentity` (ou un sous-tag comme `PreservesLabeledIdentityOpaque`) et utilisez une grammaire délimitée comme `<<PERSON:1>>`{ .placeholder }. Pour envelopper une forme interne dans des délimiteurs sans écrire l'enveloppe vous-même, sous-classez `BaseDelimitedPlaceholderFactory`. Voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète des tags et des exemples détaillés.
 
 ### Utilisation
 
@@ -174,13 +174,13 @@ Un jeton est une instance du tag, qui est une sous-classe de `str`, donc c'est u
 
 ## Un garde-fou personnalisé
 
-Un garde-fou re-contrôle la sortie dé-identifiée à la recherche de données confidentielles résiduelles. Il classe, il ne décide pas. Il renvoie un `GuardVerdict` et laisse le pipeline lever `PIIRemainingError` quand un verdict est signalé. Il n'y a pas de patron `Base`, les gardes diffèrent par tout leur mécanisme de contrôle. Le port :
+Un garde-fou re-contrôle la sortie dé-identifiée à la recherche de données confidentielles résiduelles. Il classe, il ne décide pas. Il renvoie un `GuardVerdict` et laisse le pipeline lever `PIIRemainingError` quand un verdict est signalé. Il n'y a pas de patron `Base`, parce que chaque garde a son propre mécanisme de contrôle. Le port :
 
 ```python
 --8<-- "snippets/ports.py:guard"
 ```
 
-`check` ne voit que le texte dé-identifié. Les placeholders qu'il porte sont clairement synthétiques, donc un contrôle destiné aux vraies valeurs ne les prend pas pour elles.
+`check` ne voit que le texte dé-identifié. Les placeholders de ce texte sont clairement synthétiques. Un contrôle qui cherche les vraies valeurs ne les prend donc pas pour de vraies valeurs.
 
 ???+ example "Signaler un @ résiduel"
 

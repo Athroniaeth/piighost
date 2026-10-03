@@ -7,9 +7,9 @@ tags:
 
 # Comment forcer une détection ou laisser une valeur en clair
 
-Votre détecteur lit le nom de votre entreprise comme une personne et vous voulez qu'il reste en clair. Vos noms de code internes ne sont jamais détectés et vous voulez qu'ils soient remplacés à chaque fois. Ces deux décisions portent sur le jeu de détections plutôt que sur le détecteur, et `DetectionOverride` est l'étape qui les impose, un détecteur whitelist dont les hits sont forcés dans le jeu et un détecteur blacklist dont les hits en sont retirés.
+Votre détecteur lit le nom de votre entreprise comme une personne et vous voulez qu'il reste en clair. Vos noms de code internes ne sont jamais détectés et vous voulez qu'ils soient remplacés à chaque fois. Ces deux décisions portent sur le jeu de détections plutôt que sur le détecteur. `DetectionOverride` est l'étape qui les impose, avec deux détecteurs. Les hits du détecteur whitelist sont forcés dans le jeu, et ceux du détecteur blacklist en sont retirés.
 
-L'étape s'exécute juste après la détection, avant la résolution des chevauchements et la liaison, donc ses deux listes l'emportent sur la lecture du détecteur ainsi que sur un jeu corrigé qui revient d'une relecture humaine. Voir [Architecture](../architecture.md) pour l'ordre complet des étapes.
+L'étape s'exécute juste après la détection, avant la résolution des chevauchements et la liaison. Ses deux listes l'emportent donc sur la lecture du détecteur, et aussi sur un jeu corrigé qui revient d'une relecture humaine. Voir [Architecture](../architecture.md) pour l'ordre complet des étapes.
 
 !!! note "Prérequis"
     `piighost` seul, `pip install piighost`. Chaque snippet ci-dessous s'exécute tel quel, sans téléchargement de modèle. La section 2 et le fichier de configuration tirent le groupe générique du [hub piighost](https://hub.piighost.dev), récupéré une fois, puis relu depuis le cache sur disque. La dernière section lit un fichier de configuration, ce qui demande l'extra config, `pip install piighost[config]`.
@@ -24,7 +24,7 @@ Pointez un détecteur sur la valeur, passez-le à `DetectionOverride` comme blac
 
 `blacklist_strategy` décide quelles détections un hit de blacklist emporte.
 
-- Gardez `BlacklistStrategy.VALUE`, le défaut, quand la valeur ne doit jamais être dé-identifiée, quel que soit le label que le détecteur lui donne. Il écarte toute détection portant le même texte replié en casse, position et label ignorés, si bien que le label que vous écrivez à côté de la valeur n'a jamais à correspondre à ce que le détecteur primaire émet.
+- Gardez `BlacklistStrategy.VALUE`, le défaut, quand la valeur ne doit jamais être dé-identifiée, quel que soit le label que le détecteur lui donne. Il écarte toute détection qui porte le même texte, sans tenir compte de la casse, de la position ni du label. Le label que vous écrivez à côté de la valeur n'a donc jamais à correspondre à celui que le détecteur primaire émet.
 - Utilisez `BlacklistStrategy.EXACT` quand c'est le label qui compte, et que les deux détecteurs lisent la valeur de la même façon. Il n'écarte une détection que si son span et son label correspondent tous les deux au hit.
 - Utilisez `BlacklistStrategy.OVERLAP` quand une détection plus longue contenant la valeur doit tomber aussi. Il écarte toute détection dont le span touche un span blacklisté, labels ignorés.
 
@@ -38,7 +38,7 @@ Les trois modes sur un même texte, avec un détecteur qui étiquette `Acme`{ .p
 --8<-- "snippets/overrides_blacklist_strategies.out"
 ```
 
-`EXACT` n'a rien trouvé à écarter, la blacklist disant que `Acme`{ .pii } est une organisation là où le détecteur dit une personne, et le span du détecteur couvrant `Globex Ltd`{ .pii } là où la blacklist ne couvre que `Globex`{ .pii }. `VALUE` compare des valeurs entières, donc il a écarté `Acme`{ .pii } et laissé `Globex Ltd`{ .pii }, dont le texte n'est pas celui de la blacklist. `OVERLAP` a écarté les deux, le span blacklisté étant à l'intérieur de la détection plus longue.
+`EXACT` n'a rien trouvé à écarter, pour deux raisons. La blacklist dit que `Acme`{ .pii } est une organisation, là où le détecteur dit une personne. Et le span du détecteur couvre `Globex Ltd`{ .pii }, là où la blacklist ne couvre que `Globex`{ .pii }. `VALUE` compare des valeurs entières, donc il a écarté `Acme`{ .pii } et laissé `Globex Ltd`{ .pii }, dont le texte n'est pas celui de la blacklist. `OVERLAP` a écarté les deux, parce que le span blacklisté est à l'intérieur de la détection plus longue.
 
 !!! note "Une valeur blacklistée ne déclenche pas le garde-fou"
     Un [garde-fou](../reference/guard-rails.md) relit la sortie et refuse les données confidentielles résiduelles. Le pipeline lui transmet les valeurs que la blacklist a trouvées dans le texte, donc une valeur que vous laissez volontairement en clair est exemptée. Toute autre fuite lève quand même `PIIRemainingError`.
@@ -61,7 +61,7 @@ Une valeur forcée passe par la liaison et l'attribution de jeton comme n'import
 
 ## 3. Tokeniser une valeur introduite par l'assistant
 
-Dans une conversation, une valeur que l'assistant a écrite le premier reste en clair même si la whitelist la trouve. Le modèle a produit cette valeur parce qu'elle était utile dans le contexte et il ne sait pas qu'elle est confidentielle, donc la remplacer lui retirerait sa connaissance du monde et signalerait que cette valeur précise est sensible. `whitelist_strategy` décide qui l'emporte.
+Dans une conversation, une valeur que l'assistant a écrite le premier reste en clair même si la whitelist la trouve. Le modèle a produit cette valeur parce qu'elle était utile dans le contexte, et il ne sait pas qu'elle est confidentielle. La remplacer lui retirerait sa connaissance du monde, et signalerait que cette valeur précise est sensible. `whitelist_strategy` décide qui l'emporte.
 
 - Gardez `WhitelistStrategy.RESPECT_PROVENANCE`, le défaut, pour laisser en clair une valeur introduite par l'assistant. La whitelist garantit toujours que la valeur est détectée, et la même valeur introduite par l'utilisateur est bien dé-identifiée.
 - Utilisez `WhitelistStrategy.FORCE` pour dé-identifier une valeur whitelistée quel que soit celui qui l'a écrite le premier.
@@ -90,7 +90,7 @@ Une valeur que les deux listes trouvent est une contradiction, et `conflict_stra
 --8<-- "snippets/overrides_conflict.out"
 ```
 
-`BLACKLIST_WINS` écarte un hit forcé via la stratégie de blacklist, donc le défaut `VALUE` écarte une valeur forcée quel que soit le label que la whitelist lui a attaché. Sous `EXACT`, les deux listes doivent s'accorder sur le label pour que la blacklist l'emporte.
+`BLACKLIST_WINS` écarte un hit forcé selon la stratégie de blacklist. Avec le défaut `VALUE`, une valeur forcée est donc écartée quel que soit le label que la whitelist lui a attaché. Sous `EXACT`, les deux listes doivent s'accorder sur le label pour que la blacklist l'emporte.
 
 ## 5. Piloter l'override depuis un fichier de configuration
 

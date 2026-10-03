@@ -21,8 +21,8 @@ injecting the chosen adapters behind the ports it expects.
 ## The three rings
 
 The code reads as three rings, from the most abstract to the most concrete. The
-direction of the dependencies is fixed once and for all, an outer ring imports an inner
-ring, never the reverse.
+direction of the dependencies is fixed once and for all. An outer ring imports an inner
+ring, and an inner ring never imports an outer ring.
 
 ```mermaid
 flowchart TB
@@ -69,7 +69,7 @@ flowchart TB
   ports. No external dependency, no pydantic, no I/O.
 - **Application.** The pipeline orchestration, which depends only on the core ports.
   This is where `anonymize`, `deanonymize`, and `forget_thread` live.
-- **Adapters.** The concrete implementations of the ports, detectors, resolvers,
+- **Adapters.** The concrete implementations of the ports: detectors, resolvers,
   factories, guard rails, memory backends, observation, HTTP client, middleware. Each
   adapter imports the core, never the reverse.
 - **Config.** The composition root. It is the only place allowed to know both the ports
@@ -80,7 +80,7 @@ flowchart TB
 ## Ports and templates
 
 A port is a Python `Protocol` marked `runtime_checkable`, in each component's
-`base.py`. The typing there is **structural**, an object satisfies the port as soon as
+`base.py`. The typing there is **structural**. An object satisfies the port as soon as
 it has the methods, without inheriting from it. The pipeline depends on the port, never
 on a concrete class.
 
@@ -96,8 +96,9 @@ written once in the base class, and each subclass provides only the step that va
 --8<-- "snippets/architecture_template.en.py:example"
 ```
 
-Two ports have no template. The guard rails and the memory backends differ by their
-whole mechanism, not by a single step, so there is nothing common to factor out. This
+Two ports have no template, the guard rail port and the memory backend port. Their
+adapters have nothing common to factor out, because they differ by their whole
+mechanism, not by a single step. This
 is the deliberate exception to the always-template rule.
 
 ---
@@ -106,8 +107,8 @@ is the deliberate exception to the always-template rule.
 
 `BaseAnonymizationPipeline` chains the stages from detection to de-identified text.
 Only the detector is a required constructor argument. Linking, de-identification, and
-overlap resolution always run, falling back to built-in defaults when omitted, an
-`ExactEntityLinker`, an `Anonymizer` with a `LabelCounterPlaceholderFactory`, and a
+overlap resolution always run. When omitted, they fall back to built-in defaults. These
+defaults are an `ExactEntityLinker`, an `Anonymizer` with a `LabelCounterPlaceholderFactory`, and a
 `ConfidenceOverlapResolver`. The override, expand, entity-resolve, and guard stages
 are pass-throughs when not provided.
 
@@ -148,8 +149,8 @@ flowchart LR
 *The pipeline, mandatory stages in blue, optional stages in yellow.*
 { .figure-caption }
 
-Why each stage exists and in which order is covered in
-[Pipeline design](conception.md). Here is the role and the default adapter of each.
+The [Pipeline design](conception.md) page explains why each stage exists and why
+they run in this order. Here is the role and the default adapter of each.
 
 <div class="wide-table" markdown="1">
 
@@ -210,11 +211,11 @@ classDiagram
 each entity.*
 { .figure-caption }
 
-Each tag is a subclass of `str`, so a token is a real string carrying its preservation
-level in its own type. These tags are phantom types, they exist only for the type
-checker. The middleware requires a tag that preserves identity
-(`PreservesRecognizableIdentity`), so plugging a `<<PERSON>>` factory into the
-middleware is an error caught at type-check time, not a runtime surprise.
+Each tag is a subclass of `str`. A token is therefore a real string carrying its
+preservation level in its own type. These tags are phantom types, which means they
+exist only for the type checker. The middleware requires a tag that preserves identity
+(`PreservesRecognizableIdentity`). Plugging a `<<PERSON>>` factory into the
+middleware is therefore an error caught at type-check time, not a runtime surprise.
 
 The provided factories range from the least to the most informative.
 `RedactPlaceholderFactory` emits `<<REDACT>>`{ .placeholder }, `LabelPlaceholderFactory`
@@ -260,7 +261,7 @@ first to the last.
 
 Tokens are assigned over **the union of every message's detections** in the thread, not
 over one message alone. A value seen again later therefore recovers its token instead of
-creating a new one. Rendering, in contrast, stays per message, only the current
+creating a new one. Rendering, in contrast, stays per message. Only the current
 message's spans are replaced, because detections from different messages do not share
 the same offset space.
 
@@ -268,10 +269,10 @@ the same offset space.
 --8<-- "snippets/architecture_thread.py:example"
 ```
 
-- The `thread_id` is **mandatory**, there is no shared default thread, so two callers
+- The `thread_id` is **mandatory**. There is no shared default thread, so two callers
   cannot fall into the same thread and leak each other's confidential data.
-- `deanonymize` rebuilds the thread's tokens from memory, so **any** text carrying those
-  tokens is restored, including a model reply the pipeline never de-identified.
+- `deanonymize` rebuilds the thread's tokens from memory. It therefore restores **any**
+  text carrying those tokens, including a model reply the pipeline never de-identified.
 - `forget_thread` erases a thread's whole memory and reports how much was dropped, for
   the right to erasure.
 
@@ -293,8 +294,9 @@ The memory is a **repository**, an `AnyConversationMemory` port with two adapter
 - `RedisConversationMemory` persists to Redis, for a multi-worker deployment where each
   worker must see the others' threads.
 
-The Redis backend stores confidential data in clear by nature, the reverse mapping. Two **crypto**
-components protect it. An `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`) turns each
+By nature, the Redis backend stores confidential data in clear, because it keeps the
+reverse mapping, which leads each token back to its value. Two **crypto** components
+protect it. An `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`) turns each
 message into a deterministic key without revealing the text. An `AnyCipher`
 (`AesGcmCipher`) encrypts the detections at rest, so a store leak reveals neither the
 message nor the values. The `thread_id` stays clear as a key prefix, so a thread can be
@@ -339,8 +341,8 @@ sequenceDiagram
   de-identifying its response.
 
 The middleware requires a factory that preserves identity, at type-check time. It also
-recognizes the tokens the model **invents** (`InventedPlaceholderStrategy`), since after
-restoration any token still following the placeholder grammar was not emitted by the
+recognizes the tokens the model **invents** (`InventedPlaceholderStrategy`). After
+restoration, any token still following the placeholder grammar was not emitted by the
 pipeline. The detail of the tool strategies is in
 [Tool-call strategies](tool-call-strategies.md).
 
@@ -350,8 +352,8 @@ pipeline. The detail of the tool strategies is in
 
 `piighost` emits one trace per pipeline stage through a port (`AnyObservationTracer`), a
 seam on top of OpenTelemetry. With no backend configured, a no-op implementation traces
-nothing and costs nothing, so the pipeline can always emit without checking whether
-tracing is active. An optional `observation_redactor` replaces the values in the traces
+nothing and costs nothing. The pipeline can therefore always emit its traces without
+checking whether tracing is active. An optional `observation_redactor` replaces the values in the traces
 with tokens, for a backend not allowed to see confidential data.
 
 ---
@@ -359,18 +361,18 @@ with tokens, for a backend not allowed to see confidential data.
 ## The config, composition root
 
 A TOML or JSON file describes the whole pipeline. The config subsystem reads it with
-pydantic-settings and turns it into config models, discriminated unions where each
-component type carries a `build()` method. Assembling the pipeline amounts to calling
+pydantic-settings and turns it into config models. These models are discriminated
+unions, where each component type carries a `build()` method. Assembling the pipeline amounts to calling
 `build()` on each model.
 
 ```python
 --8<-- "snippets/loaders.py"
 ```
 
-A file without a `[memory]` section builds a pipeline, a file that declares one builds a conversation pipeline. Each loader refuses the other kind.
+A file without a `[memory]` section builds a pipeline. A file that declares a `[memory]` section builds a conversation pipeline. Each loader refuses the file meant for the other. `load_pipeline` refuses a file with `[memory]`, and `load_thread_pipeline` a file without one.
 
-The coupling is one-way, config depends on the core and the adapters, the core never
-imports config. Adding a component means writing an adapter, a config model with
+The coupling is one-way. Config depends on the core and the adapters, but the core
+never imports config. Adding a component means writing an adapter, a config model with
 `build()`, and nothing else. The pipeline does not change.
 
 ---

@@ -18,10 +18,10 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## In short
 
 - The model sends its reply in chunks, which the application shows as they arrive.
-- A placeholder can arrive cut between two chunks, "`<<PER`" then "`SON:1>>`".
+- A placeholder can arrive cut between two chunks, for example "`<<PER`" then "`SON:1>>`".
 - The PIIGhost stream decoder holds back the start of the placeholder until it is whole, then restores it once.
 - Without this decoder, the user reads the placeholder on screen.
-- A stream cut in the middle of a placeholder leaves that fragment on screen, without any real value.
+- If the stream is cut in the middle of a placeholder, the start of that placeholder stays on screen. It contains no real value.
 
 Needs covered: DEV-9, USER-4, USER-1 and DEV-8, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). The restoration of a whole reply is described in [Follow a conversation and restore the reply](follow-a-conversation.md).
 
@@ -75,7 +75,7 @@ The user read "Hello Jean Dupont, I am writing to you at jean.dupont@exemple.fr.
 
 **BR-STREAM-05.** When the stream stops in the middle of a placeholder, then the held-back remainder is shown as is, without restoration. Example: "Hello Jean Dupont, see you soon <<EMA". The fragment contains no real value.
 
-**BR-STREAM-06.** When a completed placeholder was never issued, then the invented placeholder setting applies: refusal by default, which interrupts the stream, or drop, or keep.
+**BR-STREAM-06.** When a completed placeholder was never issued, then the invented placeholder setting applies. By default, it refuses the placeholder, which interrupts the stream. The two other choices drop the placeholder or keep it.
 
 | Setting | "Hello <<PERSON:" then "9>>." gives |
 |---|---|
@@ -85,7 +85,7 @@ The user read "Hello Jean Dupont, I am writing to you at jean.dupont@exemple.fr.
 
 **BR-STREAM-07.** When the application restores each chunk separately, without the decoder, then a cut placeholder is never recognized, and the user reads "Hello `<<PERSON:1>>`.".
 
-**BR-STREAM-08.** When the reply goes through a proxy of the `piighost-api` server, then the proxy also restores the stream with this decoder. The OpenAI proxy restores only the text, not the tool arguments, and neither proxy applies the invented placeholder setting.
+**BR-STREAM-08.** When the reply goes through a proxy of the `piighost-api` server, then the proxy also restores the stream with this decoder. The OpenAI proxy restores only the text, not the tool arguments. Neither proxy, OpenAI nor Anthropic, applies the invented placeholder setting.
 
 ### What the end user sees
 
@@ -167,4 +167,4 @@ The gap on a cut stream (the doc said the display "never" shows a broken placeho
 | `tests/integrations/test_deidentify_stream.py` | Invented placeholder in a stream, remainder rendered at the end of the stream |
 | `piighost-api:tests/routes/test_openai_stream.py`, `test_anthropic_messages.py` | Placeholder cut between two events of a proxy (AT-USER-4-2) |
 
-Not covered: the tool arguments of an OpenAI proxy stream, which are not restored.
+Not covered: the tool arguments of an OpenAI proxy stream. The proxy does not restore them.

@@ -44,7 +44,7 @@ The terms are defined in the [glossary](../glossary.md).
 | Fix the formatting | `make format` |
 | Pass the blocking check | `make lint` |
 
-`addopts` excludes the `integration` marker by default and disables the `anyio` and `langsmith_plugin` plugins (`pyproject.toml:166`). `asyncio_mode = "auto"`: an `async def` test needs no decorator.
+`addopts` excludes the `integration` marker by default and disables the `anyio` and `langsmith_plugin` plugins (`pyproject.toml:166`). With `asyncio_mode = "auto"`, an `async def` test needs no decorator.
 
 ### Check
 

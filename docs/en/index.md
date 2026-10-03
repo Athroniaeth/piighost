@@ -4,14 +4,14 @@ icon: lucide/shield
 
 # PIIGhost
 
-`piighost` is a Python library that protects your confidential data, personal data (PII) and secrets, in conversations with LLMs through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
+`piighost` is a Python library that protects your confidential data (personal data or PII, secrets) in conversations with LLMs, through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
 This de-identification spots confidential data with pluggable detectors (regex, NER, LLM) and replaces each value with a placeholder, the token that takes its place. For example:
 
 - `John Doe`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }
 - `john.doe@example.com`{ .pii } becomes `<<EMAIL:1>>`{ .placeholder }
 
-This placeholder stays the same from one message to the next with the conversational pipeline, which keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com`{ .pii } reappears three messages later, the placeholder is still `<<EMAIL:1>>`{ .placeholder }, which lets the LLM follow the thread.
+With the conversational pipeline, this placeholder stays the same from one message to the next. That pipeline keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com`{ .pii } reappears three messages later, the placeholder is still `<<EMAIL:1>>`{ .placeholder }, so the LLM can follow the thread.
 
 The LLM therefore only receives de-identified text. When it returns placeholders, for example by answering "Hello `<<PERSON:1>>`{ .placeholder }", `piighost` replaces them with the real values. The user sees `John Doe`{ .pii } and never sees the de-identification.
 
@@ -28,7 +28,7 @@ The same mechanism protects agents that call tools. With the LangChain middlewar
 
 ## Why de-identify?
 
-A cloud LLM (GPT, Claude, Gemini) receives every piece of information you send it, including your users' PII. De-identifying upstream decouples the choice of LLM from the sensitivity of the content. When confidential data never reach the LLM, the provider stops being a confidentiality decision and goes back to being a question of quality, cost, and latency.
+A cloud LLM (GPT, Claude, Gemini) receives every piece of information you send it, including your users' PII. De-identifying upstream decouples the choice of LLM from the sensitivity of the content. When confidential data never reach the LLM, the choice of provider stops being a confidentiality decision. It goes back to being a question of quality, cost, and latency.
 
 To go further:
 

@@ -88,8 +88,8 @@ Détection
 
 Entité
 :   Groupe de détections qui référent à la même valeur. Chaque occurrence
-    de la valeur est une détection. Le groupe partage un placeholder et restaure
-    vers une valeur. Différent d'une détection, qui est une occurrence unique.
+    de la valeur est une détection. Le groupe partage un placeholder, qui se
+    restaure en une seule valeur. Différent d'une détection, qui est une occurrence unique.
     `Entity`.
 
 Linker
@@ -131,24 +131,26 @@ Mémoire de conversation
 Recognizer
 :   Grammaire de jetons que le middleware utilise pour retrouver les placeholders
     d'un pipeline dans une réponse LLM, sans passer par l'anonymiseur. Un pipeline
-    l'expose via `recognizer`, un `BaseDelimitedPlaceholderFactory` ou `None`.
+    l'expose dans son attribut `recognizer`, qui vaut un
+    `BaseDelimitedPlaceholderFactory` ou `None`.
 
 Tag de préservation de placeholder
-:   Type fantôme sur une placeholder factory qui énonce ce que ses jetons
-    préservent : `PreservesNothing`, `PreservesLabel`, `PreservesIdentity` ou
+:   Type fantôme (un type qui ne sert qu'au vérificateur de types) posé sur
+    une placeholder factory, qui énonce ce que ses jetons préservent :
+    `PreservesNothing`, `PreservesLabel`, `PreservesIdentity` ou
     `PreservesLabeledIdentity`. Le middleware exige `PreservesRecognizableIdentity`
-    pour pouvoir restaurer les valeurs, et rejette une factory qui ne le fournit pas,
-    au moment de la vérification de types.
+    pour pouvoir restaurer les valeurs. Il rejette une factory qui ne fournit pas
+    ce tag dès la vérification de types.
 
 Pepper
-:   Secret qui clé un hasher, lu depuis la variable d'environnement
-    `PIIGHOST_HASH_PEPPER`. Hacher une valeur à faible entropie sans secret la laisse
-    attaquable par force brute, donc le pepper est obligatoire. Utilisé par
+:   Secret qui sert de clé à un hasher, lu depuis la variable d'environnement
+    `PIIGHOST_HASH_PEPPER`. Le pepper est obligatoire, parce qu'une valeur à
+    faible entropie hachée sans secret reste attaquable par force brute. Utilisé par
     `Sha256Hasher` et `Argon2Hasher`.
 
 Cipher
 :   Composant qui chiffre et déchiffre des octets de façon réversible, de sorte
     qu'un stockage garde du chiffré au lieu du clair. Une fuite du stockage ne
-    donne rien sans la clé, tenue en dehors. `RedisConversationMemory` en utilise
+    donne rien sans la clé, tenue en dehors du stockage. `RedisConversationMemory` en utilise
     un pour chiffrer les valeurs persistées. `AesGcmCipher` est le backend AES-GCM
     fourni.

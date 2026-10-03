@@ -34,7 +34,7 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 - La commande `piighost validate` contrôle un fichier sans rien lancer. Elle convient à une vérification automatique avant mise en production.
 - Une faute de frappe dans le fichier est refusée, jamais ignorée.
 
-Il n'y a pas d'interface graphique : toute la configuration passe par ce fichier et par la ligne de commande. Les termes sont définis dans le [glossaire](../glossary.md). Chaque section et chaque clé du fichier sont listées dans la [référence de configuration](../../../docs/fr/configuration/toml.md) du guide technique, et le [tutoriel de configuration](../../../docs/fr/getting-started/configuration.md) en construit un pas à pas.
+Il n'y a pas d'interface graphique : toute la configuration passe par ce fichier et par la ligne de commande. Les termes sont définis dans le [glossaire](../glossary.md). Chaque section et chaque clé du fichier sont listées dans la [référence de configuration](../../../docs/fr/configuration/toml.md) du guide technique. Le [tutoriel de configuration](../../../docs/fr/getting-started/configuration.md) construit un fichier pas à pas.
 
 ## Choisir comment charger la configuration
 
@@ -56,7 +56,7 @@ type = "regex"
 patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
 ```
 
-L'entité liée, l'anonymiseur et le résolveur de chevauchements prennent leur valeur par défaut. Une adresse devient `<<EMAIL:1>>`. D'autres exemples sont dans `examples/config/` : `pipeline.toml`, `thread_redis.toml`, `thread_sqlalchemy.toml`, `minimal.json`.
+Le regroupement en entités, l'anonymiseur et le résolveur de chevauchements prennent leur valeur par défaut. Une adresse devient `<<EMAIL:1>>`. D'autres exemples sont dans `examples/config/` : `pipeline.toml`, `thread_redis.toml`, `thread_sqlalchemy.toml`, `minimal.json`.
 
 ## Règles à connaître
 
@@ -68,11 +68,11 @@ L'entité liée, l'anonymiseur et le résolveur de chevauchements prennent leur 
 
 **BR-CFG-04.** Quand une valeur est donnée à plusieurs endroits, alors l'ordre de priorité est : arguments explicites, puis variables `PIIGHOST_*`, puis fichier ou hub.
 
-**BR-CFG-05.** Quand une variable vise une sous-clé, comme `PIIGHOST_DETECTOR__TYPE`, alors elle n'a aucun effet. Aucun délimiteur imbriqué n'est configuré. Une section entière se surcharge par un objet JSON : `PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'`.
+**BR-CFG-05.** Quand une variable vise une sous-clé, comme `PIIGHOST_DETECTOR__TYPE`, alors elle n'a aucun effet, parce qu'aucun délimiteur imbriqué (le `__` qui sépare une section de sa clé) n'est configuré. Une section entière se surcharge par un objet JSON : `PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'`.
 
 **BR-CFG-06.** Quand un secret manque, alors l'erreur `ConfigError` survient à la construction, pas à la validation. `piighost validate` accepte donc un fichier dont les secrets ne sont pas encore fournis.
 
-**BR-CFG-07.** Quand une référence hub se termine par huit caractères hexadécimaux (un commit), alors la réponse est mise en cache sur disque et n'est plus jamais téléchargée. Une étiquette ou l'absence de sélecteur (`latest`) est retéléchargée à chaque construction.
+**BR-CFG-07.** Quand une référence hub se termine par huit caractères hexadécimaux (un commit), alors la réponse est mise en cache sur disque et n'est plus jamais téléchargée. Une référence qui finit par un tag, ou qui n'a pas de sélecteur (`latest`), est retéléchargée à chaque construction.
 
 **BR-CFG-08.** Quand un détecteur regex combine catalogues et motifs en ligne, alors les catalogues fusionnent dans l'ordre, puis les motifs en ligne. Sur une même étiquette, le dernier gagne : un motif en ligne l'emporte sur tout catalogue.
 
@@ -98,7 +98,7 @@ Le hub est la seule source de motifs : la bibliothèque n'en embarque aucun. Une
 - Origine : `https://hub.piighost.dev`, ou `PIIGHOST_HUB_URL`. Seuls `http` et `https` sont acceptés.
 - Délai d'attente : 10 secondes (`hub.py:44`).
 - Cache : `$XDG_CACHE_HOME/piighost/hub/`, sinon `~/.cache/piighost/hub/`. Le nom du fichier est une empreinte SHA-256 de l'URL.
-- Un détecteur regex ne prend que la partie `?part=detector`. Si la référence décrit un détecteur à modèle, il lève `HubPayloadError` : chargez alors la configuration entière avec `load_config("hub:…")`.
+- Un détecteur regex ne prend que la partie `?part=detector`. Si la référence décrit un détecteur à modèle, le chargement lève `HubPayloadError`. Chargez alors la configuration entière avec `load_config("hub:…")`.
 
 ## Contrôler depuis la ligne de commande
 

@@ -43,7 +43,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Erasing a conversation deletes its storage. On a server with several processes, a temporary copy can survive in the other processes as long as no lifetime is set.
 - Technical traces contain the clear text by default. A setting replaces it with placeholders.
 
-This page is technical. The flow of a conversation is described in [Follow a conversation and restore the reply](../processes/follow-a-conversation.md). The terms are defined in the [glossary](../glossary.md). Going to production is described in the technical guide, by [Deploy a pipeline in production](../../../docs/en/deployment.md) for one server and by [Multi-instance deployment](../../../docs/en/multi-instance.md) for several instances behind a load balancer. The storage guarantees are detailed there in [Security](../../../docs/en/security.md).
+This page is technical. The flow of a conversation is described in [Follow a conversation and restore the reply](../processes/follow-a-conversation.md). The terms are defined in the [glossary](../glossary.md). Going to production is described in the technical guide. [Deploy a pipeline in production](../../../docs/en/deployment.md) covers one server, and [Multi-instance deployment](../../../docs/en/multi-instance.md) covers several instances behind a load balancer. The storage guarantees are detailed there in [Security](../../../docs/en/security.md).
 
 ## Choose a storage
 
@@ -59,20 +59,20 @@ Recommendation: `in_memory` for development and tests, Redis or SQL as soon as s
 
 For each message: its digest, the role of its author (`user` or `assistant`) and its detections (position, text, label, confidence). The text of the detections is the sensitive data.
 
-- Redis: `{namespace}:{thread_id}:msg:{digest}` holds the role and the detections, `{namespace}:{thread_id}:index` the arrival order of the messages (`conversation_memory/redis_backend.py:7-12`).
+- Redis: `{namespace}:{thread_id}:msg:{digest}` holds the role and the detections. `{namespace}:{thread_id}:index` holds the arrival order of the messages (`conversation_memory/redis_backend.py:7-12`).
 - SQL: one row per message in `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
 
 ## Rules to know
 
-**BR-STO-01.** When you supply a hasher without a cipher, or the reverse, then the build fails. In code: `ValueError("Provide both a hasher and a cipher, or neither")`. In configuration: `ConfigError("Configure both a hasher and a cipher, or neither")`. Hashing the keys while leaving the values in clear protects nothing.
+**BR-STO-01.** When you supply a hasher without a cipher, or a cipher without a hasher, then the build fails. In code: `ValueError("Provide both a hasher and a cipher, or neither")`. In configuration: `ConfigError("Configure both a hasher and a cipher, or neither")`. Hashing the keys while leaving the values in clear protects nothing.
 
 **BR-STO-02.** When Redis or a SQL database is built without encryption, then a `PIIGhostSecurityWarning` is emitted. Exception: a SQLite database does not trigger the warning (`conversation_memory/sqlalchemy_backend.py:99-100`).
 
 **BR-STO-03.** When encryption is active, then the conversation identifier stays in clear. It serves as the Redis key prefix and as a SQL column, so that a conversation can be listed and erased. Do not put personal data in it (an e-mail address, a name).
 
-**BR-STO-04.** When the program memory is created without settings, then it keeps at most 10,000 conversations, evicting the least recently used one beyond that, and each conversation expires one day (86,400 seconds) after its last write, at the next access. `max_threads` and `ttl` change these bounds. Example: a conversation written on 2026-10-02 at 9:00 and not touched afterwards is forgotten from 2026-10-03 at 9:00.
+**BR-STO-04.** When the program memory is created without settings, then it keeps at most 10,000 conversations. Beyond that, the least recently used one is evicted. Each conversation expires one day (86,400 seconds) after its last write, and it is dropped at the next access. `max_threads` and `ttl` change these bounds. Example: a conversation written on 2026-10-02 at 9:00 and not touched afterwards is forgotten from 2026-10-03 at 9:00.
 
-**BR-STO-05.** When Redis has a `ttl`, then each message expires this number of seconds after its write. The conversation index receives the same lifetime at each new message. The SQL database has no expiration: erase the conversations yourself.
+**BR-STO-05.** When Redis has a `ttl`, then each message expires this number of seconds after its write. The conversation index receives the same lifetime at each new message. The SQL database has no expiration. Erase the conversations yourself.
 
 **BR-STO-06.** When a conversation is erased, then its storage and the placeholder cache of the process that receives the request are emptied. The other processes keep their cache until its eviction (256 maps at most) or until `token_memo_ttl`. Example: on a server with 4 processes, an erasure request received by process 1 leaves the values in the cache of processes 2 to 4 as long as `token_memo_ttl` is not set.
 
@@ -119,7 +119,7 @@ You must see `piighost:<thread_id>:msg:<digest>` keys. `redis-cli GET` on one of
 | HMAC-SHA256 | `sha256` | fast | no |
 | Argon2id | `argon2` | slow, memory-hungry | yes, partly |
 
-Argon2id takes by default `time_cost = 2`, `memory_cost = 19456` KiB, `parallelism = 1`, `hash_length = 32`. The hasher runs at each message: measure the latency before hardening these values.
+Argon2id takes by default `time_cost = 2`, `memory_cost = 19456` KiB, `parallelism = 1`, `hash_length = 32`. The hasher runs at each message, so measure the latency before hardening these values.
 
 ## Redact the traces
 
@@ -133,7 +133,7 @@ The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piig
 
 - **The placeholder cache is not shared** between processes. Set `token_memo_ttl` as soon as you erase conversations on a multi-process deployment (BR-STO-06).
 - **The SQL table is not created by the configuration.** Without `create_schema()`, the first message fails.
-- **Two simultaneous SQL writes of the same message** can raise a uniqueness constraint error: the check and then the write are not atomic (`sqlalchemy_backend.py:124-127`). Redis, for its part, retries under `WATCH`.
+- **Two simultaneous SQL writes of the same message** can raise a uniqueness constraint error, because the check and then the write are not atomic (`sqlalchemy_backend.py:124-127`). Redis, for its part, retries under `WATCH`.
 - **The word pattern cache** is shared by the whole process. `forget_thread` does not empty it. Call `clear_boundary_cache` if the erasure request covers the whole process.
 - **A lost AES key makes the memory unreadable.** The ongoing conversations can no longer be restored.
 

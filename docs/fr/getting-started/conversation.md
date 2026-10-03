@@ -11,9 +11,9 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 
 ## 1. Assembler le pipeline
 
-`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. La mémoire accumule les détections de chaque message par conversation, ce qui laisse le pipeline attribuer les jetons sur l'ensemble de la conversation plutôt que sur un message isolé.
+`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. La mémoire accumule les détections de chaque message, conversation par conversation. Le pipeline peut ainsi attribuer les jetons sur l'ensemble de la conversation plutôt que sur un message isolé.
 
-`InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus, ce qui convient au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues, pour un résultat vérifiable sans modèle.
+`InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Cette mémoire convient donc au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues. Le résultat est ainsi vérifiable, sans modèle.
 
 ```python
 --8<-- "snippets/conversation.fr.py:setup"
@@ -21,7 +21,7 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 
 ## 2. Dé-identifier deux messages de la même conversation
 
-`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire, il n'y a pas de conversation par défaut partagée, si bien que deux appelants ne peuvent pas tomber dans la même conversation et se fuiter mutuellement leurs données confidentielles. On envoie deux messages sur la conversation `"thread-42"`.
+`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire. Il n'y a pas de conversation partagée par défaut, si bien que deux appelants ne peuvent pas tomber dans la même conversation et se fuiter mutuellement leurs données confidentielles. On envoie deux messages sur la conversation `"thread-42"`.
 
 ```python
 --8<-- "snippets/conversation.fr.py:turns"
@@ -40,7 +40,7 @@ La sortie doit être :
 
 ## 3. Restaurer une valeur
 
-`deanonymize` reconstruit les jetons de la conversation depuis sa mémoire, donc n'importe quel texte qui les porte est restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
+`deanonymize` reconstruit les jetons de la conversation depuis sa mémoire. Il restaure donc n'importe quel texte qui porte ces jetons, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
 
 ```python
 --8<-- "snippets/conversation.fr.py:restore"
@@ -56,7 +56,7 @@ La sortie doit être :
 
 ## Comment ça marche
 
-`ThreadAnonymizationPipeline` encapsule le pipeline de base avec une mémoire par conversation. À chaque message, il met en cache les détections, puis attribue les jetons sur l'union des détections de toute la conversation, pas du seul message courant. Une valeur reçoit donc un jeton pour l'ensemble de la conversation. Le rendu reste par message, seules les positions du message courant sont remplacées, car les positions de messages différents vivent dans des espaces d'indices distincts.
+`ThreadAnonymizationPipeline` encapsule le pipeline de base avec une mémoire par conversation. À chaque message, il met en cache les détections, puis attribue les jetons sur l'union des détections de toute la conversation, pas du seul message courant. Une valeur reçoit donc un jeton pour l'ensemble de la conversation. Le rendu reste par message. Seules les positions du message courant sont remplacées, car chaque message compte ses positions depuis son propre début.
 
 ## Et ensuite
 

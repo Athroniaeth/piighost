@@ -4,14 +4,14 @@ icon: lucide/cloud
 
 # Client distant
 
-Vous allez utiliser `PIIGhostClient` comme un pipeline de conversation distant, interchangeable avec un pipeline local. Il implémente le même port qu'un `ThreadAnonymizationPipeline` local, mais chaque appel s'exécute contre un serveur `piighost-api` en HTTP. Vous le pointez sur une URL de base, dé-identifiez un message, le restaurez, puis glissez ce même client dans le middleware LangChain là où irait un pipeline local. Cela garde le modèle NER hors de l'hôte applicatif, sur un serveur partagé, un nœud GPU ou un pod d'inférence dédié.
+Vous allez utiliser `PIIGhostClient` comme un pipeline de conversation distant, interchangeable avec un pipeline local. Il implémente le même port qu'un `ThreadAnonymizationPipeline` local, mais chaque appel s'exécute contre un serveur `piighost-api` en HTTP. Vous le pointez sur une URL de base, dé-identifiez un message, le restaurez, puis glissez ce même client dans le middleware LangChain là où irait un pipeline local. Le modèle NER tourne ainsi hors de l'hôte applicatif, sur un serveur partagé, un nœud GPU ou un pod d'inférence dédié.
 
 !!! note "Prérequis"
     `piighost` installé avec l'extra client, `pip install piighost[client]`, et un serveur `piighost-api` joignable, voir [Déployer une API de dé-identification](api-server.md). On en suppose ici un sur `http://localhost:8000`.
 
 ## 1. Ouvrir un client
 
-Passez une URL de base sous forme de chaîne et le client construit et possède son `httpx.AsyncClient`, fermé à la sortie du gestionnaire de contexte. Vous pouvez borner chaque requête avec `timeout`, joindre des en-têtes statiques via `headers` comme un jeton Authorization, et relancer une erreur de connexion `retries` fois, sans construire votre propre client. La grammaire de jetons par défaut correspond à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`, si bien que `<<PERSON:1>>`{ .placeholder } est reconnu comme un jeton.
+Passez une URL de base sous forme de chaîne. Le client construit alors son propre `httpx.AsyncClient`, et le ferme à la sortie du gestionnaire de contexte. Vous pouvez borner chaque requête avec `timeout`, joindre des en-têtes statiques via `headers` comme un jeton Authorization, et relancer une erreur de connexion `retries` fois, sans construire votre propre client. La grammaire de jetons, c'est-à-dire la forme que le client reconnaît comme un jeton, correspond par défaut à la `LabelCounterPlaceholderFactory` standard qu'émet un serveur `piighost`. `<<PERSON:1>>`{ .placeholder } est donc reconnu comme un jeton.
 
 ```python
 --8<-- "snippets/server_connect.py"
@@ -19,7 +19,7 @@ Passez une URL de base sous forme de chaîne et le client construit et possède 
 
 ## 2. Dé-identifier et restaurer un message
 
-`anonymize` prend le texte et un `thread_id`, exactement comme le pipeline local. Le serveur possède la table des jetons, donc l'`Anonymization` renvoyée porte le texte mais un `.tokens` vide. Pour récupérer la valeur, appelez `deanonymize` avec le même `thread_id`, ce qui restaure via la table de conversation du serveur.
+`anonymize` prend le texte et un `thread_id`, exactement comme le pipeline local. L'`Anonymization` renvoyée porte le texte mais un `.tokens` vide, parce que le serveur possède la table des jetons. Pour récupérer la valeur, appelez `deanonymize` avec le même `thread_id`. Le serveur la restaure alors à partir de sa table de conversation.
 
 ```python
     --8<-- "snippets/server_client.fr.py:example"
@@ -31,7 +31,7 @@ La sortie doit être :
 --8<-- "snippets/server_client.fr.out"
 ```
 
-`Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } sur le serveur, et `deanonymize` renvoie le texte à jetons pour restauration. Rien de la table ne vit dans votre processus.
+`Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder } sur le serveur, et `deanonymize` envoie le texte à jetons au serveur, qui le restaure. Rien de la table ne vit dans votre processus.
 
 ## 3. Oublier une conversation
 
@@ -55,7 +55,7 @@ Comme `PIIGhostClient` implémente le port du pipeline de conversation, il va pa
 
 La propriété `recognizer` laisse le middleware retrouver une grammaire de jetons même sur un pipeline distant, si bien que sa vérification des jetons inventés fonctionne encore. Si votre serveur est configuré avec une grammaire non standard, passez une fabrique correspondante en `recognizer=` à la construction du client.
 
-Si vous gérez votre propre `httpx.AsyncClient`, pour un pool de connexions partagé, passez-le à la place d'une URL. Un timeout, des en-têtes statiques ou des relances de connexion ne demandent plus votre propre client, puisque `timeout`, `headers` et `retries` s'en chargent sur une URL de base. Le client utilise l'instance injectée telle quelle et ne la ferme jamais, puisqu'elle vous appartient. Sinon appelez `await client.aclose()`, ou utilisez la forme `async with` qui le ferme pour vous.
+Si vous gérez votre propre `httpx.AsyncClient`, pour un pool de connexions partagé, passez-le à la place d'une URL. Un timeout, des en-têtes statiques ou des relances de connexion ne demandent plus votre propre client, puisque `timeout`, `headers` et `retries` s'en chargent sur une URL de base. Le client utilise l'instance injectée telle quelle et ne la ferme jamais, puisqu'elle vous appartient. Quand le client a construit le sien à partir d'une URL, appelez `await client.aclose()`, ou utilisez la forme `async with` qui le ferme pour vous.
 
 ## Et ensuite
 

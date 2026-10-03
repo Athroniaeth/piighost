@@ -47,24 +47,24 @@ Une version mineure ajoute des composants, des options et des factories de place
 
 | Surface | Pourquoi ça peut encore bouger |
 |---|---|
-| `piighost.integrations.claude_code` | Un prototype. Aucun hook Claude Code ne peut réécrire la réponse affichée par l'assistant, ce manque n'est pas résolu, et la dé-identification fait un appel par feuille de texte au lieu de les grouper. |
+| `piighost.integrations.claude_code` | Un prototype. Aucun hook Claude Code ne peut réécrire la réponse affichée par l'assistant, et ce manque n'est pas résolu. La dé-identification fait aussi un appel par feuille de texte au lieu de les grouper. |
 | `piighost.integrations.llama_index` | Récente, deux composants, et la forme du wrapper de moteur de requête n'a pas encore été éprouvée sur de vrais corpus. |
-| `LLMDetector`, `LLMGuardRail` | Le prompt et le schéma de sortie structurée dépendent de ce qu'accepte un fournisseur, donc les deux peuvent être remaniés quand un fournisseur change. |
+| `LLMDetector`, `LLMGuardRail` | Le prompt et le schéma de sortie structurée peuvent être remaniés quand un fournisseur change, parce qu'ils dépendent de ce que ce fournisseur accepte. |
 | `ModerationGuardRail` | Lié à une API de modération Mistral tierce dont les catégories et les seuils échappent à ce projet. |
 | `BridgeDetector`, `AnySpanRunner` | Récent, et la forme de span qu'il accepte d'un exécuteur n'a pas encore été éprouvée sur assez d'exécuteurs pour être figée. |
-| `Gliner2PiiDetector` | Un préréglage dont les labels par défaut suivent un checkpoint PII, ils bougent donc quand ce checkpoint bouge. |
-| `PresidioDetector` | Un adaptateur sur l'analyseur de Presidio, dont les reconnaisseurs et les noms d'entités appartiennent à ce projet. |
+| `Gliner2PiiDetector` | Un préréglage. Ses labels par défaut suivent un checkpoint PII, et bougent quand ce checkpoint bouge. |
+| `PresidioDetector` | Un adaptateur sur l'analyseur de Presidio. Les reconnaisseurs et les noms d'entités appartiennent au projet Presidio. |
 | `Gliner2GuardRail` | Récent, et sa tâche et ses labels par défaut suivent un checkpoint de garde-fou. |
 
 </div>
 
-Épinglez une version exacte si vous construisez sur l'une d'elles, et lisez le CHANGELOG avant une montée de version mineure.
+Épinglez une version exacte si vous construisez sur une surface expérimentale, et lisez le CHANGELOG avant une montée de version mineure.
 
 ### Déprécié
 
 Aucun nom n'est déprécié en 2.0. Les noms que la 1.x gardait par compatibilité sont supprimés, et listés dans la section suivante.
 
-Les correctifs de sécurité n'atterrissent que sur la dernière version mineure, aussi bien sur la surface stable que sur l'expérimentale. Une version mineure antérieure ne reçoit rien, rester à jour fait donc partie du contrat.
+Les correctifs de sécurité n'atterrissent que sur la dernière version mineure, aussi bien sur la surface stable que sur l'expérimentale. Une version mineure antérieure ne reçoit aucun correctif. Rester à jour fait donc partie du contrat.
 
 ## Passer à la 2.0
 
@@ -89,7 +89,7 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 --8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
-Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque, donc un pipeline n'atteint le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés : `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic:fab51b33`.
+Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque. Un pipeline n'atteint donc le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés : `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic:fab51b33`.
 
 ### Les alias de la 1.x sont supprimés
 
@@ -109,7 +109,7 @@ from piighost.integrations.middleware import AssistantEntityStrategy, PIIAnonymi
 
 ### `BridgeDetector` prend une unité de décalage
 
-`offset_unit` est un mot-clé obligatoire, `OffsetUnit.CODE_POINT` pour un exécuteur écrit en Python, `OffsetUnit.UTF16` pour un exécuteur écrit en JavaScript. Un exécuteur JavaScript compte un emoji pour deux, si bien que ses décalages tombaient un caractère trop loin après chacun. Un décalage qui n'est pas un entier, `8.0` compris, lève maintenant `BridgePayloadError` au lieu d'être tronqué, et un span noté sous `threshold` est écarté même quand l'exécuteur l'a ignoré. Voir la [référence des détecteurs](../reference/detectors.md).
+`offset_unit` est un mot-clé obligatoire, `OffsetUnit.CODE_POINT` pour un exécuteur écrit en Python, `OffsetUnit.UTF16` pour un exécuteur écrit en JavaScript. Un exécuteur JavaScript compte un emoji pour deux unités. Ses décalages tombaient donc un caractère trop loin après chaque emoji. Un décalage qui n'est pas un entier, `8.0` compris, lève maintenant `BridgePayloadError` au lieu d'être tronqué. Un span noté sous `threshold` est écarté, même quand l'exécuteur a ignoré ce seuil. Voir la [référence des détecteurs](../reference/detectors.md).
 
 ### Une conversation est toujours nommée
 
@@ -128,14 +128,14 @@ await agent.ainvoke({"messages": messages})
 ### Comportements qui changent
 
 - **Espaces Unicode.** `RegexDetector` lit toute espace Unicode comme une espace ordinaire, donc un motif qui cherchait exprès une espace insécable n'en trouve plus. Deux valeurs qui ne diffèrent que par leurs espaces sont une seule valeur, et reçoivent un seul jeton.
-- **Traits d'union.** Tout trait d'union Unicode relie deux mots dans une recherche par mot entier, y compris le trait d'union insécable que tape Word, donc `Jean`{ .pii } n'est plus trouvé dans `Jean‑Paul`{ .pii } écrit avec lui.
+- **Traits d'union.** Dans une recherche par mot entier, tout trait d'union Unicode relie deux mots, y compris le trait d'union insécable que tape Word. `Jean`{ .pii } n'est donc plus trouvé dans `Jean‑Paul`{ .pii } écrit avec ce trait d'union.
 - **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
-- **Surcharges.** Deux détections sur un même span gardent l'ordre de leurs détecteurs après une liste blanche, comme sans elle.
+- **Surcharges.** Après une liste blanche, deux détections sur un même span gardent l'ordre de leurs détecteurs, comme quand aucune liste blanche n'est posée.
 - **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 conversations et un jour d'inactivité. Une conversation évincée ou expirée ne restaure plus ses jetons. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
 - **Détecteur et garde-fou LLM.** Une sortie que `LLMDetector` ou `LLMGuardRail` ne sait pas lire lève `UnreadableOutputError` au lieu de compter comme zéro détection, donc le message est refusé. Passez `fail_open=True`, ou `fail_open = true` dans une configuration, pour l'envoyer sans détection comme le faisait la 1.x.
 - **Hooks Claude Code.** Un hook qui ne peut pas dé-identifier, quand le serveur est arrêté par exemple, bloque le prompt ou l'appel d'outil et remplace une sortie d'outil par un avis. Réglez `PIIGHOST_HOOK_FAIL_OPEN=1` pour laisser passer le texte en clair comme le faisait la 1.x.
 
-Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé, alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Purgez le stockage, comme pour le changement Argon2 plus bas, si cela compte pour une conversation en cours.
+Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeur par son texte casefoldé (mis en minuscules au sens Unicode), alors que la 2.0 l'indexe par la valeur aux espaces réduites. Une valeur tapée avec une espace inhabituelle peut perdre sa provenance au passage. Si cette provenance compte pour une conversation en cours, purgez le stockage, comme pour le changement Argon2 plus bas.
 
 ### Le serveur d'API
 
@@ -146,14 +146,14 @@ Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeu
 - `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize` exigent un `thread_id`, et répondent `400` sans lui au lieu d'utiliser la conversation partagée `"default"`.
 - `/v1/labels` lit les labels d'un groupe du hub sur le hub.
 - L'observation passe par les variables standard `OTEL_*`. `LANGFUSE_PUBLIC_KEY` et `LANGFUSE_SECRET_KEY` ne servent qu'à `dataset extract`, et aucune variable `OPIK_*` n'est lue.
-- Le serveur ne lit aucun `REDIS_URL`, l'adresse Redis est l'`url` de la section `[memory]`.
+- Le serveur ne lit aucun `REDIS_URL`. L'adresse Redis est l'`url` de la section `[memory]`.
 - Un déploiement qui pose encore `PIPELINE_PATH`, ou passe un chemin `module:variable`, date d'avant le chargeur TOML. Posez plutôt `PIIGHOST_CONFIG` à un fichier de config ou à une référence du hub.
 
 Les routes et les variables sont listées dans [Endpoints de l'API](../reference/api-endpoints.md) et [CLI du serveur](../reference/api-cli.md).
 
 ## Les digests Argon2 ont changé
 
-`Argon2Hasher` passe désormais la valeur dans un HMAC-SHA256 clé par le pepper avant qu'Argon2id ne la hache, donc un digest n'est plus celui qu'une version antérieure produisait. Rien ne change dans l'API, mais toute clé déjà stockée sous l'ancien digest devient introuvable.
+`Argon2Hasher` passe désormais la valeur dans un HMAC-SHA256, avec pour clé le pepper (le secret lu dans `PIIGHOST_HASH_PEPPER`), avant qu'Argon2id ne la hache. Un digest n'est donc plus celui qu'une version antérieure produisait. Rien ne change dans l'API, mais toute clé déjà stockée sous l'ancien digest devient introuvable.
 
 Cela concerne une mémoire de conversation Redis ou SQLAlchemy construite avec `type = "argon2"`. Un déploiement sur `sha256`, ou sans hasher du tout, n'est pas concerné.
 
@@ -171,11 +171,11 @@ redis-cli -n 0 FLUSHDB
 TRUNCATE TABLE piighost_conversation_messages;
 ```
 
-Une entrée laissée en place expire d'elle-même si un `ttl` est configuré. Sans TTL elle reste indéfiniment, purger est alors le seul moyen de récupérer la place.
+Une entrée laissée en place expire d'elle-même si un `ttl` est configuré. Sans TTL, elle reste indéfiniment. Purger est alors le seul moyen de récupérer la place.
 
 ## Venir de la 0.x
 
-Chaque version avant la 1.0.0 exposait une API différente, donc un code en 0.x se porte en réécrivant son montage plutôt qu'en renommant ses imports. Ce qui a changé :
+Un code en 0.x se porte en réécrivant son montage, pas en renommant ses imports, parce que chaque version avant la 1.0.0 exposait une API différente. Ce qui a changé :
 
 - les imports vivent sous `piighost.components`, `piighost.pipeline`, `piighost.config` et `piighost.integrations`
 - un pipeline prend un détecteur et rien d'autre, puisque le linker et l'anonymiseur ont des valeurs par défaut

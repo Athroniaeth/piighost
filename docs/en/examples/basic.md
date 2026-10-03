@@ -38,7 +38,7 @@ A value cited several times gets a single token, so the LLM keeps the thread. `E
 --8<-- "snippets/basic_exact.en.py:exact"
 ```
 
-`ExactMatchDetector` detects fixed literal values, which keeps the example reproducible without loading a model. For free text, swap it for an NER or LLM detector, see the [detectors reference](../reference/detectors.md).
+`ExactMatchDetector` detects fixed literal values. The example therefore stays reproducible without loading a model. For free text, swap it for an NER (named entity recognition) or LLM detector, see the [detectors reference](../reference/detectors.md).
 
 ## Change the token shape
 
@@ -48,7 +48,7 @@ A value cited several times gets a single token, so the LLM keeps the thread. `E
 --8<-- "snippets/basic_factories.py:factories"
 ```
 
-To restore the values, the factory must preserve identity, which `LabelCounterPlaceholderFactory` does and `LabelPlaceholderFactory` does not, since it gives the same `<<PERSON>>`{ .placeholder } to two distinct people. See the [placeholder factories](../placeholder-factories.md) page.
+To restore the values, the factory must preserve identity, that is, give each value a distinct token. `LabelCounterPlaceholderFactory` does. `LabelPlaceholderFactory` does not, because it gives the same `<<PERSON>>`{ .placeholder } to two distinct people. See the [placeholder factories](../placeholder-factories.md) page.
 
 ## See also
 

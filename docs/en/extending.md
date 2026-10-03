@@ -7,7 +7,7 @@ tags:
 
 # Extending PIIGhost
 
-Every pipeline stage is a **port**: a `Protocol` you satisfy by implementing its one method. There is no base class to inherit, and nothing else in the pipeline changes. You can also subclass a `Base*` template where one exists, which supplies the shared skeleton and leaves you a single hook.
+Every pipeline stage is a **port**: a `Protocol` you satisfy by implementing its one method. There is no base class to inherit, and nothing else in the pipeline changes. Where a `Base*` template exists, you can also subclass it. That template supplies the shared skeleton and leaves you a single hook.
 
 ```mermaid
 flowchart LR
@@ -54,7 +54,7 @@ To feed a detector from a fixed value list in tests, use the built-in `ExactMatc
 
 ### For NER models, subclass `BaseNERDetector`
 
-The model-backed detectors (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) all extend `BaseNERDetector`. It maps the label a model emits internally to the label that appears in `Detection.label`, so you can query a model with the strings it detects best while producing clean labels downstream. Pass `labels` as a list for identity mapping, or as an `{emitted: internal}` dict to rename:
+The model-backed detectors (`Gliner2Detector`, `SpacyDetector`, `TransformersDetector`) all extend `BaseNERDetector`. `BaseNERDetector` maps the label a model emits internally to the label that appears in `Detection.label`. You can thus query a model with the strings it detects best, while producing clean labels downstream. Pass `labels` as a list to keep each label as is (identity mapping), or as an `{emitted: internal}` dict to rename:
 
 ```python
 --8<-- "snippets/extending_gliner2.py:example"
@@ -70,7 +70,7 @@ The model-backed detectors (`Gliner2Detector`, `SpacyDetector`, `TransformersDet
 
 ## A custom overlap resolver
 
-An overlap resolver reconciles detections whose spans overlap into a non-overlapping set. The port:
+An overlap resolver takes detections whose spans overlap, and turns them into a set of detections with no overlap. The port:
 
 ```python
 --8<-- "snippets/ports.py:overlap_resolver"
@@ -96,7 +96,7 @@ An expander finds occurrences a detector missed, such as a repeat of a name flag
 --8<-- "snippets/ports.py:expander"
 ```
 
-Subclass `BaseDetectionExpander`. It keeps the original detections and, for each one, adds a detection at every extra occurrence your `_find_occurrences` returns, carrying the source detection's label and confidence. An occurrence that overlaps a detection already kept is skipped, since the expander runs after the overlap resolver and the renderer refuses overlapping spans. Values are searched longest first, so a full name claims a place before its first name does.
+Subclass `BaseDetectionExpander`. It keeps the original detections. For each one, it adds a detection at every extra occurrence your `_find_occurrences` returns. Each added detection carries the source detection's label and confidence. An occurrence that overlaps a detection already kept is skipped, since the expander runs after the overlap resolver and the renderer refuses overlapping spans. Values are searched longest first, so a full name claims a place before its first name does.
 
 ???+ example "Whole-word repeats"
 
@@ -110,13 +110,13 @@ The built-in `WordBoundaryExpander` does exactly this. The stage is optional.
 
 ## A custom entity linker
 
-A linker groups the detections that refer to the same value into entities, so every occurrence shares one placeholder. The port:
+A linker groups into entities the detections that refer to the same value. All occurrences of a value thus share one placeholder. The port:
 
 ```python
 --8<-- "snippets/ports.py:linker"
 ```
 
-Subclass `BaseEntityLinker`. It groups detections by a key you compute in `_key`, one entity per distinct key, keeping first-occurrence order.
+Subclass `BaseEntityLinker`. It groups detections by a key you compute in `_key`. It creates one entity per distinct key, in first-occurrence order.
 
 ???+ example "Group by exact value and label"
 
@@ -124,7 +124,7 @@ Subclass `BaseEntityLinker`. It groups detections by a key you compute in `_key`
     --8<-- "snippets/extending.py:case_sensitive_linker"
     ```
 
-The built-in `ExactEntityLinker` groups on the value key, the same words whatever their spaces and case, so `Patrick`{ .pii } and `patrick`{ .pii } become one entity. Use `piighost.text.value_key` in your own linker to follow the same rule, see [Unicode spaces](reference/detectors.md#unicode-spaces).
+The built-in `ExactEntityLinker` groups on the value key. That key is the same for the same words, whatever their spaces and case. `Patrick`{ .pii } and `patrick`{ .pii } therefore become one entity. Use `piighost.text.value_key` in your own linker to follow the same rule, see [Unicode spaces](reference/detectors.md#unicode-spaces).
 
 ---
 
@@ -136,7 +136,7 @@ An entity resolver reconciles entities that should not coexist, such as two enti
 --8<-- "snippets/ports.py:entity_resolver"
 ```
 
-Subclass `BaseEntityResolver`. It clusters entities that share a detection into groups and hands each group to your `_reduce`, which returns a consistent set, whether by merging the group into one entity or by keeping them apart. The built-ins:
+Subclass `BaseEntityResolver`. It clusters entities that share a detection into groups and hands each group to your `_reduce`. Your `_reduce` returns a consistent set, whether by merging the group into one entity or by keeping the entities apart. The built-ins:
 
 - `MergeEntityResolver` merges entities that share a detection, by union-find.
 - `SeparateEntityResolver` keeps them apart, giving each shared detection to one entity.
@@ -148,13 +148,13 @@ The stage is optional.
 
 ## A custom placeholder factory
 
-A placeholder factory turns entities into their replacement tokens. It is generic on a **preservation tag**, a phantom type stating what its tokens preserve, which the type checker uses to gate a consumer like the middleware. The port:
+A placeholder factory turns entities into their replacement tokens. It is generic on a **preservation tag**, a phantom type stating what its tokens preserve. The type checker uses this tag to gate a consumer like the middleware. The port:
 
 ```python
 --8<-- "snippets/ports.py:placeholder_factory"
 ```
 
-A token is an instance of the tag, which is a `str` subclass, so it is a real string that carries its preservation level in its own type. `create` must be deterministic, the same entities yield the same tokens on every call, because the pipeline calls it more than once per run.
+A token is an instance of the tag, and the tag is a `str` subclass. The token is therefore a real string, which carries its preservation level in its own type. `create` must be deterministic. The same entities yield the same tokens on every call, because the pipeline calls it more than once per run.
 
 ???+ example "Bracket label factory"
 
@@ -162,7 +162,7 @@ A token is an instance of the tag, which is a `str` subclass, so it is a real st
     --8<-- "snippets/extending.py:bracket_factory"
     ```
 
-`PreservesLabel` says the token reveals the type but not a unique identity, so this factory suits one-shot redaction, not the middleware. For a token the middleware can restore and find again, tag it `PreservesRecognizableIdentity` (or a sub-tag such as `PreservesLabeledIdentityOpaque`) and use a delimited grammar like `<<PERSON:1>>`{ .placeholder }. To wrap an inner form in delimiters without writing the wrapping yourself, subclass `BaseDelimitedPlaceholderFactory`. See [Placeholder factories](placeholder-factories.md) for the full tag taxonomy and worked examples.
+`PreservesLabel` says the token reveals the type but not a unique identity. This factory therefore suits one-shot redaction, not the middleware. For a token the middleware can restore and find again, tag it `PreservesRecognizableIdentity` (or a sub-tag such as `PreservesLabeledIdentityOpaque`) and use a delimited grammar like `<<PERSON:1>>`{ .placeholder }. To wrap an inner form in delimiters without writing the wrapping yourself, subclass `BaseDelimitedPlaceholderFactory`. See [Placeholder factories](placeholder-factories.md) for the full tag taxonomy and worked examples.
 
 ### Usage
 
@@ -174,13 +174,13 @@ A token is an instance of the tag, which is a `str` subclass, so it is a real st
 
 ## A custom guard rail
 
-A guard rail re-checks the de-identified output for residual confidential data. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, guards differ by their whole checking mechanism. The port:
+A guard rail re-checks the de-identified output for residual confidential data. It classifies, it does not decide. It returns a `GuardVerdict` and leaves the pipeline to raise `PIIRemainingError` when a verdict is flagged. There is no `Base` template, because each guard has its own checking mechanism. The port:
 
 ```python
 --8<-- "snippets/ports.py:guard"
 ```
 
-`check` sees only the de-identified text. The placeholders it carries are clearly synthetic, so a check meant for real values does not mistake them for such.
+`check` sees only the de-identified text. The placeholders in that text are clearly synthetic. A check that looks for real values therefore does not mistake them for real values.
 
 ???+ example "Flag a residual @ sign"
 

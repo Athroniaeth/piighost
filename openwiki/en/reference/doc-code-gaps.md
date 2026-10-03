@@ -139,7 +139,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 | | |
 |---|---|
 | Doc | `docs/en/tool-call-strategies.md` and `docs/fr/tool-call-strategies.md`, as well as `placeholder-factories.md` in both languages: the reply of a tool is scanned "for the known values". |
-| Code | The result goes through the full conversation pipeline, detection included (`integrations/langchain/middleware.py:253-272`). A value never cited is detected too. |
+| Code | The result goes through the full conversation pipeline, detection included (`integrations/langchain/middleware.py:253-272`). A value never cited before in the conversation is detected too. |
 | Wiki page | [Let a tool act on the real values](../processes/let-a-tool-act.md) |
 | Effect | The doc underestimated the protection. Status: doc fixed on 2026-10-02 (`3473217`). |
 
@@ -148,7 +148,7 @@ Each entry gives what the doc says, what the code does, the wiki page that cover
 | | |
 |---|---|
 | Doc | `docs/en/reference/langchain.md` and `docs/fr/reference/langchain.md`: the streamed display "never shows a broken token". |
-| Code | At the end of the stream, `flush` returns the held remainder as is (`components/placeholder/streaming.py:186`), so a stream cut inside a placeholder shows its beginning. |
+| Code | At the end of the stream, `flush` returns the held remainder as is (`components/placeholder/streaming.py:186`). A stream cut inside a placeholder therefore shows the beginning of that placeholder. |
 | Wiki page | [Show a streamed reply](../processes/show-a-streamed-reply.md) |
 | Effect | Rare case, with no value leak. Status: doc fixed on 2026-10-02 (`3473217`). |
 

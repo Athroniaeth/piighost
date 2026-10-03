@@ -7,7 +7,7 @@ icon: lucide/shield-alert
 Le constat qui justifie de dé-identifier les données personnelles avant qu'elles n'atteignent un LLM tient **indépendamment de `piighost`**. Il est posé ci-dessous pour un lecteur technique ou non, de façon à être opposable à un décideur ou à un interlocuteur sceptique.
 
 !!! note "Dé-identification, pas anonymisation"
-    `piighost` remplace chaque PII par un placeholder (`<<PERSON:1>>`{ .placeholder }) et garde le lien entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Au sens du RGPD, c'est de la **pseudonymisation**, pas de l'anonymisation. Le mot dé-identification est employé partout, et le mot anonymisation est réservé à un retrait irréversible, sans restauration possible, et signalé comme tel quand il apparaît.
+    `piighost` remplace chaque PII par un placeholder (`<<PERSON:1>>`{ .placeholder }) et garde le lien entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Au sens du RGPD, c'est de la **pseudonymisation**, pas de l'anonymisation. Cette documentation emploie partout le mot dé-identification. Le mot anonymisation est réservé à un retrait irréversible, sans restauration possible, et signalé comme tel quand il apparaît.
 
 !!! abstract "Résumé"
     Quand vous envoyez du texte à un LLM en cloud, chez un provider tiers, vous ne contrôlez plus qui le lit, combien de temps il est conservé, ni sous quelle juridiction il retombe. Ces données peuvent être récupérées et croisées avec d'autres pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire. La dé-identification **avant envoi** est une protection qui ne dépend ni du provider, ni d'une promesse, ni de la sécurité de son infrastructure, ni d'une décision politique future.
@@ -35,7 +35,7 @@ Parler à un LLM en cloud n'est, du point de vue de la confidentialité, pas plu
 
 ## Les limites d'une promesse contractuelle
 
-Partons du principe le plus favorable, les grands providers (OpenAI, Anthropic, Google, Mistral et les autres) veulent sincèrement protéger les données de leurs utilisateurs. Leurs politiques de confidentialité contractualisent des engagements ("nous n'entraînons pas sur vos données API", "nous supprimons après 30 jours", "nous refusons les demandes abusives"), et ces engagements sont généralement tenus.
+Partons du principe le plus favorable : les grands providers (OpenAI, Anthropic, Google, Mistral et les autres) veulent sincèrement protéger les données de leurs utilisateurs. Leurs politiques de confidentialité contractualisent des engagements ("nous n'entraînons pas sur vos données API", "nous supprimons après 30 jours", "nous refusons les demandes abusives"), et ces engagements sont généralement tenus.
 
 Cela ne suffit pas, parce qu'un engagement contractuel peut tomber pour trois raisons différentes, dont aucune ne relève de la mauvaise foi du provider.
 
@@ -53,9 +53,9 @@ Dans les deux cas, les données ont fuité sans procès, sans injonction et sans
 
 "Si c'est gratuit, c'est vous le produit." Le principe, vieux comme le Web commercial, s'applique aussi aux LLM.
 
-L'inférence d'un grand modèle coûte cher, chaque réponse mobilise des GPU en temps réel et le provider paie cette facture à chaque requête. Pourtant, OpenAI, Google et d'autres proposent des offres gratuites très généreuses. Les raisons commerciales classiques (acquisition d'utilisateurs, effet de standard de facto) n'expliquent qu'une partie du modèle économique. Ces offres alimentent aussi la **collecte de données d'entraînement**.
+L'inférence d'un grand modèle coûte cher. Chaque réponse mobilise des GPU en temps réel, et le provider paie cette facture à chaque requête. Pourtant, OpenAI, Google et d'autres proposent des offres gratuites très généreuses. Les raisons commerciales classiques (acquisition d'utilisateurs, effet de standard de facto) n'expliquent qu'une partie du modèle économique. Ces offres alimentent aussi la **collecte de données d'entraînement**.
 
-Sur les offres grand public gratuites, vos conversations peuvent être exploitées pour améliorer le modèle de plusieurs façons : le feedback explicite (👍/👎, reformulation, régénération d'une réponse) sert de signal d'apprentissage par renforcement, les échanges peuvent être relus par des annotateurs humains pour identifier les cas d'échec, et l'ensemble des conversations peut servir de matière première pour construire les jeux de données des itérations suivantes.
+Sur les offres grand public gratuites, vos conversations peuvent être exploitées pour améliorer le modèle de plusieurs façons. Le feedback explicite (👍/👎, reformulation, régénération d'une réponse) sert de signal d'apprentissage par renforcement. Les échanges peuvent être relus par des annotateurs humains pour identifier les cas d'échec. L'ensemble des conversations peut servir de matière première pour construire les jeux de données des itérations suivantes.
 
 Les offres payantes (API, ChatGPT Enterprise, Claude Team, etc.) excluent généralement vos données de l'entraînement par défaut. Sur les offres gratuites en revanche, l'opt-out est souvent enfoui dans les paramètres, parfois désactivé par défaut, et la politique peut évoluer avec le temps.
 
@@ -63,11 +63,11 @@ Les offres payantes (API, ChatGPT Enterprise, Claude Team, etc.) excluent géné
 
 Même quand le provider *veut* supprimer vos données, un tribunal peut l'en empêcher.
 
-Le **13 mai 2025**, dans le cadre de son procès contre OpenAI, le `New York Times` a obtenu de la *Magistrate Judge* Ona T. Wang une **ordonnance de préservation** : OpenAI devait conserver toutes les conversations ChatGPT et les appels API de ses clients, y compris celles que l'entreprise aurait normalement supprimées selon sa propre politique. OpenAI s'y est opposée publiquement en déposant une motion de reconsidération, refusée dans un premier temps, puis en appelant devant le *District Judge* Sidney Stein, qui a rejeté l'appel en juin 2025. L'ordonnance a finalement été levée le **26 septembre 2025** (terminaison formelle le 9 octobre), les utilisateurs de l'EEE, de Suisse et du Royaume-Uni ayant par ailleurs été exemptés de la mesure.
+Le **13 mai 2025**, dans le cadre de son procès contre OpenAI, le `New York Times` a obtenu de la *Magistrate Judge* Ona T. Wang une **ordonnance de préservation** : OpenAI devait conserver toutes les conversations ChatGPT et les appels API de ses clients, y compris celles que l'entreprise aurait normalement supprimées selon sa propre politique. OpenAI s'y est opposée publiquement. Elle a d'abord déposé une motion de reconsidération, qui a été refusée. Elle a ensuite fait appel devant le *District Judge* Sidney Stein, qui a rejeté l'appel en juin 2025. L'ordonnance a finalement été levée le **26 septembre 2025** (terminaison formelle le 9 octobre). Les utilisateurs de l'EEE, de Suisse et du Royaume-Uni avaient par ailleurs été exemptés de la mesure.
 
 L'affaire ne s'arrête pas là. Le **7 novembre 2025**, la même *Magistrate Judge* a ordonné à OpenAI de livrer au `New York Times` **20 millions de logs ChatGPT dé-identifiés** à des fins de preuve. OpenAI a demandé une reconsidération, refusée, puis a fait appel. Le **5 janvier 2026**, le *District Judge* Stein a affirmé la décision, scellant l'obligation de livraison.
 
-Cet épisode a deux conséquences pratiques. D'abord, la politique de confidentialité d'un provider n'est **jamais définitive** : une décision de justice à laquelle vous n'êtes pas partie peut la réécrire, imposer la conservation ou forcer la livraison massive de conversations à un tiers. Ensuite, le temps d'exposition de vos données à une future fuite ou attaque augmente mécaniquement, et la probabilité qu'une autorité publique (américaine ou, via une commission rogatoire internationale, étrangère) y accède grandit avec lui.
+Cet épisode a deux conséquences pratiques. D'abord, la politique de confidentialité d'un provider n'est **jamais définitive** : une décision de justice à laquelle vous n'êtes pas partie peut la réécrire, imposer la conservation ou forcer la livraison massive de conversations à un tiers. Ensuite, vos données restent exposées plus longtemps à une future fuite ou attaque. La probabilité qu'une autorité publique y accède grandit d'autant, qu'elle soit américaine ou étrangère via une commission rogatoire internationale.
 
 ---
 
@@ -77,7 +77,7 @@ La réponse instinctive à ce constat technique est de se tourner vers le droit 
 
 ### Le cadre américain : CLOUD Act, FISA 702, Executive Order 12333
 
-Trois textes structurent l'accès américain aux données des providers, aucun n'étant le Patriot Act.
+Trois textes structurent l'accès américain aux données des providers. Aucun des trois n'est le Patriot Act.
 
 !!! info "Pourquoi pas le Patriot Act ?"
     Le Patriot Act (2001) revient souvent dans ce débat, mais il n'est plus le bon texte à citer. Sa disposition la plus connue pour la surveillance, la `Section 215` (collecte massive de métadonnées téléphoniques révélée par Snowden), a été restreinte par le `USA FREEDOM Act` en 2015, puis laissée **expirer par le Congrès en mars 2020**. Elle n'est plus en vigueur. Par ailleurs, le Patriot Act visait les enquêtes antiterroristes, pas la question qui nous intéresse ici ("un provider américain peut-il être contraint de livrer des données stockées en Europe ?"). Les arrêts de la CJUE qui structurent le débat actuel ne citent pas le Patriot Act, ils citent FISA 702 et l'Executive Order 12333.
@@ -90,18 +90,18 @@ Ces trois textes se cumulent et offrent des voies d'accès légales, discrètes 
 
 ### Schrems II : la CJUE tranche
 
-En **juillet 2020**, la Cour de justice de l'Union européenne a invalidé le `Privacy Shield`, l'accord qui encadrait les transferts de données entre l'UE et les États-Unis. Sa motivation, résumée simplement, FISA 702 et l'Executive Order 12333 sont trop permissifs pour respecter le RGPD et n'offrent aucun recours judiciaire effectif aux citoyens européens.
+En **juillet 2020**, la Cour de justice de l'Union européenne a invalidé le `Privacy Shield`, l'accord qui encadrait les transferts de données entre l'UE et les États-Unis. En résumé, la Cour a jugé que FISA 702 et l'Executive Order 12333 sont trop permissifs pour respecter le RGPD, et qu'ils n'offrent aucun recours judiciaire effectif aux citoyens européens.
 
 Plus de 5 300 entreprises s'appuyaient sur le `Privacy Shield` pour leurs transferts transatlantiques. Un second accord, le `Data Privacy Framework` (2023), a remplacé le précédent, mais il repose sur les mêmes fondations juridiques américaines et sa durabilité est contestée. Plusieurs plaintes (notamment celles portées par l'association noyb de Max Schrems) visent explicitement une troisième invalidation.
 
 ### Microsoft Ireland : la juridiction prime la géographie
 
-Entre 2013 et 2018, les autorités américaines ont exigé de Microsoft, via un mandat émis sous le `Stored Communications Act`, qu'elle livre des données d'un client stockées sur ses serveurs en Irlande. Microsoft a résisté jusqu'à la Cour Suprême. La procédure n'a jamais été tranchée sur le fond, parce que le Congrès a voté le `CLOUD Act` en mars 2018 pour clarifier la réponse, oui, les entreprises américaines doivent livrer les données, où qu'elles soient stockées. L'affaire a été déclarée sans objet.
+Entre 2013 et 2018, les autorités américaines ont exigé de Microsoft, via un mandat émis sous le `Stored Communications Act`, qu'elle livre des données d'un client stockées sur ses serveurs en Irlande. Microsoft a résisté jusqu'à la Cour Suprême. La procédure n'a jamais été tranchée sur le fond, parce que le Congrès a voté le `CLOUD Act` en mars 2018 pour clarifier la réponse. Ce texte dit que les entreprises américaines doivent livrer les données, où qu'elles soient stockées. L'affaire a été déclarée sans objet.
 
 Conséquence directe : **l'hébergement européen par un provider américain n'offre pas d'étanchéité juridique face aux États-Unis**. Le marketing "vos données restent en Europe" masque cette asymétrie.
 
 !!! note "Une nuance honnête sur le champ d'application"
-    Le CLOUD Act ne s'applique pas à n'importe quelle entreprise ayant un simple lien avec les États-Unis. Il faut que l'entité soit **sous juridiction américaine** (incorporée aux US ou contrôlée par une entité américaine) **et** qu'elle ait la "possession, la garde ou le contrôle" des données. Un fournisseur européen avec une simple filiale commerciale américaine n'est pas automatiquement captif, une analyse au cas par cas est nécessaire.
+    Le CLOUD Act ne s'applique pas à n'importe quelle entreprise ayant un simple lien avec les États-Unis. Il faut que l'entité soit **sous juridiction américaine** (incorporée aux US ou contrôlée par une entité américaine) **et** qu'elle ait la "possession, la garde ou le contrôle" des données. Un fournisseur européen avec une simple filiale commerciale américaine n'est pas automatiquement captif. Une analyse au cas par cas est nécessaire.
 
 ### Le cadre européen : un RGPD qui n'a pas encore tenu sur les LLM
 
@@ -119,13 +119,13 @@ Les sections précédentes expliquent comment les données sortent de votre pér
 
 ### Surveillance de masse
 
-Une conversation LLM ressemble techniquement à un e-mail ou un chat, du texte daté, rattaché à un compte identifiable. Elle tombe dans le même périmètre de collecte que les autres communications électroniques couvertes par `FISA 702`, renouvelé pour deux ans en avril 2024 par le `RISAA`, et dont le renouvellement est à nouveau en débat au Congrès en avril 2026. Les rapports déclassifiés du `PCLOB` documentent plusieurs centaines de milliers de **sélecteurs** (identifiants de cibles) actifs chaque année, et la collecte "à propos" des cibles (suspendue en 2017, réautorisée ensuite) élargit mécaniquement le périmètre à des communications qui ne sont ni envoyées à la cible ni par la cible, mais qui la mentionnent.
+Une conversation LLM ressemble techniquement à un e-mail ou un chat, c'est-à-dire du texte daté, rattaché à un compte identifiable. Elle tombe dans le même périmètre de collecte que les autres communications électroniques couvertes par `FISA 702`. Ce texte a été renouvelé pour deux ans en avril 2024 par le `RISAA`, et son renouvellement est à nouveau en débat au Congrès en avril 2026. Les rapports déclassifiés du `PCLOB` documentent plusieurs centaines de milliers de **sélecteurs** (identifiants de cibles) actifs chaque année. La collecte "à propos" des cibles (suspendue en 2017, réautorisée ensuite) élargit mécaniquement le périmètre à des communications qui ne sont ni envoyées à la cible ni par la cible, mais qui la mentionnent.
 
 Que cette capacité soit aujourd'hui appliquée aux conversations LLM ou non, le cadre juridique et l'architecture technique sont en place.
 
 ### Fichage et ciblage politique
 
-L'inquiétude n'est pas spéculative, elle s'appuie sur des cas documentés de surveillance ciblée dans d'autres couches de l'Internet.
+L'inquiétude n'est pas spéculative. Elle s'appuie sur des cas documentés de surveillance ciblée dans d'autres couches de l'Internet.
 
 - **Angela Merkel, octobre 2013** : les révélations Snowden documentent la surveillance par la NSA du téléphone portable de la chancelière allemande, inscrit comme cible depuis 2002. Les sources allemandes (Süddeutsche Zeitung, NDR) indiquent que Gerhard Schröder, prédécesseur de Merkel, avait lui aussi été surveillé à partir de 2002, en raison de son opposition à l'intervention en Irak. Obama a confirmé implicitement en promettant par téléphone que la surveillance était terminée. Le gouvernement allemand a publiquement protesté.
 - **Associated Press, 2012-2013** : le `Department of Justice` saisit secrètement en avril-mai 2012 les relevés de plus de vingt lignes téléphoniques AP, dans le cadre d'une enquête sur une fuite. L'agence ne l'apprend qu'en mai 2013, par notification *après coup*.
@@ -139,11 +139,11 @@ Aucun de ces cas ne concerne spécifiquement un LLM. Mais ils établissent trois
 
 ### Ciblage commercial et data brokers
 
-Le risque est différent des deux précédents, il ne nécessite ni juge, ni mandat. Il repose sur l'écosystème commercial qui entoure les providers, et se construit en trois temps.
+Le risque est différent des deux précédents. Il ne nécessite ni juge, ni mandat. Il repose sur l'écosystème commercial qui entoure les providers, et se construit en trois temps.
 
-**D'abord, une structure d'incitation.** Plusieurs grands acteurs du LLM ont des intérêts adjacents à la publicité ciblée : Google en fait son cœur de métier, Microsoft (actionnaire majeur d'OpenAI) opère `Bing Ads`, Meta pousse son propre écosystème d'IA générative dans un groupe dont la quasi-totalité des revenus provient du ciblage publicitaire. Les politiques de confidentialité, seules, ne neutralisent pas cette incitation. Elles peuvent évoluer quand la pression économique monte.
+**D'abord, une structure d'incitation.** Plusieurs grands acteurs du LLM ont des intérêts adjacents à la publicité ciblée : Google en fait son cœur de métier, Microsoft (actionnaire majeur d'OpenAI) opère `Bing Ads`, Meta, dont la quasi-totalité des revenus provient du ciblage publicitaire, pousse son propre écosystème d'IA générative. Les politiques de confidentialité, seules, ne neutralisent pas cette incitation. Elles peuvent évoluer quand la pression économique monte.
 
-**Ensuite, l'état actuel des preuves.** Rien ne prouve aujourd'hui qu'un provider ait revendu des conversations LLM à des data brokers. L'argument ne repose donc pas sur une pratique avérée, mais sur un risque structurel, une donnée qui entre dans un système, chez un acteur qui a économiquement intérêt à l'exploiter, peut en ressortir plus tard par des canaux qui ne sont pas ceux annoncés initialement.
+**Ensuite, l'état actuel des preuves.** Rien ne prouve aujourd'hui qu'un provider ait revendu des conversations LLM à des data brokers. L'argument ne repose donc pas sur une pratique avérée, mais sur un risque structurel. Une donnée qui entre dans le système d'un acteur qui a économiquement intérêt à l'exploiter peut en ressortir plus tard, par des canaux qui ne sont pas ceux annoncés initialement.
 
 **Enfin, la porosité documentée entre écosystème publicitaire et surveillance.** Un rapport de l'`Office of the Director of National Intelligence` daté de **janvier 2022 et déclassifié en juin 2023** reconnaît que les agences de renseignement américaines **achètent régulièrement des données commerciales auprès de data brokers**, notamment des données de localisation et de navigation. Ce qui est collecté pour vendre de la publicité peut donc être racheté pour surveiller, sans mandat ni notification.
 
@@ -170,12 +170,12 @@ Au départ du spectre, le **provider américain hébergé aux États-Unis** cumu
 
 Déplacer physiquement les serveurs en Europe ne change presque rien sur le plan juridique. Dès que l'entité opératrice est sous juridiction américaine, le CLOUD Act s'applique peu importe où se trouvent les disques durs. Cette option apporte des bénéfices réels sur d'autres axes (latence plus faible, garanties opérationnelles, parfois certifications `SecNumCloud` partielles via joint-venture), mais pas d'étanchéité face aux États-Unis.
 
-Changer de juridiction en passant à un **provider européen** (Mistral, OVHcloud AI, Scaleway, Aleph Alpha, etc.) fait tomber le risque CLOUD Act par défaut, sauf si le provider a une filiale américaine sous contrôle. Le RGPD s'applique pleinement et les autorités européennes peuvent sanctionner. Cela ne rend pas le provider aveugle au contenu pour autant, il conserve un accès technique complet, la protection reste contractuelle et étatique, et une commission rogatoire française ou allemande reste possible. Un provider européen peut aussi, pour des raisons pratiques, héberger son infrastructure sur AWS ou Azure, ce qui réintroduit un lien avec une juridiction tierce. Vérifier au cas par cas.
+Changer de juridiction en passant à un **provider européen** (Mistral, OVHcloud AI, Scaleway, Aleph Alpha, etc.) fait tomber le risque CLOUD Act par défaut, sauf si le provider a une filiale américaine sous contrôle. Le RGPD s'applique pleinement et les autorités européennes peuvent sanctionner. Le provider européen n'est pas aveugle au contenu pour autant. Il conserve un accès technique complet, la protection reste contractuelle et étatique, et une commission rogatoire française ou allemande reste possible. Un provider européen peut aussi, pour des raisons pratiques, héberger son infrastructure sur AWS ou Azure. Cet hébergement réintroduit un lien avec une juridiction tierce. Vérifier au cas par cas.
 
 !!! note "Le cas du `on-premise`"
     Certains providers européens, comme Mistral, proposent du `on-premise` : leurs clients font héberger le modèle dans leur propre datacenter. C'est une option intéressante pour bénéficier de l'expertise d'un acteur européen tout en gardant la maîtrise de l'infrastructure, mais elle reste peu répandue et coûteuse.
 
-Enfin, **exécuter le modèle localement** sur votre propre infrastructure (`Ollama`, `vLLM`, `llama.cpp` ou équivalent) supprime entièrement le tiers, aucun provider n'a d'accès technique au contenu, par construction. C'est la protection maximale sur le plan de la confidentialité. La contrepartie est que toute la responsabilité bascule chez vous : sécurité physique et logique, chiffrement au repos, gestion des accès, mises à jour, journalisation. Les modèles ouverts exécutables localement (Llama, Mistral, Qwen, DeepSeek, etc.) peuvent rester en retrait des meilleurs modèles propriétaires sur certaines tâches complexes, bien que l'écart se réduise rapidement.
+Enfin, **exécuter le modèle localement** sur votre propre infrastructure (`Ollama`, `vLLM`, `llama.cpp` ou équivalent) supprime entièrement le tiers. Par construction, aucun provider n'a d'accès technique au contenu. C'est la protection maximale sur le plan de la confidentialité. La contrepartie est que toute la responsabilité bascule chez vous : sécurité physique et logique, chiffrement au repos, gestion des accès, mises à jour, journalisation. Les modèles ouverts exécutables localement (Llama, Mistral, Qwen, DeepSeek, etc.) peuvent rester en retrait des meilleurs modèles propriétaires sur certaines tâches complexes, bien que l'écart se réduise rapidement.
 
 Le choix du provider continue de compter pour beaucoup de choses : latence, coût, qualité du modèle, conformité RGPD d'ensemble, écosystème d'intégration. Mais **pour le risque spécifique de fuite de PII, la dé-identification neutralise ce choix**. Si seuls des placeholders comme `<<PERSON:1>>`{ .placeholder } quittent votre infrastructure, un provider américain ne reçoit rien d'exploitable sur vos données sensibles. Il se retrouve, de ce seul point de vue, équivalent à un modèle exécuté en local.
 
@@ -201,13 +201,13 @@ Dans ces secteurs, la dé-identification avant envoi est ce qui rend l'usage pos
 - **Samsung, avril 2023** : plusieurs incidents internes où des ingénieurs collent du code source et des notes de réunion dans ChatGPT. Samsung rappelle publiquement que les données ainsi partagées sont impossibles à récupérer, puisqu'elles sont désormais sur les serveurs d'OpenAI. En mai 2023, l'entreprise interdit l'usage des LLM génératifs sur les appareils professionnels.
 - **Secteur bancaire américain, printemps 2023** : JPMorgan Chase, Bank of America, Citigroup, Goldman Sachs, Deutsche Bank et Wells Fargo bloquent ou restreignent l'usage de ChatGPT par leurs employés. Verizon, Amazon et Walmart émettent des avertissements internes.
 
-Ces décisions proviennent de directions juridiques et de RSSI qui ont fait le calcul : **le risque structurel dépasse le gain de productivité**, tant qu'aucune barrière technique ne garantit que les PII ne quittent pas l'entreprise. La dé-identification ouvre précisément cette troisième voie, entre l'interdiction pure et l'envoi en clair.
+Ces décisions proviennent de directions juridiques et de RSSI qui ont fait le calcul : **le risque structurel dépasse le gain de productivité**, tant qu'aucune barrière technique ne garantit que les PII ne quittent pas l'entreprise. La dé-identification ouvre précisément une troisième voie, entre l'interdiction pure et l'envoi en clair.
 
 ---
 
 ## Protection juridique vs protection technique
 
-Toutes les protections mobilisées jusqu'ici reposent sur des instruments **juridiques**, politiques de confidentialité, clauses contractuelles types, accords internationaux, amendes administratives. Elles partagent un défaut commun : elles sont **révocables**, par une décision politique ou judiciaire sur laquelle vous n'avez aucune prise.
+Toutes les protections mobilisées jusqu'ici reposent sur des instruments **juridiques** : politiques de confidentialité, clauses contractuelles types, accords internationaux, amendes administratives. Elles partagent un défaut commun : elles sont **révocables**, par une décision politique ou judiciaire sur laquelle vous n'avez aucune prise.
 
 | Type de protection           | Exemple                                    | Pourquoi c'est fragile                                   |
 |------------------------------|--------------------------------------------|----------------------------------------------------------|
@@ -222,9 +222,9 @@ La protection technique fonctionne différemment. Si la donnée personnelle ne q
 - aucune injonction ne peut obliger un tiers à divulguer ce qu'il n'a pas,
 - aucun changement d'accord international ne vous affecte,
 - aucune politique de conservation du provider n'est en cause,
-- le provider peut être piraté, racheté, ou disparaître, vos données n'y étaient pas.
+- le provider peut être piraté, racheté, ou disparaître sans exposer vos données, qui n'y étaient pas.
 
-C'est la différence entre **"on vous promet de ne pas regarder"** et **"on est techniquement incapable de regarder"**. La seconde est toujours plus robuste que la première.
+C'est la différence entre **"on vous promet de ne pas regarder"** et **"on est techniquement incapable de regarder"**. L'incapacité technique est toujours plus robuste que la promesse.
 
 ---
 
@@ -234,7 +234,7 @@ La dé-identification est une couche dans une défense en profondeur, pas une so
 
 - Elle ne rend pas un LLM conforme à tous les régimes réglementaires. Certaines données (santé nominative, secret-défense) ne doivent pas sortir de l'infrastructure, même dé-identifiées.
 - Elle dépend de la qualité des détecteurs. Une PII non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel. Voir [Limites](limitations.md).
-- Le lien entre placeholder et valeur d'origine reste stocké quelque part chez vous. Ce mapping contient de la PII en clair, il faut donc le protéger. Voir [Sécurité](security.md).
+- Le lien entre placeholder et valeur d'origine reste stocké quelque part chez vous. Ce mapping contient de la PII en clair. Il faut donc le protéger. Voir [Sécurité](security.md).
 - Elle ne remplace pas les autres bonnes pratiques : chiffrement au repos, journalisation auditée, gestion des accès, formation des équipes.
 
 ---

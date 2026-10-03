@@ -16,7 +16,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Chaque besoin donne des critères observables et la page du wiki qui le livre.
 - Les points de vigilance, en fin de page, listent les réponses imprévues d'un modèle et le besoin qui les couvre.
 
-`piighost` sert quatre profils, qui n'en attendent pas la même chose. Le responsable conformité veut qu'aucune donnée confidentielle ne sorte, le développeur veut l'intégrer sans réécrire son application, l'exploitant veut la faire tourner en production, et l'utilisateur de l'application ne doit jamais s'en apercevoir.
+`piighost` sert quatre profils, qui n'en attendent pas la même chose. Le responsable conformité veut qu'aucune donnée confidentielle ne sorte. Le développeur veut intégrer `piighost` sans réécrire son application. L'exploitant veut le faire tourner en production. L'utilisateur de l'application ne doit jamais s'en apercevoir.
 
 Chaque besoin est porté par un processus du wiki, qui donne le scénario et les règles, et par des tests d'acceptation, listés dans [Tests d'acceptation](tests/acceptance-tests.md). Les termes sont définis dans le [glossaire](glossary.md).
 
@@ -79,7 +79,7 @@ Chaque besoin est porté par un processus du wiki, qui donne le scénario et les
 
 - Une correction exportée vers un outil d'annotation, Langfuse par exemple, se conserve sous la forme choisie : jetons à la place des valeurs, valeurs en clair, ou entrée et sortie entièrement masquées.
 - Le développeur règle cette forme, le DPO la décide.
-- Sans choix explicite, la correction est conservée sous forme de jetons : l'export ne contient aucune valeur réelle.
+- Sans choix explicite, la correction est conservée sous forme de jetons. L'export ne contient alors aucune valeur réelle.
 
 **Limite connue.** Le choix de la forme n'existe pas encore dans le code.
 
@@ -185,11 +185,11 @@ Chaque besoin est porté par un processus du wiki, qui donne le scénario et les
 - Le hub n'est joint qu'en HTTP ou HTTPS, et une configuration du hub qui embarque un modèle est refusée.
 - Voir [Configurer un pipeline](operations/configuration-and-hub.md). Tests : [AT-OPS-6-…](tests/acceptance-tests.md).
 
-**Limite actuelle.** Le hub ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres, et répartir les labels entre motifs et modèle demande un format de configuration que le hub n'a pas encore.
+**Limite actuelle.** Le hub ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres. Répartir les labels entre motifs et modèle demande un format de configuration que le hub n'a pas encore.
 
 **OPS-7. En tant qu'exploitant, je veux que la mémoire en processus soit bornée par défaut, afin qu'un serveur qui tourne des semaines ne garde pas toutes les valeurs qu'il a vues.**
 
-- Sans réglage, la mémoire garde au plus 10 000 conversations, chacune un jour après son dernier message.
+- Sans réglage, la mémoire garde au plus 10 000 conversations, et garde chacune pendant un jour après son dernier message.
 - Les deux bornes se règlent dans la configuration.
 - Voir [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md) et [Suivre une conversation](processes/follow-a-conversation.md). Tests : [AT-OPS-7-…](tests/acceptance-tests.md).
 

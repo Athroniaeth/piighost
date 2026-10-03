@@ -38,7 +38,7 @@ Une même valeur citée plusieurs fois reçoit un seul jeton, donc le LLM garde 
 --8<-- "snippets/basic_exact.fr.py:exact"
 ```
 
-`ExactMatchDetector` détecte des valeurs littérales fixées, ce qui rend l'exemple reproductible sans charger de modèle. Pour du texte libre, remplacez-le par un détecteur NER ou LLM, voir la [référence des détecteurs](../reference/detectors.md).
+`ExactMatchDetector` détecte des valeurs littérales fixées. L'exemple reste ainsi reproductible sans charger de modèle. Pour du texte libre, remplacez-le par un détecteur NER (reconnaissance d'entités nommées) ou LLM, voir la [référence des détecteurs](../reference/detectors.md).
 
 ## Changer la forme des jetons
 
@@ -48,7 +48,7 @@ Une même valeur citée plusieurs fois reçoit un seul jeton, donc le LLM garde 
 --8<-- "snippets/basic_factories.py:factories"
 ```
 
-Pour restaurer les valeurs, la factory doit préserver l'identité, ce que fait `LabelCounterPlaceholderFactory` et pas `LabelPlaceholderFactory`, qui donne le même `<<PERSON>>`{ .placeholder } à deux personnes distinctes. Voir la page [Placeholder factories](../placeholder-factories.md).
+Pour restaurer les valeurs, la factory doit préserver l'identité, c'est-à-dire donner un jeton distinct à chaque valeur. `LabelCounterPlaceholderFactory` le fait. `LabelPlaceholderFactory` ne le fait pas, parce qu'elle donne le même `<<PERSON>>`{ .placeholder } à deux personnes distinctes. Voir la page [Placeholder factories](../placeholder-factories.md).
 
 ## Voir aussi
 

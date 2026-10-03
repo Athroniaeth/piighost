@@ -6,7 +6,7 @@ tags:
 
 # Test a pipeline without models
 
-You want to assert what a pipeline produces without downloading an NER model or reaching the network. `ExactMatchDetector` gives you that. You tell it which literal values map to which label, and it finds their occurrences with a plain regex. The rest of the pipeline runs unchanged, so a test exercises real linking, resolution, and de-identification against a detector whose output you control.
+You want to assert what a pipeline produces without downloading an NER model or reaching the network. `ExactMatchDetector` gives you that. You tell it which literal values map to which label, and it finds their occurrences with a plain regex. The rest of the pipeline runs unchanged. A test therefore exercises real linking, resolution, and de-identification against a detector whose output you control.
 
 Use this to test a pipeline you assembled, or a custom component you wrote, against `<<PERSON:1>>`{ .placeholder } rather than a model's guess.
 
@@ -40,4 +40,4 @@ Entity linking groups every occurrence of a value under one entity, so a repeate
 
 ## Test a custom component
 
-Every pipeline stage is a port, so you can drop your own component in beside `ExactMatchDetector` and let the deterministic detector feed it. Give the stage a fixed input through `ExactMatchDetector`, then assert on `result.text`. See [Extending PIIGhost](../extending.md) for the ports and worked component examples.
+Every pipeline stage is a port, that is an interface any component can implement. So you can drop your own component in beside `ExactMatchDetector`, and let the deterministic detector feed it. Give the stage a fixed input through `ExactMatchDetector`, then assert on `result.text`. See [Extending PIIGhost](../extending.md) for the ports and worked component examples.

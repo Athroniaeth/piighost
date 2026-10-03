@@ -11,9 +11,9 @@ You will build a `ThreadAnonymizationPipeline` that keeps a stable token for the
 
 ## 1. Assemble the pipeline
 
-`ThreadAnonymizationPipeline` takes the same components as `AnonymizationPipeline` (detector, linker, anonymizer), plus a conversation memory. The memory accumulates each message's detections per thread, which lets the pipeline assign tokens over the whole thread rather than over one isolated message.
+`ThreadAnonymizationPipeline` takes the same components as `AnonymizationPipeline` (detector, linker, anonymizer), plus a conversation memory. The memory accumulates each message's detections, thread by thread. The pipeline can thus assign tokens over the whole thread rather than over one isolated message.
 
-`InMemoryConversationMemory` keeps that state in a process dictionary. Nothing survives a restart and nothing is shared across processes, which suits development and tests. We keep the detector simple here with `ExactMatchDetector`, which spots known values, for a verifiable result with no model.
+`InMemoryConversationMemory` keeps that state in a process dictionary. Nothing survives a restart and nothing is shared across processes. This memory therefore suits development and tests. We keep the detector simple here with `ExactMatchDetector`, which spots known values. The result is thus verifiable, with no model.
 
 ```python
 --8<-- "snippets/conversation.en.py:setup"
@@ -21,7 +21,7 @@ You will build a `ThreadAnonymizationPipeline` that keeps a stable token for the
 
 ## 2. De-identify two messages of the same thread
 
-`anonymize` takes the text and a `thread_id`. The `thread_id` is required, there is no shared default thread, so two callers cannot fall into the same thread and leak each other's confidential data. We send two messages on the thread `"thread-42"`.
+`anonymize` takes the text and a `thread_id`. The `thread_id` is required. There is no shared default thread, so two callers cannot fall into the same thread and leak each other's confidential data. We send two messages on the thread `"thread-42"`.
 
 ```python
 --8<-- "snippets/conversation.en.py:turns"
@@ -40,7 +40,7 @@ The output should be:
 
 ## 3. Restore a value
 
-`deanonymize` rebuilds the thread's tokens from its memory, so any text carrying them is restored, including a model reply the pipeline never de-identified.
+`deanonymize` rebuilds the thread's tokens from its memory. It therefore restores any text carrying these tokens, including a model reply the pipeline never de-identified.
 
 ```python
 --8<-- "snippets/conversation.en.py:restore"
@@ -56,7 +56,7 @@ The output should be:
 
 ## How it works
 
-`ThreadAnonymizationPipeline` wraps the base pipeline with a per-thread memory. On each message it caches the detections, then assigns tokens over the union of the whole thread's detections, not the current message alone. A value therefore gets one token for the whole thread. Rendering stays per message, only the current message's positions are replaced, because positions from different messages live in distinct index spaces.
+`ThreadAnonymizationPipeline` wraps the base pipeline with a per-thread memory. On each message it caches the detections, then assigns tokens over the union of the whole thread's detections, not the current message alone. A value therefore gets one token for the whole thread. Rendering stays per message. Only the current message's positions are replaced, because each message counts its positions from its own start.
 
 ## What's next
 

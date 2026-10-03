@@ -5,8 +5,8 @@ icon: lucide/blocks
 # Conception du pipeline
 
 Une fois admis qu'il faut dé-identifier (voir [Pourquoi dé-identifier ?](why-anonymize.md)),
-reste le comment. La construction ci-dessous se fait pas à pas, à partir de la première
-brique, détecter les données confidentielles (données personnelles, secrets), en ajoutant une contrainte à la fois. Chaque
+reste le comment. La construction ci-dessous se fait pas à pas. Elle part de la première
+brique, la détection des données confidentielles (données personnelles, secrets), puis ajoute une contrainte à la fois. Chaque
 composant du pipeline apparaît parce qu'une contrainte précédente l'a rendu nécessaire. À la fin,
 l'ordre des étapes et les choix techniques ne sont plus arbitraires, ils découlent du
 problème.
@@ -53,12 +53,13 @@ flowchart LR
 `piighost` fournit ces approches comme détecteurs interchangeables, `Gliner2Detector`,
 `SpacyDetector`, `TransformersDetector` pour le NER, `RegexDetector` pour les motifs,
 `LLMDetector` quand le contexte métier dépasse les détecteurs étroits, et
-`ExactMatchDetector` pour les tests. On peut les combiner avec `CompositeDetector`, une
-regex plus un NER couvrent plus de cas qu'un seul. C'est pour cela que le détecteur est
-un port et non une classe figée, on injecte celui qu'on veut.
+`ExactMatchDetector` pour les tests. On peut les combiner avec `CompositeDetector`, parce
+qu'une regex plus un NER couvrent plus de cas qu'un seul détecteur. Le détecteur est donc
+un port (une interface que chaque détecteur implémente) et non une classe figée. On
+injecte celui qu'on veut.
 
 La regex ne valide **aucun checksum**. Un IBAN ou un numéro de carte reconnu par le
-motif est gardé tel quel, sans contrôle de clé de contrôle. Une valeur abîmée par un OCR
+motif est gardé tel quel, sans vérifier sa clé de contrôle. Une valeur abîmée par un OCR
 reste ainsi une détection plutôt que d'être écartée par un calcul qui échoue sur le
 bruit. Mieux vaut une détection de trop, arbitrée plus tard, qu'une valeur laissée en
 clair.
@@ -73,7 +74,7 @@ l'enrichit avec le type, `<<PERSON>>`{ .placeholder } ou `<<EMAIL>>`{ .placehold
 
 Pourquoi est-ce utile. Parce que le modèle qui lit le texte dé-identifié a besoin du
 type pour raisonner. "Contacte `<<PERSON>>`{ .placeholder } à
-`<<EMAIL>>`{ .placeholder }" reste exploitable, "Contacte `<<REDACT>>`{ .placeholder }
+`<<EMAIL>>`{ .placeholder }" reste exploitable. "Contacte `<<REDACT>>`{ .placeholder }
 à `<<REDACT>>`{ .placeholder }" ne l'est plus.
 
 La placeholder factory (`AnyPlaceholderFactory`) décide de la forme du jeton. Elle prend
@@ -133,8 +134,8 @@ détectée, ses autres occurrences dans le texte par recherche aux frontières d
 ajoute une détection pour chacune.
 
 On sépare l'expander du linker à dessein. Le linker regroupe, l'expander cherche. Chacun
-a une seule responsabilité, et l'expander reste optionnel, un jeu de détections déjà
-complet n'en a pas besoin.
+a une seule responsabilité. L'expander reste optionnel, parce qu'un jeu de détections
+déjà complet n'en a pas besoin.
 
 ---
 
@@ -149,10 +150,11 @@ Si on laissait passer ces chevauchements jusqu'au remplacement, on produirait de
 imbriqués et un texte corrompu. Il faut donc résoudre les conflits de positions avant de
 regrouper en entités.
 
-C'est le résolveur de spans (`AnyOverlapResolver`). `ConfidenceOverlapResolver` groupe
+C'est le résolveur de spans (`AnyOverlapResolver`). Un span est la position d'une
+détection dans le texte, de son début à sa fin. `ConfidenceOverlapResolver` groupe
 les détections qui se chevauchent, puis garde dans chaque groupe la plus confiante.
-`MergeOverlapResolver` garde plutôt l'union de chaque groupe, donc une détection sûre
-mais courte ne découvre jamais une partie d'une détection plus longue.
+`MergeOverlapResolver` garde plutôt l'union de chaque groupe. Ainsi, une détection sûre
+mais courte ne laisse jamais en clair une partie d'une détection plus longue.
 
 L'ordre des étapes est contraint.
 
@@ -172,9 +174,9 @@ occurrences ratées, puis on groupe en entités, et on résout les identités en
 
 ## Étape 6, fusionner les entités équivalentes, le résolveur d'entités
 
-Après le linking, deux entités peuvent encore désigner la même personne, par exemple
-`Patrick`{ .pii } et `Patric`{ .pii } (faute de frappe), ou provenir de détecteurs différents qui
-partagent une détection. Les réconcilier évite de donner deux jetons à une seule
+Après le linking, deux entités peuvent encore désigner la même personne. C'est le cas de
+`Patrick`{ .pii } et `Patric`{ .pii } (faute de frappe), ou de deux entités issues de
+détecteurs différents qui partagent une détection. Les réconcilier évite de donner deux jetons à une seule
 personne.
 
 C'est le résolveur d'entités (`AnyEntityResolver`).
@@ -196,10 +198,10 @@ stable.
 L'anonymiseur (`AnyAnonymizer`) applique enfin le remplacement. Il demande un jeton à la
 factory pour chaque entité, puis remplace chaque détection par son jeton.
 
-Conséquence de l'étape 5, le remplacement construit un nouveau texte en un seul passage
-sur les spans, de gauche à droite, en recopiant le texte entre eux, si bien qu'aucun
-remplacement ne décale la position d'un autre. Cela suppose des spans non chevauchants, ce
-que l'étape 5 garantit.
+Grâce à l'étape 5, le remplacement se fait en un seul passage sur les spans, de gauche à
+droite. Il construit un nouveau texte en recopiant le texte situé entre les spans, si bien
+qu'aucun remplacement ne décale la position d'un autre. Ce passage unique suppose des
+spans qui ne se chevauchent pas, et l'étape 5 le garantit.
 
 ---
 
@@ -212,9 +214,9 @@ La dé-identification d'un texte rend justement ce mapping, une entité par jeto
 La restauration remplace, dans un texte, chaque jeton connu par la valeur de son entité.
 Elle ne se limite pas au texte que le pipeline a produit. Le modèle génère souvent une
 réponse nouvelle contenant un jeton, par exemple "Bien sûr,
-`<<PERSON:1>>`{ .placeholder } !". Cette phrase n'a jamais été produite par le pipeline,
-mais comme on connaît le couple jeton vers valeur, on remplace le jeton dans n'importe
-quel texte.
+`<<PERSON:1>>`{ .placeholder } !". Le pipeline n'a jamais produit cette phrase. Mais
+comme on connaît le couple jeton vers valeur, on remplace le jeton dans n'importe quel
+texte.
 
 ```mermaid
 flowchart LR
@@ -257,8 +259,9 @@ partagé d'un message au suivant.
 
 ### La mémoire de conversation
 
-`ThreadAnonymizationPipeline` ajoute cet état, une mémoire (`AnyConversationMemory`) qui
-persiste, par conversation, les détections de chaque message. Les jetons sont ensuite
+`ThreadAnonymizationPipeline` ajoute cet état partagé. C'est une mémoire
+(`AnyConversationMemory`) qui enregistre, pour chaque conversation, les détections de
+chaque message. Les jetons sont ensuite
 attribués sur l'union des détections de tous les messages de la conversation, pas sur un message
 seul. Une personne revue dans un message ultérieur retrouve donc son entité, et son
 jeton, au lieu d'en créer un nouveau.
@@ -274,9 +277,9 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
 
 - **Ordre figé au premier vu.** Le compteur d'une entité est attribué à sa première
   apparition dans la conversation et ne bouge plus. Sans cette règle, une nouvelle
-  entité tôt dans son message volerait le compteur d'une plus ancienne.
-- **Isolation par `thread_id`.** Le `thread_id` est obligatoire, il n'y a pas de conversation
-  partagée par défaut, pour que deux appelants ne tombent pas dans la même conversation et ne
+  entité placée tôt dans son message volerait le compteur d'une entité plus ancienne.
+- **Isolation par `thread_id`.** Le `thread_id` est obligatoire, et il n'y a pas de conversation
+  partagée par défaut. Ainsi, deux appelants ne tombent pas dans la même conversation et ne
   fuitent pas leurs données confidentielles. `forget_thread` peut tout effacer d'une conversation, pour le droit à
   l'oubli.
 
@@ -284,22 +287,22 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
 
 Les détections d'une entité viennent de messages différents, dont les positions n'ont
 pas de référentiel commun. On ne peut donc pas remplacer par positions à l'échelle de la
-conversation. Les jetons sont attribués sur toute la conversation, mais le rendu ne remplace que les
-spans du message courant, ceux dont les offsets valent dans ce message.
+conversation. Les jetons sont attribués sur toute la conversation. Le rendu, lui, ne remplace que les
+spans du message courant, les seuls dont les offsets valent dans ce message.
 
 ---
 
 ## Étape 10, la provenance des valeurs
 
-Toute valeur d'un message n'est pas une donnée confidentielle à protéger. Si le modèle mentionne une
-personnalité publique de sa connaissance du monde, la dé-identifier la lui cacherait au tour
-suivant, sans rien protéger de l'utilisateur.
+Toute valeur d'un message n'est pas une donnée confidentielle à protéger. Prenons une
+personnalité publique que le modèle cite à partir de sa connaissance du monde. La dé-identifier
+cacherait ce nom au modèle au tour suivant, sans rien protéger de l'utilisateur.
 
 La mémoire enregistre donc le rôle de la première occurrence de chaque valeur,
 `MessageRole.USER` ou `MessageRole.ASSISTANT`. Une valeur dont la première occurrence
 vient d'un message du modèle est laissée en clair, car elle n'est pas une donnée
 confidentielle de l'utilisateur. Le middleware règle ce comportement par `EntityCreateByAssistantStrategy`,
-préserver, dé-identifier quand même, ou ignorer les messages du modèle.
+qui offre trois choix : préserver, dé-identifier quand même, ou ignorer les messages du modèle.
 
 ---
 
@@ -312,11 +315,12 @@ Le pipeline est asynchrone de bout en bout, pour deux raisons concrètes.
 - **Un serveur sert plusieurs requêtes à la fois.** Une API qui héberge le pipeline
   traite des conversations concurrentes sur une seule boucle d'événements.
 
-Mais l'inférence d'un modèle NER local est, elle, synchrone et lourde, des centaines de
-millisecondes de calcul CPU ou GPU. Appelée directement dans une coroutine, elle gèle
-toute la boucle, aucune autre requête ne progresse pendant ce temps. La détection modèle
-est donc à déporter dans un thread. Un détecteur qui appelle une API distante, lui,
-reste en asynchrone natif, c'est de l'I/O réseau et non du calcul.
+Mais l'inférence d'un modèle NER local est, elle, synchrone et lourde. Elle demande des
+centaines de millisecondes de calcul CPU ou GPU. Appelée directement dans une coroutine,
+elle gèle toute la boucle, et aucune autre requête ne progresse pendant ce temps. La
+détection modèle est donc à déporter dans un thread. Un détecteur qui appelle une API
+distante reste, lui, en asynchrone natif, parce que son travail est de l'I/O réseau et
+non du calcul.
 
 En résumé, asynchrone pour l'I/O et l'orchestration, déport en thread pour le calcul
 bloquant.
@@ -326,10 +330,11 @@ bloquant.
 ## Étape 12, chiffrer le mapping inverse
 
 Sur un seul worker, la mémoire tient dans un dictionnaire du processus
-(`InMemoryConversationMemory`). Un déploiement multi-worker en a besoin d'une partagée,
+(`InMemoryConversationMemory`). Un déploiement multi-worker a besoin d'une mémoire partagée,
 `RedisConversationMemory`, pour qu'un worker voie les conversations d'un autre.
 
-Mais le mapping inverse est fait de données confidentielles en clair. Une fuite du store la révélerait. Deux
+Mais le mapping inverse, la table qui relie chaque jeton à sa vraie valeur, est fait de
+données confidentielles en clair. Une fuite du store révélerait ces données. Deux
 composants crypto protègent le backend Redis. Un hasher (`AnyHasher`) transforme chaque
 message en clé déterministe sans révéler le texte. Un cipher (`AnyCipher`) chiffre les
 détections au repos, de sorte qu'une fuite de la base ne rende ni le message ni les valeurs.
@@ -344,9 +349,9 @@ Même avec tout ce qui précède, une valeur peut passer entre les mailles, par 
 que le NER a raté. Le garde-fou (`AnyGuardRail`) re-analyse le texte dé-identifié et lève
 `PIIRemainingError` s'il y trouve encore une valeur en clair.
 
-Le garde-fou n'examine que la sortie dé-identifiée. Les placeholders qu'elle porte sont
-clairement synthétiques, donc un contrôle prévu pour de vraies valeurs ne les prend pas
-pour tels. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
+Le garde-fou n'examine que la sortie dé-identifiée. Un contrôle prévu pour de vraies
+valeurs ne prend pas les placeholders de cette sortie pour de vraies valeurs, parce
+qu'ils sont clairement synthétiques. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
 `DetectorGuardRail` rejoue un détecteur, `LLMGuardRail` et `ModerationGuardRail`
 interrogent un modèle externe.
 
@@ -364,11 +369,12 @@ C'est le `PIIAnonymizationMiddleware`, qui intervient en trois points.
   (`ToolCallStrategy`), il restaure les arguments pour que l'outil reçoive de vraies
   données, puis dé-identifie sa réponse.
 
-Le middleware ne contient aucune logique de dé-identification, il délègue tout au
+Le middleware ne contient aucune logique de dé-identification. Il délègue tout au
 pipeline conversationnel. C'est un simple adaptateur entre le monde LangChain et le
-coeur. Il exige au type une factory qui préserve l'identité, et il reconnaît les jetons
-que le modèle invente (`InventedPlaceholderStrategy`), car après restauration tout jeton
-qui suit encore la grammaire des placeholders n'a pas été émis par le pipeline.
+coeur. Il exige, dès le typage, une factory qui préserve l'identité. Il reconnaît aussi
+les jetons que le modèle invente (`InventedPlaceholderStrategy`). Il les reconnaît parce
+qu'après la restauration, tout jeton qui suit encore la grammaire des placeholders n'a
+pas été émis par le pipeline.
 
 ---
 

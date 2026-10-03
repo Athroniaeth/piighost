@@ -7,7 +7,7 @@ tags:
 
 # Construire un agent LangChain avec un vrai détecteur
 
-Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des jetons, où un outil reçoit quand même les vraies valeurs dont il a besoin, et où la détection tourne sur un vrai modèle NER plutôt que sur une liste de valeurs figée. L'assemblage ci-dessous va de bout en bout, un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, un system prompt qui apprend au modèle à traiter les jetons comme des données, et un outil qui cherche une personne par son nom.
+Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des jetons, où un outil reçoit quand même les vraies valeurs dont il a besoin, et où la détection tourne sur un vrai modèle NER plutôt que sur une liste de valeurs figée. L'assemblage ci-dessous va de bout en bout. Il réunit un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, un system prompt qui apprend au modèle à traiter les jetons comme des données, et un outil qui cherche une personne par son nom.
 
 Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [Middleware LangChain](../getting-started/langchain.md). La suite en reprend la forme avec un vrai modèle et un system prompt.
 
@@ -40,7 +40,7 @@ Le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } au lieu d'un nom. Un cour
 
 ## 4. Enrober le pipeline et créer l'agent
 
-`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` restaure les arguments de l'outil à l'entrée et dé-identifie le résultat de l'outil à la sortie, si bien que l'outil travaille sur les vraies valeurs pendant que le modèle continue de ne voir que des jetons.
+`PIIAnonymizationMiddleware` prend le pipeline. `tool_strategy=ToolCallStrategy.FULL` restaure les arguments de l'outil à l'entrée et dé-identifie le résultat de l'outil à la sortie. L'outil travaille ainsi sur les vraies valeurs, pendant que le modèle continue de ne voir que des jetons.
 
 ```python
 --8<-- "snippets/langchain_agent.py:agent"
@@ -54,7 +54,7 @@ Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l
 --8<-- "snippets/langchain_agent.py:run"
 ```
 
-La réponse est dé-identifiée pour l'affichage, donc elle se lit avec les vraies valeurs :
+La réponse est restaurée pour l'affichage, donc elle se lit avec les vraies valeurs :
 
 ```text
 --8<-- "snippets/langchain_agent.out"
@@ -62,7 +62,7 @@ La réponse est dé-identifiée pour l'affichage, donc elle se lit avec les vrai
 
 ## Qui voit quoi
 
-GLiNER2 marque `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, chaque frontière du tour substitue une direction.
+GLiNER2 marque `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, chaque frontière du tour remplace dans un seul sens, soit la valeur par son jeton, soit le jeton par sa valeur.
 
 - `abefore_model` fait passer le message dans `pipeline.anonymize`, si bien que le LLM reçoit `Where does <<PERSON:1>> live?`.
 - Le modèle appelle `lookup_city(person="<<PERSON:1>>")`. Sous `ToolCallStrategy.FULL`, `awrap_tool_call` restaure l'argument en `Patrick`{ .pii } avant d'exécuter l'outil, puis dé-identifie à nouveau le résultat texte de l'outil.

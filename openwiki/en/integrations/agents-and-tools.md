@@ -30,7 +30,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Plugged into an agent, PIIGhost masks the messages before the model and puts the real values back into the reply.
 - By default, the agent's tools (search, sending mail, reading a file) receive the real values, and what they return is masked before the model.
 - A conversation without an identifier is refused, with LangChain as with Claude Code. Otherwise, all conversations would share their placeholders.
-- With Claude Code, the displayed reply keeps the placeholders: no hook point allows rewriting it.
+- With Claude Code, the displayed reply keeps the placeholders, because no hook point allows rewriting it.
 - The history kept by the agent contains the real values. Protect it as personal data.
 
 The terms are defined in the [glossary](../glossary.md). The conversation mechanism is described in [Follow a conversation and restore the reply](../processes/follow-a-conversation.md).
@@ -58,7 +58,7 @@ Four settings decide what the tool receives and what the model reads. The choice
 
 **BR-AGT-02.** When the model writes a placeholder that PIIGhost never issued, then the reply is refused by default, with `Deanonymized text holds tokens the pipeline never issued`. Two other choices exist: keep the placeholder as is, or remove it from the text.
 
-**BR-AGT-03.** When the assistant is the first to quote a value, then it stays in clear by default. Example: the assistant answers "The head office is in Lyon". "Lyon" comes from it, so it is not masked at the next turn. Two other choices: mask it like user data, or not analyze the assistant's messages at all.
+**BR-AGT-03.** When the assistant is the first to quote a value, then it stays in clear by default. Example: the assistant answers "The head office is in Lyon". "Lyon" is not masked at the next turn, because it comes from the assistant. Two other choices: mask it like user data, or not analyze the assistant's messages at all.
 
 **BR-AGT-04.** When the tool setting is "Full" or "Output only", then the text returned by the tool goes through full detection and is masked before the model. With LangChain, only the text of the tool message is masked. With Pydantic AI, a structured result (list, dictionary) is walked through entirely.
 
@@ -75,7 +75,7 @@ Four settings decide what the tool receives and what the model reads. The choice
 
 ### Frequently asked questions
 
-**The displayed reply contains `<<PERSON:1>>`.** Three possible causes. You use Claude Code, which does not restore the displayed reply. Or the application streams the reply without a stream decoder (BR-AGT-07). Or the restoration takes place in another thread than the protection: check that the same conversation identifier is passed to both.
+**The displayed reply contains `<<PERSON:1>>`.** Three possible causes. You use Claude Code, which does not restore the displayed reply. Or the application streams the reply without a stream decoder (BR-AGT-07). Or the restoration does not take place in the same conversation as the masking. Check that the same conversation identifier is passed to both.
 
 **The agent stops with `No thread_id in the LangGraph config`.** The call does not pass a conversation identifier. Ask the development team to pass it on each call, or `default` if the conversations do not need to be separated (BR-AGT-01).
 
@@ -128,9 +128,9 @@ In a trace of the agent, the message received by the model must contain `<<PERSO
 
 - **The LangGraph state keeps the message content in clear.** `aafter_model` restores the content in the state, and the checkpointer saves it that way. Only the `tool_calls` stay as placeholders (`middleware.py:199-200`). The same goes for the Pydantic AI history after `after_model_request`.
 - **LangChain masks again the arguments of the `tool_calls` in the history**, as a precaution, except under `IGNORE`. Pydantic AI does not.
-- **The Claude Code hooks tolerate an unknown output shape**: they let it through. Set `PIIGHOST_HOOK_LOG` to see the real shapes. This log contains restored values in clear: keep it local and delete it afterwards.
+- **The Claude Code hooks tolerate an unknown output shape**: they let it through. Set `PIIGHOST_HOOK_LOG` to see the real shapes. This log contains restored values in clear. Keep it local and delete it afterwards.
 - **If `piighost-api` cannot be reached, the hook fails closed** (`claude_code/runner.py:68-88`). A prompt or a tool call exits with code 2, which Claude Code reads as a block. A tool output, already produced, is replaced by a notice. `PIIGHOST_HOOK_FAIL_OPEN=1` lets the text through in clear (DPO-9).
-- **`PIIQueryEngine` refuses a streaming engine** (`NotImplementedError`) and its synchronous paths go through `asyncio.run`: call `aquery` from asynchronous code.
+- **`PIIQueryEngine` refuses a streaming engine** (`NotImplementedError`). Its synchronous paths go through `asyncio.run`, so call `aquery` from asynchronous code.
 - **`PIIGhostClient.anonymize` returns an empty placeholder dictionary.** The mapping lives on the server. Restore with `deanonymize`.
 
 ### Doc / code gaps

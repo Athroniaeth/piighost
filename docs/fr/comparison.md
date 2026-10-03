@@ -51,7 +51,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     | Hébergement | ✅ auto-hébergé | ✅ auto-hébergé |
     | Licence | MIT | MIT |
 
-    **Fait mieux** : rien de plus à installer dans un agent LangChain, si l'utilisateur n'a pas besoin de relire ses vraies valeurs. La version JS (`piiRedactionMiddleware`) fait le compromis inverse : elle restaure, mais sans flux.
+    **Fait mieux** : il n'y a rien de plus à installer dans un agent LangChain. Cela suffit si l'utilisateur n'a pas besoin de relire ses vraies valeurs. La version JS (`piiRedactionMiddleware`) restaure les vraies valeurs pour l'utilisateur, mais pas pendant le flux.
 
 ??? note "AWS Comprehend et Azure AI Language"
 

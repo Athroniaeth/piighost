@@ -44,7 +44,7 @@ Les termes sont définis dans le [glossaire](../glossary.md).
 | Corriger la mise en forme | `make format` |
 | Passer le contrôle bloquant | `make lint` |
 
-`addopts` exclut le marqueur `integration` par défaut et désactive les extensions `anyio` et `langsmith_plugin` (`pyproject.toml:166`). `asyncio_mode = "auto"` : un test `async def` n'a pas besoin de décorateur.
+`addopts` exclut le marqueur `integration` par défaut et désactive les extensions `anyio` et `langsmith_plugin` (`pyproject.toml:166`). Avec `asyncio_mode = "auto"`, un test `async def` n'a pas besoin de décorateur.
 
 ### Vérifier
 
@@ -124,7 +124,7 @@ uv run pytest -rs
 uv sync
 ```
 
-Revenez ensuite à l'environnement par défaut avec `uv sync`, puis relancez `make lint` : un environnement chargé de tous les extras peut masquer une erreur d'import ou de type que la CI verrait.
+Revenez ensuite à l'environnement par défaut avec `uv sync`, puis relancez `make lint`. Un environnement chargé de tous les extras peut masquer une erreur d'import ou de type que la CI verrait.
 
 ## Pièges
 

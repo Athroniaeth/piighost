@@ -39,7 +39,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Avant d'envoyer un texte au modèle, PIIGhost y repère les valeurs sensibles et les remplace par des jetons comme `<<PERSON:1>>`.
 - Une même valeur reçoit un seul jeton dans tout le texte, même écrite avec une autre casse ou d'autres espaces.
 - La réponse du modèle est ensuite restaurée : chaque jeton redevient la vraie valeur.
-- Une valeur que le détecteur ne voit pas part en clair, sauf si un contrôle final est activé : il bloque alors l'envoi.
+- Une valeur que le détecteur ne voit pas part en clair, sauf si un contrôle final est activé. Ce contrôle bloque alors l'envoi.
 - Les motifs ne vérifient pas les clés de contrôle (carte, IBAN). Une valeur mal recopiée reste masquée.
 
 Besoins couverts : DPO-1, DPO-2, DPO-4 et DEV-1, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Pour une conversation en plusieurs messages, lisez ensuite [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
@@ -110,7 +110,7 @@ Ici, un motif sûr à 100 % a trouvé « Wirth » et un modèle sûr à 70 % a t
 
 **BR-MSG-07.** Quand un motif reconnaît la forme d'une carte ou d'un IBAN, alors la valeur est masquée sans vérifier sa clé de contrôle. Pourquoi : une valeur abîmée par une reconnaissance de caractères aurait une clé fausse, et la rejeter la laisserait partir en clair.
 
-**BR-MSG-08.** Quand un message contient une clé d'API, alors elle n'est masquée que si la configuration charge un groupe de motifs de secrets, comme le groupe `piighost/logs` du hub, ou un modèle qui les cherche. Exemple : avec ce groupe, une clé OpenAI part sous la forme `<<OPENAI_API_KEY:1>>`.
+**BR-MSG-08.** Quand un message contient une clé d'API, alors elle n'est masquée que si la configuration charge un groupe de motifs de secrets ou un modèle qui cherche les secrets. Le groupe `piighost/logs` du hub est un tel groupe. Exemple : avec ce groupe, une clé OpenAI part sous la forme `<<OPENAI_API_KEY:1>>`.
 
 **BR-MSG-09.** Quand l'utilisateur tape lui-même un texte qui a la forme d'un jeton, alors ce texte est neutralisé par un caractère invisible. Exemple : « Claire écrit `<<PERSON:2>>` ici » ne pourra pas se faire passer pour un vrai jeton à la restauration. Pourquoi : sinon, un jeton tapé à la main pourrait récupérer la valeur d'une autre personne.
 
@@ -201,7 +201,7 @@ Puis `echo "Tél. 06 12 34 56 78" | uv run piighost anonymize --config <fichier>
 - **L'expansion tourne après le résolveur.** Elle saute toute occurrence qui touche un caractère déjà couvert, et cherche les valeurs les plus longues d'abord (`expander/base.py:30-75`).
 - **Le caractère de neutralisation reste dans le texte restauré.** Un jeton tapé par l'utilisateur revient avec un U+200B invisible après son premier caractère. Un traitement en aval qui compare des chaînes exactes peut échouer. `Anonymizer(factory, escape_existing_tokens=False)` désactive la neutralisation, au prix de BR-MSG-09.
 - **`RegexDetector` compile sous `re.ASCII`.** `\d` ne prend que 0 à 9, et `\w` s'arrête au premier caractère accentué.
-- **Un détecteur seul peut rendre des détections qui se chevauchent.** Le port l'autorise. Ne testez jamais un détecteur en sortant de la chaîne avant le résolveur.
+- **Un détecteur seul peut rendre des détections qui se chevauchent.** Le port l'autorise. Ne testez pas la sortie d'un détecteur seul comme si elle était déjà passée par le résolveur de chevauchements.
 - **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste noire ne peuvent pas en être exemptées (`pipeline/base.py:318-322`).
 - **`LLMDetector` échoue fermé.** Une sortie du modèle illisible, sans champ `entities` ou que le parseur rejette, lève `UnreadableOutputError` et le message est refusé (`components/detector/llm.py:174-181`, `_unreadable` en `:203`). `fail_open=True` la lit comme zéro détection, et le message part alors sans protection. Voir DPO-9 dans [Besoins par profil](../needs-by-profile.md#points-de-vigilance).
 

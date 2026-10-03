@@ -55,7 +55,7 @@ PIIAnonymizationMiddleware(
 
 The pipeline must expose a delimited token recognizer through `pipeline.recognizer`, so a token the model invented can be found again. A pipeline whose placeholder factory is not delimited (a mask, for example) has no recognizer, and the constructor raises `UnrecognizableFactoryError`. The `IdentityT` type bound enforces the same at type-check time for typed callers.
 
-Every agent call carries a thread id in its LangGraph config. A call without one raises `MissingThreadIdError`, rather than routing every conversation into a shared thread, which would leak placeholder state across conversations. If your conversations need no separation, name the `"default"` thread (`DEFAULT_THREAD_ID`) yourself.
+Every agent call carries a thread id in its LangGraph config. A call without one raises `MissingThreadIdError`. The middleware does not route that call into a shared thread, because placeholder state would then leak across conversations. If your conversations need no separation, name the `"default"` thread (`DEFAULT_THREAD_ID`) yourself.
 
 ---
 
@@ -63,7 +63,7 @@ Every agent call carries a thread id in its LangGraph config. A call without one
 
 ### `abefore_model(state, runtime) -> dict | None`
 
-De-identifies the user and model messages before the model sees them. Each message is passed through `pipeline.anonymize()` under the role its type contributes. A `ToolMessage` is never rewritten here, only in the tool wrapper. Under `EntityCreateByAssistantStrategy.IGNORE`, `AIMessage` content is skipped entirely.
+De-identifies the user and model messages before the model sees them. Each message is passed through `pipeline.anonymize()` under the role given by its message type. A `ToolMessage` is never rewritten here, only in the tool wrapper. Under `EntityCreateByAssistantStrategy.IGNORE`, `AIMessage` content is skipped entirely.
 
 Returns `{"messages": [...]}` when a message changed, `None` otherwise.
 
@@ -87,7 +87,7 @@ Routes the tool call by `tool_strategy`. When the strategy de-identifies input, 
 
 Argument restoration recurses through nested `dict`, `list`, and `tuple` containers. Only `str` leaves are restored, other types pass through unchanged.
 
-The response is de-identified whichever shape the tool replied with, its `ToolMessage` directly or a `Command` whose state update carries it, the shape a tool that also writes state uses. A state update is walked as a mapping of state keys or as a sequence of key-value pairs, each holding one message or a sequence of them, so all four forms LangGraph accepts are covered. Content that is a list of text blocks is handled the same way as a plain string, block by block.
+The response is de-identified whichever shape the tool replied with. The tool can return its `ToolMessage` directly, or a `Command` whose state update carries that `ToolMessage`. A tool that also writes state uses this second shape. A state update is walked in both its forms, a mapping of state keys or a sequence of key-value pairs. Each entry holds one message or a sequence of messages. All four forms LangGraph accepts are therefore covered. Content that is a list of text blocks is handled the same way as a plain string, block by block.
 
 ```text
 # model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
@@ -119,7 +119,7 @@ How the two directions of a tool call are handled. The directions are independen
 
 ### `InventedPlaceholderStrategy`
 
-How a token the pipeline never issued is treated. After restoration, every issued token has been replaced by its value, so any token still matching the placeholder grammar was invented by the model, whether hallucinated or injected.
+How a token the pipeline never issued is treated. After restoration, every issued token has been replaced by its value. Any token still matching the placeholder grammar was therefore invented by the model, whether hallucinated or injected.
 
 | Value | Effect |
 |-------|--------|
@@ -131,7 +131,7 @@ How a token the pipeline never issued is treated. After restoration, every issue
 
 ### `EntityCreateByAssistantStrategy`
 
-How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data, so de-identifying it strips the model of its world knowledge of that entity.
+How values the assistant introduces are treated. A value's provenance is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data. De-identifying it therefore strips the model of its world knowledge of that entity.
 
 | Value | Effect |
 |-------|--------|
@@ -183,19 +183,19 @@ The pipeline must be a thread pipeline whose placeholder factory is delimited, s
 
 ## Streaming
 
-The `abefore_model` and `aafter_model` hooks see the whole message, so a live display that streams the reply would show placeholders until it completes. For a token-by-token display, wrap `deanonymize_stream` around your own streaming loop. It buffers only a token split across chunks, restores each token once it completes, and applies `invented_strategy` per restored token.
+The `abefore_model` and `aafter_model` hooks see the whole message. A live display that streams the reply would therefore show placeholders until it completes. For a token-by-token display, wrap `deanonymize_stream` around your own streaming loop. It buffers only a token split across chunks, restores each token once it completes, and applies `invented_strategy` per restored token.
 
 ### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
 
-`source` is an async iterator of the model's text chunks. `thread_id` is the id you ran the agent with, since a manual stream loop is outside the LangGraph config the hooks read.
+`source` is an async iterator of the model's text chunks. `thread_id` is the id you ran the agent with. You pass it yourself, because a manual stream loop does not see the LangGraph config the hooks read.
 
 ```python
 --8<-- "snippets/reference_langchain.py:stream"
 ```
 
-A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display shows no broken token. Only a stream that stops in the middle of a token emits its fragment as is, `<<PER`{ .placeholder } for example, which holds no real value.
+A token split across chunks, `<<PER`{ .placeholder } then `SON:1>>`{ .placeholder }, is held until it completes and restored to `Patrick`{ .pii }, so the display shows no broken token. Only a stream that stops in the middle of a token emits its fragment as is, for example `<<PER`{ .placeholder }. That fragment holds no real value.
 
-For another framework, the same restoration is one step lower, `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar, with `replace` a coroutine that restores one token.
+For another framework, use the same restoration one step lower. `pipeline.recognizer.async_stream_decoder(replace)` builds the decoder over any factory's grammar. `replace` is a coroutine that restores one token.
 
 ---
 

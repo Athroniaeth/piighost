@@ -34,7 +34,7 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 - The `piighost validate` command checks a file without starting anything. It fits an automatic check before going to production.
 - A typo in the file is rejected, never ignored.
 
-There is no graphical interface: all configuration goes through this file and the command line. The terms are defined in the [glossary](../glossary.md). Each section and each key of the file is listed in the [configuration reference](../../../docs/en/configuration/toml.md) of the technical guide, and the [configuration tutorial](../../../docs/en/getting-started/configuration.md) builds one step by step.
+There is no graphical interface: all configuration goes through this file and the command line. The terms are defined in the [glossary](../glossary.md). Each section and each key of the file is listed in the [configuration reference](../../../docs/en/configuration/toml.md) of the technical guide. The [configuration tutorial](../../../docs/en/getting-started/configuration.md) builds a file step by step.
 
 ## Choose how to load the configuration
 
@@ -68,11 +68,11 @@ The entity linker, the anonymizer and the overlap resolver take their default va
 
 **BR-CFG-04.** When a value is given in several places, then the order of precedence is: explicit arguments, then `PIIGHOST_*` variables, then file or hub.
 
-**BR-CFG-05.** When a variable targets a subkey, such as `PIIGHOST_DETECTOR__TYPE`, then it has no effect. No nested delimiter is configured. You override a whole section with a JSON object: `PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'`.
+**BR-CFG-05.** When a variable targets a subkey, such as `PIIGHOST_DETECTOR__TYPE`, then it has no effect, because no nested delimiter (the `__` that separates a section from its key) is configured. You override a whole section with a JSON object: `PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'`.
 
 **BR-CFG-06.** When a secret is missing, then the `ConfigError` error occurs at build time, not at validation. `piighost validate` therefore accepts a file whose secrets are not supplied yet.
 
-**BR-CFG-07.** When a hub reference ends with eight hexadecimal characters (a commit), then the response is cached on disk and never downloaded again. A tag or no selector (`latest`) is downloaded again at each build.
+**BR-CFG-07.** When a hub reference ends with eight hexadecimal characters (a commit), then the response is cached on disk and never downloaded again. A reference that ends with a tag, or has no selector (`latest`), is downloaded again at each build.
 
 **BR-CFG-08.** When a regex detector combines catalogs and inline patterns, then the catalogs merge in order, then the inline patterns. On the same label, the last one wins: an inline pattern overrides any catalog.
 
@@ -98,7 +98,7 @@ The hub is the only source of patterns: the library ships none. A reference is w
 - Origin: `https://hub.piighost.dev`, or `PIIGHOST_HUB_URL`. Only `http` and `https` are accepted.
 - Timeout: 10 seconds (`hub.py:44`).
 - Cache: `$XDG_CACHE_HOME/piighost/hub/`, otherwise `~/.cache/piighost/hub/`. The file name is a SHA-256 digest of the URL.
-- A regex detector takes only the `?part=detector` part. If the reference describes a model detector, it raises `HubPayloadError`: in that case, load the whole configuration with `load_config("hub:…")`.
+- A regex detector takes only the `?part=detector` part. If the reference describes a model detector, loading raises `HubPayloadError`. In that case, load the whole configuration with `load_config("hub:…")`.
 
 ## Check from the command line
 

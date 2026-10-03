@@ -26,13 +26,13 @@ class Anonymization(Generic[PreservationT_co]):
 | `text` | `str` | Le texte avec chaque occurrence d'entité remplacée par son jeton |
 | `tokens` | `Mapping[Entity, str]` | Le jeton qui a remplacé chaque entité |
 
-La correspondance est typée par ce que la factory préserve, donc un appelant peut l'inverser pour restaurer seulement quand les jetons préservent l'identité.
+Le type de la correspondance dit ce que la factory préserve. Un appelant peut donc l'inverser pour restaurer l'original, mais seulement quand les jetons préservent l'identité.
 
 ---
 
 ## `Anonymizer`
 
-Remplace les spans de chaque entité par le jeton qu'une factory lui assigne. Il édite les spans de gauche à droite en une passe, ce qui reste correct car les étages en amont les laissent sans chevauchement, donc aucune édition ne décale un offset dont une autre a encore besoin. Sans état. Rien n'est retenu d'un appel à l'autre.
+Remplace les spans de chaque entité par le jeton qu'une factory lui assigne. Il édite les spans de gauche à droite en une passe. Cette passe unique reste correcte parce que les étages en amont laissent les spans sans chevauchement. Aucune édition ne décale donc un offset dont une autre a encore besoin. Sans état. Rien n'est retenu d'un appel à l'autre.
 
 ### Constructeur
 
@@ -43,7 +43,7 @@ Anonymizer(ph_factory: AnyPlaceholderFactory[PreservationT], escape_existing_tok
 | Paramètre | Type | Description |
 |-----------|------|-------------|
 | `ph_factory` | `AnyPlaceholderFactory[PreservationT]` | La placeholder factory qui assigne un jeton à chaque entité (requis) |
-| `escape_existing_tokens` | `bool` | Neutralise les jetons saisis par l'utilisateur dans l'entrée pour qu'ils ne puissent pas se faire passer pour des jetons de la factory et détourner une valeur à la restauration. Ne s'applique que quand la factory émet une grammaire délimitée reconnaissable. Vaut `True` par défaut |
+| `escape_existing_tokens` | `bool` | Neutralise les jetons saisis par l'utilisateur dans l'entrée pour qu'ils ne puissent pas se faire passer pour des jetons de la factory et détourner une valeur à la restauration. Ne s'applique que quand la factory émet une grammaire délimitée reconnaissable, c'est-à-dire des jetons encadrés de délimiteurs comme `<<PERSON:1>>`. Vaut `True` par défaut |
 
 La factory est exposée ensuite via la propriété `factory`.
 
@@ -69,9 +69,9 @@ Renvoie le jeton que chaque entité obtient, sans toucher au texte. Séparer l'a
 
 Renvoie `text` avec les spans de chaque entité remplacés par le jeton donné. Utilisé par le pipeline de conversation pour rendre un message contre des jetons assignés sur toute la conversation.
 
-Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout jeton saisi par l'utilisateur dans les portions littérales entre les spans d'entités, en y insérant un espace de largeur nulle, pour qu'il ne puisse pas être restauré comme un vrai jeton. Les spans d'entités et leurs offsets restent intacts.
+Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout jeton que l'utilisateur a saisi dans le texte laissé tel quel entre les spans d'entités. Il y insère un espace de largeur nulle, pour que ce jeton ne puisse pas être restauré comme un vrai jeton. Les spans d'entités et leurs offsets restent intacts.
 
-Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de résolution des chevauchements doit s'exécuter d'abord, donc un chevauchement ici préfère échouer plutôt que d'introduire un fragment en clair d'une détection dans une autre.
+Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de résolution des chevauchements doit s'exécuter avant. Un chevauchement qui arrive jusqu'ici fait donc échouer l'appel, plutôt que d'introduire un fragment en clair d'une détection dans une autre.
 
 ```python
 --8<-- "snippets/reference_anonymizer.py:render"
@@ -91,7 +91,7 @@ La restauration n'est sans ambiguïté que si les jetons préservent l'identité
 
 ## `AnyAnonymizer` (protocole)
 
-Le port que tout anonymizer implémente. Générique sur ce que ses jetons préservent, donc un consommateur comme le middleware peut exiger un anonymizer dont les jetons préservent l'identité et rejeter celui dont les jetons ne la préservent pas, à la vérification de types.
+Le port que tout anonymizer implémente. Il est générique sur ce que ses jetons préservent. Un consommateur comme le middleware peut donc, dès la vérification de types, exiger un anonymizer dont les jetons préservent l'identité et rejeter celui dont les jetons ne la préservent pas.
 
 ```python
 @runtime_checkable
@@ -116,7 +116,7 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
 
 ## `BaseAnonymizer`
 
-Le template que `Anonymizer` étend. Il tient les étapes partagées. Demander à la factory un jeton par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie, la règle qui réécrit le texte à partir des entités et de leurs jetons.
+Le template que `Anonymizer` étend. Il tient les étapes partagées : demander à la factory un jeton par entité via `create`, les composer en une `Anonymization` dans `anonymize`, et inverser la correspondance dans `deanonymize`. Une sous-classe définit `render`, la seule étape qui varie. `render` est la règle qui réécrit le texte à partir des entités et de leurs jetons.
 
 ```python
 class BaseAnonymizer(ABC, Generic[PreservationT]):
