@@ -196,6 +196,12 @@ The built-in `DetectorGuardRail` re-runs a detector and reports the residual det
 --8<-- "snippets/extending.py:use_guard"
 ```
 
+### A decision model behind the port
+
+A decision model answers a typed question instead of generating text, which is the shape of a guard: a yes or no on the de-identified output. [`examples/guard_rail_laya.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_laya.py) puts [Laya](https://huggingface.co/convaiinnovations/laya), an Apache 2.0 counterpart of Jev, behind the port in a dozen lines, running locally. It asks whether personal data is left and flags the verdict above a probability.
+
+On 24 de-identified texts, half of them leaking, it caught 11 leaks out of 12 and flagged 5 clean texts out of 12 at a 0.5 threshold, where `Gliner2GuardRail` caught 4 leaks and flagged none. Placeholders raise its score, so a text dense in tokens is the one it flags wrongly. Its English checkpoint reads French well enough, `laya-multilingual` does not.
+
 ---
 
 ## Full composition
