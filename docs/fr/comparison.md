@@ -19,49 +19,90 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     - Ne fait pas : restaurer une valeur que le LLM invente, ni partager la mémoire entre processus sans Redis.
     - Ne fait pas : transformer un jeu de données entier. La latence ajoutée n'est pas encore mesurée.
 
-??? note "Presidio (Microsoft, MIT)"
+??? note "Presidio (Microsoft)"
 
-    - Détecte avec un NER, des regex, des règles et des clés de contrôle.
-    - Masque, ou remplace par un jeton chiffré.
-    - Restaure seulement à la main, avec `decrypt`.
-    - Ne garde pas le même jeton d'un message à l'autre.
-    - Rien de prévu pour les outils ni pour le flux.
-    - Fait mieux : valider un format par clé de contrôle, sur un texte saisi au clavier.
-    - `piighost` peut l'utiliser comme détecteur, avec `PresidioDetector`.
+    | | `piighost` | Presidio |
+    |---|---|---|
+    | Détection | regex, NER ou LLM | NER, regex, règles, clés de contrôle |
+    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | masque ou jeton chiffré |
+    | Restauration pour l'utilisateur | ✅ | ⚠️ à la main (`decrypt`) |
+    | Même jeton sur la conversation | ✅ par conversation | ❌ |
+    | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
+    | Restauration pendant le flux | ✅ | ❌ |
+    | Étapes configurables après détection | ✅ liaison, rapprochement, expansion, garde-fou | ⚠️ opérateurs seulement |
+    | Unité traitée | texte, conversation | texte |
+    | Hébergement | ✅ auto-hébergé | ✅ auto-hébergé |
+    | Licence | MIT | MIT |
 
-??? note "LangChain PII (`PIIMiddleware`, MIT)"
+    **Fait mieux** : valider un format par clé de contrôle, sur un texte saisi au clavier. `piighost` peut d'ailleurs l'utiliser comme détecteur, avec `PresidioDetector`.
 
-    - Détecte avec des regex et des validateurs.
-    - Masque ou hache, sans restauration pour l'utilisateur.
-    - Protège la frontière des outils et le flux.
-    - Ne garde pas de jeton sur la conversation.
-    - La version JS (`piiRedactionMiddleware`) fait le compromis inverse : elle restaure, mais sans flux.
-    - Fait mieux : rien de plus à installer dans un agent LangChain, si l'utilisateur n'a pas besoin de relire ses vraies valeurs.
+??? note "LangChain PII (`PIIMiddleware` Python)"
 
-??? note "AWS Comprehend et Azure AI Language (cloud, payants)"
+    | | `piighost` | LangChain PII |
+    |---|---|---|
+    | Détection | regex, NER ou LLM | regex, validateurs |
+    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | masque ou hash |
+    | Restauration pour l'utilisateur | ✅ | ❌ |
+    | Même jeton sur la conversation | ✅ par conversation | ❌ |
+    | Vraie valeur aux outils, jeton au LLM | ✅ | ✅ |
+    | Restauration pendant le flux | ✅ | ✅ |
+    | Étapes configurables après détection | ✅ liaison, rapprochement, expansion, garde-fou | ❌ |
+    | Unité traitée | texte, conversation | texte, conversation |
+    | Hébergement | ✅ auto-hébergé | ✅ auto-hébergé |
+    | Licence | MIT | MIT |
 
-    - Détectent par apprentissage automatique et masquent.
-    - Aucune restauration. Le mode Conversation d'Azure ne fait que détecter.
-    - Rien de prévu pour la conversation, les outils ni le flux.
-    - Le texte part chez le fournisseur cloud.
-    - Font mieux : des modèles maintenus par le fournisseur, pour masquer des documents dans un cloud déjà en place.
+    **Fait mieux** : rien de plus à installer dans un agent LangChain, si l'utilisateur n'a pas besoin de relire ses vraies valeurs. La version JS (`piiRedactionMiddleware`) fait le compromis inverse : elle restaure, mais sans flux.
 
-??? note "Google DLP (cloud, payant)"
+??? note "AWS Comprehend et Azure AI Language"
 
-    - Détecte par apprentissage automatique et par types prédéfinis (infoTypes).
-    - Remplace par un jeton chiffré sans état, toujours le même pour une même valeur.
-    - Restaure par un appel d'API.
-    - Rien de prévu pour les outils ni pour le flux.
-    - Le texte part chez Google.
-    - Fait mieux : transformer des jeux de données entiers dans Google Cloud.
+    | | `piighost` | AWS / Azure |
+    |---|---|---|
+    | Détection | regex, NER ou LLM | apprentissage automatique |
+    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | masque |
+    | Restauration pour l'utilisateur | ✅ | ❌ |
+    | Même jeton sur la conversation | ✅ par conversation | ❌ |
+    | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
+    | Restauration pendant le flux | ✅ | ❌ |
+    | Étapes configurables après détection | ✅ liaison, rapprochement, expansion, garde-fou | ❌ |
+    | Unité traitée | texte, conversation | texte, documents |
+    | Hébergement | ✅ auto-hébergé | ❌ cloud |
+    | Licence | MIT | payant |
 
-??? note "pii-redactor (MIT)"
+    **Fait mieux** : des modèles maintenus par le fournisseur, pour masquer des documents dans un cloud déjà en place. Le mode Conversation d'Azure ne fait que détecter.
 
-    - Le plus proche de `piighost`.
-    - Détecte avec des regex et un NER.
-    - Remplace par un jeton réversible gardé dans un coffre, le même sur la session, et restaure pendant le flux.
-    - Ne donne pas la vraie valeur aux outils.
-    - Pas d'étape configurable après la détection (liaison, rapprochement approximatif, expansion, garde-fou).
+??? note "Google DLP"
+
+    | | `piighost` | Google DLP |
+    |---|---|---|
+    | Détection | regex, NER ou LLM | apprentissage automatique, types prédéfinis (infoTypes) |
+    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | jeton chiffré sans état |
+    | Restauration pour l'utilisateur | ✅ | ⚠️ par appel d'API |
+    | Même jeton sur la conversation | ✅ par conversation | ✅ toujours le même jeton pour une valeur |
+    | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
+    | Restauration pendant le flux | ✅ | ❌ |
+    | Étapes configurables après détection | ✅ liaison, rapprochement, expansion, garde-fou | ⚠️ transformations |
+    | Unité traitée | texte, conversation | texte, jeu de données |
+    | Hébergement | ✅ auto-hébergé | ❌ cloud |
+    | Licence | MIT | payant |
+
+    **Fait mieux** : transformer des jeux de données entiers dans Google Cloud.
+
+??? note "pii-redactor"
+
+    | | `piighost` | pii-redactor |
+    |---|---|---|
+    | Détection | regex, NER ou LLM | regex, NER |
+    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | jeton réversible (coffre) |
+    | Restauration pour l'utilisateur | ✅ | ✅ |
+    | Même jeton sur la conversation | ✅ par conversation | ✅ par session |
+    | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
+    | Restauration pendant le flux | ✅ | ✅ |
+    | Étapes configurables après détection | ✅ liaison, rapprochement, expansion, garde-fou | ❌ |
+    | Unité traitée | texte, conversation | texte, conversation |
+    | Hébergement | ✅ auto-hébergé | ✅ auto-hébergé |
+    | Licence | MIT | MIT |
+
+    **À noter** : c'est le plus proche de `piighost`. Il lui manque la vraie valeur aux outils et les étapes configurables.
 
 ??? note "Modèles de détection seule (spaCy, GLiNER, Piiranha)"
 

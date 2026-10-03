@@ -19,49 +19,90 @@ Open a solution to see how it differs from `piighost`.
     - Does not: restore a value the LLM makes up, or share the memory between processes without Redis.
     - Does not: transform a whole dataset. The added latency is not measured yet.
 
-??? note "Presidio (Microsoft, MIT)"
+??? note "Presidio (Microsoft)"
 
-    - Detects with NER, regexes, rules and check digits.
-    - Masks, or replaces with an encrypted token.
-    - Restores only by hand, with `decrypt`.
-    - Does not keep the same token from one message to the next.
-    - Nothing for tools or for streaming.
-    - Better at: validating a format by its check digits, on typed text.
-    - `piighost` can use it as a detector, with `PresidioDetector`.
+    | | `piighost` | Presidio |
+    |---|---|---|
+    | Detection | regex, NER or LLM | NER, regex, rules, check digits |
+    | What happens to a value | reversible placeholder (memory or Redis) | mask or encrypted token |
+    | Restored for the user | ✅ | ⚠️ by hand (`decrypt`) |
+    | Same placeholder over the conversation | ✅ per conversation | ❌ |
+    | Real value to tools, placeholder to the LLM | ✅ | ❌ |
+    | Restored while streaming | ✅ | ❌ |
+    | Configurable steps after detection | ✅ linking, fuzzy matching, expansion, guard rail | ⚠️ operators only |
+    | Unit processed | text, conversation | text |
+    | Hosting | ✅ self-hosted | ✅ self-hosted |
+    | License | MIT | MIT |
 
-??? note "LangChain PII (`PIIMiddleware`, MIT)"
+    **Better at**: validating a format by its check digits, on typed text. `piighost` can also use it as a detector, with `PresidioDetector`.
 
-    - Detects with regexes and validators.
-    - Masks or hashes, with no restoration for the user.
-    - Protects the tool boundary and the stream.
-    - Keeps no placeholder over the conversation.
-    - The JS version (`piiRedactionMiddleware`) makes the opposite trade-off: it restores, without streaming.
-    - Better at: nothing more to install in a LangChain agent, when the user does not need to read their real values.
+??? note "LangChain PII (Python `PIIMiddleware`)"
 
-??? note "AWS Comprehend and Azure AI Language (cloud, paid)"
+    | | `piighost` | LangChain PII |
+    |---|---|---|
+    | Detection | regex, NER or LLM | regex, validators |
+    | What happens to a value | reversible placeholder (memory or Redis) | mask or hash |
+    | Restored for the user | ✅ | ❌ |
+    | Same placeholder over the conversation | ✅ per conversation | ❌ |
+    | Real value to tools, placeholder to the LLM | ✅ | ✅ |
+    | Restored while streaming | ✅ | ✅ |
+    | Configurable steps after detection | ✅ linking, fuzzy matching, expansion, guard rail | ❌ |
+    | Unit processed | text, conversation | text, conversation |
+    | Hosting | ✅ self-hosted | ✅ self-hosted |
+    | License | MIT | MIT |
 
-    - Detect with machine learning and mask.
-    - No restoration. Azure's Conversation mode only detects.
-    - Nothing for the conversation, tools or streaming.
-    - The text goes to the cloud provider.
-    - Better at: models the provider maintains, to mask documents in a cloud already in place.
+    **Better at**: nothing more to install in a LangChain agent, when the user does not need to read their real values. The JS version (`piiRedactionMiddleware`) makes the opposite trade-off: it restores, without streaming.
 
-??? note "Google DLP (cloud, paid)"
+??? note "AWS Comprehend and Azure AI Language"
 
-    - Detects with machine learning and predefined types (infoTypes).
-    - Replaces with a stateless encrypted token, always the same for the same value.
-    - Restores through an API call.
-    - Nothing for tools or streaming.
-    - The text goes to Google.
-    - Better at: transforming whole datasets in Google Cloud.
+    | | `piighost` | AWS / Azure |
+    |---|---|---|
+    | Detection | regex, NER or LLM | machine learning |
+    | What happens to a value | reversible placeholder (memory or Redis) | mask |
+    | Restored for the user | ✅ | ❌ |
+    | Same placeholder over the conversation | ✅ per conversation | ❌ |
+    | Real value to tools, placeholder to the LLM | ✅ | ❌ |
+    | Restored while streaming | ✅ | ❌ |
+    | Configurable steps after detection | ✅ linking, fuzzy matching, expansion, guard rail | ❌ |
+    | Unit processed | text, conversation | text, documents |
+    | Hosting | ✅ self-hosted | ❌ cloud |
+    | License | MIT | paid |
 
-??? note "pii-redactor (MIT)"
+    **Better at**: models the provider maintains, to mask documents in a cloud already in place. Azure's Conversation mode only detects.
 
-    - The closest to `piighost`.
-    - Detects with regexes and NER.
-    - Replaces with a reversible token kept in a vault, the same over the session, and restores while streaming.
-    - Does not hand the real value to tools.
-    - No configurable step after detection (linking, fuzzy matching, expansion, guard rail).
+??? note "Google DLP"
+
+    | | `piighost` | Google DLP |
+    |---|---|---|
+    | Detection | regex, NER or LLM | machine learning, predefined types (infoTypes) |
+    | What happens to a value | reversible placeholder (memory or Redis) | stateless encrypted token |
+    | Restored for the user | ✅ | ⚠️ through an API call |
+    | Same placeholder over the conversation | ✅ per conversation | ✅ always the same token for a value |
+    | Real value to tools, placeholder to the LLM | ✅ | ❌ |
+    | Restored while streaming | ✅ | ❌ |
+    | Configurable steps after detection | ✅ linking, fuzzy matching, expansion, guard rail | ⚠️ transformations |
+    | Unit processed | text, conversation | text, dataset |
+    | Hosting | ✅ self-hosted | ❌ cloud |
+    | License | MIT | paid |
+
+    **Better at**: transforming whole datasets in Google Cloud.
+
+??? note "pii-redactor"
+
+    | | `piighost` | pii-redactor |
+    |---|---|---|
+    | Detection | regex, NER or LLM | regex, NER |
+    | What happens to a value | reversible placeholder (memory or Redis) | reversible token (vault) |
+    | Restored for the user | ✅ | ✅ |
+    | Same placeholder over the conversation | ✅ per conversation | ✅ per session |
+    | Real value to tools, placeholder to the LLM | ✅ | ❌ |
+    | Restored while streaming | ✅ | ✅ |
+    | Configurable steps after detection | ✅ linking, fuzzy matching, expansion, guard rail | ❌ |
+    | Unit processed | text, conversation | text, conversation |
+    | Hosting | ✅ self-hosted | ✅ self-hosted |
+    | License | MIT | MIT |
+
+    **Note**: it is the closest to `piighost`. It lacks the real value to tools and the configurable steps.
 
 ??? note "Detection-only models (spaCy, GLiNER, Piiranha)"
 
