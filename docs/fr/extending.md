@@ -196,6 +196,12 @@ Le `DetectorGuardRail` intégré relance un détecteur et rapporte les détectio
 --8<-- "snippets/extending.py:use_guard"
 ```
 
+### Un modèle de décision derrière le port
+
+Un modèle de décision répond à une question typée au lieu de générer du texte, ce qui est la forme d'un garde-fou : un oui ou un non sur la sortie dé-identifiée. [`examples/guard_rail_laya.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_laya.py) place [Laya](https://huggingface.co/convaiinnovations/laya), un équivalent de Jev sous licence Apache 2.0, derrière le port en une douzaine de lignes, en local. Il demande s'il reste une donnée personnelle et signale le verdict au-delà d'une probabilité.
+
+Sur 24 textes dé-identifiés, dont la moitié laisse fuir une valeur, il a rattrapé 11 fuites sur 12 et signalé 5 textes propres sur 12 au seuil de 0,5, là où `Gliner2GuardRail` rattrapait 4 fuites sans aucune fausse alerte. Les placeholders font monter son score, donc c'est un texte chargé en jetons qu'il signale à tort. Son modèle anglais lit assez bien le français, `laya-multilingual` non.
+
 ---
 
 ## Composition complète
