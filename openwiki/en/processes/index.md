@@ -1,0 +1,7 @@
+# Files
+
+- [Show a streamed reply](show-a-streamed-reply.md) - How PIIGhost restores a model reply streamed as it arrives, holds back a placeholder cut between two chunks until it is whole, and what stays on screen when the stream is interrupted.
+- [Impose a whitelist and a blacklist](impose-a-whitelist-and-blacklist.md) - How the configuration whitelist (override section) forces the masking of a value that the detector misses, how the blacklist keeps a value in clear text, who wins when the two contradict each other, and why these lists take precedence over a human correction.
+- [Let a tool act on the real values](let-a-tool-act.md) - How PIIGhost puts the real values back in the arguments of a tool call, masks the tool result before the model, chooses between four tool settings and handles an invented placeholder in an argument.
+- [Protect a message before it is sent to the model](protect-a-message.md) - The stages a text goes through in PIIGhost before it reaches a model (detection, whitelist and blacklist, overlaps, missed occurrences, grouping, replacement with a placeholder, final check), the rules of each stage and where they live in the code.
+- [Follow a conversation and restore the reply](follow-a-conversation.md) - How PIIGhost keeps the same placeholder for a value across a whole conversation, requires a conversation identifier, restores the model's reply, handles the values the assistant brings and the invented placeholders, applies a human correction and erases a conversation.
