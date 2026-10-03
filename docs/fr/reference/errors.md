@@ -6,7 +6,7 @@ icon: lucide/circle-alert
 
 Module : `piighost.exceptions`
 
-Chaque erreur levée par la librairie dérive de `PIIGhostError`, donc un seul `except PIIGhostError` couvre toute la famille. Entre la racine et les feuilles se trouvent les classes de regroupement, une par sous-système, qu'un appelant attrape pour réagir à un étage plutôt qu'à une défaillance précise. Le module ne dépend de rien en dehors de la librairie standard, donc chaque classe s'importe sans extra optionnel, y compris les erreurs levées par des composants qui en exigent un.
+Chaque erreur levée par la librairie dérive de `PIIGhostError`, donc un seul `except PIIGhostError` couvre toute la famille. Entre la racine et les feuilles se trouvent les classes de regroupement, une par sous-système, qu'un appelant attrape pour réagir à un étage plutôt qu'à une défaillance précise. Chaque classe s'importe sans extra optionnel, parce que le module ne dépend de rien en dehors de la librairie standard. C'est vrai aussi des erreurs levées par des composants qui exigent un extra.
 
 ```python
 from piighost.exceptions import PIIGhostError
@@ -58,7 +58,7 @@ flowchart LR
 *L'arbre `PIIGhostError`, chaque classe de regroupement à gauche des erreurs qu'elle couvre.*
 { .figure-caption }
 
-Sur les trente-cinq classes d'erreur, vingt-deux sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, une classe de regroupement qui est aussi levée pour elle-même.
+Sur les trente-cinq classes d'erreur, vingt-deux sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, parce que c'est une classe de regroupement qui est aussi levée pour elle-même.
 
 ## Modèles de données
 
@@ -76,14 +76,14 @@ Les invariants que ces erreurs font respecter sont dans [Référence des modèle
 
 ## Détecteurs
 
-Module : `piighost.components.detector.ner`. `DetectorError` regroupe cinq défaillances. Deux appartiennent à `BaseNERDetector`, elles ne touchent donc que les détecteurs à modèle, une à `LLMDetector` et donc à `LLMGuardRail`, et deux à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
+Module : `piighost.components.detector.ner`. `DetectorError` regroupe cinq défaillances. Deux appartiennent à `BaseNERDetector`, et ne touchent donc que les détecteurs à modèle. Une appartient à `LLMDetector`, et donc aussi à `LLMGuardRail`. Les deux dernières appartiennent à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | deux labels externes pointent vers un même label interne, ce qui rendrait la recherche inverse ambiguë |
-| `TextTooLongError` | `BaseNERDetector`, à la détection | un texte dépasse `max_chars` alors que `auto_chunk` est désactivé, un scan limité au préfixe étant refusé |
+| `TextTooLongError` | `BaseNERDetector`, à la détection | un texte dépasse `max_chars` alors que `auto_chunk` est désactivé, plutôt que de n'analyser que le début du texte |
 | `UnreadableOutputError` | `LLMDetector`, à la détection | le modèle rend une sortie que le détecteur ne sait pas lire, un JSON cassé ou un résultat sans son champ `entities`, alors que `fail_open` est désactivé |
-| `BridgePayloadError` | `BridgeDetector`, à la détection | le runner rend un span auquel il manque un champ, ou un décalage qui n'est pas un entier, un flottant compris |
+| `BridgePayloadError` | `BridgeDetector`, à la détection | le runner rend un span auquel il manque un champ, ou un décalage qui n'est pas un entier. Un flottant est refusé lui aussi |
 | `BridgeSpanRangeError` | `BridgeDetector`, à la détection | le runner rend un span vide ou inversé, qui dépasse le texte, ou, en unités UTF-16, qui coupe un caractère en deux |
 
 Les cinq sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent `TextTooLongError`, l'argument `fail_open` qui gouverne `UnreadableOutputError`, et l'`offset_unit` dans laquelle se lisent les décalages du bridge.
@@ -96,7 +96,7 @@ Module : `piighost.text`. `TextError` regroupe les défaillances des utilitaires
 |-----------|-----------|-------------|
 | `EmptyFragmentError` | `boundary_wrap`, `find_all_word_boundary` et `ExactMatchDetector.__init__` | le fragment cherché est vide, ce qui correspondrait à chaque position du texte |
 
-Un fragment vide produirait des spans de largeur nulle qu'un `Span` refuse, donc la défaillance remonterait sinon en `SpanOrderingError` loin de sa cause. `ExactMatchDetector` vérifie ses valeurs configurées à la construction, donc une faute dans la config échoue au chargement plutôt qu'au premier message. `LLMDetector` ne la lève pas, la sortie d'un modèle n'étant pas fiable, une valeur extraite vide est écartée avec un avertissement.
+Sans cette erreur, un fragment vide produirait des spans de largeur nulle, qu'un `Span` refuse. La défaillance remonterait alors en `SpanOrderingError`, loin de sa cause. `ExactMatchDetector` vérifie ses valeurs configurées à la construction, donc une faute dans la config échoue au chargement plutôt qu'au premier message. `LLMDetector` ne la lève pas, parce que la sortie d'un modèle n'est pas fiable. Il écarte une valeur extraite vide avec un avertissement.
 
 ## Anonymizer
 
@@ -134,7 +134,7 @@ Module : `piighost.integrations`. `MiddlewareError` regroupe les défaillances d
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
-| `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | le pipeline n'expose aucun recognizer de jeton, sa placeholder factory n'ayant pas de grammaire retrouvable |
+| `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | le pipeline n'expose aucun recognizer de jeton, parce que sa placeholder factory n'a pas de grammaire retrouvable |
 | `InventedPlaceholderError` | `TextDeidentifier.deanonymize` et `deanonymize_stream` | le texte restauré porte encore un jeton que le pipeline n'a jamais émis, sous la stratégie `RAISE` de placeholder inventé |
 | `MissingThreadIdError` | le middleware LangChain et les hooks Claude Code, à chaque tour | la config LangGraph ne porte pas de `thread_id`, ou l'événement du hook pas de `session_id` |
 
@@ -163,12 +163,12 @@ Le contrôle porte sur le statut seulement. Un corps 2xx auquel manque une clé 
 
 ## Configuration
 
-Module : `piighost.config`. `ConfigError` regroupe les défaillances de chargement et de construction, et contrairement aux autres classes de regroupement elle est aussi levée pour elle-même.
+Module : `piighost.config`. `ConfigError` regroupe les défaillances de chargement et de construction. Contrairement aux autres classes de regroupement, elle est aussi levée pour elle-même.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
 | `ConfigFileError` | `load_config` | le fichier est absent, illisible, ou du TOML ou JSON invalide, ou une référence du hub renvoie autre chose que du TOML |
-| `ConfigValidationError` | `load_config` | les données analysées échouent à la validation du schéma, ce qui emballe la `ValidationError` de pydantic dans la famille de la librairie |
+| `ConfigValidationError` | `load_config` | les données analysées échouent à la validation du schéma. L'erreur emballe alors la `ValidationError` de pydantic dans la famille de la librairie |
 | `ConfigError` | `load_pipeline`, `load_thread_pipeline`, et le `build()` d'une config de composant | le point d'entrée ne correspond pas à la section `[memory]` déclarée, une variable d'environnement de secret est absente ou malformée, ou une mémoire déclare un hacheur ou un cipher mais pas les deux |
 
 Attraper `ConfigError` couvre les trois. Chaque clé et chaque variable de secret est dans la [référence de configuration](../configuration/toml.md), et le CLI `piighost` rapporte les trois mêmes depuis `validate`, comme décrit dans [Interface en ligne de commande](cli.md).
@@ -185,7 +185,7 @@ Trois erreurs exposent les valeurs derrière la défaillance en attributs. Toute
 
 ## `PIIGhostSecurityWarning`
 
-Un `UserWarning`, en dehors de l'arbre `PIIGhostError`, donc il ne fait jamais échouer un appel et les filtres standards de `warnings` le gouvernent. Il signale une configuration qui tourne mais garde les données confidentielles lisibles, donc un choix assumé fonctionne encore alors qu'un oubli reste bruyant. Deux endroits l'émettent, tous deux à la construction.
+`PIIGhostSecurityWarning` est un `UserWarning`, en dehors de l'arbre `PIIGhostError`. Il ne fait donc jamais échouer un appel, et les filtres standards de `warnings` le gouvernent. Il signale une configuration qui tourne mais garde les données confidentielles lisibles. Comme ce n'est qu'un avertissement, un choix assumé fonctionne encore, et un oubli reste bruyant. Deux endroits l'émettent, tous deux à la construction.
 
 | Émis par | Émis quand |
 |----------|------------|

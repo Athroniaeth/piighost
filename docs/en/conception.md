@@ -5,8 +5,8 @@ icon: lucide/blocks
 # Pipeline design
 
 Once you accept that you need to de-identify (see [Why de-identify?](why-anonymize.md)),
-the question that remains is how. The build below goes step by step, from the first
-brick, detecting confidential data (personal data, secrets), adding one constraint at a time. Each component of the
+the question that remains is how. The build below goes step by step. It starts from the
+first brick, the detection of confidential data (personal data, secrets), then adds one constraint at a time. Each component of the
 pipeline appears because a previous constraint made it necessary. By the end, the
 order of the stages and the technical choices are no longer arbitrary, they follow from
 the problem.
@@ -53,12 +53,13 @@ flowchart LR
 `piighost` provides these approaches as interchangeable detectors, `Gliner2Detector`,
 `SpacyDetector`, `TransformersDetector` for NER, `RegexDetector` for patterns,
 `LLMDetector` when the business context exceeds the narrow detectors, and
-`ExactMatchDetector` for tests. You can combine them with `CompositeDetector`, a regex
-plus a NER cover more cases than a single one. That is why the detector is a port and not
-a frozen class, you inject the one you want.
+`ExactMatchDetector` for tests. You can combine them with `CompositeDetector`, because a
+regex plus a NER cover more cases than a single detector. The detector is therefore a port
+(an interface every detector implements) and not a frozen class. You inject the one you
+want.
 
 The regex validates **no checksum**. An IBAN or a card number recognized by the pattern
-is kept as-is, with no check-digit control. A value damaged by an OCR therefore stays a
+is kept as-is, without verifying its check digit. A value damaged by an OCR therefore stays a
 detection rather than being discarded by a computation that fails on the noise. Better
 one detection too many, arbitrated later, than a value left in clear.
 
@@ -72,7 +73,7 @@ with the type, `<<PERSON>>`{ .placeholder } or `<<EMAIL>>`{ .placeholder }.
 
 Why is that useful. Because the model that reads the de-identified text needs the type
 to reason. "Contact `<<PERSON>>`{ .placeholder } at `<<EMAIL>>`{ .placeholder }" stays
-usable, "Contact `<<REDACT>>`{ .placeholder } at `<<REDACT>>`{ .placeholder }" no longer
+usable. "Contact `<<REDACT>>`{ .placeholder } at `<<REDACT>>`{ .placeholder }" no longer
 is.
 
 The placeholder factory (`AnyPlaceholderFactory`) decides the shape of the token. It
@@ -130,8 +131,8 @@ Catching missed occurrences is a separate job, the expander's (`AnyDetectionExpa
 in the text by word-boundary search, and adds a detection for each.
 
 The expander is kept apart from the linker on purpose. The linker groups, the expander
-searches. Each has a single responsibility, and the expander stays optional, a detection
-set that is already complete does not need it.
+searches. Each has a single responsibility. The expander stays optional, because a
+detection set that is already complete does not need it.
 
 ---
 
@@ -144,10 +145,11 @@ another `PERSON` on the same position, or two models give slightly different bou
 If you let these overlaps through to the replacement, you would produce nested tokens and
 corrupted text. So you must resolve the position conflicts before grouping into entities.
 
-That is the span resolver (`AnyOverlapResolver`). `ConfidenceOverlapResolver` groups the
+That is the span resolver (`AnyOverlapResolver`). A span is the position of a detection
+in the text, from its start to its end. `ConfidenceOverlapResolver` groups the
 overlapping detections, then keeps the highest-confidence one in each group.
-`MergeOverlapResolver` keeps the union of each group instead, so a sure but short
-detection never uncovers part of a longer one.
+`MergeOverlapResolver` keeps the union of each group instead. That way, a sure but short
+detection never leaves part of a longer one in clear.
 
 The order of the stages is constrained.
 
@@ -166,8 +168,9 @@ then group into entities, and resolve identities last (see the next step).
 
 ## Step 6, merging equivalent entities, the entity resolver
 
-After linking, two entities can still refer to the same person, for example "Patrick"
-and "Patric" (typo), or come from different detectors that share a detection. Reconciling
+After linking, two entities can still refer to the same person. That is the case for
+"Patrick" and "Patric" (typo), or for two entities from different detectors that share a
+detection. Reconciling
 them avoids giving two tokens to a single person.
 
 That is the entity resolver (`AnyEntityResolver`).
@@ -188,9 +191,10 @@ token.
 The anonymizer (`AnyAnonymizer`) finally applies the replacement. It asks the factory for
 a token for each entity, then replaces each detection with its token.
 
-Consequence of step 5, the replacement builds a new text in one pass over the spans,
-left to right, copying the text between them, so no replacement shifts the position of
-another. This assumes non-overlapping spans, which step 5 guarantees.
+Thanks to step 5, the replacement happens in one pass over the spans, left to right. It
+builds a new text by copying the text between the spans, so no replacement shifts the
+position of another. This single pass assumes spans that do not overlap, and step 5
+guarantees it.
 
 ---
 
@@ -202,9 +206,9 @@ text returns exactly that mapping, one entity per emitted token.
 
 Restoration replaces, in a text, each known token with the value of its entity. It is
 not limited to the text the pipeline produced. The model often generates a new response
-containing a token, for example "Of course, `<<PERSON:1>>`{ .placeholder }!". This
-sentence was never produced by the pipeline, but since you know the token-to-value pair,
-you replace the token in any text.
+containing a token, for example "Of course, `<<PERSON:1>>`{ .placeholder }!". The
+pipeline never produced this sentence. But since you know the token-to-value pair, you
+replace the token in any text.
 
 ```mermaid
 flowchart LR
@@ -245,8 +249,8 @@ shared state from one message to the next.
 
 ### The conversation memory
 
-`ThreadAnonymizationPipeline` adds that state, a memory (`AnyConversationMemory`) that
-persists, per thread, the detections of each message. Tokens are then assigned over the
+`ThreadAnonymizationPipeline` adds that shared state. It is a memory
+(`AnyConversationMemory`) that stores, per thread, the detections of each message. Tokens are then assigned over the
 union of every message's detections in the thread, not over one message alone. A person
 seen again in a later message therefore recovers their entity, and their token, instead
 of creating a new one.
@@ -262,30 +266,30 @@ Message 2: "Marie calls Patrick back"  →  <<PERSON:2>> calls <<PERSON:1>> back
 
 - **Order frozen at first seen.** The counter of an entity is assigned to its first
   appearance in the conversation and never moves again. Without this rule, a new entity
-  early in its message would steal the counter of an older one.
-- **Isolation by `thread_id`.** The `thread_id` is mandatory, there is no shared default
-  thread, so two callers do not fall into the same thread and leak each other's confidential data.
+  placed early in its message would steal the counter of an older entity.
+- **Isolation by `thread_id`.** The `thread_id` is mandatory, and there is no shared default
+  thread. That way, two callers do not fall into the same thread and leak each other's confidential data.
   `forget_thread` can erase everything from a thread, for the right to erasure.
 
 ### Rendering stays per message
 
 The detections of an entity come from different messages, whose positions have no common
 frame. So you cannot replace by positions at the scale of the thread. Tokens are assigned
-over the whole thread, but rendering only replaces the current message's spans, the ones
-whose offsets are valid in that message.
+over the whole thread. Rendering, however, only replaces the current message's spans, the
+only ones whose offsets are valid in that message.
 
 ---
 
 ## Step 10, value provenance
 
-Not every value in a message is confidential data to protect. If the model mentions a public figure
-from its world knowledge, tokenizing it would hide it from the model on the next turn,
-protecting nothing of the user.
+Not every value in a message is confidential data to protect. Take a public figure the
+model mentions from its world knowledge. Tokenizing that name would hide it from the model
+on the next turn, protecting nothing of the user.
 
 The memory therefore records the role of each value's first occurrence,
 `MessageRole.USER` or `MessageRole.ASSISTANT`. A value whose first occurrence comes from
 a model message is left in clear, because it is not the user's confidential data. The middleware controls
-this behavior through `EntityCreateByAssistantStrategy`, preserve, de-identify anyway, or ignore
+this behavior through `EntityCreateByAssistantStrategy`, which offers three choices: preserve, de-identify anyway, or ignore
 the model's messages.
 
 ---
@@ -299,11 +303,11 @@ The pipeline is asynchronous end to end, for two concrete reasons.
 - **A server serves several requests at once.** An API hosting the pipeline handles
   concurrent conversations on a single event loop.
 
-But the inference of a local NER model is synchronous and heavy, hundreds of milliseconds
-of CPU or GPU compute. Called directly in a coroutine, it freezes the whole loop, no
-other request progresses during that time. Model detection is therefore to be offloaded
-to a thread. A detector that calls a remote API, in contrast, stays in native async, it
-is network I/O and not compute.
+But the inference of a local NER model is synchronous and heavy. It takes hundreds of
+milliseconds of CPU or GPU compute. Called directly in a coroutine, it freezes the whole
+loop, and no other request progresses during that time. Model detection is therefore to
+be offloaded to a thread. A detector that calls a remote API, in contrast, stays in native
+async, because its work is network I/O and not compute.
 
 In short, asynchronous for I/O and orchestration, offloaded to a thread for blocking
 compute.
@@ -316,7 +320,8 @@ On a single worker, the memory fits in a process-local dict
 (`InMemoryConversationMemory`). A multi-worker deployment needs a shared one,
 `RedisConversationMemory`, so one worker sees another's threads.
 
-But the reverse mapping is confidential data in clear. A store leak would reveal it. Two crypto components
+But the reverse mapping, the table that links each token to its real value, is
+confidential data in clear. A store leak would reveal that data. Two crypto components
 protect the Redis backend. A hasher (`AnyHasher`) turns each message into a deterministic
 key without revealing the text. A cipher (`AnyCipher`) encrypts the detections at rest,
 so a store leak yields neither the message nor the values. The `thread_id` stays clear as a
@@ -330,8 +335,9 @@ Even with everything above, a value can slip through the net, for example a name
 missed. The guard rail (`AnyGuardRail`) re-analyzes the de-identified text and raises
 `PIIRemainingError` if it still finds a value in clear.
 
-The guard rail examines only the de-identified output. The placeholders it carries are
-clearly synthetic, so a check meant for real values does not mistake them for such. The guard
+The guard rail examines only the de-identified output. A check meant for real values does
+not mistake the placeholders in that output for real values, because they are clearly
+synthetic. The guard
 rail is optional but it is the last barrier before the output. `DetectorGuardRail`
 replays a detector, `LLMGuardRail` and `ModerationGuardRail` query an external model.
 
@@ -349,11 +355,12 @@ It remains to wire all this into a LangChain agent loop, transparently. That is 
   (`ToolCallStrategy`), it restores the arguments so the tool receives real data, then
   de-identifies its response.
 
-The middleware contains no de-identification logic, it delegates everything to the
+The middleware contains no de-identification logic. It delegates everything to the
 conversation pipeline. It is a simple adapter between the LangChain world and the core.
-It requires a factory that preserves identity, at type-check time, and it recognizes the
-tokens the model invents (`InventedPlaceholderStrategy`), since after restoration any
-token still following the placeholder grammar was not emitted by the pipeline.
+It requires a factory that preserves identity, at type-check time. It also recognizes the
+tokens the model invents (`InventedPlaceholderStrategy`). It can recognize them because,
+after restoration, any token still following the placeholder grammar was not emitted by
+the pipeline.
 
 ---
 

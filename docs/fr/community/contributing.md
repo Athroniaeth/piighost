@@ -8,7 +8,7 @@ Merci de l'intérêt porté à `piighost`. Cette page résume le workflow de con
 
 ## Prérequis
 
-- Python 3.10+
+- Python 3.11+
 - [`uv`](https://docs.astral.sh/uv/) comme gestionnaire de paquets
 - Un compte GitHub
 

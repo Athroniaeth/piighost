@@ -8,9 +8,9 @@ tags:
 
 Module: `piighost.components.guard`
 
-A guard rail is the pipeline's last, optional stage. It re-checks the de-identified text for residual confidential values and, when it finds any, makes the pipeline raise `PIIRemainingError` instead of returning a leak. Every guard satisfies the `AnyGuardRail` port, an `async def check(self, text: str) -> GuardVerdict`, and returns a `GuardVerdict` carrying whether confidential values seem to remain and how it knows. Unlike the other stages, guards share no `Base*` template, they differ by their whole checking mechanism, re-running a local detector versus calling an external API, so there is no shared skeleton.
+A guard rail is the pipeline's last, optional stage. It re-checks the de-identified text for residual confidential values. When it finds any, the pipeline raises `PIIRemainingError` instead of returning a leak. Every guard satisfies the `AnyGuardRail` port, an `async def check(self, text: str) -> GuardVerdict`. It returns a `GuardVerdict` carrying whether confidential values seem to remain and how it knows. Unlike the other stages, guards share no `Base*` template, because their checking mechanisms have no shared skeleton. One re-runs a local detector, another calls an external API.
 
-The guard classifies, it does not decide. It reports a verdict, and the pipeline turns a flagged verdict into an exception, leaving the choice of how to react to your code.
+The guard classifies, it does not decide. It reports a verdict. The pipeline turns a flagged verdict into an exception, and your code chooses how to react.
 
 ```python
 from piighost.components.guard import (
@@ -28,7 +28,7 @@ from piighost.components.guard import (
 --8<-- "snippets/reference_guard.py"
 ```
 
-The runnable version is [`examples/guard_rail.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail.py), which also uses a guard standalone by calling `await guard.check(text)` and reading the verdict without raising. The local-model version is [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
+The runnable version is [`examples/guard_rail.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail.py). This script also uses a guard standalone. It calls `await guard.check(text)` and reads the verdict without raising. The local-model version is [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
 
 ## `DetectorGuardRail`
 
@@ -38,7 +38,7 @@ Re-runs a detector on the de-identified output and flags whatever it still finds
 DetectorGuardRail(detector: AnyDetector)
 ```
 
-This only adds value with a detector different from the pipeline's, re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. The synthetic placeholders are not shaped like real values, so a detector meant for real values leaves them alone. It needs no optional extra.
+This guard only adds value with a detector different from the pipeline's. Re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. The synthetic placeholders are not shaped like real values, so a detector meant for real values leaves them alone. `DetectorGuardRail` needs no optional extra.
 
 ### A local model as the guard
 
@@ -48,7 +48,7 @@ The complementary detector is often a model, because the shapes a regex is good 
 --8<-- "snippets/reference_guard_gliner2.py:example"
 ```
 
-This localizes what leaked, which is what a detector-backed guard gives you over a classifier. For a text-level verdict from the same checkpoint, without spans and in one forward pass, see [`Gliner2GuardRail`](#gliner2guardrail).
+This guard localizes what leaked. That is what a detector-backed guard gives you over a classifier. For a text-level verdict from the same checkpoint, without spans and in one forward pass, see [`Gliner2GuardRail`](#gliner2guardrail).
 
 ## `LLMGuardRail`
 
@@ -66,7 +66,7 @@ LLMGuardRail(
 )
 ```
 
-A `str` model is loaded like `LLMDetector`'s. A loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. An output the guard cannot read raises `UnreadableOutputError` rather than report the text clean, unless `fail_open=True`, as for `LLMDetector`. Requires `piighost[llm]`.
+A `str` model is loaded like `LLMDetector`'s. A loaded instance is used as-is. A custom `prompt` must contain a `{labels}` placeholder. When no custom prompt is given, `prefix` and `suffix` (default `<<` and `>>`) shape the default prompt's placeholder examples to match the delimiters the pipeline emits. An output the guard cannot read raises `UnreadableOutputError` rather than report the text clean, unless `fail_open=True`. This behavior is the same as for `LLMDetector`. Requires `piighost[llm]`.
 
 ## `Gliner2GuardRail`
 
@@ -81,15 +81,15 @@ Gliner2GuardRail(
 )
 ```
 
-This is `ModerationGuardRail` without the API call, and that difference is the point: the text a guard checks is the text that still holds whatever leaked, so sending it to a third party is an odd shape for the last stage of a de-identification pipeline. The default checkpoint is 300M parameters, multilingual over seven languages, and does safety moderation and PII extraction in one forward pass.
+This is `ModerationGuardRail` without the API call, and that difference is the point. The text a guard checks is the text that still holds whatever leaked. Sending it to a third party is therefore an odd shape for the last stage of a de-identification pipeline. The default checkpoint is 300M parameters, multilingual over seven languages, and does safety moderation and PII extraction in one forward pass.
 
-A `str` model is loaded with `GLiNER2.from_pretrained`, and a loaded instance is used as-is, which is how one checkpoint is shared between this guard and a `Gliner2Detector`. The `labels` pair is read positionally, the refused answer last, so another task of the same model is read the same way, and `task="response_refusal"` with `labels=("compliance", "refusal")` flags a refusal instead. Requires `piighost[gliner2]`.
+A `str` model is loaded with `GLiNER2.from_pretrained`, and a loaded instance is used as-is. That is how one checkpoint is shared between this guard and a `Gliner2Detector`. The `labels` pair is read positionally, and the refused answer comes last. Another task of the same model is therefore read the same way. For example, `task="response_refusal"` with `labels=("compliance", "refusal")` flags a refusal instead. Requires `piighost[gliner2]`.
 
 ```python
 --8<-- "snippets/reference_gliner2_guard.py"
 ```
 
-Being a text-level verdict it localizes nothing, so `detections` is empty and only `score` is set. Pair it with a `DetectorGuardRail` when you need to know which value leaked. The placeholders the pipeline emits do not trip it, and `<<EMAIL:1>>` scores safe at 0.989. The runnable version is [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
+`Gliner2GuardRail` gives a text-level verdict, so it localizes nothing. `detections` is empty and only `score` is set. Pair it with a `DetectorGuardRail` when you need to know which value leaked. The placeholders the pipeline emits do not trip it. For example, `<<EMAIL:1>>` scores safe at 0.989. The runnable version is [`examples/guard_rail_local_model.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_local_model.py).
 
 ## `ModerationGuardRail`
 
@@ -103,17 +103,17 @@ ModerationGuardRail(
 )
 ```
 
-Being a different modality from a detector, it catches PII a detection-based pipeline cannot localize, at the cost of a text-level verdict without spans. Requires `piighost[mistral]`.
+This guard classifies the text, it does not detect values. It therefore catches PII a detection-based pipeline cannot localize. In return, it gives a text-level verdict without spans. Requires `piighost[mistral]`.
 
 ## `GuardVerdict` and `PIIRemainingError`
 
 `check` returns a frozen `GuardVerdict(flagged: bool, score: float | None, detections: tuple[Detection, ...])`. The detail depends on the guard: a score from a moderation model, or the residual detections from a detector. Both are optional.
 
-When a guard flags confidential values, the pipeline raises `PIIRemainingError` (a subclass of `GuardError`, itself a `PIIGhostError`). Its message names the leaked labels or the score, and its `detections` attribute holds the residual detections, empty for a score-based guard that localizes nothing.
+When a guard flags confidential values, the pipeline raises `PIIRemainingError` (a subclass of `GuardError`, itself a `PIIGhostError`). Its message names the leaked labels or the score. Its `detections` attribute holds the residual detections. It stays empty for a score-based guard, which localizes nothing.
 
 ## Configure a guard from a file
 
-A `[guard]` section adds the stage, discriminated on `type`.
+A `[guard]` section adds the stage, and its `type` field picks the guard.
 
 ```toml
 [guard]
@@ -131,7 +131,7 @@ catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/us:29d5c0a5"]
 | `llm` | `model`, `labels`, `prompt` (optional), `provider` (optional) | `llm` |
 | `moderation` | `model` (default `mistral-moderation-latest`), `threshold` (default `0.5`) | `mistral` |
 
-The moderation guard reads `MISTRAL_API_KEY` from the environment at build time, raising `ConfigError` if it is unset. Every `[guard]` key is in the [configuration reference](../configuration/toml.md).
+The moderation guard reads `MISTRAL_API_KEY` from the environment at build time. It raises `ConfigError` if the variable is unset. Every `[guard]` key is in the [configuration reference](../configuration/toml.md).
 
 ## See also
 

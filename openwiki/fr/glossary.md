@@ -53,7 +53,7 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Jeton (placeholder) | Texte de remplacement d'une valeur. Le modèle ne voit que lui. | `<<PERSON:1>>` | token, `AnyPlaceholderFactory` |
 | Jeton numéroté | Jeton qui garde le type et un numéro par type, dans l'ordre d'apparition. Valeur par défaut. | `<<PERSON:1>>`, `<<PERSON:2>>`, `<<EMAIL:1>>` | `LabelCounterPlaceholderFactory` |
 | Jeton haché | Jeton numéroté dont le numéro est affiché sous forme d'empreinte. L'empreinte vient du type et du numéro, jamais de la valeur. | `<<PERSON:09ef3b74>>` | `LabelHashPlaceholderFactory` |
-| Jeton de type | Jeton qui ne garde que le type. Deux personnes reçoivent le même jeton : pas de restauration fiable. | `<<PERSON>>` | `LabelPlaceholderFactory` |
+| Jeton de type | Jeton qui ne garde que le type. Deux personnes reçoivent le même jeton, donc la restauration n'est pas fiable. | `<<PERSON>>` | `LabelPlaceholderFactory` |
 | Masque | Valeur dont seuls les premiers caractères restent visibles. Pas de restauration. | `J*******` | `MaskPlaceholderFactory` |
 | Jeton inventé | Jeton au bon format que PIIGhost n'a jamais émis : le modèle l'a halluciné ou un texte l'a injecté. | `Deanonymized text holds tokens the pipeline never issued: […]` | `InventedPlaceholderError` |
 | Étiquette de préservation | Ce qu'un type de jeton garde : le type, l'identité, la forme, la possibilité d'être retrouvé. Sert au contrôle avant exécution. | aucune forme visible | `PreservesRecognizableIdentity`… |
@@ -63,13 +63,13 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
 | Détecteur | Composant qui trouve les valeurs sensibles dans un texte. Par motif, par modèle d'IA ou par grand modèle de langage. | clé `[detector]` | `AnyDetector` |
-| Motif (regex) | Expression qui reconnaît une valeur à sa forme. Pas de contrôle de clé (Luhn, IBAN) : une valeur abîmée par une reconnaissance de caractères reste détectée. | clé `patterns` | `RegexDetector` |
+| Motif (regex) | Expression qui reconnaît une valeur à sa forme. Le motif ne vérifie pas de clé de contrôle (Luhn, IBAN). Une valeur abîmée par une reconnaissance de caractères reste donc détectée. | clé `patterns` | `RegexDetector` |
 | Catalogue | Liste de motifs publiée sur le hub et appelée par sa référence. | `hub:piighost/generic:fab51b33` | `catalogs`, `hub.pull` |
 | NER | *Named Entity Recognition*, reconnaissance d'entités nommées : modèle d'IA qui classe les mots en personne, lieu, organisation. | clé `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
 | Détection | Une occurrence trouvée : position, texte, type et confiance entre 0 et 1. | une ligne de `piighost anonymize --json` | `Detection` |
 | Position (span) | Intervalle de caractères `[début, fin)` d'une détection dans le texte. | `"start": 10, "end": 35` | `Span` |
 | Entité | Toutes les occurrences d'une même valeur et d'un même type. Elles partagent un seul jeton. | `Patrick` et `patrick` donnent tous deux `<<PERSON:1>>` | `Entity`, `ExactEntityLinker` |
-| Chevauchement | Deux détections qui couvrent des caractères communs. Une seule survit, ou leur union. | aucune forme visible | `ConfidenceOverlapResolver`, `MergeOverlapResolver` |
+| Chevauchement | Deux détections qui couvrent des caractères communs. Selon le résolveur, une seule détection est gardée, ou bien leur union. | aucune forme visible | `ConfidenceOverlapResolver`, `MergeOverlapResolver` |
 | Garde-fou | Contrôle final qui cherche une valeur sensible restée dans le texte protégé, et bloque l'envoi s'il en trouve. | `Anonymized text still contains PII: ['PERSON']` | `AnyGuardRail`, `PIIRemainingError` |
 
 ## Conversations
@@ -77,9 +77,9 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
 | Conversation (thread) | Échange suivi d'un message à l'autre, isolé des autres échanges. Une valeur garde le même jeton sur toute la conversation. | identifiant de conversation, `--thread-id` | `thread_id` |
-| Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration n'y retombe seule : un appel sans identifiant est refusé. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
+| Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration ne s'y rabat d'elle-même. Un appel sans identifiant de conversation est refusé. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
 | Provenance | Auteur de la première apparition d'une valeur dans la conversation : l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
-| Mémoire de conversation | Stockage des détections de chaque message, par conversation. Contient des données personnelles. Gardée dans le programme, elle garde au plus 10 000 conversations, chacune un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
+| Mémoire de conversation | Stockage des détections de chaque message, par conversation. Contient des données personnelles. Quand elle est gardée dans le programme, elle conserve au plus 10 000 conversations. Chacune est oubliée un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
 | Effacement d'une conversation | Suppression de toute la mémoire d'une conversation, pour le droit à l'effacement. Renvoie le nombre de messages et de détections supprimés. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
 | Correction humaine | Jeu de détections corrigé par une personne pour un message, qui remplace celui du détecteur. | aucune forme visible | `anonymize_corrected` |
 | Décodeur de flux | Composant qui restaure une réponse diffusée au fil de l'eau, en retenant un jeton coupé jusqu'à ce qu'il soit entier. | « `<<PER` » retenu, puis « Jean Dupont » | `AsyncPlaceholderStreamDecoder`, `deanonymize_stream` |
@@ -89,7 +89,7 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Liste blanche | Valeurs toujours masquées, même si le détecteur les rate. Écrite dans la section `[override]` de la configuration, celle de l'application ou celle du serveur `piighost-api`. | clé `[override.whitelist]` | `DetectionOverride.whitelist` |
+| Liste blanche | Valeurs toujours masquées, même si le détecteur les rate. Elle s'écrit dans la section `[override]` de la configuration de l'application ou de celle du serveur `piighost-api`. | clé `[override.whitelist]` | `DetectionOverride.whitelist` |
 | Liste noire | Valeurs jamais masquées, même si le détecteur les trouve. | clé `[override.blacklist]` | `DetectionOverride.blacklist` |
 
 ## Stockage et sécurité

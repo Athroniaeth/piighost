@@ -4,7 +4,7 @@ icon: lucide/file-cog
 
 # Fichier de configuration
 
-Vous allez décrire un pipeline complet dans un fichier TOML, en le faisant passer de trois lignes à un pipeline conversationnel qui garde un jeton stable d'un tour de conversation à l'autre. Chaque étape change une seule chose dans le fichier, puis vous vérifiez le fichier et vous le lancez pour voir ce qui a changé.
+Vous allez décrire un pipeline complet dans un fichier TOML. Le fichier part de trois lignes et devient un pipeline conversationnel, qui garde un jeton stable d'un tour de conversation à l'autre. Chaque étape change une seule chose dans le fichier, puis vous vérifiez le fichier et vous le lancez pour voir ce qui a changé.
 
 !!! note "Prérequis"
     `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle. L'étape 4 récupère une fois un catalogue depuis le [hub piighost](https://hub.piighost.dev), puis le relit depuis le cache sur disque. L'étape 6 ajoute l'extra `fuzzy`.
@@ -29,7 +29,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/typo.out"
 ```
 
-La commande nomme la section et la clé qui coince, et sort en code `1`, ce qui en fait aussi un garde-fou de CI. Relancez-la après chaque modification ci-dessous. Elle ne construit aucun composant, donc elle ne charge aucun modèle.
+La commande nomme la section et la clé qui coince, et sort en code `1`. Ce code de sortie en fait aussi un garde-fou de CI. Relancez-la après chaque modification ci-dessous. Elle ne construit aucun composant, donc elle ne charge aucun modèle.
 
 Exportez le schéma une fois et pointez votre éditeur dessus pour obtenir la complétion sur les noms de sections et de clés.
 
@@ -55,7 +55,7 @@ Corrigez la clé, `patterns` avec un s. Le fichier ne porte plus qu'une section,
 --8<-- "snippets/configuration/validated.out"
 ```
 
-Écrivez `run.py` à côté. Il charge le fichier et dé-identifie le texte que vous passez en ligne de commande, et toutes les étapes suivantes le réutilisent tel quel.
+Écrivez `run.py` à côté. Il charge le fichier et dé-identifie le texte que vous passez en ligne de commande. Toutes les étapes suivantes réutilisent `run.py` tel quel.
 
 ```python
 --8<-- "snippets/configuration/run.py"
@@ -71,7 +71,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/email.out"
 ```
 
-Le jeton nomme le label et le numérote alors que le fichier ne déclare aucun anonymiseur, et les deux occurrences d'une même adresse partageraient ce jeton alors que le fichier ne déclare aucun linker. Chacune de ces deux étapes retombe sur sa valeur par défaut, la résolution des chevauchements aussi. Ce fichier est sur le disque sous `examples/config/detector_only.toml`.
+Le fichier ne déclare aucun anonymiseur, et pourtant le jeton nomme le label et le numérote. Il ne déclare aucun linker, et pourtant les deux occurrences d'une même adresse partageraient ce jeton. L'anonymiseur et le linker retombent chacun sur leur valeur par défaut, et la résolution des chevauchements aussi. Ce fichier est sur le disque sous `examples/config/detector_only.toml`.
 
 ## 3. Choisir le jeton
 
@@ -91,11 +91,11 @@ La sortie doit être :
 --8<-- "snippets/configuration/redact.out"
 ```
 
-L'adresse a disparu, et son label avec elle. `examples/config/minimal.toml` porte ce fichier avec le linker par défaut écrit explicitement, et `examples/config/minimal.json` le porte en JSON, le suffixe choisissant le parseur. La [référence de configuration](../configuration/toml.md) liste tous les styles de jeton.
+L'adresse a disparu, et son label avec elle. `examples/config/minimal.toml` porte ce fichier, avec le linker par défaut écrit explicitement. `examples/config/minimal.json` porte le même fichier en JSON. Le suffixe du fichier choisit le parseur. La [référence de configuration](../configuration/toml.md) liste tous les styles de jeton.
 
 ## 4. Tirer un catalogue du hub
 
-Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif inline par le groupe `generic` du hub, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Le suffixe `:fab51b33` l'épingle sur un commit, donc il est récupéré depuis le hub à la première construction du pipeline, puis relu depuis le cache. Quatre labels arrivent maintenant à l'anonymiseur, donc remettez le jeton numéroté pour les distinguer.
+Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif inline par le groupe `generic` du hub, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Le suffixe `:fab51b33` épingle le groupe sur un commit. Le groupe est donc récupéré depuis le hub à la première construction du pipeline, puis relu depuis le cache. Quatre labels arrivent maintenant à l'anonymiseur, donc remettez le jeton numéroté pour les distinguer.
 
 ```toml
 --8<-- "snippets/configuration/hub.toml"
@@ -127,7 +127,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/order.out"
 ```
 
-Le numéro de commande est devenu un jeton. Les catalogues fusionnent d'abord, vos motifs inline ensuite, donc un label déclaré des deux côtés prend votre motif.
+Le numéro de commande est devenu un jeton. Un label déclaré des deux côtés prend votre motif, parce que les catalogues fusionnent d'abord et vos motifs inline ensuite.
 
 ## 5. Faire tourner deux détecteurs à la fois
 
@@ -147,7 +147,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/composite.out"
 ```
 
-Les prénoms et les formats sont attrapés en une seule passe. Une même personne écrite de deux façons reçoit encore deux jetons, `<<PERSON:1>>`{ .placeholder } et `<<PERSON:2>>`{ .placeholder }, ce que l'étape suivante règle.
+Les prénoms et les formats sont attrapés en une seule passe. Une même personne écrite de deux façons reçoit encore deux jetons, `<<PERSON:1>>`{ .placeholder } et `<<PERSON:2>>`{ .placeholder }. L'étape suivante règle ce doublon.
 
 ## 6. Fusionner les entités presque identiques
 
@@ -157,7 +157,7 @@ Les prénoms et les formats sont attrapés en une seule passe. Une même personn
 pip install "piighost[config,fuzzy]"
 ```
 
-Ajoutez une section `[entity_resolver]` à la fin du fichier, qui regroupe les entités dont les valeurs sont assez proches l'une de l'autre.
+Ajoutez une section `[entity_resolver]` à la fin du fichier. Cette section regroupe les entités dont les valeurs sont assez proches l'une de l'autre.
 
 ```toml
 --8<-- "snippets/configuration/fuzzy.toml"
@@ -177,7 +177,7 @@ Les deux orthographes partagent `<<PERSON:1>>`{ .placeholder }. Retirez la secti
 
 ## 7. Garder les jetons d'un message à l'autre
 
-Chaque exécution de `run.py` repart de zéro dans la numérotation, car le pipeline ne garde rien d'un appel au suivant. Ajoutez une section `[memory]` à la fin du fichier, qui lui donne un stockage par conversation et change le chargeur que vous appelez.
+Chaque exécution de `run.py` repart de zéro dans la numérotation, car le pipeline ne garde rien d'un appel au suivant. Ajoutez une section `[memory]` à la fin du fichier. Cette section donne au pipeline un stockage par conversation, et change le chargeur que vous appelez.
 
 ```toml
 --8<-- "snippets/configuration/memory.toml"
@@ -219,7 +219,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/thread.out"
 ```
 
-Le second message réutilise le `<<PERSON:1>>`{ .placeholder } attribué par le premier. Les deux chargeurs se refusent mutuellement les fichiers, donc `load_thread_pipeline` sur un fichier sans mémoire lève `this configuration declares no memory; use load_pipeline`.
+Le second message réutilise le `<<PERSON:1>>`{ .placeholder } attribué par le premier. Chaque chargeur refuse les fichiers de l'autre. `load_thread_pipeline` sur un fichier sans mémoire lève donc `this configuration declares no memory; use load_pipeline`.
 
 ## Et ensuite
 

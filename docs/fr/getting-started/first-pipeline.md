@@ -4,7 +4,7 @@ icon: lucide/play
 
 # Premier pipeline
 
-Vous allez construire un pipeline qui détecte des noms et des lieux arbitraires, pas seulement des valeurs connues d'avance, et le voir tourner à chaque étape. Deux détecteurs conviennent pour ça, un modèle NER (GLiNER2) ou un catalogue de motifs regex. Vous partez d'un détecteur, ajoutez les trois composants restants un par un, puis lancez le pipeline sur une phrase.
+Vous allez construire un pipeline qui détecte des noms et des lieux arbitraires, pas seulement des valeurs connues d'avance, et le voir tourner à chaque étape. Deux détecteurs conviennent pour ça : un modèle NER (GLiNER2) ou un catalogue de motifs regex. Vous partez d'un détecteur, ajoutez les trois composants restants un par un, puis lancez le pipeline sur une phrase.
 
 !!! note "Prérequis"
     `piighost` installé, voir [Installation](installation.md). Le chemin regex n'utilise que le socle, sans extra. Le chemin GLiNER2 demande l'extra `gliner2` et télécharge un modèle au premier chargement.
@@ -29,7 +29,7 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
 
 === "GLiNER2 (NER)"
 
-    Un NER est un modèle d'IA qui, sur un texte, classe les mots selon une classification décidée à l'avance (nom, prénom, lieu, organisation). Contrairement à la regex, il n'a pas besoin de connaître les valeurs à l'avance, il détecte un prénom qu'il n'a jamais vu.
+    Un NER est un modèle d'IA qui classe les mots d'un texte dans des catégories décidées à l'avance (nom, prénom, lieu, organisation). Contrairement à la regex, il n'a pas besoin de connaître les valeurs à l'avance. Il détecte un prénom qu'il n'a jamais vu.
 
     ```python
     --8<-- "snippets/detector_gliner2.py:detector"
@@ -47,7 +47,7 @@ Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détect
 
 ## 3. Assigner un jeton à chaque entité
 
-L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton qui prend sa place dans le texte. Le jeton dépend de la factory choisie. `LabelCounterPlaceholderFactory` numérote par label, donc `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
+L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton qui prend sa place dans le texte. Le jeton dépend de la factory choisie. `LabelCounterPlaceholderFactory` numérote les jetons par label : `<<PERSON:1>>`{ .placeholder }, `<<PERSON:2>>`{ .placeholder }, `<<LOCATION:1>>`{ .placeholder }.
 
 ```python
 --8<-- "snippets/first_pipeline.fr.py:anonymizer"
@@ -55,7 +55,7 @@ L'anonymiseur remplace chaque entité par un placeholder, c'est-à-dire le jeton
 
 ## 4. Assembler et lancer
 
-`AnonymizationPipeline` enchaîne les trois composants dans l'ordre, détecter, regrouper, remplacer. Son appel `anonymize` est asynchrone et renvoie un résultat dont `text` porte la phrase dé-identifiée.
+`AnonymizationPipeline` enchaîne les trois composants dans l'ordre : détecter, regrouper, remplacer. Sa méthode `anonymize` est asynchrone. Elle renvoie un résultat dont l'attribut `text` porte la phrase dé-identifiée.
 
 ```python
 --8<-- "snippets/first_pipeline.fr.py:run"
@@ -67,11 +67,11 @@ La sortie doit être :
 --8<-- "snippets/first_pipeline.fr.out"
 ```
 
-Chaque occurrence de `Patrick`{ .pii } reçoit le même `<<PERSON:1>>`{ .placeholder }, `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder } à ses deux apparitions, et `Marie`{ .pii } reçoit le numéro suivant `<<PERSON:2>>`{ .placeholder }. C'est le linker de l'étape 2 qui rend cette cohérence possible.
+Chaque occurrence de `Patrick`{ .pii } reçoit le même `<<PERSON:1>>`{ .placeholder }. `Paris`{ .pii } garde `<<LOCATION:1>>`{ .placeholder } à ses deux apparitions. `Marie`{ .pii } reçoit le numéro suivant, `<<PERSON:2>>`{ .placeholder }. C'est le linker de l'étape 2 qui rend cette cohérence possible.
 
 ## Comment ça marche
 
-`AnonymizationPipeline` exécute trois étapes obligatoires. Le détecteur trouve les données confidentielles, le linker regroupe les occurrences d'une même valeur en une entité, l'anonymiseur remplace chaque entité par le jeton de sa factory. Des étapes optionnelles existent (expansion des occurrences manquées, fusion d'entités), désactivées par défaut, tandis que la résolution de chevauchement s'exécute par défaut. Seul le détecteur est strictement requis pour construire, ce qui suffit pour un premier pipeline.
+`AnonymizationPipeline` exécute trois étapes obligatoires. Le détecteur trouve les données confidentielles. Le linker regroupe les occurrences d'une même valeur en une entité. L'anonymiseur remplace chaque entité par le jeton de sa factory. Des étapes optionnelles (expansion des occurrences manquées, fusion d'entités) existent, désactivées par défaut. La résolution de chevauchement, elle, s'exécute par défaut. Seul le détecteur est strictement requis pour construire le pipeline, et ce minimum suffit pour un premier pipeline.
 
 ## Et ensuite
 

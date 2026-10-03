@@ -4,9 +4,9 @@ icon: lucide/server
 
 # Déployer une API de dé-identification
 
-Vous allez lancer `piighost-api`, le serveur compagnon de `piighost`, sur une configuration publiée sur le [hub piighost](https://hub.piighost.dev), puis dé-identifier et restaurer un message en HTTP. Tout processus qui parle HTTP partage alors un seul pipeline, chargé une fois, avec la mémoire de conversation tenue par le serveur.
+Vous allez lancer `piighost-api`, le serveur compagnon de `piighost`, sur une configuration publiée sur le [hub piighost](https://hub.piighost.dev), puis dé-identifier et restaurer un message en HTTP. Tout processus qui parle HTTP partage alors un seul pipeline, chargé une fois. La mémoire de conversation est tenue par le serveur.
 
-La configuration `hub:piighost/support-en:286909f6` repère les noms, les adresses et les organisations avec le modèle GLiNER2 `fastino/gliner2-multi-v1`, les identifiants américains et les valeurs génériques comme les emails avec des regex, et refuse de rendre un texte dé-identifié qui contient encore une adresse email en clair.
+La configuration `hub:piighost/support-en:286909f6` repère les noms, les adresses et les organisations avec le modèle GLiNER2 `fastino/gliner2-multi-v1`. Elle repère avec des regex les identifiants américains et les valeurs génériques comme les emails. Elle refuse aussi de rendre un texte dé-identifié qui contient encore une adresse email en clair.
 
 !!! note "Prérequis"
     Python 3.12 ou plus récent, et un accès réseau au hub et à Hugging Face pour le premier démarrage. Les exemples supposent le serveur sur `http://127.0.0.1:8000`.
@@ -29,7 +29,7 @@ L'extra `gliner2` apporte le moteur du modèle dont la configuration a besoin.
 
 ## 2. Créer une clé d'API
 
-Le serveur refuse de démarrer sans clé d'API. `keyshield`, installé avec le serveur, génère une clé et le pepper qui la hache en mémoire.
+Le serveur refuse de démarrer sans clé d'API. `keyshield`, installé avec le serveur, génère une clé et un pepper, le secret qui sert à hacher cette clé en mémoire.
 
 ```bash
 keyshield generate
@@ -71,7 +71,7 @@ La sortie doit être :
 ```
 
 !!! tip "Sans modèle"
-    Une configuration en regex seules démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config hub:piighost/fr-default:e6990159` sert la configuration française, numéros de téléphone, IBAN, NIR, SIREN et emails entre autres.
+    Une configuration en regex seules démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config hub:piighost/fr-default:e6990159` sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
 
 ## 4. Dé-identifier un message
 
@@ -147,7 +147,7 @@ La sortie doit être :
 
 ## Comment ça marche
 
-Le serveur charge un seul pipeline conversationnel au démarrage et exécute chaque route dessus. Une configuration qui ne déclare pas de section `[memory]`, comme les deux configurations du hub de cette page, est servie avec la mémoire in-process, donc les conversations vivent dans le processus du serveur et disparaissent quand il s'arrête. Pour les garder d'un redémarrage à l'autre, ou les partager entre plusieurs instances, déclarez une mémoire Redis, comme le montre [Déployer un pipeline en production](../deployment.md).
+Le serveur charge un seul pipeline conversationnel au démarrage et exécute chaque route dessus. Une configuration qui ne déclare pas de section `[memory]`, comme les deux configurations du hub de cette page, est servie avec la mémoire in-process. Les conversations vivent alors dans le processus du serveur, et disparaissent quand il s'arrête. Pour les garder d'un redémarrage à l'autre, ou les partager entre plusieurs instances, déclarez une mémoire Redis, comme le montre [Déployer un pipeline en production](../deployment.md).
 
 ## Et ensuite
 

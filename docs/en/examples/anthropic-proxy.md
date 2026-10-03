@@ -4,7 +4,7 @@ icon: lucide/link
 
 # De-identify Claude Code with the Anthropic proxy
 
-`piighost-api` serves an Anthropic Messages-compatible proxy under `/anthropic/v1`. Claude Code, or any client of the Messages API, points its base URL at it, and the proxy de-identifies the messages and the tool contents, forwards them to Anthropic, and restores the reply, streamed or not. The model receives `<<PERSON:1>>`{ .placeholder }, never `Patrick`{ .pii }.
+`piighost-api` serves an Anthropic Messages-compatible proxy under `/anthropic/v1`. Claude Code, or any client of the Messages API, points its base URL at it. The proxy then de-identifies the messages and the tool contents, forwards them to Anthropic, and restores the reply, streamed or not. The model receives `<<PERSON:1>>`{ .placeholder }, never `Patrick`{ .pii }.
 
 !!! note "Prerequisites"
     A running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md), and an Anthropic API key or a key for a compatible gateway.
@@ -17,7 +17,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 claude
 ```
 
-Claude Code then calls `/anthropic/v1/messages` on the proxy. The proxy relays every client header to Anthropic except the hop-by-hop ones, `Host`, `Content-Length`, `Accept-Encoding` and the `X-PIIGhost-*` headers, so the API key, the user agent and the beta flags arrive as Claude Code sent them. The proxy asks for no server key of its own, so the server's `API_KEY_` keys do not apply to `/anthropic/v1`.
+Claude Code then calls `/anthropic/v1/messages` on the proxy. The proxy relays every client header to Anthropic, except the hop-by-hop headers (specific to a single connection), `Host`, `Content-Length`, `Accept-Encoding` and the `X-PIIGhost-*` headers. The API key, the user agent and the beta flags therefore arrive as Claude Code sent them. The server's `API_KEY_` keys do not apply to `/anthropic/v1`, because the proxy asks for no server key of its own.
 
 ## Check that the model never sees the value
 
@@ -45,7 +45,7 @@ Without a header, the proxy forwards to `https://api.anthropic.com/v1`. If you w
 export PIIGHOST_ANTHROPIC_UPSTREAM="https://gateway.internal/v1"
 ```
 
-If you want it for one request only, name the gateway's base URL in the `X-PIIGhost-Upstream` header. Each request runs in a fresh thread, forgotten once the reply is restored, which matches Claude Code resending the whole history every turn. Pin a thread with `X-PIIGhost-Thread-Id` only if you manage its lifetime yourself.
+If you want it for one request only, name the gateway's base URL in the `X-PIIGhost-Upstream` header. Each request runs in a fresh thread, forgotten once the reply is restored. This suits Claude Code, because it resends the whole history every turn. Pin a thread with `X-PIIGhost-Thread-Id` only if you manage its lifetime yourself.
 
 ## Guide the model with a note
 
@@ -69,7 +69,7 @@ export PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM=true
 ```
 
 !!! warning "Limits"
-    - With the system prompt untouched, the default, a value written in it reaches the model in clear.
+    - By default, the system prompt stays untouched. A value written in it therefore reaches the model in clear.
     - Images, documents and the tool definitions in `tools` are relayed untouched.
     - A streamed request that the upstream refuses is answered with the upstream status and its `retry-after` and `anthropic-ratelimit-*` headers. A failure in the middle of a stream reaches the client as a truncated stream.
 

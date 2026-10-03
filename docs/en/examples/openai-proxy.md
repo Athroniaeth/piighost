@@ -17,7 +17,7 @@ Change only the `base_url`. The `api_key` stays the provider's key.
 --8<-- "snippets/server_proxy.py:client"
 ```
 
-The provider receives `<<PERSON:1>>`{ .placeholder } and `<<EMAIL:1>>`{ .placeholder }, and the printed reply carries `Jane Doe`{ .pii } again. The proxy relays the `Authorization` header to the provider as is and asks for no server key of its own, so the server's `API_KEY_` keys do not apply to `/openai/v1`.
+The provider receives `<<PERSON:1>>`{ .placeholder } and `<<EMAIL:1>>`{ .placeholder }, and the printed reply carries `Jane Doe`{ .pii } again. The server's `API_KEY_` keys do not apply to `/openai/v1`, because the proxy asks for no server key of its own. It relays the `Authorization` header to the provider as is.
 
 The same call with curl:
 
@@ -46,7 +46,7 @@ The proxy strips every `X-PIIGhost-*` header before forwarding, so the provider 
 
 ## Keep a thread across requests
 
-Each request runs in a fresh thread, forgotten as soon as the reply is restored. A chat client resends the whole history every turn, so the numbering stays consistent within each request. If you want the thread to outlive the request, for example to restore a stored reply later through `/v1/deanonymize`, pin it with `X-PIIGhost-Thread-Id`:
+Each request runs in a fresh thread, forgotten as soon as the reply is restored. A chat client resends the whole history every turn, so the placeholder numbering stays consistent within each request. If you want the thread to outlive the request, for example to restore a stored reply later through `/v1/deanonymize`, pin it with `X-PIIGhost-Thread-Id`:
 
 ```python
 --8<-- "snippets/server_proxy.py:thread"

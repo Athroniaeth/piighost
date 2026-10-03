@@ -25,8 +25,8 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## En bref
 
 - Dans une conversation, une même valeur garde le même jeton du premier au dernier message.
-- Deux conversations sont isolées : le même nom peut y porter le même numéro sans rien partager.
-- Chaque appel nomme sa conversation. Un appel sans identifiant est refusé, il ne tombe jamais dans une conversation partagée.
+- Deux conversations sont isolées. Le même nom peut porter le même numéro dans les deux, mais elles ne partagent rien.
+- Chaque appel nomme sa conversation. Un appel sans identifiant est refusé. Il ne tombe jamais dans une conversation partagée.
 - Une valeur citée d'abord par l'assistant reste en clair, même si l'utilisateur la reprend ensuite.
 - Effacer une conversation supprime sa mémoire. Les jetons de cette conversation ne sont plus restaurés ensuite.
 
@@ -78,7 +78,7 @@ Si le modèle répond « Bonjour `<<PERSON:1>>`, saluez `<<PERSON:2>>`. », l'ut
 
 L'utilisateur, ou l'application en son nom, peut corriger les valeurs d'un message avant l'envoi : ajouter un nom oublié, ou rendre lisible un terme masqué à tort.
 
-Selon votre application, faites-le dans son écran de correction s'il en a un, ou demandez-le à l'équipe technique, qui applique la correction par `anonymize_corrected` (ou la route `/v1/anonymize/corrected` du serveur).
+Si votre application a un écran de correction, faites-le dans cet écran. Sinon, demandez-le à l'équipe technique. Elle applique la correction par `anonymize_corrected` (ou la route `/v1/anonymize/corrected` du serveur).
 
 1. Repérez le message à corriger.
 2. Ajoutez la valeur oubliée avec son type, ou retirez la valeur masquée à tort.
@@ -107,7 +107,7 @@ Cas typique : une personne exerce son droit à l'effacement.
 
 **BR-CONV-03.** Quand un appel ne nomme aucune conversation, alors il est refusé, avant tout envoi au modèle. Une application dont les conversations n'ont pas besoin d'être séparées nomme elle-même la conversation `default`. Pourquoi : sans identifiant, tous les utilisateurs partageraient leurs jetons.
 
-**BR-CONV-04.** Quand l'assistant cite le premier une valeur, alors elle reste en clair pour toute la conversation, même reprise par l'utilisateur (tour 4, « Lyon »). Pourquoi : le modèle connaît déjà cette valeur, et la masquer lui retirerait une connaissance utile. Deux autres réglages existent : la masquer comme une valeur de l'utilisateur, ou ne pas analyser les messages de l'assistant. Une valeur apportée d'abord par l'utilisateur reste masquée, même si l'assistant la répète.
+**BR-CONV-04.** Quand l'assistant cite une valeur avant l'utilisateur, alors elle reste en clair pour toute la conversation, même si l'utilisateur la reprend ensuite (tour 4, « Lyon »). Pourquoi : le modèle connaît déjà cette valeur, et la masquer lui retirerait une connaissance utile. Deux autres réglages existent : la masquer comme une valeur de l'utilisateur, ou ne pas analyser les messages de l'assistant. Une valeur apportée d'abord par l'utilisateur reste masquée, même si l'assistant la répète.
 
 **BR-CONV-05.** Quand la réponse du modèle contient un jeton de la conversation, alors il est remplacé par la vraie valeur, même dans un texte que PIIGhost n'a jamais protégé.
 
@@ -121,7 +121,7 @@ Cas typique : une personne exerce son droit à l'effacement.
 
 Un jeton dont la casse ou le numéro a changé (`<<Person:1>>`, `<<PERSON:01>>`) compte comme inventé. Un jeton aux délimiteurs abîmés (`<< PERSON:1 >>`) n'est pas reconnu du tout et reste tel quel.
 
-**BR-CONV-07.** Quand une personne corrige à la main les valeurs d'un message, alors sa correction remplace le repérage automatique de ce message seulement, et la liste blanche et la liste noire s'appliquent encore. Exemple : retirer « Claire Dubois » du tour 1 le laisse en clair au tour 1, et il reste masqué au tour 2. Les numéros peuvent alors changer pour toute la conversation : après ce retrait, `<<PERSON:1>>` désigne Marc Petit et `<<PERSON:2>>` Claire Dubois.
+**BR-CONV-07.** Quand une personne corrige à la main les valeurs d'un message, alors sa correction remplace le repérage automatique de ce message seulement. La liste blanche et la liste noire s'appliquent encore. Exemple : retirer « Claire Dubois » du tour 1 le laisse en clair au tour 1, et il reste masqué au tour 2. Les numéros peuvent alors changer pour toute la conversation : après ce retrait, `<<PERSON:1>>` désigne Marc Petit et `<<PERSON:2>>` Claire Dubois.
 
 **BR-CONV-08.** Quand un message identique est renvoyé dans la même conversation, alors son repérage n'est pas refait. Le résultat enregistré la première fois est réutilisé.
 
@@ -129,13 +129,13 @@ Un jeton dont la casse ou le numéro a changé (`<<Person:1>>`, `<<PERSON:01>>`)
 
 **BR-CONV-10.** Quand plusieurs instances du service partagent la même mémoire Redis, alors elles donnent le même jeton à la même valeur d'une conversation, et chacune restaure les jetons émis par l'autre.
 
-**BR-CONV-11.** Quand la mémoire est gardée dans le processus, alors elle garde au plus 10 000 conversations, chacune un jour après son dernier message, sauf autre réglage. Une conversation oubliée ne restaure plus ses jetons. Pourquoi : un serveur qui tourne des semaines ne doit pas garder toutes les valeurs qu'il a vues.
+**BR-CONV-11.** Quand la mémoire est gardée dans le processus, alors, sauf autre réglage, elle garde au plus 10 000 conversations et oublie chacune un jour après son dernier message. Une conversation oubliée ne restaure plus ses jetons. Pourquoi : un serveur qui tourne des semaines ne doit pas garder toutes les valeurs qu'il a vues.
 
 Pour une réponse affichée au fil de l'eau, voir [Afficher une réponse streamée](show-a-streamed-reply.md).
 
 ### Ce que voit l'utilisateur final
 
-Une conversation lisible, avec les vraies valeurs. Après un effacement, ou après un jour d'inactivité avec la mémoire en processus, une ancienne réponse affichée de nouveau montre des jetons si l'application la restaure une seconde fois.
+Une conversation lisible, avec les vraies valeurs. Une ancienne réponse peut toutefois montrer des jetons si l'application la restaure une seconde fois. C'est le cas après un effacement, ou après un jour d'inactivité quand la mémoire est gardée dans le processus.
 
 ### Questions fréquentes
 
@@ -189,8 +189,8 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 
 ### Pièges
 
-- **Aucune intégration ne retombe sur `default`.** Le middleware LangChain et les hooks Claude Code lèvent `MissingThreadIdError`, le serveur répond 400. Seule la commande `piighost anonymize` garde `--thread-id default`, pour une commande isolée.
-- **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union la décale : une correction (BR-CONV-07), mais aussi, d'après le code, l'expiration d'un message Redis avec `ttl` (`conversation_memory/redis_backend.py:200-228`). [à vérifier] : ce second cas n'a pas été rejoué. Pour trancher, écrivez deux messages dans une conversation Redis avec un `ttl` court, laissez expirer le premier, puis comparez `thread_token_map`.
+- **Aucune intégration ne retombe sur `default`.** Le middleware LangChain et les hooks Claude Code lèvent `MissingThreadIdError`. Le serveur répond 400. Seule la commande `piighost anonymize` garde `--thread-id default`, pour une commande isolée.
+- **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union décale la numérotation. C'est le cas d'une correction (BR-CONV-07), mais aussi, d'après le code, de l'expiration d'un message Redis avec `ttl` (`conversation_memory/redis_backend.py:200-228`). [à vérifier] : ce second cas n'a pas été rejoué. Pour trancher, écrivez deux messages dans une conversation Redis avec un `ttl` court, laissez expirer le premier, puis comparez `thread_token_map`.
 - **La mémoire en processus oublie en silence.** Une conversation évincée ou expirée (BR-CONV-11) ne lève rien : ses jetons restent tels quels à la restauration. `max_threads=None` et `ttl=None` lèvent les bornes.
 - **La provenance porte sur la clé de valeur** (`value_key`), donc sur toutes les graphies d'une valeur.
 - **Le cache de jetons est mémorisé par processus** (256 cartes au plus, `_TOKEN_MEMO_MAX`). Voir [Stocker les conversations](../operations/storage-and-encryption.md) pour l'effet sur l'effacement en multi-processus.

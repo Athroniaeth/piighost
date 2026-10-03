@@ -17,7 +17,7 @@ Changez seulement le `base_url`. L'`api_key` reste la clé du fournisseur.
 --8<-- "snippets/server_proxy.py:client"
 ```
 
-Le fournisseur reçoit `<<PERSON:1>>`{ .placeholder } et `<<EMAIL:1>>`{ .placeholder }, et la réponse imprimée porte de nouveau `Jane Doe`{ .pii }. Le proxy relaie l'en-tête `Authorization` au fournisseur tel quel et ne demande aucune clé de serveur, donc les clés `API_KEY_` du serveur ne s'appliquent pas à `/openai/v1`.
+Le fournisseur reçoit `<<PERSON:1>>`{ .placeholder } et `<<EMAIL:1>>`{ .placeholder }, et la réponse imprimée porte de nouveau `Jane Doe`{ .pii }. Les clés `API_KEY_` du serveur ne s'appliquent pas à `/openai/v1`, parce que le proxy ne demande aucune clé de serveur. Il relaie l'en-tête `Authorization` au fournisseur tel quel.
 
 Le même appel avec curl :
 
@@ -46,7 +46,7 @@ Le proxy retire chaque en-tête `X-PIIGhost-*` avant de relayer, donc le fournis
 
 ## Garder une conversation d'une requête à l'autre
 
-Chaque requête s'exécute dans une conversation neuve, oubliée dès que la réponse est restaurée. Un client de chat renvoie tout l'historique à chaque tour, donc la numérotation reste cohérente au sein de chaque requête. Si vous voulez que la conversation survive à la requête, par exemple pour restaurer plus tard une réponse stockée via `/v1/deanonymize`, fixez-la avec `X-PIIGhost-Thread-Id` :
+Chaque requête s'exécute dans une conversation neuve, oubliée dès que la réponse est restaurée. Un client de chat renvoie tout l'historique à chaque tour, donc la numérotation des placeholders reste cohérente au sein de chaque requête. Si vous voulez que la conversation survive à la requête, par exemple pour restaurer plus tard une réponse stockée via `/v1/deanonymize`, fixez-la avec `X-PIIGhost-Thread-Id` :
 
 ```python
 --8<-- "snippets/server_proxy.py:thread"

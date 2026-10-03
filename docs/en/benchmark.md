@@ -4,10 +4,10 @@ icon: lucide/gauge
 
 # Detection, measured
 
-How many confidential values a configured `piighost` pipeline hides, and what each stage adds over calling a NER model directly. The figures come from a benchmark run on 2026-09-29 on five data sets, English and French, with `piighost` 1.10.0.
+This page measures how many confidential values a configured `piighost` pipeline hides, and what each stage adds over calling a NER model directly. The figures come from a benchmark run on 2026-09-29 on five data sets, English and French, with `piighost` 1.10.0.
 
 !!! note "A strict count"
-    A value counts as hidden only when every one of its characters is masked. A partial mask is a leak: `Paul <<PERSON:1>>`{ .placeholder } leaves `Paul`{ .pii } in clear, so it counts as a miss for `Paul Lemoine`{ .pii }. This is stricter than the overlap match NER papers report, and the numbers are lower for it.
+    A value counts as hidden only when every one of its characters is masked. A partial mask is a leak: `Paul <<PERSON:1>>`{ .placeholder } leaves `Paul`{ .pii } in clear, so it counts as a miss for `Paul Lemoine`{ .pii }. NER papers report an overlap match, where a partly masked value counts as found. This count is stricter, and its numbers are lower for that reason.
 
 ## The question
 
@@ -17,20 +17,20 @@ To answer it, the benchmark adds one stage at a time, with the same model on the
 
 | Rung | System |
 |---|---|
-| A | the model called directly on the whole text, as a developer would, cut at its window |
+| A | the model called directly on the whole text, as a developer would, with the text truncated to the model's window |
 | B | A, with `piighost`'s chunking |
 | C | the regex rules of the config, no model |
 | D | B and C together, overlaps resolved |
 | E | D, plus the word-boundary expander |
 | F | E, plus the entity resolver, the full config |
 
-Two models run the ladder: GLiNER2 (`fastino/gliner2-multi-v1`, the model of the `fr-notarial` hub config) and `onnx-community/gliner_multi_pii-v1` in ONNX through `BridgeDetector`, the engine that runs in the browser.
+Each rung is measured with two models. One is GLiNER2 (`fastino/gliner2-multi-v1`, the model of the `fr-notarial` hub config). The other is `onnx-community/gliner_multi_pii-v1` in ONNX, called through `BridgeDetector`, the engine that runs in the browser.
 
 ## The data
 
 | Set | Language | Documents | What it is | Caution |
 |---|---|---|---|---|
-| Generated deeds | French | 200 | deeds, leases, employment contracts, emails, medical reports, built from templates with fictitious values | generated text flatters: the values sit where a slot is |
+| Generated deeds | French | 200 | deeds, leases, employment contracts, emails, medical reports, built from templates with fictitious values | generated text flatters the scores, because each value sits in a slot made for it |
 | Long generated deeds | French | 12 | the same, from 2 to 60 pages | three documents per length, wide intervals |
 | TAB | English | 127 | ECHR judgments annotated for anonymisation (Pilán et al., 2022) | public judgments a model may have seen in training |
 | PARHAF | French | 101 | medical reports written by hand by medical residents for fictitious patients | almost no fixed-shape identifier, so it tests the model |
@@ -50,21 +50,21 @@ Direct identifiers hidden, model alone (A) then full pipeline (F), in %.
 | PARHAF | 15 → 61 | 11 → 61 |
 | Gretel finance | 66 → 79 | 55 → 75 |
 
-The French sets run the `fr-notarial` config, TAB runs `support-en`. The published `fr-notarial` scores what its F rung scores. On every set and for both models, the 95 % intervals of A and F do not overlap.
+The French sets run the `fr-notarial` config, TAB runs `support-en`. The published `fr-notarial` gets the same score as its F rung. On every set and for both models, the 95 % confidence intervals of A and F do not overlap.
 
 !!! warning "The deed formulae were tuned on generated deeds, then checked on official templates"
-    The rules that catch a name after "Monsieur" or an address after "demeurant" were written against the dev seed of the generated deeds, so part of their gain may come from the generator's phrasing. A control set measures it: 112 official documents, twelve Code du travail numérique models and the two leases of décret n° 2015-587, their blanks filled with fictitious values. There the full pipeline hides 91 % of direct identifiers with GLiNER2 and 86 % with ONNX, 3 to 4 points below the generated deeds. The rules alone lose 18 points, from 70 to 53 %. Precision falls to 43 %, since the model tags role nouns of the official prose ("salarié", "entreprise") and the expander repeats them.
+    The rules that catch a name after "Monsieur" or an address after "demeurant" were written against the dev seed of the generated deeds. Part of their gain may therefore come from the generator's phrasing. A control set measures this effect. It holds 112 official documents, drawn from twelve Code du travail numérique models and the two leases of décret n° 2015-587, their blanks filled with fictitious values. There the full pipeline hides 91 % of direct identifiers with GLiNER2 and 86 % with ONNX, 3 to 4 points below the generated deeds. The rules alone lose 18 points, from 70 to 53 %. Precision falls to 43 %, since the model tags role nouns of the official prose ("salarié", "entreprise") and the expander repeats them.
 
 ## Where the gain comes from
 
 On the generated deeds with GLiNER2, rung by rung: 36 % for A, 66 % for B, 94 % for D, 95 % for E and F.
 
 - **Chunking** gives 31 to 33 points on the generated deeds and 53 to 64 on the long ones. A model reads a fixed window, and without chunking it never sees past it. On the long deeds, rung A only reads page one and misses every value after it.
-- **The regex rules** give 28 to 40 points. They carry every value with a fixed shape, emails, IBANs, social security numbers, company numbers, phones and dates reach 100 %, where the model alone finds at most a fifth of them. The formulae of a deed ("Monsieur", "Maître", "née", "demeurant", "section") catch the names and addresses the model misses.
+- **The regex rules** give 28 to 40 points. They handle every value with a fixed shape. Emails, IBANs, social security numbers, company numbers, phones and dates reach 100 %, where the model alone finds at most a fifth of them. The formulae of a deed ("Monsieur", "Maître", "née", "demeurant", "section") catch the names and addresses the model misses.
 - **The word-boundary expander** adds 1 to 3 points, less than before, since the rules now find most repeats themselves.
 - **The entity resolver** adds no recall. It groups the spellings of one person onto one token.
 
-Rules and the model often flag the same value with different lengths. `fr-notarial` keeps their union with the `merge` overlap resolver. With the default `confidence` resolver, a rule's short span at confidence 1.0 beat a model's longer one, and on the finance set names fell from 89 to 77 %.
+Rules and the model often flag the same value with different lengths. `fr-notarial` keeps their union with the `merge` overlap resolver. With the default `confidence` resolver, a rule's short span, at confidence 1.0, beat the model's longer span. On the finance set, the share of names hidden then fell from 89 to 77 %.
 
 Precision, the share of masked text that was really a value, stays near 86 % on the generated deeds. On the long deeds the expander drops it to 59 % with ONNX, since a heading word masked once is then masked everywhere.
 
@@ -84,13 +84,13 @@ On the generated deeds, full GLiNER2 pipeline:
 
 ## What the benchmark changed
 
-Each run found something, fixed in the library or in the hub's `fr-notarial` before the next.
+Each benchmark run found a defect. That defect was fixed in the library or in the hub's `fr-notarial` before the next run.
 
-- **`piighost` 1.9.0.** The word-boundary expander could add an occurrence inside a kept detection, and the render stage then raised `OverlappingSpansError`, on 163 of the 200 generated deeds. French phones typeset with no-break spaces were never matched. An email with accented letters was matched from its first ASCII run. A detector config could not set `max_chars`, so a config-built model read a whole deed in one pass and ran out of memory past 13,000 characters.
-- **Dates.** A date of birth is a direct identifier, and neither model of the benchmark was asked for one, so the rules carry it. `fr-notarial` hides every French date, since a pattern cannot tell a date of birth from the date of the deed, but spares the date of a numbered legal text ("loi n° 89-462 du 6 juillet 1989").
+- **`piighost` 1.9.0.** The word-boundary expander could add an occurrence inside a kept detection. The render stage then raised `OverlappingSpansError`, on 163 of the 200 generated deeds. French phones typeset with no-break spaces were never matched. An email with accented letters was matched from its first ASCII run. A detector config could not set `max_chars`. A config-built model therefore read a whole deed in one pass, and ran out of memory past 13,000 characters.
+- **Dates.** A date of birth is a direct identifier. Neither model of the benchmark was asked for one, so the rules find it. `fr-notarial` hides every French date, because a pattern cannot tell a date of birth from the date of the deed. It spares the date of a numbered legal text ("loi n° 89-462 du 6 juillet 1989").
 - **Deed formulae.** A name after a civility or "Maître", a maiden name after "née", an address after "demeurant" or "situé", a street address, a lieu-dit and a cadastral reference after "section".
 - **`SWIFT_BIC`.** It matched any run of eight or eleven capitals. It now needs a keyword or a digit, so a heading such as "DESIGNATION" stays in clear.
-- **`piighost` 1.10.0.** The `merge` overlap resolver, so a rule's short span no longer uncovers part of the model's.
+- **`piighost` 1.10.0.** Adds the `merge` overlap resolver. A rule's short span no longer uncovers part of the model's span.
 
 On the generated deeds, GLiNER2, run after run:
 

@@ -8,7 +8,7 @@ Module: `piighost.cli`
 pip install "piighost[config]"
 ```
 
-The tool needs `typer`, shipped with the `config` extra. Run without it, the CLI prints a short install hint to stderr and exits `1`, rather than a traceback. The `validate` and `schema` subcommands instantiate no pipeline component, so they build no detector and load no model, which makes them fast and safe to run in CI.
+The tool needs `typer`, shipped with the `config` extra. If `typer` is missing, the CLI prints a short install hint to stderr and exits `1`, rather than a traceback. The `validate` and `schema` subcommands instantiate no pipeline component. So they build no detector and load no model. They are therefore fast and safe to run in CI.
 
 ---
 
@@ -29,7 +29,7 @@ piighost validate <PATH>
 |----------|-------------|
 | `PATH` | Path to a TOML or JSON pipeline config, or a hub reference such as `hub:piighost/fr-notarial:2f602547` |
 
-The exit code is `0` on success and `1` on any configuration error, whether a missing file, invalid TOML or JSON syntax, a value that fails schema validation, or a hub that cannot be reached. The error message is written to stderr, which suits the command for a CI gate.
+The exit code is `0` on success and `1` on any configuration error, whether a missing file, invalid TOML or JSON syntax, a value that fails schema validation, or a hub that cannot be reached. The error message is written to stderr. So the command suits a CI gate.
 
 ```bash
 $ piighost validate ./broken.toml
@@ -54,7 +54,7 @@ Point an editor at `schema.json` for autocompletion and inline validation of a c
 
 ## `piighost anonymize`
 
-De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default it runs a `RegexDetector` over the hub group `hub:piighost/generic:fab51b33` (`DEFAULT_CATALOG` in `piighost.cli`), fetched on the first run, then read from the on-disk cache. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
+De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default, the command runs a `RegexDetector` over the hub group `hub:piighost/generic:fab51b33` (`DEFAULT_CATALOG` in `piighost.cli`). The group is fetched on the first run, then read from the on-disk cache. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -79,7 +79,7 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | `--thread-id ID` | Thread id for the API or a thread-scoped config (default `default`) |
 | `--json` | Print the de-identified text and the detections as JSON |
 
-`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`, the detections being those the text replaced, after overlaps, overrides and the expander. A configuration that does not validate prints the same message as `validate` and exits `1`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`. `--api` sends no API key, so it reaches only a server started with `PIIGHOST_ALLOW_ANONYMOUS`, see [Server CLI](api-cli.md).
+`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`. The listed detections are those the text replaced, after overlap resolution, overrides and the expander. A configuration that does not validate prints the same message as `validate` and exits `1`. When a hub catalog cannot be pulled, the command prints `Could not pull a hub catalog:` followed by the cause and exits `1`. `--api` sends no API key. So it reaches only a server started with `PIIGHOST_ALLOW_ANONYMOUS`, see [Server CLI](api-cli.md).
 
 ---
 

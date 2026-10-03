@@ -47,7 +47,7 @@ Les détecteurs à modèle, le middleware et les backends optionnels sont des ex
     pip install 'piighost[all]'
     ```
 
-Les extras se combinent. Une mémoire de conversation Redis chiffrée s'installe avec `piighost[redis,crypto]`, en ajoutant `argon2` pour un hachage de clé plus résistant.
+Les extras se combinent. Une mémoire de conversation Redis chiffrée s'installe avec `piighost[redis,crypto]`. Ajoutez l'extra `argon2` pour un hachage de clé plus résistant.
 
 ## Vérifier l'installation
 

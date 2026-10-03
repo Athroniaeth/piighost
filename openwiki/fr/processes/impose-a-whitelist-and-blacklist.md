@@ -32,7 +32,7 @@ Besoins couverts : DPO-3, USER-5 et USER-6, décrits dans [Besoins par profil](.
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. La liste blanche et la liste noire sont écrites par l'équipe technique, dans le code ou dans la section `[override]` du fichier de configuration, celui de l'application ou celui du serveur `piighost-api`. Le DPO décide de leur contenu. Les tâches ci-dessous disent quoi demander.
+PIIGhost n'a pas d'écran. La liste blanche et la liste noire sont écrites par l'équipe technique, dans le code ou dans la section `[override]` du fichier de configuration de l'application ou du serveur `piighost-api`. Le DPO décide de leur contenu. Les tâches ci-dessous disent quoi demander.
 
 ### Le trajet d'un message à travers les listes
 
@@ -84,7 +84,7 @@ Cas typique : vos noms de code internes ne sont jamais repérés.
 
 **BR-LIST-01.** Quand une valeur figure dans la liste noire, alors elle est retirée des valeurs à masquer et part au modèle en clair.
 
-**BR-LIST-02.** Quand une valeur figure dans la liste blanche, alors elle est masquée, même si le détecteur l'a ratée. Si le détecteur avait repéré un morceau qui la chevauche, la lecture de la liste blanche le remplace.
+**BR-LIST-02.** Quand une valeur figure dans la liste blanche, alors elle est masquée, même si le détecteur l'a ratée. Si le détecteur avait repéré un morceau qui la chevauche, la détection de la liste blanche remplace ce morceau.
 
 **BR-LIST-03.** Quand la liste noire vise une valeur, alors la façon de l'appliquer suit l'un de trois réglages. Exemple sur « Claire Dubois travaille chez Acme, puis chez Globex SA. », avec un détecteur qui lit « Acme » comme une personne, et une liste noire qui contient « Acme » et « Globex » comme organisations :
 
@@ -106,9 +106,9 @@ Pourquoi « Même valeur » par défaut : la liste noire nomme une valeur, et le
 
 Pourquoi ce défaut : en cas de doute, masquer protège.
 
-**BR-LIST-05.** Quand l'assistant cite le premier une valeur de la liste blanche, alors elle reste en clair par défaut. Un réglage « forcer » la masque quand même. Pourquoi : masquer une valeur que le modèle a lui-même apportée lui retire une connaissance utile, et signale que cette valeur précise est sensible.
+**BR-LIST-05.** Quand l'assistant cite le premier une valeur de la liste blanche, alors elle reste en clair par défaut. Un réglage « forcer » la masque quand même. Pourquoi : masquer une valeur que le modèle a lui-même apportée lui retire une connaissance utile. Le masquage lui signale aussi que cette valeur précise est sensible.
 
-**BR-LIST-06.** Quand une personne corrige à la main les valeurs d'un message, alors les deux listes s'appliquent encore à sa correction et l'emportent sur elle. Exemple : l'utilisateur retire « PRJ-0042 » de son message, le numéro reste masqué.
+**BR-LIST-06.** Quand une personne corrige à la main les valeurs d'un message, alors les deux listes s'appliquent encore à sa correction et l'emportent sur elle. Exemple : l'utilisateur retire « PRJ-0042 » des valeurs masquées de son message, mais le numéro reste masqué.
 
 **BR-LIST-07.** Quand le contrôle final relit le texte protégé, alors il ignore les valeurs de la liste noire. Toute autre valeur restée en clair bloque l'envoi.
 
@@ -182,7 +182,7 @@ Puis lancez `piighost anonymize --config <votre fichier> "Claire Dubois travaill
 - **Les listes sont des détecteurs complets.** Une liste regex lourde ou un détecteur à modèle relance un calcul à chaque message, et une seconde fois pour le contrôle final (`cleared_values`).
 - **`forces_value` relance la liste blanche sur chaque valeur d'entité** introduite par l'assistant, sous `FORCE`.
 - **Une détection en cache n'est pas repassée dans les listes** (BR-LIST-08). Pour appliquer une nouvelle liste à une conversation en cours, effacez la conversation (`forget_thread`) ou corrigez le message par `anonymize_corrected`.
-- **`ExactMatchDetector` est d'abord un outil de test.** Utilisé comme liste blanche dans `DetectionOverride`, il survit aux corrections humaines. Utilisé seul comme détecteur principal, non.
+- **`ExactMatchDetector` est d'abord un outil de test.** Utilisé comme liste blanche dans `DetectionOverride`, il survit aux corrections humaines. Utilisé seul comme détecteur principal, il n'y survit pas.
 
 ### Écarts doc / code
 

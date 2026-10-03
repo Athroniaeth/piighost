@@ -51,7 +51,7 @@ Open a solution to see how it differs from `piighost`.
     | Hosting | ✅ self-hosted | ✅ self-hosted |
     | License | MIT | MIT |
 
-    **Better at**: nothing more to install in a LangChain agent, when the user does not need to read their real values. The JS version (`piiRedactionMiddleware`) makes the opposite trade-off: it restores, without streaming.
+    **Better at**: there is nothing more to install in a LangChain agent. That is enough when the user does not need to read their real values. The JS version (`piiRedactionMiddleware`) restores the real values for the user, but not while the reply streams.
 
 ??? note "AWS Comprehend and Azure AI Language"
 

@@ -82,7 +82,7 @@ Module: `piighost.pipeline`
 
 De-identify each message of a conversation with tokens stable across the thread. A value seen in an early message and again later reads as the same token, because tokens are assigned over the union of every message's detections, not one message alone. Each message's detections are cached in the memory, so resending a message skips detection.
 
-The extra component is a conversation memory, `memory`, the per-thread store of each message's detections.
+This pipeline adds one component, the conversation memory `memory`. It stores each message's detections, per thread.
 
 ### Constructor
 
@@ -108,8 +108,8 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `memory` | `AnyConversationMemory \| None` | `None` | Per-thread store of each message's detections. Defaults to `InMemoryConversationMemory()` for a single process, pass `RedisConversationMemory` for a shared backend |
-| `token_memo_ttl` | `float \| None` | `None` | Seconds a memoized thread-token map is kept. The memo holds the thread's values in clear and `forget_thread` only reaches the process it runs in, so on a multi-worker deployment this bounds how long the other workers keep it. `None` keeps an entry until the size bound evicts it |
+| `memory` | `AnyConversationMemory \| None` | `None` | Per-thread store of each message's detections. Defaults to `InMemoryConversationMemory()` for a single process. Pass `RedisConversationMemory` for a shared backend |
+| `token_memo_ttl` | `float \| None` | `None` | Seconds a memoized thread-token map is kept. The memo holds the thread's values in clear. `forget_thread` only reaches the process it runs in. So on a multi-worker deployment, this delay bounds how long the other workers keep the memo. `None` keeps an entry until the size bound evicts it |
 | `time_source` | `Callable[[], float]` | `time.monotonic` | The clock `token_memo_ttl` reads, injectable for tests |
 
 ### Methods
@@ -118,7 +118,7 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 Detects the message's entities, records them in `thread_id`'s memory, then de-identifies using tokens assigned over the whole thread. The token of a value stays the same from one message to the next.
 
-The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's confidential data. `role` dates the values the message introduces, a value first introduced by the assistant is left in clear, since it is not the user's confidential data.
+The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's confidential data. `role` marks who authored the values the message introduces. A value first introduced by the assistant is left in clear, since it is not the user's confidential data.
 
 **Raises** `PIIRemainingError` when a configured guard flags confidential values left in the output.
 
@@ -128,9 +128,9 @@ The `thread_id` is required. There is no shared default, so two callers cannot f
 
 #### `anonymize_corrected(text, thread_id, detections) -> Anonymization` *(async)*
 
-Re-de-identifies a user message with a human-corrected detection set. The corrected set replaces this message's detections in memory, then the message is de-identified with tokens consistent across the thread. Detection does not run again. This applies only to a user's own messages, so the correction is recorded as a user message.
+Re-de-identifies a user message with a human-corrected detection set. The corrected set replaces this message's detections in memory, then the message is de-identified with tokens consistent across the thread. Detection does not run again. This method applies only to a user's own messages, so the correction is recorded as a user message.
 
-The corrected set is stored as given, without overlap resolution or occurrence expansion, since the human is authoritative over it. A configured `override` still applies, so the server's lists trump the correction.
+The corrected set is stored as given, without overlap resolution or occurrence expansion, since the human is authoritative over that set. A configured `override` still applies, so the server's lists trump the correction.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"
@@ -138,7 +138,7 @@ The corrected set is stored as given, without overlap resolution or occurrence e
 
 #### `deanonymize(text, thread_id) -> str` *(async)*
 
-Returns the text with every token from the thread replaced by its value. The thread's tokens are rebuilt from its memory, so any text carrying them is restored, including a model reply the pipeline never de-identified.
+Returns the text with every token from the thread replaced by its value. The thread's tokens are rebuilt from its memory. So any text carrying them is restored, including a model reply the pipeline never de-identified.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:deanonymize"
@@ -146,7 +146,7 @@ Returns the text with every token from the thread replaced by its value. The thr
 
 #### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
 
-Returns the thread's placeholder-to-value map, derived from the cache, so a caller can resolve a whole stream at once instead of restoring token by token. A token the thread never issued is absent from the map.
+Returns the thread's placeholder-to-value map, derived from the cache. With it, a caller can resolve a whole stream at once instead of restoring token by token. A token the thread never issued is absent from the map.
 
 #### `forget_thread(thread_id) -> Forgotten` *(async)*
 
@@ -156,7 +156,7 @@ Erases a thread's memory and returns a `Forgotten` reporting how much was droppe
 --8<-- "snippets/reference_thread_pipeline.py:forget_thread"
 ```
 
-The thread's memoized token map goes with it. That memo holds the thread's values in clear, so erasing the store alone would keep them live in the process. The other threads keep theirs. It only reaches the process it runs in, so on a multi-worker deployment set `token_memo_ttl` on the constructor to bound the window on the others, as described in [Multi-instance deployment](../multi-instance.md). One cache is left standing, the process-wide word-boundary pattern cache, which is keyed by the fragment searched for and therefore holds values from every thread. Clear it with `clear_boundary_cache` when an erasure request covers the whole process.
+Forgetting a thread also erases its memoized token map. That memo holds the thread's values in clear. So erasing the store alone would keep those values live in the process. The other threads keep their memo. The call only reaches the process it runs in. So on a multi-worker deployment, set `token_memo_ttl` on the constructor to bound how long the other workers keep the memo, as described in [Multi-instance deployment](../multi-instance.md). One cache is left standing, the process-wide word-boundary pattern cache. That cache is keyed by the fragment searched for, so it holds values from every thread. Clear it with `clear_boundary_cache` when an erasure request covers the whole process.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:clear_boundary_cache"
@@ -170,7 +170,7 @@ The grammar of the tokens this pipeline emits, a `BaseDelimitedPlaceholderFactor
 
 ## Ports
 
-Two protocols type a pipeline where a caller such as the middleware needs to accept it without depending on a concrete class. Both are generic on what the emitted tokens preserve, so a consumer can require a pipeline whose tokens preserve identity and reject one whose tokens do not.
+Two protocols type a pipeline where a caller such as the middleware needs to accept it without depending on a concrete class. Both are generic on what the emitted tokens preserve. So a consumer can require a pipeline whose tokens preserve identity, and reject a pipeline whose tokens do not.
 
 ### `AnyPipeline`
 
@@ -216,7 +216,7 @@ The shared machinery both pipelines extend. It holds the stage components and th
 
 Module: `piighost.config`
 
-`load_pipeline` and `load_thread_pipeline` read a config file, TOML or JSON by its suffix, or a hub reference, and return a built pipeline. A configured memory makes the config a thread pipeline. The two loaders enforce that distinction, and check it before building anything:
+`load_pipeline` and `load_thread_pipeline` read a config file, TOML or JSON by its suffix, or a hub reference, and return a built pipeline. A config that declares a memory describes a thread pipeline. The two loaders enforce that distinction, and check it before building anything:
 
 - `load_pipeline(path)` returns an `AnonymizationPipeline`. It raises `ConfigError` when the config declares a memory.
 - `load_thread_pipeline(path)` returns a `ThreadAnonymizationPipeline`. It raises `ConfigError` when the config declares no memory.

@@ -4,7 +4,7 @@ icon: lucide/container
 
 # Deploy a production pipeline
 
-This guide sets up a thread pipeline for production, with a Redis conversation memory that persists across restarts and workers, encrypts every stored value, and reads its secrets from the environment. If you only need a single process that keeps nothing after it exits, the in-RAM memory is enough and you can skip to [Conversational pipeline](getting-started/conversation.md).
+This guide sets up a thread pipeline for production. Its Redis conversation memory persists across restarts and workers, encrypts every stored value, and reads its secrets from the environment. If you only need a single process that keeps nothing after it exits, the in-RAM memory is enough and you can skip to [Conversational pipeline](getting-started/conversation.md).
 
 The pipeline reads its shape from a config file, so the deployment carries a TOML file plus a handful of environment variables. No pipeline code is written by hand.
 
@@ -20,13 +20,13 @@ The `config` extra reads the file, `redis` talks to the store, `crypto` provides
 
 ## Write the config file
 
-A `[memory]` section turns the pipeline into a thread pipeline keeping per-thread state. Its `type = "redis"` names the store, `[memory.hasher]` keys each message into its storage key, and `[memory.cipher]` encrypts each stored value.
+A `[memory]` section turns the pipeline into a thread pipeline keeping per-thread state. In this section, `type = "redis"` names the store. `[memory.hasher]` turns each message into its storage key, and `[memory.cipher]` encrypts each stored value.
 
 ```toml title="pipeline.toml"
 --8<-- "snippets/redis_pipeline.toml"
 ```
 
-`namespace` prefixes every key so `piighost` shares a Redis instance with other applications without collisions. `ttl` is the seconds a stored message lives before Redis evicts it, or you omit it to keep entries until the store decides to drop them. `label_counter` emits `<<PERSON:1>>`{ .placeholder }, a token that carries identity, which the [middleware](getting-started/langchain.md) needs to restore the value.
+`namespace` prefixes every key so `piighost` shares a Redis instance with other applications without collisions. `ttl` is the seconds a stored message lives before Redis evicts it. Omit it to keep entries until the store decides to drop them. `label_counter` emits `<<PERSON:1>>`{ .placeholder }, a token that carries identity, meaning it points to a single value. The [middleware](getting-started/langchain.md) needs this identity to restore the value.
 
 The full section catalogue, every component `type`, and the JSON form of the same file are in the [configuration reference](configuration/toml.md).
 
@@ -52,11 +52,11 @@ export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 --8<-- "snippets/redis_run.py:example"
 ```
 
-The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token, and a different `thread_id` never sees it, so two users stay isolated. Behind the scenes the pipeline hashes the message into a Redis key and stores the detections encrypted, so a leak of the Redis disk reveals neither the message nor the confidential data.
+The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token. A different `thread_id` never sees it, so two users stay isolated. Behind the scenes, the pipeline hashes the message into a Redis key and stores the detections encrypted. A leak of the Redis disk therefore reveals neither the message nor the confidential data.
 
 ## Bound the in-memory store
 
-The default `InMemoryConversationMemory` keeps every thread in a process-local dict, bounded to 10,000 threads and one day idle, so a long-lived process that never calls `forget_thread` does not keep every value it saw. Adjust `max_threads` to cap how many threads are kept, evicting the least recently used beyond it, and `ttl` to expire a thread that many seconds after its last write, dropped lazily on the next access.
+The default memory, `InMemoryConversationMemory`, keeps every thread in a process-local dict. This dict is bounded to 10,000 threads and one day idle. A long-lived process that never calls `forget_thread` thus does not keep every value it saw. Adjust `max_threads` to cap how many threads are kept. Beyond it, the least recently used thread is evicted. Adjust `ttl` to expire a thread that many seconds after its last write. The expired thread is only dropped on the next access.
 
 ```toml title="pipeline.toml"
 [memory]
@@ -71,10 +71,10 @@ For a durable or multi-worker deployment, use a persistent backend instead, and 
 
 Two protections combine on every write, both keyed by a secret the store never holds.
 
-- The **key is hashed**. The hasher derives a digest of the message under the pepper. `argon2` (Argon2id) is slow and memory-hard, the right choice when the pepper itself might leak. `sha256` (HMAC-SHA256) is fast and fits a busy hot path. Both are deterministic, so the same message always lands on the same key.
+- The **key is hashed**. The hasher derives a digest of the message under the pepper. `argon2` (Argon2id) is slow and memory-hard, meaning costly in memory. It is the right choice when the pepper itself might leak. `sha256` (HMAC-SHA256) is fast and fits a busy hot path. Both are deterministic, so the same message always lands on the same key.
 - The **value is encrypted**. `aesgcm` (AES-GCM) encrypts the detections before they are written, with a fresh nonce per message. Decryption fails on an altered ciphertext, so tampering is detected.
 
-The `thread_id` stays in the clear as a key namespace, which is what lets a whole thread be enumerated and forgotten with `forget_thread`. The threat model and the backend comparison are in [Security](security.md).
+The `thread_id` stays in the clear, as a key namespace. This is what lets a whole thread be enumerated and forgotten with `forget_thread`. The threat model and the backend comparison are in [Security](security.md).
 
 ## Use a SQL database instead
 
@@ -134,7 +134,7 @@ The image reads these variables:
 
 | Variable | Default | Effect |
 |---|---|---|
-| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | The config file or hub reference to serve. The image ships a default, every regex group of the hub, which a mounted file or a hub reference replaces |
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | The config file or hub reference to serve. The image ships a default config, which loads every regex group of the hub. A mounted file or a hub reference replaces it |
 | `API_HOST` | `0.0.0.0` | Bind host |
 | `API_PORT` | `8000` | Bind port |
 | `LOG_LEVEL` | `info` | Log level |

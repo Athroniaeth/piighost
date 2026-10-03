@@ -18,10 +18,10 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## En bref
 
 - Le modèle envoie sa réponse en morceaux, que l'application affiche au fil de l'eau.
-- Un jeton peut arriver coupé entre deux morceaux, « `<<PER` » puis « `SON:1>>` ».
+- Un jeton peut arriver coupé entre deux morceaux, par exemple « `<<PER` » puis « `SON:1>>` ».
 - Le décodeur de flux de PIIGhost retient le début du jeton jusqu'à ce qu'il soit entier, puis le restaure une seule fois.
 - Sans ce décodeur, l'utilisateur lit le jeton à l'écran.
-- Un flux coupé au milieu d'un jeton laisse ce morceau à l'écran, sans aucune valeur réelle.
+- Si le flux est coupé au milieu d'un jeton, le début de ce jeton reste à l'écran. Il ne contient aucune valeur réelle.
 
 Besoins couverts : DEV-9, USER-4, USER-1 et DEV-8, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). La restauration d'une réponse entière est décrite dans [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
 
@@ -75,7 +75,7 @@ L'utilisateur a lu « Bonjour Jean Dupont, je vous écris à jean.dupont@exemple
 
 **BR-STREAM-05.** Quand le flux s'arrête au milieu d'un jeton, alors le reste retenu est affiché tel quel, sans restauration. Exemple : « Bonjour Jean Dupont, à bientôt <<EMA ». Le morceau ne contient aucune vraie valeur.
 
-**BR-STREAM-06.** Quand un jeton complété n'a jamais été émis, alors le réglage des jetons inventés s'applique : refus par défaut, qui interrompt le flux, ou retrait, ou conservation.
+**BR-STREAM-06.** Quand un jeton complété n'a jamais été émis, alors le réglage des jetons inventés s'applique. Par défaut, il refuse le jeton, ce qui interrompt le flux. Les deux autres choix retirent le jeton ou le gardent.
 
 | Réglage | « Bonjour <<PERSON: » puis « 9>>. » donne |
 |---|---|
@@ -85,7 +85,7 @@ L'utilisateur a lu « Bonjour Jean Dupont, je vous écris à jean.dupont@exemple
 
 **BR-STREAM-07.** Quand l'application restaure chaque morceau séparément, sans le décodeur, alors un jeton coupé n'est jamais reconnu, et l'utilisateur lit « Bonjour `<<PERSON:1>>`. ».
 
-**BR-STREAM-08.** Quand la réponse passe par un proxy du serveur `piighost-api`, alors le proxy restaure lui aussi le flux avec ce décodeur. Le proxy OpenAI ne restaure que le texte, pas les arguments d'outil, et aucun des deux proxys n'applique le réglage des jetons inventés.
+**BR-STREAM-08.** Quand la réponse passe par un proxy du serveur `piighost-api`, alors le proxy restaure lui aussi le flux avec ce décodeur. Le proxy OpenAI ne restaure que le texte, pas les arguments d'outil. Aucun des deux proxys, OpenAI et Anthropic, n'applique le réglage des jetons inventés.
 
 ### Ce que voit l'utilisateur final
 
@@ -149,7 +149,7 @@ uv run pytest tests/components/placeholder/test_streaming.py tests/components/pl
 ### Pièges
 
 - **Les hooks du middleware ne voient que le message entier.** L'affichage en direct demande d'envelopper la boucle de streaming avec le décodeur.
-- **Le décodeur demande l'identifiant de conversation explicitement**, la boucle de streaming étant hors de la configuration de l'agent.
+- **Le décodeur demande l'identifiant de conversation explicitement**, parce que la boucle de streaming est hors de la configuration de l'agent.
 - **Hors LangChain, le décodeur n'applique aucun réglage aux jetons inventés**, sauf si la fonction `replace` le fait.
 - **La capacité Pydantic AI ne fournit pas de décodeur de flux.**
 - **Le décodeur suit les délimiteurs de la fabrique**, donc une fabrique aux délimiteurs personnalisés garde le même comportement.
@@ -167,4 +167,4 @@ L'écart sur un flux coupé (la doc disait que l'affichage ne montre « jamais �
 | `tests/integrations/test_deidentify_stream.py` | Jeton inventé en flux, reste rendu en fin de flux |
 | `piighost-api:tests/routes/test_openai_stream.py`, `test_anthropic_messages.py` | Jeton coupé entre deux événements d'un proxy (AT-USER-4-2) |
 
-Non couvert : les arguments d'outil d'un flux du proxy OpenAI, qui ne sont pas restaurés.
+Non couvert : les arguments d'outil d'un flux du proxy OpenAI. Le proxy ne les restaure pas.

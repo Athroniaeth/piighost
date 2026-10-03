@@ -6,7 +6,7 @@ icon: lucide/server
 
 Package: `piighost-api`
 
-`piighost-api serve` builds one thread pipeline from its configuration and serves every route below over it. Request and response bodies are JSON. The OpenAPI schema is served at `/schema/openapi.json`, with a Swagger UI at `/schema/swagger`. `PIIGhostClient` calls the pipeline routes, see [Remote client](../getting-started/api-client.md).
+`piighost-api serve` builds one thread pipeline from its configuration. Every route below goes through that pipeline. Request and response bodies are JSON. The OpenAPI schema is served at `/schema/openapi.json`, with a Swagger UI at `/schema/swagger`. `PIIGhostClient` calls the pipeline routes, see [Remote client](../getting-started/api-client.md).
 
 ---
 
@@ -24,7 +24,7 @@ The server loads its keys at start from every environment variable whose name st
 
 </div>
 
-A missing or malformed header answers `401` with `Missing or malformed Authorization header`, an unknown key `401` with `Invalid API key`. When no key loads, the server refuses to start unless `PIIGHOST_ALLOW_ANONYMOUS` is set, and then no route asks for a key. The variables are listed in [Server CLI](api-cli.md).
+A missing or malformed header answers `401` with `Missing or malformed Authorization header`. An unknown key answers `401` with `Invalid API key`. When no key loads, the server refuses to start, unless `PIIGHOST_ALLOW_ANONYMOUS` is set. In that case, no route asks for a key. The variables are listed in [Server CLI](api-cli.md).
 
 ---
 
@@ -143,11 +143,11 @@ De-identifies a message in a thread, with tokens consistent across the thread.
 | `anonymized_text` | string | The text with each value replaced by its placeholder |
 | `entities` | list of `Entity` | The entities of this message that received a token |
 
-`role` dates the values a message introduces. A value first written by the assistant gets no token and stays in clear.
+`role` tells who wrote the message, and therefore who introduced the values it brings in. A value first written by the assistant gets no token and stays in clear.
 
 ### `POST /v1/anonymize/corrected`
 
-De-identifies a message again from a corrected detection set, for a human review step. The set replaces the message's detections in the thread memory, after the configured override, and detection does not run again.
+De-identifies a message again from a corrected detection set, for a human review step. The corrected set goes through the configured override, then replaces the message's detections in the thread memory. Detection does not run again.
 
 | Request field | Type | Default |
 |---|---|---|
@@ -211,7 +211,7 @@ Only `Authorization`, `Content-Type`, `x-api-key`, `anthropic-version` and `anth
 
 </div>
 
-- A successful JSON reply is restored, any other reply is relayed as is, with the upstream status. The upstream's response headers are not relayed.
+- A successful JSON reply is restored. Any other reply is relayed as is, with the upstream status. The upstream's response headers are not relayed.
 - Query parameters reach the upstream on the routes relayed as is only.
 - A streamed `chat/completions` request is answered `201` before the upstream answers, so an upstream error arrives inside the stream body.
 - The upstream timeout is 60 seconds.
@@ -238,9 +238,9 @@ Every request header is relayed except the hop-by-hop ones (`Connection`, `Keep-
 
 </div>
 
-- Every string inside a `tool_use` input is rewritten. Any other block, an image or a document among them, and the `tools` definitions are relayed untouched.
-- The guidance note set by `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` is prepended after de-identification, to the system prompt or to the first user message depending on `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT`.
-- The reply keeps the upstream status and its response headers, `retry-after` and `anthropic-ratelimit-*` included, except the length, encoding, connection and content-type ones.
+- Every string inside a `tool_use` input is rewritten. The other blocks, an image or a document among them, are relayed untouched, and so are the `tools` definitions.
+- The guidance note set by `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` is prepended after de-identification. Depending on `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT`, it goes at the head of the system prompt or of the first user message.
+- The reply keeps the upstream status. It also keeps the upstream's response headers, `retry-after` and `anthropic-ratelimit-*` included, except the length, encoding, connection and content-type ones.
 - A streamed request the upstream refuses is answered with the upstream status as a plain response. An accepted one streams with `200`.
 - The upstream timeout is 60 seconds.
 

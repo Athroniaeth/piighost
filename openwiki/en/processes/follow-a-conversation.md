@@ -25,7 +25,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## In short
 
 - In a conversation, a given value keeps the same placeholder from the first message to the last.
-- Two conversations are isolated: the same name can carry the same number in both without sharing anything.
+- Two conversations are isolated. The same name can carry the same number in both, but they share nothing.
 - Each call names its conversation. A call without an identifier is refused. It never falls into a shared conversation.
 - A value first mentioned by the assistant stays in clear text, even if the user repeats it later.
 - Erasing a conversation deletes its memory. The placeholders of that conversation are no longer restored afterwards.
@@ -78,7 +78,7 @@ If the model replies "Hello `<<PERSON:1>>`, greet `<<PERSON:2>>`.", the user rea
 
 The user, or the application on the user's behalf, can correct the values of a message before it is sent: add a missed name, or make readable a term masked by mistake.
 
-Depending on your application, do it in its correction screen if it has one, or ask the technical team, who applies the correction through `anonymize_corrected` (or the server route `/v1/anonymize/corrected`).
+If your application has a correction screen, do it in that screen. Otherwise, ask the technical team. They apply the correction through `anonymize_corrected` (or the server route `/v1/anonymize/corrected`).
 
 1. Find the message to correct.
 2. Add the missed value with its type, or remove the value masked by mistake.
@@ -107,7 +107,7 @@ Typical case: a person exercises their right to erasure.
 
 **BR-CONV-03.** When a call names no conversation, then it is refused, before anything is sent to the model. An application whose conversations do not need to be separated names the conversation `default` itself. Why: without an identifier, all users would share their placeholders.
 
-**BR-CONV-04.** When the assistant is the first to mention a value, then it stays in clear text for the whole conversation, even when the user repeats it (turn 4, "Lyon"). Why: the model already knows this value, and masking it would take away useful knowledge. Two other settings exist: mask it like a user value, or not analyze the assistant messages. A value first brought by the user stays masked, even if the assistant repeats it.
+**BR-CONV-04.** When the assistant mentions a value before the user does, then it stays in clear text for the whole conversation, even if the user repeats it later (turn 4, "Lyon"). Why: the model already knows this value, and masking it would take away useful knowledge. Two other settings exist: mask it like a user value, or not analyze the assistant messages. A value first brought by the user stays masked, even if the assistant repeats it.
 
 **BR-CONV-05.** When the model's reply contains a placeholder of the conversation, then it is replaced by the real value, even in a text that PIIGhost never protected.
 
@@ -121,7 +121,7 @@ Typical case: a person exercises their right to erasure.
 
 A placeholder whose case or number has changed (`<<Person:1>>`, `<<PERSON:01>>`) counts as invented. A placeholder with damaged delimiters (`<< PERSON:1 >>`) is not recognized at all and stays as is.
 
-**BR-CONV-07.** When a person corrects the values of a message by hand, then the correction replaces the automatic detection of that message only, and the whitelist and blacklist still apply. Example: removing "Claire Dubois" from turn 1 leaves it in clear text in turn 1, and it stays masked in turn 2. The numbers can then change for the whole conversation: after this removal, `<<PERSON:1>>` designates Marc Petit and `<<PERSON:2>>` Claire Dubois.
+**BR-CONV-07.** When a person corrects the values of a message by hand, then the correction replaces the automatic detection of that message only. The whitelist and blacklist still apply. Example: removing "Claire Dubois" from turn 1 leaves it in clear text in turn 1, and it stays masked in turn 2. The numbers can then change for the whole conversation: after this removal, `<<PERSON:1>>` designates Marc Petit and `<<PERSON:2>>` Claire Dubois.
 
 **BR-CONV-08.** When an identical message is sent again in the same conversation, then its detection is not run again. The result recorded the first time is reused.
 
@@ -129,13 +129,13 @@ A placeholder whose case or number has changed (`<<Person:1>>`, `<<PERSON:01>>`)
 
 **BR-CONV-10.** When several instances of the service share the same Redis memory, then they give the same placeholder to the same value of a conversation, and each one restores the placeholders issued by the other.
 
-**BR-CONV-11.** When the memory is kept in the process, then it keeps at most 10,000 conversations, each one for one day after its last message, unless set otherwise. A forgotten conversation no longer restores its placeholders. Why: a server that runs for weeks must not keep every value it has seen.
+**BR-CONV-11.** When the memory is kept in the process, then, unless set otherwise, it keeps at most 10,000 conversations and forgets each one a day after its last message. A forgotten conversation no longer restores its placeholders. Why: a server that runs for weeks must not keep every value it has seen.
 
 For a reply shown as it arrives, see [Show a streamed reply](show-a-streamed-reply.md).
 
 ### What the end user sees
 
-A readable conversation, with the real values. After an erasure, or after one day of inactivity with the in-process memory, an old reply shown again displays placeholders if the application restores it a second time.
+A readable conversation, with the real values. An old reply can still display placeholders if the application restores it a second time. This happens after an erasure, or after one day of inactivity when the memory is kept in the process.
 
 ### Frequently asked questions
 
@@ -190,7 +190,7 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 ### Pitfalls
 
 - **No integration falls back to `default`.** The LangChain middleware and the Claude Code hooks raise `MissingThreadIdError`, and the server answers 400. Only the `piighost anonymize` command keeps `--thread-id default`, for a standalone command.
-- **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts it: a correction (BR-CONV-07), but also, according to the code, the expiry of a Redis message with `ttl` (`conversation_memory/redis_backend.py:200-228`). [to check]: this second case was not replayed. To settle it, write two messages in a Redis conversation with a short `ttl`, let the first one expire, then compare `thread_token_map`.
+- **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts the numbering. A correction does it (BR-CONV-07), but also, according to the code, the expiry of a Redis message with `ttl` (`conversation_memory/redis_backend.py:200-228`). [to check]: this second case was not replayed. To settle it, write two messages in a Redis conversation with a short `ttl`, let the first one expire, then compare `thread_token_map`.
 - **The in-process memory forgets silently.** An evicted or expired conversation (BR-CONV-11) raises nothing: its placeholders stay as is at restoration. `max_threads=None` and `ttl=None` lift the bounds.
 - **Provenance applies to the value key** (`value_key`), so to every spelling of a value.
 - **The placeholder cache is memoized per process** (256 maps at most, `_TOKEN_MEMO_MAX`). See [Store conversations](../operations/storage-and-encryption.md) for the effect on erasure with multiple processes.

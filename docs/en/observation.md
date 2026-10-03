@@ -27,14 +27,14 @@ once at construction and records through the returned tracer.
 `get_tracer()` returns an OpenTelemetry-backed tracer when the `observation`
 extra is installed, and a no-op tracer otherwise. The no-op tracer records
 nothing and costs nothing, so the pipeline emits spans unconditionally without a
-guard around each call. Unlike the other optional dependencies, a missing extra
-degrades to the no-op tracer instead of raising, because tracing must never
-block de-identification.
+guard around each call. Unlike the other optional dependencies, a missing `observation` extra raises
+nothing. `get_tracer()` falls back to the no-op tracer instead, because tracing
+must never block de-identification.
 
 A span is a context manager that carries an input payload, an output payload,
-and scalar attributes. Nesting is implicit, a span opened inside another span
-becomes its child through OpenTelemetry's ambient context, so the pipeline does
-not thread a parent handle through its stages.
+and scalar attributes. Nesting is implicit. A span opened inside another span
+becomes its child through OpenTelemetry's ambient context. The pipeline therefore
+does not have to pass the parent span from one stage to the next.
 
 ## Per-stage spans
 
@@ -61,26 +61,26 @@ The root span records the input text and the final de-identified text. `detect`
 records the detections and their count. `link` records the entities. `render`
 records the de-identified text and the token count. `guard` records whether it
 flagged and the labels it saw. The thread pipeline differs. It runs overlap
-resolution and expansion inside `_detect` and entity resolution inside
-`_thread_tokens`, so none of those get a span of their own, leaving `detect`,
-`link`, and `render` under the root. The root and `detect` spans also carry a
-`cache_hit` attribute and a `langfuse.session.id`. It emits a
+resolution and expansion inside `_detect`, and entity resolution inside
+`_thread_tokens`. None of those stages gets a span of its own, so only `detect`,
+`link`, and `render` remain under the root. The root and `detect` spans also carry a
+`cache_hit` attribute and a `langfuse.session.id`. The thread pipeline also emits a
 `piighost.deanonymize` span when it restores a text.
 
-Spans nest under whatever span is current when `anonymize` is called. Open one
-application-level span around a conversation and every pipeline call renders
-below it as one trace.
+Spans nest under whatever span is current when `anonymize` is called. If you open one
+application-level span around a conversation, every pipeline call shows below it,
+and the whole forms one trace.
 
 ## Redacting the trace payloads
 
 By default a span payload holds the confidential data (personal data, secrets) in clear. The `detect` span records
-`Patrick`{ .pii }, the root span records the input text with `Patrick`{ .pii }
-in place. That is deliberate. A trace with clear values is a ready-made dataset
+`Patrick`{ .pii }. The root span records the input text, where
+`Patrick`{ .pii } appears in clear. That is deliberate. A trace with clear values is a ready-made dataset
 for evaluating detection quality.
 
 It is also a leak if the backend is not trusted with confidential data. Pass an
-`observation_redactor`, a placeholder factory, to the pipeline constructor and
-every payload is scrubbed through it before it leaves the process.
+`observation_redactor` to the pipeline constructor. It is a placeholder factory,
+which scrubs every payload before it leaves the process.
 
 ```python
 --8<-- "snippets/observation_redactor.py:example"
@@ -100,7 +100,7 @@ serve as an annotation dataset, since the clear values are gone.
 
 </div>
 
-Clear-text tracing stays the default so traces keep their annotation value, but it is treated as an explicit choice. With no redactor set and a tracer provider actually configured, the pipeline warns once at construction that its traces carry confidential data in clear. Pass `trace_clear_text=True` to acknowledge it and silence the warning, or an `observation_redactor` to scrub the payloads.
+Clear-text tracing stays the default so traces keep their annotation value. It must still be an explicit choice. With no redactor set and a tracer provider actually configured, the pipeline warns once at construction that its traces carry confidential data in clear. Pass `trace_clear_text=True` to acknowledge clear-text tracing and silence the warning, or an `observation_redactor` to scrub the payloads.
 
 ```python
 --8<-- "snippets/observation_clear_text.py:example"
@@ -118,18 +118,18 @@ no-op and the spans go nowhere.
 
 Langfuse is a common target because its v3 SDK is built on OpenTelemetry. Point
 it at the process and it captures the `piighost` spans alongside its own. Its
-default export filter passes only its own spans and known LLM instrumentors, so
-admit the `piighost` instrumentation scope through the SDK's `should_export_span`
-predicate:
+default export filter passes only its own spans and those of known LLM
+instrumentors. Admit the `piighost` instrumentation scope through the SDK's
+`should_export_span` predicate:
 
 ```python
 --8<-- "snippets/observation_langfuse.py"
 ```
 
 The payloads are serialized under the attribute keys Langfuse maps to
-observation input and output, so they render richly there. Any other OTLP
-backend still shows them as plain span attributes. None of this lives in
-`piighost`, it is the SDK wiring you already do for the rest of your stack.
+observation input and output. Langfuse therefore shows them in those two fields. Any other OTLP
+backend still shows them as plain span attributes. This wiring does not live in
+`piighost`. It is the SDK wiring you already do for the rest of your stack.
 
 The full runnable version, with a console fallback when no Langfuse credentials
 are present, is in `examples/observation/langfuse_tracing.py`.

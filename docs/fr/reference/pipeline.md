@@ -17,7 +17,7 @@ Les deux renvoient une [`Anonymization`](anonymizer.md#anonymization), le texte 
 
 Module : `piighost.pipeline`
 
-Dé-identifie un seul texte à travers les étages, dans l'ordre. Détecter les données confidentielles, appliquer l'override du serveur, résoudre les spans qui se chevauchent, retrouver les occurrences manquées, grouper les détections en entités, résoudre les conflits d'entités, remplacer par des jetons, puis revérifier avec un guard. Chaque appel à `anonymize()` est indépendant.
+Dé-identifie un seul texte à travers les étages, dans cet ordre : détecter les données confidentielles, appliquer l'override du serveur, résoudre les spans qui se chevauchent, retrouver les occurrences manquées, grouper les détections en entités, résoudre les conflits d'entités, remplacer par des jetons, puis revérifier avec un guard. Chaque appel à `anonymize()` est indépendant.
 
 ### Constructeur
 
@@ -45,7 +45,7 @@ AnonymizationPipeline(
 | `expander` | `AnyDetectionExpander \| None` | `None` | Ajoute les occurrences manquées d'une valeur détectée. Désactivé quand `None` |
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Réconcilie les entités en conflit. Désactivé quand `None` |
 | `guard` | `AnyGuardRail \| None` | `None` | Revérifie la sortie pour des valeurs confidentielles résiduelles. Désactivé quand `None` |
-| `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory remplaçant les valeurs en clair dans les payloads d'observation. `None` trace le texte en clair, ce qui permet aux traces de servir de jeux d'annotation. Avec un tracer actif et sans masqueur, le constructeur émet un `PIIGhostSecurityWarning` sauf si `trace_clear_text=True` l'acquitte |
+| `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory remplaçant les valeurs en clair dans les payloads d'observation. Avec `None`, les traces gardent le texte en clair et peuvent ainsi servir de jeux d'annotation. Avec un tracer actif et sans masqueur, le constructeur émet un `PIIGhostSecurityWarning` sauf si `trace_clear_text=True` l'acquitte |
 | `override` | `AnyDetectionOverride \| None` | `None` | Whitelist et blacklist du serveur imposées à chaque ensemble de détections. Désactivé quand `None` |
 | `trace_clear_text` | `bool` | `False` | Acquitte le traçage en clair de l'observation pour supprimer l'avertissement de sécurité quand aucun `observation_redactor` n'est défini |
 
@@ -80,9 +80,9 @@ La restauration n'est sans ambiguïté que si les jetons préservent l'identité
 
 Module : `piighost.pipeline`
 
-Dé-identifie chaque message d'une conversation avec des jetons stables sur toute la conversation. Une valeur vue dans un premier message puis à nouveau plus tard porte le même jeton, car les jetons sont assignés sur l'union des détections de tous les messages, pas sur un message seul. Les détections de chaque message sont mises en cache dans la mémoire, donc renvoyer un message évite la détection.
+Dé-identifie chaque message d'une conversation avec des jetons stables sur toute la conversation. Une valeur vue dans un premier message puis à nouveau plus tard porte le même jeton, car les jetons sont assignés sur l'union des détections de tous les messages, pas sur un message seul. Les détections de chaque message sont mises en cache dans la mémoire. Un message renvoyé ne repasse donc pas par la détection.
 
-Le composant en plus est une mémoire de conversation, `memory`, le stockage par conversation des détections de chaque message.
+Ce pipeline ajoute un composant, la mémoire de conversation `memory`. Elle stocke, pour chaque conversation, les détections de chaque message.
 
 ### Constructeur
 
@@ -108,8 +108,8 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par conversation des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus, passez `RedisConversationMemory` pour un backend partagé |
-| `token_memo_ttl` | `float \| None` | `None` | Secondes pendant lesquelles la correspondance de jetons mémoïsée d'une conversation est gardée. Ce mémo garde les valeurs de la conversation en clair et `forget_thread` n'atteint que le processus où il tourne, donc sur un déploiement multi-worker ce délai borne combien de temps les autres workers le gardent. `None` garde une entrée jusqu'à ce que la borne de taille l'évince |
+| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par conversation des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus. Passez `RedisConversationMemory` pour un backend partagé |
+| `token_memo_ttl` | `float \| None` | `None` | Secondes pendant lesquelles la correspondance de jetons mémoïsée d'une conversation est gardée. Ce mémo garde les valeurs de la conversation en clair. `forget_thread` n'atteint que le processus où il tourne. Sur un déploiement multi-worker, ce délai borne donc combien de temps les autres workers gardent le mémo. `None` garde une entrée jusqu'à ce que la borne de taille l'évince |
 | `time_source` | `Callable[[], float]` | `time.monotonic` | L'horloge que lit `token_memo_ttl`, injectable pour les tests |
 
 ### Méthodes
@@ -118,7 +118,7 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 
 Détecte les entités du message, les enregistre dans la mémoire de `thread_id`, puis dé-identifie avec des jetons assignés sur toute la conversation. Le jeton d'une valeur reste le même d'un message à l'autre.
 
-Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants ne peuvent pas tomber dans une même conversation et laisser fuir mutuellement leurs données confidentielles. `role` date les valeurs que le message introduit. Une valeur introduite d'abord par l'assistant est laissée en clair, car ce n'est pas une donnée confidentielle de l'utilisateur.
+Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants ne peuvent pas tomber dans une même conversation et laisser fuir mutuellement leurs données confidentielles. `role` marque l'auteur des valeurs que le message introduit. Une valeur introduite d'abord par l'assistant est laissée en clair, car ce n'est pas une donnée confidentielle de l'utilisateur.
 
 **Lève** `PIIRemainingError` quand un guard configuré signale des valeurs confidentielles restées dans la sortie.
 
@@ -128,9 +128,9 @@ Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants
 
 #### `anonymize_corrected(text, thread_id, detections) -> Anonymization` *(async)*
 
-Redé-identifie un message utilisateur avec un ensemble de détections corrigé par un humain. L'ensemble corrigé remplace les détections de ce message dans la mémoire, puis le message est dé-identifié avec des jetons cohérents sur la conversation. La détection ne relance pas. Cela ne concerne que les propres messages d'un utilisateur, donc la correction est enregistrée comme un message utilisateur.
+Redé-identifie un message utilisateur avec un ensemble de détections corrigé par un humain. L'ensemble corrigé remplace les détections de ce message dans la mémoire, puis le message est dé-identifié avec des jetons cohérents sur la conversation. La détection ne relance pas. Cette méthode ne concerne que les propres messages d'un utilisateur. La correction est donc enregistrée comme un message utilisateur.
 
-L'ensemble corrigé est stocké tel quel, sans résolution de chevauchement ni recherche d'occurrences, car l'humain fait autorité sur lui. Un `override` configuré s'applique encore, donc les listes du serveur priment sur la correction.
+L'ensemble corrigé est stocké tel quel, sans résolution de chevauchement ni recherche d'occurrences, car l'humain fait autorité sur cet ensemble. Un `override` configuré s'applique encore, donc les listes du serveur priment sur la correction.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"
@@ -138,7 +138,7 @@ L'ensemble corrigé est stocké tel quel, sans résolution de chevauchement ni r
 
 #### `deanonymize(text, thread_id) -> str` *(async)*
 
-Renvoie le texte avec chaque jeton de la conversation remplacé par sa valeur. Les jetons de la conversation sont reconstruits depuis sa mémoire, donc tout texte qui les porte est restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
+Renvoie le texte avec chaque jeton de la conversation remplacé par sa valeur. Les jetons de la conversation sont reconstruits depuis sa mémoire. Tout texte qui les porte est donc restauré, y compris une réponse du modèle que le pipeline n'a jamais dé-identifiée.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:deanonymize"
@@ -146,7 +146,7 @@ Renvoie le texte avec chaque jeton de la conversation remplacé par sa valeur. L
 
 #### `thread_token_map(thread_id) -> dict[str, str]` *(async)*
 
-Renvoie la correspondance placeholder vers valeur de la conversation, dérivée du cache, pour qu'un appelant puisse résoudre tout un flux d'un coup plutôt que de restaurer jeton par jeton. Un jeton que la conversation n'a jamais émis est absent de la correspondance.
+Renvoie la correspondance placeholder vers valeur de la conversation, dérivée du cache. Avec elle, un appelant peut résoudre tout un flux d'un coup plutôt que de restaurer jeton par jeton. Un jeton que la conversation n'a jamais émis est absent de la correspondance.
 
 #### `forget_thread(thread_id) -> Forgotten` *(async)*
 
@@ -156,7 +156,7 @@ Efface la mémoire d'une conversation et renvoie un `Forgotten` indiquant ce qui
 --8<-- "snippets/reference_thread_pipeline.py:forget_thread"
 ```
 
-La correspondance de jetons mémoïsée de la conversation part avec elle. Ce mémo garde les valeurs de la conversation en clair, donc effacer le store seul les laisserait vivantes dans le processus. Les autres conversations gardent le leur. L'appel n'atteint que le processus où il tourne, donc sur un déploiement multi-worker posez `token_memo_ttl` au constructeur pour borner la fenêtre sur les autres, comme décrit dans [Déploiement multi-instance](../multi-instance.md). Un cache reste debout, celui des motifs de frontière de mot, partagé par tout le processus et indexé sur le fragment cherché, donc porteur de valeurs venant de toutes les conversations. Videz-le avec `clear_boundary_cache` quand une demande d'effacement couvre tout le processus.
+Oublier une conversation efface aussi sa correspondance de jetons mémoïsée. Ce mémo garde les valeurs de la conversation en clair. Effacer le store seul laisserait donc ces valeurs vivantes dans le processus. Les autres conversations gardent leur mémo. L'appel n'atteint que le processus où il tourne. Sur un déploiement multi-worker, posez donc `token_memo_ttl` au constructeur pour borner la durée pendant laquelle les autres workers gardent le mémo, comme décrit dans [Déploiement multi-instance](../multi-instance.md). Un cache reste en place, celui des motifs de frontière de mot, partagé par tout le processus. Ce cache est indexé sur le fragment cherché, donc il contient des valeurs venant de toutes les conversations. Videz-le avec `clear_boundary_cache` quand une demande d'effacement couvre tout le processus.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:clear_boundary_cache"
@@ -170,7 +170,7 @@ La grammaire des jetons que ce pipeline émet, une `BaseDelimitedPlaceholderFact
 
 ## Ports
 
-Deux protocoles typent un pipeline là où un appelant, comme le middleware, doit l'accepter sans dépendre d'une classe concrète. Les deux sont génériques sur ce que les jetons émis préservent, donc un consommateur peut exiger un pipeline dont les jetons préservent l'identité et rejeter celui dont les jetons ne la préservent pas.
+Deux protocoles typent un pipeline là où un appelant, comme le middleware, doit l'accepter sans dépendre d'une classe concrète. Les deux sont génériques sur ce que les jetons émis préservent. Un consommateur peut donc exiger un pipeline dont les jetons préservent l'identité, et rejeter un pipeline dont les jetons ne la préservent pas.
 
 ### `AnyPipeline`
 
@@ -208,7 +208,7 @@ class AnyThreadPipeline(Protocol[PreservationT_co]):
 
 Module : `piighost.pipeline`
 
-La machinerie partagée que les deux pipelines étendent. Elle tient les composants d'étage et les étapes communes à tous les pipelines. Les étages optionnels de chevauchement, de recherche d'occurrences et de résolution d'entités, la vérification du guard, et les payloads d'observation. Les pipelines concrets ajoutent leur propre `anonymize`, sur un texte seul ou sur une conversation.
+La machinerie partagée que les deux pipelines étendent. Elle tient les composants d'étage et les étapes communes à tous les pipelines : les étages optionnels de chevauchement, de recherche d'occurrences et de résolution d'entités, la vérification du guard, et les payloads d'observation. Les pipelines concrets ajoutent leur propre `anonymize`, sur un texte seul ou sur une conversation.
 
 ---
 
@@ -216,7 +216,7 @@ La machinerie partagée que les deux pipelines étendent. Elle tient les composa
 
 Module : `piighost.config`
 
-`load_pipeline` et `load_thread_pipeline` lisent un fichier de configuration, TOML ou JSON selon son suffixe, ou une référence du hub, et renvoient un pipeline construit. Une mémoire configurée fait de la configuration un pipeline de conversation. Les deux loaders imposent cette distinction, et la vérifient avant de construire quoi que ce soit.
+`load_pipeline` et `load_thread_pipeline` lisent un fichier de configuration, TOML ou JSON selon son suffixe, ou une référence du hub, et renvoient un pipeline construit. Une configuration qui déclare une mémoire décrit un pipeline de conversation. Les deux loaders imposent cette distinction, et la vérifient avant de construire quoi que ce soit.
 
 - `load_pipeline(path)` renvoie un `AnonymizationPipeline`. Il lève `ConfigError` quand la configuration déclare une mémoire.
 - `load_thread_pipeline(path)` renvoie un `ThreadAnonymizationPipeline`. Il lève `ConfigError` quand la configuration ne déclare pas de mémoire.

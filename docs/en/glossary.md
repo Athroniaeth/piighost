@@ -124,19 +124,20 @@ Conversation memory
 
 Recognizer
 :   The token grammar the middleware uses to find a pipeline's placeholders in an
-    LLM response, without reaching into the anonymizer. A pipeline exposes it as
-    `recognizer`, a `BaseDelimitedPlaceholderFactory` or `None`.
+    LLM response, without reaching into the anonymizer. A pipeline exposes it in its
+    `recognizer` attribute, which holds a `BaseDelimitedPlaceholderFactory` or `None`.
 
 Placeholder preservation tag
-:   A phantom type on a placeholder factory that states what its tokens preserve:
+:   A phantom type (a type that exists only for the type checker) on a
+    placeholder factory, stating what its tokens preserve:
     `PreservesNothing`, `PreservesLabel`, `PreservesIdentity`, or
     `PreservesLabeledIdentity`. The middleware requires `PreservesRecognizableIdentity`
-    so it can restore values, and rejects a factory that does not, at type-check time.
+    so it can restore values. It rejects a factory without this tag at type-check time.
 
 Pepper
 :   A secret that keys a hasher, read from the `PIIGHOST_HASH_PEPPER` environment
-    variable. Hashing a low-entropy value without a secret leaves it
-    brute-forceable, so the pepper is mandatory. Used by `Sha256Hasher` and
+    variable. The pepper is mandatory, because a low-entropy value
+    hashed without a secret stays brute-forceable. Used by `Sha256Hasher` and
     `Argon2Hasher`.
 
 Cipher

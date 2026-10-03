@@ -2,13 +2,13 @@
 
 Module : `piighost.config`
 
-Un fichier de configuration décrit un pipeline entier de façon déclarative. `piighost` le lit en TOML ou en JSON, choisi par le suffixe du fichier, le valide avec Pydantic, et construit le pipeline que le fichier décrit. Cette page documente chaque section et chaque `type` de composant.
+Un fichier de configuration décrit un pipeline entier de façon déclarative. `piighost` le lit en TOML ou en JSON, selon le suffixe du fichier. Il le valide ensuite avec Pydantic, puis construit le pipeline que le fichier décrit. Cette page documente chaque section et chaque `type` de composant.
 
 ```python
 from piighost.config import load_config, load_pipeline, load_thread_pipeline
 ```
 
-L'extra `config` est requis (`pip install piighost[config]`), qui tire `pydantic-settings`. Les clés inconnues sont rejetées, donc une faute de frappe échoue à la validation au lieu d'être ignorée. Un `type` de composant peut demander son propre extra, nommé dans la colonne Extra du tableau qui le documente.
+L'extra `config` est requis (`pip install piighost[config]`). Il tire `pydantic-settings`. Les clés inconnues sont rejetées, donc une faute de frappe échoue à la validation au lieu d'être ignorée. Un `type` de composant peut demander son propre extra, nommé dans la colonne Extra du tableau qui le documente.
 
 ---
 
@@ -34,7 +34,7 @@ L'extra `config` est requis (`pip install piighost[config]`), qui tire `pydantic
 
 ## Format de fichier
 
-Le suffixe choisit le parseur. Un suffixe `.json` est lu en JSON, la comparaison ignorant la casse, et tout le reste en TOML. Les deux formats portent le même schéma. Une section est une table TOML ou un objet JSON.
+Le suffixe choisit le parseur. Un suffixe `.json` est lu en JSON, quelle que soit sa casse. Tout autre suffixe est lu en TOML. Les deux formats portent le même schéma. Une section est une table TOML ou un objet JSON.
 
 ```toml
 [detector]
@@ -60,14 +60,14 @@ type = "redact"
 
 ## Surcharges par l'environnement
 
-Chaque clé de premier niveau accepte une surcharge par une variable d'environnement préfixée `PIIGHOST_`, qu'elle porte un scalaire ou une section entière. `PIIGHOST_NAME` surcharge le scalaire `name`, et `PIIGHOST_DETECTOR` surcharge la section `[detector]` avec un objet JSON, rejeté comme erreur de validation quand ce n'est pas du JSON valide. Les surcharges se superposent au fichier clé par clé, donc une valeur d'environnement l'emporte sur celle du fichier et les clés qu'elle omet gardent la leur.
+Chaque clé de premier niveau accepte une surcharge par une variable d'environnement préfixée `PIIGHOST_`, qu'elle porte un scalaire ou une section entière. `PIIGHOST_NAME` surcharge le scalaire `name`. `PIIGHOST_DETECTOR` surcharge la section `[detector]` avec un objet JSON. Si ce n'est pas du JSON valide, la variable est rejetée comme erreur de validation. Les surcharges se superposent au fichier clé par clé. Une valeur d'environnement l'emporte sur celle du fichier, et les clés qu'elle omet gardent la valeur du fichier.
 
 ```bash
 export PIIGHOST_NAME="local-en"
 export PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'
 ```
 
-Aucun délimiteur d'imbrication n'est configuré, donc une variable comme `PIIGHOST_DETECTOR__TYPE` ne nomme aucun champ, et elle est ignorée sans erreur au lieu d'atteindre la clé `type`. Une section se surcharge uniquement par son objet JSON.
+Aucun délimiteur d'imbrication n'est configuré. Une variable comme `PIIGHOST_DETECTOR__TYPE` ne nomme donc aucun champ. Elle est ignorée sans erreur au lieu d'atteindre la clé `type`. Une section se surcharge uniquement par son objet JSON.
 
 Les secrets ne sont jamais lus depuis le fichier. Chacun est lu depuis sa propre variable d'environnement à la construction, et une variable manquante lève `ConfigError` depuis `build()`.
 
@@ -93,7 +93,7 @@ Les clés de premier niveau d'un `PipelineConfig`.
 | Section | Requise | Signification |
 |---------|---------|---------------|
 | `name` | non | Un nom de pipeline optionnel, un scalaire de premier niveau surchargeable par `PIIGHOST_NAME` |
-| `token_memo_ttl` | non | Les secondes pendant lesquelles la carte de jetons mémoïsée d'une conversation est gardée, un scalaire de premier niveau, exige un `[memory]` |
+| `token_memo_ttl` | non | Le nombre de secondes pendant lesquelles la carte de jetons mémoïsée d'une conversation est gardée. Un scalaire de premier niveau, qui exige un `[memory]` |
 | `[detector]` | oui | L'étage de détection |
 | `[linker]` | non | Le linker d'entités, par défaut `ExactEntityLinker` |
 | `[anonymizer]` | non | L'étage de rendu, par défaut un `Anonymizer` avec une factory label-counter |
@@ -115,12 +115,12 @@ Discriminé sur `type`. Requis.
 
 ### `type = "regex"`
 
-Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` du hub, ou des deux. Les catalogues fusionnent d'abord, puis les patterns en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue au même label. Au moins un pattern en ligne ou un catalogue est requis. Chaque pattern est validé comme un regex compilable au chargement, puis compilé sous `re.ASCII`, donc `\d` correspond à `0-9` et `\w` s'arrête au premier caractère non ASCII. Un motif écrit avec `\w` reconnaît donc `prénom@corp.com`{ .pii } à partir de `nom`. Limitez le drapeau Unicode à la classe, `(?u:\w)`, pour inclure toutes les lettres, ou nommez une plage, comme le fait le motif `EMAIL` de `hub:piighost/generic` avec la plage latine `À-ɏ`. Voir [Limites](../limitations.md) pour ce que chaque choix manque.
+Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` du hub, ou des deux. Les catalogues fusionnent d'abord, puis les patterns en ligne. Un pattern en ligne l'emporte donc sur un pattern de catalogue de même label. Au moins un pattern en ligne ou un catalogue est requis. Au chargement, chaque pattern est validé comme un regex compilable. Il est ensuite compilé sous `re.ASCII`, donc `\d` correspond à `0-9` et `\w` s'arrête au premier caractère non ASCII. Un motif écrit avec `\w` reconnaît donc `prénom@corp.com`{ .pii } à partir de `nom`. Pour inclure toutes les lettres, limitez le drapeau Unicode à la classe, `(?u:\w)`, ou nommez une plage. Le motif `EMAIL` de `hub:piighost/generic` nomme ainsi la plage latine `À-ɏ`. Voir [Limites](../limitations.md) pour ce que chaque choix manque.
 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
 | `patterns` | `dict[str, str]` | `{}` | Correspondance label vers regex en ligne |
-| `catalogs` | `list[str]` | `[]` | Références de hub, `hub:namespace/name` avec un `:selector` optionnel, toute autre entrée échouant à la validation |
+| `catalogs` | `list[str]` | `[]` | Références de hub, `hub:namespace/name` avec un `:selector` optionnel. Toute autre entrée échoue à la validation |
 
 ```toml
 [detector]
@@ -129,7 +129,7 @@ catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
-Un catalogue est récupéré depuis le hub à la construction de la config, pas à sa lecture. Une référence épinglée sur un commit est récupérée une fois, puis relue depuis le cache sur disque, et `PIIGHOST_HUB_URL` désigne un registre privé. Les noms `generic`, `us`, `eu` et `fr` sont refusés, voir [Catalogues de patterns](../reference/detectors.md#catalogues-de-patterns) pour les groupes qui les remplacent.
+Un catalogue est récupéré depuis le hub à la construction de la config, pas à sa lecture. Une référence épinglée sur un commit est récupérée une fois, puis relue depuis le cache sur disque. `PIIGHOST_HUB_URL` désigne un registre privé. Les noms `generic`, `us`, `eu` et `fr` sont refusés. Voir [Catalogues de patterns](../reference/detectors.md#catalogues-de-patterns) pour les groupes qui les remplacent.
 
 ### `type = "composite"`
 
@@ -189,7 +189,7 @@ model = "en_core_web_sm"
 
 ### Détecteurs à modèle
 
-Chacun nécessite son propre extra, et tous sauf `presidio` nécessitent un modèle. `labels` accepte une liste ou une map `{emitted: internal}`. `max_concurrency` plafonne les inférences concurrentes, ou `None` pour illimité.
+Chacun nécessite son propre extra, et tous sauf `presidio` nécessitent un modèle. `labels` accepte une liste ou une map `{emitted: internal}`. `max_concurrency` plafonne les inférences concurrentes. `None` les laisse illimitées.
 
 <div class="wide-table" markdown="1">
 
@@ -212,7 +212,7 @@ threshold = 0.5
 max_chars = 2000
 ```
 
-Les détecteurs `gliner2` et `transformers` acceptent `max_chars`, le plus long texte qu'une inférence voit. Un texte plus long est découpé en morceaux qui se chevauchent, analysés séparément, et les spans sont replacés dans le texte d'origine. Sans cette clé, le texte entier part au modèle en une fois, ce qu'un modèle à fenêtre courte tronque et ce qui peut épuiser la mémoire sur un long document.
+Les détecteurs `gliner2` et `transformers` acceptent `max_chars`, le plus long texte qu'une inférence voit. Un texte plus long est découpé en morceaux qui se chevauchent. Chaque morceau est analysé séparément, puis les spans sont replacés dans le texte d'origine. Sans cette clé, le texte entier part au modèle en une fois. Un modèle à fenêtre courte tronque alors ce texte, et un long document peut épuiser la mémoire.
 
 Le détecteur `transformers` passe `aggregation_strategy` à sa pipeline de classification de tokens, qui regroupe les sous-tokens en entités entières.
 
@@ -258,25 +258,25 @@ Optionnel. Par défaut un `Anonymizer` avec une factory label-counter. Quand il 
 type = "label_counter"
 ```
 
-Le middleware a besoin d'une factory délimitée, donc `redact`, `label`, `label_counter` ou `label_hash`. La factory `mask` produit `P***`{ .placeholder }, qui ne garde aucun délimiteur et n'a pas de reconnaisseur.
+Le middleware a besoin d'une factory délimitée, c'est-à-dire `redact`, `label`, `label_counter` ou `label_hash`. La factory `mask` produit `P***`{ .placeholder }, qui ne garde aucun délimiteur et n'a pas de reconnaisseur.
 
 ---
 
 ## `[overlap_resolver]`
 
-Optionnel dans le fichier, mais l'étage tourne dans tous les cas. Omettre la section construit un `ConfidenceOverlapResolver`, et il n'existe aucun moyen supporté de désactiver l'étage, car l'étage de rendu suppose des spans disjoints.
+Optionnel dans le fichier, mais l'étage tourne dans tous les cas. Omettre la section construit un `ConfidenceOverlapResolver`. Il n'existe aucun moyen supporté de désactiver l'étage, car l'étage de rendu suppose des spans disjoints.
 
 | `type` | Signification |
 |--------|---------------|
 | `confidence` | Garde la détection la plus confiante quand deux se chevauchent |
-| `merge` | Garde l'union des détections qui se chevauchent, avec le label de la plus confiante, la plus large à confiance égale |
+| `merge` | Garde l'union des détections qui se chevauchent, avec le label de la plus confiante. À confiance égale, c'est le label de la plus large |
 
 ```toml
 [overlap_resolver]
 type = "merge"
 ```
 
-`merge` cache chaque caractère qu'un détecteur a relevé. Avec `confidence`, une regex à confiance 1.0 qui a trouvé `Wirth`{ .pii } l'emporte sur un modèle qui a trouvé `Loni M. Wirth`{ .pii }, et `Loni M.`{ .pii } part en clair. Choisissez `merge` quand une fuite coûte plus qu'un mot voisin masqué, comme dans un document traité par des règles et un modèle ensemble.
+`merge` cache chaque caractère qu'un détecteur a relevé. Avec `confidence`, une regex à confiance 1.0 qui a trouvé `Wirth`{ .pii } l'emporte sur un modèle qui a trouvé `Loni M. Wirth`{ .pii }. `Loni M.`{ .pii } part alors en clair. Choisissez `merge` quand une fuite coûte plus qu'un mot voisin masqué, comme dans un document traité par des règles et un modèle ensemble.
 
 ---
 
@@ -366,7 +366,7 @@ Classe la sortie avec un modèle garde-fou GLiNER2 qui tourne dans le processus,
 |-----|------|--------|---------------|
 | `model` | `str` | `fastino/GLiNER2-Guardrails-PII-Multi` | Le checkpoint GLiNER2 avec lequel le garde-fou classe |
 | `task` | `str` | `response_safety` | La tâche de classification lue dans la réponse du modèle |
-| `labels` | `list` | `["safe", "unsafe"]` | Les réponses entre lesquelles la tâche choisit, la réponse refusée en dernier, deux au moins |
+| `labels` | `list` | `["safe", "unsafe"]` | Les réponses entre lesquelles la tâche choisit, deux au moins. La réponse refusée vient en dernier |
 | `threshold` | `float` | `0.5` | La confiance à partir de laquelle une réponse refusée signale la sortie |
 
 ```toml
@@ -387,7 +387,7 @@ Optionnel. Force des détections via une whitelist et en écarte via une blackli
 |-----|---------|--------|---------------|
 | `[override.whitelist]` | détecteur | | Un détecteur dont les hits sont forcés dans l'ensemble |
 | `[override.blacklist]` | détecteur | | Un détecteur dont les hits invalident des détections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de blacklist invalide, même valeur quelles que soient ses espaces et sa casse, même span et label, ou tout span en chevauchement |
+| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de blacklist invalide une détection. `value` exige la même valeur, quelles que soient ses espaces et sa casse. `exact` exige le même span et le même label. `overlap` invalide tout span en chevauchement |
 | `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de whitelist laisse en clair une valeur introduite par l'assistant, ou la dé-identifie quand même |
 | `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
 
@@ -410,14 +410,14 @@ values = { "public@corp.com" = "EMAIL" }
 
 ## `[observation_redactor]`
 
-Optionnel. Une config de factory de placeholders, mêmes valeurs de `type` que `[anonymizer.placeholder]`, caviardant les charges envoyées à un backend de traçage pour qu'une trace porte des jetons, pas des valeurs brutes.
+Optionnel. Une config de factory de placeholders, avec les mêmes valeurs de `type` que `[anonymizer.placeholder]`. Elle caviarde les charges envoyées à un backend de traçage, pour qu'une trace porte des jetons et pas des valeurs brutes.
 
 ```toml
 [observation_redactor]
 type = "label"
 ```
 
-Omettre la section trace le texte en clair et les valeurs détectées, et un traceur actif émet alors un `PIIGhostSecurityWarning`. Le drapeau `trace_clear_text` du pipeline, qui fait taire cet avertissement, n'a aucune clé dans un fichier de configuration, donc un pipeline construit depuis un fichier ne peut pas assumer le traçage en clair. Passer `trace_clear_text=True` au pipeline est le chemin programmatique.
+Sans cette section, le texte en clair et les valeurs détectées sont tracés. Un traceur actif émet alors un `PIIGhostSecurityWarning`. Le drapeau `trace_clear_text` du pipeline fait taire cet avertissement, mais il n'a aucune clé dans un fichier de configuration. Un pipeline construit depuis un fichier ne peut donc pas assumer le traçage en clair. Passer `trace_clear_text=True` au pipeline est le chemin programmatique.
 
 ---
 
@@ -425,7 +425,7 @@ Omettre la section trace le texte en clair et les valeurs détectées, et un tra
 
 Optionnel. Sa présence fait du pipeline un `ThreadAnonymizationPipeline` qui garde un état par conversation. Discriminé sur `type`.
 
-Le scalaire `token_memo_ttl` va avec, au premier niveau plutôt que dans cette section, puisqu'il borne la carte de jetons mémoïsée du pipeline et non le store. Le poser sans `[memory]` lève une erreur, un pipeline sans état ne mémoïsant rien. Pourquoi il compte sur un déploiement multi-worker est dans [Déploiement multi-instance](../multi-instance.md).
+Le scalaire `token_memo_ttl` va avec cette section, mais il se pose au premier niveau, parce qu'il borne la carte de jetons mémoïsée du pipeline et non le store. Le poser sans `[memory]` lève une erreur, parce qu'un pipeline sans état ne mémoïse rien. [Déploiement multi-instance](../multi-instance.md) explique pourquoi il compte sur un déploiement multi-worker.
 
 | `type` | Extra | Stockage |
 |--------|-------|----------|
@@ -440,7 +440,7 @@ Un stockage local au processus, perdu au redémarrage et non partagé entre work
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
 | `max_threads` | `int` | `10000` | Plafond de conversations gardées, éviction LRU au-delà (au moins 1) |
-| `ttl` | `float` | `86400` | Expire une conversation inactive paresseusement au prochain accès, en secondes (supérieur à 0) |
+| `ttl` | `float` | `86400` | Durée d'inactivité, en secondes, après laquelle une conversation expire (supérieur à 0). Elle n'est retirée qu'au prochain accès |
 
 ```toml
 [memory]
@@ -449,7 +449,7 @@ type = "in_memory"
 
 ### `type = "redis"`
 
-Un stockage persistant et multi-worker, qui indexe optionnellement chaque message stocké avec un hacheur et chiffre chaque valeur stockée avec un cipher.
+Un stockage persistant et multi-worker. En option, il indexe chaque message stocké avec un hacheur et chiffre chaque valeur stockée avec un cipher.
 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|

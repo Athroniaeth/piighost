@@ -4,7 +4,7 @@ icon: lucide/file-cog
 
 # Configuration file
 
-You will describe a whole pipeline in a TOML file, growing it from three lines to a conversational pipeline that keeps a token stable across the turns of a conversation. Each step changes one thing in the file, then you check the file and run it to see what changed.
+You will describe a whole pipeline in a TOML file. The file starts at three lines and grows into a conversational pipeline, which keeps a token stable across the turns of a conversation. Each step changes one thing in the file, then you check the file and run it to see what changed.
 
 !!! note "Prerequisites"
     `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model. Step 4 fetches a catalog from the [piighost hub](https://hub.piighost.dev) once, then reads it from the on-disk cache. Step 6 adds the `fuzzy` extra.
@@ -29,7 +29,7 @@ The output should be:
 --8<-- "snippets/configuration/typo.out"
 ```
 
-The command names the section and the key it choked on, and exits `1`, which also makes it a CI gate. Run it after every edit below. It builds no component, so it loads no model.
+The command names the section and the key it choked on, and exits `1`. That exit code also makes it a CI gate. Run it after every edit below. It builds no component, so it loads no model.
 
 Dump the schema once and point your editor at it for completion on the section and key names.
 
@@ -55,7 +55,7 @@ Fix the key, `patterns` with an s. The file now carries one section, and that is
 --8<-- "snippets/configuration/validated.out"
 ```
 
-Write `run.py` next to it. It loads the file and de-identifies the text you pass on the command line, and every later step reuses it unchanged.
+Write `run.py` next to it. It loads the file and de-identifies the text you pass on the command line. Every later step reuses `run.py` unchanged.
 
 ```python
 --8<-- "snippets/configuration/run.py"
@@ -71,7 +71,7 @@ The output should be:
 --8<-- "snippets/configuration/email.out"
 ```
 
-The token names the label and numbers it although the file declares no anonymizer, and both occurrences of one address would share that token although the file declares no linker. Each of those two stages falls back to its default, and so does overlap resolution. This file is on disk as `examples/config/detector_only.toml`.
+The file declares no anonymizer, yet the token names the label and numbers it. It declares no linker, yet both occurrences of one address would share that token. The anonymizer and the linker each fall back to their default, and so does overlap resolution. This file is on disk as `examples/config/detector_only.toml`.
 
 ## 3. Pick the token
 
@@ -91,11 +91,11 @@ The output should be:
 --8<-- "snippets/configuration/redact.out"
 ```
 
-The address is gone and its label with it. `examples/config/minimal.toml` carries this file with the default linker written out, and `examples/config/minimal.json` carries it in JSON, the suffix picking the parser. The [configuration reference](../configuration/toml.md) lists every token style.
+The address is gone and its label with it. `examples/config/minimal.toml` carries this file, with the default linker written out. `examples/config/minimal.json` carries the same file in JSON. The file suffix picks the parser. The [configuration reference](../configuration/toml.md) lists every token style.
 
 ## 4. Pull a catalog from the hub
 
-Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the hub, which carries email, URL, IPv4 and credit card. The `:fab51b33` suffix pins it to a commit, so it is fetched from the hub the first time the pipeline is built, then read from the cache. Four labels now reach the anonymizer, so put the numbered token back to tell them apart.
+Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the hub, which carries email, URL, IPv4 and credit card. The `:fab51b33` suffix pins the group to a commit. The group is therefore fetched from the hub the first time the pipeline is built, then read from the cache. Four labels now reach the anonymizer, so put the numbered token back to tell them apart.
 
 ```toml
 --8<-- "snippets/configuration/hub.toml"
@@ -127,7 +127,7 @@ The output should be:
 --8<-- "snippets/configuration/order.out"
 ```
 
-The order number is a token now. Catalogs merge first, then your inline patterns, so a label declared in both takes your pattern.
+The order number is a token now. A label declared in both takes your pattern, because catalogs merge first and your inline patterns after them.
 
 ## 5. Run two detectors at once
 
@@ -147,7 +147,7 @@ The output should be:
 --8<-- "snippets/configuration/composite.out"
 ```
 
-The names and the formats are caught in one pass. One person spelled two ways still gets two tokens, `<<PERSON:1>>`{ .placeholder } and `<<PERSON:2>>`{ .placeholder }, which the next step settles.
+The names and the formats are caught in one pass. One person spelled two ways still gets two tokens, `<<PERSON:1>>`{ .placeholder } and `<<PERSON:2>>`{ .placeholder }. The next step settles that duplicate.
 
 ## 6. Merge the near-duplicate entities
 
@@ -157,7 +157,7 @@ The names and the formats are caught in one pass. One person spelled two ways st
 pip install "piighost[config,fuzzy]"
 ```
 
-Append an `[entity_resolver]` section to the file, which clusters the entities whose values are close enough to each other.
+Append an `[entity_resolver]` section to the file. That section clusters the entities whose values are close enough to each other.
 
 ```toml
 --8<-- "snippets/configuration/fuzzy.toml"
@@ -177,7 +177,7 @@ Both spellings share `<<PERSON:1>>`{ .placeholder }. Drop the section and the st
 
 ## 7. Keep the tokens across a conversation
 
-Each run of `run.py` restarts the numbering, since the pipeline keeps nothing from one call to the next. Append a `[memory]` section, which gives it a per-thread store and changes the loader you call.
+Each run of `run.py` restarts the numbering, since the pipeline keeps nothing from one call to the next. Append a `[memory]` section. That section gives the pipeline a per-thread store, and changes the loader you call.
 
 ```toml
 --8<-- "snippets/configuration/memory.toml"
@@ -219,7 +219,7 @@ The output should be:
 --8<-- "snippets/configuration/thread.out"
 ```
 
-The second message reuses the `<<PERSON:1>>`{ .placeholder } assigned by the first. The two loaders refuse each other's files, so `load_thread_pipeline` on a file without a memory raises `this configuration declares no memory; use load_pipeline`.
+The second message reuses the `<<PERSON:1>>`{ .placeholder } assigned by the first. Each loader refuses the other's files. `load_thread_pipeline` on a file without a memory therefore raises `this configuration declares no memory; use load_pipeline`.
 
 ## What's next
 

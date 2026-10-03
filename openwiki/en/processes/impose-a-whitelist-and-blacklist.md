@@ -32,7 +32,7 @@ Needs covered: DPO-3, USER-5 and USER-6, described in [Needs by profile](../need
 
 ## For the business
 
-PIIGhost has no screen. The technical team writes the whitelist and the blacklist, in the code or in the `[override]` section of the configuration file, the application's or the `piighost-api` server's. The DPO decides their content. The tasks below say what to ask for.
+PIIGhost has no screen. The technical team writes the whitelist and the blacklist, in the code or in the `[override]` section of the configuration file of the application or of the `piighost-api` server. The DPO decides their content. The tasks below say what to ask for.
 
 ### The path of a message through the lists
 
@@ -84,7 +84,7 @@ Typical case: your internal code names are never spotted.
 
 **BR-LIST-01.** When a value is in the blacklist, then it is removed from the values to mask and goes to the model in clear.
 
-**BR-LIST-02.** When a value is in the whitelist, then it is masked, even if the detector missed it. If the detector had spotted a piece that overlaps it, the whitelist reading replaces it.
+**BR-LIST-02.** When a value is in the whitelist, then it is masked, even if the detector missed it. If the detector had spotted a piece that overlaps it, the whitelist's detection replaces that piece.
 
 **BR-LIST-03.** When the blacklist targets a value, then the way to apply it follows one of three settings. Example on "Claire Dubois works at Acme, then at Globex SA.", with a detector that reads "Acme" as a person, and a blacklist that contains "Acme" and "Globex" as organizations:
 
@@ -106,9 +106,9 @@ Why "Same value" by default: the blacklist names a value, and the type written n
 
 Why this default: when in doubt, masking protects.
 
-**BR-LIST-05.** When the assistant is the first to quote a whitelisted value, then it stays in clear by default. A "force" setting masks it anyway. Why: masking a value the model brought itself takes useful knowledge away from it, and signals that this precise value is sensitive.
+**BR-LIST-05.** When the assistant is the first to quote a whitelisted value, then it stays in clear by default. A "force" setting masks it anyway. Why: masking a value the model brought itself takes useful knowledge away from it. The masking also signals to it that this precise value is sensitive.
 
-**BR-LIST-06.** When a person corrects the values of a message by hand, then both lists still apply to the correction and take precedence over it. Example: the user removes "PRJ-0042" from their message, the number stays masked.
+**BR-LIST-06.** When a person corrects the values of a message by hand, then both lists still apply to the correction and take precedence over it. Example: the user removes "PRJ-0042" from the masked values of their message, but the number stays masked.
 
 **BR-LIST-07.** When the final check rereads the protected text, then it ignores the blacklisted values. Any other value left in clear blocks the sending.
 

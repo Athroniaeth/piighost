@@ -22,8 +22,8 @@ qu'il attend.
 ## Les trois anneaux
 
 Le code se lit en trois anneaux, du plus abstrait au plus concret. Le sens des
-dépendances est fixé une fois pour toutes, un anneau extérieur importe un anneau
-intérieur, jamais l'inverse.
+dépendances est fixé une fois pour toutes. Un anneau extérieur importe un anneau
+intérieur, et un anneau intérieur n'importe jamais un anneau extérieur.
 
 ```mermaid
 flowchart TB
@@ -71,7 +71,7 @@ coeur.*
   gelées) et les ports. Aucune dépendance externe, pas de pydantic, pas d'I/O.
 - **Application.** L'orchestration du pipeline, qui ne dépend que des ports du coeur.
   C'est là que vivent `anonymize`, `deanonymize` et `forget_thread`.
-- **Adaptateurs.** Les implémentations concrètes des ports, détecteurs, résolveurs,
+- **Adaptateurs.** Les implémentations concrètes des ports : détecteurs, résolveurs,
   factories, gardes-fous, backends de mémoire, observation, client HTTP, middleware.
   Chaque adaptateur importe le coeur, jamais le contraire.
 - **Config.** Le point de composition. C'est le seul endroit autorisé à connaître à la
@@ -82,7 +82,7 @@ coeur.*
 ## Ports et templates
 
 Un port est un `Protocol` Python marqué `runtime_checkable`, dans le `base.py` de
-chaque composant. Le typage y est **structurel**, un objet satisfait le port dès qu'il
+chaque composant. Le typage y est **structurel**. Un objet satisfait le port dès qu'il
 en a les méthodes, sans en hériter. Le pipeline dépend du port, jamais d'une classe
 concrète.
 
@@ -99,8 +99,9 @@ sous-classe ne fournit que le pas qui varie.
 --8<-- "snippets/architecture_template.fr.py:example"
 ```
 
-Deux ports n'ont pas de template. Les gardes-fous et les backends de mémoire diffèrent
-par tout leur mécanisme, pas par un seul pas, donc rien de commun n'est à factoriser.
+Deux ports n'ont pas de template, celui des gardes-fous et celui des backends de
+mémoire. Leurs adaptateurs n'ont rien de commun à factoriser, parce qu'ils diffèrent
+par tout leur mécanisme, pas par un seul pas.
 C'est l'exception assumée à la règle du template systématique.
 
 ---
@@ -109,9 +110,9 @@ C'est l'exception assumée à la règle du template systématique.
 
 `BaseAnonymizationPipeline` enchaîne les étapes de la détection au texte
 dé-identifié. Seul le détecteur est un argument obligatoire du constructeur. Le
-linking, la dé-identification et la résolution des chevauchements tournent toujours et
-retombent sur des composants intégrés par défaut quand on les omet, un
-`ExactEntityLinker`, un `Anonymizer` doté d'une `LabelCounterPlaceholderFactory` et
+linking, la dé-identification et la résolution des chevauchements tournent toujours.
+Quand on les omet, ils retombent sur des composants intégrés par défaut. Ces
+composants sont un `ExactEntityLinker`, un `Anonymizer` doté d'une `LabelCounterPlaceholderFactory` et
 un `ConfidenceOverlapResolver`. Les étapes override, expand, entity-resolve et guard
 se comportent en passe-plat quand elles ne sont pas fournies.
 
@@ -152,8 +153,8 @@ flowchart LR
 *Le pipeline, étapes obligatoires en bleu, étapes optionnelles en jaune.*
 { .figure-caption }
 
-Le détail de pourquoi chaque étape existe et dans quel ordre est traité dans
-[Conception du pipeline](conception.md). Voici le rôle et l'adaptateur par défaut de
+La page [Conception du pipeline](conception.md) explique pourquoi chaque étape existe
+et pourquoi elles s'enchaînent dans cet ordre. Voici le rôle et l'adaptateur par défaut de
 chacune.
 
 <div class="wide-table" markdown="1">
@@ -215,12 +216,12 @@ classDiagram
 entité.*
 { .figure-caption }
 
-Chaque tag est une sous-classe de `str`, donc un jeton est une vraie chaîne qui porte
-son niveau de préservation dans son propre type. Ces tags sont des types fantômes, ils
-n'existent que pour le vérificateur de types. Le middleware exige un tag qui préserve
-l'identité (`PreservesRecognizableIdentity`), donc brancher une factory `<<PERSON>>`
-sur le middleware est une erreur détectée à la vérification de types, pas une surprise
-à l'exécution.
+Chaque tag est une sous-classe de `str`. Un jeton est donc une vraie chaîne qui porte
+son niveau de préservation dans son propre type. Ces tags sont des types fantômes,
+c'est-à-dire qu'ils n'existent que pour le vérificateur de types. Le middleware exige
+un tag qui préserve l'identité (`PreservesRecognizableIdentity`). Brancher une factory
+`<<PERSON>>` sur le middleware est donc une erreur détectée à la vérification de
+types, pas une surprise à l'exécution.
 
 Les factories fournies vont du moins au plus informatif. `RedactPlaceholderFactory`
 émet `<<REDACT>>`{ .placeholder }, `LabelPlaceholderFactory` émet
@@ -266,20 +267,21 @@ enchaîne des messages, et le même `Patrick`{ .pii } doit garder le même
 
 Les jetons sont attribués sur **l'union des détections de tous les messages** de la
 conversation, pas sur un message seul. Une valeur revue plus tard retrouve donc son jeton au
-lieu d'en créer un nouveau. Le rendu, lui, reste par message, seuls les spans du
-message courant sont remplacés, car les détections de messages différents ne partagent
-pas le même espace d'offsets.
+lieu d'en créer un nouveau. Le rendu, lui, reste par message. Seuls les spans du
+message courant sont remplacés, parce que les détections de messages différents ne
+partagent pas le même espace d'offsets.
 
 ```python
 --8<-- "snippets/architecture_thread.py:example"
 ```
 
-- Le `thread_id` est **obligatoire**, il n'y a pas de conversation partagée par défaut, donc
-  deux appelants ne peuvent pas tomber dans la même conversation et fuiter leurs données confidentielles.
-- `deanonymize` reconstruit les jetons de la conversation depuis la mémoire, donc **n'importe
-  quel** texte porteur de ces jetons est restauré, y compris une réponse du modèle que
-  le pipeline n'a jamais dé-identifiée.
-- `forget_thread` efface toute la mémoire d'une conversation et rend le compte de ce qui a été
+- Le `thread_id` est **obligatoire**. Il n'y a pas de conversation partagée par défaut.
+  Deux appelants ne peuvent donc pas tomber dans la même conversation et fuiter leurs
+  données confidentielles.
+- `deanonymize` reconstruit les jetons de la conversation depuis la mémoire. Il restaure
+  donc **n'importe quel** texte porteur de ces jetons, y compris une réponse du modèle
+  que le pipeline n'a jamais dé-identifiée.
+- `forget_thread` efface toute la mémoire d'une conversation et indique ce qui a été
   supprimé, pour le droit à l'oubli.
 
 ### La provenance des valeurs
@@ -302,8 +304,9 @@ adaptateurs.
 - `RedisConversationMemory` persiste dans Redis, pour un déploiement multi-worker où
   chaque worker doit voir les conversations des autres.
 
-Le backend Redis stocke des données confidentielles en clair par nature, le mapping inverse. Deux
-composants **crypto** le protègent. Un `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`)
+Par nature, le backend Redis stocke des données confidentielles en clair, parce qu'il
+garde le mapping inverse, qui ramène chaque jeton à sa valeur. Deux composants
+**crypto** le protègent. Un `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`)
 transforme chaque message en clé déterministe sans révéler le texte. Un `AnyCipher`
 (`AesGcmCipher`) chiffre les détections au repos, de sorte qu'une fuite de la base ne
 révèle ni le message ni les valeurs. Le `thread_id` reste en clair comme préfixe de clé,
@@ -347,10 +350,10 @@ sequenceDiagram
   (`ToolCallStrategy`), en restaurant les arguments pour que l'outil reçoive de vraies
   données, puis en dé-identifiant sa réponse.
 
-Le middleware exige au type une factory qui préserve l'identité. Il reconnaît aussi les
-jetons que le modèle **invente** (`InventedPlaceholderStrategy`), car après restauration
-tout jeton qui suit encore la grammaire des placeholders n'a pas été émis par le
-pipeline. Le détail des stratégies d'outil est dans
+Le type du middleware exige une factory qui préserve l'identité. Le middleware
+reconnaît aussi les jetons que le modèle **invente** (`InventedPlaceholderStrategy`).
+Après la restauration, tout jeton qui suit encore la grammaire des placeholders n'a
+pas été émis par le pipeline. Le détail des stratégies d'outil est dans
 [Stratégies d'appel outil](tool-call-strategies.md).
 
 ---
@@ -359,8 +362,8 @@ pipeline. Le détail des stratégies d'outil est dans
 
 `piighost` émet une trace par étape du pipeline à travers un port
 (`AnyObservationTracer`), une couture au-dessus d'OpenTelemetry. Sans backend configuré,
-une implémentation no-op ne trace rien et ne coûte rien, donc le pipeline peut toujours
-émettre sans vérifier si le traçage est actif. Un `observation_redactor` optionnel
+une implémentation no-op ne trace rien et ne coûte rien. Le pipeline peut donc toujours
+émettre ses traces sans vérifier si le traçage est actif. Un `observation_redactor` optionnel
 remplace les valeurs des traces par des jetons, pour un backend qui n'a pas le droit de
 voir les données confidentielles.
 
@@ -369,18 +372,18 @@ voir les données confidentielles.
 ## La config, point de composition
 
 Un fichier TOML ou JSON décrit tout le pipeline. Le sous-système config le lit avec
-pydantic-settings et le convertit en modèles de config, des unions discriminées où
-chaque type de composant porte une méthode `build()`. Assembler le pipeline revient à
+pydantic-settings et le convertit en modèles de config. Ces modèles sont des unions
+discriminées, où chaque type de composant porte une méthode `build()`. Assembler le pipeline revient à
 appeler `build()` sur chaque modèle.
 
 ```python
 --8<-- "snippets/loaders.py"
 ```
 
-Un fichier sans section `[memory]` construit un pipeline, un fichier qui en déclare une construit un pipeline de conversation. Chaque chargeur refuse l'autre forme.
+Un fichier sans section `[memory]` construit un pipeline. Un fichier qui déclare une section `[memory]` construit un pipeline de conversation. Chaque chargeur refuse le fichier destiné à l'autre. `load_pipeline` refuse un fichier avec `[memory]`, et `load_thread_pipeline` un fichier sans.
 
-Le couplage est à sens unique, la config dépend du coeur et des adaptateurs, le coeur
-n'importe jamais la config. Ajouter un composant, c'est écrire un adaptateur, un modèle
+Le couplage est à sens unique. La config dépend du coeur et des adaptateurs, mais le
+coeur n'importe jamais la config. Ajouter un composant, c'est écrire un adaptateur, un modèle
 de config avec `build()`, et rien d'autre. Le pipeline ne change pas.
 
 ---

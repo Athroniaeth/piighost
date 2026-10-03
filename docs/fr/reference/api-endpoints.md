@@ -6,7 +6,7 @@ icon: lucide/server
 
 Paquet : `piighost-api`
 
-`piighost-api serve` construit un seul pipeline conversationnel à partir de sa configuration et sert chaque route ci-dessous dessus. Les corps de requête et de réponse sont en JSON. Le schéma OpenAPI est servi sur `/schema/openapi.json`, avec une interface Swagger sur `/schema/swagger`. `PIIGhostClient` appelle les routes du pipeline, voir [Client distant](../getting-started/api-client.md).
+`piighost-api serve` construit un seul pipeline conversationnel à partir de sa configuration. Chaque route ci-dessous passe par ce pipeline. Les corps de requête et de réponse sont en JSON. Le schéma OpenAPI est servi sur `/schema/openapi.json`, avec une interface Swagger sur `/schema/swagger`. `PIIGhostClient` appelle les routes du pipeline, voir [Client distant](../getting-started/api-client.md).
 
 ---
 
@@ -24,7 +24,7 @@ Le serveur charge ses clés au démarrage depuis chaque variable d'environnement
 
 </div>
 
-Un en-tête absent ou mal formé répond `401` avec `Missing or malformed Authorization header`, une clé inconnue `401` avec `Invalid API key`. Quand aucune clé ne se charge, le serveur refuse de démarrer sauf si `PIIGHOST_ALLOW_ANONYMOUS` est posée, et alors aucune route ne demande de clé. Les variables sont listées dans [CLI du serveur](api-cli.md).
+Un en-tête absent ou mal formé répond `401` avec `Missing or malformed Authorization header`. Une clé inconnue répond `401` avec `Invalid API key`. Quand aucune clé ne se charge, le serveur refuse de démarrer, sauf si `PIIGHOST_ALLOW_ANONYMOUS` est posée. Dans ce cas, aucune route ne demande de clé. Les variables sont listées dans [CLI du serveur](api-cli.md).
 
 ---
 
@@ -143,11 +143,11 @@ Dé-identifie un message dans une conversation, avec des jetons cohérents sur t
 | `anonymized_text` | string | Le texte où chaque valeur est remplacée par son placeholder |
 | `entities` | liste de `Entity` | Les entités de ce message qui ont reçu un jeton |
 
-`role` date les valeurs qu'un message introduit. Une valeur écrite d'abord par l'assistant ne reçoit pas de jeton et reste en clair.
+`role` indique l'auteur du message, et donc l'auteur des valeurs que ce message introduit. Une valeur écrite d'abord par l'assistant ne reçoit pas de jeton et reste en clair.
 
 ### `POST /v1/anonymize/corrected`
 
-Dé-identifie à nouveau un message à partir d'un jeu de détections corrigé, pour une étape de relecture humaine. Le jeu remplace les détections du message dans la mémoire de la conversation, après l'override configuré, et la détection ne s'exécute pas de nouveau.
+Dé-identifie à nouveau un message à partir d'un jeu de détections corrigé, pour une étape de relecture humaine. Le jeu corrigé passe par l'override configuré, puis remplace les détections du message dans la mémoire de la conversation. La détection ne s'exécute pas de nouveau.
 
 | Champ de requête | Type | Défaut |
 |---|---|---|
@@ -211,7 +211,7 @@ Seuls `Authorization`, `Content-Type`, `x-api-key`, `anthropic-version` et `anth
 
 </div>
 
-- Une réponse JSON réussie est restaurée, toute autre réponse est relayée telle quelle, avec le statut de l'upstream. Les en-têtes de réponse de l'upstream ne sont pas relayés.
+- Une réponse JSON réussie est restaurée. Toute autre réponse est relayée telle quelle, avec le statut de l'upstream. Les en-têtes de réponse de l'upstream ne sont pas relayés.
 - Les paramètres de requête n'atteignent l'upstream que sur les routes relayées telles quelles.
 - Une requête `chat/completions` streamée reçoit `201` avant que l'upstream ne réponde, donc une erreur de l'upstream arrive dans le corps du stream.
 - Le délai d'attente de l'upstream est de 60 secondes.
@@ -238,9 +238,9 @@ Chaque en-tête de requête est relayé sauf ceux de saut à saut (`Connection`,
 
 </div>
 
-- Chaque string d'une entrée `tool_use` est réécrite. Tout autre bloc, dont une image ou un document, et les définitions de `tools` sont relayés intacts.
-- La note de guidage posée par `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` est ajoutée après la dé-identification, en tête du prompt système ou du premier message utilisateur selon `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT`.
-- La réponse garde le statut de l'upstream et ses en-têtes de réponse, `retry-after` et `anthropic-ratelimit-*` compris, sauf ceux de longueur, d'encodage, de connexion et de type de contenu.
+- Chaque string d'une entrée `tool_use` est réécrite. Les autres blocs, dont une image ou un document, sont relayés intacts, tout comme les définitions de `tools`.
+- La note de guidage posée par `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` est ajoutée après la dé-identification. Selon `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT`, elle va en tête du prompt système ou en tête du premier message utilisateur.
+- La réponse garde le statut de l'upstream. Elle garde aussi ses en-têtes de réponse, `retry-after` et `anthropic-ratelimit-*` compris, sauf ceux de longueur, d'encodage, de connexion et de type de contenu.
 - Une requête streamée que l'upstream refuse reçoit le statut de l'upstream dans une réponse ordinaire. Une requête acceptée est streamée avec `200`.
 - Le délai d'attente de l'upstream est de 60 secondes.
 

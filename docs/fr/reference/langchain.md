@@ -55,7 +55,7 @@ PIIAnonymizationMiddleware(
 
 Le pipeline doit exposer un reconnaisseur de jetons délimités via `pipeline.recognizer`, pour qu'un jeton inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte au type-checking pour les appelants typés.
 
-Chaque appel de l'agent porte un identifiant de conversation dans sa config LangGraph. Un appel qui n'en porte pas lève `MissingThreadIdError`, plutôt que de router chaque conversation vers une conversation partagée, ce qui ferait fuiter l'état des placeholders d'une conversation à l'autre. Si vos conversations n'ont pas besoin d'être séparées, nommez vous-même la conversation `"default"` (`DEFAULT_THREAD_ID`).
+Chaque appel de l'agent porte un identifiant de conversation dans sa config LangGraph. Un appel qui n'en porte pas lève `MissingThreadIdError`. Le middleware ne route pas cet appel vers une conversation partagée, parce que l'état des placeholders fuiterait alors d'une conversation à l'autre. Si vos conversations n'ont pas besoin d'être séparées, nommez vous-même la conversation `"default"` (`DEFAULT_THREAD_ID`).
 
 ---
 
@@ -63,7 +63,7 @@ Chaque appel de l'agent porte un identifiant de conversation dans sa config Lang
 
 ### `abefore_model(state, runtime) -> dict | None`
 
-Dé-identifie les messages utilisateur et modèle avant que le modèle ne les voie. Chaque message passe par `pipeline.anonymize()` sous le rôle que son type porte. Un `ToolMessage` n'est jamais réécrit ici, seulement dans l'enveloppe d'outil. Sous `EntityCreateByAssistantStrategy.IGNORE`, le contenu d'un `AIMessage` est ignoré entièrement.
+Dé-identifie les messages utilisateur et modèle avant que le modèle ne les voie. Chaque message passe par `pipeline.anonymize()` avec le rôle que donne son type de message. Un `ToolMessage` n'est jamais réécrit ici, seulement dans l'enveloppe d'outil. Sous `EntityCreateByAssistantStrategy.IGNORE`, le contenu d'un `AIMessage` est ignoré entièrement.
 
 Renvoie `{"messages": [...]}` quand un message change, `None` sinon.
 
@@ -87,7 +87,7 @@ Route l'appel d'outil selon `tool_strategy`. Quand la stratégie dé-identifie l
 
 La restauration des arguments descend dans les conteneurs `dict`, `list` et `tuple` imbriqués. Seules les feuilles `str` sont restaurées, les autres types passent inchangés.
 
-La réponse est dé-identifiée quelle que soit la forme renvoyée par l'outil, son `ToolMessage` directement ou un `Command` dont la mise à jour d'état le porte, la forme qu'utilise un outil qui écrit aussi dans l'état. Une mise à jour d'état est parcourue comme une correspondance de clés d'état ou comme une séquence de paires clé-valeur, chacune portant un message ou une séquence de messages, donc les quatre formes que LangGraph accepte sont couvertes. Un contenu fait d'une liste de blocs de texte est traité comme une chaîne simple, bloc par bloc.
+La réponse est dé-identifiée quelle que soit la forme que l'outil renvoie. L'outil peut renvoyer son `ToolMessage` directement, ou un `Command` dont la mise à jour d'état porte ce `ToolMessage`. Un outil qui écrit aussi dans l'état utilise cette seconde forme. Une mise à jour d'état est parcourue sous ses deux formes, une correspondance de clés d'état ou une séquence de paires clé-valeur. Chaque entrée porte un message ou une séquence de messages. Les quatre formes que LangGraph accepte sont donc couvertes. Un contenu fait d'une liste de blocs de texte est traité comme une chaîne simple, bloc par bloc.
 
 ```text
 # model calls  : send_email(to="<<PERSON:1>>", subject="Hi")
@@ -119,7 +119,7 @@ Comment les deux directions d'un appel d'outil sont traitées. Les directions so
 
 ### `InventedPlaceholderStrategy`
 
-Comment un jeton que le pipeline n'a jamais émis est traité. Après restauration, chaque jeton émis a été remplacé par sa valeur, donc tout jeton qui suit encore la grammaire des placeholders a été inventé par le modèle, qu'il soit halluciné ou injecté.
+Comment un jeton que le pipeline n'a jamais émis est traité. Après restauration, chaque jeton émis a été remplacé par sa valeur. Tout jeton qui suit encore la grammaire des placeholders a donc été inventé par le modèle, qu'il soit halluciné ou injecté.
 
 | Valeur | Effet |
 |--------|-------|
@@ -131,7 +131,7 @@ Comment un jeton que le pipeline n'a jamais émis est traité. Après restaurati
 
 ### `EntityCreateByAssistantStrategy`
 
-Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans la conversation. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur, donc la dé-identifier prive le modèle de sa connaissance du monde sur cette entité.
+Comment les valeurs introduites par l'assistant sont traitées. La provenance d'une valeur est le rôle de sa première occurrence dans la conversation. Une valeur introduite par l'assistant n'est pas une donnée confidentielle de l'utilisateur. La dé-identifier prive donc le modèle de sa connaissance du monde sur cette entité.
 
 | Valeur | Effet |
 |--------|-------|
@@ -183,19 +183,19 @@ Le pipeline doit être un pipeline de conversation dont la factory de placeholde
 
 ## Streaming
 
-Les hooks `abefore_model` et `aafter_model` voient le message complet, donc un affichage en direct qui streame la réponse montrerait les placeholders jusqu'à ce qu'elle se termine. Pour un affichage token par token, enveloppez `deanonymize_stream` autour de votre propre boucle de streaming. Il ne tamponne qu'un jeton coupé entre deux chunks, restaure chaque jeton dès qu'il est complet, et applique `invented_strategy` par jeton restauré.
+Les hooks `abefore_model` et `aafter_model` voient le message complet. Un affichage en direct qui streame la réponse montrerait donc les placeholders jusqu'à ce qu'elle se termine. Pour un affichage token par token, enveloppez `deanonymize_stream` autour de votre propre boucle de streaming. Il ne tamponne qu'un jeton coupé entre deux chunks, restaure chaque jeton dès qu'il est complet, et applique `invented_strategy` par jeton restauré.
 
 ### `deanonymize_stream(source, thread_id) -> AsyncIterator[str]`
 
-`source` est un itérateur asynchrone des chunks de texte du modèle. `thread_id` est l'id avec lequel vous avez lancé l'agent, puisqu'une boucle de streaming manuelle est hors de la config LangGraph que lisent les hooks.
+`source` est un itérateur asynchrone des chunks de texte du modèle. `thread_id` est l'id avec lequel vous avez lancé l'agent. Vous le passez vous-même, parce qu'une boucle de streaming manuelle ne voit pas la config LangGraph que lisent les hooks.
 
 ```python
 --8<-- "snippets/reference_langchain.py:stream"
 ```
 
-Un jeton coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de jeton cassé. Seul un flux qui s'interrompt au milieu d'un jeton rend son fragment tel quel, `<<PER`{ .placeholder } par exemple, qui ne contient aucune vraie valeur.
+Un jeton coupé entre deux chunks, `<<PER`{ .placeholder } puis `SON:1>>`{ .placeholder }, est retenu jusqu'à ce qu'il soit complet puis restauré en `Patrick`{ .pii }, donc l'affichage ne montre pas de jeton cassé. Seul un flux qui s'interrompt au milieu d'un jeton rend son fragment tel quel, par exemple `<<PER`{ .placeholder }. Ce fragment ne contient aucune vraie valeur.
 
-Pour un autre framework, la même restauration est un cran plus bas, `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory, avec `replace` une coroutine qui restaure un jeton.
+Pour un autre framework, utilisez la même restauration un cran plus bas. `pipeline.recognizer.async_stream_decoder(replace)` construit le décodeur sur la grammaire de n'importe quelle factory. `replace` est une coroutine qui restaure un jeton.
 
 ---
 

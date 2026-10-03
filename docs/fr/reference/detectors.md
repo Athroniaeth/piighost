@@ -35,7 +35,7 @@ Chaque détecteur NER a besoin de son propre extra (`gliner2`, `spacy`, `transfo
 
 ## `AnyDetector` (protocole)
 
-Le port que tout détecteur implémente. Une seule méthode asynchrone, donc une implémentation peut attendre une I/O comme un serveur de modèle ou une API LLM sans bloquer le pipeline.
+C'est le port que tout détecteur implémente. Sa seule méthode est asynchrone, donc une implémentation peut attendre une I/O comme un serveur de modèle ou une API LLM sans bloquer le pipeline.
 
 ```python
 @runtime_checkable
@@ -60,9 +60,9 @@ Chaque détecteur renvoie une liste de `Detection`, un dataclass gelé qui porte
 
 ## `RegexDetector`
 
-Trouve les données confidentielles en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car les formats qu'il cible utilisent des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0. Chaque espace Unicode du texte est lue comme une espace ordinaire, voir [Espaces Unicode](#espaces-unicode).
+Trouve les données confidentielles en appliquant un pattern regex par label. Chaque pattern est compilé une fois à la construction, sous `re.ASCII`, donc `\d` et les autres classes de forme ne correspondent qu'à l'ASCII. Un caractère Unicode ressemblant à un chiffre, comme un chiffre arabo-indien, ne correspond pas, car les formats que le détecteur cible utilisent des chiffres ASCII. `detect` émet une détection par correspondance sans chevauchement, à une confiance fixe de 1.0. Chaque espace Unicode du texte est lue comme une espace ordinaire, voir [Espaces Unicode](#espaces-unicode).
 
-Il ne porte aucun validateur de somme de contrôle, donc il correspond sur la forme seule. Une valeur structurée abîmée par un OCR est conservée plutôt que rejetée, car rejeter une vraie valeur reviendrait à la laisser fuiter.
+Il ne porte aucun validateur de somme de contrôle. Il reconnaît donc une valeur sur sa forme seule. Une valeur structurée abîmée par un OCR est conservée plutôt que rejetée, car rejeter une vraie valeur reviendrait à la laisser fuiter.
 
 ### Constructeur
 
@@ -95,11 +95,11 @@ Construit un détecteur à partir des regex que porte une référence du [hub pi
 --8<-- "snippets/reference_regex_hub.py:from_hub"
 ```
 
-Une référence épinglée sur un commit est immuable : la réponse est mise en cache sous `~/.cache/piighost/hub` et relue depuis le disque aux appels suivants. Une référence pointant vers un tag ou vers `latest` bouge, elle est donc récupérée à chaque fois : servir une version périmée détecterait silencieusement moins que ce que l'appelant a demandé.
+Une référence épinglée sur un commit est immuable. Sa réponse est donc mise en cache sous `~/.cache/piighost/hub` et relue depuis le disque aux appels suivants. Une référence qui pointe vers un tag ou vers `latest` peut changer. Elle est donc récupérée à chaque fois, parce qu'une version périmée détecterait sans le dire moins que ce que l'appelant a demandé.
 
-L'appel lève une sous-classe de `HubError` (`piighost.hub`) si la référence ne se parse pas, si le hub est injoignable, ou si la référence résout vers autre chose qu'un détecteur regex simple. Ce dernier cas couvre une référence portant un détecteur modèle, dont les regex seules détecteraient moins que ce que la référence promet, donc l'appel échoue plutôt que d'en rendre la moitié.
+L'appel lève une sous-classe de `HubError` (`piighost.hub`) si la référence ne se parse pas, si le hub est injoignable, ou si la référence résout vers autre chose qu'un détecteur regex simple. Ce dernier cas couvre une référence qui porte un détecteur modèle. Ses regex seules détecteraient moins que ce que la référence promet, donc l'appel échoue plutôt que d'en rendre la moitié.
 
-Il n'utilise que la bibliothèque standard, donc l'installation de base n'a besoin d'aucun extra.
+`from_hub` n'utilise que la bibliothèque standard, donc l'installation de base n'a besoin d'aucun extra.
 
 
 ---
@@ -126,7 +126,7 @@ CompositeDetector(detectors: list[AnyDetector])
 
 ## `ExactMatchDetector`
 
-Trouve les occurrences en mot entier de valeurs littérales configurées. Il parcourt le texte pour chaque valeur et émet une détection par occurrence à une confiance de 1.0. La correspondance se fait sur des frontières de mot, donc une valeur ne se déclenche pas à l'intérieur d'un mot plus long (`Ann`{ .pii } ne correspond pas dans `Anne`{ .pii }), et elle est insensible à la casse par défaut, donc une valeur correspond quelle que soit sa casse tandis que la détection garde le texte tel qu'il apparaît. Une espace dans une valeur correspond à n'importe quelle suite d'espaces, voir [Espaces Unicode](#espaces-unicode), et une valeur faite uniquement d'espaces est refusée. Il ne porte aucun modèle et aucune dépendance optionnelle, ce qui en fait le détecteur de choix pour exercer le pipeline dans les tests.
+Trouve les occurrences en mot entier de valeurs littérales configurées. Il parcourt le texte pour chaque valeur et émet une détection par occurrence à une confiance de 1.0. La correspondance se fait sur des frontières de mot, donc une valeur ne se déclenche pas à l'intérieur d'un mot plus long (`Ann`{ .pii } ne correspond pas dans `Anne`{ .pii }). La correspondance est insensible à la casse par défaut. Une valeur correspond donc quelle que soit sa casse, et la détection garde le texte tel qu'il apparaît. Une espace dans une valeur correspond à n'importe quelle suite d'espaces, voir [Espaces Unicode](#espaces-unicode). Une valeur faite uniquement d'espaces est refusée. Il ne porte aucun modèle et aucune dépendance optionnelle. C'est donc le détecteur de choix pour exercer le pipeline dans les tests.
 
 ### Constructeur
 
@@ -168,7 +168,7 @@ ChunkedDetector(detector: AnyDetector, splitter: AnySplitter | None = None)
 
 ## `LLMDetector`
 
-Détecte les PII avec un modèle de chat LangChain via une sortie structurée. A besoin de l'extra `llm` et d'un paquet fournisseur. On demande au modèle d'extraire des paires `(text, label)` contre un schéma dont le champ label est contraint aux labels configurés. Chaque valeur extraite est ensuite localisée dans le texte source par recherche sur frontière de mot, donc une valeur inventée par le modèle mais absente du texte ne donne rien. `labels` est requis, puisque le schéma en est construit. Le texte source est enveloppé dans des balises `<text_to_analyze>` et le prompt système ordonne au modèle de traiter le contenu balisé comme des données, jamais comme des instructions, donc une tentative d'injection de prompt dans le texte ne peut pas orienter l'extraction.
+Détecte les PII avec un modèle de chat LangChain via une sortie structurée. A besoin de l'extra `llm` et d'un paquet fournisseur. On demande au modèle d'extraire des paires `(text, label)` selon un schéma. Le champ label de ce schéma n'accepte que les labels configurés. Chaque valeur extraite est ensuite localisée dans le texte source par recherche sur frontière de mot, donc une valeur inventée par le modèle mais absente du texte ne donne rien. `labels` est requis, puisque le schéma est construit à partir de ces labels. Le texte source est enveloppé dans des balises `<text_to_analyze>`. Le prompt système ordonne au modèle de traiter le contenu balisé comme des données, jamais comme des instructions. Une tentative d'injection de prompt dans le texte ne peut donc pas orienter l'extraction.
 
 ### Constructeur
 
@@ -192,7 +192,7 @@ LLMDetector(
 | `confidence` | `float` | Confiance portée sur chaque détection, 1.0 par défaut, pour qu'un détecteur LLM puisse être départagé face à un détecteur NER à la résolution des chevauchements |
 | `fail_open` | `bool` | Si une sortie que le détecteur ne sait pas lire passe comme zéro détection, `False` par défaut |
 
-Un `prompt` personnalisé doit contenir un placeholder `{labels}` et, selon le format f-string de LangChain, doubler toute autre accolade littérale en `{{` ou `}}`.
+Un `prompt` personnalisé doit contenir un placeholder `{labels}`. Il doit aussi doubler toute autre accolade littérale en `{{` ou `}}`, selon le format f-string de LangChain.
 
 Une sortie que le détecteur ne sait pas lire, un JSON cassé ou un résultat sans son champ `entities`, lève `UnreadableOutputError`. Un modèle en panne refuse donc le message au lieu de l'envoyer sans détection. L'erreur nomme le type de la sortie, jamais son texte. Avec `fail_open=True`, le message part sans détection et un avertissement est journalisé, pour un déploiement qui fait passer la disponibilité avant la protection.
 
@@ -232,7 +232,7 @@ Gliner2Detector(
 
 ### `Gliner2PiiDetector`
 
-Un `Gliner2Detector` prêt à l'emploi sur le modèle GLiNER2 de fastino affiné pour les PII, avec une map de labels préréglée, donc ni identifiant de modèle ni argument `labels` n'est requis. Le préréglage couvre la taxonomie du modèle, des noms et coordonnées aux identifiants, données de paiement, identité numérique, secrets et dates sensibles. Passez `labels` pour restreindre ou étendre l'ensemble, ou `model` pour injecter une instance chargée, par exemple dans un test, afin qu'aucun poids ne soit téléchargé.
+Un `Gliner2Detector` prêt à l'emploi sur le modèle GLiNER2 de fastino affiné pour les PII. Le modèle et la map de labels sont préréglés, donc ni identifiant de modèle ni argument `labels` n'est requis. Le préréglage couvre la taxonomie du modèle, des noms et coordonnées aux identifiants, données de paiement, identité numérique, secrets et dates sensibles. Passez `labels` pour restreindre ou étendre l'ensemble, ou `model` pour injecter une instance chargée, par exemple dans un test, afin qu'aucun poids ne soit téléchargé.
 
 ```python
 Gliner2PiiDetector(
@@ -274,7 +274,7 @@ SpacyDetector(
 
 ### `TransformersDetector`
 
-Un pipeline de classification de tokens Hugging Face. A besoin de l'extra `transformers`. `labels` est optionnel, gardé natif s'il est omis. Un `pipeline` en `str` est chargé comme un pipeline `ner`. Une entité qui score sous `threshold` est rejetée.
+Un pipeline de classification de tokens Hugging Face. A besoin de l'extra `transformers`. `labels` est optionnel. Omis, chaque label natif est gardé. Un `pipeline` en `str` est chargé comme un pipeline `ner`. Une entité qui score sous `threshold` est rejetée.
 
 ```python
 TransformersDetector(
@@ -300,7 +300,7 @@ TransformersDetector(
 
 ### `PresidioDetector`
 
-Enveloppe un `AnalyzerEngine` de Presidio pour réutiliser ses recognizers. A besoin de l'extra `presidio`. L'analyzer est injecté, car un moteur est assemblé d'un moteur NLP et d'un registre de recognizers, pas chargé depuis un nom. `labels` est optionnel, gardé natif quand il est omis. Une entité scorant sous `threshold` est écartée.
+Enveloppe un `AnalyzerEngine` de Presidio pour réutiliser ses recognizers. A besoin de l'extra `presidio`. L'analyzer est injecté, car un moteur est assemblé d'un moteur NLP et d'un registre de recognizers, pas chargé depuis un nom. `labels` est optionnel. Omis, chaque type natif est gardé. Une entité scorant sous `threshold` est écartée.
 
 ```python
 PresidioDetector(
@@ -324,9 +324,9 @@ Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine`
 
 ### `BridgeDetector`
 
-Délègue l'inférence à un exécuteur injecté et ramène ce qu'il rend sur des détections. Il ne porte aucun modèle et ne demande aucun extra. Il existe pour un environnement où aucune pile NER n'est installable, le navigateur étant le cas courant, où le modèle tourne dans le runtime JavaScript de l'hôte et où Python l'attend via le FFI de Pyodide. La même forme sert n'importe quel exécuteur hors du processus, un sous-processus ou un side-car.
+Délègue l'inférence à un exécuteur injecté et convertit sa réponse en détections. Il ne porte aucun modèle et ne demande aucun extra. Il existe pour un environnement où aucune pile NER n'est installable. Le cas courant est le navigateur. Le modèle y tourne dans le runtime JavaScript de l'hôte, et Python l'attend via le FFI de Pyodide. La même forme sert n'importe quel exécuteur hors du processus, un sous-processus ou un side-car.
 
-`labels` est obligatoire, puisque l'exécuteur est interrogé avec les labels internes et qu'un span dont le label n'est pas mappé est écarté, comme pour tout adaptateur NER. `offset_unit` l'est aussi, puisque rien dans une réponse ne distingue les deux unités.
+`labels` est obligatoire, puisque l'exécuteur est interrogé avec les labels internes et qu'un span dont le label n'est pas mappé est écarté, comme pour tout adaptateur NER. `offset_unit` est obligatoire aussi, puisque rien dans une réponse ne dit si ses décalages comptent des points de code ou des unités UTF-16.
 
 ```python
 BridgeDetector(
@@ -356,7 +356,7 @@ L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes
 | `CODE_POINT` | des caractères, comme une `str` Python et `Span` | écrit en Python |
 | `UTF16` | des unités UTF-16, où un emoji ou un idéogramme rare en prend deux | écrit en JavaScript, dans un navigateur ou dans Node |
 
-Les deux unités concordent sur un texte sans un tel caractère, et s'écartent d'une unité après chacun. Un décalage JavaScript lu comme un point de code tombe un caractère trop loin, et la première lettre de la valeur reste en clair. Un exécuteur JavaScript déclare donc `UTF16`, et le détecteur convertit.
+Sur un texte sans emoji ni idéogramme rare, les deux unités concordent. Après chacun de ces caractères, elles s'écartent d'une unité. Un décalage JavaScript lu comme un point de code tombe un caractère trop loin, et la première lettre de la valeur reste en clair. Un exécuteur JavaScript déclare donc `UTF16`, et le détecteur convertit.
 
 ```python
 --8<-- "snippets/reference_detectors.py:bridge"
@@ -365,16 +365,16 @@ Les deux unités concordent sur un texte sans un tel caractère, et s'écartent 
 Un exécuteur est du code étranger, souvent atteint au travers d'une frontière de langage, donc sa réponse est vérifiée plutôt que crue.
 
 - Le `text` que l'exécuteur rend est ignoré et relu depuis la source, donc un exécuteur qui abîme la sous-chaîne trouvée ne peut pas désynchroniser le remplacement.
-- Un span auquel il manque un champ, ou qui porte un décalage qui n'est pas un entier, un flottant comme `8.9` ou `8.0` compris, lève `BridgePayloadError`. Le tronquer déplacerait le span.
-- Un span qui déborde du texte, ou un décalage UTF-16 qui tombe entre les deux moitiés d'un caractère, lève `BridgeSpanRangeError`. Le rogner découperait une sous-chaîne plus courte que ce que l'exécuteur visait, et laisserait une partie de la valeur en clair.
+- Un span auquel il manque un champ, ou qui porte un décalage qui n'est pas un entier, un flottant comme `8.9` ou `8.0` compris, lève `BridgePayloadError`. Tronquer un tel décalage déplacerait le span.
+- Un span qui déborde du texte, ou un décalage UTF-16 qui tombe entre les deux moitiés d'un caractère, lève `BridgeSpanRangeError`. Rogner le span découperait une sous-chaîne plus courte que ce que l'exécuteur visait, et laisserait une partie de la valeur en clair.
 - Un span noté sous `threshold` est écarté, même quand l'exécuteur a ignoré le seuil qu'il a reçu.
 - Un résultat portant une méthode `to_py`, comme le fait un `JsProxy` de Pyodide, est converti d'abord.
 
-Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelable, qu'un fichier TOML ou JSON ne peut pas nommer sans un registre d'appelables, et ce registre ferait dépendre le cœur de ce qui le configure. Un appelant qui construit ce détecteur le construit dans le code.
+Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelable. Un fichier TOML ou JSON ne peut pas nommer un appelable sans un registre d'appelables, et ce registre ferait dépendre le cœur de ce qui le configure. Un appelant qui construit ce détecteur le construit dans le code.
 
 ### Gestion des textes longs
 
-`Gliner2Detector`, `TransformersDetector` et `BridgeDetector` prennent `max_chars` avec `auto_chunk` (défaut `True`). Un texte plus long que `max_chars` est découpé en morceaux qui se chevauchent, scannés séparément, puis reprojetés sur le texte original. Avec `auto_chunk` désactivé, un texte au-delà de la limite lève `TextTooLongError` à la place. `max_chars` vaut `None` par défaut, donc il n'y a pas de limite et le texte entier est scanné en une passe. `SpacyDetector` et `PresidioDetector` ne les exposent pas.
+`Gliner2Detector`, `TransformersDetector` et `BridgeDetector` prennent `max_chars` avec `auto_chunk` (défaut `True`). Un texte plus long que `max_chars` est découpé en morceaux qui se chevauchent, scannés séparément, puis reprojetés sur le texte original. Avec `auto_chunk` désactivé, un texte au-delà de la limite lève `TextTooLongError` à la place. `max_chars` vaut `None` par défaut, donc il n'y a pas de limite et le texte entier est scanné en une passe. `SpacyDetector` et `PresidioDetector` n'exposent pas ces deux paramètres.
 
 ### Garanties communes à tous les détecteurs NER
 
@@ -389,7 +389,7 @@ Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelab
 `BaseNERDetector` normalise l'argument `labels` en une map externe vers interne, puis mappe et filtre les détections produites par le modèle. Il distingue le label qu'un modèle utilise nativement du label émis dans `Detection.label`.
 
 - Une liste, `["PERSON", "LOCATION"]`, mappe chaque label vers lui-même.
-- Une map, `{"PERSON": "PER"}`, prend le label émis comme clé et le label natif du modèle comme valeur, donc une détection que le modèle étiquette `PER` est émise en `PERSON`. Un label natif absent des valeurs de la map est rejeté.
+- Une map, `{"PERSON": "PER"}`, prend le label émis comme clé et le label natif du modèle comme valeur. Une détection que le modèle étiquette `PER` est donc émise en `PERSON`. Un label natif absent des valeurs de la map est rejeté.
 - `None` ou une map vide n'applique aucune correspondance, donc chaque détection est gardée avec le label donné par le modèle.
 
 Deux labels externes mappant vers un même label interne lèvent `LabelMappingError`, car la recherche inverse serait ambiguë.
@@ -416,13 +416,13 @@ Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous f
 
 </div>
 
-Construisez un détecteur à partir d'un groupe avec [`from_hub`](#from_hub). `pull` (`piighost.hub`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre, donc plusieurs groupes se fusionnent par fusion de dict, l'entrée de droite prenant le dessus sur un même label.
+Construisez un détecteur à partir d'un groupe avec [`from_hub`](#from_hub). `pull` (`piighost.hub`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre. Plusieurs groupes se fusionnent donc comme des dict, et pour un même label, l'entrée de droite l'emporte.
 
 ```python
 --8<-- "snippets/reference_regex_hub.py:merge"
 ```
 
-Une référence épinglée sur un commit, les huit caractères hexadécimaux après le dernier deux-points, est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, hors ligne compris. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
+Une référence épinglée sur un commit se termine par les huit caractères hexadécimaux du commit, après le dernier deux-points. Elle est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, même hors ligne. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
 
 Le hub teste chaque pattern qu'il publie contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
 
@@ -430,7 +430,7 @@ Les labels du groupe générique ne dépendent d'aucun pays. Les autres sont pr�
 
 ### Tirer les catalogues depuis une config
 
-Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée est une référence de hub écrite `hub:namespace/name` avec un `:selector` optionnel. Les catalogues fusionnent dans l'ordre, puis les `patterns` en ligne, donc un pattern en ligne l'emporte sur un pattern de catalogue sur le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
+Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée est une référence de hub écrite `hub:namespace/name` avec un `:selector` optionnel. Les catalogues fusionnent dans l'ordre, puis les `patterns` en ligne s'y ajoutent. Un pattern en ligne l'emporte donc sur un pattern de catalogue pour le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
 
 ```toml
 [detector]
@@ -441,9 +441,9 @@ catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-Une référence de hub nomme un catalogue relu au lieu d'en porter une copie, donc la config reste courte et les patterns restent auditables à leur source. Un catalogue est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé.
+Une référence de hub nomme un catalogue relu au lieu d'en porter une copie. La config reste donc courte, et les patterns restent auditables à leur source. Un catalogue est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé.
 
-Une entrée qui n'est pas une référence de hub échoue au chargement plutôt que sous forme d'URL invalide plus tard. Les noms `generic`, `us`, `eu` et `fr`, qui désignaient avant la 2.0 des catalogues livrés dans la librairie, sont refusés avec la référence qui les remplace.
+Une entrée qui n'est pas une référence de hub échoue au chargement plutôt que sous forme d'URL invalide plus tard. Les noms `generic`, `us`, `eu` et `fr`, qui désignaient avant la 2.0 des catalogues livrés dans la librairie, sont refusés, et le message d'erreur donne la référence qui les remplace.
 
 ```text
 the built-in catalog 'generic' was removed in piighost 2.0: name the hub group instead, hub:piighost/generic
@@ -451,7 +451,7 @@ the built-in catalog 'generic' was removed in piighost 2.0: name the hub group i
 
 ## Espaces Unicode
 
-Une valeur est souvent tapée avec une espace qui n'est pas l'espace ASCII. Word place une espace insécable (U+00A0) ou une espace fine insécable (U+202F) dans un numéro de téléphone ou un IBAN, l'extraction d'un PDF produit des espaces fines et des espaces de chiffre, et un texte d'Asie de l'Est utilise l'espace idéographique (U+3000). `piighost` lit chaque séparateur d'espace Unicode (catégorie Zs) comme une espace ordinaire, et chaque séparateur de ligne (U+0085, U+2028, U+2029) comme un retour à la ligne, à trois étapes.
+Une valeur est souvent tapée avec une espace qui n'est pas l'espace ASCII. Word place une espace insécable (U+00A0) ou une espace fine insécable (U+202F) dans un numéro de téléphone ou un IBAN, l'extraction d'un PDF produit des espaces fines et des espaces de chiffre, et un texte d'Asie de l'Est utilise l'espace idéographique (U+3000). `piighost` lit chaque séparateur d'espace Unicode (catégorie Zs) comme une espace ordinaire, et chaque séparateur de ligne (U+0085, U+2028, U+2029) comme un retour à la ligne. Cette règle s'applique à trois étapes.
 
 | Étape | Composants | Ce qui est garanti |
 |---|---|---|
@@ -461,7 +461,7 @@ Une valeur est souvent tapée avec une espace qui n'est pas l'espace ASCII. Word
 
 La règle vaut pour tous les patterns, ceux du hub compris, donc un pattern n'a pas à prévoir ces caractères. Un pattern qui cherche exprès une espace insécable n'en trouve plus, car la copie sur laquelle il s'applique porte des espaces ordinaires à la place. Les caractères de largeur nulle (U+200B, U+2060, U+FEFF) ne sont pas des espaces et restent tels quels.
 
-Les deux fonctions sont publiques dans `piighost.text`, pour un détecteur ou un linker personnalisé qui doit suivre la même règle.
+Les deux fonctions de cette règle, `normalize_spaces` et `value_key`, sont publiques dans `piighost.text`, pour un détecteur ou un linker personnalisé qui doit suivre la même règle.
 
 ```python
 --8<-- "snippets/reference_text.fr.py:example"
@@ -481,7 +481,7 @@ Les deux fonctions sont publiques dans `piighost.text`, pour un détecteur ou un
 
 Les traits d'union sont celui de l'ASCII, le trait d'union et le trait d'union insécable que Word écrit à sa place, le trait d'union conditionnel, le maqaf hébreu, et toute autre ponctuation de tiret que Unicode nomme trait d'union. Ils forment `WORD_JOIN_CHARS`, dans `piighost.text.boundaries`.
 
-L'apostrophe borne un mot dans toutes les langues, puisqu'elle termine un mot aussi souvent qu'elle se trouve à l'intérieur. En contrepartie, `Brien`{ .pii } est aussi trouvé dans `O'Brien`{ .pii }, ce qui masque plus que demandé et ne laisse rien en clair.
+L'apostrophe borne un mot dans toutes les langues, puisqu'elle termine un mot aussi souvent qu'elle se trouve à l'intérieur. En contrepartie, `Brien`{ .pii } est aussi trouvé dans `O'Brien`{ .pii }. Le masque couvre alors plus que demandé, mais ne laisse rien en clair.
 
 La règle suppose des espaces entre les mots, elle ne trouve donc rien en chinois, en japonais ou en thaï, voir [Limites](../limitations.md#la-recherche-par-mot-entier-suppose-des-espaces-entre-les-mots).
 

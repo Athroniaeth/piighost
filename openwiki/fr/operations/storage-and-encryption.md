@@ -43,7 +43,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Effacer une conversation supprime son stockage. Sur un serveur à plusieurs processus, une copie temporaire peut survivre dans les autres processus tant qu'aucune durée de vie n'est réglée.
 - Les traces techniques contiennent par défaut le texte en clair. Un réglage les remplace par des jetons.
 
-Cette page est technique. Le déroulé d'une conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md). Les termes sont définis dans le [glossaire](../glossary.md). La mise en production est décrite dans le guide technique, par [Déployer un pipeline en production](../../../docs/fr/deployment.md) pour un serveur et par [Déploiement multi-instance](../../../docs/fr/multi-instance.md) pour plusieurs instances derrière un répartiteur de charge. Les garanties de stockage y sont détaillées dans [Sécurité](../../../docs/fr/security.md).
+Cette page est technique. Le déroulé d'une conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md). Les termes sont définis dans le [glossaire](../glossary.md). La mise en production est décrite dans le guide technique. [Déployer un pipeline en production](../../../docs/fr/deployment.md) couvre un serveur, et [Déploiement multi-instance](../../../docs/fr/multi-instance.md) couvre plusieurs instances derrière un répartiteur de charge. Les garanties de stockage y sont détaillées dans [Sécurité](../../../docs/fr/security.md).
 
 ## Choisir un stockage
 
@@ -59,20 +59,20 @@ Recommandation : `in_memory` pour le développement et les tests, Redis ou SQL d
 
 Pour chaque message : son empreinte, le rôle de son auteur (`user` ou `assistant`) et ses détections (position, texte, étiquette, confiance). Le texte des détections est la donnée sensible.
 
-- Redis : `{namespace}:{thread_id}:msg:{empreinte}` contient le rôle et les détections, `{namespace}:{thread_id}:index` l'ordre d'arrivée des messages (`conversation_memory/redis_backend.py:7-12`).
+- Redis : `{namespace}:{thread_id}:msg:{empreinte}` contient le rôle et les détections. `{namespace}:{thread_id}:index` contient l'ordre d'arrivée des messages (`conversation_memory/redis_backend.py:7-12`).
 - SQL : une ligne par message dans `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
 
 ## Règles à connaître
 
-**BR-STO-01.** Quand vous fournissez un hacheur sans chiffreur, ou l'inverse, alors la construction échoue. En code : `ValueError("Provide both a hasher and a cipher, or neither")`. En configuration : `ConfigError("Configure both a hasher and a cipher, or neither")`. Hacher les clés en laissant les valeurs en clair ne protège rien.
+**BR-STO-01.** Quand vous fournissez un hacheur sans chiffreur, ou un chiffreur sans hacheur, alors la construction échoue. En code : `ValueError("Provide both a hasher and a cipher, or neither")`. En configuration : `ConfigError("Configure both a hasher and a cipher, or neither")`. Hacher les clés en laissant les valeurs en clair ne protège rien.
 
 **BR-STO-02.** Quand Redis ou une base SQL est construit sans chiffrement, alors un `PIIGhostSecurityWarning` est émis. Exception : une base SQLite ne déclenche pas l'avertissement (`conversation_memory/sqlalchemy_backend.py:99-100`).
 
 **BR-STO-03.** Quand le chiffrement est actif, alors l'identifiant de conversation reste en clair. Il sert de préfixe de clé Redis et de colonne SQL, pour pouvoir lister et effacer une conversation. N'y mettez pas de donnée personnelle (une adresse e-mail, un nom).
 
-**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations, la moins récemment utilisée évincée au-delà, et chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, au prochain accès. `max_threads` et `ttl` changent ces bornes. Exemple : une conversation écrite le 02/10/2026 à 9 h et plus touchée ensuite est oubliée le 03/10/2026 à partir de 9 h.
+**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations. Au-delà, la moins récemment utilisée est évincée. Chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, et elle est retirée au prochain accès. `max_threads` et `ttl` changent ces bornes. Exemple : une conversation écrite le 02/10/2026 à 9 h et plus touchée ensuite est oubliée le 03/10/2026 à partir de 9 h.
 
-**BR-STO-05.** Quand Redis a un `ttl`, alors chaque message expire ce nombre de secondes après son écriture. L'index de la conversation reçoit la même durée à chaque nouveau message. La base SQL n'a aucune expiration : effacez les conversations vous-même.
+**BR-STO-05.** Quand Redis a un `ttl`, alors chaque message expire ce nombre de secondes après son écriture. L'index de la conversation reçoit la même durée à chaque nouveau message. La base SQL n'a aucune expiration. Effacez les conversations vous-même.
 
 **BR-STO-06.** Quand une conversation est effacée, alors son stockage et le cache de jetons du processus qui reçoit la demande sont vidés. Les autres processus gardent leur cache jusqu'à son éviction (256 cartes au plus) ou jusqu'à `token_memo_ttl`. Exemple : sur un serveur à 4 processus, une demande d'effacement reçue par le processus 1 laisse les valeurs dans le cache des processus 2 à 4 tant que `token_memo_ttl` n'est pas réglé.
 
@@ -119,7 +119,7 @@ Vous devez voir des clés `piighost:<thread_id>:msg:<empreinte>`. `redis-cli GET
 | HMAC-SHA256 | `sha256` | rapide | non |
 | Argon2id | `argon2` | lent, gourmand en mémoire | oui, en partie |
 
-Argon2id prend par défaut `time_cost = 2`, `memory_cost = 19456` Kio, `parallelism = 1`, `hash_length = 32`. Le hacheur tourne à chaque message : mesurez la latence avant de durcir ces valeurs.
+Argon2id prend par défaut `time_cost = 2`, `memory_cost = 19456` Kio, `parallelism = 1`, `hash_length = 32`. Le hacheur tourne à chaque message. Mesurez donc la latence avant de durcir ces valeurs.
 
 ## Masquer les traces
 
@@ -133,7 +133,7 @@ Le pipeline ouvre un span par étape (`piighost.detect`, `piighost.link`, `piigh
 
 - **Le cache de jetons n'est pas partagé** entre processus. Réglez `token_memo_ttl` dès que vous effacez des conversations sur un déploiement multi-processus (BR-STO-06).
 - **La table SQL n'est pas créée par la configuration.** Sans `create_schema()`, le premier message échoue.
-- **Deux écritures SQL simultanées du même message** peuvent lever une erreur de contrainte d'unicité : la vérification puis l'écriture ne sont pas atomiques (`sqlalchemy_backend.py:124-127`). Redis, lui, retente sous `WATCH`.
+- **Deux écritures SQL simultanées du même message** peuvent lever une erreur de contrainte d'unicité, parce que la vérification puis l'écriture ne sont pas atomiques (`sqlalchemy_backend.py:124-127`). Redis, lui, retente sous `WATCH`.
 - **Le cache des motifs de mots** est commun à tout le processus. `forget_thread` ne le vide pas. Appelez `clear_boundary_cache` si la demande d'effacement couvre tout le processus.
 - **Une clé AES perdue rend la mémoire illisible.** Les conversations en cours ne peuvent plus être restaurées.
 

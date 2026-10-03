@@ -110,7 +110,7 @@ Here, a pattern that is 100% sure found "Wirth" and a model that is 70% sure fou
 
 **BR-MSG-07.** When a pattern recognizes the shape of a card or an IBAN, then the value is masked without checking its check digits. Why: a value damaged by character recognition would have wrong check digits, and rejecting it would let it leave in clear text.
 
-**BR-MSG-08.** When a message contains an API key, then it is masked only if the configuration loads a pattern group for secrets, such as the `piighost/logs` group of the hub, or a model that looks for them. Example: with this group, an OpenAI key leaves as `<<OPENAI_API_KEY:1>>`.
+**BR-MSG-08.** When a message contains an API key, then it is masked only if the configuration loads a pattern group for secrets or a model that looks for secrets. The `piighost/logs` group of the hub is such a group. Example: with this group, an OpenAI key leaves as `<<OPENAI_API_KEY:1>>`.
 
 **BR-MSG-09.** When the user types a text that has the shape of a placeholder, then this text is neutralized with an invisible character. Example: "Claire writes `<<PERSON:2>>` here" cannot pass for a real placeholder at restoration. Why: otherwise, a hand-typed placeholder could retrieve the value of another person.
 
@@ -201,7 +201,7 @@ Then `echo "Tel. 06 12 34 56 78" | uv run piighost anonymize --config <file>` mu
 - **Expansion runs after the resolver.** It skips any occurrence that touches an already covered character, and searches for the longest values first (`expander/base.py:30-75`).
 - **The neutralization character stays in the restored text.** A placeholder typed by the user comes back with an invisible U+200B after its first character. A downstream process that compares exact strings can fail. `Anonymizer(factory, escape_existing_tokens=False)` disables the neutralization, at the cost of BR-MSG-09.
 - **`RegexDetector` compiles under `re.ASCII`.** `\d` matches only 0 to 9, and `\w` stops at the first accented character.
-- **A detector on its own can return overlapping detections.** The port allows it. Never test a detector by taking it out of the chain before the resolver.
+- **A detector on its own can return overlapping detections.** The port allows it. Do not test the output of a detector on its own as if it had already gone through the overlap resolver.
 - **A score-based guard rail (moderation) locates nothing.** The blacklist values cannot be exempted from it (`pipeline/base.py:318-322`).
 - **`LLMDetector` fails closed.** A model output that is unreadable, has no `entities` field or is rejected by the parser raises `UnreadableOutputError` and the message is refused (`components/detector/llm.py:174-181`, `_unreadable` at `:203`). `fail_open=True` reads it as zero detections, and the message then leaves without protection. See DPO-9 in [Needs by profile](../needs-by-profile.md#watch-points).
 

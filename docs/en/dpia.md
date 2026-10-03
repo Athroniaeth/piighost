@@ -4,7 +4,7 @@ icon: lucide/clipboard-check
 
 # How to document `piighost` in a DPIA
 
-A data protection impact assessment (DPIA) describes a processing, weighs its risks to the people concerned, and lists the measures that address them. If your system sends conversations to an LLM through `piighost`, this page gives your DPO the material for the parts of the DPIA that concern it, in the order of Article 35(7) of the GDPR. The legal reading of pseudonymization, and what the Court of Justice held in EDPS v SRB, are on [Compliance](compliance.md).
+A data protection impact assessment (DPIA) describes a processing, weighs its risks to the people concerned, and lists the measures that address them. If your system sends conversations to an LLM through `piighost`, this page gives your DPO what they need to fill in the parts of the DPIA that concern `piighost`. It follows the order of Article 35(7) of the GDPR. The legal reading of pseudonymization, and what the Court of Justice held in EDPS v SRB, are on [Compliance](compliance.md).
 
 !!! warning "Not legal advice"
     This page describes what `piighost` does and does not do. Whether your processing requires a DPIA, and what the DPIA concludes, is for your DPO and your counsel to decide.
@@ -27,9 +27,9 @@ If you conclude that a DPIA is required, gather the facts of your deployment bef
 
 ## Describe the processing
 
-Article 35(7)(a) asks for a systematic description of the processing. For the part `piighost` performs, it holds in four steps.
+Article 35(7)(a) asks for a systematic description of the processing. For the part `piighost` performs, it comes down to four steps.
 
-1. **Detection.** The configured detectors find the PII in each message, a name, an email, an IBAN. Only what they recognize is replaced. The regex patterns and the NER models run locally, an `LLMDetector` runs wherever its chat model runs. A regex catalog of the hub pinned to a commit is fetched once, as patterns only, then read from the local cache, and no message text is sent to the hub.
+1. **Detection.** The configured detectors find the PII in each message, a name, an email, an IBAN. Only what they recognize is replaced. The regex patterns and the NER models run locally. An `LLMDetector` runs wherever its chat model runs. A regex catalog of the hub pinned to a commit is fetched once, as patterns only, then read from the local cache. No message text is sent to the hub.
 2. **Replacement.** Each detected value is replaced by a token before the text leaves for the LLM provider. `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }, and stays `<<PERSON:1>>`{ .placeholder } for the whole conversation.
 3. **Retention of the mapping.** The mapping from `<<PERSON:1>>`{ .placeholder } back to `Patrick`{ .pii } is kept in the conversation memory, partitioned by conversation (`thread_id`).
 4. **Restoration.** When the reply comes back, `piighost` puts `Patrick`{ .pii } back in place of `<<PERSON:1>>`{ .placeholder } for the user. With the LangChain middleware, the tool-call strategy decides whether tools receive real values too. The default, `ToolCallStrategy.FULL`, restores the arguments of a tool call and de-identifies its result.
@@ -54,11 +54,11 @@ The hasher and the cipher need the `crypto` extra, and `Argon2Hasher` the `argon
 Two other places hold values in clear and belong in the description.
 
 - Each worker keeps a memoized copy of a conversation's tokens in its own memory. `token_memo_ttl` bounds how long it lives, see [Multi-instance deployment](multi-instance.md).
-- With the LangChain middleware, the messages in the LangGraph state hold the restored values after the model turn, so a checkpointer that persists that state persists them. See [Security](security.md).
+- With the LangChain middleware, the messages in the LangGraph state hold the restored values after the model turn. A checkpointer that persists that state therefore persists these values too. See [Security](security.md).
 
 ### Who can restore
 
-Restoring takes the mapping, so it takes access to the memory backend, and to the cipher key when the backend encrypts. In practice, that is the application process, and anyone who can read the store together with `PIIGHOST_CIPHER_KEY`, or the store alone when it is not encrypted. The LLM provider receives only tokens, so it cannot restore. Recital 29 asks the controller to indicate the authorized persons, so name them in the DPIA.
+Restoring takes the mapping, so it takes access to the memory backend. It also takes the cipher key when the backend encrypts. In practice, the ones who can restore are the application process and anyone who can read the store and holds `PIIGHOST_CIPHER_KEY`. When the store is not encrypted, reading it is enough. The LLM provider cannot restore, because it receives only tokens. Recital 29 asks the controller to indicate the authorized persons. Name them in the DPIA.
 
 ## Map the data flows
 
@@ -112,7 +112,7 @@ Article 35(7)(d) asks for the measures envisaged to address the risks. The table
 |---|---|---|---|
 | The LLM provider reads the PII | the values are replaced before the text leaves, and a counter or hash token is never computed from the value it replaces | the detectors, the placeholder factory | [Placeholder factories](placeholder-factories.md) |
 | The mapping reaches the provider | the mapping stays in the memory on your side and is never sent with the text | the memory backend | [Security](security.md) |
-| Theft of the persistent store | the key of each message is hashed (`Sha256Hasher` or `Argon2Hasher`) and each value encrypted (`AesGcmCipher`), both or neither, and a networked store built without them emits a `PIIGhostSecurityWarning` | the hasher, the cipher, where `PIIGHOST_HASH_PEPPER` and `PIIGHOST_CIPHER_KEY` are kept | [Security](security.md) |
+| Theft of the persistent store | the key of each message is hashed (`Sha256Hasher` or `Argon2Hasher`) and each value encrypted (`AesGcmCipher`). The hasher and the cipher are configured together or not at all. A networked store built without them emits a `PIIGhostSecurityWarning` | the hasher, the cipher, where `PIIGHOST_HASH_PEPPER` and `PIIGHOST_CIPHER_KEY` are kept | [Security](security.md) |
 | A PII left in the output | a guard rail re-checks the de-identified text, and the pipeline raises `PIIRemainingError` when it flags one | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail` or `ModerationGuardRail` | [Guard rails](reference/guard-rails.md) |
 | Logs and traces carry PII | the library writes no PII to its loggers, and an `observation_redactor` tokenizes the trace payloads | the redactor, `trace_clear_text`, whether `PIIGHOST_HOOK_LOG` is unset | [Observation](observation.md) |
 | One conversation sees another's values | the memory is partitioned by `thread_id`, and the integrations refuse a turn without a `thread_id` instead of pouring it into a shared thread | how `thread_id` is derived | [Limitations](limitations.md) |
@@ -130,7 +130,7 @@ Article 35(7)(c) asks for an assessment of the risks. `piighost` lowers the expo
 
 - **Detection is best-effort.** A PII the detectors do not recognize reaches the provider in clear. A NER model can also truncate a text longer than its context. See [Limitations](limitations.md).
 - **Context and quasi-identifiers stay in clear.** "`<<PERSON:1>>`{ .placeholder }, the only notary in a village of 300" identifies a person without naming them. The detectors see values, not that inference.
-- **The LLM can write a PII it invented.** A name the model makes up is in no mapping, so nothing ties it to a person or removes it.
+- **The LLM can write a PII it invented.** A name the model makes up is in no mapping. So nothing ties it to a person, and nothing removes it.
 - **Values the assistant introduces stay in clear** under the default `EntityCreateByAssistantStrategy.PRESERVE`. `ANONYMIZE` tokenizes them too.
 - **The mapping store is a target.** It holds the values in clear, or encrypted under a key your environment holds. The process memory and a persisted LangGraph state hold them in clear. See [Security](security.md).
 - **Tools receive real values** under the `FULL` and `INPUT` strategies, so every tool the agent can call is a recipient. Under `INPUT` and `PASSTHROUGH`, a PII in a tool's response reaches the provider in clear.
@@ -139,7 +139,7 @@ Article 35(7)(c) asks for an assessment of the risks. `piighost` lowers the expo
 
 ## Fill in the template
 
-Copy the table into your DPIA and fill in the last column for your deployment. It follows the four items of Article 35(7). The [DPIA template of the EDPB](https://www.edpb.europa.eu/news/news/2026/enhancing-compliance-and-consistency-edpb-adopts-dpia-template_en), adopted on 14 April 2026 for public consultation, and the [CNIL method and PIA software](https://www.cnil.fr/fr/RGPD-analyse-impact-protection-des-donnees-aipd) (in French) can host it.
+Copy the table into your DPIA and fill in the last column for your deployment. It follows the four items of Article 35(7). You can carry it into the [DPIA template of the EDPB](https://www.edpb.europa.eu/news/news/2026/enhancing-compliance-and-consistency-edpb-adopts-dpia-template_en), adopted on 14 April 2026 for public consultation, or into the [CNIL method and PIA software](https://www.cnil.fr/fr/RGPD-analyse-impact-protection-des-donnees-aipd) (in French).
 
 <div class="wide-table" markdown="1">
 

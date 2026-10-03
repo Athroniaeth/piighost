@@ -4,9 +4,9 @@ icon: lucide/link
 
 # Keep confidential data out of a LlamaIndex RAG pipeline
 
-You want a LlamaIndex RAG where neither the embedding provider nor the LLM ever sees confidential data. `piighost` gives you two components: `PIINodeAnonymizer`, an ingestion transform that de-identifies each node before it is embedded, and `PIIQueryEngine`, a wrapper that de-identifies the query and restores the answer. Both share one thread pipeline, so a value keeps the same token across the corpus and the query.
+You want a LlamaIndex RAG where neither the embedding provider nor the LLM ever sees confidential data. `piighost` gives you two components. `PIINodeAnonymizer` is an ingestion transform that de-identifies each node before it is embedded. `PIIQueryEngine` is a wrapper that de-identifies the query and restores the answer. Both share one thread pipeline, so a value keeps the same token across the corpus and the query.
 
-For the same idea orchestrated by hand over a plain RAG flow, see the `examples/langchain/rag.py` script. This page packages it as reusable LlamaIndex objects.
+For the same idea orchestrated by hand over a plain RAG flow, see the `examples/langchain/rag.py` script. This page packages that idea as reusable LlamaIndex objects.
 
 !!! note "Prerequisites"
     `piighost` installed with the llama-index extra, `pip install piighost[llama-index]`, plus `llama-index-embeddings-openai` and `llama-index-llms-openai` and an `OPENAI_API_KEY`.
@@ -29,13 +29,13 @@ Put `PIINodeAnonymizer` in the transformations before the embedding model, so th
 
 ## 3. Wrap the query engine
 
-`PIIQueryEngine` de-identifies the query into the same thread, so retrieval matches the de-identified corpus, and restores the answer for the user.
+`PIIQueryEngine` de-identifies the query into the same thread as the corpus, and restores the answer for the user. Retrieval therefore matches the de-identified corpus.
 
 ```python
 --8<-- "snippets/llama_index_rag.py:query"
 ```
 
-The LLM answered over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }. The user sees `Patrick`{ .pii } and `Paris`{ .pii } restored. Retrieval runs on the de-identified space, which trades some quality for keeping confidential data out of the embedding call.
+The LLM answered over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }. The user sees `Patrick`{ .pii } and `Paris`{ .pii } restored. Retrieval runs on the de-identified space. It loses some quality there, and in exchange confidential data stays out of the embedding call.
 
 ## See also
 

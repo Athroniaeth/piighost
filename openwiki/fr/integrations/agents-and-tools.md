@@ -30,7 +30,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Branché sur un agent, PIIGhost masque les messages avant le modèle et remet les vraies valeurs dans la réponse.
 - Par défaut, les outils de l'agent (recherche, envoi de mail, lecture de fichier) reçoivent les vraies valeurs, et ce qu'ils renvoient est masqué avant le modèle.
 - Une conversation sans identifiant est refusée, avec LangChain comme avec Claude Code. Sinon, toutes les conversations partageraient leurs jetons.
-- Avec Claude Code, la réponse affichée garde les jetons : aucun point d'accroche ne permet de la réécrire.
+- Avec Claude Code, la réponse affichée garde les jetons, parce qu'aucun point d'accroche ne permet de la réécrire.
 - L'historique gardé par l'agent contient les vraies valeurs. Protégez-le comme une donnée personnelle.
 
 Les termes sont définis dans le [glossaire](../glossary.md). Le mécanisme de la conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md).
@@ -58,7 +58,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 **BR-AGT-02.** Quand le modèle écrit un jeton que PIIGhost n'a jamais émis, alors la réponse est refusée par défaut, avec `Deanonymized text holds tokens the pipeline never issued`. Deux autres choix existent : garder le jeton tel quel, ou le retirer du texte.
 
-**BR-AGT-03.** Quand l'assistant cite le premier une valeur, alors elle reste en clair par défaut. Exemple : l'assistant répond « Le siège est à Lyon ». « Lyon » vient de lui, il n'est pas masqué au tour suivant. Deux autres choix : la masquer comme une donnée de l'utilisateur, ou ne pas analyser du tout les messages de l'assistant.
+**BR-AGT-03.** Quand l'assistant cite le premier une valeur, alors elle reste en clair par défaut. Exemple : l'assistant répond « Le siège est à Lyon ». « Lyon » n'est pas masqué au tour suivant, parce qu'il vient de l'assistant. Deux autres choix : la masquer comme une donnée de l'utilisateur, ou ne pas analyser du tout les messages de l'assistant.
 
 **BR-AGT-04.** Quand le réglage d'outil est « Complet » ou « Sortie seule », alors le texte renvoyé par l'outil passe par le repérage complet et est masqué avant le modèle. Avec LangChain, seul le texte du message de l'outil est masqué. Avec Pydantic AI, un résultat structuré (liste, dictionnaire) est parcouru en entier.
 
@@ -75,7 +75,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 ### Questions fréquentes
 
-**La réponse affichée contient `<<PERSON:1>>`.** Trois causes possibles. Vous utilisez Claude Code, qui ne restaure pas la réponse affichée. Ou l'application diffuse la réponse sans décodeur de flux (BR-AGT-07). Ou la restauration a lieu dans un autre fil que la protection : vérifiez que le même identifiant de conversation est passé aux deux.
+**La réponse affichée contient `<<PERSON:1>>`.** Trois causes possibles. Vous utilisez Claude Code, qui ne restaure pas la réponse affichée. Ou l'application diffuse la réponse sans décodeur de flux (BR-AGT-07). Ou la restauration n'a pas lieu dans la même conversation que le masquage. Vérifiez que le même identifiant de conversation est passé aux deux.
 
 **L'agent s'arrête avec `No thread_id in the LangGraph config`.** L'appel ne transmet pas d'identifiant de conversation. Demandez à l'équipe de développement de le passer à chaque appel, ou `default` si les conversations n'ont pas besoin d'être séparées (BR-AGT-01).
 
@@ -128,9 +128,9 @@ Dans une trace de l'agent, le message reçu par le modèle doit contenir `<<PERS
 
 - **L'état LangGraph garde le contenu des messages en clair.** `aafter_model` restaure le contenu dans l'état, et le checkpointer l'enregistre ainsi. Seuls les `tool_calls` restent en jetons (`middleware.py:199-200`). Il en va de même pour l'historique Pydantic AI après `after_model_request`.
 - **LangChain re-masque les arguments des `tool_calls` de l'historique**, par précaution, sauf sous `IGNORE`. Pydantic AI ne le fait pas.
-- **Les hooks Claude Code tolèrent une forme de sortie inconnue** : ils la laissent passer. Mettez `PIIGHOST_HOOK_LOG` pour voir les formes réelles. Ce journal contient des valeurs restaurées en clair : gardez-le en local et supprimez-le ensuite.
+- **Les hooks Claude Code tolèrent une forme de sortie inconnue** : ils la laissent passer. Mettez `PIIGHOST_HOOK_LOG` pour voir les formes réelles. Ce journal contient des valeurs restaurées en clair. Gardez-le en local et supprimez-le ensuite.
 - **Si `piighost-api` est injoignable, le hook échoue fermé** (`claude_code/runner.py:68-88`). Un prompt ou un appel d'outil sort en code 2, que Claude Code lit comme un blocage. Une sortie d'outil, déjà produite, est remplacée par un avis. `PIIGHOST_HOOK_FAIL_OPEN=1` laisse passer le texte en clair (DPO-9).
-- **`PIIQueryEngine` refuse un moteur en flux** (`NotImplementedError`) et ses chemins synchrones passent par `asyncio.run` : appelez `aquery` depuis du code asynchrone.
+- **`PIIQueryEngine` refuse un moteur en flux** (`NotImplementedError`). Ses chemins synchrones passent par `asyncio.run`, donc appelez `aquery` depuis du code asynchrone.
 - **`PIIGhostClient.anonymize` renvoie un dictionnaire de jetons vide.** La correspondance vit sur le serveur. Restaurez avec `deanonymize`.
 
 ### Écarts doc / code

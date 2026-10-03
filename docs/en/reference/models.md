@@ -6,7 +6,7 @@ icon: lucide/boxes
 
 Module: `piighost.models`
 
-The value objects the pipeline stages exchange. A detector returns `Detection`, the linker groups detections into `Entity`, both carry their position as a `Span`, and a splitter cuts a long text into `Chunk`. Pure Python, no external dependency.
+The value objects the pipeline stages exchange. A detector returns `Detection`, and the linker groups detections into `Entity`. A `Detection` and an `Entity` carry their position as a `Span`. A splitter cuts a long text into `Chunk`. Pure Python, no external dependency.
 
 ```python
 from piighost.models import Chunk, Detection, Entity, Span
@@ -22,7 +22,7 @@ The four models are declared `@dataclass(frozen=True, slots=True)`. `Span` and `
 
 - **Immutable.** Assigning to a field raises `FrozenInstanceError`. Build a modified copy with `dataclasses.replace`, which is how `ChunkedDetector` remaps a chunk detection onto the original text.
 - **Slotted.** An instance carries no `__dict__`, so no attribute outside the declared fields can be set on it.
-- **Compared by value and hashable.** Two instances with equal fields are equal and hash alike, which lets a `Detection` sit in a set and an `Entity` key the `tokens` mapping of an `Anonymization`.
+- **Compared by value and hashable.** Two instances with equal fields are equal and hash alike. A `Detection` can therefore sit in a set, and an `Entity` can key the `tokens` mapping of an `Anonymization`.
 - **Sortable for `Span` and `Detection` only.** Both compare in field order. `Entity` and `Chunk` declare no ordering, so comparing two of them raises `TypeError`.
 - **Validated at construction.** Every invariant is checked in `__post_init__`, so an invalid instance never exists. Each exception derives from `PIIGhostError`.
 
@@ -45,7 +45,7 @@ A half-open character range over a text, `[start, end)`, mirroring the slice `te
 | `start` | `int` | Inclusive start offset, 0 or greater |
 | `end` | `int` | Exclusive end offset, strictly greater than `start` |
 
-Ordering is `(start, end)`, so a list of spans sorts left to right. The render stage relies on that to apply its edits without shifting an offset it has not processed yet.
+Ordering is `(start, end)`, so a list of spans sorts left to right. The render stage relies on that order to apply its edits without shifting an offset it has not processed yet.
 
 ### Properties
 
@@ -65,7 +65,7 @@ Whether `other` is fully enclosed by this span, bounds included.
 
 #### `shift(offset) -> Span`
 
-A copy translated by `offset` characters. It remaps a span found on a chunk or on normalized text back onto the original text. A shift that would push `start` below zero raises through the constructor rather than clamp, so the bug surfaces.
+A copy translated by `offset` characters. It remaps a span found on a chunk or on normalized text back onto the original text. A shift that would push `start` below zero raises an error in the constructor rather than clamp the span. The bug therefore surfaces.
 
 #### `extract(text) -> str`
 
@@ -80,7 +80,7 @@ The substring of `text` this span covers.
 | Exception | Condition |
 |-----------|-----------|
 | `NegativeSpanStartError` | `start` is negative |
-| `SpanOrderingError` | `end` is not strictly greater than `start`, an empty or a reversed range |
+| `SpanOrderingError` | `end` is not strictly greater than `start`, that is, an empty or a reversed range |
 
 Both derive from `SpanError`. An empty range is refused because a detection always covers at least one character.
 
@@ -90,7 +90,7 @@ Both derive from `SpanError`. An empty range is refused because a detection alwa
 
 Module: `piighost.models.detection`
 
-One occurrence of confidential data a detector found. A span carrying the matched text, a label and a confidence.
+One occurrence of confidential data a detector found. It carries a span, the matched text, a label and a confidence.
 
 ### Fields
 
@@ -101,7 +101,7 @@ One occurrence of confidential data a detector found. A span carrying the matche
 | `label` | `str` | The category of the detected value, for example `PERSON` or `EMAIL` |
 | `confidence` | `float` | Detector confidence, in the closed range 0 to 1 |
 
-Ordering is `(span, text, label, confidence)`, so detections sort by position first, which the overlap-resolver stage relies on.
+Ordering is `(span, text, label, confidence)`, so detections sort by position first. The overlap-resolver stage relies on that order.
 
 ### Methods
 
@@ -111,7 +111,7 @@ Whether this detection's span overlaps the other's. It delegates to `Span.overla
 
 #### `to_dict() -> dict[str, str | int | float]`
 
-The detection as a flat, JSON-ready dict, the span flattened into `start` and `end`. The shape is one level, so a store or a wire format serializes it without knowing the model. The CLI prints these under `piighost anonymize --json`.
+The detection as a flat, JSON-ready dict, the span flattened into `start` and `end`. The shape is one level, so a store or a wire format serializes it without knowing the model. The CLI prints detections in this shape under `piighost anonymize --json`.
 
 #### `from_dict(data) -> Detection` (classmethod)
 
@@ -157,7 +157,7 @@ The canonical value, taken from the first occurrence.
 
 The span of every occurrence, in detection order.
 
-The label, the canonical text and the spans are derived from the detections rather than stored, so nothing drifts out of sync and the value is held in one place.
+The label, the canonical text and the spans are derived from the detections rather than stored. Nothing can therefore drift out of sync, and the value is held in one place.
 
 ```python
 --8<-- "snippets/reference_models.py:entity"
@@ -193,7 +193,7 @@ A contiguous slice of a larger text, with its offset in that text.
 
 The exclusive end offset in the original text, `start + len(text)`.
 
-A splitter produces chunks. Every `AnySplitter` in `piighost.text` returns them in order, and `RecursiveCharacterTextSplitter` overlaps consecutive ones so a value sitting on a boundary is still seen whole in one chunk. `ChunkedDetector` runs its wrapped detector on `chunk.text`, then shifts each detection by `chunk.start` to remap it onto the original text.
+A splitter produces chunks. Every `AnySplitter` in `piighost.text` returns the chunks in order. `RecursiveCharacterTextSplitter` overlaps consecutive chunks, so a value sitting on a boundary is still seen whole in one chunk. `ChunkedDetector` runs its wrapped detector on `chunk.text`, then shifts each detection by `chunk.start` to remap it onto the original text.
 
 ```python
 --8<-- "snippets/reference_models.py:splitter"

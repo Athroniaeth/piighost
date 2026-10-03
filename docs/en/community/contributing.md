@@ -8,7 +8,7 @@ Thanks for your interest in `piighost`. This page summarises the contribution wo
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - [`uv`](https://docs.astral.sh/uv/) as package manager
 - A GitHub account
 

@@ -77,17 +77,17 @@ flowchart LR
 | `AnyConversationMemory` | aucun | mémoire en processus, Redis, SQLAlchemy |
 | `AnyHasher` / `AnyCipher` | `BaseHasher` / aucun | SHA-256, Argon2id / AES-GCM |
 
-Les ports sans gabarit l'assument dans leur docstring : leurs implémentations diffèrent par tout leur mécanisme, pas par une seule étape.
+Les ports sans gabarit expliquent cette absence dans leur docstring. Leurs implémentations diffèrent par tout leur mécanisme, et non par une seule étape.
 
 ### Le détecteur NER partagé
 
-`BaseNERDetector` (`components/detector/ner/base.py`) porte la passe commune aux modèles : correspondance des étiquettes, seuil de confiance appliqué quel que soit le modèle, découpage d'un texte trop long en morceaux qui se chevauchent. Un texte plus long que `max_chars` est découpé si `auto_chunk` est actif (par défaut), sinon il lève `TextTooLongError`.
+`BaseNERDetector` (`components/detector/ner/base.py`) porte la passe commune aux modèles : correspondance des étiquettes, seuil de confiance appliqué quel que soit le modèle, découpage d'un texte trop long en morceaux qui se chevauchent. Un texte plus long que `max_chars` est découpé si `auto_chunk` est actif (par défaut). Sinon, le détecteur lève `TextTooLongError`.
 
 ## Couplage à sens unique entre configuration et cœur
 
-`config/` importe le cœur et le construit. Aucun module du cœur n'importe `piighost.config` à l'exécution. Chaque modèle de configuration hérite de `_ComponentConfig`, qui interdit toute clé non déclarée, et expose un `build()` qui importe son adaptateur au dernier moment. Il n'existe ni registre de constructeurs ni méthode `from_config`.
+`config/` importe le cœur et le construit. Aucun module du cœur n'importe `piighost.config` à l'exécution. Chaque modèle de configuration hérite de `_ComponentConfig`, qui interdit toute clé non déclarée. Chaque modèle expose aussi un `build()` qui importe son adaptateur au dernier moment. Il n'existe ni registre de constructeurs ni méthode `from_config`.
 
-Le type d'un composant se choisit par la clé `type` : `DetectorConfig` est une union discriminée sur `type`.
+Le type d'un composant se choisit par la clé `type`. Par exemple, `DetectorConfig` est une union discriminée sur `type`, c'est-à-dire que la valeur de `type` désigne le modèle de configuration à utiliser.
 
 ## Dépendances optionnelles chargées à la demande
 
@@ -95,7 +95,7 @@ Le cœur ne dépend que de `typing-extensions`. Tout le reste est un extra de `p
 
 ## Jetons typés
 
-Les fabriques de jetons portent une étiquette de préservation (`components/placeholder/tags.py`). Ces étiquettes sont des sous-classes de `str` qui n'existent que pour le vérificateur de types. Elles disent si le jeton garde le type de valeur, l'identité, la forme, et s'il peut être retrouvé dans un texte. Le middleware exige `PreservesRecognizableIdentity` : un jeton qui identifie une seule valeur et qu'on peut retrouver. Lui passer une fabrique de masques devient une erreur de typage.
+Les fabriques de jetons portent une étiquette de préservation (`components/placeholder/tags.py`). Ces étiquettes sont des sous-classes de `str` qui n'existent que pour le vérificateur de types. Elles disent si le jeton garde le type de valeur, l'identité, la forme, et s'il peut être retrouvé dans un texte. Le middleware exige `PreservesRecognizableIdentity` : un jeton qui identifie une seule valeur et qu'on peut retrouver. Passer une fabrique de masques au middleware devient donc une erreur de typage.
 
 ## Ajouter un détecteur
 
@@ -114,7 +114,7 @@ uv run pytest tests/components/detector/test_contract.py tests/regression/test_i
 make lint
 ```
 
-Le test de contrat doit rapporter, pour votre détecteur, le même span en points de code, le texte relu dans la source et l'étiquette externe que les autres détecteurs.
+Pour votre détecteur, le test de contrat doit rapporter la même chose que pour les autres détecteurs : le même span en points de code, le même texte relu dans la source et la même étiquette externe.
 
 ## Pièges
 
@@ -127,7 +127,7 @@ Le test de contrat doit rapporter, pour votre détecteur, le même span en point
 
 > ⚠ Écart doc / code
 > **Doc** : `AGENTS.md` (lignes 7, 26 et 82) dit que chaque étape a un port `Any*` et un gabarit `Base*`. `docs/en/architecture.md:109-111` dit que seuls deux ports n'ont pas de gabarit, les garde-fous et la mémoire.
-> **Code** : cinq ports n'ont pas de gabarit : le détecteur (`components/detector/base.py:9`), la liste blanche et la liste noire (`components/override/base.py:9-17`), les garde-fous (`components/guard/base.py:42`), la mémoire (`conversation_memory/base.py:10-14`) et le chiffrement (`crypto/cipher/base.py:7-10`).
+> **Code** : cinq ports n'ont pas de gabarit, à savoir le détecteur (`components/detector/base.py:9`), la liste blanche et la liste noire (`components/override/base.py:9-17`), les garde-fous (`components/guard/base.py:42`), la mémoire (`conversation_memory/base.py:10-14`) et le chiffrement (`crypto/cipher/base.py:7-10`).
 
 > ⚠ Écart doc / code
 > **Doc** : le message d'erreur de `config/models/detector.py:62-66` dit que les catalogues intégrés ont été retirés « in piighost 2.0 ».

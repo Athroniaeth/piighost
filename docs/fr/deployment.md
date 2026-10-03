@@ -4,7 +4,7 @@ icon: lucide/container
 
 # Déployer un pipeline en production
 
-Ce guide met en place un pipeline de conversation pour la production, avec une mémoire de conversation Redis qui persiste entre les redémarrages et les workers, chiffre chaque valeur stockée, et lit ses secrets dans l'environnement. Si un seul processus vous suffit et que rien ne doit survivre à sa sortie, la mémoire en RAM convient et vous pouvez passer directement à [Pipeline conversationnel](getting-started/conversation.md).
+Ce guide met en place un pipeline de conversation pour la production. Sa mémoire de conversation Redis persiste entre les redémarrages et les workers, chiffre chaque valeur stockée, et lit ses secrets dans l'environnement. Si un seul processus vous suffit et que rien ne doit survivre à sa sortie, la mémoire en RAM convient et vous pouvez passer directement à [Pipeline conversationnel](getting-started/conversation.md).
 
 Le pipeline lit sa forme dans un fichier de configuration. Le déploiement porte donc un fichier TOML et une poignée de variables d'environnement. Aucun code de pipeline n'est écrit à la main.
 
@@ -20,13 +20,13 @@ L'extra `config` lit le fichier, `redis` parle au store, `crypto` fournit le cip
 
 ## Écrire le fichier de configuration
 
-Une section `[memory]` transforme le pipeline en pipeline de conversation gardant un état par conversation. Son `type = "redis"` nomme le store, `[memory.hasher]` cle chaque message dans sa clé de stockage, et `[memory.cipher]` chiffre chaque valeur stockée.
+Une section `[memory]` transforme le pipeline en pipeline de conversation gardant un état par conversation. Dans cette section, `type = "redis"` nomme le store. `[memory.hasher]` transforme chaque message en sa clé de stockage, et `[memory.cipher]` chiffre chaque valeur stockée.
 
 ```toml title="pipeline.toml"
 --8<-- "snippets/redis_pipeline.toml"
 ```
 
-`namespace` préfixe chaque clé pour que `piighost` partage une instance Redis avec d'autres applications sans collision. `ttl` est le nombre de secondes qu'un message stocké vit avant que Redis ne l'évince, ou vous l'omettez pour garder les entrées jusqu'à ce que le store décide de les supprimer. `label_counter` émet `<<PERSON:1>>`{ .placeholder }, un jeton qui porte l'identité, ce dont le [middleware](getting-started/langchain.md) a besoin pour restaurer la valeur.
+`namespace` préfixe chaque clé pour que `piighost` partage une instance Redis avec d'autres applications sans collision. `ttl` est le nombre de secondes qu'un message stocké vit avant que Redis ne l'évince. Omettez-le pour garder les entrées jusqu'à ce que le store décide de les supprimer. `label_counter` émet `<<PERSON:1>>`{ .placeholder }, un jeton qui porte l'identité, c'est-à-dire qui désigne une seule valeur. Le [middleware](getting-started/langchain.md) a besoin de cette identité pour restaurer la valeur.
 
 Le catalogue complet des sections, chaque `type` de composant, et la forme JSON du même fichier se trouvent dans la [référence de configuration](configuration/toml.md).
 
@@ -52,11 +52,11 @@ export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 --8<-- "snippets/redis_run.py:example"
 ```
 
-Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur de `user-42` garde son jeton, et un autre `thread_id` ne la voit jamais, ce qui isole deux utilisateurs. En coulisses le pipeline hache le message en une clé Redis et stocke les détections chiffrées, si bien qu'une fuite du disque Redis ne révèle ni le message ni les données confidentielles.
+Le `thread_id` cadre la conversation. La même valeur dans un message ultérieur de `user-42` garde son jeton. Un autre `thread_id` ne la voit jamais, si bien que deux utilisateurs restent isolés. En coulisses, le pipeline hache le message en une clé Redis et stocke les détections chiffrées. Une fuite du disque Redis ne révèle donc ni le message ni les données confidentielles.
 
 ## Borner le store in-process
 
-Le `InMemoryConversationMemory` par défaut garde chaque conversation dans un dict local au processus, borné à 10 000 conversations et un jour d'inactivité, pour qu'un processus de longue durée qui n'appelle jamais `forget_thread` ne garde pas toutes les valeurs qu'il a vues. Ajustez `max_threads` pour plafonner le nombre de conversations gardées, en évinçant la moins récemment utilisée au-delà, et `ttl` pour expirer une conversation ce nombre de secondes après sa dernière écriture, retirée paresseusement au prochain accès.
+La mémoire par défaut, `InMemoryConversationMemory`, garde chaque conversation dans un dict local au processus. Ce dict est borné à 10 000 conversations et à un jour d'inactivité. Ainsi, un processus de longue durée qui n'appelle jamais `forget_thread` ne garde pas toutes les valeurs qu'il a vues. Ajustez `max_threads` pour plafonner le nombre de conversations gardées. Au-delà, la conversation la moins récemment utilisée est évincée. Ajustez `ttl` pour expirer une conversation ce nombre de secondes après sa dernière écriture. La conversation expirée n'est retirée qu'au prochain accès.
 
 ```toml title="pipeline.toml"
 [memory]
@@ -69,12 +69,12 @@ Pour un déploiement durable ou multi-worker, utilisez plutôt un backend persis
 
 ## Comment le store protège la donnée
 
-Deux protections se combinent à chaque écriture, toutes deux clées par un secret que le store ne détient jamais.
+Deux protections se combinent à chaque écriture. Toutes deux reposent sur un secret que le store ne détient jamais.
 
-- La **clé est hachée**. Le hasher dérive un digest du message sous le pepper. `argon2` (Argon2id) est lent et memory-hard, le bon choix quand le pepper lui-même peut fuiter. `sha256` (HMAC-SHA256) est rapide et convient à un hot-path chargé. Les deux sont déterministes, donc le même message tombe toujours sur la même clé.
+- La **clé est hachée**. Le hasher dérive un digest du message sous le pepper. `argon2` (Argon2id) est lent et memory-hard, c'est-à-dire coûteux en mémoire. C'est le bon choix quand le pepper lui-même peut fuiter. `sha256` (HMAC-SHA256) est rapide et convient à un hot-path chargé. Les deux sont déterministes, donc le même message tombe toujours sur la même clé.
 - La **valeur est chiffrée**. `aesgcm` (AES-GCM) chiffre les détections avant écriture, avec un nonce neuf par message. Le déchiffrement échoue sur un ciphertext altéré, donc une altération est détectée.
 
-Le `thread_id` reste en clair comme namespace de clé, ce qui permet d'énumérer et d'oublier toute une conversation avec `forget_thread`. Le modèle de menace et la comparaison des backends sont dans [Sécurité](security.md).
+Le `thread_id` reste en clair, comme namespace de clé. C'est ce qui permet d'énumérer et d'oublier toute une conversation avec `forget_thread`. Le modèle de menace et la comparaison des backends sont dans [Sécurité](security.md).
 
 ## Utiliser une base SQL à la place
 
@@ -134,7 +134,7 @@ L'image lit ces variables :
 
 | Variable | Défaut | Effet |
 |---|---|---|
-| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du hub à servir. L'image embarque une config par défaut, tous les groupes de regex du hub, qu'un fichier monté ou une référence du hub remplace |
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du hub à servir. L'image embarque une config par défaut, qui charge tous les groupes de regex du hub. Un fichier monté ou une référence du hub la remplace |
 | `API_HOST` | `0.0.0.0` | Hôte d'écoute |
 | `API_PORT` | `8000` | Port d'écoute |
 | `LOG_LEVEL` | `info` | Niveau de log |

@@ -77,17 +77,17 @@ flowchart LR
 | `AnyConversationMemory` | none | in-process memory, Redis, SQLAlchemy |
 | `AnyHasher` / `AnyCipher` | `BaseHasher` / none | SHA-256, Argon2id / AES-GCM |
 
-The ports without a template state it in their docstring: their implementations differ in their whole mechanism, not in a single step.
+The ports without a template explain this absence in their docstring. Their implementations differ in their whole mechanism, not in a single step.
 
 ### The shared NER detector
 
-`BaseNERDetector` (`components/detector/ner/base.py`) carries the pass common to the models: label mapping, a confidence threshold applied whatever the model, splitting a text that is too long into overlapping chunks. A text longer than `max_chars` is split if `auto_chunk` is active (by default), otherwise it raises `TextTooLongError`.
+`BaseNERDetector` (`components/detector/ner/base.py`) carries the pass common to the models: label mapping, a confidence threshold applied whatever the model, splitting a text that is too long into overlapping chunks. A text longer than `max_chars` is split if `auto_chunk` is active (by default). Otherwise, the detector raises `TextTooLongError`.
 
 ## One-way coupling between configuration and core
 
-`config/` imports the core and builds it. No core module imports `piighost.config` at runtime. Each configuration model inherits from `_ComponentConfig`, which forbids any undeclared key, and exposes a `build()` that imports its adapter at the last moment. There is neither a builder registry nor a `from_config` method.
+`config/` imports the core and builds it. No core module imports `piighost.config` at runtime. Each configuration model inherits from `_ComponentConfig`, which forbids any undeclared key. Each model also exposes a `build()` that imports its adapter at the last moment. There is neither a builder registry nor a `from_config` method.
 
-You choose the type of a component with the `type` key: `DetectorConfig` is a union discriminated on `type`.
+You choose the type of a component with the `type` key. For example, `DetectorConfig` is a union discriminated on `type`, meaning the value of `type` picks the configuration model to use.
 
 ## Optional dependencies loaded on demand
 
@@ -95,7 +95,7 @@ The core depends only on `typing-extensions`. Everything else is an extra of `py
 
 ## Typed placeholders
 
-The placeholder factories carry a preservation tag (`components/placeholder/tags.py`). These tags are subclasses of `str` that exist only for the type checker. They say whether the placeholder keeps the value type, the identity, the shape, and whether it can be found in a text. The middleware requires `PreservesRecognizableIdentity`: a placeholder that identifies a single value and that can be found. Passing it a mask factory becomes a typing error.
+The placeholder factories carry a preservation tag (`components/placeholder/tags.py`). These tags are subclasses of `str` that exist only for the type checker. They say whether the placeholder keeps the value type, the identity, the shape, and whether it can be found in a text. The middleware requires `PreservesRecognizableIdentity`: a placeholder that identifies a single value and that can be found. Passing a mask factory to the middleware therefore becomes a typing error.
 
 ## Add a detector
 
@@ -114,7 +114,7 @@ uv run pytest tests/components/detector/test_contract.py tests/regression/test_i
 make lint
 ```
 
-The contract test must report, for your detector, the same span in code points, the text read back from the source and the external label as the other detectors.
+For your detector, the contract test must report the same thing as for the other detectors: the same span in code points, the same text read back from the source and the same external label.
 
 ## Pitfalls
 
@@ -127,7 +127,7 @@ The contract test must report, for your detector, the same span in code points, 
 
 > ⚠ Doc / code gap
 > **Doc**: `AGENTS.md` (lines 7, 26 and 82) says that each stage has an `Any*` port and a `Base*` template. `docs/en/architecture.md:109-111` says that only two ports have no template, the guard rails and the memory.
-> **Code**: five ports have no template: the detector (`components/detector/base.py:9`), the whitelist and the blacklist (`components/override/base.py:9-17`), the guard rails (`components/guard/base.py:42`), the memory (`conversation_memory/base.py:10-14`) and encryption (`crypto/cipher/base.py:7-10`).
+> **Code**: five ports have no template, namely the detector (`components/detector/base.py:9`), the whitelist and the blacklist (`components/override/base.py:9-17`), the guard rails (`components/guard/base.py:42`), the memory (`conversation_memory/base.py:10-14`) and encryption (`crypto/cipher/base.py:7-10`).
 
 > ⚠ Doc / code gap
 > **Doc**: the error message of `config/models/detector.py:62-66` says that the built-in catalogs were removed "in piighost 2.0".

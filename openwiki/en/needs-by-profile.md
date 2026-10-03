@@ -79,7 +79,7 @@ Each need is carried by a wiki process, which gives the scenario and the rules, 
 
 - A correction exported to an annotation tool, Langfuse for example, is kept in the chosen form: placeholders instead of the values, values in clear text, or input and output fully masked.
 - The developer sets this form, the DPO decides it.
-- Without an explicit choice, the correction is kept as placeholders: the export contains no real value.
+- Without an explicit choice, the correction is kept as placeholders. The export then contains no real value.
 
 **Known limit.** The choice of form does not exist in the code yet.
 
@@ -185,11 +185,11 @@ Each need is carried by a wiki process, which gives the scenario and the rules, 
 - The hub is reached only over HTTP or HTTPS, and a hub configuration that embeds a model is refused.
 - See [Configure a pipeline](operations/configuration-and-hub.md). Tests: [AT-OPS-6-…](tests/acceptance-tests.md).
 
-**Current limit.** For now the hub serves only pattern groups. An NER model recognizes some labels better than others, and splitting the labels between patterns and model requires a configuration format that the hub does not have yet.
+**Current limit.** For now the hub serves only pattern groups. An NER model recognizes some labels better than others. Splitting the labels between patterns and model requires a configuration format that the hub does not have yet.
 
 **OPS-7. As an operator, I want the in-process memory to be bounded by default, so that a server that runs for weeks does not keep every value it has seen.**
 
-- Without a setting, the memory keeps at most 10,000 conversations, each one for one day after its last message.
+- Without a setting, the memory keeps at most 10,000 conversations, and keeps each one for one day after its last message.
 - Both bounds are set in the configuration.
 - See [Store conversations and protect traces](operations/storage-and-encryption.md) and [Follow a conversation](processes/follow-a-conversation.md). Tests: [AT-OPS-7-…](tests/acceptance-tests.md).
 

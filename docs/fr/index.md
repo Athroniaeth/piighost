@@ -4,14 +4,14 @@ icon: lucide/shield
 
 # PIIGhost
 
-`piighost` est une librairie Python qui permet de protéger vos données confidentielles, données personnelles (PII) et secrets, dans les conversations avec les LLM via de la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
+`piighost` est une librairie Python qui permet de protéger vos données confidentielles (données personnelles ou PII, secrets) dans les conversations avec les LLM, grâce à la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
 
 Cette dé-identification repère les données confidentielles grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le jeton qui prend sa place. Par exemple :
 
 - `John Doe`{ .pii } devient `<<PERSON:1>>`{ .placeholder }
 - `john.doe@example.com`{ .pii } devient `<<EMAIL:1>>`{ .placeholder }
 
-Ce placeholder reste le même d'un message à l'autre avec le pipeline conversationnel, qui garde la correspondance entre une valeur et son placeholder sur toute la conversation. Si `john.doe@example.com`{ .pii } réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`{ .placeholder }, ce qui permet au LLM de suivre le fil.
+Avec le pipeline conversationnel, ce placeholder reste le même d'un message à l'autre. Ce pipeline garde la correspondance entre une valeur et son placeholder sur toute la conversation. Si `john.doe@example.com`{ .pii } réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`{ .placeholder }, et le LLM peut ainsi suivre le fil.
 
 Le LLM ne reçoit donc que du texte dé-identifié. Quand il retourne des placeholders, par exemple en répondant "Bonjour `<<PERSON:1>>`{ .placeholder }", `piighost` les remplace par les vraies valeurs. L'utilisateur voit `John Doe`{ .pii } et ne voit jamais la dé-identification.
 
@@ -28,7 +28,7 @@ La même mécanique protège les agents qui appellent des outils. Avec le middle
 
 ## Pourquoi dé-identifier ?
 
-Un LLM en cloud (GPT, Claude, Gemini) reçoit chaque information que vous lui envoyez, PII de vos utilisateurs comprises. Dé-identifier en amont découple le choix du LLM de la sensibilité du contenu. Quand les données confidentielles n'atteignent jamais le LLM, le fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence.
+Un LLM en cloud (GPT, Claude, Gemini) reçoit chaque information que vous lui envoyez, PII de vos utilisateurs comprises. Dé-identifier en amont découple le choix du LLM de la sensibilité du contenu. Quand les données confidentielles n'atteignent jamais le LLM, le choix du fournisseur cesse d'être une décision de confidentialité. Il redevient une question de qualité, de coût et de latence.
 
 Pour aller plus loin :
 

@@ -47,7 +47,7 @@ Model-based detectors, the middleware, and the optional backends are extras to c
     pip install 'piighost[all]'
     ```
 
-Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`, adding `argon2` for a more resistant key hash.
+Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`. Add the `argon2` extra for a more resistant key hash.
 
 ## Check the installation
 

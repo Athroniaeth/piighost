@@ -6,7 +6,7 @@ icon: lucide/terminal
 
 Package: `piighost-api`
 
-`piighost-api` is the command line of the companion server. `serve` starts the HTTP server, the `dataset` commands build and score a detection dataset from observation traces.
+`piighost-api` is the command line of the companion server. `serve` starts the HTTP server. The `dataset` commands build and score a detection dataset from observation traces.
 
 ```text
 piighost-api serve [--config SOURCE] [--host HOST] [--port PORT] [--log-level LEVEL]
@@ -46,7 +46,7 @@ piighost-api serve --config hub:piighost/support-en:286909f6 --host 0.0.0.0 --po
 - With neither `--config` nor `PIIGHOST_CONFIG`, the command prints `Missing --config or PIIGHOST_CONFIG.` with a usage hint and exits `1`. A file path that does not exist exits `1` with `Configuration file not found:`.
 - A hub reference loads the whole configuration the [piighost hub](https://hub.piighost.dev) publishes under that name. A reference pinned to a commit is fetched on the first start and read from the disk cache afterwards.
 - A configuration that declares no `[memory]` section is served with the in-process memory, `in_memory`. Its threads live in the server process, so every instance holds its own. Several instances behind a load balancer need a shared `redis` or `sqlalchemy` memory, see [Multi-instance deployment](../multi-instance.md).
-- Any top-level section can be overridden with a `PIIGHOST_` variable holding a JSON object, as for a file, see [Environment overrides](../configuration/toml.md). `PIIGHOST_MEMORY` thus adds a shared memory to a hub configuration, the one below needing `piighost[crypto]` for its cipher.
+- Any top-level section can be overridden with a `PIIGHOST_` variable holding a JSON object, as for a file, see [Environment overrides](../configuration/toml.md). `PIIGHOST_MEMORY` thus adds a shared memory to a hub configuration. The memory in the example below needs `piighost[crypto]` for its cipher.
 - Without a key in an `API_KEY_` variable, the server refuses to start unless `PIIGHOST_ALLOW_ANONYMOUS` is set.
 
 ```bash
@@ -63,7 +63,7 @@ piighost-api serve --config hub:piighost/support-en:286909f6
 | Variable | Default | Effect |
 |---|---|---|
 | `PIIGHOST_CONFIG` | none | Config file or hub reference, read when `--config` is absent |
-| `API_KEY_<NAME>` | none | One accepted API key per variable, a value printed by `keyshield generate` |
+| `API_KEY_<NAME>` | none | One accepted API key per variable. The value is one printed by `keyshield generate` |
 | `SECRET_PEPPER` | `keyshield`'s built-in pepper, with a warning | Pepper of the Argon2 hash the server keeps of each key, printed by `keyshield pepper` |
 | `PIIGHOST_ALLOW_ANONYMOUS` | off | `1`, `true`, `yes` or `on` lets the server start with no key, every route then open. Also applies when the keys fail to load |
 | `PIIGHOST_MAX_BODY_BYTES` | `1000000` | Largest request body accepted, beyond it `413` |
@@ -71,15 +71,15 @@ piighost-api serve --config hub:piighost/support-en:286909f6
 | `PIIGHOST_OPENAI_UPSTREAM` | `https://api.openai.com/v1` | Upstream of `/openai/v1` when a request names none |
 | `PIIGHOST_ANTHROPIC_UPSTREAM` | `https://api.anthropic.com/v1` | Upstream of `/anthropic/v1` when a request names none |
 | `PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM` | `false` | `1`, `true`, `yes` or `on` de-identifies the system prompt too |
-| `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` | empty, no note | `default` for the built-in note on placeholders, any other text for that text |
+| `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` | empty, no note | `default` adds the built-in note on placeholders. Any other text is used as the note itself |
 | `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT` | `system` | `user` puts the note in the first user message, any other value in the system prompt |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT` | none | An OTLP endpoint turns on trace export, the first one set wins. Needs the `observation` extra |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT` | none | An OTLP endpoint turns on trace export. When both are set, the first one listed wins. Needs the `observation` extra |
 | `OTEL_SERVICE_NAME` | `piighost-api` | Service name of the exported traces |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | none | Credentials of `dataset extract` |
 
 </div>
 
-The pipeline reads its own secrets, `PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `PIIGHOST_DATABASE_URL` and `MISTRAL_API_KEY`, and `PIIGHOST_HUB_URL` names a private hub. They are listed in the [TOML reference](../configuration/toml.md). The other `OTEL_*` variables, headers included, are read by the OpenTelemetry exporter itself, see [Observation](../observation.md).
+The pipeline reads its own secrets: `PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `PIIGHOST_DATABASE_URL` and `MISTRAL_API_KEY`. `PIIGHOST_HUB_URL` names a private hub. These variables are listed in the [TOML reference](../configuration/toml.md). The other `OTEL_*` variables, headers included, are read by the OpenTelemetry exporter itself, see [Observation](../observation.md).
 
 The Docker image reads four more, listed in [Deploy a production pipeline](../deployment.md).
 
@@ -127,7 +127,7 @@ A trace without input text, or a model trace without its `piighost.detect` child
 
 | Field | Content |
 |---|---|
-| `entities` | The reference spans as `[start, end, label]`, the human correction for a `hitl` record, the model output for a `model` one |
+| `entities` | The reference spans as `[start, end, label]`. They are the human correction for a `hitl` record, and the model output for a `model` record |
 | `model_entities` | The model's spans, equal to `entities` on a `model` record |
 | `labels_universe` | The `labels` of a correction trace's input, empty on a `model` record |
 | `source` | `hitl` or `model` |

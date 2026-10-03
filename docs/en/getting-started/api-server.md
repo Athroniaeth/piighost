@@ -4,9 +4,9 @@ icon: lucide/server
 
 # Deploy a de-identification API
 
-You will run `piighost-api`, the companion server of `piighost`, over a configuration published on the [piighost hub](https://hub.piighost.dev), then de-identify and restore a message over HTTP. Any process that speaks HTTP then shares one pipeline, loaded once, with the conversation memory kept on the server.
+You will run `piighost-api`, the companion server of `piighost`, over a configuration published on the [piighost hub](https://hub.piighost.dev), then de-identify and restore a message over HTTP. Any process that speaks HTTP then shares one pipeline, loaded once. The conversation memory is kept on the server.
 
-The configuration `hub:piighost/support-en:286909f6` finds names, addresses and organizations with the GLiNER2 model `fastino/gliner2-multi-v1`, US identifiers and generic values such as emails with regexes, and refuses to return a de-identified text that still holds a clear email address.
+The configuration `hub:piighost/support-en:286909f6` finds names, addresses and organizations with the GLiNER2 model `fastino/gliner2-multi-v1`. It finds US identifiers and generic values such as emails with regexes. It also refuses to return a de-identified text that still holds a clear email address.
 
 !!! note "Prerequisites"
     Python 3.12 or later, and network access to the hub and to Hugging Face for the first start. The examples assume the server on `http://127.0.0.1:8000`.
@@ -29,7 +29,7 @@ The `gliner2` extra pulls the model runtime the configuration needs.
 
 ## 2. Create an API key
 
-The server refuses to start without an API key. `keyshield`, installed with the server, generates a key and the pepper that hashes it in memory.
+The server refuses to start without an API key. `keyshield`, installed with the server, generates a key and a pepper, the secret used to hash that key in memory.
 
 ```bash
 keyshield generate
@@ -71,7 +71,7 @@ The output should be:
 ```
 
 !!! tip "Without a model"
-    A regex-only configuration starts without downloading anything but the configuration. `piighost-api serve --config hub:piighost/fr-default:e6990159` serves the French one, phone numbers, IBAN, NIR, SIREN and emails among others.
+    A regex-only configuration starts without downloading anything but the configuration. `piighost-api serve --config hub:piighost/fr-default:e6990159` serves the French configuration. It detects phone numbers, IBAN, NIR, SIREN and emails among others.
 
 ## 4. De-identify a message
 
@@ -147,7 +147,7 @@ The output should be:
 
 ## How it works
 
-The server loads one thread pipeline at start and runs every route on it. A configuration that declares no `[memory]` section, as the two hub configurations of this page, is served with the in-process memory, so the threads live in the server process and vanish when it stops. To keep them across restarts, or to share them between several instances, declare a Redis memory, as [Deploy a production pipeline](../deployment.md) shows.
+The server loads one thread pipeline at start and runs every route on it. A configuration that declares no `[memory]` section, as the two hub configurations of this page, is served with the in-process memory. The threads then live in the server process, and vanish when it stops. To keep them across restarts, or to share them between several instances, declare a Redis memory, as [Deploy a production pipeline](../deployment.md) shows.
 
 ## What's next
 

@@ -50,7 +50,7 @@ flowchart TD
     D --> E["The model reads the masked result"]
 ```
 
-Example: the conversation already contains "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`", from "Write to Jean Dupont, jean.dupont@exemple.fr".
+Example: the conversation already contains "Write to Jean Dupont, jean.dupont@exemple.fr". The model read it as "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`".
 
 | Step | Content |
 |---|---|
@@ -61,7 +61,7 @@ Example: the conversation already contains "Write to `<<PERSON:1>>`, `<<EMAIL:1>
 
 The known address takes its placeholder again. The new address takes the next number. The e-mail went to the right address.
 
-**How to check**: in a trace of the agent, the argument received by the tool holds the real address, and the next message sent to the model contains none.
+**How to check**: in a trace of the agent, the argument received by the tool holds the real address, and the next message sent to the model contains no address in clear.
 
 ### Choose the tool setting
 
@@ -89,11 +89,11 @@ The known address takes its placeholder again. The new address takes the next nu
 
 **BR-TOOL-06.** When a value first appears in the result of a tool, then it counts as a user value and stays masked for the rest of the conversation.
 
-**BR-TOOL-07.** When the model writes in an argument a placeholder that was never issued, then the call is refused by default, before execution: `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. No e-mail goes out. With "drop", the tool receives `{"to": ""}`. With "keep", it receives `{"to": "<<EMAIL:7>>"}`.
+**BR-TOOL-07.** When the model writes in an argument a placeholder that was never issued, then the call is refused by default, before execution: `Deanonymized text holds tokens the pipeline never issued: ['<<EMAIL:7>>']`. No e-mail goes out. With the invented-placeholder setting "drop", the tool receives `{"to": ""}`. With "keep", it receives `{"to": "<<EMAIL:7>>"}`.
 
 **BR-TOOL-08.** When the arguments contain lists or nested objects, then each text they contain is restored, and the other values (numbers, booleans) stay intact.
 
-**BR-TOOL-09.** When the model itself writes a value in clear in an argument, then, with LangChain, the history is masked again before the next call. A known value takes its placeholder again. A value the model brought itself stays in clear, like any value first quoted by the assistant.
+**BR-TOOL-09.** When the model itself writes a value in clear in an argument, then the LangChain integration masks the history again before the next call. A known value takes its placeholder again. A value the model brought itself stays in clear, like any value first quoted by the assistant.
 
 **BR-TOOL-10.** When the agent keeps its history, then the tool call stays written there with its placeholders. The real values only exist during the execution of the tool.
 
@@ -172,4 +172,4 @@ The gap on the result of a tool (the doc spoke of replacing only the known value
 | `tests/integrations/test_pydantic_ai_hooks.py` (`TestTools`) | The tool receives the value, its result is masked |
 | `piighost-api:tests/routes/test_rewrite.py` | Arguments restored by the proxy, outside the stream |
 
-Not covered: the restoration of tool arguments in the stream of the OpenAI proxy (AT-USER-3-2), which does not exist.
+Not covered: the restoration of tool arguments in the stream of the OpenAI proxy (AT-USER-3-2). This restoration does not exist.

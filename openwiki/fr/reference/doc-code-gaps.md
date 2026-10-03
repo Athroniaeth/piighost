@@ -139,7 +139,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 | | |
 |---|---|
 | Doc | `docs/en/tool-call-strategies.md` et `docs/fr/tool-call-strategies.md`, ainsi que `placeholder-factories.md` dans les deux langues : la réponse d'un outil est parcourue « à la recherche des valeurs connues ». |
-| Code | Le résultat passe par le pipeline complet de la conversation, détection comprise (`integrations/langchain/middleware.py:253-272`). Une valeur jamais citée est détectée aussi. |
+| Code | Le résultat passe par le pipeline complet de la conversation, détection comprise (`integrations/langchain/middleware.py:253-272`). Une valeur jamais citée avant dans la conversation est détectée aussi. |
 | Page du wiki | [Laisser un outil agir sur les vraies valeurs](../processes/let-a-tool-act.md) |
 | Effet | La doc sous-estimait la protection. Statut : doc corrigée le 2026-10-02 (`3473217`). |
 
@@ -148,7 +148,7 @@ Chaque entrée donne ce que dit la doc, ce que fait le code, la page du wiki qui
 | | |
 |---|---|
 | Doc | `docs/en/reference/langchain.md` et `docs/fr/reference/langchain.md` : l'affichage en flux « ne montre jamais de token cassé ». |
-| Code | En fin de flux, `flush` rend tel quel le reste retenu (`components/placeholder/streaming.py:186`), donc un flux coupé dans un jeton affiche son début. |
+| Code | En fin de flux, `flush` rend tel quel le reste retenu (`components/placeholder/streaming.py:186`). Un flux coupé au milieu d'un jeton affiche donc le début de ce jeton. |
 | Page du wiki | [Afficher une réponse streamée](../processes/show-a-streamed-reply.md) |
 | Effet | Cas rare, sans fuite de valeur. Statut : doc corrigée le 2026-10-02 (`3473217`). |
 
