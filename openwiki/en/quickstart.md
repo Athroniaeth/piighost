@@ -87,7 +87,7 @@ To change the code, the technical documentation says which pages to read and whi
 - **Operations**: [Configure a pipeline by file, hub and command line](operations/configuration-and-hub.md), [Store conversations and protect traces](operations/storage-and-encryption.md).
 - **Architecture**: [Add or replace a pipeline component](architecture/ports-and-extension.md).
 - **Tests**: [Run and write tests](tests/run-and-write-tests.md), [Acceptance tests](tests/acceptance-tests.md).
-- **Reference**: [Glossary](glossary.md), [Doc / code gap register](reference/doc-code-gaps.md), [Open points](reference/open-points.md).
+- **Reference**: [Glossary](glossary.md), [Doc / code gap register](reference/doc-code-gaps.md), [Conventions and technical choices](reference/conventions.md), [Open points](reference/open-points.md).
 
 ## Cross-cutting watch points
 

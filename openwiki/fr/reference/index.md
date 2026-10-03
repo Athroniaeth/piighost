@@ -1,4 +1,5 @@
 # Fichiers
 
 - [Registre des écarts doc / code](doc-code-gaps.md) - Chaque écart constaté entre la documentation existante de PIIGhost (docs/, AGENTS.md, docstrings) et le comportement du code, avec la source de chaque côté et la page de la documentation métier concernée.
+- [Conventions et choix techniques](conventions.md) - Les conventions que suit PIIGhost sans qu'un besoin les impose directement, avec la raison de chacune et l'endroit du code où elle vit.
 - [Points à régler](open-points.md) - Les décisions prises sur les besoins par profil et ce qui reste à faire pour les tenir, avec ce qui est déjà fait et ce qui reste à trancher.
