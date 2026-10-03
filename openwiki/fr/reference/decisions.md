@@ -10,7 +10,7 @@ generated: { by: "claude-code", at: "2026-10-03T18:00:00.000Z" }
 
 ## En bref
 
-Le système de dé-identification s'est construit par étapes, et chaque besoin nouveau a demandé une décision. Pour remplacer une donnée confidentielle par un jeton, il fallait d'abord la trouver dans le texte, à une position précise. Pour que le modèle comprenne encore le texte, le jeton devait dire de quel type de donnée il s'agit. Pour distinguer deux personnes, il lui fallait un identifiant, donc une façon de regrouper les détections d'une même personne. Pour que l'utilisateur lise ses vraies données, il fallait garder la correspondance entre chaque jeton et sa valeur. Viennent ensuite la conversation, les outils d'un agent, le flux et la mise en production.
+Le système de dé-identification s'est construit par étapes, et chaque besoin nouveau a demandé une décision. Pour remplacer une donnée confidentielle par un jeton, il fallait d'abord la trouver dans le texte, à une position précise. Pour que le modèle comprenne encore le texte, le jeton devait dire de quel type de donnée il s'agit. Pour distinguer deux personnes, le jeton avait besoin d'un identifiant. Il fallait donc savoir quelles détections désignent la même personne. Pour que l'utilisateur lise ses vraies données, il fallait garder la correspondance entre chaque jeton et sa valeur. Viennent ensuite la conversation, les outils d'un agent, le flux et la mise en production.
 
 Cette page raconte ces décisions dans l'ordre où elles se sont posées. Chacune porte un identifiant `DEC-NN`, et donne son contexte, ce qui a été décidé, pourquoi, ses conséquences et l'endroit du code où elle vit. Elle cite aussi les règles de gestion qui en découlent. Le guide technique décrit les composants qui appliquent ces décisions, dans [Conception du pipeline](../../../docs/fr/conception.md). Ces décisions engagent le reste de la librairie, donc en changer une demande d'en discuter d'abord.
 
@@ -26,31 +26,31 @@ Cette page raconte ces décisions dans l'ordre où elles se sont posées. Chacun
 **DEC-02. Trouver chaque valeur et sa position exacte.**
 
 - **Contexte** : pour remplacer une valeur, il faut savoir où elle commence et où elle finit dans le texte.
-- **Décision** : un détecteur rend des passages, c'est-à-dire une position de début et de fin, avec un type et une confiance. Deux familles se complètent. Les expressions régulières reconnaissent les formats fixes (e-mail, IBAN, téléphone). Les modèles de reconnaissance d'entités (NER) reconnaissent le texte libre (nom, lieu). Un détecteur LLM nomme des valeurs sans positions, et PIIGhost les recherche lui-même dans le texte.
-- **Pourquoi** : aucune famille ne couvre tout. Plusieurs détecteurs peuvent tourner ensemble.
-- **Conséquences** : une valeur qu'aucun détecteur ne voit part en clair. Une valeur inventée par un LLM, absente du texte, est ignorée. Une valeur est masquée sur sa seule forme, sans clé de contrôle, pour qu'une valeur abîmée par la reconnaissance de caractères reste détectée. Les expressions régulières sont en ASCII, et toute espace Unicode compte comme une espace ordinaire.
+- **Décision** : un détecteur rend des passages. Un passage est une position de début et de fin, avec le type de la donnée et un score de confiance. Deux familles de détecteurs se complètent. Les expressions régulières reconnaissent les formats fixes, comme un e-mail, un IBAN ou un téléphone. Les modèles de reconnaissance d'entités (NER) reconnaissent le texte libre, comme un nom ou un lieu. Un détecteur LLM, lui, nomme des valeurs sans donner leur position, et PIIGhost les recherche dans le texte.
+- **Pourquoi** : aucune famille ne couvre tout, donc plusieurs détecteurs peuvent tourner ensemble.
+- **Conséquences** : une valeur qu'aucun détecteur ne voit part en clair. Une valeur inventée par un LLM est ignorée, parce qu'elle n'est pas dans le texte. Une valeur est masquée sur sa seule forme, sans vérifier sa clé de contrôle. Une valeur abîmée par la reconnaissance de caractères reste ainsi détectée. Les expressions régulières sont en ASCII, et toute espace Unicode compte comme une espace ordinaire.
 - **Dans le code** : `components/detector/`, `text/normalization.py`. Règles BR-MSG-06, BR-MSG-07, BR-MSG-10.
 
 **DEC-03. Encadrer chaque jeton par `<<` et `>>`.**
 
-- **Contexte** : il fallait une nomenclature pour écrire un jeton dans le texte.
-- **Décision** : un jeton est encadré par deux chevrons doublés, comme `<<PERSON:1>>`.
-- **Pourquoi** : cette suite est rare dans un texte ordinaire, donc une expression régulière retrouve un jeton facilement. Elle signale aussi au modèle qu'il lit une donnée masquée.
-- **Conséquences** : un texte qui contient déjà cette suite demande une précaution, voir DEC-13. Un label commence par une lettre ou `_`, puis contient des lettres, des chiffres, `_`, des espaces ou des tirets.
-- **Dans le code** : `components/placeholder/streaming.py` (`DEFAULT_PREFIX`, `DEFAULT_SUFFIX`, `LABEL_INNER`).
+- **Contexte** : il fallait une façon d'écrire un jeton dans le texte.
+- **Décision** : un jeton est encadré par deux chevrons doublés, comme `<<REDACT>>`.
+- **Pourquoi** : cette suite de caractères est rare dans un texte ordinaire. Une expression régulière retrouve donc un jeton facilement. Elle signale aussi au modèle qu'il lit une donnée masquée.
+- **Conséquences** : un utilisateur peut taper lui-même cette suite. Ce cas demande une précaution, voir DEC-13.
+- **Dans le code** : `components/placeholder/streaming.py` (`DEFAULT_PREFIX`, `DEFAULT_SUFFIX`).
 
 **DEC-04. Dire dans le jeton de quel type de donnée il s'agit.**
 
-- **Contexte** : un modèle qui lit `<<1>>` ne sait pas s'il s'agit d'une personne, d'une adresse ou d'un e-mail, et répond mal.
-- **Décision** : le jeton porte le type de la donnée, son label. Le label vient du modèle NER, ou du nom donné au motif dans le détecteur à expressions régulières.
-- **Pourquoi** : avec `<<PERSON:1>>`, le modèle sait qu'il parle à une personne, et peut écrire « Bonjour `<<PERSON:1>>` ».
-- **Conséquences** : un détecteur peut traduire les labels de son modèle vers ceux qu'on veut voir dans les jetons.
-- **Dans le code** : `components/detector/ner/base.py` (correspondance des labels).
+- **Contexte** : si chaque donnée devient `<<REDACT>>`, le modèle ne sait pas s'il s'agit d'une personne, d'une adresse ou d'un e-mail. Il répond donc mal.
+- **Décision** : le jeton dit le type de la donnée, appelé label, comme `<<PERSON>>`. Le label vient du modèle NER, ou du nom donné au motif dans le détecteur à expressions régulières.
+- **Pourquoi** : avec `<<PERSON>>`, le modèle sait qu'il s'agit d'une personne. Il peut donc écrire « Bonjour `<<PERSON>>` ».
+- **Conséquences** : deux personnes reçoivent encore le même jeton, voir DEC-05. Un détecteur peut traduire les labels de son modèle vers ceux qu'on veut voir dans les jetons. Un label commence par une lettre ou `_`, puis contient des lettres, des chiffres, `_`, des espaces ou des tirets.
+- **Dans le code** : `components/detector/ner/base.py` (correspondance des labels), `components/placeholder/streaming.py` (`LABEL_INNER`).
 
 **DEC-05. Donner à chaque individu son propre identifiant.**
 
-- **Contexte** : deux personnes dans le même texte ne doivent pas devenir le même jeton, sinon le modèle les confond.
-- **Décision** : le jeton ajoute un identifiant au type. Par défaut, c'est un numéro compté par type, à partir de 1, dans l'ordre d'apparition (`<<PERSON:1>>`, `<<PERSON:2>>`). Une autre forme utilise l'empreinte SHA-256 de « type:rang », jamais de la valeur.
+- **Contexte** : avec `<<PERSON>>`, deux personnes du même texte reçoivent le même jeton, et le modèle les confond.
+- **Décision** : le jeton ajoute un identifiant après le type, comme `<<PERSON:1>>`. Par défaut, c'est un numéro compté par type, à partir de 1, dans l'ordre d'apparition. Une autre forme utilise une empreinte SHA-256, calculée sur le type et le rang, jamais sur la valeur.
 - **Pourquoi** : le numéro est lisible par le modèle. L'empreinte ne cache aucun secret, et on ne peut rien en déduire sur la valeur.
 - **Conséquences** : il faut savoir quelles détections désignent le même individu, voir DEC-06.
 - **Dans le code** : `components/placeholder/label_counter.py`, `components/placeholder/label_hash.py`. Règle BR-MSG-01.
@@ -66,7 +66,7 @@ Cette page raconte ces décisions dans l'ordre où elles se sont posées. Chacun
 **DEC-07. Ne garder qu'un passage quand deux détections se recouvrent.**
 
 - **Contexte** : deux détecteurs peuvent repérer des passages qui se chevauchent, par exemple « Jean » et « Jean Dupont ».
-- **Décision** : un seul passage est gardé. Par défaut, la détection la plus sûre gagne, et à égalité, le premier détecteur déclaré. Un autre réglage garde l'union des passages.
+- **Décision** : un seul passage est gardé. Par défaut, la détection la plus sûre gagne, et à égalité, le premier détecteur déclaré. Un autre réglage garde un seul passage qui couvre les deux.
 - **Pourquoi** : le remplacement suppose des passages disjoints. Deux remplacements qui se chevauchent abîmeraient le texte.
 - **Conséquences** : cette étape ne se désactive pas.
 - **Dans le code** : `components/overlap_resolver/`. Règle BR-MSG-05.
@@ -158,7 +158,7 @@ Cette page raconte ces décisions dans l'ordre où elles se sont posées. Chacun
 **DEC-18. Protéger la correspondance stockée.**
 
 - **Contexte** : la correspondance entre jetons et valeurs contient les données confidentielles en clair, voir DEC-08.
-- **Décision** : avec Redis, les clés passent par HMAC puis Argon2id avec un poivre, et les valeurs sont chiffrées en AES-GCM. Les secrets ne se lisent que dans l'environnement, jamais dans un fichier de configuration. Les traces d'observation peuvent être masquées.
+- **Décision** : avec Redis, les clés sont hachées par HMAC puis Argon2id, avec un poivre, c'est-à-dire un secret ajouté avant le hachage, et les valeurs sont chiffrées en AES-GCM. Les secrets ne se lisent que dans l'environnement, jamais dans un fichier de configuration. Les traces d'observation peuvent être masquées.
 - **Pourquoi** : une fuite du stockage ne doit pas livrer les données.
 - **Conséquences** : l'identifiant de conversation reste lisible, pour qu'on puisse effacer une conversation. Un stockage sans chiffrement émet un avertissement.
 - **Dans le code** : `crypto/`, `conversation_memory/redis_backend.py`. Règles BR-STO-01, BR-STO-02, BR-STO-03, BR-STO-08.
@@ -183,7 +183,7 @@ Cette page raconte ces décisions dans l'ordre où elles se sont posées. Chacun
 **DEC-21. Faire de chaque étape un port remplaçable.**
 
 - **Contexte** : chaque équipe a ses propres détecteurs, son stockage et ses contraintes.
-- **Décision** : chaque étape du pipeline a une interface, et la plupart ont un modèle de base. Seul le détecteur est obligatoire. La configuration connaît le cœur de la librairie, jamais l'inverse.
+- **Décision** : chaque étape du pipeline est un port, c'est-à-dire une interface qu'on peut remplacer. La plupart ont aussi un modèle de base à compléter. Seul le détecteur est obligatoire. La configuration connaît le cœur de la librairie, jamais l'inverse.
 - **Pourquoi** : on remplace une étape sans toucher aux autres.
 - **Conséquences** : le cœur ne contient aucune règle propre à une langue. Les listes de mots français ou métier vont dans les groupes du hub.
 - **Dans le code** : `components/*/base.py`. Voir [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md).
