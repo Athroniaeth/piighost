@@ -17,22 +17,40 @@ Two things therefore coexist at all times. The first is the de-identified text, 
 
 ## What `piighost` protects against
 
-!!! success "Within the protection scope"
-    - **Exfiltration toward third-party LLMs**: the LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real values. Even if the provider logs the request, no sensitive data leaks to it.
-    - **Tool-call leakage**: the middleware restores tool arguments just before execution, then de-identifies the results before they go back to the LLM. The real values never flow through the LLM's visible context.
-    - **Cross-message drift**: the `ConversationMemory` links variants of a value, so the same entity keeps the same placeholder across the whole conversation. `Patrick`{ .pii } and `patrick`{ .pii } group by `(value_key(text), label)`, whatever their spaces and case. The LLM never sees the same value under two different masks.
-    - **Theft of a stolen persistent store**: a persistent backend (Redis or SQL) can encrypt every stored value and hash the key. A store leak then reveals neither the message nor the confidential data. See below.
+!!! success "Exfiltration toward third-party LLMs"
+    The LLM only ever sees placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), never the real values. Even if the provider logs the request, no sensitive data leaks to it.
+
+!!! success "Tool-call leakage"
+    The middleware restores tool arguments just before execution, then de-identifies the results before they go back to the LLM. The real values never flow through the LLM's visible context.
+
+!!! success "Cross-message drift"
+    The `ConversationMemory` links variants of a value, so the same entity keeps the same placeholder across the whole conversation. `Patrick`{ .pii } and `patrick`{ .pii } group by `(value_key(text), label)`, whatever their spaces and case. The LLM never sees the same value under two different masks.
+
+!!! success "Theft of a stolen persistent store"
+    A persistent backend (Redis or SQL) can encrypt every stored value and hash the key. A store leak then reveals neither the message nor the confidential data. See below.
 
 ## What `piighost` does not protect against
 
-!!! danger "Outside the protection scope"
-    - **Process memory compromise**: the mapping from `placeholder` to original value lives in RAM for the duration of processing. An attacker who reads process memory recovers the cleartext confidential data, whatever the backend.
-    - **Unencrypted persistent store**: the in-RAM memory (`InMemoryConversationMemory`) encrypts nothing. It serves development and single-process use. A persistent backend built without crypto stores its values in clear. A disk theft therefore exposes the confidential data. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
-    - **LLM-invented placeholders**: if the LLM fabricates a placeholder that was never emitted, `piighost` cannot map it back to a value since it is in no mapping. The middleware refuses such tokens by default (`InventedPlaceholderError`). See [Limitations](limitations.md).
-    - **Re-identification from context**: a placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
-    - **Fallible detectors**: a detector is best-effort. Confidential data it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
-    - **Assistant-introduced values under PRESERVE**: with the default `EntityCreateByAssistantStrategy.PRESERVE`, a value the model itself introduced stays in clear for the whole thread, since the model already knows it. It stays clear even when a later user message repeats it, because the thread dates the value to its first occurrence. Use `ANONYMIZE` to tokenize values the assistant introduces too.
-    - **Upstream application logs**: `piighost` never logs raw confidential data, but your application might. Audit your own logging, tracing, and error reporting before claiming compliance.
+!!! danger "Process memory compromise"
+    The mapping from `placeholder` to original value lives in RAM for the duration of processing. An attacker who reads process memory recovers the cleartext confidential data, whatever the backend.
+
+!!! danger "Unencrypted persistent store"
+    The in-RAM memory (`InMemoryConversationMemory`) encrypts nothing. It serves development and single-process use. A persistent backend built without crypto stores its values in clear. A disk theft therefore exposes the confidential data. Configure a hasher and a cipher on the Redis or SQL backend to encrypt at rest.
+
+!!! danger "LLM-invented placeholders"
+    If the LLM fabricates a placeholder that was never emitted, `piighost` cannot map it back to a value since it is in no mapping. The middleware refuses such tokens by default (`InventedPlaceholderError`). See [Limitations](limitations.md).
+
+!!! danger "Re-identification from context"
+    A placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
+
+!!! danger "Fallible detectors"
+    A detector is best-effort. Confidential data it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
+
+!!! danger "Assistant-introduced values under PRESERVE"
+    With the default `EntityCreateByAssistantStrategy.PRESERVE`, a value the model itself introduced stays in clear for the whole thread, since the model already knows it. It stays clear even when a later user message repeats it, because the thread dates the value to its first occurrence. Use `ANONYMIZE` to tokenize values the assistant introduces too.
+
+!!! danger "Upstream application logs"
+    `piighost` never logs raw confidential data, but your application might. Audit your own logging, tracing, and error reporting before claiming compliance.
 
 ## The LangGraph state after the model turn
 

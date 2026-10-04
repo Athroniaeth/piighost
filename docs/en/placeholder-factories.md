@@ -13,14 +13,19 @@ A *placeholder* is the synthetic token that takes the place of a detected value 
 A **placeholder factory** decides what those tokens look like and how much information they carry. Two questions structure the choice.
 
 1. *Is the token unique per entity?* `Patrick`{ .pii } and `Marie`{ .pii } should not both collapse onto a generic `<<PERSON>>`{ .placeholder }, otherwise the LLM cannot tell them apart. A unique token per entity lets the model reason about relations. The question *is the manager the same person as `Patrick`{ .pii }?* becomes *is `<<PERSON:1>>`{ .placeholder } the same as `<<PERSON:2>>`{ .placeholder }?*, and it gets a clear answer.
+
 2. *Is the token reversible and findable?* From the token alone, without consulting the memory, can the original value be recovered, and can the token be relocated in a text the pipeline never produced? The string replacement the middleware runs on tool arguments needs both properties. If two entities collapse onto the same `<<PERSON>>`{ .placeholder }, there is no way to know which original to restore.
 
 Five families of factories sit at different points on that spectrum, and the choice has direct consequences on which `ToolCallStrategy` you can use safely. See [Tool-call strategies](tool-call-strategies.md) for the runtime side.
 
 - **No information** (`<<REDACT>>`{ .placeholder }): a constant token that reveals nothing to the LLM. Classic redaction. No reasoning is possible on entities. For example, the model cannot tell that the value was a city and decide to call the `get_weather` tool.
+
 - **Type only** (`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }): the type is revealed, not the identity. Multiple persons in the same conversation collapse onto the same `<<PERSON>>`{ .placeholder }, so cross-references break.
+
 - **Type + id (opaque)** (`<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }): type revealed, stable identity, clearly synthetic token. The LLM can tell that `<<PERSON:1>>`{ .placeholder } and `<<PERSON:2>>`{ .placeholder } are two different people. Unique, so reversible by string replacement.
+
 - **Id only** (`<<REDACT:a1b2c3d4>>`{ .placeholder }): a unique hash per entity, without revealing the type. The LLM sees that two distinct entities exist but cannot tell whether they are persons, emails, or cards. Keeps reversibility on the tool side without giving any semantic hint to the model.
+
 - **Partial value** (`j***@mail.com`{ .placeholder }): the format is kept but part of the real content stays visible. The LLM sees that it is an email, may guess the domain, but not the full address. Riskier on privacy (real fragments) and on reversibility (collisions possible).
 
 !!! note "Token format convention"
@@ -38,33 +43,58 @@ Five families of factories sit at different points on that spectrum, and the cho
 
 ### No information: total destruction
 
-The token is a fixed marker, e.g. `<<REDACT>>`{ .placeholder }. The LLM learns *that* something was removed but nothing about its type, count, or relations. The conversation loses every internal reference. An agent trying to act on *send the invoice to the client* cannot tell whether the client is the one mentioned earlier or someone new. Useful for archival redaction, useless once an agent has to reason.
+The token is a fixed marker, e.g. `<<REDACT>>`{ .placeholder }. The LLM learns *that* something was removed but nothing about its type, count, or relations. The conversation loses every internal reference. An agent trying to act on *send the invoice to the client* cannot tell whether the client is the one mentioned earlier or someone new.
 
-Built-in: `RedactPlaceholderFactory` (output `<<REDACT>>`{ .placeholder }, delimiters configurable). Tag `PreservesNothing`.
+Useful for archival redaction, useless once an agent has to reason.
+
+- Built-in: `RedactPlaceholderFactory` (output `<<REDACT>>`{ .placeholder }, delimiters configurable).
+- Tag: `PreservesNothing`.
 
 ### Type only: known type, identities collapsed
 
-`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }. The LLM knows that something is a person, an email, a card, and can answer questions that depend on the type alone. But two different persons in the same conversation collapse onto the same token. The classic failure mode is cross-reference. The question *is `Patrick`{ .pii } the same person as the manager mentioned earlier?* becomes *is `<<PERSON>>`{ .placeholder } the same as `<<PERSON>>`{ .placeholder }?*, and that question has no answer.
+`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }. The LLM knows that something is a person, an email, a card, and can answer questions that depend on the type alone. But two different persons in the same conversation collapse onto the same token.
 
-Built-in: `LabelPlaceholderFactory` (output `<<PERSON>>`{ .placeholder }). Tag `PreservesLabel`.
+The classic failure mode is cross-reference. The question *is `Patrick`{ .pii } the same person as the manager mentioned earlier?* becomes *is `<<PERSON>>`{ .placeholder } the same as `<<PERSON>>`{ .placeholder }?*, and that question has no answer.
+
+- Built-in: `LabelPlaceholderFactory` (output `<<PERSON>>`{ .placeholder }).
+- Tag: `PreservesLabel`.
 
 ### Type + id (opaque)
 
-`<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. The string clearly is *not* a person, an email, or a card number, it is a token. The LLM cannot mistake it for real data, audit logs are easy to scan, and there is **zero chance** of collision with a real value. Its delimiters also make it findable. A consumer can then spot a token the model invented. In return, a strict downstream prompt or tool that requires *the argument must look like an email* will reject these tokens.
+`<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. The string clearly is *not* a person, an email, or a card number, it is a token. The LLM cannot mistake it for real data, audit logs are easy to scan, and there is **zero chance** of collision with a real value.
 
-Built-in: `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) and `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }). Both number the entities per label, in order. The first person becomes ordinal 1, the second 2, while an email starts its own count at 1. `LabelHashPlaceholderFactory` renders that ordinal as a hash. The hash is a sha256 of the string `label:ordinal`, never of the value. It only gives an opaque look, so that two consecutive entities look unrelated. Tag `PreservesLabeledIdentityOpaque`.
+Its delimiters also make it findable. A consumer can then spot a token the model invented.
+
+In return, a strict downstream prompt or tool that requires *the argument must look like an email* will reject these tokens.
+
+- Built-in: `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) and `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }).
+- Tag: `PreservesLabeledIdentityOpaque`.
+
+Both number the entities per label, in order. The first person becomes ordinal 1, the second 2, while an email starts its own count at 1.
+
+`LabelHashPlaceholderFactory` renders that ordinal as a hash. The hash is a sha256 of the string `label:ordinal`, never of the value. It only gives an opaque look, so that two consecutive entities look unrelated.
 
 ### Id only: identity without type
 
-`<<REDACT:a1b2c3d4>>`{ .placeholder }. The token keeps the synthetic `<<...>>` shape but does not reveal the label, while carrying a unique hash per entity. The LLM cannot tell whether the entity is a person, an email, or a card, but it can see that `<<REDACT:a1b2c3d4>>`{ .placeholder } and `<<REDACT:ef98abcd>>`{ .placeholder } are two distinct entities. It is one of the most protective levels that stays usable on the tool side. The string replacement works, because the hash is unique.
+`<<REDACT:a1b2c3d4>>`{ .placeholder }. The token keeps the synthetic `<<...>>` shape but does not reveal the label, while carrying a unique hash per entity. The LLM cannot tell whether the entity is a person, an email, or a card, but it can see that `<<REDACT:a1b2c3d4>>`{ .placeholder } and `<<REDACT:ef98abcd>>`{ .placeholder } are two distinct entities.
 
-No built-in for this branch. The tag `PreservesIdentityOnly` is meant for a factory you write, a hashed redaction with no label prefix. See *Writing your own* below.
+It is one of the most protective levels that stays usable on the tool side. The string replacement works, because the hash is unique.
+
+- Built-in: none for this branch.
+- Tag: `PreservesIdentityOnly`, meant for a factory you write, a hashed redaction with no label prefix. See *Writing your own* below.
 
 ### Type + id (realistic hashed)
 
-A custom factory can produce values that **look like the original format** but whose content is driven by a hash, e.g. `a1b2c3d4@anonymized.local`{ .placeholder } for an email, or `Patient_a1b2c3d4`{ .placeholder } for a name. The token passes basic format validation (email regex, length, allowed characters), so downstream tools and prompt templates that expect a real-looking value still work. Because the content is a hash, the token is **unique and cannot coincidentally match** an existing real value.
+A custom factory can produce values that **look like the original format** but whose content is driven by a hash, e.g. `a1b2c3d4@anonymized.local`{ .placeholder } for an email, or `Patient_a1b2c3d4`{ .placeholder } for a name.
 
-No built-in. Tag `PreservesLabeledIdentityHashed`. See *Writing your own* below for a complete example. This tag is not findable. The middleware therefore cannot spot an invented token in this form. Weigh this before using it under the middleware.
+The token passes basic format validation (email regex, length, allowed characters), so downstream tools and prompt templates that expect a real-looking value still work. Because the content is a hash, the token is **unique and cannot coincidentally match** an existing real value.
+
+- Built-in: none. See *Writing your own* below for a complete example.
+- Tag: `PreservesLabeledIdentityHashed`.
+
+!!! warning "Token not findable"
+
+    This tag is not findable. The middleware therefore cannot spot an invented token in this form. Weigh this before using it under the middleware.
 
 ### Partial value: partial value leak
 
@@ -73,7 +103,10 @@ No built-in. Tag `PreservesLabeledIdentityHashed`. See *Writing your own* below 
 1. **Real fragments of the value reach the LLM.** It cannot reconstruct the full value, but `j***@mail.com`{ .placeholder } already places the user inside a known mail provider.
 2. **Collisions are possible.** Two different cards ending in `4567` collapse onto `****4567`{ .placeholder }, two emails sharing the first letter and domain end up identical. The token is *mostly* unique, with no guarantee.
 
-Built-in: `MaskPlaceholderFactory`, which by default keeps the first character of the value and masks the rest with `*`, so `Jonathan`{ .pii } becomes `J*******`{ .placeholder }. Tag `PreservesShape`. The middleware refuses it for the same reason as `PreservesLabel`, because an ambiguous token cannot be restored through string replacement.
+- Built-in: `MaskPlaceholderFactory`, which by default keeps the first character of the value and masks the rest with `*`, so `Jonathan`{ .pii } becomes `J*******`{ .placeholder }.
+- Tag: `PreservesShape`.
+
+The middleware refuses it for the same reason as `PreservesLabel`, because an ambiguous token cannot be restored through string replacement.
 
 ---
 
@@ -136,9 +169,20 @@ Legend:
 <span class="sec-legend c-red">problematic</span>
 </small>
 
-Tags form an **inheritance hierarchy** that the type-checker exploits through the covariance of `AnyPlaceholderFactory[PreservationT_co]`. A factory tagged more specifically therefore satisfies a consumer asking for a looser one. Three independent axes structure the taxonomy. *Label*, the token reveals the type. *Identity*, the token is unique per entity. *Recognizable*, the factory can find its token again in arbitrary text. A delimited token allows this, a realistic one does not.
+Tags form an **inheritance hierarchy** that the type-checker exploits through the covariance of `AnyPlaceholderFactory[PreservationT_co]`. A factory tagged more specifically therefore satisfies a consumer asking for a looser one.
 
-`PreservesLabeledIdentity` combines label and identity via multiple inheritance. A `<<PERSON:1>>`{ .placeholder } factory is therefore both a `PreservesLabel` *and* a `PreservesIdentity`. `PreservesRecognizableIdentity` crosses identity with findability. The middleware accepts only this intersection. A consumer typed against `PreservesRecognizableIdentity` accepts `PreservesIdentityOnly` and `PreservesLabeledIdentityOpaque`. It rejects `PreservesLabel`, `PreservesShape` and `PreservesNothing`, which lack the uniqueness guarantee, along with `PreservesLabeledIdentityHashed`, which is not findable.
+Three independent axes structure the taxonomy:
+
+- *Label*: the token reveals the type.
+- *Identity*: the token is unique per entity.
+- *Recognizable*: the factory can find its token again in arbitrary text. A delimited token allows this, a realistic one does not.
+
+`PreservesLabeledIdentity` combines label and identity via multiple inheritance. A `<<PERSON:1>>`{ .placeholder } factory is therefore both a `PreservesLabel` *and* a `PreservesIdentity`.
+
+`PreservesRecognizableIdentity` crosses identity with findability. The middleware accepts only this intersection. A consumer typed against `PreservesRecognizableIdentity` sorts the tags as follows:
+
+- Accepts: `PreservesIdentityOnly` and `PreservesLabeledIdentityOpaque`.
+- Rejects: `PreservesLabel`, `PreservesShape` and `PreservesNothing`, which lack the uniqueness guarantee, along with `PreservesLabeledIdentityHashed`, which is not findable.
 
 ```mermaid
 classDiagram
@@ -197,10 +241,14 @@ classDiagram
     PreservesLabeledIdentityRealistic <|-- PreservesLabeledIdentityHashed
 ```
 
-*Preservation tag hierarchy. Each node carries an example token, the abstract nodes are intersections between axes.*
+*Preservation tag hierarchy. Each node carries an example token, the abstract nodes are intersections between axes. Each arrow goes from a tag to its parent and reads "is a".*
 { .figure-caption }
 
-`PreservesLabeledIdentity` inherits from both `PreservesLabel` and `PreservesIdentity`. This inheritance expresses the *A is a B but not every B is an A* relation. Every `PreservesLabeledIdentity` is also a `PreservesLabel` and a `PreservesIdentity`, but a `PreservesLabel` is not necessarily a `PreservesLabeledIdentity`. `PreservesShape` extends `PreservesLabel`, because a masked token implies the label through its format. It does not guarantee uniqueness, so it does not descend from `PreservesIdentity`. Each tag is a subclass of `str`, so a token is a real string that carries its preservation level in its own type.
+`PreservesLabeledIdentity` inherits from both `PreservesLabel` and `PreservesIdentity`. This inheritance expresses the *A is a B but not every B is an A* relation. Every `PreservesLabeledIdentity` is also a `PreservesLabel` and a `PreservesIdentity`, but a `PreservesLabel` is not necessarily a `PreservesLabeledIdentity`.
+
+`PreservesShape` extends `PreservesLabel`, because a masked token implies the label through its format. It does not guarantee uniqueness, so it does not descend from `PreservesIdentity`.
+
+Each tag is a subclass of `str`, so a token is a real string that carries its preservation level in its own type.
 
 A factory declares the **most specific** tag that matches its guarantees.
 
@@ -273,11 +321,23 @@ The middleware operates on three boundaries, **input messages** (LLM in), **outp
 
 **Tool calls.** The LLM produces tool arguments by *combining* and *paraphrasing* the tokens it just saw. That exact text was never produced by the pipeline, so it is not memorised. The only way to restore is **string replacement**. The middleware scans the args for known tokens and substitutes the original value of each entity. The tool response, for its part, goes through the thread's pipeline like a user message, detection included.
 
-That substitution is unambiguous **only if every entity maps to a unique token**. If two entities collapse onto `<<PERSON>>`{ .placeholder }, there is no way to know which original to restore. The middleware also requires a **findable grammar**, a token shape it can spot in a text. Once every issued token has been replaced, any token still matching the grammar was invented by the model and can be refused (see [Tool-call strategies](tool-call-strategies.md)). The middleware therefore narrows its accepted type to a pipeline whose tokens are `PreservesRecognizableIdentity`. Through covariance, this type encompasses `PreservesIdentityOnly` (hashed redact, no label) and `PreservesLabeledIdentityOpaque` (with label). `pyrefly` catches a `PreservesLabel`, `PreservesShape`, `PreservesNothing` or `PreservesLabeledIdentityHashed` factory before the program runs.
+That substitution is unambiguous **only if every entity maps to a unique token**. If two entities collapse onto `<<PERSON>>`{ .placeholder }, there is no way to know which original to restore.
+
+The middleware also requires a **findable grammar**, a token shape it can spot in a text. Once every issued token has been replaced, any token still matching the grammar was invented by the model and can be refused (see [Tool-call strategies](tool-call-strategies.md)).
+
+The middleware therefore narrows its accepted type to a pipeline whose tokens are `PreservesRecognizableIdentity`. Through covariance, this type encompasses `PreservesIdentityOnly` (hashed redact, no label) and `PreservesLabeledIdentityOpaque` (with label). `pyrefly` catches a `PreservesLabel`, `PreservesShape`, `PreservesNothing` or `PreservesLabeledIdentityHashed` factory before the program runs.
 
 `PIIAnonymizationMiddleware` mirrors that constraint at runtime. At construction, it asks the pipeline for a *recognizer*, the object that knows how to find its own tokens. A delimited factory is its own recognizer. A factory with no grammar, such as a mask, has none, and the middleware then raises `UnrecognizableFactoryError`. This runtime check catches untyped or remote pipelines that bypassed the type-checker.
 
-The recognizer's grammar is bounded, not "anything between the delimiters". The inner form is a label, then an optional colon and identifier, such as `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder } or `<<PERSON:a1b2c3d4>>`{ .placeholder }. A label starts with a letter or underscore, then letters, digits, underscores, spaces, or hyphens, so a multi-word label a detector emits, such as `date of birth`, still fits. The identifier after the colon is alphanumeric, an ordinal or a hex digest. Arbitrary delimited content is not a token. A C++ shift `cout << x >> y` or a markdown run therefore never trips the invented-token guard. A streaming reply that opens `<<` without closing it is released rather than buffered indefinitely.
+The recognizer's grammar is bounded, not "anything between the delimiters". It reads as follows:
+
+- Inner form: a label, then an optional colon and identifier, such as `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder } or `<<PERSON:a1b2c3d4>>`{ .placeholder }.
+- Label: a letter or underscore, then letters, digits, underscores, spaces, or hyphens, so a multi-word label a detector emits, such as `date of birth`, still fits.
+- Identifier: after the colon, alphanumeric, an ordinal or a hex digest.
+
+Arbitrary delimited content is not a token. A C++ shift `cout << x >> y` or a markdown run therefore never trips the invented-token guard.
+
+A streaming reply that opens `<<` without closing it is released rather than buffered indefinitely.
 
 See [Tool-call strategies](tool-call-strategies.md) for the only escape hatch, `ToolCallStrategy.PASSTHROUGH`, where the tool boundary is never crossed in clear text.
 

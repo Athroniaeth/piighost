@@ -13,14 +13,19 @@ Un *placeholder* est le jeton synthétique qui prend la place d'une valeur déte
 Une **placeholder factory** décide de la forme de ces jetons et de la quantité d'information qu'ils transportent. Deux questions structurent le choix.
 
 1. *Le jeton est-il unique par entité ?* `Patrick`{ .pii } et `Marie`{ .pii } ne doivent pas se ramener au même `<<PERSON>>`{ .placeholder } générique, sinon le LLM ne peut pas les distinguer. Un jeton unique par entité permet au modèle de raisonner sur les relations. La question *le manager est-il la même personne que `Patrick`{ .pii } ?* devient *`<<PERSON:1>>`{ .placeholder } est-il `<<PERSON:2>>`{ .placeholder } ?*, et elle a une réponse claire.
+
 2. *Le jeton est-il réversible et retrouvable ?* À partir du jeton seul, sans consulter la mémoire, peut-on récupérer la valeur originale, et peut-on relocaliser le jeton dans un texte que le pipeline n'a pas produit ? Le remplacement de chaîne que le middleware fait sur les arguments d'outil a besoin de ces deux propriétés. Si deux entités se confondent dans un même `<<PERSON>>`{ .placeholder }, on ne sait pas laquelle restaurer.
 
 Cinq familles de factories se placent à des points différents de ce spectre, et le choix a des conséquences directes sur les `ToolCallStrategy` utilisables sans risque. Voir [Stratégies d'appel outil](tool-call-strategies.md) pour le côté runtime.
 
 - **Aucune information** (`<<REDACT>>`{ .placeholder }) : un jeton constant qui ne révèle rien au LLM. Caviardage classique. Aucun raisonnement n'est possible sur les entités. Par exemple, le modèle ne peut pas voir que la valeur était une ville et décider d'appeler l'outil `get_weather`.
+
 - **Type seul** (`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }) : le type est révélé, pas l'identité. Plusieurs personnes dans une même conversation se confondent dans le même `<<PERSON>>`{ .placeholder }, donc les références croisées se cassent.
+
 - **Type + id (opaque)** (`<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }) : type révélé, identité stable, jeton manifestement synthétique. Le LLM sait que `<<PERSON:1>>`{ .placeholder } et `<<PERSON:2>>`{ .placeholder } sont deux personnes différentes. Unique, donc réversible par remplacement de chaîne.
+
 - **Id seul** (`<<REDACT:a1b2c3d4>>`{ .placeholder }) : un hash unique par entité, sans révéler le type. Le LLM voit qu'il y a deux entités distinctes mais ignore si ce sont des personnes, des emails ou des cartes. Garde la réversibilité côté outil sans donner d'indice sémantique au modèle.
+
 - **Valeur partielle** (`j***@mail.com`{ .placeholder }) : le format est conservé mais une partie du contenu réel reste visible. Le LLM voit que c'est un email, devine peut-être le domaine, mais pas l'adresse complète. Plus risqué côté confidentialité (fragments réels) et côté réversibilité (collisions possibles).
 
 !!! note "Convention de format des jetons"
@@ -38,33 +43,58 @@ Cinq familles de factories se placent à des points différents de ce spectre, e
 
 ### Aucune information : destruction totale
 
-Le jeton est un marqueur fixe, par exemple `<<REDACT>>`{ .placeholder }. Le LLM apprend *qu'une* information a été retirée mais rien sur son type, son nombre ni ses relations. La conversation perd toutes ses références internes. Un agent qui doit traiter *envoyer la facture au client* ne peut pas savoir si le client est celui cité plus tôt ou un nouveau. Utile pour le caviardage d'archive, inutile dès qu'un agent doit raisonner.
+Le jeton est un marqueur fixe, par exemple `<<REDACT>>`{ .placeholder }. Le LLM apprend *qu'une* information a été retirée mais rien sur son type, son nombre ni ses relations. La conversation perd toutes ses références internes. Un agent qui doit traiter *envoyer la facture au client* ne peut pas savoir si le client est celui cité plus tôt ou un nouveau.
 
-Built-in : `RedactPlaceholderFactory` (sortie `<<REDACT>>`{ .placeholder }, délimiteurs paramétrables). Tag `PreservesNothing`.
+Utile pour le caviardage d'archive, inutile dès qu'un agent doit raisonner.
+
+- Built-in : `RedactPlaceholderFactory` (sortie `<<REDACT>>`{ .placeholder }, délimiteurs paramétrables).
+- Tag : `PreservesNothing`.
 
 ### Type seul : type connu, identités confondues
 
-`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }. Le LLM sait qu'il s'agit d'une personne, d'un email, d'une carte, et peut répondre aux questions qui dépendent du seul type. Mais deux personnes différentes dans la même conversation se confondent dans le même jeton. Le mode d'échec classique est la référence croisée. La question *`Patrick`{ .pii } est-il la même personne que le manager cité plus tôt ?* devient *`<<PERSON>>`{ .placeholder } est-il le même que `<<PERSON>>`{ .placeholder } ?*, et cette question n'a pas de réponse.
+`<<PERSON>>`{ .placeholder }, `<<EMAIL>>`{ .placeholder }. Le LLM sait qu'il s'agit d'une personne, d'un email, d'une carte, et peut répondre aux questions qui dépendent du seul type. Mais deux personnes différentes dans la même conversation se confondent dans le même jeton.
 
-Built-in : `LabelPlaceholderFactory` (sortie `<<PERSON>>`{ .placeholder }). Tag `PreservesLabel`.
+Le mode d'échec classique est la référence croisée. La question *`Patrick`{ .pii } est-il la même personne que le manager cité plus tôt ?* devient *`<<PERSON>>`{ .placeholder } est-il le même que `<<PERSON>>`{ .placeholder } ?*, et cette question n'a pas de réponse.
+
+- Built-in : `LabelPlaceholderFactory` (sortie `<<PERSON>>`{ .placeholder }).
+- Tag : `PreservesLabel`.
 
 ### Type + id (opaque)
 
-`<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. La chaîne n'est manifestement *pas* une personne, un email ou un numéro de carte, c'est un jeton. Le LLM ne peut pas la confondre avec une donnée réelle, les logs d'audit se parcourent facilement, et il y a **zéro chance** de collision avec une vraie valeur. Ses délimiteurs rendent aussi le jeton retrouvable. On peut ainsi repérer un jeton que le modèle aurait inventé. En contrepartie, un prompt ou un outil aval strict qui exige *l'argument doit ressembler à un email* rejettera ces jetons.
+`<<PERSON:1>>`{ .placeholder }, `<<PERSON:a1b2c3d4>>`{ .placeholder }. La chaîne n'est manifestement *pas* une personne, un email ou un numéro de carte, c'est un jeton. Le LLM ne peut pas la confondre avec une donnée réelle, les logs d'audit se parcourent facilement, et il y a **zéro chance** de collision avec une vraie valeur.
 
-Built-in : `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }). Les deux numérotent les entités par label, dans l'ordre. La première personne devient l'ordinal 1, la deuxième 2, et un email démarre son propre compte à 1. `LabelHashPlaceholderFactory` affiche cet ordinal sous forme de hash. Le hash est un sha256 de la chaîne `label:ordinal`, jamais de la valeur. Il ne sert qu'à donner une apparence opaque, pour que deux entités consécutives paraissent sans lien. Tag `PreservesLabeledIdentityOpaque`.
+Ses délimiteurs rendent aussi le jeton retrouvable. On peut ainsi repérer un jeton que le modèle aurait inventé.
+
+En contrepartie, un prompt ou un outil aval strict qui exige *l'argument doit ressembler à un email* rejettera ces jetons.
+
+- Built-in : `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }).
+- Tag : `PreservesLabeledIdentityOpaque`.
+
+Les deux numérotent les entités par label, dans l'ordre. La première personne devient l'ordinal 1, la deuxième 2, et un email démarre son propre compte à 1.
+
+`LabelHashPlaceholderFactory` affiche cet ordinal sous forme de hash. Le hash est un sha256 de la chaîne `label:ordinal`, jamais de la valeur. Il ne sert qu'à donner une apparence opaque, pour que deux entités consécutives paraissent sans lien.
 
 ### Id seul : identité sans type
 
-`<<REDACT:a1b2c3d4>>`{ .placeholder }. Le jeton garde la forme synthétique `<<...>>` mais ne révèle pas le label, tout en portant un hash unique par entité. Le LLM ignore si l'entité est une personne, un email ou une carte, mais voit que `<<REDACT:a1b2c3d4>>`{ .placeholder } et `<<REDACT:ef98abcd>>`{ .placeholder } sont deux entités différentes. C'est l'un des niveaux les plus protecteurs qui reste utilisable côté outil. Le remplacement de chaîne fonctionne, parce que le hash est unique.
+`<<REDACT:a1b2c3d4>>`{ .placeholder }. Le jeton garde la forme synthétique `<<...>>` mais ne révèle pas le label, tout en portant un hash unique par entité. Le LLM ignore si l'entité est une personne, un email ou une carte, mais voit que `<<REDACT:a1b2c3d4>>`{ .placeholder } et `<<REDACT:ef98abcd>>`{ .placeholder } sont deux entités différentes.
 
-Pas de built-in pour cette branche. Le tag `PreservesIdentityOnly` est prévu pour une factory que vous écrivez, un caviardage hashé sans préfixe de label. Voir la section *Écrire la sienne* plus bas.
+C'est l'un des niveaux les plus protecteurs qui reste utilisable côté outil. Le remplacement de chaîne fonctionne, parce que le hash est unique.
+
+- Built-in : aucun pour cette branche.
+- Tag : `PreservesIdentityOnly`, prévu pour une factory que vous écrivez, un caviardage hashé sans préfixe de label. Voir la section *Écrire la sienne* plus bas.
 
 ### Type + id (réaliste hashé)
 
-Une factory utilisateur peut produire des valeurs **qui ressemblent au format d'origine** mais dont le contenu est piloté par un hash, par exemple `a1b2c3d4@anonymized.local`{ .placeholder } pour un email, ou `Patient_a1b2c3d4`{ .placeholder } pour un nom. Le jeton passe la validation de format de base (regex email, longueur, caractères autorisés), donc les outils et les templates de prompt aval qui attendent une valeur d'apparence réelle continuent de fonctionner. Comme le contenu est un hash, le jeton est **unique et ne peut pas coïncider par hasard** avec une vraie valeur existante.
+Une factory utilisateur peut produire des valeurs **qui ressemblent au format d'origine** mais dont le contenu est piloté par un hash, par exemple `a1b2c3d4@anonymized.local`{ .placeholder } pour un email, ou `Patient_a1b2c3d4`{ .placeholder } pour un nom.
 
-Pas de built-in. Tag `PreservesLabeledIdentityHashed`. Voir la section *Écrire la sienne* plus bas pour un exemple complet. Ce tag n'est pas retrouvable. Le middleware ne peut donc pas repérer un jeton inventé sous cette forme. Tenez-en compte avant de l'utiliser sous middleware.
+Le jeton passe la validation de format de base (regex email, longueur, caractères autorisés), donc les outils et les templates de prompt aval qui attendent une valeur d'apparence réelle continuent de fonctionner. Comme le contenu est un hash, le jeton est **unique et ne peut pas coïncider par hasard** avec une vraie valeur existante.
+
+- Built-in : aucun. Voir la section *Écrire la sienne* plus bas pour un exemple complet.
+- Tag : `PreservesLabeledIdentityHashed`.
+
+!!! warning "Jeton non retrouvable"
+
+    Ce tag n'est pas retrouvable. Le middleware ne peut donc pas repérer un jeton inventé sous cette forme. Tenez-en compte avant de l'utiliser sous middleware.
 
 ### Valeur partielle : fuite partielle de valeur
 
@@ -73,7 +103,10 @@ Pas de built-in. Tag `PreservesLabeledIdentityHashed`. Voir la section *Écrire 
 1. **Des fragments réels de la valeur atteignent le LLM.** Il ne peut pas reconstruire la valeur complète, mais `j***@mail.com`{ .placeholder } situe déjà l'utilisateur chez un fournisseur de mail connu.
 2. **Des collisions sont possibles.** Deux cartes différentes terminant par `4567` se confondent dans `****4567`{ .placeholder }, deux emails partageant la première lettre et le domaine deviennent identiques. Le jeton est *majoritairement* unique, sans garantie.
 
-Built-in : `MaskPlaceholderFactory`, qui garde par défaut le premier caractère de la valeur et masque le reste avec `*`, donc `Jonathan`{ .pii } devient `J*******`{ .placeholder }. Tag `PreservesShape`. Le middleware le rejette pour la même raison que `PreservesLabel`, parce qu'un jeton ambigu ne peut pas être restauré par remplacement de chaîne.
+- Built-in : `MaskPlaceholderFactory`, qui garde par défaut le premier caractère de la valeur et masque le reste avec `*`, donc `Jonathan`{ .pii } devient `J*******`{ .placeholder }.
+- Tag : `PreservesShape`.
+
+Le middleware le rejette pour la même raison que `PreservesLabel`, parce qu'un jeton ambigu ne peut pas être restauré par remplacement de chaîne.
 
 ---
 
@@ -136,9 +169,20 @@ Légende :
 <span class="sec-legend c-red">problématique</span>
 </small>
 
-Les tags forment une **hiérarchie d'héritage** que le type-checker exploite via la covariance de `AnyPlaceholderFactory[PreservationT_co]`. Une factory taguée plus spécifiquement satisfait donc un consommateur qui en demande une plus lâche. Trois axes indépendants organisent la taxonomie. *Label*, le jeton révèle le type. *Identity*, le jeton est unique par entité. *Recognizable*, la factory peut retrouver son jeton dans un texte arbitraire. Un jeton délimité le permet, un jeton réaliste non.
+Les tags forment une **hiérarchie d'héritage** que le type-checker exploite via la covariance de `AnyPlaceholderFactory[PreservationT_co]`. Une factory taguée plus spécifiquement satisfait donc un consommateur qui en demande une plus lâche.
 
-`PreservesLabeledIdentity` combine label et identity par multi-héritage. Une factory `<<PERSON:1>>`{ .placeholder } est donc à la fois un `PreservesLabel` *et* un `PreservesIdentity`. `PreservesRecognizableIdentity` croise l'identité et la retrouvabilité. Le middleware n'accepte que cette intersection. Un consommateur typé contre `PreservesRecognizableIdentity` accepte `PreservesIdentityOnly` et `PreservesLabeledIdentityOpaque`. Il rejette `PreservesLabel`, `PreservesShape` et `PreservesNothing`, qui n'ont pas la garantie d'unicité, ainsi que `PreservesLabeledIdentityHashed`, qui n'est pas retrouvable.
+Trois axes indépendants organisent la taxonomie :
+
+- *Label* : le jeton révèle le type.
+- *Identity* : le jeton est unique par entité.
+- *Recognizable* : la factory peut retrouver son jeton dans un texte arbitraire. Un jeton délimité le permet, un jeton réaliste non.
+
+`PreservesLabeledIdentity` combine label et identity par multi-héritage. Une factory `<<PERSON:1>>`{ .placeholder } est donc à la fois un `PreservesLabel` *et* un `PreservesIdentity`.
+
+`PreservesRecognizableIdentity` croise l'identité et la retrouvabilité. Le middleware n'accepte que cette intersection. Un consommateur typé contre `PreservesRecognizableIdentity` trie les tags ainsi :
+
+- Accepte : `PreservesIdentityOnly` et `PreservesLabeledIdentityOpaque`.
+- Rejette : `PreservesLabel`, `PreservesShape` et `PreservesNothing`, qui n'ont pas la garantie d'unicité, ainsi que `PreservesLabeledIdentityHashed`, qui n'est pas retrouvable.
 
 ```mermaid
 classDiagram
@@ -197,10 +241,14 @@ classDiagram
     PreservesLabeledIdentityRealistic <|-- PreservesLabeledIdentityHashed
 ```
 
-*Hiérarchie des tags de préservation. Chaque nœud porte un exemple de jeton, les nœuds abstraits servent d'intersection entre axes.*
+*Hiérarchie des tags de préservation. Chaque nœud porte un exemple de jeton, les nœuds abstraits servent d'intersection entre axes. Chaque flèche va d'un tag vers son parent et se lit "est un".*
 { .figure-caption }
 
-`PreservesLabeledIdentity` hérite à la fois de `PreservesLabel` et de `PreservesIdentity`. Cet héritage exprime la relation *A est un B mais tous les B ne sont pas des A*. Tout `PreservesLabeledIdentity` est aussi un `PreservesLabel` et un `PreservesIdentity`, mais un `PreservesLabel` n'est pas forcément un `PreservesLabeledIdentity`. `PreservesShape` étend `PreservesLabel`, parce qu'un jeton masqué implique le label par son format. Il ne garantit pas l'unicité, donc il ne descend pas de `PreservesIdentity`. Chaque tag est une sous-classe de `str`, si bien qu'un jeton est une vraie chaîne qui porte son niveau de préservation dans son propre type.
+`PreservesLabeledIdentity` hérite à la fois de `PreservesLabel` et de `PreservesIdentity`. Cet héritage exprime la relation *A est un B mais tous les B ne sont pas des A*. Tout `PreservesLabeledIdentity` est aussi un `PreservesLabel` et un `PreservesIdentity`, mais un `PreservesLabel` n'est pas forcément un `PreservesLabeledIdentity`.
+
+`PreservesShape` étend `PreservesLabel`, parce qu'un jeton masqué implique le label par son format. Il ne garantit pas l'unicité, donc il ne descend pas de `PreservesIdentity`.
+
+Chaque tag est une sous-classe de `str`, si bien qu'un jeton est une vraie chaîne qui porte son niveau de préservation dans son propre type.
 
 Une factory déclare le tag **le plus spécifique** qui matche ses garanties.
 
@@ -273,11 +321,23 @@ Le middleware travaille sur trois frontières, les **messages d'entrée** (LLM i
 
 **Appels d'outil.** Le LLM produit les arguments d'outil en *combinant* et *paraphrasant* les jetons qu'il vient de voir. Ce texte précis n'a jamais été produit par le pipeline, il n'est donc pas mémorisé. La seule façon de le restaurer est le **remplacement de chaîne**. On parcourt les arguments à la recherche des jetons connus et on substitue la valeur originale de chaque entité. La réponse de l'outil, elle, passe dans le pipeline de la conversation comme un message de l'utilisateur, détection comprise.
 
-Cette substitution n'est non ambiguë **que si chaque entité a un jeton unique**. Si deux entités se confondent dans `<<PERSON>>`{ .placeholder }, on ne sait pas quelle valeur restaurer. Le middleware exige en plus une **grammaire retrouvable**, c'est-à-dire une forme de jeton qu'il sait repérer dans un texte. Une fois tous les jetons émis remplacés, tout jeton restant qui matche encore la grammaire a été inventé par le modèle et peut être refusé (voir [Stratégies d'appel outil](tool-call-strategies.md)). Le middleware restreint donc son type accepté à un pipeline dont les jetons sont `PreservesRecognizableIdentity`. Par covariance, ce type englobe `PreservesIdentityOnly` (caviardage hashé sans label) et `PreservesLabeledIdentityOpaque` (avec label). `pyrefly` rejette une factory `PreservesLabel`, `PreservesShape`, `PreservesNothing` ou `PreservesLabeledIdentityHashed` avant même que le programme ne tourne.
+Cette substitution n'est non ambiguë **que si chaque entité a un jeton unique**. Si deux entités se confondent dans `<<PERSON>>`{ .placeholder }, on ne sait pas quelle valeur restaurer.
+
+Le middleware exige en plus une **grammaire retrouvable**, c'est-à-dire une forme de jeton qu'il sait repérer dans un texte. Une fois tous les jetons émis remplacés, tout jeton restant qui matche encore la grammaire a été inventé par le modèle et peut être refusé (voir [Stratégies d'appel outil](tool-call-strategies.md)).
+
+Le middleware restreint donc son type accepté à un pipeline dont les jetons sont `PreservesRecognizableIdentity`. Par covariance, ce type englobe `PreservesIdentityOnly` (caviardage hashé sans label) et `PreservesLabeledIdentityOpaque` (avec label). `pyrefly` rejette une factory `PreservesLabel`, `PreservesShape`, `PreservesNothing` ou `PreservesLabeledIdentityHashed` avant même que le programme ne tourne.
 
 `PIIAnonymizationMiddleware` reproduit la contrainte au runtime. À la construction, il demande au pipeline un *recognizer*, l'objet qui sait retrouver ses propres jetons. Une factory délimitée est son propre recognizer. Une factory sans grammaire, comme un masque, n'en a pas, et le middleware lève alors `UnrecognizableFactoryError`. Cette vérification rattrape les pipelines non typés ou distants qui auraient contourné le type-checker.
 
-La grammaire du recognizer est bornée, ce n'est pas "n'importe quoi entre les délimiteurs". La forme interne est un label, puis éventuellement un deux-points et un identifiant, comme `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder } ou `<<PERSON:a1b2c3d4>>`{ .placeholder }. Un label commence par une lettre ou un underscore, puis lettres, chiffres, underscores, espaces ou tirets, si bien qu'un label en plusieurs mots émis par un détecteur, comme `date of birth`, reste reconnu. L'identifiant après le deux-points est alphanumérique, un ordinal ou un digest hexadécimal. Un contenu délimité arbitraire n'est pas un jeton. Un décalage C++ `cout << x >> y` ou un passage markdown ne déclenche donc jamais le garde-fou des jetons inventés. Une réponse en streaming qui ouvre `<<` sans le refermer est relâchée plutôt que bufferisée indéfiniment.
+La grammaire du recognizer est bornée, ce n'est pas "n'importe quoi entre les délimiteurs". Elle se lit ainsi :
+
+- Forme interne : un label, puis éventuellement un deux-points et un identifiant, comme `<<PERSON>>`{ .placeholder }, `<<PERSON:1>>`{ .placeholder } ou `<<PERSON:a1b2c3d4>>`{ .placeholder }.
+- Label : une lettre ou un underscore, puis lettres, chiffres, underscores, espaces ou tirets, si bien qu'un label en plusieurs mots émis par un détecteur, comme `date of birth`, reste reconnu.
+- Identifiant : après le deux-points, alphanumérique, un ordinal ou un digest hexadécimal.
+
+Un contenu délimité arbitraire n'est pas un jeton. Un décalage C++ `cout << x >> y` ou un passage markdown ne déclenche donc jamais le garde-fou des jetons inventés.
+
+Une réponse en streaming qui ouvre `<<` sans le refermer est relâchée plutôt que bufferisée indéfiniment.
 
 Voir [Stratégies d'appel outil](tool-call-strategies.md) pour la seule échappatoire, `ToolCallStrategy.PASSTHROUGH`, qui ne traverse jamais la frontière outil en clair.
 

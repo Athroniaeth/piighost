@@ -17,22 +17,40 @@ Deux choses coexistent donc à tout moment. La première est le texte dé-identi
 
 ## Ce contre quoi `piighost` protège
 
-!!! success "Dans le périmètre de protection"
-    - **Exfiltration vers les LLM tiers** : le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), jamais les vraies valeurs. Même si le provider journalise la requête, aucune donnée sensible ne fuit vers lui.
-    - **Fuite via les appels d'outils** : le middleware restaure les arguments d'outil juste avant l'exécution, puis dé-identifie les résultats avant qu'ils ne repartent vers le LLM. Les vraies valeurs ne transitent jamais par le contexte visible du LLM.
-    - **Dérive inter-messages** : la `ConversationMemory` lie les variantes d'une valeur, pour que la même entité garde le même placeholder sur toute la conversation. `Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(value_key(text), label)`, quelles que soient leurs espaces et leur casse. Le LLM ne voit jamais la même valeur sous deux masques différents.
-    - **Fuite d'un store persistant volé** : un backend persistant (Redis ou SQL) peut chiffrer chaque valeur stockée et hacher la clé. Un vol du store ne révèle alors ni le message ni les données confidentielles. Voir plus bas.
+!!! success "Exfiltration vers les LLM tiers"
+    Le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), jamais les vraies valeurs. Même si le provider journalise la requête, aucune donnée sensible ne fuit vers lui.
+
+!!! success "Fuite via les appels d'outils"
+    Le middleware restaure les arguments d'outil juste avant l'exécution, puis dé-identifie les résultats avant qu'ils ne repartent vers le LLM. Les vraies valeurs ne transitent jamais par le contexte visible du LLM.
+
+!!! success "Dérive inter-messages"
+    La `ConversationMemory` lie les variantes d'une valeur, pour que la même entité garde le même placeholder sur toute la conversation. `Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(value_key(text), label)`, quelles que soient leurs espaces et leur casse. Le LLM ne voit jamais la même valeur sous deux masques différents.
+
+!!! success "Fuite d'un store persistant volé"
+    Un backend persistant (Redis ou SQL) peut chiffrer chaque valeur stockée et hacher la clé. Un vol du store ne révèle alors ni le message ni les données confidentielles. Voir plus bas.
 
 ## Ce contre quoi `piighost` ne protège pas
 
-!!! danger "Hors du périmètre de protection"
-    - **Compromission de la mémoire du processus** : le mapping `placeholder` vers valeur d'origine vit en RAM le temps du traitement. Un attaquant qui lit la mémoire du processus récupère les données confidentielles en clair, quel que soit le backend.
-    - **Store persistant non chiffré** : la mémoire en RAM (`InMemoryConversationMemory`) ne chiffre rien. Elle sert au développement et au mono-processus. Un backend persistant construit sans crypto stocke ses valeurs en clair. Un vol du disque expose donc les données confidentielles. Configurez un hasher et un cipher sur le backend Redis ou SQL pour chiffrer au repos.
-    - **Placeholders inventés par le LLM** : si le LLM fabrique un placeholder qui n'a jamais été émis, `piighost` ne peut pas le rattacher à une valeur puisqu'il n'est dans aucun mapping. Le middleware refuse par défaut ces jetons (`InventedPlaceholderError`). Voir [Limites](limitations.md).
-    - **Ré-identification par le contexte** : un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. "Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants" désigne une personne sans nommer sa PII. Le détecteur ne voit que des jetons, pas cette inférence.
-    - **Détecteurs faillibles** : un détecteur est au mieux. Une donnée confidentielle qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
-    - **Valeurs introduites par l'assistant sous PRESERVE** : avec le défaut `EntityCreateByAssistantStrategy.PRESERVE`, une valeur que le modèle a lui-même introduite reste en clair pour toute la conversation, puisque le modèle la connaît déjà. Elle reste en clair même quand un message utilisateur ultérieur la reprend, car la conversation date la valeur à sa première occurrence. Utilisez `ANONYMIZE` pour dé-identifier aussi les valeurs introduites par l'assistant.
-    - **Journaux applicatifs en amont** : `piighost` ne journalise jamais de données confidentielles brutes, mais votre application peut le faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
+!!! danger "Compromission de la mémoire du processus"
+    Le mapping `placeholder` vers valeur d'origine vit en RAM le temps du traitement. Un attaquant qui lit la mémoire du processus récupère les données confidentielles en clair, quel que soit le backend.
+
+!!! danger "Store persistant non chiffré"
+    La mémoire en RAM (`InMemoryConversationMemory`) ne chiffre rien. Elle sert au développement et au mono-processus. Un backend persistant construit sans crypto stocke ses valeurs en clair. Un vol du disque expose donc les données confidentielles. Configurez un hasher et un cipher sur le backend Redis ou SQL pour chiffrer au repos.
+
+!!! danger "Placeholders inventés par le LLM"
+    Si le LLM fabrique un placeholder qui n'a jamais été émis, `piighost` ne peut pas le rattacher à une valeur puisqu'il n'est dans aucun mapping. Le middleware refuse par défaut ces jetons (`InventedPlaceholderError`). Voir [Limites](limitations.md).
+
+!!! danger "Ré-identification par le contexte"
+    Un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. "Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants" désigne une personne sans nommer sa PII. Le détecteur ne voit que des jetons, pas cette inférence.
+
+!!! danger "Détecteurs faillibles"
+    Un détecteur est au mieux. Une donnée confidentielle qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
+
+!!! danger "Valeurs introduites par l'assistant sous PRESERVE"
+    Avec le défaut `EntityCreateByAssistantStrategy.PRESERVE`, une valeur que le modèle a lui-même introduite reste en clair pour toute la conversation, puisque le modèle la connaît déjà. Elle reste en clair même quand un message utilisateur ultérieur la reprend, car la conversation date la valeur à sa première occurrence. Utilisez `ANONYMIZE` pour dé-identifier aussi les valeurs introduites par l'assistant.
+
+!!! danger "Journaux applicatifs en amont"
+    `piighost` ne journalise jamais de données confidentielles brutes, mais votre application peut le faire. Auditez vos propres journaux, traces et rapports d'erreurs avant de revendiquer une conformité.
 
 ## L'état LangGraph après le tour du modèle
 
