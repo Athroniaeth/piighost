@@ -98,7 +98,6 @@ To go further:
 
     Understand the design choices.
 
-    - [Why de-identify?](why-anonymize.md)
     - [Architecture](architecture.md)
     - [Placeholder factories](placeholder-factories.md)
     - [Security](security.md)

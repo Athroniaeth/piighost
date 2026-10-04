@@ -21,7 +21,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-**What PIIGhost is.** PIIGhost hides the confidential data of a text before an AI model reads it, then puts the real values back in the reply. It is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is used remotely through the `piighost-api` server. It is configured with a TOML or JSON file and the `piighost` command.
+**What PIIGhost is.** PIIGhost hides the confidential data of a text before an AI model reads it, then puts the real values back in the reply. It is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is used remotely through the `piighost-api` server. It is configured with a TOML or JSON file and the `piighost` command. The legal and technical reasons to de-identify are explained in [Why de-identify?](../../docs/en/why-anonymize.md).
 
 The path of a message:
 
