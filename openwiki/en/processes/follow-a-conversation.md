@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Follow a conversation and restore the reply
-description: How PIIGhost keeps the same placeholder for a value across a whole conversation, restores the model's reply, handles the values the assistant brings and the invented placeholders, applies a human correction and erases a conversation.
+description: How piighost keeps the same placeholder for a value across a whole conversation, restores the model's reply, handles the values the assistant brings and the invented placeholders, applies a human correction and erases a conversation.
 tags: [thread, conversation-memory, deanonymize, provenance, invented-placeholder, hitl, erasure, streaming]
 sources:
   - id: openwiki-source-a4810bc908328d4c6013f381
@@ -26,15 +26,22 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - In a conversation, a given value keeps the same placeholder from the first message to the last.
 - Two conversations are isolated. The same name can carry the same number in both, but they share nothing.
-- Each call names its conversation. A call without an identifier is refused. It never falls into a shared conversation.
+- Each call names its conversation. A call without an identifier is refused, instead of falling into a shared conversation. Only the `piighost anonymize` command falls back to the `default` conversation.
 - A value first mentioned by the assistant stays in clear text, even if the user repeats it later.
 - Erasing a conversation deletes its memory. The placeholders of that conversation are no longer restored afterwards.
 
-Needs covered: DEV-2, DEV-3, DEV-8, DEV-10, DEV-11, OPS-2, OPS-7, USER-1, USER-2, USER-6 and DPO-6, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). The processing of a single message is described in [Protect a message before it is sent to the model](protect-a-message.md).
+Needs covered, described in [Needs by profile](../needs-by-profile.md):
+
+- Compliance officer: DPO-6
+- Developer: DEV-2, DEV-3, DEV-8, DEV-10, DEV-11
+- Operator: OPS-2, OPS-7
+- Application user: USER-1, USER-2, USER-6
+
+The terms are defined in the [glossary](../glossary.md). The processing of a single message is described in [Protect a message before it is sent to the model](protect-a-message.md).
 
 ## For the business
 
-PIIGhost has no screen. A conversation is designated by an identifier that the application passes with each message. What you can observe is the text the model receives and the reply shown.
+`piighost` has no screen. A conversation is designated by an identifier that the application passes with each message. What you can observe is the text the model receives and the reply shown.
 
 ### Who is involved
 
@@ -42,7 +49,7 @@ PIIGhost has no screen. A conversation is designated by an identifier that the a
 |---|---|
 | The end user | writes in clear text, reads the restored reply, can correct a detection |
 | The application | names the conversation on each call |
-| PIIGhost | keeps the values of each conversation in memory |
+| `piighost` | keeps the values of each conversation in memory |
 | The model | receives and writes only placeholders |
 | The DPO | requests the erasure of a conversation |
 
@@ -97,7 +104,9 @@ Typical case: a person exercises their right to erasure.
 2. Ask the technical team for its erasure, or call the erasure route of the server.
 3. Note the report, that is the number of messages and values deleted.
 
-**How to check**: restore an old placeholder of this conversation. It must stay as is, for example "Hello `<<PERSON:1>>`".
+On a server that runs as several instances, the erasure empties the storage and the placeholder cache of the instance that receives the request. The other instances keep a copy of the values in their own cache, until it is evicted or the lifetime of that cache expires (BR-STO-06). If you erase conversations on request, have the technical team set this lifetime.
+
+**How to check**: restore an old placeholder of this conversation. It must stay as is, for example "Hello `<<PERSON:1>>`". On a server with several instances, this check does not prove that the copy held by the other instances is gone. Wait for the end of the cache lifetime, or have these instances restarted.
 
 ### Rules to know
 
@@ -107,11 +116,13 @@ Typical case: a person exercises their right to erasure.
 
 **BR-CONV-03.** When a call names no conversation, then it is refused, before anything is sent to the model. An application whose conversations do not need to be separated names the conversation `default` itself. The reason is that without an identifier, all users would share their placeholders.
 
+The `piighost anonymize` command is the exception. It is meant for trying out a single text, and falls back to the `default` conversation when it is given no identifier.
+
 **BR-CONV-04.** When the assistant mentions a value before the user does, then it stays in clear text for the whole conversation, even if the user repeats it later (turn 4, "Lyon"). The reason is that the model already knows this value, and masking it would take away useful knowledge. The two other settings are to mask it like a user value, or to not analyze the assistant messages. A value first brought by the user stays masked, even if the assistant repeats it.
 
-**BR-CONV-05.** When the model's reply contains a placeholder of the conversation, then it is replaced by the real value, even in a text that PIIGhost never protected.
+**BR-CONV-05.** When the model's reply contains a placeholder of the conversation, then it is replaced by the real value, even in a text that `piighost` never protected.
 
-**BR-CONV-06.** When the reply contains a placeholder in the right format that PIIGhost never issued, then the restoration is refused by default, with the error `Deanonymized text holds tokens the pipeline never issued: ['<<PERSON:9>>']`. This placeholder was invented by the model or injected by a text. The two other choices are to keep it or drop it.
+**BR-CONV-06.** When the reply contains a placeholder in the right format that `piighost` never issued, then the restoration is refused by default, with the error `Deanonymized text holds tokens the pipeline never issued: ['<<PERSON:9>>']`. This placeholder was invented by the model or injected by a text. The two other choices are to keep it or drop it.
 
 | Setting | "Hello `<<PERSON:1>>` and `<<PERSON:9>>`." becomes |
 |---|---|
@@ -190,10 +201,10 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 ### Pitfalls
 
 - **No integration falls back to `default`.** The LangChain middleware and the Claude Code hooks raise `MissingThreadIdError`, and the server answers 400. Only the `piighost anonymize` command keeps `--thread-id default`, for a standalone command.
-- **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts the numbering. A correction does it (BR-CONV-07), but also, according to the code, the expiry of a Redis message with `ttl` (`conversation_memory/redis_backend.py:200-228`). [to check] This second case was not replayed. To settle it, write two messages in a Redis conversation with a short `ttl`, let the first one expire, then compare `thread_token_map`.
+- **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts the numbering. A correction does it (BR-CONV-07), but also the expiry of a Redis message with `ttl`, which `_read_all` drops from the union (`conversation_memory/redis_backend.py:200-228`).
 - **The in-process memory forgets silently.** An evicted or expired conversation (BR-CONV-11) raises nothing. Its placeholders stay as is at restoration. `max_threads=None` and `ttl=None` lift the bounds.
 - **Provenance applies to the value key** (`value_key`), so to every spelling of a value.
-- **The placeholder cache is memoized per process** (256 maps at most, `_TOKEN_MEMO_MAX`). See [Store conversations](../operations/storage-and-encryption.md) for the effect on erasure with multiple processes.
+- **The placeholder cache is memoized per process** (256 maps at most, `_TOKEN_MEMO_MAX`). See [Store conversations](../operations/storage-and-encryption.md) for the effect on erasure with multiple processes, and `token_memo_ttl` to bound it.
 - **`anonymize_corrected` does not resolve overlaps** and does not run the expansion again. The corrected set must be clean. It only goes through the deny list and allow list.
 
 ### Tests
@@ -206,5 +217,3 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 | `tests/conversation_memory/test_in_memory.py` (`TestBounding`) | Default bounds of the in-process memory (AT-OPS-7-1) |
 | `tests/acceptance/test_dev.py`, `test_dpo.py`, `test_ops.py` | Restoration limited to its conversation (AT-DEV-3-2), erasure (AT-DPO-6-1), two instances on the same Redis (AT-OPS-2-1) |
 | `tests/integrations/test_deidentify.py` | Invented placeholders |
-
-Not covered: the renumbering after a correction of an old message (BR-CONV-07). This behavior was observed by running the pipeline, and no test pins it or forbids it.

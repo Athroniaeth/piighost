@@ -28,11 +28,16 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - When both lists target the same value, the deny list wins by default, so the value is masked.
 - A changed list only applies to the new messages of a conversation already under way.
 
-Needs covered: DPO-3, USER-5 and USER-6, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). The full path of a message is in [Protect a message before it is sent to the model](protect-a-message.md).
+Needs covered, described in [Needs by profile](../needs-by-profile.md):
+
+- Compliance officer: DPO-3
+- Application user: USER-5, USER-6
+
+The terms are defined in the [glossary](../glossary.md). The full path of a message is in [Protect a message before it is sent to the model](protect-a-message.md).
 
 ## For the business
 
-PIIGhost has no screen. The technical team writes the deny list and the allow list, in the code or in the `[override]` section of the configuration file of the application or of the `piighost-api` server. The DPO decides their content. The tasks below say what to ask for.
+`piighost` has no screen. The technical team writes the deny list and the allow list, in the code or in the `[override]` section of the configuration file of the application or of the `piighost-api` server. The DPO decides their content. The tasks below say what to ask for.
 
 ### The path of a message through the lists
 
@@ -50,13 +55,13 @@ flowchart TD
 
 ### Example followed from end to end
 
-The deny list contains the form "PRJ- followed by four digits", with the type `PROJET`. The allow list contains "Acme", the company name. The detector reads "Acme" as a person and does not know the case numbers.
+The deny list contains the form "PRJ- followed by four digits", with the type `CODE`. The allow list contains "Acme", the company name. The detector reads "Acme" as a person and does not know the case numbers.
 
 | Step | Text |
 |---|---|
 | User message | Write to Jean Dupont, at Acme, case PRJ-0042. |
 | Without the lists | Write to `<<PERSON:1>>`, at `<<PERSON:2>>`, case PRJ-0042. |
-| With the lists, received by the model | Write to `<<PERSON:1>>`, at Acme, case `<<PROJET:1>>`. |
+| With the lists, received by the model | Write to `<<PERSON:1>>`, at Acme, case `<<CODE:1>>`. |
 | Reply read by the user | Noted for PRJ-0042. |
 
 ### Keep a value in clear
@@ -86,7 +91,9 @@ Typical case: your internal code names are never spotted.
 
 **BR-LIST-02.** When a value is in the deny list, then it is masked, even if the detector missed it. If the detector had spotted a piece that overlaps it, the deny list's detection replaces that piece.
 
-**BR-LIST-03.** When the allow list targets a value, then the way to apply it follows one of three settings. Example on "Claire Dubois works at Acme, then at Globex SA.", with a detector that reads "Acme" as a person, and an allow list that contains "Acme" and "Globex" as organizations:
+**BR-LIST-03.** When the allow list targets a value, then the way to apply it follows one of three settings. Example on "Claire Dubois works at Acme, then at Globex SA.", with a detector that reads "Acme" as a person and "Globex SA" as an organization, and an allow list that contains "Acme" and "Globex" as organizations.
+
+The following table gives the result of each setting:
 
 | Setting | Removes | Result |
 |---|---|---|
@@ -96,7 +103,9 @@ Typical case: your internal code names are never spotted.
 
 "Same value" is the default because the allow list names a value, and the type written next to it is only a guess about what the detector will say.
 
-**BR-LIST-04.** When both lists target the same passage, then the conflict setting decides:
+**BR-LIST-04.** When both lists target the same passage, then the conflict setting decides.
+
+The following table gives the result of each setting:
 
 | Setting | Result on "Acme" present in both lists |
 |---|---|
@@ -112,7 +121,7 @@ This default comes from a simple principle. When in doubt, masking protects.
 
 **BR-LIST-07.** When the final check rereads the protected text, then it ignores the values on the allow list. Any other value left in clear blocks the sending.
 
-**BR-LIST-08.** When a list changes during a conversation, then a message already analyzed keeps its old result, even when sent again unchanged. For example, on 2026-10-02, "Acme" enters the deny list. The message sent on 2026-10-01 in the same conversation keeps "Acme" in clear. Only new messages apply the list.
+**BR-LIST-08.** When a list changes during a conversation, then a message already analyzed keeps its old result, even when sent again unchanged. For example, on October 2, 2026, "Acme" enters the deny list. The message sent on October 1, 2026 in the same conversation keeps "Acme" in clear. Only new messages apply the list.
 
 ### What the end user sees
 
@@ -194,5 +203,3 @@ Then run `piighost anonymize --config <your file> "Claire Dubois works at Acme o
 | `tests/config/test_guard_override_models.py` | The `[override]` configuration model, and the refusal of the 1.x keys and values |
 | `tests/config/test_settings.py` | `test_deny_list_forces_a_detection` |
 | `tests/pipeline/test_override_integration.py` | The lists take precedence over a human correction (AT-USER-6-3), deny list and allow list from end to end (AT-DPO-3-1, AT-DPO-3-2) |
-
-Not covered: the effect of a list change on a message already cached (BR-LIST-08). This behavior was observed by running the pipeline, not read in a test.

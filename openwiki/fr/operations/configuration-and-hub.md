@@ -1,7 +1,7 @@
 ---
 type: operations
 title: Configurer un pipeline par fichier, hub et ligne de commande
-description: Comment décrire un pipeline PIIGhost dans un fichier TOML ou JSON, le surcharger par l'environnement, tirer des catalogues de motifs du hub, fournir les secrets et contrôler le tout avec la commande piighost.
+description: Comment décrire un pipeline piighost dans un fichier TOML ou JSON, le surcharger par l'environnement, tirer des catalogues de motifs du hub, fournir les secrets et contrôler le tout avec la commande piighost.
 tags: [configuration, toml, hub, cli, secrets, environment]
 verified:
   - by: openwiki/0.6.1
@@ -151,7 +151,5 @@ La première commande affiche `OK: examples/config/pipeline.toml`. La seconde af
 | `tests/cli/test_cli.py` | Codes de sortie de `validate`, `schema`, `anonymize`, exclusivité `--config`/`--api` |
 | `tests/test_hub.py` | Analyse des références, origine privée, refus d'un détecteur à modèle, cache épinglé, sélecteur mobile jamais caché |
 | `tests/config/test_hub_config.py` | Chargement d'une configuration entière depuis le hub |
-
-La surcharge d'une section entière par un objet JSON n'est pas couverte dans `test_settings.py`. [à vérifier] : ajoutez un test qui pose `PIIGHOST_DETECTOR` pour confirmer BR-CFG-05.
 
 Voir aussi [Stocker les conversations et protéger les traces](storage-and-encryption.md) pour la section `[memory]`.

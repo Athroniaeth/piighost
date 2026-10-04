@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Plug the protection into an agent and its tools
-description: What the model, the tools and the user see when PIIGhost protects a LangChain, Pydantic AI, LlamaIndex or Claude Code agent, which options change this sharing, and where each rule lives in the code.
+description: What the model, the tools and the user see when piighost protects a LangChain, Pydantic AI, LlamaIndex or Claude Code agent, which options change this sharing, and where each rule lives in the code.
 tags: [integrations, langchain, pydantic-ai, llama-index, claude-code, client, tool-calls, thread-id]
 sources:
   - id: openwiki-source-60f405cf9fd8c0cba8a61889
@@ -27,17 +27,17 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-- Plugged into an agent, PIIGhost masks the messages before the model and puts the real values back into the reply.
+- Plugged into an agent, `piighost` masks the messages before the model and puts the real values back into the reply.
 - By default, the agent's tools (search, sending mail, reading a file) receive the real values, and what they return is masked before the model.
 - A conversation without an identifier is refused, with LangChain as with Claude Code. Otherwise, all conversations would share their placeholders.
 - With Claude Code, the displayed reply keeps the placeholders, because no hook point allows rewriting it.
-- The history kept by the agent contains the real values. Protect it as personal data.
+- The history kept by the agent holds the text of the messages with the real values. Only the tool calls stay as placeholders there. Protect this history as personal data.
 
 The terms are defined in the [glossary](../glossary.md). The conversation mechanism is described in [Follow a conversation and restore the reply](../processes/follow-a-conversation.md).
 
 ## For the business
 
-PIIGhost has no screen. The settings are made in the agent's code or in its configuration. This part describes what each actor sees and the choices to settle.
+`piighost` has no screen. The settings are made in the agent's code or in its configuration. This part describes what each actor sees and the choices to settle.
 
 ### Who sees what
 
@@ -56,7 +56,7 @@ Four settings decide what the tool receives and what the model reads. The choice
 
 **BR-AGT-01.** When a LangChain agent is called without a conversation identifier, then it stops on `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` The reason is that without an identifier, all conversations would become one and share their placeholders. An application that does not need to separate its conversations passes `default` itself.
 
-**BR-AGT-02.** When the model writes a placeholder that PIIGhost never issued, then the reply is refused by default, with `Deanonymized text holds tokens the pipeline never issued`. The two other choices are to keep the placeholder as is or to remove it from the text.
+**BR-AGT-02.** When the model writes a placeholder that `piighost` never issued, then the reply is refused by default, with `Deanonymized text holds tokens the pipeline never issued`. The two other choices are to keep the placeholder as is or to remove it from the text.
 
 **BR-AGT-03.** When the assistant is the first to quote a value, then it stays in clear by default. For example, the assistant answers "The head office is in Lyon". "Lyon" is not masked at the next turn, because it comes from the assistant. The two other choices are to mask it like user data or to not analyze the assistant's messages at all.
 
@@ -141,9 +141,7 @@ In a trace of the agent, the message received by the model must contain `<<PERSO
 | `tests/integrations/langchain/test_middleware_stream.py` | Streamed restoration |
 | `tests/integrations/test_pydantic_ai_hooks.py` | Pydantic AI capability |
 | `tests/integrations/llama_index/` | Node transformation, query engine |
-| `tests/integrations/test_claude_code_hooks.py` | The three events, list of fields, unknown tool let through |
+| `tests/integrations/test_claude_code_hooks.py` | The three events, list of fields, unknown tool let through, blocking when `piighost-api` cannot be reached, fail open |
 | `tests/integrations/client/test_client.py` | HTTP client |
-
-Not covered: the behavior of `run()` when `piighost-api` cannot be reached, and the persistence in clear of the LangGraph state.
 
 See also [Configure a pipeline](../operations/configuration-and-hub.md).

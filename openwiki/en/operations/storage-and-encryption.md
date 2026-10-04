@@ -1,7 +1,7 @@
 ---
 type: operations
 title: Store conversations and protect traces
-description: Where PIIGhost keeps the memory of each conversation (in process, Redis, SQL database), how to encrypt this storage, what erasing a conversation really deletes, and how to keep OpenTelemetry traces free of personal data.
+description: Where piighost keeps the memory of each conversation (in process, Redis, SQL database), how to encrypt this storage, what erasing a conversation really deletes, and how to keep OpenTelemetry traces free of personal data.
 tags: [conversation-memory, redis, sqlalchemy, encryption, hashing, observation, opentelemetry, erasure]
 sources:
   - id: openwiki-source-884a2e563fa6c83993666a78
@@ -37,13 +37,13 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-- To make the reply readable, PIIGhost keeps, for each conversation, the sensitive values found in each message. This storage therefore contains personal data.
+- To make the reply readable, `piighost` keeps, for each conversation, the sensitive values found in each message. This storage therefore contains personal data.
 - The three storage locations are the program memory (lost on restart), Redis and a SQL database.
 - Redis and the SQL database can encrypt what they keep. Encryption requires two secrets supplied by the server's environment.
 - Erasing a conversation deletes its storage. On a server with several processes, a temporary copy can survive in the other processes as long as no lifetime is set.
 - Technical traces contain the clear text by default. A setting replaces it with placeholders.
 
-This page is technical. The flow of a conversation is described in [Follow a conversation and restore the reply](../processes/follow-a-conversation.md). The terms are defined in the [glossary](../glossary.md). Going to production is described in the technical guide. [Deploy a pipeline in production](../../../docs/en/deployment.md) covers one server, and [Multi-instance deployment](../../../docs/en/multi-instance.md) covers several instances behind a load balancer. The storage guarantees are detailed there in [Security](../../../docs/en/security.md).
+This page is mainly for developers and operators. The flow of a conversation is described in [Follow a conversation and restore the reply](../processes/follow-a-conversation.md). The terms are defined in the [glossary](../glossary.md). Going to production is described in the technical guide. [Deploy a pipeline in production](../../../docs/en/deployment.md) covers one server, and [Multi-instance deployment](../../../docs/en/multi-instance.md) covers several instances behind a load balancer. The storage guarantees are detailed there in [Security](../../../docs/en/security.md).
 
 ## Choose a storage
 
@@ -57,10 +57,15 @@ Recommendation: `in_memory` for development and tests, Redis or SQL as soon as s
 
 ### What is stored
 
-Each message is stored with its digest, the role of its author (`user` or `assistant`) and its detections (position, text, label, confidence). The text of the detections is the sensitive data.
+Each message is stored with its digest, that is a short string computed from its text, used to recognize the message without keeping that text. The storage also keeps the role of its author (`user` or `assistant`) and its detections (position, text, label, confidence). The text of the detections is the sensitive data.
 
 - Redis: `{namespace}:{thread_id}:msg:{digest}` holds the role and the detections. `{namespace}:{thread_id}:index` holds the arrival order of the messages (`conversation_memory/redis_backend.py:7-12`).
 - SQL: one row per message in `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
+
+Encrypting a storage relies on two components, always configured together:
+
+- The hasher: it computes the digest of each message with a secret, the pepper (`PIIGHOST_HASH_PEPPER`). Without the pepper, nobody can recompute the digest of a known text to check whether it was stored.
+- The cipher: it encrypts the stored detections with an AES key (`PIIGHOST_CIPHER_KEY`). Without the key, the stored values are unreadable.
 
 ## Rules to know
 
@@ -70,7 +75,7 @@ Each message is stored with its digest, the role of its author (`user` or `assis
 
 **BR-STO-03.** When encryption is active, then the conversation identifier stays in clear. It serves as the Redis key prefix and as a SQL column, so that a conversation can be listed and erased. Do not put personal data in it (an e-mail address, a name).
 
-**BR-STO-04.** When the program memory is created without settings, then it keeps at most 10,000 conversations. Beyond that, the least recently used one is evicted. Each conversation expires one day (86,400 seconds) after its last write, and it is dropped at the next access. `max_threads` and `ttl` change these bounds. For example, a conversation written on 2026-10-02 at 9:00 and not touched afterwards is forgotten from 2026-10-03 at 9:00.
+**BR-STO-04.** When the program memory is created without settings, then it keeps at most 10,000 conversations. Beyond that, the least recently used one is evicted. Each conversation expires one day (86,400 seconds) after its last write, and it is dropped at the next access. `max_threads` and `ttl` change these bounds. For example, a conversation written on October 2, 2026 at 9:00 and not touched afterwards is forgotten from October 3, 2026 at 9:00.
 
 **BR-STO-05.** When Redis has a `ttl`, then each message expires this number of seconds after its write. The conversation index receives the same lifetime at each new message. The SQL database has no expiration. Erase the conversations yourself.
 
@@ -123,9 +128,9 @@ Argon2id takes by default `time_cost = 2`, `memory_cost = 19456` KiB, `paralleli
 
 ## Redact the traces
 
-The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piighost.render`, etc.) through OpenTelemetry. Without the `observation` extra, the tracer does nothing. With it, the spans go to the application's `TracerProvider`.
+The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piighost.render`, etc.) through OpenTelemetry. A span is a trace entry that measures one stage and carries its data. Without the `observation` extra, the tracer does nothing. With it, the spans go to the application's `TracerProvider`.
 
-- Without a redactor, the text and the detected values are traced in clear. The traces then serve as an annotation set.
+- Without a redactor, the text and the detected values are traced in clear. The traces then contain personal data. Keep this mode for a trace service you control, and acknowledge it with `trace_clear_text=True` (BR-STO-08).
 - With `observation_redactor` (a placeholder factory, `[observation_redactor]` section), the values are replaced with placeholders in the traces.
 - The conversation pipeline sets the conversation identifier in the `langfuse.session.id` attribute, in clear, even with a redactor.
 
@@ -160,7 +165,7 @@ The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piig
 | `tests/conversation_memory/` | Each storage: conversation isolation, erasure, lifetimes, clear-text warning (`test_warn_plaintext.py`) |
 | `tests/conversation_memory/test_sqlalchemy.py` | Table creation, encrypted storage in SQL |
 | `tests/crypto/` | AES key length, empty pepper rejected, determinism of the hashers |
-| `tests/observation/` | Emitted spans, payload redaction, clear-text trace warning |
+| `tests/observation/` | Emitted spans, redaction of their content, clear-text trace warning |
 
 The Redis tests run against `fakeredis` (`tests/conversation_memory/test_redis.py:21-27`), not against a real server. `test_concurrent_identical_remembers_do_not_duplicate` checks atomicity under `WATCH` with this fake client. The behavior of a real Redis cluster is not covered.
 

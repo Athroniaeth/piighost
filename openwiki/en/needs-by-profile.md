@@ -6,7 +6,6 @@ tags: [personas, user-stories, dpo, developer, operator, end-user, vigilance]
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-
 # Needs by profile
 
 ## In short
@@ -18,7 +17,7 @@ The domain documentation lists four profiles that need de-identification, each f
 - The operator: they want to run it in production.
 - The application user: they must never notice it.
 
-Each need carries an identifier in English, the same in every language, of the form `DPO-n`, `DEV-n`, `OPS-n` or `USER-n`. It gives observable criteria and the domain documentation page that delivers it. That page gives the scenario and the rules. The acceptance tests of each need are listed in [Acceptance tests](tests/acceptance-tests.md).
+Each need carries an identifier in English, the same in every language, of the form `DPO-n`, `DEV-n`, `OPS-n` or `USER-n`. It gives criteria you can observe, then points to the domain documentation page that describes it in detail, with its scenario and its rules. The acceptance tests of each need are listed in [Acceptance tests](tests/acceptance-tests.md).
 
 The watch points, at the end of the page, list the unexpected answers of a model and the need that covers them. The terms are defined in the [glossary](glossary.md).
 
@@ -187,7 +186,7 @@ OPS-6: As an operator, I want to load a reviewed configuration from the hub by i
 - The hub is reached only over HTTP or HTTPS, and a hub configuration that embeds a model is refused.
 - See [Configure a pipeline](operations/configuration-and-hub.md). Tests: [AT-OPS-6-…](tests/acceptance-tests.md).
 
-**Current limit.** For now the hub serves only pattern groups. An NER model recognizes some labels better than others. Splitting the labels between patterns and model requires a configuration format that the hub does not have yet.
+**Known limit.** For now the hub serves only pattern groups. An NER model recognizes some labels better than others. Splitting the labels between patterns and model requires a configuration format that the hub does not have yet.
 
 OPS-7: As an operator, I want the in-process memory to be bounded by default, so that a server that runs for weeks does not keep every value it has seen.
 
@@ -218,7 +217,7 @@ USER-3: As a user, I want the actions of the assistant to use my real data, so t
 - The sending tool receives "jean.dupont@exemple.fr", not `<<EMAIL:1>>`.
 - See [Let a tool act](processes/let-a-tool-act.md). Tests: [AT-USER-3-…](tests/acceptance-tests.md).
 
-**Known limit.** The OpenAI-compatible proxy does not restore the arguments of a tool call when the reply is streamed. See the OpenAI-compatible proxy.
+**Known limit.** The OpenAI-compatible proxy does not restore the arguments of a tool call when the reply is streamed. See [De-identify an OpenAI client with the proxy](../../docs/en/examples/openai-proxy.md).
 
 USER-4: As a user, I want to see the reply appear as it comes, without any placeholder fragment, so that I read it normally.
 

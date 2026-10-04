@@ -28,8 +28,8 @@ Adaptations imposées par le cycle OpenWiki :
 
 - ne lancer aucun sous-agent (le test « lecteur frais » de `rediger-doc` est
   sauté) ;
-- n'écrire aucun fichier de bilan : un point non vérifiable se marque
-  `[à vérifier]` dans la page, avec le moyen de trancher ;
+- n'écrire aucun fichier de bilan : un point non vérifiable se signale dans
+  la description de la pull request, jamais dans la page ;
 - `custom-humanizer` ne touche ni aux titres (ancres), ni au code, ni aux
   tableaux, ni aux diagrammes, ni au frontmatter.
 
@@ -156,8 +156,13 @@ Sections typées, sans les mélanger :
    codées en dur, noms trompeurs.
 4. **Tests** : tests existants, et ce qu'ils ne couvrent pas.
 
-Marquer `[à vérifier]` toute affirmation qui dépend de code absent du dépôt
-(dépendances externes, `vendor/`, services tiers), avec le moyen de trancher.
+Une affirmation qui dépend de code absent du dépôt (dépendances externes,
+`vendor/`, services tiers) se signale dans la description de la pull request,
+avec le moyen de trancher. La page n'en garde pas de trace.
+
+Une page ne porte aucune note de travail. Elle n'a ni marque « à vérifier »,
+ni ligne « Non couvert » qui décrit une relecture, ni nom de branche, ni
+commit, ni compte de tests daté, ni avis sur la qualité d'un test.
 
 Les pages purement techniques (architecture, exploitation, tests) gardent un
 format technique, mais commencent aussi par un « En bref » lisible par un
@@ -169,7 +174,7 @@ Le quickstart oriente le lecteur selon ce qu'il veut faire, pas selon
 l'arborescence du wiki. Sections, dans cet ordre :
 
 1. **En bref** : quatre blocs, chacun ouvert par un libellé en gras.
-   - **Ce qu'est PIIGhost** : ce qu'il fait en une phrase, ce qu'il est
+   - **Ce qu'est `piighost`** : ce qu'il fait en une phrase, ce qu'il est
      (bibliothèque, intégrations, configuration), puis le trajet d'un
      message en 3 à 6 étapes numérotées, chaque terme défini à sa première
      apparition.
@@ -248,10 +253,13 @@ laisse son numéro libre.
   `> [!WARNING]` est réservé à la perte de données, à la sécurité et aux
   actions irréversibles.
 - Une liste suit le nombre annoncé.
-- Dates : JJ/MM/AAAA dans les parties métier, AAAA-MM-JJ dans les parties
-  développeurs.
+- Dates en toutes lettres, « 2 octobre 2026 » (« October 2, 2026 » en
+  anglais), jamais au format AAAA-MM-JJ dans la prose. Une date qui sert
+  d'exemple de valeur à repérer garde sa forme.
+- Le produit s'écrit `piighost`, en minuscules, en police de code dans le
+  texte et sans police de code dans les titres. Jamais « PIIGhost ».
 - Exemples : le plus petit exemple réaliste, avec des données fictives
-  crédibles.
+  crédibles, en français dans les pages françaises (« Bonjour Claire »).
 - Typographie française dans la prose : espace avant `;`, `:`, `!`, `?`,
   guillemets « ».
 - Un diagramme Mermaid par processus, de 10 boîtes au plus, avec des

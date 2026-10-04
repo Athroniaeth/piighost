@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Show a streamed reply
-description: How PIIGhost restores a model reply streamed as it arrives, holds back a placeholder cut between two chunks until it is whole, and what stays on screen when the stream is interrupted.
+description: How piighost restores a model reply streamed as it arrives, holds back a placeholder cut between two chunks until it is whole, and what stays on screen when the stream is interrupted.
 tags: [streaming, deanonymize, stream-decoder, invented-placeholder, langchain]
 sources:
   - id: openwiki-source-219ef8159700bea2d8181beb
@@ -19,15 +19,20 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - The model sends its reply in chunks, which the application shows as they arrive.
 - A placeholder can arrive cut between two chunks, for example "`<<PER`" then "`SON:1>>`".
-- The PIIGhost stream decoder holds back the start of the placeholder until it is whole, then restores it once.
+- The `piighost` stream decoder holds back the start of the placeholder until it is whole, then restores it once.
 - Without this decoder, the user reads the placeholder on screen.
 - If the stream is cut in the middle of a placeholder, the start of that placeholder stays on screen. It contains no real value.
 
-Needs covered: DEV-9, USER-4, USER-1 and DEV-8, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). The restoration of a whole reply is described in [Follow a conversation and restore the reply](follow-a-conversation.md).
+Needs covered, described in [Needs by profile](../needs-by-profile.md):
+
+- Developer: DEV-8, DEV-9
+- Application user: USER-1, USER-4
+
+The terms are defined in the [glossary](../glossary.md). The restoration of a whole reply is described in [Follow a conversation and restore the reply](follow-a-conversation.md).
 
 ## For the business
 
-PIIGhost has no screen. What you can observe is the text that appears while the model replies. The development team must plug in the stream decoder.
+`piighost` has no screen. What you can observe is the text that appears while the model replies. The development team must plug in the stream decoder.
 
 ### Who is involved
 
@@ -36,7 +41,7 @@ PIIGhost has no screen. What you can observe is the text that appears while the 
 | The end user | reads the reply while it is being written |
 | The model | sends its reply in chunks |
 | The application | reads the stream and passes each chunk through the decoder |
-| PIIGhost | restores the placeholders chunk by chunk |
+| `piighost` | restores the placeholders chunk by chunk |
 
 ### The path of a streamed reply
 
@@ -162,5 +167,3 @@ uv run pytest tests/components/placeholder/test_streaming.py tests/components/pl
 | `tests/integrations/langchain/test_middleware_stream.py` | Stream restoration by the middleware (AT-DEV-9-1) |
 | `tests/integrations/test_deidentify_stream.py` | Invented placeholder in a stream, remainder rendered at the end of the stream |
 | `piighost-api:tests/routes/test_openai_stream.py`, `test_anthropic_messages.py` | Placeholder cut between two events of a proxy (AT-USER-4-2) |
-
-Not covered: the tool arguments of an OpenAI proxy stream. The proxy does not restore them.

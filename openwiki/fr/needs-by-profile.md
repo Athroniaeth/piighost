@@ -6,7 +6,6 @@ tags: [personas, user-stories, dpo, developer, operator, end-user, vigilance]
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-
 # Besoins par profil
 
 ## En bref
@@ -18,7 +17,7 @@ La documentation métier recense quatre profils qui ont besoin de la dé-identif
 - L'exploitant : il veut le faire tourner en production.
 - L'utilisateur de l'application : il ne doit jamais s'en apercevoir.
 
-Chaque besoin porte un identifiant en anglais, le même dans toutes les langues, de la forme `DPO-n`, `DEV-n`, `OPS-n` ou `USER-n`. Il donne des critères observables et la page de la documentation métier qui le livre. Cette page donne le scénario et les règles. Les tests d'acceptation de chaque besoin sont listés dans [Tests d'acceptation](tests/acceptance-tests.md).
+Chaque besoin porte un identifiant en anglais, le même dans toutes les langues, de la forme `DPO-n`, `DEV-n`, `OPS-n` ou `USER-n`. Il donne des critères que vous pouvez constater, puis renvoie vers la page de la documentation métier qui le décrit en détail, avec son scénario et ses règles. Les tests d'acceptation de chaque besoin sont listés dans [Tests d'acceptation](tests/acceptance-tests.md).
 
 Les points de vigilance, en fin de page, listent les réponses imprévues d'un modèle et le besoin qui les couvre. Les termes sont définis dans le [glossaire](glossary.md).
 
@@ -114,7 +113,7 @@ DEV-4 : En tant que développeur, je veux que mes outils reçoivent les vraies v
 DEV-5 : En tant que développeur, je veux ajouter mes propres détecteurs ou valeurs, afin de couvrir un identifiant propre à mon métier.
 
 - Un motif écrit dans la configuration masque un numéro de commande « CMD-2024-0042 ».
-- Un détecteur maison se branche dans le pipeline sans toucher à la librairie.
+- Un détecteur maison se branche dans le pipeline sans toucher à la bibliothèque.
 - Voir [Ajouter ou remplacer un composant](architecture/ports-and-extension.md). Tests : [AT-DEV-5-…](tests/acceptance-tests.md).
 
 DEV-6 : En tant que développeur, je veux décrire le pipeline dans un fichier et le valider en CI, afin de le faire relire sans lire de code.
@@ -135,7 +134,7 @@ DEV-8 : En tant que développeur, je veux décider quoi faire d'un jeton que le 
 DEV-9 : En tant que développeur, je veux restaurer une réponse streamée au fil des morceaux, afin de l'afficher sans attendre la fin.
 
 - « `<<PER` » puis « `SON:1>>` » en deux morceaux donnent « Jean Dupont » une seule fois.
-- Voir [Afficher une réponse streamée](processes/show-a-streamed-reply.md). Tests : [AT-DEV-9-…](tests/acceptance-tests.md).
+- Voir [Afficher une réponse au fil de l'eau](processes/show-a-streamed-reply.md). Tests : [AT-DEV-9-…](tests/acceptance-tests.md).
 
 DEV-10 : En tant que développeur, je veux que chaque conversation soit nommée explicitement, afin que deux utilisateurs ne partagent jamais leurs jetons par accident.
 
@@ -187,7 +186,7 @@ OPS-6 : En tant qu'exploitant, je veux charger une configuration relue depuis le
 - Le hub n'est joint qu'en HTTP ou HTTPS, et une configuration du hub qui embarque un modèle est refusée.
 - Voir [Configurer un pipeline](operations/configuration-and-hub.md). Tests : [AT-OPS-6-…](tests/acceptance-tests.md).
 
-**Limite actuelle.** Le hub ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres. Répartir les labels entre motifs et modèle demande un format de configuration que le hub n'a pas encore.
+**Limite connue.** Le hub ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres. Répartir les labels entre motifs et modèle demande un format de configuration que le hub n'a pas encore.
 
 OPS-7 : En tant qu'exploitant, je veux que la mémoire en processus soit bornée par défaut, afin qu'un serveur qui tourne des semaines ne garde pas toutes les valeurs qu'il a vues.
 
@@ -218,12 +217,12 @@ USER-3 : En tant qu'utilisateur, je veux que les actions de l'assistant utilisen
 - L'outil d'envoi reçoit « jean.dupont@exemple.fr », pas `<<EMAIL:1>>`.
 - Voir [Laisser un outil agir](processes/let-a-tool-act.md). Tests : [AT-USER-3-…](tests/acceptance-tests.md).
 
-**Limite connue.** Le proxy compatible OpenAI ne restaure pas les arguments d'un appel d'outil quand la réponse est streamée. Voir le proxy compatible OpenAI.
+**Limite connue.** Le proxy compatible OpenAI ne restaure pas les arguments d'un appel d'outil quand la réponse arrive en flux. Voir [Dé-identifier un client OpenAI avec le proxy](../../docs/fr/examples/openai-proxy.md).
 
 USER-4 : En tant qu'utilisateur, je veux voir la réponse s'afficher au fil de l'eau sans morceau de jeton, afin de la lire normalement.
 
 - Un fragment comme « `<<PER` » n'apparaît pas pendant le flux. Seul un flux coupé au milieu d'un jeton rend ce fragment à la fin, sans aucune valeur réelle.
-- Voir [Afficher une réponse streamée](processes/show-a-streamed-reply.md). Tests : [AT-USER-4-…](tests/acceptance-tests.md).
+- Voir [Afficher une réponse au fil de l'eau](processes/show-a-streamed-reply.md). Tests : [AT-USER-4-…](tests/acceptance-tests.md).
 
 USER-5 : En tant qu'utilisateur, je veux que les termes publics restent lisibles, afin que la réponse garde son sens.
 

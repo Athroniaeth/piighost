@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Let a tool act on the real values
-description: How PIIGhost puts the real values back into the arguments of a tool call, masks the tool result before the model, chooses between four tool settings and handles an invented placeholder in an argument.
+description: How piighost puts the real values back into the arguments of a tool call, masks the tool result before the model, chooses between four tool settings and handles an invented placeholder in an argument.
 tags: [tool-call, tool-strategy, invented-placeholder, langchain, pydantic-ai]
 sources:
   - id: openwiki-source-85881a85af445f438a8d7d5f
@@ -20,16 +20,22 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## In short
 
 - An agent calls tools, for example to send an e-mail. The model only knows the placeholders and writes them in the call.
-- By default, PIIGhost puts the real values back into the arguments just before execution, then masks the tool result before the model reads it.
+- By default, `piighost` puts the real values back into the arguments just before execution, then masks the tool result before the model reads it.
 - The tool result goes through full detection, so an address the conversation never quoted is masked too.
 - Three other settings exist. Two of them let the result go to the model in clear.
 - A placeholder invented by the model in an argument blocks the call by default. The tool does not run.
 
-Needs covered: DEV-4, DEV-8, USER-3 and DPO-1, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). Plugging PIIGhost into an agent is described in [Plug the protection into an agent and its tools](../integrations/agents-and-tools.md).
+Needs covered, described in [Needs by profile](../needs-by-profile.md):
+
+- Compliance officer: DPO-1
+- Developer: DEV-4, DEV-8
+- Application user: USER-3
+
+The terms are defined in the [glossary](../glossary.md). Plugging `piighost` into an agent is described in [Plug the protection into an agent and its tools](../integrations/agents-and-tools.md).
 
 ## For the business
 
-PIIGhost has no screen. The tool setting is chosen in the agent's code, for the whole agent. What you can observe is what the tool receives and what the model reads.
+`piighost` has no screen. The tool setting is chosen in the agent's code, for the whole agent. What you can observe is what the tool receives and what the model reads.
 
 ### Who is involved
 
@@ -37,7 +43,7 @@ PIIGhost has no screen. The tool setting is chosen in the agent's code, for the 
 |---|---|
 | The end user | asks for an action, for example sending an e-mail |
 | The model | decides to call the tool and writes its arguments with placeholders |
-| PIIGhost | restores the arguments, then masks the result |
+| `piighost` | restores the arguments, then masks the result |
 | The tool | acts on the real values |
 
 ### The path of a tool call
@@ -83,7 +89,7 @@ The known address takes its placeholder again. The new address takes the next nu
 
 **BR-TOOL-03.** When the setting is "Output only", then the tool receives the placeholders and its result is masked. For example, the sending tool receives `<<EMAIL:1>>` and would send the e-mail to an address that does not exist.
 
-**BR-TOOL-04.** When the setting is "None", then PIIGhost touches neither the arguments nor the result.
+**BR-TOOL-04.** When the setting is "None", then `piighost` touches neither the arguments nor the result.
 
 **BR-TOOL-05.** When the result of a tool is masked, then it goes through the full detection of the conversation. A known value takes its placeholder again, a new value takes the next number.
 
@@ -96,6 +102,8 @@ The known address takes its placeholder again. The new address takes the next nu
 **BR-TOOL-09.** When the model itself writes a value in clear in an argument, then the LangChain integration masks the history again before the next call. A known value takes its placeholder again. A value the model brought itself stays in clear, like any value first quoted by the assistant.
 
 **BR-TOOL-10.** When the agent keeps its history, then the tool call stays written there with its placeholders. The real values only exist during the execution of the tool.
+
+This rule holds for the tool call only. The text of the user's and the model's messages is recorded in the history with the real values, see the [integration pitfalls](../integrations/agents-and-tools.md#pitfalls).
 
 **BR-TOOL-11.** When the model cuts or rewords a placeholder in an argument, then only a placeholder written in full is restored. The tool receives the rest as is.
 
@@ -167,5 +175,3 @@ middleware = PIIAnonymizationMiddleware(
 | `tests/integrations/langchain/test_middleware_e2e.py` | The second call to the model sees no argument in clear (AT-DEV-4-1, AT-USER-3-1) |
 | `tests/integrations/test_pydantic_ai_hooks.py` (`TestTools`) | The tool receives the value, its result is masked |
 | `piighost-api:tests/routes/test_rewrite.py` | Arguments restored by the proxy, outside the stream |
-
-Not covered: the restoration of tool arguments in the stream of the OpenAI proxy (AT-USER-3-2). This restoration does not exist.

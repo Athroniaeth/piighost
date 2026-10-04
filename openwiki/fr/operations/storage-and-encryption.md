@@ -1,7 +1,7 @@
 ---
 type: operations
 title: Stocker les conversations et protéger les traces
-description: Où PIIGhost garde la mémoire de chaque conversation (en processus, Redis, base SQL), comment chiffrer ce stockage, ce que l'effacement d'une conversation supprime vraiment, et comment éviter que les traces OpenTelemetry contiennent des données personnelles.
+description: Où piighost garde la mémoire de chaque conversation (en processus, Redis, base SQL), comment chiffrer ce stockage, ce que l'effacement d'une conversation supprime vraiment, et comment éviter que les traces OpenTelemetry contiennent des données personnelles.
 tags: [conversation-memory, redis, sqlalchemy, encryption, hashing, observation, opentelemetry, erasure]
 sources:
   - id: openwiki-source-884a2e563fa6c83993666a78
@@ -37,13 +37,13 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-- Pour rendre la réponse lisible, PIIGhost garde, pour chaque conversation, les valeurs sensibles trouvées dans chaque message. Ce stockage contient donc des données personnelles.
+- Pour rendre la réponse lisible, `piighost` garde, pour chaque conversation, les valeurs sensibles trouvées dans chaque message. Ce stockage contient donc des données personnelles.
 - Les trois lieux de stockage sont la mémoire du programme (perdue au redémarrage), Redis et une base SQL.
 - Redis et la base SQL peuvent chiffrer ce qu'ils gardent. Le chiffrement exige deux secrets fournis par l'environnement du serveur.
 - Effacer une conversation supprime son stockage. Sur un serveur à plusieurs processus, une copie temporaire peut survivre dans les autres processus tant qu'aucune durée de vie n'est réglée.
 - Les traces techniques contiennent par défaut le texte en clair. Un réglage les remplace par des jetons.
 
-Cette page est technique. Le déroulé d'une conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md). Les termes sont définis dans le [glossaire](../glossary.md). La mise en production est décrite dans le guide technique. [Déployer un pipeline en production](../../../docs/fr/deployment.md) couvre un serveur, et [Déploiement multi-instance](../../../docs/fr/multi-instance.md) couvre plusieurs instances derrière un répartiteur de charge. Les garanties de stockage y sont détaillées dans [Sécurité](../../../docs/fr/security.md).
+Cette page s'adresse surtout aux développeurs et aux exploitants. Le déroulé d'une conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md). Les termes sont définis dans le [glossaire](../glossary.md). La mise en production est décrite dans le guide technique. [Déployer un pipeline en production](../../../docs/fr/deployment.md) couvre un serveur, et [Déploiement multi-instance](../../../docs/fr/multi-instance.md) couvre plusieurs instances derrière un répartiteur de charge. Les garanties de stockage y sont détaillées dans [Sécurité](../../../docs/fr/security.md).
 
 ## Choisir un stockage
 
@@ -57,10 +57,15 @@ Recommandation : `in_memory` pour le développement et les tests, Redis ou SQL d
 
 ### Ce qui est stocké
 
-Chaque message est stocké avec son empreinte, le rôle de son auteur (`user` ou `assistant`) et ses détections (position, texte, étiquette, confiance). Le texte des détections est la donnée sensible.
+Chaque message est stocké avec son empreinte, c'est-à-dire une courte suite de caractères calculée à partir de son texte, qui sert à le reconnaître sans garder ce texte. Le stockage garde aussi le rôle de son auteur (`user` ou `assistant`) et ses détections (position, texte, étiquette, confiance). Le texte des détections est la donnée sensible.
 
 - Redis : `{namespace}:{thread_id}:msg:{empreinte}` contient le rôle et les détections. `{namespace}:{thread_id}:index` contient l'ordre d'arrivée des messages (`conversation_memory/redis_backend.py:7-12`).
 - SQL : une ligne par message dans `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
+
+Le chiffrement d'un stockage repose sur deux composants, toujours configurés ensemble :
+
+- Le hacheur : il calcule l'empreinte de chaque message avec un secret, le poivre (`PIIGHOST_HASH_PEPPER`). Sans le poivre, personne ne peut recalculer l'empreinte d'un texte connu pour vérifier s'il a été stocké.
+- Le chiffreur : il chiffre les détections stockées avec une clé AES (`PIIGHOST_CIPHER_KEY`). Sans la clé, les valeurs stockées sont illisibles.
 
 ## Règles à connaître
 
@@ -70,7 +75,7 @@ Chaque message est stocké avec son empreinte, le rôle de son auteur (`user` ou
 
 **BR-STO-03.** Quand le chiffrement est actif, alors l'identifiant de conversation reste en clair. Il sert de préfixe de clé Redis et de colonne SQL, pour pouvoir lister et effacer une conversation. N'y mettez pas de donnée personnelle (une adresse e-mail, un nom).
 
-**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations. Au-delà, la moins récemment utilisée est évincée. Chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, et elle est retirée au prochain accès. `max_threads` et `ttl` changent ces bornes. Par exemple, une conversation écrite le 02/10/2026 à 9 h et plus touchée ensuite est oubliée le 03/10/2026 à partir de 9 h.
+**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations. Au-delà, la moins récemment utilisée est évincée. Chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, et elle est retirée au prochain accès. `max_threads` et `ttl` changent ces bornes. Par exemple, une conversation écrite le 2 octobre 2026 à 9 h et plus touchée ensuite est oubliée le 3 octobre 2026 à partir de 9 h.
 
 **BR-STO-05.** Quand Redis a un `ttl`, alors chaque message expire ce nombre de secondes après son écriture. L'index de la conversation reçoit la même durée à chaque nouveau message. La base SQL n'a aucune expiration. Effacez les conversations vous-même.
 
@@ -123,9 +128,9 @@ Argon2id prend par défaut `time_cost = 2`, `memory_cost = 19456` Kio, `parallel
 
 ## Masquer les traces
 
-Le pipeline ouvre un span par étape (`piighost.detect`, `piighost.link`, `piighost.render`, etc.) via OpenTelemetry. Sans l'extra `observation`, le traceur ne fait rien. Avec lui, les spans vont au `TracerProvider` de l'application.
+Le pipeline ouvre un span par étape (`piighost.detect`, `piighost.link`, `piighost.render`, etc.) via OpenTelemetry. Un span est une entrée de trace qui mesure une étape et porte ses données. Sans l'extra `observation`, le traceur ne fait rien. Avec lui, les spans vont au `TracerProvider` de l'application.
 
-- Sans masqueur, le texte et les valeurs détectées sont tracés en clair. Les traces servent alors de jeu d'annotation.
+- Sans masqueur, le texte et les valeurs détectées sont tracés en clair. Les traces contiennent alors des données personnelles. Réservez ce mode à un service de traces que vous contrôlez, et acquittez-le par `trace_clear_text=True` (BR-STO-08).
 - Avec `observation_redactor` (une fabrique de jetons, section `[observation_redactor]`), les valeurs sont remplacées par des jetons dans les traces.
 - Le pipeline de conversation pose l'identifiant de conversation dans l'attribut `langfuse.session.id`, en clair, même avec un masqueur.
 
@@ -160,7 +165,7 @@ Le pipeline ouvre un span par étape (`piighost.detect`, `piighost.link`, `piigh
 | `tests/conversation_memory/` | Chaque stockage : isolement des conversations, effacement, durées de vie, avertissement en clair (`test_warn_plaintext.py`) |
 | `tests/conversation_memory/test_sqlalchemy.py` | Création de table, stockage chiffré en SQL |
 | `tests/crypto/` | Longueur de clé AES, poivre vide refusé, déterminisme des hacheurs |
-| `tests/observation/` | Spans émis, masquage des payloads, avertissement de traces en clair |
+| `tests/observation/` | Spans émis, masquage de leur contenu, avertissement de traces en clair |
 
 Les tests Redis tournent contre `fakeredis` (`tests/conversation_memory/test_redis.py:21-27`), pas contre un vrai serveur. `test_concurrent_identical_remembers_do_not_duplicate` vérifie l'atomicité sous `WATCH` avec ce faux client. Le comportement d'un vrai cluster Redis n'est pas couvert.
 

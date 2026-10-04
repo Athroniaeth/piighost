@@ -1,7 +1,7 @@
 ---
 type: architecture
 title: Add or replace a pipeline component
-description: How the PIIGhost code is split into ports and adapters, why the configuration depends only on the core, and how to add a detector or a stage without breaking the rest.
+description: How the piighost code is split into ports and adapters, why the configuration depends only on the core, and how to add a detector or a stage without breaking the rest.
 tags: [architecture, ports, extension, detector, config, optional-dependencies]
 verified:
   - by: openwiki/0.6.1
@@ -38,13 +38,13 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 ## In short
 
-- PIIGhost is a sequence of interchangeable stages. You replace a detector or a rule without touching the other stages.
+- `piighost` is a sequence of interchangeable stages. You replace a detector or a rule without touching the other stages.
 - Each stage follows a contract written once. Any part that respects this contract can take its place.
 - The configuration file builds these parts. The parts, for their part, know nothing about the configuration file.
 - The heavy building blocks (AI models, databases) are installed only if you ask for them.
 - The type of the chosen placeholder is checked before execution, so an incompatible combination is rejected early.
 
-This page is technical. For the flow of a message, read [Protect a message before it is sent to the model](../processes/protect-a-message.md). The terms are defined in the [glossary](../glossary.md).
+This page is mainly for developers. For the flow of a message, read [Protect a message before it is sent to the model](../processes/protect-a-message.md). The terms are defined in the [glossary](../glossary.md).
 
 ## How the code is split
 
@@ -105,7 +105,7 @@ The placeholder factories carry a preservation tag (`components/placeholder/tags
 4. Write the configuration model next to its neighbors in `config/models/detector_model.py`. It carries a `type: Literal["..."]`, validated fields and a `build()` that imports the adapter locally.
 5. Add this model to the `DetectorConfig` union of `config/models/detector.py`.
 6. Add a constructor to the `DETECTORS` list of `tests/components/detector/test_contract.py`.
-7. If the module is guarded, add the `(module, dependency, extra)` line to `OPTIONAL_DEPENDENCY_GUARDS` in `tests/regression/test_imports.py`.
+7. If the module checks that its dependency is present (step 2), add the `(module, dependency, extra)` line to `OPTIONAL_DEPENDENCY_GUARDS` in `tests/regression/test_imports.py`.
 
 ### Check
 
@@ -114,7 +114,7 @@ uv run pytest tests/components/detector/test_contract.py tests/regression/test_i
 make lint
 ```
 
-For your detector, the contract test must report the same thing as for the other detectors, that is the same span in code points, the same text read back from the source and the same external label.
+For your detector, the contract test must report the same thing as for the other detectors, that is the same position (span) counted in code points, the same text read back from the source and the same external label. A code point is a Unicode character counted once, as Python does. The emoji 😀 therefore counts as one, not as two as in JavaScript.
 
 ## Pitfalls
 

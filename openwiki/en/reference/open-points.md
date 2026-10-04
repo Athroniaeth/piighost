@@ -16,7 +16,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## Decided, to do
 
-Decided on 2026-10-02.
+Decided on October 2, 2026.
 
 - DPO-10: design the export of human validations, to Langfuse for example. Three forms will be available, placeholders instead of the values, values in clear, or input and output fully masked. The default form is placeholders.
 - OPS-6: accept model configurations on the hub. Their current rejection is temporary. It needs a format that splits the labels between patterns and model, because each NER model is stronger on some labels.

@@ -1,7 +1,7 @@
 ---
 type: operations
 title: Configure a pipeline by file, hub and command line
-description: How to describe a PIIGhost pipeline in a TOML or JSON file, override it from the environment, pull pattern catalogs from the hub, supply the secrets and check it all with the piighost command.
+description: How to describe a piighost pipeline in a TOML or JSON file, override it from the environment, pull pattern catalogs from the hub, supply the secrets and check it all with the piighost command.
 tags: [configuration, toml, hub, cli, secrets, environment]
 verified:
   - by: openwiki/0.6.1
@@ -151,7 +151,5 @@ The first command prints `OK: examples/config/pipeline.toml`. The second prints 
 | `tests/cli/test_cli.py` | Exit codes of `validate`, `schema`, `anonymize`, mutual exclusion of `--config`/`--api` |
 | `tests/test_hub.py` | Reference parsing, private origin, rejection of a model detector, pinned cache, moving selector never cached |
 | `tests/config/test_hub_config.py` | Loading a whole configuration from the hub |
-
-Overriding a whole section with a JSON object is not covered in `test_settings.py`. [to check]: add a test that sets `PIIGHOST_DETECTOR` to confirm BR-CFG-05.
 
 See also [Store conversations and protect traces](storage-and-encryption.md) for the `[memory]` section.

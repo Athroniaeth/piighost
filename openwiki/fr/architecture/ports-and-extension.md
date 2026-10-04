@@ -1,7 +1,7 @@
 ---
 type: architecture
 title: Ajouter ou remplacer un composant du pipeline
-description: Comment le code de PIIGhost est découpé en ports et en adaptateurs, pourquoi la configuration ne dépend que du cœur, et comment ajouter un détecteur ou une étape sans casser le reste.
+description: Comment le code de piighost est découpé en ports et en adaptateurs, pourquoi la configuration ne dépend que du cœur, et comment ajouter un détecteur ou une étape sans casser le reste.
 tags: [architecture, ports, extension, detector, config, optional-dependencies]
 verified:
   - by: openwiki/0.6.1
@@ -38,13 +38,13 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 ## En bref
 
-- PIIGhost est une suite d'étapes interchangeables. On remplace un détecteur ou une règle sans toucher aux autres étapes.
+- `piighost` est une suite d'étapes interchangeables. On remplace un détecteur ou une règle sans toucher aux autres étapes.
 - Chaque étape suit un contrat écrit une fois. Toute pièce qui respecte ce contrat peut prendre sa place.
 - Le fichier de configuration fabrique ces pièces. Les pièces, elles, ignorent tout du fichier de configuration.
 - Les briques lourdes (modèles d'IA, bases de données) ne s'installent que si vous les demandez.
 - Le type du jeton choisi est vérifié avant l'exécution, donc une combinaison incompatible est refusée tôt.
 
-Cette page est technique. Pour le déroulé d'un message, lisez [Protéger un message avant l'envoi au modèle](../processes/protect-a-message.md). Les termes sont définis dans le [glossaire](../glossary.md).
+Cette page s'adresse surtout aux développeurs. Pour le déroulé d'un message, lisez [Protéger un message avant l'envoi au modèle](../processes/protect-a-message.md). Les termes sont définis dans le [glossaire](../glossary.md).
 
 ## Comment le code est découpé
 
@@ -105,7 +105,7 @@ Les fabriques de jetons portent une étiquette de préservation (`components/pla
 4. Écrivez le modèle de configuration à côté de ses voisins dans `config/models/detector_model.py`. Il porte un `type: Literal["..."]`, des champs validés et un `build()` qui importe l'adaptateur localement.
 5. Ajoutez ce modèle à l'union `DetectorConfig` de `config/models/detector.py`.
 6. Ajoutez un constructeur à la liste `DETECTORS` de `tests/components/detector/test_contract.py`.
-7. Si le module est guardé, ajoutez la ligne `(module, dépendance, extra)` à `OPTIONAL_DEPENDENCY_GUARDS` dans `tests/regression/test_imports.py`.
+7. Si le module vérifie la présence de sa dépendance (étape 2), ajoutez la ligne `(module, dépendance, extra)` à `OPTIONAL_DEPENDENCY_GUARDS` dans `tests/regression/test_imports.py`.
 
 ### Vérifier
 
@@ -114,7 +114,7 @@ uv run pytest tests/components/detector/test_contract.py tests/regression/test_i
 make lint
 ```
 
-Pour votre détecteur, le test de contrat doit rapporter la même chose que pour les autres détecteurs, c'est-à-dire le même span en points de code, le même texte relu dans la source et la même étiquette externe.
+Pour votre détecteur, le test de contrat doit rapporter la même chose que pour les autres détecteurs, c'est-à-dire la même position (span) comptée en points de code, le même texte relu dans la source et la même étiquette externe. Un point de code est un caractère Unicode compté une fois, comme le fait Python. L'emoji 😀 compte donc pour un, et non pour deux comme en JavaScript.
 
 ## Pièges
 
