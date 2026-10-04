@@ -30,14 +30,8 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMe
 from langchain_core.outputs import ChatResult
 from langchain_core.tools import tool
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import (
-    LabelCounterPlaceholderFactory,
-    PreservesLabeledIdentityOpaque,
-)
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
     ToolCallStrategy,
@@ -83,13 +77,7 @@ def book_slot(person: str) -> str:
 
 def _build_pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Wire a thread pipeline whose tokens preserve identity, as the middleware needs."""
-    ph_factory = LabelCounterPlaceholderFactory()
-    return ThreadAnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
-    )
+    return ThreadAnonymizationPipeline(ExactMatchDetector({"Emma": "PERSON"}))
 
 
 def _build_agent() -> Any:

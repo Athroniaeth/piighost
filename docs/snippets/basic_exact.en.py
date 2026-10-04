@@ -1,8 +1,5 @@
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 # isort: split
@@ -10,14 +7,7 @@ from piighost.pipeline import AnonymizationPipeline
 from piighost.components.detector import ExactMatchDetector
 
 detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-)
+pipeline = AnonymizationPipeline(detector)
 
 
 async def main():

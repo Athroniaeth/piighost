@@ -13,20 +13,14 @@ cleanly. Run with: uv run examples/anonymize_basic.py
 
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 
 async def main() -> None:
     """Build a pipeline, anonymize a text, then deanonymize it back."""
-    ph_factory = LabelCounterPlaceholderFactory()
     pipeline = AnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON", "Lyon": "LOCATION"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
+        ExactMatchDetector({"Emma": "PERSON", "Lyon": "LOCATION"})
     )
 
     text = "Emma lives in Lyon, and Emma loves Lyon."

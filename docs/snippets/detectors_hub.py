@@ -1,20 +1,10 @@
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import RegexDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 detector = RegexDetector.from_hub("hub:piighost/generic")
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-)
+pipeline = AnonymizationPipeline(detector)
 
 
 async def main():

@@ -16,22 +16,14 @@ uv run examples/thread_conversation.py
 
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
 def _build_pipeline() -> ThreadAnonymizationPipeline:
     """Wire a thread pipeline over an in-memory conversation store."""
-    ph_factory = LabelCounterPlaceholderFactory()
     return ThreadAnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
+        ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"})
     )
 
 

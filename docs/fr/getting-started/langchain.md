@@ -11,7 +11,7 @@ Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour qu
 
 ## 1. Construire le pipeline de conversation
 
-Le middleware enrobe un `ThreadAnonymizationPipeline`, le même que celui de la page [Pipeline conversationnel](conversation.md). Son anonymiseur doit utiliser une fabrique de jetons délimités comme `LabelCounterPlaceholderFactory`, qui émet `<<PERSON:1>>`{ .placeholder }. Le middleware a besoin de cette forme délimitée pour retrouver un jeton. Avec une autre fabrique, il lève `UnrecognizableFactoryError` à la construction.
+Le middleware enrobe un `ThreadAnonymizationPipeline`, le même que celui de la page [Pipeline conversationnel](conversation.md). Seul le détecteur est passé. Les autres composants gardent leurs valeurs par défaut, et l'anonymiseur par défaut utilise `LabelCounterPlaceholderFactory`, une fabrique de jetons délimités qui émet `<<PERSON:1>>`{ .placeholder }. Le middleware a besoin de cette forme délimitée pour retrouver un jeton. Avec une autre fabrique, il lève `UnrecognizableFactoryError` à la construction.
 
 ```python
 --8<-- "snippets/langchain_start.fr.py:pipeline"

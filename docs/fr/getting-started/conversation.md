@@ -11,7 +11,7 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 
 ## 1. Assembler le pipeline
 
-`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. La mémoire accumule les détections de chaque message, conversation par conversation. Le pipeline peut ainsi attribuer les jetons sur l'ensemble de la conversation plutôt que sur un message isolé.
+`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. Seul le détecteur est obligatoire. Le code ci-dessous passe la mémoire explicitement et laisse le linker et l'anonymiseur à leurs valeurs par défaut. La mémoire accumule les détections de chaque message, conversation par conversation. Le pipeline peut ainsi attribuer les jetons sur l'ensemble de la conversation plutôt que sur un message isolé.
 
 `InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Cette mémoire convient donc au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues. Le résultat est ainsi vérifiable, sans modèle.
 

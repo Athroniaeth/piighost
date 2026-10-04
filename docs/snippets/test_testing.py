@@ -1,21 +1,10 @@
 # --8<-- [start:helper]
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
 
 def build_pipeline(values: dict[str, str]) -> AnonymizationPipeline:
-    detector = ExactMatchDetector(values)
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    return AnonymizationPipeline(
-        detector,
-        linker,
-        anonymizer,
-    )
+    return AnonymizationPipeline(ExactMatchDetector(values))
 
 
 async def test_person_is_tokenized() -> None:

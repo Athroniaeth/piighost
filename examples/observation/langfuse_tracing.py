@@ -32,11 +32,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
@@ -114,12 +110,8 @@ async def main() -> None:
     _load_env()
     client = _configure_backend()
 
-    ph_factory = LabelCounterPlaceholderFactory()
     pipeline = ThreadAnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
+        ExactMatchDetector({"Emma": "PERSON", "Liam": "PERSON"})
     )
 
     tracer = trace.get_tracer("piighost.example")
