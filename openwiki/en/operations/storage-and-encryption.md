@@ -153,14 +153,6 @@ The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piig
 | BR-STO-07 | `crypto/cipher/aesgcm.py:46-52` (`AesGcmCipher.__init__`) |
 | BR-STO-08 | `pipeline/base.py:190-202` (the warning of `__init__`, acknowledged by `trace_clear_text`) |
 
-## Doc / code gaps
-
-> ⚠ Doc / code gap
-> **Doc**: `AGENTS.md` (Conversation Layer section) says that the Redis backend hashes the keys "with Argon2id".
-> **Code**: the hasher is a choice, HMAC-SHA256 (`crypto/hasher/sha256.py:9`) or Argon2id (`crypto/hasher/argon2id.py:39`), according to `[memory.hasher] type` (`config/models/hasher.py:76-79`). Without a hasher, the key is a non-secret SHA-256 of the message (`conversation_memory/base.py:73-77`).
-
-This gap is also listed in the [gap register](../reference/doc-code-gaps.md).
-
 ## Tests
 
 | Test | Covers |

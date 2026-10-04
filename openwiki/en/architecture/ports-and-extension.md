@@ -123,18 +123,6 @@ For your detector, the contract test must report the same thing as for the other
 - **A misspelled configuration key is rejected**, not ignored, thanks to `extra="forbid"`. This is intended.
 - **The threshold of a NER detector applies even if the model ignores it.** Do not rely on the model to filter.
 
-## Doc / code gaps
-
-> ⚠ Doc / code gap
-> **Doc**: `AGENTS.md` (lines 7, 26 and 82) says that each stage has an `Any*` port and a `Base*` template. `docs/en/architecture.md:109-111` says that only two ports have no template, the guard rails and the memory.
-> **Code**: five ports have no template, namely the detector (`components/detector/base.py:9`), the whitelist and the blacklist (`components/override/base.py:9-17`), the guard rails (`components/guard/base.py:42`), the memory (`conversation_memory/base.py:10-14`) and encryption (`crypto/cipher/base.py:7-10`).
-
-> ⚠ Doc / code gap
-> **Doc**: the error message of `config/models/detector.py:62-66` says that the built-in catalogs were removed "in piighost 2.0".
-> **Code**: the package version is `1.10.0` (`pyproject.toml:3`). The `CHANGELOG.md` places the move of the catalogs to the hub in 1.8.0. [to check] Ask the maintainer whether "2.0" means the internal rewrite or an upcoming version.
-
-These gaps are also listed in the [gap register](../reference/doc-code-gaps.md).
-
 ## Tests
 
 | Test | What it guarantees |

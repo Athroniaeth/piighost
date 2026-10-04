@@ -196,10 +196,6 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 - **Le cache de jetons est mémorisé par processus** (256 cartes au plus, `_TOKEN_MEMO_MAX`). Voir [Stocker les conversations](../operations/storage-and-encryption.md) pour l'effet sur l'effacement en multi-processus.
 - **`anonymize_corrected` ne résout pas les chevauchements** et ne relance pas l'expansion. Le jeu corrigé doit être propre. Il passe seulement par la liste blanche et la liste noire.
 
-### Écarts doc / code
-
-Aucun écart constaté sur cette page.
-
 ### Tests
 
 | Test | Couvre |

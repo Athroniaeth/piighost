@@ -205,10 +205,6 @@ Then `echo "Tel. 06 12 34 56 78" | uv run piighost anonymize --config <file>` mu
 - **A score-based guard rail (moderation) locates nothing.** The blacklist values cannot be exempted from it (`pipeline/base.py:318-322`).
 - **`LLMDetector` fails closed.** A model output that is unreadable, has no `entities` field or is rejected by the parser raises `UnreadableOutputError` and the message is refused (`components/detector/llm.py:174-181`, `_unreadable` at `:203`). `fail_open=True` reads it as zero detections, and the message then leaves without protection. See DPO-9 in [Needs by profile](../needs-by-profile.md#watch-points).
 
-### Doc / code gaps
-
-No gap found on this page. The order of the stages in `docs/en/architecture.md` matches the code.
-
 ### Tests
 
 | Test | Covers |

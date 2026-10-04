@@ -1,7 +1,7 @@
 ---
 type: reference
 title: Open points
-description: The decisions taken on the needs by profile and what remains to do to meet them, the fail closed behavior of a detector, the storage form of corrections, models on the hub, with what is already done and what remains to decide.
+description: The decisions taken on the needs and what remains to do to meet them, the storage form of corrections and models on the hub, then the proposals that remain to decide.
 tags: [backlog, decisions, personas]
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
@@ -11,30 +11,23 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## In short
 
 - This page tracks the decisions taken on the needs and what remains to do to meet them.
-- Each point cites the need concerned (`DPO-9`, `DEV-10`…) and, when it exists, the commit that settled it.
-- The gaps between the documentation and the code are in the [gap register](doc-code-gaps.md), not here.
+- Each point cites the need concerned, such as `DPO-10` or `OPS-6`.
+- What is done is not listed here. The need and its acceptance tests show it, and the git history keeps the detail.
 
 ## Decided, to do
 
 Decided on 2026-10-02.
 
-- **DPO-10, storage form of corrections.** Design the export of human validations, to Langfuse for example, with three forms to choose from, that is placeholders instead of the values, values in clear, input and output fully redacted. The default form is placeholders (decided on 2026-10-02).
-- **OPS-6, models on the hub.** The rejection of model configurations is temporary. It needs a format that splits the labels between patterns and model, because each NER model is stronger on some labels.
-
-## Done
-
-Done on 2026-10-02, on the local branches. Nothing is pushed.
-
-- **DPO-9.** `LLMDetector` and `LLMGuardRail` raise `UnreadableOutputError` on unreadable output, and `fail_open=True` restores fail open with a warning (`4d47d65`). The Claude Code hooks exit with code 2 for a prompt or a tool call they cannot de-identify, replace a tool output with a notice, and `PIIGHOST_HOOK_FAIL_OPEN=1` lets the text through (`5ec03d1`).
-- **Placeholders with damaged delimiters.** Accepted and documented. A placeholder such as `<< PERSON:1 >>` is not restored and the user reads it as is, without any value leaking.
-- **Rights of the OpenWiki job.** It does not rewrite the text of a need or of a business rule. A disagreement with the code becomes a line in the gap register (`INSTRUCTIONS.md`).
-
-- **DEV-10.** `require_thread_id` is removed. The LangChain middleware, the Claude Code hooks and `PIIGhostClient.detect` require a conversation (`piighost` `97b1e78`), and the server responds 400 without `thread_id` (`piighost-api` `7dec988`). The CLI keeps `--thread-id default` for a standalone command.
-- **OPS-7.** The in-process memory is bounded by default to 10,000 conversations and a lifetime of one day (`4af48d3`). The Redis memory keeps its optional `ttl`, because its persistence is intended.
-- **Documentation.** The reply of a tool goes through full detection, and a cut stream returns its fragment (`3473217`).
-- **Acceptance tests.** AT-DPO-1-2, AT-DPO-2-2, AT-DPO-5-2, AT-DPO-6-1, AT-DEV-3-2, AT-OPS-2-1 and AT-OPS-3-1 in `tests/acceptance/` (`21e5ac9`).
+- DPO-10: design the export of human validations, to Langfuse for example. Three forms will be available, placeholders instead of the values, values in clear, or input and output fully masked. The default form is placeholders.
+- OPS-6: accept model configurations on the hub. Their current rejection is temporary. It needs a format that splits the labels between patterns and model, because each NER model is stronger on some labels.
 
 ## Proposed, not yet decided
 
-- DPO-1: add as criteria "no following turn, no content block and no tool argument returns a value in clear" and "a placeholder typed by the user does not reveal the value of another", already tested.
-- OPS-4: add "a malformed key without `PIIGHOST_ALLOW_ANONYMOUS` prevents startup" and "a protected route without a token responds 401".
+These proposals add criteria to existing needs. Each criterion describes a behavior that tests already check. What remains to decide is whether it goes into the text of the need.
+
+- DPO-1: add two criteria.
+    - No value goes back to the model in clear, neither in later turns of the conversation, nor in a message split into several blocks, nor in the argument of a tool call.
+    - A placeholder the user types themselves, such as `<<PERSON:2>>`, does not reveal the value of another person.
+- OPS-4: add two criteria.
+    - The `piighost-api` server refuses to start if an API key is malformed, unless `PIIGHOST_ALLOW_ANONYMOUS` is set.
+    - A protected route called without a key answers 401.

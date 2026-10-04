@@ -123,18 +123,6 @@ Pour votre détecteur, le test de contrat doit rapporter la même chose que pour
 - **Une clé de configuration mal orthographiée est refusée**, pas ignorée, grâce à `extra="forbid"`. C'est voulu.
 - **Le seuil d'un détecteur NER s'applique même si le modèle l'ignore.** Ne comptez pas sur le modèle pour filtrer.
 
-## Écarts doc / code
-
-> ⚠ Écart doc / code
-> **Doc** : `AGENTS.md` (lignes 7, 26 et 82) dit que chaque étape a un port `Any*` et un gabarit `Base*`. `docs/en/architecture.md:109-111` dit que seuls deux ports n'ont pas de gabarit, les garde-fous et la mémoire.
-> **Code** : cinq ports n'ont pas de gabarit, à savoir le détecteur (`components/detector/base.py:9`), la liste blanche et la liste noire (`components/override/base.py:9-17`), les garde-fous (`components/guard/base.py:42`), la mémoire (`conversation_memory/base.py:10-14`) et le chiffrement (`crypto/cipher/base.py:7-10`).
-
-> ⚠ Écart doc / code
-> **Doc** : le message d'erreur de `config/models/detector.py:62-66` dit que les catalogues intégrés ont été retirés « in piighost 2.0 ».
-> **Code** : la version du paquet est `1.10.0` (`pyproject.toml:3`). Le `CHANGELOG.md` place le passage des catalogues au hub en 1.8.0. [à vérifier] Demandez au mainteneur si « 2.0 » désigne la réécriture interne ou une version à venir.
-
-Ces écarts sont aussi listés dans le [registre des écarts](../reference/doc-code-gaps.md).
-
 ## Tests
 
 | Test | Ce qu'il garantit |

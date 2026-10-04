@@ -133,10 +133,6 @@ In a trace of the agent, the message received by the model must contain `<<PERSO
 - **`PIIQueryEngine` refuses a streaming engine** (`NotImplementedError`). Its synchronous paths go through `asyncio.run`, so call `aquery` from asynchronous code.
 - **`PIIGhostClient.anonymize` returns an empty placeholder dictionary.** The mapping lives on the server. Restore with `deanonymize`.
 
-### Doc / code gaps
-
-No gap found on this page. The Grep limitation is documented in `docs/en/examples/claude-code.md`.
-
 ### Tests
 
 | Test | Covers |

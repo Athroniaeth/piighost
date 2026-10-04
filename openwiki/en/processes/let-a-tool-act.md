@@ -159,10 +159,6 @@ middleware = PIIAnonymizationMiddleware(
 - **The middleware requires a pipeline whose factory exposes a `recognizer`**, otherwise it raises `UnrecognizableFactoryError` at construction.
 - **Refusing an invented placeholder raises `InventedPlaceholderError` from `awrap_tool_call`.** The tool is not called, and the error goes up to the agent.
 
-### Doc / code gaps
-
-The gap on the result of a tool (the doc spoke of replacing only the known values) is fixed in `docs/en/tool-call-strategies.md` and `docs/fr/tool-call-strategies.md`. See ECART-09 in the [gap register](../reference/doc-code-gaps.md).
-
 ### Tests
 
 | Test | Covers |

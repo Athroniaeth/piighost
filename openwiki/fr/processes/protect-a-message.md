@@ -205,10 +205,6 @@ Puis `echo "Tél. 06 12 34 56 78" | uv run piighost anonymize --config <fichier>
 - **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste noire ne peuvent pas en être exemptées (`pipeline/base.py:318-322`).
 - **`LLMDetector` échoue fermé.** Une sortie du modèle illisible, sans champ `entities` ou que le parseur rejette, lève `UnreadableOutputError` et le message est refusé (`components/detector/llm.py:174-181`, `_unreadable` en `:203`). `fail_open=True` la lit comme zéro détection, et le message part alors sans protection. Voir DPO-9 dans [Besoins par profil](../needs-by-profile.md#points-de-vigilance).
 
-### Écarts doc / code
-
-Aucun écart constaté sur cette page. L'ordre des étapes de `docs/en/architecture.md` correspond au code.
-
 ### Tests
 
 | Test | Couvre |

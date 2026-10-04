@@ -154,10 +154,6 @@ uv run pytest tests/components/placeholder/test_streaming.py tests/components/pl
 - **The Pydantic AI capability provides no stream decoder.**
 - **The decoder follows the delimiters of the factory**, so a factory with custom delimiters keeps the same behavior.
 
-### Doc / code gaps
-
-The gap on a cut stream (the doc said the display "never" shows a broken placeholder) is fixed in `docs/en/reference/langchain.md` and `docs/fr/reference/langchain.md`. See ECART-10 in the [gap register](../reference/doc-code-gaps.md).
-
 ### Tests
 
 | Test | Covers |

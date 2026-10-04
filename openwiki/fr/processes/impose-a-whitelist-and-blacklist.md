@@ -184,14 +184,6 @@ Puis lancez `piighost anonymize --config <votre fichier> "Claire Dubois travaill
 - **Une détection en cache n'est pas repassée dans les listes** (BR-LIST-08). Pour appliquer une nouvelle liste à une conversation en cours, effacez la conversation (`forget_thread`) ou corrigez le message par `anonymize_corrected`.
 - **`ExactMatchDetector` est d'abord un outil de test.** Utilisé comme liste blanche dans `DetectionOverride`, il survit aux corrections humaines. Utilisé seul comme détecteur principal, il n'y survit pas.
 
-### Écarts doc / code
-
-> ⚠ Écart doc / code
-> **Doc** : la docstring de `DetectionOverride` dit que les pipelines appliquent les listes « after every detection read and before every memory write » (`components/override/detector.py:51-53`).
-> **Code** : une lecture de détections depuis le cache ne repasse pas par les listes (`pipeline/thread.py:271-274`). Seuls une détection fraîche et un jeu corrigé y passent. [à vérifier] : si « detection read » désigne seulement l'appel au détecteur, il n'y a pas d'écart, mais la formulation induit en erreur.
-
-Cet écart est aussi listé dans le [registre des écarts](../reference/doc-code-gaps.md).
-
 ### Tests
 
 | Test | Couvre |

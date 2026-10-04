@@ -69,7 +69,7 @@ même structure, les mêmes identifiants et les mêmes liens vers le code.
   spécifications) est une source d'information factuelle **quand elle est
   juste** : reprendre ses faits et son vocabulaire après les avoir vérifiés
   dans le code. Quand elle contredit le code, le code l'emporte et l'écart
-  est signalé (voir « Écarts doc / code »).
+  est signalé dans la description de la pull request.
 - Ne jamais inventer : ni règle, ni libellé, ni chiffre, ni commande. Si un
   point n'est pas tranché dans le code, l'écrire (« non déterminé dans le
   code »).
@@ -83,10 +83,9 @@ même structure, les mêmes identifiants et les mêmes liens vers le code.
 - **Les besoins et les règles métier sont des décisions, pas une description
   du code.** Ne jamais modifier le texte d'un besoin (`DPO-`, `DEV-`, `OPS-`,
   `USER-`) ni d'une règle (`BR-`) pour le faire correspondre au code. Quand le
-  code s'en écarte, ajouter une ligne au registre des écarts
-  (`reference/doc-code-gaps.md`) et laisser la règle telle quelle. Seul un
-  humain change une décision. Les emplacements de code, les tests et les
-  écarts restent à mettre à jour.
+  code s'en écarte, signaler l'écart dans la description de la pull request
+  et laisser la règle telle quelle. Seul un humain change une décision. Les
+  emplacements de code et les tests restent à mettre à jour.
 
 ## Mots de l'écran
 
@@ -155,11 +154,7 @@ Sections typées, sans les mélanger :
    avec une section **Vérifier** (test, commande ou requête).
 3. **Pièges** : comportements par défaut dangereux, erreurs avalées, valeurs
    codées en dur, noms trompeurs.
-4. **Écarts doc / code** : un encadré « ⚠ Écart doc / code » par écart (ce
-   que dit la doc, ce que fait le code, `fichier:ligne`). Les écarts ne vont
-   **que** dans cette partie, jamais dans la partie métier. Chaque écart est
-   aussi listé dans `reference/doc-code-gaps.md`.
-5. **Tests** : tests existants, et ce qu'ils ne couvrent pas.
+4. **Tests** : tests existants, et ce qu'ils ne couvrent pas.
 
 Marquer `[à vérifier]` toute affirmation qui dépend de code absent du dépôt
 (dépendances externes, `vendor/`, services tiers), avec le moyen de trancher.
@@ -185,13 +180,11 @@ l'arborescence du wiki. Sections, dans cet ordre :
    - **Son objectif** : écrire des règles qui n'existent nulle part ailleurs,
      pour les discuter et les faire évoluer ensemble.
    - **Comment la lire** : par où commencer, le rappel que le code et les
-     tests ont raison en cas de désaccord, avec un lien vers le registre des
-     écarts et vers le glossaire.
+     tests ont raison en cas de désaccord, avec un lien vers le glossaire.
 2. **Je cherche à comprendre…** (public métier) : un tableau
    `Besoin métier | Page à lire`. Chaque ligne formule un besoin comme le
    lecteur le pense, avec ses mots, sans identifiant technique. Une ligne
-   par page métier, plus une ligne vers le glossaire et une vers le registre
-   des écarts. Suivi d'un diagramme du cycle de vie (10 boîtes au plus).
+   par page métier, plus une ligne vers le glossaire. Pas de diagramme.
 3. **Modifier le code** : une seule phrase qui renvoie vers la page
    « Modifier le code de piighost » de la documentation technique
    (`docs/<langue>/community/changing-the-code.md`). Le tableau des
@@ -213,7 +206,6 @@ Couvrir au minimum :
 - **Glossaire** (page dédiée, liée depuis toutes les pages) : chaque terme et
   sigle du métier, avec une définition métier d'une ou deux phrases, le
   libellé de l'écran, puis, si utile, le nom technique correspondant.
-- **Registre des écarts doc / code** (`reference/doc-code-gaps.md`).
 - **Décisions de conception** (`reference/decisions.md`) : les décisions
   qui ont construit le système de dé-identification, dans l'ordre où elles se
   sont posées. Chacune est un titre `### DEC-NN : titre`, suivi d'une
@@ -231,8 +223,7 @@ Couvrir au minimum :
 
 Les identifiants sont en anglais, les mêmes quelle que soit la langue de la
 page : besoins `DPO-n`, `DEV-n`, `OPS-n`, `USER-n` ; règles
-`BR-<DOMAINE>-NN` ; décisions de conception `DEC-NN` ; tests d'acceptation `AT-<besoin>-<n>` ; écarts
-`ECART-NN`. Un besoin s'écrit en texte simple, sans gras, sous la forme
+`BR-<DOMAINE>-NN` ; décisions de conception `DEC-NN` ; tests d'acceptation `AT-<besoin>-<n>` . Un besoin s'écrit en texte simple, sans gras, sous la forme
 `DPO-1 : En tant que …` (`DPO-1: As a …` en anglais). Un identifiant publié ne change plus de sens : une règle retirée
 laisse son numéro libre.
 
@@ -278,8 +269,6 @@ laisse son numéro libre.
       n'est pas évidente.
 - [ ] Les faits repris de la documentation existante sont vérifiés dans le
       code.
-- [ ] Les écarts doc / code sont dans la partie développeurs et dans le
-      registre.
 - [ ] Les liens et les ancres internes fonctionnent.
 - [ ] Si la page est ajoutée, déplacée ou supprimée : les tableaux de
       routage du quickstart sont à jour.

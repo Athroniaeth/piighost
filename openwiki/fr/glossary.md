@@ -33,7 +33,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 PIIGhost n'a pas d'écran. Ce que vous « voyez » est un jeton dans le texte envoyé au modèle, un message d'erreur, une clé du fichier de configuration ou une sortie de la commande `piighost`. La colonne « Ce que vous voyez » donne cette forme. La colonne « Nom technique » sert aux développeurs.
 
-Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les écarts entre la documentation existante et le code sont dans le [registre des écarts](reference/doc-code-gaps.md).
+Pour le contexte de chaque terme, partez du [quickstart](quickstart.md).
 
 ## Protéger les données
 
@@ -110,4 +110,3 @@ Les identifiants sont en anglais, les mêmes quelle que soit la langue de la pag
 | Besoin | Ce qu'un profil attend de PIIGhost, avec ses critères observables. Le préfixe nomme le profil (responsable conformité, développeur, exploitant, utilisateur de l'application). | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Besoins par profil](needs-by-profile.md) |
 | Règle de gestion | Règle formulée en « Quand… alors… » dans une page de processus. *BR* signifie *business rule*, suivi du domaine. | `BR-MSG-05`, `BR-CONV-03` | parties « Règles à connaître » |
 | Test d'acceptation | Test qui vérifie un critère d'un besoin. | `AT-DPO-1-2` | [Tests d'acceptation](tests/acceptance-tests.md), `tests/acceptance/` |
-| Écart | Endroit où la documentation et le code divergent. | `ECART-09` | [Registre des écarts](reference/doc-code-gaps.md) |

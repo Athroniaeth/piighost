@@ -184,14 +184,6 @@ Then run `piighost anonymize --config <your file> "Claire Dubois works at Acme o
 - **A cached detection does not go through the lists again** (BR-LIST-08). To apply a new list to a conversation under way, clear the conversation (`forget_thread`) or correct the message through `anonymize_corrected`.
 - **`ExactMatchDetector` is first of all a test tool.** Used as a whitelist in `DetectionOverride`, it survives human corrections. Used alone as the main detector, it does not.
 
-### Doc / code gaps
-
-> ⚠ Doc / code gap
-> **Doc**: the `DetectionOverride` docstring says the pipelines apply the lists "after every detection read and before every memory write" (`components/override/detector.py:51-53`).
-> **Code**: a read of detections from the cache does not go through the lists again (`pipeline/thread.py:271-274`). Only a fresh detection and a corrected set go through them. [to check]: if "detection read" means only the call to the detector, there is no gap, but the wording is misleading.
-
-This gap is also listed in the [gap register](../reference/doc-code-gaps.md).
-
 ### Tests
 
 | Test | Covers |
