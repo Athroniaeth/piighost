@@ -22,7 +22,7 @@
     },
     {
       "id": "claim_69935703d635418fb02edfe93a92f9b2",
-      "statement": "A value whose first occurrence in the thread came from the assistant gets no token and stays clear, unless the whitelist forces it under FORCE.",
+      "statement": "A value whose first occurrence in the thread came from the assistant gets no token and stays clear, unless the deny list forces it under FORCE.",
       "evidence": [
         {
           "resource": "repo://src/piighost/conversation_memory/memory.py#L91-L102",

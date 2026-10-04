@@ -131,10 +131,10 @@ A detector makes two kinds of mistakes. It misses some values, and it masks othe
 
 So two lists, set by the server, override the detector:
 
-- The whitelist: it masks a value, even if the detector missed it.
-- The blacklist: it leaves a value unmasked, even if the detector found it.
+- The deny list (`deny_list` in the configuration): it masks a value, even if the detector missed it.
+- The allow list (`allow_list`): it leaves a value unmasked, even if the detector found it.
 
-The meaning is the opposite of the usual one, where a whitelist allows. Here, the whitelist forces masking. A whitelist holding the client code `CLI-4821` masks it everywhere. A blacklist holding "Doctor" keeps this word from being taken for a name. If a value is on both lists, it is masked by default.
+Before PIIGhost 2.0, these lists were called `whitelist` and `blacklist`, and the whitelist forced masking. Most readers take a whitelist to allow, and a list read the wrong way round leaves in clear the values it was written to mask. Version 2.0 takes the names Presidio uses. A configuration that still uses the old names is refused at load time, never read under the new meaning. A deny list holding the client code `CLI-4821` masks it everywhere. An allow list holding "Doctor" keeps this word from being taken for a name. If a value is on both lists, it is masked by default.
 
 A person can also correct the values of a message by hand. This correction holds for that message only, and the two lists still apply on top of it.
 
@@ -192,7 +192,7 @@ Implemented in `integrations/_deidentify.py`. Rules BR-CONV-06, BR-TOOL-07 and B
 
 The model can mention a value the user never wrote. For example, it suggests "Lyon" for a meeting. This value does not come from the user, so it is not part of their data to protect.
 
-By default, a value the assistant mentions first stays unmasked for the whole conversation. It stays unmasked even if the user writes it later, and even if it is on the whitelist (see DEC-09), unless that list is set to force masking.
+By default, a value the assistant mentions first stays unmasked for the whole conversation. It stays unmasked even if the user writes it later, and even if it is on the deny list (see DEC-09), unless that list is set to force masking.
 
 Two other settings exist. The first masks this value like user data. The second does not analyze the assistant's messages at all, which saves the detection.
 

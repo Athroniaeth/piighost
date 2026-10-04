@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Protéger un message avant l'envoi au modèle
-description: Les étapes qu'un texte traverse dans PIIGhost avant d'atteindre un modèle (repérage, liste blanche et liste noire, chevauchements, occurrences manquées, regroupement, remplacement par jeton, contrôle final), les règles de chacune et leur emplacement dans le code.
+description: Les étapes qu'un texte traverse dans PIIGhost avant d'atteindre un modèle (repérage, liste à masquer et liste à laisser en clair, chevauchements, occurrences manquées, regroupement, remplacement par jeton, contrôle final), les règles de chacune et leur emplacement dans le code.
 tags: [pipeline, detection, overlap, expander, linker, anonymizer, guard, placeholder]
 sources:
   - id: openwiki-source-fb8df46c8512226bd88d01a2
@@ -64,7 +64,7 @@ Avant tout envoi, au moins un détecteur doit être configuré. PIIGhost n'embar
 ```mermaid
 flowchart TD
     A["Texte de l'utilisateur"] --> B["Repérage des valeurs sensibles"]
-    B --> C["Liste blanche et liste noire"]
+    B --> C["Liste à masquer et liste à laisser en clair"]
     C --> D["Arbitrage des chevauchements"]
     D --> E["Recherche des occurrences oubliées"]
     E --> F["Regroupement d'une même valeur"]
@@ -76,7 +76,7 @@ flowchart TD
 Dans l'exemple suivi d'un bout à l'autre, l'utilisateur écrit « Écrivez à Jean Dupont, jean.dupont@exemple.fr ».
 
 1. **Repérage.** Un ou plusieurs détecteurs cherchent les valeurs par forme (e-mail, téléphone), par modèle d'IA (noms, lieux) ou par grand modèle de langage. Ici, « Jean Dupont » est repéré comme personne et « jean.dupont@exemple.fr » comme e-mail.
-2. **Liste blanche et liste noire.** Les valeurs à toujours masquer ou à ne jamais masquer, écrites dans la configuration, sont appliquées. Voir [Imposer une liste blanche et une liste noire](impose-a-whitelist-and-blacklist.md).
+2. **Liste à masquer et liste à laisser en clair.** Les valeurs à toujours masquer ou à ne jamais masquer, écrites dans la configuration (`deny_list` et `allow_list`), sont appliquées. Voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-whitelist-and-blacklist.md).
 3. **Chevauchements.** Quand deux repérages se recouvrent, un seul passage est gardé. Ici, rien ne se recouvre.
 4. **Occurrences oubliées** (étape facultative). Chaque valeur trouvée est recherchée ailleurs dans le texte.
 5. **Regroupement.** Les occurrences d'une même valeur et d'un même type forment un seul groupe.
@@ -130,7 +130,7 @@ Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les 
 
 **Une partie d'un nom est partie en clair (« Loni M. »).** Deux repérages se chevauchaient, et le plus sûr ne couvrait qu'une partie du nom (BR-MSG-05). Demandez le réglage « Union des passages ».
 
-**Le nom de l'entreprise est remplacé par `<<PERSON:2>>`.** Le détecteur le prend pour une personne, et le modèle perd une information utile. Faites-le mettre dans la liste noire, voir [Imposer une liste blanche et une liste noire](impose-a-whitelist-and-blacklist.md).
+**Le nom de l'entreprise est remplacé par `<<PERSON:2>>`.** Le détecteur le prend pour une personne, et le modèle perd une information utile. Faites-le mettre dans la liste à laisser en clair, voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-whitelist-and-blacklist.md).
 
 **Un numéro de carte faux a été masqué.** C'est voulu, parce qu'aucune clé de contrôle n'est vérifiée (BR-MSG-07).
 
@@ -146,7 +146,7 @@ Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les 
 
 | Règle | Emplacement |
 |---|---|
-| Ordre des étapes | `src/piighost/pipeline/base.py:352-393` (`AnonymizationPipeline.anonymize`), liste blanche et liste noire ligne 365 |
+| Ordre des étapes | `src/piighost/pipeline/base.py:352-393` (`AnonymizationPipeline.anonymize`), liste à masquer et liste à laisser en clair ligne 365 |
 | BR-MSG-01 | `components/placeholder/label_counter.py`, défaut `pipeline/base.py:172` |
 | BR-MSG-02 | `components/linker/exact.py:8-21`, `text/normalization.py:61-71` (`value_key`) |
 | BR-MSG-03 | `components/anonymizer/base.py:151` (`deanonymize` remplace par `entity.text`), `models/entity.py` |
@@ -159,7 +159,7 @@ Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les 
 | BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |
 
-Quand seul le détecteur est fourni, les valeurs par défaut sont `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` et `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). L'expansion, la résolution d'entités, la liste blanche et la liste noire (`override`) et le contrôle final (`guard`) sont désactivés.
+Quand seul le détecteur est fourni, les valeurs par défaut sont `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` et `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). L'expansion, la résolution d'entités, la liste à masquer et la liste à laisser en clair (`override`) et le contrôle final (`guard`) sont désactivés.
 
 ```python
 import asyncio
@@ -202,7 +202,7 @@ Puis `echo "Tél. 06 12 34 56 78" | uv run piighost anonymize --config <fichier>
 - **Le caractère de neutralisation reste dans le texte restauré.** Un jeton tapé par l'utilisateur revient avec un U+200B invisible après son premier caractère. Un traitement en aval qui compare des chaînes exactes peut échouer. `Anonymizer(factory, escape_existing_tokens=False)` désactive la neutralisation, au prix de BR-MSG-09.
 - **`RegexDetector` compile sous `re.ASCII`.** `\d` ne prend que 0 à 9, et `\w` s'arrête au premier caractère accentué.
 - **Un détecteur seul peut rendre des détections qui se chevauchent.** Le port l'autorise. Ne testez pas la sortie d'un détecteur seul comme si elle était déjà passée par le résolveur de chevauchements.
-- **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste noire ne peuvent pas en être exemptées (`pipeline/base.py:318-322`).
+- **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste à laisser en clair ne peuvent pas en être exemptées (`pipeline/base.py:318-322`).
 - **`LLMDetector` échoue fermé.** Une sortie du modèle illisible, sans champ `entities` ou que le parseur rejette, lève `UnreadableOutputError` et le message est refusé (`components/detector/llm.py:174-181`, `_unreadable` en `:203`). `fail_open=True` la lit comme zéro détection, et le message part alors sans protection. Voir DPO-9 dans [Besoins par profil](../needs-by-profile.md#points-de-vigilance).
 
 ### Tests

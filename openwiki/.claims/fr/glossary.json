@@ -92,7 +92,7 @@
     },
     {
       "id": "claim_821632fd24f14e889b674b45485cfece",
-      "statement": "The override configuration exposes whitelist and blacklist as detector configs.",
+      "statement": "The override configuration exposes deny_list and allow_list as detector configs.",
       "evidence": [
         {
           "resource": "repo://src/piighost/config/models/override.py#L14-L27",

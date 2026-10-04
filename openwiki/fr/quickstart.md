@@ -52,7 +52,7 @@ PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA
 | Comment une personne garde le même jeton d'un message à l'autre | [Suivre une conversation et restaurer la réponse](processes/follow-a-conversation.md) |
 | Ce qui se passe quand on corrige un message à la main | [Suivre une conversation et restaurer la réponse](processes/follow-a-conversation.md#corriger-un-repérage) |
 | Comment effacer une conversation (droit à l'effacement) | [Suivre une conversation et restaurer la réponse](processes/follow-a-conversation.md) |
-| Garder le nom de l'entreprise en clair, ou toujours masquer un code interne | [Imposer une liste blanche et une liste noire](processes/impose-a-whitelist-and-blacklist.md) |
+| Garder le nom de l'entreprise en clair, ou toujours masquer un code interne | [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md) |
 | Ce que reçoit un outil de l'agent, et ce que le modèle lit de son résultat | [Laisser un outil agir sur les vraies valeurs](processes/let-a-tool-act.md) |
 | Pourquoi un jeton apparaît pendant qu'une réponse s'affiche | [Afficher une réponse streamée](processes/show-a-streamed-reply.md) |
 | Ce que voit chaque acteur selon l'outil utilisé (LangChain, Claude Code…) | [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md) |
@@ -105,7 +105,7 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 - **Processus** :
     - [Protéger un message](processes/protect-a-message.md)
     - [Suivre une conversation](processes/follow-a-conversation.md)
-    - [Imposer une liste blanche et une liste noire](processes/impose-a-whitelist-and-blacklist.md)
+    - [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md)
     - [Laisser un outil agir](processes/let-a-tool-act.md)
     - [Afficher une réponse streamée](processes/show-a-streamed-reply.md)
 - **Intégrations** :

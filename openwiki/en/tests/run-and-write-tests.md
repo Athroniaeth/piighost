@@ -64,7 +64,7 @@ On 2026-10-01, on `develop`, `uv run pytest -q` shows `1128 passed, 32 skipped, 
 
 | Folder | Content |
 |---|---|
-| `tests/components/` | One subfolder per stage, that is detectors, whitelist and blacklist, overlaps, expansion, links, resolvers, anonymizer, placeholders, guard rails |
+| `tests/components/` | One subfolder per stage, that is detectors, deny list and allow list, overlaps, expansion, links, resolvers, anonymizer, placeholders, guard rails |
 | `tests/pipeline/` | Simple pipeline, conversation pipeline, human correction, lists built into the pipeline |
 | `tests/conversation_memory/`, `tests/crypto/` | Storage and encryption |
 | `tests/config/`, `tests/cli/`, `tests/test_hub.py` | Configuration, command line, hub |

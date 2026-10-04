@@ -121,7 +121,7 @@ Cas typique : une personne exerce son droit à l'effacement.
 
 Un jeton dont la casse ou le numéro a changé (`<<Person:1>>`, `<<PERSON:01>>`) compte comme inventé. Un jeton aux délimiteurs abîmés (`<< PERSON:1 >>`) n'est pas reconnu du tout et reste tel quel.
 
-**BR-CONV-07.** Quand une personne corrige à la main les valeurs d'un message, alors sa correction remplace le repérage automatique de ce message seulement. La liste blanche et la liste noire s'appliquent encore. Par exemple, retirer « Claire Dubois » du tour 1 le laisse en clair au tour 1, et il reste masqué au tour 2. Les numéros peuvent alors changer pour toute la conversation. Après ce retrait, `<<PERSON:1>>` désigne Marc Petit et `<<PERSON:2>>` Claire Dubois.
+**BR-CONV-07.** Quand une personne corrige à la main les valeurs d'un message, alors sa correction remplace le repérage automatique de ce message seulement. La liste à masquer (`deny_list` dans la configuration) et la liste à laisser en clair (`allow_list`) s'appliquent encore. Par exemple, retirer « Claire Dubois » du tour 1 le laisse en clair au tour 1, et il reste masqué au tour 2. Les numéros peuvent alors changer pour toute la conversation. Après ce retrait, `<<PERSON:1>>` désigne Marc Petit et `<<PERSON:2>>` Claire Dubois.
 
 **BR-CONV-08.** Quand un message identique est renvoyé dans la même conversation, alors son repérage n'est pas refait. Le résultat enregistré la première fois est réutilisé.
 
@@ -143,7 +143,7 @@ Une conversation lisible, avec les vraies valeurs. Une ancienne réponse peut to
 
 **Une réponse a affiché le nom d'une autre personne.** Un message ancien a probablement été corrigé à la main (BR-CONV-07), ou la mémoire d'un message a expiré (voir Pièges). Vérifiez l'historique de la conversation.
 
-**« Lyon » n'est pas masqué alors que l'utilisateur l'a écrit.** L'assistant l'avait cité avant lui (BR-CONV-04). Pour forcer le masquage, voir [Imposer une liste blanche et une liste noire](impose-a-whitelist-and-blacklist.md).
+**« Lyon » n'est pas masqué alors que l'utilisateur l'a écrit.** L'assistant l'avait cité avant lui (BR-CONV-04). Pour forcer le masquage, voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-whitelist-and-blacklist.md).
 
 **La réponse s'arrête avec `Deanonymized text holds tokens the pipeline never issued`.** Le modèle a écrit un jeton inconnu (BR-CONV-06). Il a souvent recopié un jeton d'une autre conversation ou d'un document.
 
@@ -194,7 +194,7 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 - **La mémoire en processus oublie en silence.** Une conversation évincée ou expirée (BR-CONV-11) ne lève rien. Ses jetons restent tels quels à la restauration. `max_threads=None` et `ttl=None` lèvent les bornes.
 - **La provenance porte sur la clé de valeur** (`value_key`), donc sur toutes les graphies d'une valeur.
 - **Le cache de jetons est mémorisé par processus** (256 cartes au plus, `_TOKEN_MEMO_MAX`). Voir [Stocker les conversations](../operations/storage-and-encryption.md) pour l'effet sur l'effacement en multi-processus.
-- **`anonymize_corrected` ne résout pas les chevauchements** et ne relance pas l'expansion. Le jeu corrigé doit être propre. Il passe seulement par la liste blanche et la liste noire.
+- **`anonymize_corrected` ne résout pas les chevauchements** et ne relance pas l'expansion. Le jeu corrigé doit être propre. Il passe seulement par la liste à masquer et la liste à laisser en clair.
 
 ### Tests
 
