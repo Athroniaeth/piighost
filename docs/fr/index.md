@@ -98,7 +98,6 @@ Pour aller plus loin :
 
     Comprendre les choix de conception.
 
-    - [Pourquoi dé-identifier ?](why-anonymize.md)
     - [Architecture](architecture.md)
     - [Placeholder factories](placeholder-factories.md)
     - [Sécurité](security.md)
