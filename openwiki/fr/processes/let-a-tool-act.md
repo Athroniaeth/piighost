@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Laisser un outil agir sur les vraies valeurs
-description: Comment PIIGhost remet les vraies valeurs dans les arguments d'un appel d'outil, masque le résultat de l'outil avant le modèle, choisit entre quatre réglages d'outil et traite un jeton inventé dans un argument.
+description: Comment piighost remet les vraies valeurs dans les arguments d'un appel d'outil, masque le résultat de l'outil avant le modèle, choisit entre quatre réglages d'outil et traite un jeton inventé dans un argument.
 tags: [tool-call, tool-strategy, invented-placeholder, langchain, pydantic-ai]
 sources:
   - id: openwiki-source-85881a85af445f438a8d7d5f
@@ -20,16 +20,22 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ## En bref
 
 - Un agent appelle des outils, par exemple pour envoyer un e-mail. Le modèle ne connaît que les jetons et les écrit dans l'appel.
-- Par défaut, PIIGhost remet les vraies valeurs dans les arguments juste avant l'exécution, puis masque le résultat de l'outil avant que le modèle le lise.
+- Par défaut, `piighost` remet les vraies valeurs dans les arguments juste avant l'exécution, puis masque le résultat de l'outil avant que le modèle le lise.
 - Le résultat de l'outil passe par le repérage complet, donc une adresse que la conversation n'a jamais citée est masquée aussi.
 - Trois autres réglages existent. Deux d'entre eux laissent le résultat partir en clair vers le modèle.
 - Un jeton inventé par le modèle dans un argument bloque l'appel par défaut. L'outil ne s'exécute pas.
 
-Besoins couverts : DEV-4, DEV-8, USER-3 et DPO-1, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Le branchement de PIIGhost sur un agent est décrit dans [Brancher la protection sur un agent et ses outils](../integrations/agents-and-tools.md).
+Besoins couverts, décrits dans [Besoins par profil](../needs-by-profile.md) :
+
+- Responsable conformité : DPO-1
+- Développeur : DEV-4, DEV-8
+- Utilisateur de l'application : USER-3
+
+Les termes sont définis dans le [glossaire](../glossary.md). Le branchement de `piighost` sur un agent est décrit dans [Brancher la protection sur un agent et ses outils](../integrations/agents-and-tools.md).
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. Le réglage d'outil se choisit dans le code de l'agent, pour tout l'agent. Ce que vous pouvez constater, c'est ce que reçoit l'outil et ce que lit le modèle.
+`piighost` n'a pas d'écran. Le réglage d'outil se choisit dans le code de l'agent, pour tout l'agent. Ce que vous pouvez constater, c'est ce que reçoit l'outil et ce que lit le modèle.
 
 ### Qui intervient
 
@@ -37,7 +43,7 @@ PIIGhost n'a pas d'écran. Le réglage d'outil se choisit dans le code de l'agen
 |---|---|
 | L'utilisateur final | demande une action, par exemple l'envoi d'un e-mail |
 | Le modèle | décide d'appeler l'outil et écrit ses arguments avec des jetons |
-| PIIGhost | restaure les arguments, puis masque le résultat |
+| `piighost` | restaure les arguments, puis masque le résultat |
 | L'outil | agit sur les vraies valeurs |
 
 ### Le trajet d'un appel d'outil
@@ -83,7 +89,7 @@ L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant.
 
 **BR-TOOL-03.** Quand le réglage est « Sortie seule », alors l'outil reçoit les jetons et son résultat est masqué. Par exemple, l'outil d'envoi reçoit `<<EMAIL:1>>` et enverrait l'e-mail à une adresse qui n'existe pas.
 
-**BR-TOOL-04.** Quand le réglage est « Aucun », alors PIIGhost ne touche ni aux arguments ni au résultat.
+**BR-TOOL-04.** Quand le réglage est « Aucun », alors `piighost` ne touche ni aux arguments ni au résultat.
 
 **BR-TOOL-05.** Quand le résultat d'un outil est masqué, alors il passe par le repérage complet de la conversation. Une valeur connue reprend son jeton, une valeur nouvelle prend le numéro suivant.
 
@@ -96,6 +102,8 @@ L'adresse connue reprend son jeton. L'adresse nouvelle prend le numéro suivant.
 **BR-TOOL-09.** Quand le modèle écrit lui-même une valeur en clair dans un argument, alors l'intégration LangChain masque à nouveau l'historique avant l'appel suivant. Une valeur connue reprend son jeton. Une valeur que le modèle a apportée lui-même reste en clair, comme toute valeur citée d'abord par l'assistant.
 
 **BR-TOOL-10.** Quand l'agent garde son historique, alors l'appel d'outil y reste écrit avec ses jetons. Les vraies valeurs n'existent que pendant l'exécution de l'outil.
+
+Cette règle ne vaut que pour l'appel d'outil. Le texte des messages de l'utilisateur et du modèle est enregistré dans l'historique avec les vraies valeurs, voir les [pièges de l'intégration](../integrations/agents-and-tools.md#pièges).
 
 **BR-TOOL-11.** Quand le modèle coupe ou reformule un jeton dans un argument, alors seul un jeton écrit en entier est restauré. L'outil reçoit le reste tel quel.
 
@@ -167,5 +175,3 @@ middleware = PIIAnonymizationMiddleware(
 | `tests/integrations/langchain/test_middleware_e2e.py` | Le second appel au modèle ne voit aucun argument en clair (AT-DEV-4-1, AT-USER-3-1) |
 | `tests/integrations/test_pydantic_ai_hooks.py` (`TestTools`) | L'outil reçoit la valeur, son résultat est masqué |
 | `piighost-api:tests/routes/test_rewrite.py` | Arguments restaurés par le proxy, hors flux |
-
-Non couvert : la restauration des arguments d'outil dans le flux du proxy OpenAI (AT-USER-3-2). Cette restauration n'existe pas.

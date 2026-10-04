@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Suivre une conversation et restaurer la réponse
-description: Comment PIIGhost garde le même jeton pour une valeur sur toute une conversation, restaure la réponse du modèle, traite les valeurs apportées par l'assistant et les jetons inventés, applique une correction humaine et efface une conversation.
+description: Comment piighost garde le même jeton pour une valeur sur toute une conversation, restaure la réponse du modèle, traite les valeurs apportées par l'assistant et les jetons inventés, applique une correction humaine et efface une conversation.
 tags: [thread, conversation-memory, deanonymize, provenance, invented-placeholder, hitl, erasure, streaming]
 sources:
   - id: openwiki-source-a4810bc908328d4c6013f381
@@ -26,15 +26,22 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Dans une conversation, une même valeur garde le même jeton du premier au dernier message.
 - Deux conversations sont isolées. Le même nom peut porter le même numéro dans les deux, mais elles ne partagent rien.
-- Chaque appel nomme sa conversation. Un appel sans identifiant est refusé. Il ne tombe jamais dans une conversation partagée.
+- Chaque appel nomme sa conversation. Un appel sans identifiant est refusé, au lieu de tomber dans une conversation partagée. Seule la commande `piighost anonymize` se rabat sur la conversation `default`.
 - Une valeur citée d'abord par l'assistant reste en clair, même si l'utilisateur la reprend ensuite.
 - Effacer une conversation supprime sa mémoire. Les jetons de cette conversation ne sont plus restaurés ensuite.
 
-Besoins couverts : DEV-2, DEV-3, DEV-8, DEV-10, DEV-11, OPS-2, OPS-7, USER-1, USER-2, USER-6 et DPO-6, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Le traitement d'un message isolé est décrit dans [Protéger un message avant l'envoi au modèle](protect-a-message.md).
+Besoins couverts, décrits dans [Besoins par profil](../needs-by-profile.md) :
+
+- Responsable conformité : DPO-6
+- Développeur : DEV-2, DEV-3, DEV-8, DEV-10, DEV-11
+- Exploitant : OPS-2, OPS-7
+- Utilisateur de l'application : USER-1, USER-2, USER-6
+
+Les termes sont définis dans le [glossaire](../glossary.md). Le traitement d'un message isolé est décrit dans [Protéger un message avant l'envoi au modèle](protect-a-message.md).
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. Une conversation est désignée par un identifiant que l'application transmet à chaque message. Ce que vous pouvez constater, c'est le texte reçu par le modèle et la réponse affichée.
+`piighost` n'a pas d'écran. Une conversation est désignée par un identifiant que l'application transmet à chaque message. Ce que vous pouvez constater, c'est le texte reçu par le modèle et la réponse affichée.
 
 ### Qui intervient
 
@@ -42,7 +49,7 @@ PIIGhost n'a pas d'écran. Une conversation est désignée par un identifiant qu
 |---|---|
 | L'utilisateur final | écrit en clair, lit la réponse restaurée, peut corriger un repérage |
 | L'application | nomme la conversation à chaque appel |
-| PIIGhost | garde en mémoire les valeurs de chaque conversation |
+| `piighost` | garde en mémoire les valeurs de chaque conversation |
 | Le modèle | ne reçoit et n'écrit que des jetons |
 | Le DPO | demande l'effacement d'une conversation |
 
@@ -97,7 +104,9 @@ Cas typique : une personne exerce son droit à l'effacement.
 2. Demandez son effacement à l'équipe technique, ou appelez la route d'effacement du serveur.
 3. Notez le compte rendu, c'est-à-dire le nombre de messages et de valeurs supprimés.
 
-**Comment vérifier** : restaurez un ancien jeton de cette conversation. Il doit rester tel quel, par exemple « Bonjour `<<PERSON:1>>` ».
+Sur un serveur qui tourne en plusieurs instances, l'effacement vide le stockage et le cache de jetons de l'instance qui reçoit la demande. Les autres instances gardent une copie des valeurs dans leur propre cache, jusqu'à ce qu'elle en soit chassée ou que la durée de vie de ce cache expire (BR-STO-06). Si vous effacez des conversations sur demande, faites régler cette durée de vie par l'équipe technique.
+
+**Comment vérifier** : restaurez un ancien jeton de cette conversation. Il doit rester tel quel, par exemple « Bonjour `<<PERSON:1>>` ». Sur un serveur à plusieurs instances, ce contrôle ne prouve pas que la copie des autres instances a disparu. Attendez la fin de la durée de vie du cache, ou faites redémarrer ces instances.
 
 ### Règles à connaître
 
@@ -107,11 +116,13 @@ Cas typique : une personne exerce son droit à l'effacement.
 
 **BR-CONV-03.** Quand un appel ne nomme aucune conversation, alors il est refusé, avant tout envoi au modèle. Une application dont les conversations n'ont pas besoin d'être séparées nomme elle-même la conversation `default`. La raison est que sans identifiant, tous les utilisateurs partageraient leurs jetons.
 
+La commande `piighost anonymize` fait exception. Elle sert à essayer un texte isolé, et se rabat sur la conversation `default` quand aucun identifiant ne lui est donné.
+
 **BR-CONV-04.** Quand l'assistant cite une valeur avant l'utilisateur, alors elle reste en clair pour toute la conversation, même si l'utilisateur la reprend ensuite (tour 4, « Lyon »). La raison est que le modèle connaît déjà cette valeur, et la masquer lui retirerait une connaissance utile. Les deux autres réglages sont de la masquer comme une valeur de l'utilisateur, ou de ne pas analyser les messages de l'assistant. Une valeur apportée d'abord par l'utilisateur reste masquée, même si l'assistant la répète.
 
-**BR-CONV-05.** Quand la réponse du modèle contient un jeton de la conversation, alors il est remplacé par la vraie valeur, même dans un texte que PIIGhost n'a jamais protégé.
+**BR-CONV-05.** Quand la réponse du modèle contient un jeton de la conversation, alors il est remplacé par la vraie valeur, même dans un texte que `piighost` n'a jamais protégé.
 
-**BR-CONV-06.** Quand la réponse contient un jeton au bon format que PIIGhost n'a jamais émis, alors la restauration est refusée par défaut, avec l'erreur `Deanonymized text holds tokens the pipeline never issued: ['<<PERSON:9>>']`. Ce jeton a été inventé par le modèle ou injecté par un texte. Les deux autres choix sont de le garder ou de le retirer.
+**BR-CONV-06.** Quand la réponse contient un jeton au bon format que `piighost` n'a jamais émis, alors la restauration est refusée par défaut, avec l'erreur `Deanonymized text holds tokens the pipeline never issued: ['<<PERSON:9>>']`. Ce jeton a été inventé par le modèle ou injecté par un texte. Les deux autres choix sont de le garder ou de le retirer.
 
 | Réglage | « Bonjour `<<PERSON:1>>` et `<<PERSON:9>>`. » devient |
 |---|---|
@@ -131,7 +142,7 @@ Un jeton dont la casse ou le numéro a changé (`<<Person:1>>`, `<<PERSON:01>>`)
 
 **BR-CONV-11.** Quand la mémoire est gardée dans le processus, alors, sauf autre réglage, elle garde au plus 10 000 conversations et oublie chacune un jour après son dernier message. Une conversation oubliée ne restaure plus ses jetons. La raison est qu'un serveur qui tourne des semaines ne doit pas garder toutes les valeurs qu'il a vues.
 
-Pour une réponse affichée au fil de l'eau, voir [Afficher une réponse streamée](show-a-streamed-reply.md).
+Pour une réponse affichée pendant qu'elle arrive, voir [Afficher une réponse au fil de l'eau](show-a-streamed-reply.md).
 
 ### Ce que voit l'utilisateur final
 
@@ -190,10 +201,10 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 ### Pièges
 
 - **Aucune intégration ne retombe sur `default`.** Le middleware LangChain et les hooks Claude Code lèvent `MissingThreadIdError`. Le serveur répond 400. Seule la commande `piighost anonymize` garde `--thread-id default`, pour une commande isolée.
-- **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union décale la numérotation. C'est le cas d'une correction (BR-CONV-07), mais aussi, d'après le code, de l'expiration d'un message Redis avec `ttl` (`conversation_memory/redis_backend.py:200-228`). [à vérifier] Ce second cas n'a pas été rejoué. Pour trancher, écrivez deux messages dans une conversation Redis avec un `ttl` court, laissez expirer le premier, puis comparez `thread_token_map`.
+- **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union décale la numérotation. C'est le cas d'une correction (BR-CONV-07), mais aussi de l'expiration d'un message Redis avec `ttl`, que `_read_all` retire de l'union (`conversation_memory/redis_backend.py:200-228`).
 - **La mémoire en processus oublie en silence.** Une conversation évincée ou expirée (BR-CONV-11) ne lève rien. Ses jetons restent tels quels à la restauration. `max_threads=None` et `ttl=None` lèvent les bornes.
 - **La provenance porte sur la clé de valeur** (`value_key`), donc sur toutes les graphies d'une valeur.
-- **Le cache de jetons est mémorisé par processus** (256 cartes au plus, `_TOKEN_MEMO_MAX`). Voir [Stocker les conversations](../operations/storage-and-encryption.md) pour l'effet sur l'effacement en multi-processus.
+- **Le cache de jetons est mémorisé par processus** (256 cartes au plus, `_TOKEN_MEMO_MAX`). Voir [Stocker les conversations](../operations/storage-and-encryption.md) pour l'effet sur l'effacement en multi-processus, et `token_memo_ttl` pour le borner.
 - **`anonymize_corrected` ne résout pas les chevauchements** et ne relance pas l'expansion. Le jeu corrigé doit être propre. Il passe seulement par la liste à masquer et la liste à laisser en clair.
 
 ### Tests
@@ -206,5 +217,3 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 | `tests/conversation_memory/test_in_memory.py` (`TestBounding`) | Bornes par défaut de la mémoire en processus (AT-OPS-7-1) |
 | `tests/acceptance/test_dev.py`, `test_dpo.py`, `test_ops.py` | Restauration limitée à sa conversation (AT-DEV-3-2), effacement (AT-DPO-6-1), deux instances sur un même Redis (AT-OPS-2-1) |
 | `tests/integrations/test_deidentify.py` | Jetons inventés |
-
-Non couvert : la renumérotation après une correction d'un message ancien (BR-CONV-07). Ce comportement a été constaté en lançant le pipeline, et aucun test ne le fige ni ne l'interdit.

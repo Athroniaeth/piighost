@@ -15,21 +15,18 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - The page compares each test with the existing suite and marks it covered, partial or missing.
 - The tests written to fill the gaps are in `tests/acceptance/`.
 
-An acceptance test checks one acceptance criterion of a story from the inventory of needs by profile (DPO, DEV, OPS, USER). It stands outside the code, goes through the public API, the CLI or the HTTP server, and checks an observable result with literal values. One criterion gives one test, identified `AT-<story>-<n>`.
-
 The decisions still to make are in [Open points](../reference/open-points.md). The terms are defined in the [glossary](../glossary.md).
 
 ## How to read the tables
 
-- "Existing tests" cites pytest nodes relative to the root of the `piighost` repository. A node prefixed `piighost-api:` comes from the `piighost-api` repository (branch `feat/piighost-2`).
-- Each cited node was read and then run on 2026-10-02. The tests of `tests/acceptance/` and those of DEV-10 and OPS-7 are on the `v2.0.0` branch of `piighost`. The server-side DEV-10 test is at commit `7dec988` of `piighost-api`. The `piighost` tests pass with `uv run pytest <node> -q`. The `piighost-api` tests pass with `.venv/bin/python -m pytest <node> -q`, because `uv run` does not yet resolve `piighost>=2.0` from PyPI there. The venv holds an editable install of `piighost` 2.0.
+- "Existing tests" cites pytest nodes relative to the root of the `piighost` repository. A node prefixed `piighost-api:` comes from the `piighost-api` repository.
 - The LlamaIndex tests are skipped without the `llama-index` extra. They pass with `uv run --with llama-index-core pytest tests/integrations/llama_index`.
 - Status: covered (the behavior is checked, sometimes with values other than those of the inventory, and those values are then flagged), partial (what is missing is stated), missing.
 - The library tests use `ExactMatchDetector` or a simulated hub. The detection quality of a real model or of a real hub group stays outside these tests.
 
 ## DPO (compliance officer)
 
-| Id | Story | Scenario | Expected result | Existing tests | Status |
+| Id | Need | Scenario | Expected result | Existing tests | Status |
 |---|---|---|---|---|---|
 | AT-DPO-1-1 | DPO-1 | Given a protected agent (LangChain middleware, Pydantic AI capability or proxy), when the user writes "Write to Jean Dupont, jean.dupont@exemple.fr", then the model receives the de-identified text | The model receives "Write to <<PERSON:1>>, <<EMAIL:1>>", without "Jean Dupont" or "jean.dupont@exemple.fr" in any message | `tests/integrations/langchain/test_middleware_e2e.py::test_second_model_call_never_sees_clear_tool_args`<br>`tests/integrations/test_pydantic_ai_hooks.py::TestAroundTheModel::test_model_sees_placeholders_and_reply_is_restored`<br>`piighost-api:tests/routes/test_openai_chat.py::test_upstream_sees_tokens_reply_is_restored` | covered (values "Patrick Dupont" and "patrick@acme.com") |
 | AT-DPO-1-2 | DPO-1 | Given a config that pulls a secrets group from the hub, when the message contains an API key, then the key leaves as a placeholder | The de-identified text contains a placeholder with the group's label (for example "<<API_KEY:1>>") and no longer the key | `tests/acceptance/test_dpo.py::TestSecretsLeaveAsTokens::test_an_api_key_leaves_as_a_token` | covered (patterns `OPENAI_API_KEY` and `AWS_ACCESS_KEY` copied from `hub:piighost/logs:b635d867`, simulated hub, placeholders "<<OPENAI_API_KEY:1>>" and "<<AWS_ACCESS_KEY:1>>") |
@@ -51,7 +48,7 @@ The decisions still to make are in [Open points](../reference/open-points.md). T
 
 ## Developer (who integrates `piighost`)
 
-| Id | Story | Scenario | Expected result | Existing tests | Status |
+| Id | Need | Scenario | Expected result | Existing tests | Status |
 |---|---|---|---|---|---|
 | AT-DEV-1-1 | DEV-1 | Given an existing `create_agent` agent, when you add `middleware=[PIIAnonymizationMiddleware(pipeline)]`, then the agent runs with no other change and the model sees only placeholders | The `ainvoke` call succeeds, no call to the model contains the value in clear | `tests/integrations/langchain/test_middleware_e2e.py::test_second_model_call_never_sees_clear_tool_args` | covered |
 | AT-DEV-1-2 | DEV-1 | Given an OpenAI client and a `piighost-api` with a default upstream, when only `base_url` points to `/openai/v1`, then the upstream receives placeholders and the reply comes back restored | The upstream receives "<<PERSON:1>>", the client reads "Hi Patrick" | `piighost-api:tests/routes/test_openai_chat.py::test_upstream_sees_tokens_reply_is_restored`<br>`piighost-api:tests/routes/test_upstream.py::test_upstream_default_used_when_header_absent`<br>`piighost-api:tests/routes/test_anthropic_messages.py::test_default_upstream_used_without_header` | partial (the end-to-end test passes the `x-piighost-upstream` header, the default upstream is tested separately, no test goes through the `openai` SDK) |
@@ -74,7 +71,7 @@ The decisions still to make are in [Open points](../reference/open-points.md). T
 
 ## Operator (who deploys and runs it)
 
-| Id | Story | Scenario | Expected result | Existing tests | Status |
+| Id | Need | Scenario | Expected result | Existing tests | Status |
 |---|---|---|---|---|---|
 | AT-OPS-1-1 | OPS-1 | Given `piighost-api serve --config hub:piighost/fr-default:e6990159`, when a client sends `POST /v1/anonymize`, then the server responds | 201 and an `anonymized_text` that carries placeholders | `piighost-api:tests/test_cli_serve.py::test_serve_takes_a_hub_reference`<br>`piighost-api:tests/test_app.py::test_anonymize`<br>`piighost-api:tests/test_routes_labels.py::test_the_labels_of_a_hub_catalog_come_from_the_hub` | partial (`serve` is tested with a simulated uvicorn, the route with a simulated pipeline, no test links the two) |
 | AT-OPS-2-1 | OPS-2 | Given two `ThreadAnonymizationPipeline` on the same Redis database, when instance A processes "Hi Emma" and instance B "Bye Emma" in conversation "t1", then they agree | Both return "<<PERSON:1>>", B restores "<<PERSON:1>>" to "Emma" | `tests/acceptance/test_ops.py::TestSharedMemory::test_two_instances_agree_on_a_thread` | covered (shared fakeredis, a new value seen by B also restores from A) |
@@ -92,7 +89,7 @@ The decisions still to make are in [Open points](../reference/open-points.md). T
 
 ## User (of the application built with `piighost`)
 
-| Id | Story | Scenario | Expected result | Existing tests | Status |
+| Id | Need | Scenario | Expected result | Existing tests | Status |
 |---|---|---|---|---|---|
 | AT-USER-1-1 | USER-1 | Given a LangChain, Pydantic AI or LlamaIndex application, or one that goes through a proxy, when the model replies "Hello <<PERSON:1>>", then the user reads the real value | "Hello Jean Dupont", never "Hello <<PERSON:1>>" | `tests/integrations/langchain/test_middleware.py::TestWhenInstalled::test_after_model_deanonymizes_for_display`<br>`tests/integrations/test_pydantic_ai_hooks.py::TestAroundTheModel::test_model_sees_placeholders_and_reply_is_restored`<br>`tests/integrations/llama_index/test_query_engine.py::TestQuery::test_anonymizes_query_and_restores_answer`<br>`piighost-api:tests/routes/test_openai_chat.py::test_upstream_sees_tokens_reply_is_restored`<br>`piighost-api:tests/routes/test_anthropic_messages.py::test_upstream_sees_tokens_reply_is_restored` | covered (the LlamaIndex test is skipped without the extra) |
 | AT-USER-1-2 | USER-1 | Given Claude Code with the `piighost` hooks, when the assistant replies with a placeholder, then the user reads the real value | The displayed reply contains no placeholder | none | missing (known limit, `handle_hook` handles only `UserPromptSubmit`, `PreToolUse` and `PostToolUse`) |
@@ -133,27 +130,18 @@ Ranked by risk, starting with those that can cause a leak.
 10. AT-USER-1-2 (missing): displayed reply restored under Claude Code, impossible as long as no hook rewrites the reply.
 11. AT-DPO-8-1 (missing): content of the DPIA page, checkable by a documentation test.
 
-## Extra or off the list
+## Tested behaviors missing from the inventory
 
-### a. Tests with no acceptance value or duplicated
-
-- `tests/pipeline/test_thread.py::TestDefaults::test_the_default_pipeline_stays_thread_stable` duplicates `tests/pipeline/test_thread.py::TestThreadConsistency::test_a_value_keeps_its_token_across_messages`. The messages and the assertions are the same, and the `_pipeline()` of the second builds exactly the default components of the first. One of the two is enough, or the first can limit itself to checking the defaults.
-- `piighost-api:tests/test_app.py::test_lifespan_auth_failure` has a misleading name. It checks that a malformed key plus `PIIGHOST_ALLOW_ANONYMOUS=true` starts without authentication. This case overlaps `piighost-api:tests/test_auth.py::test_startup_allows_anonymous_with_explicit_opt_in`. The useful case, a malformed key without opt-in, is not tested.
-- Fragility rather than duplicate: `tests/integrations/llama_index/` fails at collection when you run a subset that first collects a file of `tests/integrations/`. The test folder then shadows the `llama_index` package, and `llama_index.core` is missing. In the full suite, this folder is only skipped. Story USER-1 is therefore never checked for LlamaIndex by `uv run pytest`.
-- The unit tests of `TextDeidentifier` (`tests/integrations/test_deidentify.py`, `tests/integrations/test_deidentify_stream.py`) overlap those of the middleware, but they test the core shared by two integrations. They stay useful as unit tests.
-
-### b. Behaviors guarded by tests but absent from the inventory
-
-| Behavior | Tests that guard it | Proposed story or criterion |
+| Behavior | Tests that guard it | Proposed need or criterion |
 |---|---|---|
-| A placeholder typed by the user does not restore another person's value | `tests/components/anonymizer/test_span_anonymizer.py::TestAnonymize::test_user_typed_token_cannot_hijack_a_restore`<br>`tests/components/anonymizer/test_span_anonymizer.py::TestDeanonymize::test_no_prefix_collision_when_one_token_prefixes_another` | DPO-9: "a message that contains <<PERSON:2>> does not reveal the second person's value" |
+| A placeholder typed by the user does not restore another person's value | `tests/components/anonymizer/test_span_anonymizer.py::TestAnonymize::test_user_typed_token_cannot_hijack_a_restore`<br>`tests/components/anonymizer/test_span_anonymizer.py::TestDeanonymize::test_no_prefix_collision_when_one_token_prefixes_another` | Criterion of DPO-1: "a message that contains <<PERSON:2>> does not reveal the second person's value" |
 | A value typed with no-break spaces stays masked and keeps its placeholder | `tests/pipeline/test_pipeline.py::TestUnicodeSpaces::test_a_regex_value_typed_with_no_break_spaces_is_hidden`<br>`tests/pipeline/test_thread.py::TestUnicodeSpaces::test_a_value_keeps_its_token_across_spacings_and_messages` | Criterion of DPO-1 |
 | Two overlapping detections leave no fragment in clear | `tests/pipeline/test_pipeline.py::TestAnonymize::test_overlapping_detections_are_resolved_by_default`<br>`tests/pipeline/test_pipeline.py::TestMergeOverlap::test_the_merge_resolver_leaves_no_fragment_of_a_longer_span` | Criterion of DPO-1 |
 | The history, block content and tool arguments already passed leave again as placeholders | `tests/integrations/test_pydantic_ai_hooks.py::TestMultiTurn::test_prior_turn_pii_is_not_leaked_to_the_model`<br>`tests/integrations/langchain/test_middleware.py::TestWhenInstalled::test_before_model_anonymizes_block_content`<br>`tests/integrations/langchain/test_middleware.py::TestToolCalls::test_before_model_reanonymizes_clear_tool_call_args` | Criterion of DPO-1: "no later turn sends a value in clear" |
 | The text analyzed by `LLMDetector` cannot leave its data region (injection) | `tests/components/detector/test_llm.py::TestDetect::test_a_data_tag_in_the_text_cannot_close_the_data_region` | Watch point of DPO-1 |
 | Tracing in clear, or storing in clear in Redis or a networked SQL database, emits `PIIGhostSecurityWarning` | `tests/observation/test_pipeline_spans.py::TestClearTextTracingWarning::test_warns_without_a_redactor_or_acknowledgment`<br>`tests/conversation_memory/test_redis.py::TestRedisPlaintext::test_round_trips_without_crypto`<br>`tests/conversation_memory/test_sqlalchemy.py::TestWarning::test_networked_dialect_without_crypto_warns` | Criterion of OPS-3 |
 | With keys configured, a protected route without a Bearer token responds 401 | `piighost-api:tests/test_auth.py::test_protected_route_401s_without_bearer_when_auth_enabled` | Criterion of OPS-4 |
-| The OpenAI proxy forgets the ephemeral conversation of a request without a conversation header | `piighost-api:tests/routes/test_openai_chat.py::test_ephemeral_thread_is_forgotten` | Criterion of DPO-6 (minimization) |
+| The OpenAI proxy forgets the ephemeral conversation of a request without a conversation header | `piighost-api:tests/routes/test_openai_chat.py::test_ephemeral_thread_is_forgotten` | Criterion of DPO-6, for data minimization |
 | `piighost anonymize` de-identifies an argument or standard input without a config file | `tests/cli/test_cli.py::TestAnonymize::test_default_detector_anonymizes_an_argument`<br>`tests/cli/test_cli.py::TestAnonymize::test_reads_stdin_on_dash` | a developer need to create (de-identify without a configuration file) |
 | The middleware refuses a pipeline whose placeholders are not recognizable | `tests/integrations/langchain/test_middleware.py::TestFactoryContract::test_a_pipeline_without_a_recognizer_is_refused` | Criterion of DEV-1 |
 | `BridgeDetector` reads the positions in the runner's unit (UTF-16 on the browser side) | `tests/components/detector/ner/test_bridge.py::TestDetect::test_offsets_are_read_in_the_runner_unit` | a developer need to create (local detection in the browser) |

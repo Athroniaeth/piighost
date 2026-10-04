@@ -1,7 +1,7 @@
 ---
 type: testing
 title: Run and write tests
-description: How to run the tests and the quality gate of PIIGhost, how the suite is organized, what GitHub CI runs, and which tests run nowhere in CI.
+description: How to run the tests and the quality gate of piighost, how the suite is organized, what GitHub CI runs, and which tests run nowhere in CI.
 tags: [testing, pytest, ci, lint, pyrefly, bandit, integration]
 verified:
   - by: openwiki/0.6.1
@@ -26,10 +26,10 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 ## In short
 
-- PIIGhost has more than a thousand automated tests. They run in a few seconds without downloading any AI model.
+- `piighost` has more than a thousand automated tests. They run in a few seconds without downloading any AI model.
 - The tests that load real models are kept apart. They run every night on GitHub.
 - Before any merge, a blocking check verifies formatting, types, code security and documentation.
-- Some of the tests (32 on 2026-10-01) are run by no automated job, because the libraries they need are missing. See [What runs nowhere in CI](#what-runs-nowhere-in-ci).
+- Some of the tests are run by no automated job, because the libraries they need are missing. See [What runs nowhere in CI](#what-runs-nowhere-in-ci).
 
 The terms are defined in the [glossary](../glossary.md).
 
@@ -48,7 +48,7 @@ The terms are defined in the [glossary](../glossary.md).
 
 ### Check
 
-On 2026-10-01, on `develop`, `uv run pytest -q` shows `1128 passed, 32 skipped, 3 deselected`. The 3 deselected tests are the `integration` tests.
+`uv run pytest -q` must end with no `failed` and no `error`. The deselected tests (`deselected`) are the `integration` tests.
 
 ## What `make lint` checks
 
@@ -106,15 +106,15 @@ A change that touches only `.md` files, `docs/` or `LICENSE` does not trigger `c
 The `dev` group installs the extras `config, argon2, crypto, redis, mistral, langchain, pydantic-ai, observation, fuzzy, sqlalchemy` (`pyproject.toml:150-151`). It installs neither `llama-index`, nor `gliner2`, nor `spacy`, nor `transformers`, nor `presidio`.
 
 - In the `tests` job, the tests that request these libraries through `importorskip` are skipped.
-- In `integration.yml`, these libraries are installed, but `-m integration` selects only the 3 marked tests.
+- In `integration.yml`, these libraries are installed, but `-m integration` selects only the tests marked `integration`.
 
-The skipped and unmarked tests therefore run in no job. On 2026-10-01, these are 32 tests, among them:
+The skipped and unmarked tests therefore run in no job. They include:
 
-- `tests/integrations/llama_index/` (both files),
-- the `gliner2`, `transformers`, `presidio` and `spacy` entries of `tests/components/detector/test_contract.py`,
-- `tests/components/guard/test_gliner2_guard.py`,
-- `tests/components/detector/ner/test_presidio.py`, and the unmarked tests of `test_spacy.py` and `test_transformers.py`,
-- `tests/config/test_presidio_detector.py`.
+- `tests/integrations/llama_index/` (both files)
+- the `gliner2`, `transformers`, `presidio` and `spacy` entries of `tests/components/detector/test_contract.py`
+- `tests/components/guard/test_gliner2_guard.py`
+- `tests/components/detector/ner/test_presidio.py`, and the unmarked tests of `test_spacy.py` and `test_transformers.py`
+- `tests/config/test_presidio_detector.py`
 
 To run them locally:
 

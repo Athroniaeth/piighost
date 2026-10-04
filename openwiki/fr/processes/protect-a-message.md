@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Protéger un message avant l'envoi au modèle
-description: Les étapes qu'un texte traverse dans PIIGhost avant d'atteindre un modèle (repérage, liste à masquer et liste à laisser en clair, chevauchements, occurrences manquées, regroupement, remplacement par jeton, contrôle final), les règles de chacune et leur emplacement dans le code.
+description: Les étapes qu'un texte traverse dans piighost avant d'atteindre un modèle (repérage, liste à masquer et liste à laisser en clair, chevauchements, occurrences manquées, regroupement, remplacement par jeton, contrôle final), les règles de chacune et leur emplacement dans le code.
 tags: [pipeline, detection, overlap, expander, linker, anonymizer, guard, placeholder]
 sources:
   - id: openwiki-source-fb8df46c8512226bd88d01a2
@@ -36,28 +36,33 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-- Avant d'envoyer un texte au modèle, PIIGhost y repère les valeurs sensibles et les remplace par des jetons comme `<<PERSON:1>>`.
+- Avant d'envoyer un texte au modèle, `piighost` y repère les valeurs sensibles et les remplace par des jetons comme `<<PERSON:1>>`.
 - Une même valeur reçoit un seul jeton dans tout le texte, même écrite avec une autre casse ou d'autres espaces.
 - La réponse du modèle est ensuite restaurée. Chaque jeton redevient la vraie valeur.
 - Une valeur que le détecteur ne voit pas part en clair, sauf si un contrôle final est activé. Ce contrôle bloque alors l'envoi.
 - Les motifs ne vérifient pas les clés de contrôle (carte, IBAN). Une valeur mal recopiée reste masquée.
 
-Besoins couverts : DPO-1, DPO-2, DPO-4 et DEV-1, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Pour une conversation en plusieurs messages, lisez ensuite [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
+Besoins couverts, décrits dans [Besoins par profil](../needs-by-profile.md) :
+
+- Responsable conformité : DPO-1, DPO-2, DPO-4
+- Développeur : DEV-1
+
+Les termes sont définis dans le [glossaire](../glossary.md). Pour une conversation en plusieurs messages, lisez ensuite [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. Ce que vous pouvez constater, c'est le texte reçu par le modèle et la réponse rendue à l'utilisateur. Pour essayer sur une phrase, l'équipe technique lance `piighost anonymize "votre phrase"`.
+`piighost` n'a pas d'écran. Ce que vous pouvez constater, c'est le texte reçu par le modèle et la réponse rendue à l'utilisateur. Pour essayer sur une phrase, l'équipe technique lance `piighost anonymize "votre phrase"`.
 
 ### Qui intervient
 
 | Acteur | Rôle |
 |---|---|
 | L'utilisateur final | écrit son message en clair |
-| L'application | reçoit le message et le fait passer par PIIGhost avant d'appeler le modèle |
-| PIIGhost | repère les valeurs, les remplace par des jetons, garde la correspondance |
+| L'application | reçoit le message et le fait passer par `piighost` avant d'appeler le modèle |
+| `piighost` | repère les valeurs, les remplace par des jetons, garde la correspondance |
 | Le modèle | reçoit le texte protégé, et seulement lui |
 
-Avant tout envoi, au moins un détecteur doit être configuré. PIIGhost n'embarque aucun motif, donc les types protégés sont ceux des détecteurs et des groupes de motifs que la configuration charge.
+Avant tout envoi, au moins un détecteur doit être configuré. `piighost` n'embarque aucun motif, donc les types protégés sont ceux des détecteurs et des groupes de motifs que la configuration charge.
 
 ### Le trajet d'un message
 
@@ -83,7 +88,7 @@ Dans l'exemple suivi d'un bout à l'autre, l'utilisateur écrit « Écrivez à J
 6. **Remplacement.** Chaque groupe reçoit un jeton. « Jean Dupont » devient `<<PERSON:1>>`, l'adresse devient `<<EMAIL:1>>`.
 7. **Contrôle final** (facultatif). Le texte protégé est relu pour y chercher un reste de valeur sensible.
 
-Le modèle reçoit « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ». PIIGhost garde la correspondance entre chaque jeton et sa valeur, pour restaurer la réponse.
+Le modèle reçoit « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ». `piighost` garde la correspondance entre chaque jeton et sa valeur, pour restaurer la réponse.
 
 **Comment vérifier** : faites protéger la phrase d'exemple par l'équipe technique. La sortie ne doit contenir ni « Jean Dupont » ni l'adresse.
 
@@ -97,12 +102,14 @@ Le modèle reçoit « Écrivez à `<<PERSON:1>>`, `<<EMAIL:1>>` ». PIIGhost gar
 
 **BR-MSG-04.** Quand un nom est collé à un autre par un trait d'union, alors il n'est pas reconnu comme le même mot. Par exemple, « Patrick » repéré ne masque pas « Jean-Patrick ». La raison est qu'un prénom court ne doit pas être relié à un prénom composé différent.
 
-**BR-MSG-05.** Quand deux repérages se recouvrent, alors un seul passage est toujours gardé, et le plus sûr gagne (réglage par défaut). Le reste du plus long passage peut alors partir en clair. Un second réglage masque toute la zone couverte :
+**BR-MSG-05.** Quand deux repérages se recouvrent, alors un seul passage est toujours gardé, et le plus sûr gagne (réglage par défaut). Le reste du plus long passage peut alors partir en clair. Un second réglage masque toute la zone couverte.
 
-| Réglage | « Contrat signé par Loni M. Wirth le 12/03/2026. » devient |
+Le tableau suivant compare les deux réglages :
+
+| Réglage | « Contrat signé par Loni M. Wirth le 12 mars 2026. » devient |
 |---|---|
-| Le plus sûr gagne (par défaut) | Contrat signé par Loni M. `<<NAME:1>>` le 12/03/2026. |
-| Union des passages | Contrat signé par `<<NAME:1>>` le 12/03/2026. |
+| Le plus sûr gagne (par défaut) | Contrat signé par Loni M. `<<PERSON:1>>` le 12 mars 2026. |
+| Union des passages | Contrat signé par `<<PERSON:1>>` le 12 mars 2026. |
 
 Ici, un motif sûr à 100 % a trouvé « Wirth » et un modèle sûr à 70 % a trouvé « Loni M. Wirth ». À égalité parfaite de confiance et de position, le premier détecteur déclaré gagne. Avec l'union, la zone prend le type du repérage le plus sûr, et à confiance égale celui du plus long.
 
@@ -216,5 +223,3 @@ Puis `echo "Tél. 06 12 34 56 78" | uv run piighost anonymize --config <fichier>
 | `tests/text/` | Limites de mots, normalisation des espaces |
 | `tests/components/detector/test_contract.py` | Même sortie pour tous les détecteurs |
 | `tests/acceptance/test_dpo.py` | AT-DPO-1-2 (une clé d'API part en jeton), AT-DPO-2-2 (un groupe retiré laisse ses valeurs en clair) |
-
-Non couvert : la présence du U+200B dans le texte restauré n'est pas présentée comme un comportement attendu dans les tests. Ce point a été constaté en lançant le pipeline.

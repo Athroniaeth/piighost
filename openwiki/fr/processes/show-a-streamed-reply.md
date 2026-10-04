@@ -1,7 +1,7 @@
 ---
 type: workflow
-title: Afficher une réponse streamée
-description: Comment PIIGhost restaure une réponse du modèle diffusée au fil de l'eau, retient un jeton coupé entre deux morceaux jusqu'à ce qu'il soit entier, et ce qui reste à l'écran quand le flux s'interrompt.
+title: Afficher une réponse au fil de l'eau
+description: Comment piighost restaure une réponse du modèle diffusée au fil de l'eau, retient un jeton coupé entre deux morceaux jusqu'à ce qu'il soit entier, et ce qui reste à l'écran quand le flux s'interrompt.
 tags: [streaming, deanonymize, stream-decoder, invented-placeholder, langchain]
 sources:
   - id: openwiki-source-219ef8159700bea2d8181beb
@@ -13,21 +13,26 @@ sources:
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-# Afficher une réponse streamée
+# Afficher une réponse au fil de l'eau
 
 ## En bref
 
 - Le modèle envoie sa réponse en morceaux, que l'application affiche au fil de l'eau.
 - Un jeton peut arriver coupé entre deux morceaux, par exemple « `<<PER` » puis « `SON:1>>` ».
-- Le décodeur de flux de PIIGhost retient le début du jeton jusqu'à ce qu'il soit entier, puis le restaure une seule fois.
+- Le décodeur de flux de `piighost` retient le début du jeton jusqu'à ce qu'il soit entier, puis le restaure une seule fois.
 - Sans ce décodeur, l'utilisateur lit le jeton à l'écran.
 - Si le flux est coupé au milieu d'un jeton, le début de ce jeton reste à l'écran. Il ne contient aucune valeur réelle.
 
-Besoins couverts : DEV-9, USER-4, USER-1 et DEV-8, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). La restauration d'une réponse entière est décrite dans [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
+Besoins couverts, décrits dans [Besoins par profil](../needs-by-profile.md) :
+
+- Développeur : DEV-8, DEV-9
+- Utilisateur de l'application : USER-1, USER-4
+
+Les termes sont définis dans le [glossaire](../glossary.md). La restauration d'une réponse entière est décrite dans [Suivre une conversation et restaurer la réponse](follow-a-conversation.md).
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. Ce que vous pouvez constater, c'est le texte qui s'affiche pendant que le modèle répond. Le décodeur de flux doit être branché par l'équipe de développement.
+`piighost` n'a pas d'écran. Ce que vous pouvez constater, c'est le texte qui s'affiche pendant que le modèle répond. Le décodeur de flux doit être branché par l'équipe de développement.
 
 ### Qui intervient
 
@@ -36,9 +41,9 @@ PIIGhost n'a pas d'écran. Ce que vous pouvez constater, c'est le texte qui s'af
 | L'utilisateur final | lit la réponse pendant qu'elle s'écrit |
 | Le modèle | envoie sa réponse en morceaux |
 | L'application | lit le flux et fait passer chaque morceau par le décodeur |
-| PIIGhost | restaure les jetons morceau par morceau |
+| `piighost` | restaure les jetons morceau par morceau |
 
-### Le trajet d'une réponse streamée
+### Le trajet d'une réponse en flux
 
 ```mermaid
 flowchart TD
@@ -162,5 +167,3 @@ uv run pytest tests/components/placeholder/test_streaming.py tests/components/pl
 | `tests/integrations/langchain/test_middleware_stream.py` | Restauration en flux par le middleware (AT-DEV-9-1) |
 | `tests/integrations/test_deidentify_stream.py` | Jeton inventé en flux, reste rendu en fin de flux |
 | `piighost-api:tests/routes/test_openai_stream.py`, `test_anthropic_messages.py` | Jeton coupé entre deux événements d'un proxy (AT-USER-4-2) |
-
-Non couvert : les arguments d'outil d'un flux du proxy OpenAI. Le proxy ne les restaure pas.

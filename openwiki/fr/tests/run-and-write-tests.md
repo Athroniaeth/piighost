@@ -1,7 +1,7 @@
 ---
 type: testing
 title: Lancer et écrire les tests
-description: Comment lancer les tests et le contrôle qualité de PIIGhost, comment la suite est organisée, ce que la CI GitHub exécute, et quels tests ne tournent nulle part en CI.
+description: Comment lancer les tests et le contrôle qualité de piighost, comment la suite est organisée, ce que la CI GitHub exécute, et quels tests ne tournent nulle part en CI.
 tags: [testing, pytest, ci, lint, pyrefly, bandit, integration]
 verified:
   - by: openwiki/0.6.1
@@ -26,10 +26,10 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 ## En bref
 
-- PIIGhost a plus de mille tests automatiques. Ils tournent en quelques secondes sans télécharger de modèle d'IA.
+- `piighost` a plus de mille tests automatiques. Ils tournent en quelques secondes sans télécharger de modèle d'IA.
 - Les tests qui chargent de vrais modèles sont à part. Ils tournent chaque nuit sur GitHub.
 - Avant toute fusion, un contrôle bloquant vérifie la mise en forme, les types, la sécurité du code et la documentation.
-- Une partie des tests (32 le 2026-10-01) n'est lancée par aucune tâche automatique, faute des bibliothèques nécessaires. Voir [Ce qui ne tourne nulle part en CI](#ce-qui-ne-tourne-nulle-part-en-ci).
+- Une partie des tests n'est lancée par aucune tâche automatique, faute des bibliothèques nécessaires. Voir [Ce qui ne tourne nulle part en CI](#ce-qui-ne-tourne-nulle-part-en-ci).
 
 Les termes sont définis dans le [glossaire](../glossary.md).
 
@@ -48,7 +48,7 @@ Les termes sont définis dans le [glossaire](../glossary.md).
 
 ### Vérifier
 
-Le 2026-10-01, sur `develop`, `uv run pytest -q` affiche `1128 passed, 32 skipped, 3 deselected`. Les 3 tests désélectionnés sont les tests `integration`.
+`uv run pytest -q` doit se terminer sans `failed` ni `error`. Les tests désélectionnés (`deselected`) sont les tests `integration`.
 
 ## Ce que contrôle `make lint`
 
@@ -106,15 +106,15 @@ Un changement qui ne touche que des fichiers `.md`, `docs/` ou `LICENSE` ne déc
 Le groupe `dev` installe les extras `config, argon2, crypto, redis, mistral, langchain, pydantic-ai, observation, fuzzy, sqlalchemy` (`pyproject.toml:150-151`). Il n'installe ni `llama-index`, ni `gliner2`, ni `spacy`, ni `transformers`, ni `presidio`.
 
 - Dans la tâche `tests`, les tests qui demandent ces bibliothèques par `importorskip` sont sautés.
-- Dans `integration.yml`, ces bibliothèques sont installées, mais `-m integration` ne sélectionne que les 3 tests marqués.
+- Dans `integration.yml`, ces bibliothèques sont installées, mais `-m integration` ne sélectionne que les tests marqués `integration`.
 
-Les tests sautés et non marqués ne tournent donc dans aucune tâche. Le 2026-10-01, ce sont 32 tests, parmi lesquels :
+Les tests sautés et non marqués ne tournent donc dans aucune tâche. Ce sont notamment :
 
-- `tests/integrations/llama_index/` (les deux fichiers) ;
-- les entrées `gliner2`, `transformers`, `presidio` et `spacy` de `tests/components/detector/test_contract.py` ;
-- `tests/components/guard/test_gliner2_guard.py` ;
-- `tests/components/detector/ner/test_presidio.py`, et les tests non marqués de `test_spacy.py` et `test_transformers.py` ;
-- `tests/config/test_presidio_detector.py`.
+- `tests/integrations/llama_index/` (les deux fichiers)
+- les entrées `gliner2`, `transformers`, `presidio` et `spacy` de `tests/components/detector/test_contract.py`
+- `tests/components/guard/test_gliner2_guard.py`
+- `tests/components/detector/ner/test_presidio.py`, et les tests non marqués de `test_spacy.py` et `test_transformers.py`
+- `tests/config/test_presidio_detector.py`
 
 Pour les lancer en local :
 

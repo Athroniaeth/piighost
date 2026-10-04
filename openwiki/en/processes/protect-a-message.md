@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Protect a message before it is sent to the model
-description: The stages a text goes through in PIIGhost before it reaches a model (detection, deny list and allow list, overlaps, missed occurrences, grouping, replacement with a placeholder, final check), the rules of each stage and where they live in the code.
+description: The stages a text goes through in piighost before it reaches a model (detection, deny list and allow list, overlaps, missed occurrences, grouping, replacement with a placeholder, final check), the rules of each stage and where they live in the code.
 tags: [pipeline, detection, overlap, expander, linker, anonymizer, guard, placeholder]
 sources:
   - id: openwiki-source-fb8df46c8512226bd88d01a2
@@ -36,28 +36,33 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-- Before a text goes to the model, PIIGhost finds the sensitive values in it and replaces them with placeholders such as `<<PERSON:1>>`.
+- Before a text goes to the model, `piighost` finds the sensitive values in it and replaces them with placeholders such as `<<PERSON:1>>`.
 - A given value receives a single placeholder across the whole text, even when written with a different case or different spaces.
 - The model's reply is then restored. Each placeholder becomes the real value again.
 - A value that the detector does not see leaves in clear text, unless a final check is enabled. The final check then blocks the sending.
 - Patterns do not check the check digits (card, IBAN). A badly copied value stays masked.
 
-Needs covered: DPO-1, DPO-2, DPO-4 and DEV-1, described in [Needs by profile](../needs-by-profile.md). The terms are defined in the [glossary](../glossary.md). For a conversation of several messages, read [Follow a conversation and restore the reply](follow-a-conversation.md) next.
+Needs covered, described in [Needs by profile](../needs-by-profile.md):
+
+- Compliance officer: DPO-1, DPO-2, DPO-4
+- Developer: DEV-1
+
+The terms are defined in the [glossary](../glossary.md). For a conversation of several messages, read [Follow a conversation and restore the reply](follow-a-conversation.md) next.
 
 ## For the business
 
-PIIGhost has no screen. What you can observe is the text the model receives and the reply returned to the user. To try it on a sentence, the technical team runs `piighost anonymize "your sentence"`.
+`piighost` has no screen. What you can observe is the text the model receives and the reply returned to the user. To try it on a sentence, the technical team runs `piighost anonymize "your sentence"`.
 
 ### Who is involved
 
 | Actor | Role |
 |---|---|
 | The end user | writes the message in clear text |
-| The application | receives the message and passes it through PIIGhost before calling the model |
-| PIIGhost | finds the values, replaces them with placeholders, keeps the mapping |
+| The application | receives the message and passes it through `piighost` before calling the model |
+| `piighost` | finds the values, replaces them with placeholders, keeps the mapping |
 | The model | receives the protected text, and only that text |
 
-Before anything is sent, at least one detector must be configured. PIIGhost ships no pattern, so the protected types are those of the detectors and pattern groups that the configuration loads.
+Before anything is sent, at least one detector must be configured. `piighost` ships no pattern, so the protected types are those of the detectors and pattern groups that the configuration loads.
 
 ### The path of a message
 
@@ -83,7 +88,7 @@ In the example followed from end to end, the user writes "Write to Jean Dupont, 
 6. **Replacement.** Each group receives a placeholder. "Jean Dupont" becomes `<<PERSON:1>>`, the address becomes `<<EMAIL:1>>`.
 7. **Final check** (optional). The protected text is read again to look for any remaining sensitive value.
 
-The model receives "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`". PIIGhost keeps the mapping between each placeholder and its value, to restore the reply.
+The model receives "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`". `piighost` keeps the mapping between each placeholder and its value, to restore the reply.
 
 **How to check**: have the technical team protect the example sentence. The output must contain neither "Jean Dupont" nor the address.
 
@@ -97,12 +102,14 @@ The model receives "Write to `<<PERSON:1>>`, `<<EMAIL:1>>`". PIIGhost keeps the 
 
 **BR-MSG-04.** When a name is joined to another by a hyphen, then it is not recognized as the same word. For example, a detected "Patrick" does not mask "Jean-Patrick". The reason is that a short first name must not be linked to a different compound first name.
 
-**BR-MSG-05.** When two detections overlap, then only one span is always kept, and the surest one wins (default setting). The rest of the longer span can then leave in clear text. A second setting masks the whole covered area:
+**BR-MSG-05.** When two detections overlap, then only one span is always kept, and the surest one wins (default setting). The rest of the longer span can then leave in clear text. A second setting masks the whole covered area.
 
-| Setting | "Contract signed by Loni M. Wirth on 2026-03-12." becomes |
+The following table compares the two settings:
+
+| Setting | "Contract signed by Loni M. Wirth on March 12, 2026." becomes |
 |---|---|
-| The surest wins (default) | Contract signed by Loni M. `<<NAME:1>>` on 2026-03-12. |
-| Union of spans | Contract signed by `<<NAME:1>>` on 2026-03-12. |
+| The surest wins (default) | Contract signed by Loni M. `<<PERSON:1>>` on March 12, 2026. |
+| Union of spans | Contract signed by `<<PERSON:1>>` on March 12, 2026. |
 
 Here, a pattern that is 100% sure found "Wirth" and a model that is 70% sure found "Loni M. Wirth". On a perfect tie of confidence and position, the first declared detector wins. With the union, the area takes the type of the surest detection, and on equal confidence the type of the longest one.
 
@@ -216,5 +223,3 @@ Then `echo "Tel. 06 12 34 56 78" | uv run piighost anonymize --config <file>` mu
 | `tests/text/` | Word boundaries, space normalization |
 | `tests/components/detector/test_contract.py` | Same output for every detector |
 | `tests/acceptance/test_dpo.py` | AT-DPO-1-2 (an API key leaves as a placeholder), AT-DPO-2-2 (a removed group leaves its values in clear text) |
-
-Not covered: the presence of U+200B in the restored text is not presented as an expected behavior in the tests. This point was observed by running the pipeline.

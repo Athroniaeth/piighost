@@ -1,7 +1,7 @@
 ---
 type: guide
 title: Par où commencer
-description: Point d'entrée de la documentation métier de PIIGhost, qui oriente selon le besoin (comprendre une règle de protection ou modifier le code), résume le trajet d'un message et liste les pièges qui traversent plusieurs processus.
+description: Point d'entrée de la documentation métier de piighost, qui oriente selon le besoin (comprendre une règle de protection ou modifier le code), résume le trajet d'un message et liste les pièges qui traversent plusieurs processus.
 tags: [quickstart, overview, routing, pii, de-identification]
 sources:
   - id: openwiki-source-05ccef8d4cf1698187f20464
@@ -21,17 +21,17 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA le lise, puis remet les vraies valeurs dans la réponse. C'est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou s'utilise à distance par le serveur `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`. Les raisons de dé-identifier, juridiques et techniques, sont expliquées dans [Pourquoi dé-identifier ?](../../docs/fr/why-anonymize.md).
+`piighost` masque les données confidentielles d'un texte avant qu'un modèle d'IA le lise, puis remet les vraies valeurs dans la réponse. C'est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou s'utilise à distance par le serveur `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`. Les raisons de dé-identifier, juridiques et techniques, sont expliquées dans [Pourquoi dé-identifier ?](../../docs/fr/why-anonymize.md).
 
 **Le trajet d'un message :**
 
 1. L'utilisateur écrit son message avec ses vraies données, par exemple son nom et son e-mail.
-2. PIIGhost repère les valeurs sensibles, par exemple les noms, les e-mails, les téléphones ou les secrets.
+2. `piighost` repère les valeurs sensibles, par exemple les noms, les e-mails, les téléphones ou les secrets.
 3. Il les remplace par des jetons. Un jeton est un texte de remplacement, comme `<<PERSON:1>>`, qui reste le même dans toute la conversation.
 4. Le modèle répond avec ces jetons.
-5. PIIGhost remet les vraies valeurs dans la réponse affichée.
+5. `piighost` remet les vraies valeurs dans la réponse affichée.
 
-**Ce qu'est cette documentation métier.** Elle décrit ce que PIIGhost doit faire. La façon de l'utiliser est dans la documentation technique. On y définit :
+**Ce qu'est cette documentation métier.** Elle décrit ce que `piighost` doit faire. La façon de l'utiliser est dans la documentation technique. On y définit :
 
 - les besoins de chaque profil, c'est-à-dire le responsable conformité, le développeur, l'exploitant et l'utilisateur de l'application.
 - les règles que suit chaque traitement, chacune avec son identifiant, comme `BR-MSG-05`.
@@ -46,7 +46,7 @@ PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA
 
 | Besoin métier | Page à lire |
 |---|---|
-| Ce que chaque profil attend de PIIGhost, et comment le vérifier | [Besoins par profil](needs-by-profile.md) |
+| Ce que chaque profil attend de `piighost`, et comment le vérifier | [Besoins par profil](needs-by-profile.md) |
 | Ce que le modèle voit vraiment d'un message | [Protéger un message avant l'envoi au modèle](processes/protect-a-message.md) |
 | Pourquoi un nom est resté en clair, ou à moitié | [Protéger un message avant l'envoi au modèle](processes/protect-a-message.md#questions-fréquentes) |
 | Comment une personne garde le même jeton d'un message à l'autre | [Suivre une conversation et restaurer la réponse](processes/follow-a-conversation.md) |
@@ -54,15 +54,15 @@ PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA
 | Comment effacer une conversation (droit à l'effacement) | [Suivre une conversation et restaurer la réponse](processes/follow-a-conversation.md) |
 | Garder le nom de l'entreprise en clair, ou toujours masquer un code interne | [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md) |
 | Ce que reçoit un outil de l'agent, et ce que le modèle lit de son résultat | [Laisser un outil agir sur les vraies valeurs](processes/let-a-tool-act.md) |
-| Pourquoi un jeton apparaît pendant qu'une réponse s'affiche | [Afficher une réponse streamée](processes/show-a-streamed-reply.md) |
+| Pourquoi un jeton apparaît pendant qu'une réponse s'affiche | [Afficher une réponse au fil de l'eau](processes/show-a-streamed-reply.md) |
 | Ce que voit chaque acteur selon l'outil utilisé (LangChain, Claude Code…) | [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md) |
 | Ce qui se passe quand un modèle répond mal | [Besoins par profil, points de vigilance](needs-by-profile.md#points-de-vigilance) |
 | Où sont stockées les données des conversations, et si elles sont chiffrées | [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md) |
-| Pourquoi PIIGhost fonctionne ainsi, décision par décision | [Décisions de conception](reference/decisions.md) |
+| Pourquoi `piighost` fonctionne ainsi, décision par décision | [Décisions de conception](reference/decisions.md) |
 | Le sens d'un terme ou d'un sigle | [Glossaire](glossary.md) |
 | Ce qui est décidé et reste à faire | [Points à régler](reference/open-points.md) |
 
-## Pourquoi PIIGhost fonctionne ainsi
+## Pourquoi piighost fonctionne ainsi
 
 Chaque règle découle d'une décision de conception. La page [Décisions de conception](reference/decisions.md) les explique dans l'ordre où elles se sont posées, avec un exemple pour chacune.
 
@@ -107,7 +107,7 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
     - [Suivre une conversation](processes/follow-a-conversation.md)
     - [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md)
     - [Laisser un outil agir](processes/let-a-tool-act.md)
-    - [Afficher une réponse streamée](processes/show-a-streamed-reply.md)
+    - [Afficher une réponse au fil de l'eau](processes/show-a-streamed-reply.md)
 - **Intégrations** :
     - [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md)
 - **Exploitation** :
@@ -125,9 +125,9 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 
 ## Points de vigilance transverses
 
-1. **L'identifiant de conversation décide du partage des jetons.** Un appel sans identifiant est refusé, par LangChain, les hooks Claude Code et le serveur. Une application qui nomme `default` partage ses jetons entre tous ses utilisateurs. Seule la commande `piighost` se rabat sur `default`, pour une commande isolée. Voir [Suivre une conversation](processes/follow-a-conversation.md#règles-à-connaître).
+1. **L'identifiant de conversation décide du partage des jetons.** Un appel sans identifiant est refusé, par LangChain, les hooks Claude Code et le serveur. Une application qui nomme `default` partage ses jetons entre tous ses utilisateurs. Seule la commande `piighost anonymize` se rabat sur `default`, pour essayer un texte isolé. Voir [Suivre une conversation](processes/follow-a-conversation.md#règles-à-connaître).
 2. **Corriger un message ancien peut renuméroter les jetons**, et une réponse du modèle peut alors être restaurée avec le nom d'une autre personne. Voir [Suivre une conversation](processes/follow-a-conversation.md#règles-à-connaître).
-3. **Des vraies valeurs restent stockées hors du modèle.** Le modèle ne voit que des jetons, mais deux endroits gardent les vraies valeurs. La mémoire de PIIGhost les garde en clair si son stockage n'est pas chiffré. L'historique que l'agent enregistre, avec LangGraph ou Pydantic AI, garde le texte des messages restauré. Certains textes ne passent pas non plus par PIIGhost, comme le résultat d'un outil Claude Code hors de la liste traitée (Grep), ou d'un outil réglé sur « Entrée seule » ou « Aucun ». Chiffrez la mémoire, et protégez l'historique de l'agent comme une donnée personnelle. Voir [Stocker les conversations](operations/storage-and-encryption.md) et [Brancher la protection sur un agent](integrations/agents-and-tools.md#pièges).
+3. **Des vraies valeurs restent stockées hors du modèle.** Le modèle ne voit que des jetons, mais deux endroits gardent les vraies valeurs. La mémoire de `piighost` les garde en clair si son stockage n'est pas chiffré. L'historique que l'agent enregistre, avec LangGraph ou Pydantic AI, garde le texte des messages restauré. Certains textes ne passent pas non plus par `piighost`. C'est le cas du résultat d'un outil Claude Code que `piighost` ne relit pas, comme Grep. C'est aussi le cas du résultat d'un outil dont le réglage l'envoie en clair au modèle, voir [Laisser un outil agir](processes/let-a-tool-act.md). Chiffrez la mémoire, et protégez l'historique de l'agent comme une donnée personnelle. Voir [Stocker les conversations](operations/storage-and-encryption.md) et [Brancher la protection sur un agent](integrations/agents-and-tools.md#pièges).
 4. **Les traces techniques portent le texte en clair par défaut.** Configurez un masqueur de traces avant de les envoyer à un service tiers. Voir [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md#masquer-les-traces).
-5. **Effacer une conversation ne vide que le processus qui reçoit la demande.** Quand `token_memo_ttl` n'est pas réglé, les autres processus gardent une copie temporaire. Voir [Stocker les conversations](operations/storage-and-encryption.md#règles-à-connaître).
-6. **Un détecteur ou un garde-fou LLM refuse le message quand il ne peut pas lire la réponse de son propre LLM.** Le message ne part pas, et l'application reçoit une erreur. Un réglage explicite, `fail_open`, laisse partir le message sans cette détection ou sans cette vérification. Voir les [points de vigilance](needs-by-profile.md#points-de-vigilance) et DEC-19.
+5. **Effacer une conversation ne vide pas tout de suite les autres instances du serveur.** Le stockage et l'instance qui reçoit la demande sont vidés. Les autres instances gardent une copie des valeurs dans leur cache de jetons, jusqu'à la fin de la durée de vie de ce cache. Sans durée de vie réglée, la copie reste jusqu'à ce que le cache plein la chasse. Voir [Stocker les conversations](operations/storage-and-encryption.md#règles-à-connaître).
+6. **Un détecteur ou un garde-fou LLM refuse le message quand il ne peut pas lire la réponse de son propre LLM.** Le message ne part pas, et l'application reçoit une erreur. Le réglage `fail_open` laisse partir le message sans cette détection ou sans cette vérification. Voir les [points de vigilance](needs-by-profile.md#points-de-vigilance) de [Besoins par profil](needs-by-profile.md) et DEC-19.

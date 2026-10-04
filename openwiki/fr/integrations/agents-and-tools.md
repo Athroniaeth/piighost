@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Brancher la protection sur un agent et ses outils
-description: Ce que voient le modèle, les outils et l'utilisateur quand PIIGhost protège un agent LangChain, Pydantic AI, LlamaIndex ou Claude Code, quelles options changent ce partage, et où vit chaque règle dans le code.
+description: Ce que voient le modèle, les outils et l'utilisateur quand piighost protège un agent LangChain, Pydantic AI, LlamaIndex ou Claude Code, quelles options changent ce partage, et où vit chaque règle dans le code.
 tags: [integrations, langchain, pydantic-ai, llama-index, claude-code, client, tool-calls, thread-id]
 sources:
   - id: openwiki-source-60f405cf9fd8c0cba8a61889
@@ -27,17 +27,17 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-- Branché sur un agent, PIIGhost masque les messages avant le modèle et remet les vraies valeurs dans la réponse.
+- Branché sur un agent, `piighost` masque les messages avant le modèle et remet les vraies valeurs dans la réponse.
 - Par défaut, les outils de l'agent (recherche, envoi de mail, lecture de fichier) reçoivent les vraies valeurs, et ce qu'ils renvoient est masqué avant le modèle.
 - Une conversation sans identifiant est refusée, avec LangChain comme avec Claude Code. Sinon, toutes les conversations partageraient leurs jetons.
 - Avec Claude Code, la réponse affichée garde les jetons, parce qu'aucun point d'accroche ne permet de la réécrire.
-- L'historique gardé par l'agent contient les vraies valeurs. Protégez-le comme une donnée personnelle.
+- L'historique gardé par l'agent contient le texte des messages avec les vraies valeurs. Seuls les appels d'outil y restent en jetons. Protégez cet historique comme une donnée personnelle.
 
 Les termes sont définis dans le [glossaire](../glossary.md). Le mécanisme de la conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md).
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. Les réglages se font dans le code de l'agent ou dans sa configuration. Cette partie décrit ce que chaque acteur voit et les choix à arbitrer.
+`piighost` n'a pas d'écran. Les réglages se font dans le code de l'agent ou dans sa configuration. Cette partie décrit ce que chaque acteur voit et les choix à arbitrer.
 
 ### Qui voit quoi
 
@@ -56,7 +56,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 **BR-AGT-01.** Quand un agent LangChain est appelé sans identifiant de conversation, alors il s'arrête sur `No thread_id in the LangGraph config; pass config={'configurable': {'thread_id': ...}} on the agent call, or 'default' if your conversations need no separation.` La raison est que sans identifiant, toutes les conversations n'en feraient qu'une et partageraient leurs jetons. Une application qui n'a pas besoin de séparer ses conversations passe `default` elle-même.
 
-**BR-AGT-02.** Quand le modèle écrit un jeton que PIIGhost n'a jamais émis, alors la réponse est refusée par défaut, avec `Deanonymized text holds tokens the pipeline never issued`. Les deux autres choix sont de garder le jeton tel quel ou de le retirer du texte.
+**BR-AGT-02.** Quand le modèle écrit un jeton que `piighost` n'a jamais émis, alors la réponse est refusée par défaut, avec `Deanonymized text holds tokens the pipeline never issued`. Les deux autres choix sont de garder le jeton tel quel ou de le retirer du texte.
 
 **BR-AGT-03.** Quand l'assistant cite le premier une valeur, alors elle reste en clair par défaut. Par exemple, l'assistant répond « Le siège est à Lyon ». « Lyon » n'est pas masqué au tour suivant, parce qu'il vient de l'assistant. Les deux autres choix sont de la masquer comme une donnée de l'utilisateur ou de ne pas analyser du tout les messages de l'assistant.
 
@@ -66,7 +66,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 **BR-AGT-06.** Quand un outil de Claude Code n'est pas dans la liste des outils traités, alors son résultat passe en clair. Les outils traités sont Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, notamment, n'y est pas.
 
-**BR-AGT-07.** Quand la réponse du modèle est diffusée au fil de l'eau, alors l'affichage montre des jetons jusqu'à la fin du message, sauf si l'application branche le décodeur de flux prévu. Voir [Afficher une réponse streamée](../processes/show-a-streamed-reply.md).
+**BR-AGT-07.** Quand la réponse du modèle est diffusée au fil de l'eau, alors l'affichage montre des jetons jusqu'à la fin du message, sauf si l'application branche le décodeur de flux prévu. Voir [Afficher une réponse au fil de l'eau](../processes/show-a-streamed-reply.md).
 
 ### Ce que voit l'utilisateur final
 
@@ -141,9 +141,7 @@ Dans une trace de l'agent, le message reçu par le modèle doit contenir `<<PERS
 | `tests/integrations/langchain/test_middleware_stream.py` | Restauration en flux |
 | `tests/integrations/test_pydantic_ai_hooks.py` | Capacité Pydantic AI |
 | `tests/integrations/llama_index/` | Transformation des nœuds, moteur de requête |
-| `tests/integrations/test_claude_code_hooks.py` | Les trois événements, liste des champs, outil inconnu laissé passer |
+| `tests/integrations/test_claude_code_hooks.py` | Les trois événements, liste des champs, outil inconnu laissé passer, blocage quand `piighost-api` est injoignable, échec ouvert |
 | `tests/integrations/client/test_client.py` | Client HTTP |
-
-Non couvert : le comportement de `run()` quand `piighost-api` est injoignable, et la persistance en clair de l'état LangGraph.
 
 Voir aussi [Configurer un pipeline](../operations/configuration-and-hub.md).

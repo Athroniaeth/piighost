@@ -28,11 +28,16 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - Quand les deux listes visent la même valeur, la liste à masquer gagne par défaut, donc la valeur est masquée.
 - Une liste modifiée ne s'applique qu'aux messages nouveaux d'une conversation déjà commencée.
 
-Besoins couverts : DPO-3, USER-5 et USER-6, décrits dans [Besoins par profil](../needs-by-profile.md). Les termes sont définis dans le [glossaire](../glossary.md). Le déroulé complet d'un message est dans [Protéger un message avant l'envoi au modèle](protect-a-message.md).
+Besoins couverts, décrits dans [Besoins par profil](../needs-by-profile.md) :
+
+- Responsable conformité : DPO-3
+- Utilisateur de l'application : USER-5, USER-6
+
+Les termes sont définis dans le [glossaire](../glossary.md). Le déroulé complet d'un message est dans [Protéger un message avant l'envoi au modèle](protect-a-message.md).
 
 ## Pour le métier
 
-PIIGhost n'a pas d'écran. La liste à masquer et la liste à laisser en clair sont écrites par l'équipe technique, dans le code ou dans la section `[override]` du fichier de configuration de l'application ou du serveur `piighost-api`. Le DPO décide de leur contenu. Les tâches ci-dessous disent quoi demander.
+`piighost` n'a pas d'écran. La liste à masquer et la liste à laisser en clair sont écrites par l'équipe technique, dans le code ou dans la section `[override]` du fichier de configuration de l'application ou du serveur `piighost-api`. Le DPO décide de leur contenu. Les tâches ci-dessous disent quoi demander.
 
 ### Le trajet d'un message à travers les listes
 
@@ -50,13 +55,13 @@ flowchart TD
 
 ### Exemple suivi d'un bout à l'autre
 
-La liste à masquer contient la forme « PRJ- suivi de quatre chiffres », avec le type `PROJET`. La liste à laisser en clair contient « Acme », le nom de l'entreprise. Le détecteur lit « Acme » comme une personne et ne connaît pas les numéros de dossier.
+La liste à masquer contient la forme « PRJ- suivi de quatre chiffres », avec le type `CODE`. La liste à laisser en clair contient « Acme », le nom de l'entreprise. Le détecteur lit « Acme » comme une personne et ne connaît pas les numéros de dossier.
 
 | Étape | Texte |
 |---|---|
 | Message de l'utilisateur | Écrivez à Jean Dupont, chez Acme, dossier PRJ-0042. |
 | Sans les listes | Écrivez à `<<PERSON:1>>`, chez `<<PERSON:2>>`, dossier PRJ-0042. |
-| Avec les listes, reçu par le modèle | Écrivez à `<<PERSON:1>>`, chez Acme, dossier `<<PROJET:1>>`. |
+| Avec les listes, reçu par le modèle | Écrivez à `<<PERSON:1>>`, chez Acme, dossier `<<CODE:1>>`. |
 | Réponse lue par l'utilisateur | C'est noté pour PRJ-0042. |
 
 ### Garder une valeur en clair
@@ -86,7 +91,9 @@ Cas typique : vos noms de code internes ne sont jamais repérés.
 
 **BR-LIST-02.** Quand une valeur figure dans la liste à masquer, alors elle est masquée, même si le détecteur l'a ratée. Si le détecteur avait repéré un morceau qui la chevauche, la détection de la liste à masquer remplace ce morceau.
 
-**BR-LIST-03.** Quand la liste à laisser en clair vise une valeur, alors la façon de l'appliquer suit l'un de trois réglages. Exemple sur « Claire Dubois travaille chez Acme, puis chez Globex SA. », avec un détecteur qui lit « Acme » comme une personne, et une liste à laisser en clair qui contient « Acme » et « Globex » comme organisations :
+**BR-LIST-03.** Quand la liste à laisser en clair vise une valeur, alors la façon de l'appliquer suit l'un de trois réglages. Exemple sur « Claire Dubois travaille chez Acme, puis chez Globex SA. », avec un détecteur qui lit « Acme » comme une personne et « Globex SA » comme une organisation, et une liste à laisser en clair qui contient « Acme » et « Globex » comme organisations.
+
+Le tableau suivant donne le résultat de chaque réglage :
 
 | Réglage | Retire | Résultat |
 |---|---|---|
@@ -96,7 +103,9 @@ Cas typique : vos noms de code internes ne sont jamais repérés.
 
 « Même valeur » est le défaut parce que la liste à laisser en clair nomme une valeur, et le type écrit à côté n'est qu'une supposition sur ce que dira le détecteur.
 
-**BR-LIST-04.** Quand les deux listes visent le même passage, alors le réglage de conflit décide :
+**BR-LIST-04.** Quand les deux listes visent le même passage, alors le réglage de conflit décide.
+
+Le tableau suivant donne le résultat de chaque réglage :
 
 | Réglage | Résultat sur « Acme » présent dans les deux listes |
 |---|---|
@@ -112,7 +121,7 @@ Ce défaut vient d'un principe simple. En cas de doute, masquer protège.
 
 **BR-LIST-07.** Quand le contrôle final relit le texte protégé, alors il ignore les valeurs de la liste à laisser en clair. Toute autre valeur restée en clair bloque l'envoi.
 
-**BR-LIST-08.** Quand une liste change pendant une conversation, alors un message déjà analysé garde son ancien résultat, même renvoyé à l'identique. Par exemple, le 02/10/2026, « Acme » entre dans la liste à masquer. Le message envoyé le 01/10/2026 dans la même conversation reste avec « Acme » en clair. Seuls les nouveaux messages appliquent la liste.
+**BR-LIST-08.** Quand une liste change pendant une conversation, alors un message déjà analysé garde son ancien résultat, même renvoyé à l'identique. Par exemple, le 2 octobre 2026, « Acme » entre dans la liste à masquer. Le message envoyé le 1er octobre 2026 dans la même conversation reste avec « Acme » en clair. Seuls les nouveaux messages appliquent la liste.
 
 ### Ce que voit l'utilisateur final
 
@@ -194,5 +203,3 @@ Puis lancez `piighost anonymize --config <votre fichier> "Claire Dubois travaill
 | `tests/config/test_guard_override_models.py` | Le modèle de configuration `[override]`, et le refus des clés et des valeurs de la 1.x |
 | `tests/config/test_settings.py` | `test_deny_list_forces_a_detection` |
 | `tests/pipeline/test_override_integration.py` | Les listes l'emportent sur une correction humaine (AT-USER-6-3), liste à masquer et liste à laisser en clair de bout en bout (AT-DPO-3-1, AT-DPO-3-2) |
-
-Non couvert : l'effet d'un changement de liste sur un message déjà en cache (BR-LIST-08). Ce comportement a été constaté en lançant le pipeline, pas lu dans un test.
