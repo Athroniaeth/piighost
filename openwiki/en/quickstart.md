@@ -40,7 +40,7 @@ PIIGhost hides the confidential data of a text before an AI model reads it, then
 
 **Its goal.** De-identifying a conversation with an LLM is still a new practice, and its rules are written down nowhere. This documentation writes them down, so that they can be discussed, checked and improved together. Anyone can propose a need or challenge a rule.
 
-**How to read it.** Start with [Needs by profile](needs-by-profile.md) to find what concerns your profile. When they disagree, the code and the tests are right. When this documentation does not match the code, the gap is recorded in the [gap register](reference/doc-code-gaps.md). The terms are defined in the [glossary](glossary.md).
+**How to read it.** Start with [Needs by profile](needs-by-profile.md) to find what concerns your profile. When they disagree, the code and the tests are right. The terms are defined in the [glossary](glossary.md).
 
 ## I want to understand…
 
@@ -60,7 +60,6 @@ PIIGhost hides the confidential data of a text before an AI model reads it, then
 | Where the conversation data is stored, and whether it is encrypted | [Store conversations and protect traces](operations/storage-and-encryption.md) |
 | Why PIIGhost works this way, decision by decision | [Design decisions](reference/decisions.md) |
 | The meaning of a term or an acronym | [Glossary](glossary.md) |
-| The places where the documentation and the code diverge | [Doc / code gap register](reference/doc-code-gaps.md) |
 | What is decided and remains to be done | [Open points](reference/open-points.md) |
 
 ## Why PIIGhost works this way
@@ -121,7 +120,6 @@ To change the code, the technical documentation says which pages to read and whi
     - [Acceptance tests](tests/acceptance-tests.md)
 - **Reference**:
     - [Glossary](glossary.md)
-    - [Doc / code gap register](reference/doc-code-gaps.md)
     - [Design decisions](reference/decisions.md)
     - [Open points](reference/open-points.md)
 

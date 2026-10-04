@@ -159,10 +159,6 @@ middleware = PIIAnonymizationMiddleware(
 - **Le middleware exige un pipeline dont la fabrique expose un `recognizer`**, sinon il lève `UnrecognizableFactoryError` à la construction.
 - **Le refus d'un jeton inventé lève `InventedPlaceholderError` depuis `awrap_tool_call`.** L'outil n'est pas appelé, et l'erreur remonte à l'agent.
 
-### Écarts doc / code
-
-L'écart sur le résultat d'un outil (la doc parlait d'un remplacement des seules valeurs connues) est corrigé dans `docs/en/tool-call-strategies.md` et `docs/fr/tool-call-strategies.md`. Voir ECART-09 dans le [registre des écarts](../reference/doc-code-gaps.md).
-
 ### Tests
 
 | Test | Couvre |

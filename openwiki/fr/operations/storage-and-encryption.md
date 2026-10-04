@@ -153,14 +153,6 @@ Le pipeline ouvre un span par étape (`piighost.detect`, `piighost.link`, `piigh
 | BR-STO-07 | `crypto/cipher/aesgcm.py:46-52` (`AesGcmCipher.__init__`) |
 | BR-STO-08 | `pipeline/base.py:190-202` (l'avertissement de `__init__`, acquitté par `trace_clear_text`) |
 
-## Écarts doc / code
-
-> ⚠ Écart doc / code
-> **Doc** : `AGENTS.md` (section Conversation Layer) dit que le backend Redis hache les clés « with Argon2id ».
-> **Code** : le hacheur est au choix, HMAC-SHA256 (`crypto/hasher/sha256.py:9`) ou Argon2id (`crypto/hasher/argon2id.py:39`), selon `[memory.hasher] type` (`config/models/hasher.py:76-79`). Sans hacheur, la clé est un SHA-256 non secret du message (`conversation_memory/base.py:73-77`).
-
-Cet écart est aussi listé dans le [registre des écarts](../reference/doc-code-gaps.md).
-
 ## Tests
 
 | Test | Couvre |

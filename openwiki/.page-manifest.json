@@ -64,13 +64,6 @@
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/fr/reference/doc-code-gaps.md": {
-      "pageVersion": "sha256:057b753eef3f66a8310df8fa4e2703c358c20ff1d89ab6590620bd26febb323c",
-      "completedBy": "claude-code",
-      "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",
-      "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
-      "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
-    },
     "/openwiki/fr/tests/run-and-write-tests.md": {
       "pageVersion": "sha256:2e71443bf4e60ecdf046791148007f5de7b41ff9b92d22d7f8ba8088ec256fc4",
       "completedBy": "claude-code",

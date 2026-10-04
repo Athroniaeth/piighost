@@ -143,10 +143,6 @@ The first command prints `OK: examples/config/pipeline.toml`. The second prints 
 | BR-CFG-08 | `config/models/detector.py:101-115` (`build`, catalogs then inline patterns) |
 | BR-CFG-09 | `config/models/detector.py:53-74` (`_catalogs_are_hub_refs`) |
 
-## Doc / code gaps
-
-No gap found on this page. The `removed in piighost 2.0` message is covered in [Add or replace a component](../architecture/ports-and-extension.md#doc--code-gaps) and in the [gap register](../reference/doc-code-gaps.md).
-
 ## Tests
 
 | Test | Covers |

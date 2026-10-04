@@ -40,7 +40,7 @@ PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA
 
 **Son objectif.** Dé-identifier une conversation avec un LLM est une pratique encore nouvelle, et ses règles ne sont écrites nulle part. Cette documentation les écrit, pour qu'on puisse les discuter, les vérifier et les faire évoluer ensemble. Chacun peut proposer un besoin ou contester une règle.
 
-**Comment la lire.** Commencez par [Besoins par profil](needs-by-profile.md) pour trouver ce qui concerne votre profil. En cas de désaccord, le code et les tests ont raison. Quand cette documentation ne correspond pas au code, l'écart est noté dans le [registre des écarts](reference/doc-code-gaps.md). Les termes sont définis dans le [glossaire](glossary.md).
+**Comment la lire.** Commencez par [Besoins par profil](needs-by-profile.md) pour trouver ce qui concerne votre profil. En cas de désaccord, le code et les tests ont raison. Les termes sont définis dans le [glossaire](glossary.md).
 
 ## Je cherche à comprendre…
 
@@ -60,7 +60,6 @@ PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA
 | Où sont stockées les données des conversations, et si elles sont chiffrées | [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md) |
 | Pourquoi PIIGhost fonctionne ainsi, décision par décision | [Décisions de conception](reference/decisions.md) |
 | Le sens d'un terme ou d'un sigle | [Glossaire](glossary.md) |
-| Les endroits où la documentation et le code divergent | [Registre des écarts doc / code](reference/doc-code-gaps.md) |
 | Ce qui est décidé et reste à faire | [Points à régler](reference/open-points.md) |
 
 ## Pourquoi PIIGhost fonctionne ainsi
@@ -121,7 +120,6 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
     - [Tests d'acceptation](tests/acceptance-tests.md)
 - **Référence** :
     - [Glossaire](glossary.md)
-    - [Registre des écarts doc / code](reference/doc-code-gaps.md)
     - [Décisions de conception](reference/decisions.md)
     - [Points à régler](reference/open-points.md)
 

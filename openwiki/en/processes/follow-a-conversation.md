@@ -196,10 +196,6 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 - **The placeholder cache is memoized per process** (256 maps at most, `_TOKEN_MEMO_MAX`). See [Store conversations](../operations/storage-and-encryption.md) for the effect on erasure with multiple processes.
 - **`anonymize_corrected` does not resolve overlaps** and does not run the expansion again. The corrected set must be clean. It only goes through the whitelist and blacklist.
 
-### Doc / code gaps
-
-No gap found on this page.
-
 ### Tests
 
 | Test | Covers |

@@ -154,10 +154,6 @@ uv run pytest tests/components/placeholder/test_streaming.py tests/components/pl
 - **La capacité Pydantic AI ne fournit pas de décodeur de flux.**
 - **Le décodeur suit les délimiteurs de la fabrique**, donc une fabrique aux délimiteurs personnalisés garde le même comportement.
 
-### Écarts doc / code
-
-L'écart sur un flux coupé (la doc disait que l'affichage ne montre « jamais » de jeton cassé) est corrigé dans `docs/en/reference/langchain.md` et `docs/fr/reference/langchain.md`. Voir ECART-10 dans le [registre des écarts](../reference/doc-code-gaps.md).
-
 ### Tests
 
 | Test | Couvre |

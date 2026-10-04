@@ -133,10 +133,6 @@ Dans une trace de l'agent, le message reçu par le modèle doit contenir `<<PERS
 - **`PIIQueryEngine` refuse un moteur en flux** (`NotImplementedError`). Ses chemins synchrones passent par `asyncio.run`, donc appelez `aquery` depuis du code asynchrone.
 - **`PIIGhostClient.anonymize` renvoie un dictionnaire de jetons vide.** La correspondance vit sur le serveur. Restaurez avec `deanonymize`.
 
-### Écarts doc / code
-
-Aucun écart constaté sur cette page. La lacune Grep est documentée dans `docs/en/examples/claude-code.md`.
-
 ### Tests
 
 | Test | Couvre |

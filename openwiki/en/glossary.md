@@ -33,7 +33,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 PIIGhost has no screen. What you "see" is a placeholder in the text sent to the model, an error message, a key of the configuration file or an output of the `piighost` command. The "What you see" column gives this form. The "Technical name" column is for developers.
 
-For the context of each term, start from the [quickstart](quickstart.md). The gaps between the existing documentation and the code are in the [gap register](reference/doc-code-gaps.md).
+For the context of each term, start from the [quickstart](quickstart.md).
 
 ## Protect the data
 
@@ -110,4 +110,3 @@ The identifiers are in English, the same whatever the language of the page.
 | Need | What a profile expects from PIIGhost, with its observable criteria. The prefix names the profile (compliance officer, developer, operator, application user). | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Needs by profile](needs-by-profile.md) |
 | Business rule | Rule written as "When…, then…" in a process page. *BR* stands for *business rule*, followed by the domain. | `BR-MSG-05`, `BR-CONV-03` | "Rules to know" sections |
 | Acceptance test | Test that checks one criterion of a need. | `AT-DPO-1-2` | [Acceptance tests](tests/acceptance-tests.md), `tests/acceptance/` |
-| Gap | Place where the documentation and the code diverge. | `ECART-09` | [Gap register](reference/doc-code-gaps.md) |

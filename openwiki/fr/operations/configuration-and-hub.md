@@ -143,10 +143,6 @@ La première commande affiche `OK: examples/config/pipeline.toml`. La seconde af
 | BR-CFG-08 | `config/models/detector.py:101-115` (`build`, catalogues puis motifs en ligne) |
 | BR-CFG-09 | `config/models/detector.py:53-74` (`_catalogs_are_hub_refs`) |
 
-## Écarts doc / code
-
-Aucun écart constaté sur cette page. Le message `removed in piighost 2.0` est traité dans [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md#écarts-doc--code) et dans le [registre des écarts](../reference/doc-code-gaps.md).
-
 ## Tests
 
 | Test | Couvre |
