@@ -29,7 +29,9 @@ The `gliner2` extra pulls the model runtime the configuration needs.
 
 ## 2. Create an API key
 
-The server refuses to start without an API key. `keyshield`, installed with the server, generates a key and a pepper, the secret used to hash that key in memory.
+`piighost-api` protects its routes with API keys. Each request must carry a valid key in the `Authorization: Bearer <key>` header. To manage these keys, the server uses [`keyshield`](https://github.com/Athroniaeth/keyshield), a Python library for API key management, installed with it. The server does not keep the keys in clear. It keeps their fingerprint, computed with Argon2 and a pepper, a secret added before the computation.
+
+The server refuses to start without an API key, because it would otherwise open its routes to anyone. For a local trial, `PIIGHOST_ALLOW_ANONYMOUS=true` lets it start without a key, every route open. The `keyshield` command generates a key and a pepper.
 
 ```bash
 keyshield generate
