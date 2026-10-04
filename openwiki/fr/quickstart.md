@@ -58,6 +58,7 @@ Le trajet d'un message :
 | Ce que voit chaque acteur selon l'outil utilisé (LangChain, Claude Code…) | [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md) |
 | Ce qui se passe quand un modèle répond mal | [Besoins par profil, points de vigilance](needs-by-profile.md#points-de-vigilance) |
 | Où sont stockées les données des conversations, et si elles sont chiffrées | [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md) |
+| Pourquoi PIIGhost fonctionne ainsi, décision par décision | [Décisions de conception](reference/decisions.md) |
 | Le sens d'un terme ou d'un sigle | [Glossaire](glossary.md) |
 | Les endroits où la documentation et le code divergent | [Registre des écarts doc / code](reference/doc-code-gaps.md) |
 | Ce qui est décidé et reste à faire | [Points à régler](reference/open-points.md) |
@@ -74,6 +75,38 @@ flowchart LR
     D --> M["Mémoire de la conversation"]
     M --> G
 ```
+
+## Pourquoi PIIGhost fonctionne ainsi
+
+Chaque règle découle d'une décision de conception. La page [Décisions de conception](reference/decisions.md) les explique dans l'ordre où elles se sont posées, avec un exemple pour chacune.
+
+- **Dé-identifier un texte** :
+    - DEC-01 : Remplacer chaque donnée confidentielle par un jeton.
+    - DEC-02 : Trouver chaque valeur et sa position exacte.
+    - DEC-03 : Encadrer chaque jeton par `<<` et `>>`.
+    - DEC-04 : Dire dans le jeton de quel type de donnée il s'agit.
+    - DEC-05 : Donner à chaque entité son propre identifiant.
+    - DEC-06 : Regrouper les détections d'une même entité.
+    - DEC-07 : Ne garder qu'un passage quand deux détections se recouvrent.
+    - DEC-08 : Garder la correspondance pour restaurer les vraies valeurs.
+    - DEC-09 : Laisser corriger la détection.
+    - DEC-10 : Relire le texte protégé avant l'envoi, en option.
+- **Tenir une conversation** :
+    - DEC-11 : Garder le même jeton pendant toute la conversation.
+    - DEC-12 : Exiger l'identifiant de la conversation.
+    - DEC-13 : Neutraliser un jeton tapé par l'utilisateur.
+    - DEC-14 : Refuser un jeton inventé par le modèle.
+    - DEC-15 : Laisser en clair une valeur que l'assistant cite le premier.
+- **Laisser un agent agir** :
+    - DEC-16 : Donner la vraie valeur aux outils, et le jeton au modèle.
+    - DEC-17 : Restaurer la réponse pendant qu'elle arrive.
+- **Mettre en production** :
+    - DEC-18 : Protéger la mémoire stockée.
+    - DEC-19 : Échouer du côté qui protège.
+    - DEC-20 : Configurer un pipeline par fichier et par le hub.
+- **L'architecture** :
+    - DEC-21 : Faire de chaque étape un port remplaçable.
+    - DEC-22 : Rendre asynchrones les étapes qui attendent.
 
 ## Modifier le code
 
@@ -96,4 +129,4 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 3. **La mémoire et l'historique de l'agent contiennent des données en clair.** Tout ce qui n'est pas traité en contient aussi, c'est-à-dire un outil Claude Code non listé (Grep), ou un résultat d'outil sous la stratégie « Entrée seule » ou « Aucun ». Chiffrez le stockage, et protégez l'historique de LangGraph ou de Pydantic AI. Voir [Stocker les conversations](operations/storage-and-encryption.md) et [Brancher la protection sur un agent](integrations/agents-and-tools.md#pièges).
 4. **Les traces techniques portent le texte en clair par défaut.** Configurez un masqueur de traces avant de les envoyer à un service tiers. Voir [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md#masquer-les-traces).
 5. **Effacer une conversation ne vide que le processus qui reçoit la demande.** Quand `token_memo_ttl` n'est pas réglé, les autres processus gardent une copie temporaire. Voir [Stocker les conversations](operations/storage-and-encryption.md#règles-à-connaître).
-6. **Un détecteur ou un garde-fou à base de modèle échoue en ouvert.** Une sortie illisible du modèle donne zéro détection, et le message part sans protection. Voir les [points de vigilance](needs-by-profile.md#points-de-vigilance).
+6. **Un détecteur ou un garde-fou LLM refuse le message quand il ne peut pas lire la réponse de son propre LLM.** Le message ne part pas, et l'application reçoit une erreur. Un réglage explicite, `fail_open`, laisse partir le message sans cette détection ou sans cette vérification. Voir les [points de vigilance](needs-by-profile.md#points-de-vigilance) et DEC-19.

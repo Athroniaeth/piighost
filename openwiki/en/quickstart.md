@@ -58,6 +58,7 @@ The path of a message:
 | What each actor sees depending on the tool used (LangChain, Claude Code…) | [Plug the protection into an agent and its tools](integrations/agents-and-tools.md) |
 | What happens when a model answers badly | [Needs by profile, watch points](needs-by-profile.md#watch-points) |
 | Where the conversation data is stored, and whether it is encrypted | [Store conversations and protect traces](operations/storage-and-encryption.md) |
+| Why PIIGhost works this way, decision by decision | [Design decisions](reference/decisions.md) |
 | The meaning of a term or an acronym | [Glossary](glossary.md) |
 | The places where the documentation and the code diverge | [Doc / code gap register](reference/doc-code-gaps.md) |
 | What is decided and remains to be done | [Open points](reference/open-points.md) |
@@ -74,6 +75,38 @@ flowchart LR
     D --> M["Conversation memory"]
     M --> G
 ```
+
+## Why PIIGhost works this way
+
+Each rule follows from a design decision. The [Design decisions](reference/decisions.md) page explains them in the order they arose, with an example for each.
+
+- **De-identify a text**:
+    - DEC-01: Replace each confidential value with a placeholder.
+    - DEC-02: Find each value and its exact position.
+    - DEC-03: Wrap each placeholder in `<<` and `>>`.
+    - DEC-04: Say in the placeholder what type of data it stands for.
+    - DEC-05: Give each entity its own identifier.
+    - DEC-06: Group the detections of the same entity.
+    - DEC-07: Keep a single span when two detections overlap.
+    - DEC-08: Keep the mapping to restore the real values.
+    - DEC-09: Let people correct the detection.
+    - DEC-10: Reread the protected text before sending, as an option.
+- **Hold a conversation**:
+    - DEC-11: Keep the same placeholder for the whole conversation.
+    - DEC-12: Require the conversation identifier.
+    - DEC-13: Neutralize a placeholder typed by the user.
+    - DEC-14: Refuse a placeholder the model made up.
+    - DEC-15: Leave unmasked a value the assistant mentions first.
+- **Let an agent act**:
+    - DEC-16: Give the real value to tools, and the placeholder to the model.
+    - DEC-17: Restore the reply while it arrives.
+- **Go to production**:
+    - DEC-18: Protect the stored memory.
+    - DEC-19: Fail on the side that protects.
+    - DEC-20: Configure a pipeline from a file and from the hub.
+- **The architecture**:
+    - DEC-21: Make each step a replaceable port.
+    - DEC-22: Make the steps that wait asynchronous.
 
 ## Change the code
 
@@ -96,4 +129,4 @@ To change the code, the technical documentation says which pages to read and whi
 3. **The memory and the agent history contain data in clear text.** So does everything that is not processed, that is a Claude Code tool that is not listed (Grep), or a tool result under the "Input only" or "None" strategy. Encrypt the storage, and protect the LangGraph or Pydantic AI history. See [Store conversations](operations/storage-and-encryption.md) and [Plug the protection into an agent](integrations/agents-and-tools.md#pitfalls).
 4. **The technical traces carry the text in clear by default.** Configure a trace redactor before you send them to a third-party service. See [Store conversations and protect traces](operations/storage-and-encryption.md#redact-the-traces).
 5. **Erasing a conversation only clears the process that receives the request.** When `token_memo_ttl` is not set, the other processes keep a temporary copy. See [Store conversations](operations/storage-and-encryption.md#rules-to-know).
-6. **A model-based detector or guard rail fails open.** An unreadable output of the model gives zero detections, and the message leaves without protection. See the [watch points](needs-by-profile.md#watch-points).
+6. **An LLM detector or guard rail refuses the message when it cannot read the answer of its own LLM.** The message does not leave, and the application gets an error. An explicit setting, `fail_open`, lets the message leave without that detection or without that check. See the [watch points](needs-by-profile.md#watch-points) and DEC-19.
