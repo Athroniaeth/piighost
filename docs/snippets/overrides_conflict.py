@@ -8,11 +8,11 @@ from piighost.pipeline import AnonymizationPipeline
 
 def build_pipeline(strategy: OverrideConflictStrategy) -> AnonymizationPipeline:
     detector = ExactMatchDetector({"Emma": "PERSON"})
-    whitelist = ExactMatchDetector({"Acme": "ORG"})
-    blacklist = ExactMatchDetector({"Acme": "ORG"})
+    deny_list = ExactMatchDetector({"Acme": "ORG"})
+    allow_list = ExactMatchDetector({"Acme": "ORG"})
     override = DetectionOverride(
-        whitelist=whitelist,
-        blacklist=blacklist,
+        deny_list=deny_list,
+        allow_list=allow_list,
         conflict_strategy=strategy,
     )
     return AnonymizationPipeline(detector, override=override)

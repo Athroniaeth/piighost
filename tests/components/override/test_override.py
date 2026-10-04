@@ -4,11 +4,11 @@ import pytest
 
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.override import (
+    AllowListStrategy,
     AnyDetectionOverride,
-    BlacklistStrategy,
+    DenyListStrategy,
     DetectionOverride,
     OverrideConflictStrategy,
-    WhitelistStrategy,
 )
 from piighost.exceptions import ConflictingOverrideError
 from piighost.models import Detection, Span
@@ -41,10 +41,10 @@ class TestEmpty:
         assert result == primary
 
 
-class TestWhitelist:
+class TestDenyList:
     async def test_adds_a_missed_value(self) -> None:
-        """A whitelisted value absent from the detections is forced in."""
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+        """A value on the deny list absent from the detections is forced in."""
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Acme": "ORG"}))
         result = await override.apply("Acme rocks", [])
         assert len(result) == 1
         assert result[0].span == Span(0, 4)
@@ -55,7 +55,7 @@ class TestWhitelist:
         """A forced detection replaces what it overlaps, the server label wins."""
         primary = [_detection(0, 8, "Emma Doe", label="COMPANY")]
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Emma Doe": "PERSON"})
+            deny_list=ExactMatchDetector({"Emma Doe": "PERSON"})
         )
         result = await override.apply("Emma Doe called", primary)
         assert len(result) == 1
@@ -67,35 +67,35 @@ class TestWhitelist:
             _detection(0, 4, "Emma", label="SECOND"),
             _detection(0, 4, "Emma", label="FIRST"),
         ]
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Acme": "ORG"}))
         result = await override.apply("Emma at Acme", primary)
         assert [d.label for d in result] == ["SECOND", "FIRST", "ORG"]
 
 
-class TestBlacklistStrategies:
+class TestAllowListStrategies:
     async def test_exact_removes_the_identical_detection(self) -> None:
         """EXACT invalidates a detection with the same span and label."""
         primary = [_detection(6, 11, "Paris", label="LOCATION")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
-            blacklist_strategy=BlacklistStrategy.EXACT,
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"}),
+            allow_list_strategy=AllowListStrategy.EXACT,
         )
         assert await override.apply("Visit Paris", primary) == []
 
     async def test_exact_keeps_a_label_mismatch(self) -> None:
-        """EXACT leaves a detection whose label differs from the blacklist's."""
+        """EXACT leaves a detection whose label differs from the allow list's."""
         primary = [_detection(6, 11, "Paris", label="PERSON")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
-            blacklist_strategy=BlacklistStrategy.EXACT,
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"}),
+            allow_list_strategy=AllowListStrategy.EXACT,
         )
         assert await override.apply("Visit Paris", primary) == primary
 
     async def test_value_is_the_default_and_ignores_the_label(self) -> None:
-        """The default strategy clears a value whatever label the blacklist gives it."""
+        """The default strategy clears a value whatever label the allow list gives it."""
         primary = [_detection(6, 11, "Paris", label="PERSON")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"})
         )
         assert await override.apply("Visit Paris", primary) == []
 
@@ -106,46 +106,46 @@ class TestBlacklistStrategies:
             _detection(16, 21, "Paris", label="LOCATION"),
         ]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
-            blacklist_strategy=BlacklistStrategy.VALUE,
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"}),
+            allow_list_strategy=AllowListStrategy.VALUE,
         )
         assert await override.apply("Visit Paris and Paris", primary) == []
 
     async def test_overlap_removes_what_it_touches(self) -> None:
-        """OVERLAP invalidates any detection overlapping a blacklisted span."""
+        """OVERLAP invalidates any detection overlapping a span on the allow list."""
         primary = [_detection(6, 18, "Paris region", label="REGION")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
-            blacklist_strategy=BlacklistStrategy.OVERLAP,
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"}),
+            allow_list_strategy=AllowListStrategy.OVERLAP,
         )
         assert await override.apply("Visit Paris region", primary) == []
 
 
 class TestConflictStrategies:
-    async def test_whitelist_wins_by_default(self) -> None:
-        """A value on both lists is anonymized under WHITELIST_WINS."""
+    async def test_deny_list_wins_by_default(self) -> None:
+        """A value on both lists is anonymized under DENY_LIST_WINS."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Emma": "PERSON"}),
-            blacklist=ExactMatchDetector({"Emma": "PERSON"}),
+            deny_list=ExactMatchDetector({"Emma": "PERSON"}),
+            allow_list=ExactMatchDetector({"Emma": "PERSON"}),
         )
         result = await override.apply("Hi Emma", [])
         assert len(result) == 1
         assert result[0].label == "PERSON"
 
-    async def test_blacklist_wins_clears_the_forced_value(self) -> None:
-        """Under BLACKLIST_WINS the cleared value stays clear."""
+    async def test_allow_list_wins_clears_the_forced_value(self) -> None:
+        """Under ALLOW_LIST_WINS the cleared value stays clear."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Emma": "PERSON"}),
-            blacklist=ExactMatchDetector({"Emma": "PERSON"}),
-            conflict_strategy=OverrideConflictStrategy.BLACKLIST_WINS,
+            deny_list=ExactMatchDetector({"Emma": "PERSON"}),
+            allow_list=ExactMatchDetector({"Emma": "PERSON"}),
+            conflict_strategy=OverrideConflictStrategy.ALLOW_LIST_WINS,
         )
         assert await override.apply("Hi Emma", []) == []
 
     async def test_raise_refuses_the_collision(self) -> None:
         """Under RAISE a span both forced and cleared is a loud error."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Emma": "PERSON"}),
-            blacklist=ExactMatchDetector({"Emma": "LOCATION"}),
+            deny_list=ExactMatchDetector({"Emma": "PERSON"}),
+            allow_list=ExactMatchDetector({"Emma": "LOCATION"}),
             conflict_strategy=OverrideConflictStrategy.RAISE,
         )
         with pytest.raises(ConflictingOverrideError, match="Emma"):
@@ -154,8 +154,8 @@ class TestConflictStrategies:
     async def test_raise_applies_both_lists_when_disjoint(self) -> None:
         """RAISE without a collision still forces and clears normally."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Emma": "PERSON"}),
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
+            deny_list=ExactMatchDetector({"Emma": "PERSON"}),
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"}),
             conflict_strategy=OverrideConflictStrategy.RAISE,
         )
         primary = [_detection(13, 18, "Paris", label="LOCATION")]
@@ -164,37 +164,37 @@ class TestConflictStrategies:
 
 
 class TestClearedValues:
-    async def test_reports_the_blacklisted_values(self) -> None:
-        """cleared_values returns the casefolded texts the blacklist matches."""
+    async def test_reports_the_allow_listed_values(self) -> None:
+        """cleared_values returns the casefolded texts the allow list matches."""
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"})
         )
         assert await override.cleared_values("Visit Paris") == frozenset({"paris"})
 
-    async def test_is_empty_without_a_blacklist(self) -> None:
-        """cleared_values is empty when no blacklist is configured."""
+    async def test_is_empty_without_a_allow_list(self) -> None:
+        """cleared_values is empty when no allow list is configured."""
         assert await DetectionOverride().cleared_values("Visit Paris") == frozenset()
 
 
 class TestForcesValue:
     async def test_respect_provenance_never_forces(self) -> None:
-        """The default strategy defers to provenance even on a whitelist match."""
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+        """The default strategy defers to provenance even on a deny list match."""
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Acme": "ORG"}))
         assert await override.forces_value("Acme") is False
 
     async def test_force_forces_a_matched_value(self) -> None:
-        """FORCE claims a value the whitelist matches in full."""
+        """FORCE claims a value the deny list matches in full."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Acme": "ORG"}),
-            whitelist_strategy=WhitelistStrategy.FORCE,
+            deny_list=ExactMatchDetector({"Acme": "ORG"}),
+            deny_list_strategy=DenyListStrategy.FORCE,
         )
         assert await override.forces_value("Acme") is True
 
     async def test_force_ignores_an_unmatched_value(self) -> None:
-        """FORCE claims nothing the whitelist does not match."""
+        """FORCE claims nothing the deny list does not match."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Acme": "ORG"}),
-            whitelist_strategy=WhitelistStrategy.FORCE,
+            deny_list=ExactMatchDetector({"Acme": "ORG"}),
+            deny_list_strategy=DenyListStrategy.FORCE,
         )
         assert await override.forces_value("Globex") is False
 
@@ -205,7 +205,7 @@ class TestUnicodeSpaces:
         text = "Paul Martin, puis Paul\u00a0Martin"
         primary = [_detection(18, 29, "Paul\u00a0Martin", label="PERSON")]
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paul Martin": "PERSON"}),
-            blacklist_strategy=BlacklistStrategy.VALUE,
+            allow_list=ExactMatchDetector({"Paul Martin": "PERSON"}),
+            allow_list_strategy=AllowListStrategy.VALUE,
         )
         assert await override.apply(text, primary) == []

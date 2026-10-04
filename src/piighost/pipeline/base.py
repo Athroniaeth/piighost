@@ -161,7 +161,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         tokens, making traces safe for a PII-untrusted backend but unusable as
         datasets. With no redactor and a live tracer, clear-text tracing warns
         unless trace_clear_text is set to acknowledge it. override imposes the
-        server's whitelist and blacklist on every detection set, trumping the
+        server's deny list and allow list on every detection set, trumping the
         detector and any corrected set.
         """
         self.detector = detector
@@ -223,9 +223,9 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         return await self.override.apply(text, detections)
 
     async def _cleared_values(self, text: str) -> frozenset[str]:
-        """The values the blacklist clears here, exempted from the guard.
+        """The values the allow list clears here, exempted from the guard.
 
-        A blacklisted value is deliberately left in clear, so a detector-based
+        A value on the allow list is deliberately left in clear, so a detector-based
         guard would re-find it and refuse the output. Empty when no override or
         no guard is configured, since the exemption only serves the guard.
         """
@@ -234,7 +234,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         return await self.override.cleared_values(text)
 
     async def _forces_value(self, value: str) -> bool:
-        """Whether the override's whitelist forces this value to a token."""
+        """Whether the override's deny list forces this value to a token."""
         if self.override is None:
             return False
         return await self.override.forces_value(value)

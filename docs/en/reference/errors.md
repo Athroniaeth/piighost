@@ -110,11 +110,11 @@ The disjoint-span assumption behind it is in [Anonymizer](anonymizer.md), and th
 
 ## Detection overrides
 
-Module: `piighost.components.override`. `OverrideError` groups the failures of the whitelist and blacklist stage and carries one subclass.
+Module: `piighost.components.override`. `OverrideError` groups the failures of the deny list and allow list stage and carries one subclass.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
-| `ConflictingOverrideError` | `DetectionOverride.apply` | a whitelisted span overlaps a blacklisted one under the `raise` conflict strategy |
+| `ConflictingOverrideError` | `DetectionOverride.apply` | a span on the deny list overlaps one on the allow list under the `raise` conflict strategy |
 
 The other two conflict strategies resolve the collision instead of raising. Every `[override]` key is in the [configuration reference](../configuration/toml.md).
 

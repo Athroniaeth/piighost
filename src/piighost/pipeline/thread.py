@@ -290,7 +290,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """Assign a token to every anonymizable entity across the thread.
 
         An entity whose value was first introduced by the assistant is left out,
-        so it gets no token and stays in clear, unless the override's whitelist
+        so it gets no token and stays in clear, unless the override's deny list
         forces it under the FORCE strategy.
 
         The result is memoized by the union and provenance it derives from, so

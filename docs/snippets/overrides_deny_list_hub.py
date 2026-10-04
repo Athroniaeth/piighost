@@ -5,8 +5,8 @@ from piighost.components.override import DetectionOverride
 from piighost.pipeline import AnonymizationPipeline
 
 detector = RegexDetector.from_hub("hub:piighost/generic")
-whitelist = RegexDetector({"CODENAME": r"ACME-[A-Z]+"})
-override = DetectionOverride(whitelist=whitelist)
+deny_list = RegexDetector({"CODENAME": r"ACME-[A-Z]+"})
+override = DetectionOverride(deny_list=deny_list)
 pipeline = AnonymizationPipeline(detector, override=override)
 
 

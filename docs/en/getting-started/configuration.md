@@ -225,4 +225,4 @@ The second message reuses the `<<PERSON:1>>`{ .placeholder } assigned by the fir
 
 - [Configuration reference](../configuration/toml.md) for every section, every `type` and every key.
 - [Deploy a production pipeline](../deployment.md) for a memory shared between workers, Redis or a SQL database, with the stored values encrypted at rest. The two files are `examples/config/thread_redis.toml` and `examples/config/thread_sqlalchemy.toml`.
-- [Force a detection or keep a value in clear](../examples/overrides.md) for the whitelist and the blacklist.
+- [Force a detection or keep a value in clear](../examples/overrides.md) for the deny list and the allow list.

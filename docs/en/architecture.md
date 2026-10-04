@@ -149,7 +149,7 @@ they run in this order. Here is the role and the default adapter of each.
 </div>
 
 The override (`AnyDetectionOverride`, adapter `DetectionOverride`) is an optional server
-component. It applies a whitelist and a blacklist to every detection set, right after
+component. It applies a deny list and an allow list to every detection set, right after
 detection, before span resolution.
 
 ---

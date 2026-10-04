@@ -46,7 +46,7 @@ AnonymizationPipeline(
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Reconciles conflicting entities. Disabled when `None` |
 | `guard` | `AnyGuardRail \| None` | `None` | Re-checks the output for residual confidential values. Disabled when `None` |
 | `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory replacing clear values in observation payloads. `None` traces the clear text, so traces double as annotation datasets. With a live tracer and no redactor, the constructor emits a `PIIGhostSecurityWarning` unless `trace_clear_text=True` acknowledges it |
-| `override` | `AnyDetectionOverride \| None` | `None` | Server whitelist and blacklist imposed on every detection set. Disabled when `None` |
+| `override` | `AnyDetectionOverride \| None` | `None` | Server deny list and allow list imposed on every detection set. Disabled when `None` |
 | `trace_clear_text` | `bool` | `False` | Acknowledge clear-text observation tracing to suppress the security warning when no `observation_redactor` is set |
 
 !!! note "Components are protocols"

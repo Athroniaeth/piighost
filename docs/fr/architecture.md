@@ -154,8 +154,8 @@ chacune.
 </div>
 
 L'override (`AnyDetectionOverride`, adaptateur `DetectionOverride`) est un composant
-serveur optionnel. Il applique une liste blanche et une liste noire à chaque jeu de
-détections, juste après la détection, avant la résolution des spans.
+serveur optionnel. Il applique une liste à masquer et une liste à laisser en clair à chaque
+jeu de détections, juste après la détection, avant la résolution des spans.
 
 ---
 

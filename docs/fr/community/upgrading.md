@@ -125,12 +125,51 @@ await agent.ainvoke({"messages": messages})
 --8<-- "snippets/upgrading.py:invoke"
 ```
 
+### Les listes de l'override sont renommées
+
+En 1.x, la `whitelist` de l'override portait les valeurs toujours masquées, et sa `blacklist` les valeurs toujours laissées en clair. La plupart des lecteurs attendent l'inverse de ces deux mots, et un lecteur qui les inverse laisse en clair les valeurs qu'il voulait masquer. La 2.0 reprend les noms de Presidio.
+
+<div class="wide-table" markdown="1">
+
+| 1.x | 2.0 | Sens |
+|---|---|---|
+| `whitelist`, `[override.whitelist]` | `deny_list`, `[override.deny_list]` | valeurs toujours masquées |
+| `blacklist`, `[override.blacklist]` | `allow_list`, `[override.allow_list]` | valeurs toujours laissées en clair |
+| `whitelist_strategy`, `WhitelistStrategy` | `deny_list_strategy`, `DenyListStrategy` | ce que la liste à masquer fait d'une valeur écrite par l'assistant |
+| `blacklist_strategy`, `BlacklistStrategy` | `allow_list_strategy`, `AllowListStrategy` | les détections qu'un hit de la liste à laisser en clair écarte |
+| `whitelist_wins`, `OverrideConflictStrategy.WHITELIST_WINS` | `deny_list_wins`, `OverrideConflictStrategy.DENY_LIST_WINS` | une valeur des deux listes est masquée |
+| `blacklist_wins`, `OverrideConflictStrategy.BLACKLIST_WINS` | `allow_list_wins`, `OverrideConflictStrategy.ALLOW_LIST_WINS` | une valeur des deux listes reste en clair |
+
+</div>
+
+Les membres `RESPECT_PROVENANCE`, `FORCE`, `EXACT`, `VALUE`, `OVERLAP` et `RAISE` gardent leur nom. Une config qui emploie encore une ancienne clé ou une ancienne valeur est refusée au chargement avec le nom qui la remplace, et n'est jamais lue avec le nouveau sens. `DetectionOverride(whitelist=...)` lève `TypeError`.
+
+```toml
+# 1.x
+[override]
+whitelist_strategy = "force"
+conflict_strategy = "whitelist_wins"
+
+[override.whitelist]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+# 2.0
+[override]
+deny_list_strategy = "force"
+conflict_strategy = "deny_list_wins"
+
+[override.deny_list]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+```
+
 ### Comportements qui changent
 
 - **Espaces Unicode.** `RegexDetector` lit toute espace Unicode comme une espace ordinaire, donc un motif qui cherchait exprès une espace insécable n'en trouve plus. Deux valeurs qui ne diffèrent que par leurs espaces sont une seule valeur, et reçoivent un seul jeton.
 - **Traits d'union.** Dans une recherche par mot entier, tout trait d'union Unicode relie deux mots, y compris le trait d'union insécable que tape Word. `Jean`{ .pii } n'est donc plus trouvé dans `Jean‑Paul`{ .pii } écrit avec ce trait d'union.
 - **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
-- **Surcharges.** Après une liste blanche, deux détections sur un même span gardent l'ordre de leurs détecteurs, comme quand aucune liste blanche n'est posée.
+- **Surcharges.** Après une liste à masquer, deux détections sur un même span gardent l'ordre de leurs détecteurs, comme quand aucune liste à masquer n'est posée.
 - **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 conversations et un jour d'inactivité. Une conversation évincée ou expirée ne restaure plus ses jetons. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
 - **Détecteur et garde-fou LLM.** Une sortie que `LLMDetector` ou `LLMGuardRail` ne sait pas lire lève `UnreadableOutputError` au lieu de compter comme zéro détection, donc le message est refusé. Passez `fail_open=True`, ou `fail_open = true` dans une configuration, pour l'envoyer sans détection comme le faisait la 1.x.
 - **Hooks Claude Code.** Un hook qui ne peut pas dé-identifier, quand le serveur est arrêté par exemple, bloque le prompt ou l'appel d'outil et remplace une sortie d'outil par un avis. Réglez `PIIGHOST_HOOK_FAIL_OPEN=1` pour laisser passer le texte en clair comme le faisait la 1.x.
