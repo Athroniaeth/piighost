@@ -29,7 +29,7 @@ Dans `awrap_tool_call`, le LLM produit les arguments d'outil en combinant, fragm
 - *Arguments d'outil (LLM vers outil)*. Le middleware les restaure par le même remplacement de chaîne que le canal LLM. Il parcourt les arguments à la recherche des jetons connus et remplace chacun par la valeur originale de son entité. Ainsi, `<<EMAIL:1>>`{ .placeholder } redevient `jean@mail.com`{ .pii }.
 - *Réponse de l'outil (outil vers LLM)*. La réponse passe dans le pipeline de la conversation, détection comprise, comme un message de l'utilisateur. Une valeur déjà vue reprend son jeton. Une valeur que la conversation n'a jamais citée, un e-mail renvoyé par un CRM par exemple, est détectée et reçoit le sien.
 
-Sur les deux canaux, le remplacement n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le jeton `<<PERSON>>`{ .placeholder }, impossible de savoir laquelle restaurer. Sur le canal outil, l'erreur a un effet concret, par exemple un e-mail envoyé à la mauvaise personne. C'est la raison pour laquelle le middleware n'accepte que des factories dont les jetons préservent une identité retrouvable. Voir [Placeholder factories](placeholder-factories.md).
+Sur les deux canaux, le remplacement n'est correct que si le mapping est **non ambigu**. Si deux entités partagent le jeton `<<PERSON>>`{ .placeholder }, impossible de savoir laquelle restaurer. Sur le canal outil, l'erreur a un effet concret, par exemple un e-mail envoyé à la mauvaise personne. C'est la raison pour laquelle le middleware n'accepte que des factories dont les jetons préservent une identité retrouvable. Voir [Fabriques de placeholders](placeholder-factories.md).
 
 Le middleware agit seulement dans le wrapper d'outil, jamais sur la réponse stockée ensuite. Les arguments sont restaurés récursivement à travers les `dict`, `list` et `tuple` imbriqués. Les autres conteneurs passent tels quels.
 
@@ -159,7 +159,7 @@ Les deux canaux restaurent par remplacement de chaîne, sur un texte que le pipe
 
 Deux garanties en découlent, portées par le tag `PreservesRecognizableIdentity` que `PIIAnonymizationMiddleware` exige. L'unicité est requise, sinon deux entités qui partagent un jeton rendent la restauration ambiguë. La retrouvabilité est requise, sinon le jeton n'a pas de grammaire fixe et se confond avec la prose. Sans retrouvabilité, on ne peut pas non plus repérer un jeton inventé.
 
-Le vérificateur de types contrôle la contrainte par la borne du générique. La construction du middleware en revérifie une partie à l'exécution. Le middleware demande alors au pipeline un recognizer et lève `UnrecognizableFactoryError` s'il n'y en a pas, par exemple avec un masque. Voir [Placeholder factories](placeholder-factories.md) pour le détail des tags et la hiérarchie complète.
+Le vérificateur de types contrôle la contrainte par la borne du générique. La construction du middleware en revérifie une partie à l'exécution. Le middleware demande alors au pipeline un recognizer et lève `UnrecognizableFactoryError` s'il n'y en a pas, par exemple avec un masque. Voir [Fabriques de placeholders](placeholder-factories.md) pour le détail des tags et la hiérarchie complète.
 
 ---
 
@@ -173,13 +173,13 @@ Les stratégies sont des `Enum` fermées. On ne les étend pas, on les combine �
     --8<-- "snippets/tool_call_middleware.fr.py:example"
     ```
 
-Pour changer *ce que* le pipeline retrouve et restaure, c'est la placeholder factory qu'on remplace, pas une stratégie. Voir *Écrire la sienne* dans [Placeholder factories](placeholder-factories.md).
+Pour changer *ce que* le pipeline retrouve et restaure, c'est la placeholder factory qu'on remplace, pas une stratégie. Voir *Écrire la sienne* dans [Fabriques de placeholders](placeholder-factories.md).
 
 ---
 
 ## Voir aussi
 
-- [Placeholder factories](placeholder-factories.md) : la contrainte d'unicité et de retrouvabilité qui motive `PreservesRecognizableIdentity`.
+- [Fabriques de placeholders](placeholder-factories.md) : la contrainte d'unicité et de retrouvabilité qui motive `PreservesRecognizableIdentity`.
 - [Architecture](architecture.md) : diagrammes de séquence des canaux LLM et outil.
 - [Limites](limitations.md) : interactions entre le choix de stratégie et le reste du pipeline.
 - [Laisser un outil agir sur les vraies valeurs](../../openwiki/fr/processes/let-a-tool-act.md) : les règles de gestion d'un appel d'outil, de `BR-TOOL-01` à `BR-TOOL-11`, et leur emplacement dans le code.

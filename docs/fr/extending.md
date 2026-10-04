@@ -146,7 +146,7 @@ Un jeton est une instance du tag, et le tag est une sous-classe de `str`. Le jet
     --8<-- "snippets/extending.py:bracket_factory"
     ```
 
-`PreservesLabel` dit que le jeton révèle le type mais pas une identité unique. Cette fabrique convient donc au caviardage à usage unique, pas au middleware. Pour un jeton que le middleware sait dé-identifier et retrouver, taguez-le `PreservesRecognizableIdentity` (ou un sous-tag comme `PreservesLabeledIdentityOpaque`) et utilisez une grammaire délimitée comme `<<PERSON:1>>`{ .placeholder }. Pour envelopper une forme interne dans des délimiteurs sans écrire l'enveloppe vous-même, sous-classez `BaseDelimitedPlaceholderFactory`. Voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète des tags et des exemples détaillés.
+`PreservesLabel` dit que le jeton révèle le type mais pas une identité unique. Cette fabrique convient donc au caviardage à usage unique, pas au middleware. Pour un jeton que le middleware sait dé-identifier et retrouver, taguez-le `PreservesRecognizableIdentity` (ou un sous-tag comme `PreservesLabeledIdentityOpaque`) et utilisez une grammaire délimitée comme `<<PERSON:1>>`{ .placeholder }. Pour envelopper une forme interne dans des délimiteurs sans écrire l'enveloppe vous-même, sous-classez `BaseDelimitedPlaceholderFactory`. Voir [Fabriques de placeholders](placeholder-factories.md) pour la taxonomie complète des tags et des exemples détaillés.
 
 ### Utiliser la fabrique
 

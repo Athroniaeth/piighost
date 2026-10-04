@@ -104,7 +104,7 @@ Le spectre des fournisseurs, le détail juridique (CLOUD Act, FISA 702, Schrems 
     Comprendre les choix de conception.
 
     - [Architecture](architecture.md)
-    - [Placeholder factories](placeholder-factories.md)
+    - [Fabriques de placeholders](placeholder-factories.md)
     - [Sécurité](security.md)
 
 </div>
