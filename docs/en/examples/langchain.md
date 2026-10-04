@@ -16,7 +16,7 @@ For the minimal version with a stub detector, start with the [LangChain middlewa
 
 ## 1. Build the pipeline over a GLiNER2 detector
 
-`Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction. Pass `labels` to tell it which entity types to query. The anonymizer uses `LabelCounterPlaceholderFactory`, which emits the delimited `<<PERSON:1>>`{ .placeholder } the middleware can find again.
+`Gliner2Detector` wraps a GLiNER2 model. Pass the model id as a string and it loads on construction. Pass `labels` to tell it which entity types to query. The default anonymizer uses `LabelCounterPlaceholderFactory`, which emits the delimited `<<PERSON:1>>`{ .placeholder } the middleware can find again.
 
 ```python
 --8<-- "snippets/langchain_pipeline.py"

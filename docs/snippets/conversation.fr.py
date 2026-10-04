@@ -1,24 +1,13 @@
 # --8<-- [start:setup]
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
 memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+pipeline = ThreadAnonymizationPipeline(detector, memory=memory)
 # --8<-- [end:setup]
 
 

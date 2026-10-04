@@ -22,14 +22,9 @@ uv run examples/guard_rail.py
 
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector, RegexDetector
 from piighost.components.guard import DetectorGuardRail
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import (
-    LabelCounterPlaceholderFactory,
-    PreservesLabeledIdentityOpaque,
-)
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.exceptions import PIIRemainingError
 from piighost.pipeline import AnonymizationPipeline
 
@@ -50,11 +45,8 @@ def _build_pipeline() -> AnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     phone regex over the output, catching structured PII the detector missed.
     """
     guard_detector = RegexDetector(STRUCTURED)
-    ph_factory = LabelCounterPlaceholderFactory()
     return AnonymizationPipeline(
         ExactMatchDetector({"Emma Doe": "PERSON"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
         guard=DetectorGuardRail(guard_detector),
     )
 

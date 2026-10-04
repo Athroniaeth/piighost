@@ -11,7 +11,7 @@ You will build a `ThreadAnonymizationPipeline` that keeps a stable token for the
 
 ## 1. Assemble the pipeline
 
-`ThreadAnonymizationPipeline` takes the same components as `AnonymizationPipeline` (detector, linker, anonymizer), plus a conversation memory. The memory accumulates each message's detections, thread by thread. The pipeline can thus assign tokens over the whole thread rather than over one isolated message.
+`ThreadAnonymizationPipeline` takes the same components as `AnonymizationPipeline` (detector, linker, anonymizer), plus a conversation memory. Only the detector is required. The code below passes the memory explicitly and leaves the linker and the anonymizer to their defaults. The memory accumulates each message's detections, thread by thread. The pipeline can thus assign tokens over the whole thread rather than over one isolated message.
 
 `InMemoryConversationMemory` keeps that state in a process dictionary. Nothing survives a restart and nothing is shared across processes. This memory therefore suits development and tests. We keep the detector simple here with `ExactMatchDetector`, which spots known values. The result is thus verifiable, with no model.
 

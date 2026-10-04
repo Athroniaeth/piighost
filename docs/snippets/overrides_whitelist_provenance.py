@@ -1,11 +1,8 @@
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
 from piighost.components.override import DetectionOverride, WhitelistStrategy
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
+from piighost.conversation_memory import MessageRole
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
@@ -13,17 +10,7 @@ def build_pipeline(strategy: WhitelistStrategy) -> ThreadAnonymizationPipeline:
     detector = ExactMatchDetector({})
     whitelist = ExactMatchDetector({"Acme": "ORG"})
     override = DetectionOverride(whitelist=whitelist, whitelist_strategy=strategy)
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    memory = InMemoryConversationMemory()
-    return ThreadAnonymizationPipeline(
-        detector,
-        linker,
-        anonymizer,
-        memory,
-        override=override,
-    )
+    return ThreadAnonymizationPipeline(detector, override=override)
 
 
 async def main():

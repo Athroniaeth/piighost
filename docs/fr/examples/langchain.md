@@ -16,7 +16,7 @@ Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [
 
 ## 1. Construire le pipeline sur un détecteur GLiNER2
 
-`Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. L'anonymiseur utilise `LabelCounterPlaceholderFactory`, qui émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que le middleware sait retrouver.
+`Gliner2Detector` enrobe un modèle GLiNER2. Passez l'identifiant du modèle sous forme de chaîne et il se charge à la construction. Passez `labels` pour lui indiquer quels types d'entités interroger. L'anonymiseur par défaut utilise `LabelCounterPlaceholderFactory`, qui émet le jeton délimité `<<PERSON:1>>`{ .placeholder } que le middleware sait retrouver.
 
 ```python
 --8<-- "snippets/langchain_pipeline.py"

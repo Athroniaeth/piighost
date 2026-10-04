@@ -5,24 +5,11 @@ offline_langchain("{0} lives in {1}.", secrets=("Patrick", "Paris"))
 
 # isort: split
 # --8<-- [start:pipeline]
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-memory = InMemoryConversationMemory()
-pipeline = ThreadAnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    memory,
-)
+pipeline = ThreadAnonymizationPipeline(detector)
 # --8<-- [end:pipeline]
 
 

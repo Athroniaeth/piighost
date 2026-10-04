@@ -30,11 +30,7 @@ from langchain.agents import create_agent
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
 from piighost.exceptions import InventedPlaceholderError
 from piighost.integrations.langchain import (
     InventedPlaceholderStrategy,
@@ -61,13 +57,7 @@ class ScriptedChatModel(GenericFakeChatModel):
 
 def _build_agent(strategy: InventedPlaceholderStrategy) -> Any:
     """Attach the middleware under one invented-placeholder strategy to an agent."""
-    ph_factory = LabelCounterPlaceholderFactory()
-    pipeline = ThreadAnonymizationPipeline(
-        ExactMatchDetector({"Emma": "PERSON"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
-    )
+    pipeline = ThreadAnonymizationPipeline(ExactMatchDetector({"Emma": "PERSON"}))
     middleware = PIIAnonymizationMiddleware(pipeline, invented_strategy=strategy)
     model = ScriptedChatModel(messages=iter([AIMessage(content=INVENTED_REPLY)]))
     return create_agent(model=model, tools=[], middleware=[middleware])

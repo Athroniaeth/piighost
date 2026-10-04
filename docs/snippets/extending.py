@@ -1,12 +1,5 @@
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-
-linker = ExactEntityLinker()
-anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
-
 # isort: split
 # --8<-- [start:handle_detector]
 import re
@@ -40,11 +33,7 @@ class HandleDetector:
 from piighost.pipeline import AnonymizationPipeline
 
 detector = HandleDetector()
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-)
+pipeline = AnonymizationPipeline(detector)
 # --8<-- [end:use_detector]
 
 
@@ -149,12 +138,7 @@ class AtSignGuard:
 from piighost.pipeline import AnonymizationPipeline
 
 guard = AtSignGuard()
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    guard=guard,
-)
+pipeline = AnonymizationPipeline(detector, guard=guard)
 # --8<-- [end:use_guard]
 
 
@@ -162,24 +146,13 @@ pipeline = AnonymizationPipeline(
 # --8<-- [start:assemble]
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.entity_resolver import MergeEntityResolver
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.overlap_resolver import ConfidenceOverlapResolver
 from piighost.pipeline import AnonymizationPipeline
 
-detector = HandleDetector()
-linker = ExactEntityLinker()
-factory = BracketLabelFactory()
-anonymizer = Anonymizer(factory)
-overlap_resolver = ConfidenceOverlapResolver()
-entity_resolver = MergeEntityResolver()
-guard = AtSignGuard()
 pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-    overlap_resolver=overlap_resolver,
-    entity_resolver=entity_resolver,
-    guard=guard,
+    HandleDetector(),
+    anonymizer=Anonymizer(BracketLabelFactory()),
+    entity_resolver=MergeEntityResolver(),
+    guard=AtSignGuard(),
 )
 # --8<-- [end:assemble]
 
@@ -189,8 +162,7 @@ async def check() -> None:
     print((await pipeline.anonymize("@alice wrote to @bob.")).text)
     grouped = AnonymizationPipeline(
         HandleDetector(),
-        CaseSensitiveLinker(),
-        Anonymizer(LabelCounterPlaceholderFactory()),
+        linker=CaseSensitiveLinker(),
         overlap_resolver=LongestOverlapResolver(),
         expander=WholeWordExpander(),
     )

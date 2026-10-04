@@ -30,11 +30,8 @@ from typing import Any
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables.config import var_child_runnable_config
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.integrations.langchain import EntityCreateByAssistantStrategy
 from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 from piighost.models import Detection
@@ -74,13 +71,8 @@ def _middleware(
     strategy: EntityCreateByAssistantStrategy, detector: AnyDetector
 ) -> Any:
     """Build the middleware over a fresh pipeline under one strategy."""
-    ph_factory = LabelCounterPlaceholderFactory()
-    pipeline = ThreadAnonymizationPipeline(
-        detector,
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
-    )
+    pipeline: ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]
+    pipeline = ThreadAnonymizationPipeline(detector)
     return PIIAnonymizationMiddleware(pipeline, assistant_strategy=strategy)
 
 

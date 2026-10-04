@@ -11,7 +11,7 @@ You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM onl
 
 ## 1. Build the thread pipeline
 
-The middleware wraps a `ThreadAnonymizationPipeline`, the same one from the [Conversational pipeline](conversation.md) page. Its anonymizer must use a delimited token factory like `LabelCounterPlaceholderFactory`, which emits `<<PERSON:1>>`{ .placeholder }. The middleware needs that delimited shape to find a token again. With another factory, it raises `UnrecognizableFactoryError` at construction.
+The middleware wraps a `ThreadAnonymizationPipeline`, the same one from the [Conversational pipeline](conversation.md) page. Only the detector is passed. The other components keep their defaults, and the default anonymizer uses `LabelCounterPlaceholderFactory`, a delimited token factory which emits `<<PERSON:1>>`{ .placeholder }. The middleware needs that delimited shape to find a token again. With another factory, it raises `UnrecognizableFactoryError` at construction.
 
 ```python
 --8<-- "snippets/langchain_start.en.py:pipeline"

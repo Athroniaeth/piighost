@@ -1,8 +1,5 @@
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector, RegexDetector
 from piighost.components.guard import DetectorGuardRail
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.exceptions import PIIRemainingError
 from piighost.hub import pull
 from piighost.pipeline import AnonymizationPipeline
@@ -14,8 +11,6 @@ guard_detector = RegexDetector(
 )
 pipeline = AnonymizationPipeline(
     ExactMatchDetector({"Emma Doe": "PERSON"}),
-    ExactEntityLinker(),
-    Anonymizer(LabelCounterPlaceholderFactory()),
     guard=DetectorGuardRail(guard_detector),
 )
 

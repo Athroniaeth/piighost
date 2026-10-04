@@ -14,7 +14,7 @@ uv add piighost
 
 ## Do the round-trip
 
-A pipeline chains a detector, a linker, and an anonymizer. `anonymize` returns the de-identified text and the token assigned to each entity. `deanonymize` replays that mapping in reverse.
+A pipeline chains a detector, a linker, and an anonymizer. Only the detector is required. The linker defaults to `ExactEntityLinker` and the anonymizer to `Anonymizer(LabelCounterPlaceholderFactory())`. `anonymize` returns the de-identified text and the token assigned to each entity. `deanonymize` replays that mapping in reverse.
 
 ```python
 --8<-- "snippets/basic.py:hub"
@@ -42,7 +42,7 @@ A value cited several times gets a single token, so the LLM keeps the thread. `E
 
 ## Change the token shape
 
-`LabelCounterPlaceholderFactory` produces `<<LABEL:N>>`{ .placeholder }. If you want another token shape, change the factory passed to the `Anonymizer`.
+`LabelCounterPlaceholderFactory`, the default factory, produces `<<LABEL:N>>`{ .placeholder }. If you want another token shape, pass an `Anonymizer` built on another factory.
 
 ```python
 --8<-- "snippets/basic_factories.py:factories"

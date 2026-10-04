@@ -14,7 +14,7 @@ uv add piighost
 
 ## Faire l'aller-retour
 
-Un pipeline enchaîne un détecteur, un linker et un anonymiseur. `anonymize` renvoie le texte dé-identifié et le jeton attribué à chaque entité. `deanonymize` rejoue cette correspondance en sens inverse.
+Un pipeline enchaîne un détecteur, un linker et un anonymiseur. Seul le détecteur est obligatoire. Le linker vaut par défaut `ExactEntityLinker` et l'anonymiseur `Anonymizer(LabelCounterPlaceholderFactory())`. `anonymize` renvoie le texte dé-identifié et le jeton attribué à chaque entité. `deanonymize` rejoue cette correspondance en sens inverse.
 
 ```python
 --8<-- "snippets/basic.py:hub"
@@ -42,7 +42,7 @@ Une même valeur citée plusieurs fois reçoit un seul jeton, donc le LLM garde 
 
 ## Changer la forme des jetons
 
-`LabelCounterPlaceholderFactory` produit `<<LABEL:N>>`{ .placeholder }. Si vous voulez une autre forme de jeton, changez la factory passée à l'`Anonymizer`.
+`LabelCounterPlaceholderFactory`, la factory par défaut, produit `<<LABEL:N>>`{ .placeholder }. Si vous voulez une autre forme de jeton, passez un `Anonymizer` construit sur une autre factory.
 
 ```python
 --8<-- "snippets/basic_factories.py:factories"
