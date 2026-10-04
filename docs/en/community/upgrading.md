@@ -31,7 +31,7 @@ Not every public name carries the same guarantee. A stable name changes only on 
 | Package root | Every name in `piighost.__all__`, that is `AnonymizationPipeline`, `ThreadAnonymizationPipeline`, `Anonymizer`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector`, `LabelCounterPlaceholderFactory`, `LabelHashPlaceholderFactory`, `Detection`, `Entity`, `Span`, `PIIGhostError` |
 | Ports and templates | Every `Any*` protocol and its `Base*` template, one pair per pipeline stage |
 | Data models | `Detection`, `Entity` and `Span`, frozen dataclasses with a stable field set |
-| Configuration | `PipelineConfig`, `load_config`, `load_pipeline`, `load_thread_pipeline`, and the keys listed in the [TOML reference](../configuration/toml.md) |
+| Configuration | `PipelineConfig`, `load_config`, `load_pipeline`, `load_thread_pipeline`, and the keys listed in the [configuration reference](../configuration/toml.md) |
 | Command line | `piighost validate`, `piighost schema`, `piighost anonymize` |
 | LangChain integration | `PIIAnonymizationMiddleware`, `ToolCallStrategy`, `InventedPlaceholderStrategy`, `EntityCreateByAssistantStrategy` |
 | Model detectors | `Gliner2Detector`, `SpacyDetector`, `TransformersDetector`, all three on the shared `BaseNERDetector` pass |
@@ -221,4 +221,4 @@ A 0.x code base is ported by rewriting its setup rather than by renaming imports
 - the `faker`, `cache`, `langfuse` and `opik` extras are gone, and no stage caches detection results
 - the `sqlalchemy` extra came back in 1.2.0, as a conversation memory backend
 
-Restart from the [Quickstart](../getting-started/quickstart.md), then read [First pipeline](../getting-started/first-pipeline.md) for the stages and the [TOML reference](../configuration/toml.md) to move the setup into a config file.
+Restart from the [Quickstart](../getting-started/quickstart.md), then read [First pipeline](../getting-started/first-pipeline.md) for the stages and the [configuration reference](../configuration/toml.md) to move the setup into a config file.

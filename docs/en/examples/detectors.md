@@ -5,7 +5,7 @@ tags:
   - Regex
 ---
 
-# How to use pattern catalogs and combine detectors
+# Pre-built detectors
 
 `piighost` pulls ready-to-use regex pattern catalogs for structured PII (email, IP, IBAN, phone) from the [piighost hub](https://hub.piighost.dev). This guide shows how to load them, merge them, and combine several detectors, with the `piighost` core alone.
 
@@ -28,12 +28,24 @@ Build a `RegexDetector` from the group with `from_hub`, then assemble the pipeli
 --8<-- "snippets/detectors_hub.py"
 ```
 
+The output should be:
+
+```text
+--8<-- "snippets/detectors_hub.out"
+```
+
 ## Merge generic and regional catalogs
 
 If you want to cover both generic PII and a region's PII, pull each group with `pull` and merge the dictionaries you get. `pull` returns a `label` to `pattern` dictionary. When two dictionaries share a label, the entry from the right-hand dictionary wins.
 
 ```python
 --8<-- "snippets/detectors_merge.py:example"
+```
+
+The output should be:
+
+```text
+--8<-- "snippets/detectors_merge.out"
 ```
 
 To keep only some labels, build a hand-picked dictionary.
@@ -50,6 +62,12 @@ To keep only some labels, build a hand-picked dictionary.
 --8<-- "snippets/detectors_composite.py:example"
 ```
 
+The output should be:
+
+```text
+--8<-- "snippets/detectors_composite.out"
+```
+
 In production, replace `ExactMatchDetector` with an NER or LLM detector, see the [detectors reference](../reference/detectors.md). `ExactMatchDetector` is used here to keep the example reproducible without a model.
 
 ## Handle a long text
@@ -58,6 +76,12 @@ An NER detector has a bounded context window, and a long document can exceed it.
 
 ```python
 --8<-- "snippets/detectors_chunked.py:example"
+```
+
+The output should be:
+
+```text
+--8<-- "snippets/detectors_chunked.out"
 ```
 
 Leave `splitter=None` for a default `RecursiveCharacterTextSplitter` tuned for real documents. The reduced `chunk_size` above only forces several chunks in a short example.
@@ -74,6 +98,6 @@ The detector merges the catalogs first, then the inline `patterns`. So on a shar
 
 ## See also
 
-- [De-identify a text and restore it](basic.md) for the full round-trip.
+- [De-identify and restore a text](basic.md) for the full round-trip.
 - [Detectors reference](../reference/detectors.md) for the label catalog.
-- [Extending PIIGhost](../extending.md) to write your own detectors.
+- [Extending piighost](../extending.md) to write your own detectors.

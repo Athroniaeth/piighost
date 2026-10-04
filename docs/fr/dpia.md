@@ -108,17 +108,17 @@ L'article 35, paragraphe 7, point d), demande les mesures envisagées pour faire
 
 <div class="wide-table" markdown="1">
 
-| Risque | Mesure | Réglage à consigner | Détail |
-|---|---|---|---|
-| Le fournisseur du LLM lit les PII | les valeurs sont remplacées avant que le texte parte, et un jeton à compteur ou à hash n'est jamais calculé à partir de la valeur qu'il remplace | les détecteurs, la placeholder factory | [Placeholder factories](placeholder-factories.md) |
-| La correspondance atteint le fournisseur | la correspondance reste dans la mémoire, de votre côté, et n'est jamais envoyée avec le texte | le backend de mémoire | [Sécurité](security.md) |
-| Vol du stockage persistant | la clé de chaque message est hachée (`Sha256Hasher` ou `Argon2Hasher`) et chaque valeur chiffrée (`AesGcmCipher`). Le hasher et le cipher se configurent ensemble ou pas du tout. Un stockage réseau construit sans eux émet un `PIIGhostSecurityWarning` | le hasher, le cipher, où sont gardés `PIIGHOST_HASH_PEPPER` et `PIIGHOST_CIPHER_KEY` | [Sécurité](security.md) |
-| Une PII reste dans la sortie | un garde-fou revérifie le texte dé-identifié, et le pipeline lève `PIIRemainingError` quand il en signale une | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail` ou `ModerationGuardRail` | [Garde-fous](reference/guard-rails.md) |
-| Les journaux et les traces portent des PII | la librairie n'écrit aucune PII dans ses loggers, et un `observation_redactor` dé-identifie les payloads des traces | le masqueur, `trace_clear_text`, le fait que `PIIGHOST_HOOK_LOG` ne soit pas défini | [Observation](observation.md) |
-| Une conversation voit les valeurs d'une autre | la mémoire est cloisonnée par `thread_id`, et les intégrations refusent un tour sans `thread_id` au lieu de le verser dans une conversation partagée | la façon dont `thread_id` est dérivé | [Limites](limitations.md) |
-| Un utilisateur tape un jeton pour lire la valeur d'autrui | un jeton tapé dans l'entrée est neutralisé avant le rendu (`escape_existing_tokens=True` par défaut) | laissé à son défaut | [Sécurité](security.md) |
-| Le LLM invente un jeton | un jeton inventé est refusé par défaut (`InventedPlaceholderStrategy.RAISE`) | la stratégie | [Stratégies d'appel outil](tool-call-strategies.md) |
-| Conservation, et demande d'effacement | `forget_thread` efface une conversation de la mémoire et du mémo local des jetons, et renvoie combien de messages et de détections il a supprimés | la règle de conservation, `max_threads` et `ttl` sur le backend en mémoire, `ttl` sur Redis, `token_memo_ttl` | [Référence du pipeline](reference/pipeline.md) |
+| Risque | Mesure | Réglage à consigner |
+|---|---|---|
+| Le fournisseur du LLM lit les PII | les valeurs sont remplacées avant que le texte parte, et un jeton à compteur ou à hash n'est jamais calculé à partir de la valeur qu'il remplace. Voir [Placeholder factories](placeholder-factories.md). | les détecteurs, la placeholder factory |
+| La correspondance atteint le fournisseur | la correspondance reste dans la mémoire, de votre côté, et n'est jamais envoyée avec le texte. Voir [Sécurité](security.md). | le backend de mémoire |
+| Vol du stockage persistant | la clé de chaque message est hachée (`Sha256Hasher` ou `Argon2Hasher`) et chaque valeur chiffrée (`AesGcmCipher`). Le hasher et le cipher se configurent ensemble ou pas du tout. Un stockage réseau construit sans eux émet un `PIIGhostSecurityWarning`. Voir [Sécurité](security.md). | le hasher, le cipher, où sont gardés `PIIGHOST_HASH_PEPPER` et `PIIGHOST_CIPHER_KEY` |
+| Une PII reste dans la sortie | un garde-fou revérifie le texte dé-identifié, et le pipeline lève `PIIRemainingError` quand il en signale une. Voir [Garde-fous](reference/guard-rails.md). | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail` ou `ModerationGuardRail` |
+| Les journaux et les traces portent des PII | la librairie n'écrit aucune PII dans ses loggers, et un `observation_redactor` dé-identifie les payloads des traces. Voir [Observation](observation.md). | le masqueur, `trace_clear_text`, le fait que `PIIGHOST_HOOK_LOG` ne soit pas défini |
+| Une conversation voit les valeurs d'une autre | la mémoire est cloisonnée par `thread_id`, et les intégrations refusent un tour sans `thread_id` au lieu de le verser dans une conversation partagée. Voir [Limites](limitations.md). | la façon dont `thread_id` est dérivé |
+| Un utilisateur tape un jeton pour lire la valeur d'autrui | un jeton tapé dans l'entrée est neutralisé avant le rendu (`escape_existing_tokens=True` par défaut). Voir [Sécurité](security.md). | laissé à son défaut |
+| Le LLM invente un jeton | un jeton inventé est refusé par défaut (`InventedPlaceholderStrategy.RAISE`). Voir [Stratégies d'appel outil](tool-call-strategies.md). | la stratégie |
+| Conservation, et demande d'effacement | `forget_thread` efface une conversation de la mémoire et du mémo local des jetons, et renvoie combien de messages et de détections il a supprimés. Voir [Référence du pipeline](reference/pipeline.md). | la règle de conservation, `max_threads` et `ttl` sur le backend en mémoire, `ttl` sur Redis, `token_memo_ttl` |
 
 </div>
 
@@ -128,7 +128,7 @@ Le journal de débogage des hooks Claude Code, écrit seulement quand `PIIGHOST_
 
 L'article 35, paragraphe 7, point c), demande une évaluation des risques. `piighost` réduit l'exposition envers le fournisseur du LLM sans supprimer les risques suivants, à consigner comme résiduels.
 
-- **La détection est au mieux.** Une PII que les détecteurs ne reconnaissent pas parvient au fournisseur en clair. Un modèle NER peut aussi tronquer un texte plus long que son contexte. Voir [Limites](limitations.md).
+- **La détection n'est pas exhaustive.** Une PII que les détecteurs ne reconnaissent pas parvient au fournisseur en clair. Un modèle NER peut aussi tronquer un texte plus long que son contexte. Voir [Limites](limitations.md).
 - **Le contexte et les quasi-identifiants restent en clair.** "`<<PERSON:1>>`{ .placeholder }, le seul notaire d'un village de 300 habitants" identifie une personne sans la nommer. Les détecteurs voient des valeurs, pas cette inférence.
 - **Le LLM peut écrire une PII qu'il a inventée.** Un nom que le modèle invente n'est dans aucune correspondance. Rien ne le rattache donc à une personne, et rien ne le retire.
 - **Les valeurs que l'assistant introduit restent en clair** sous le défaut `EntityCreateByAssistantStrategy.PRESERVE`. `ANONYMIZE` les dé-identifie aussi.
@@ -165,6 +165,6 @@ Copiez le tableau dans votre AIPD et remplissez la dernière colonne pour votre 
 ## Voir aussi
 
 - [Conformité](compliance.md) : les dispositions du RGPD, les lignes directrices du Comité européen et l'arrêt CEPD/CRU sur la pseudonymisation.
-- [Sécurité](security.md) : le modèle de menace, les backends de mémoire, et le chiffrement au repos.
+- [Sécurité](security.md) : le modèle de menaces, les backends de mémoire, et le chiffrement au repos.
 - [Limites](limitations.md) : ce que la détection manque, et comment y remédier.
 - [Déploiement](deployment.md) : borner la mémoire et exploiter `piighost` en production.

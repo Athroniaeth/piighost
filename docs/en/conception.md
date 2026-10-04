@@ -22,7 +22,7 @@ the problem.
 
 ---
 
-## Step 1, knowing what to replace, the detector
+## Step 1, the detector
 
 De-identifying means replacing a sensitive value with a *placeholder*, that is the
 *token* that takes its place in the text. On free text, you do not know in advance where
@@ -51,7 +51,8 @@ flowchart LR
 { .figure-caption }
 
 `piighost` provides these approaches as interchangeable detectors, `Gliner2Detector`,
-`SpacyDetector`, `TransformersDetector` for NER, `RegexDetector` for patterns,
+`SpacyDetector`, `TransformersDetector` and `PresidioDetector` for NER, `BridgeDetector`
+for a model run elsewhere (in JavaScript in the browser), `RegexDetector` for patterns,
 `LLMDetector` when the business context exceeds the narrow detectors, and
 `ExactMatchDetector` for tests. You can combine them with `CompositeDetector`, because a
 regex plus a NER cover more cases than a single detector. The detector is therefore a port
@@ -65,14 +66,14 @@ one detection too many, arbitrated later, than a value left in clear.
 
 ---
 
-## Step 2, saying what type it is, the typed placeholder
+## Step 2, the typed placeholder
 
 With detection, you know the type of each value. The simplest placeholder would be a
 constant token, the same for everything, like `<<REDACT>>`{ .placeholder }. You enrich it
 with the type, `<<PERSON>>`{ .placeholder } or `<<EMAIL>>`{ .placeholder }.
 
-Why is that useful. Because the model that reads the de-identified text needs the type
-to reason. "Contact `<<PERSON>>`{ .placeholder } at `<<EMAIL>>`{ .placeholder }" stays
+The type is useful because the model that reads the de-identified text needs it to
+reason. "Contact `<<PERSON>>`{ .placeholder } at `<<EMAIL>>`{ .placeholder }" stays
 usable. "Contact `<<REDACT>>`{ .placeholder } at `<<REDACT>>`{ .placeholder }" no longer
 is.
 
@@ -82,7 +83,7 @@ takes an entity and returns its token. It is the one you change to go from
 
 ---
 
-## Step 3, distinguishing individuals, the entity and its identity
+## Step 3, the entity and the linker
 
 A text can mention two different people. If both become `<<PERSON>>`{ .placeholder }, the
 model can no longer tell them apart, and you can no longer go back without ambiguity. So
@@ -95,20 +96,21 @@ Patrick writes to Marie  →  <<PERSON:1>> writes to <<PERSON:2>>
 `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }, `Marie`{ .pii } becomes
 `<<PERSON:2>>`{ .placeholder }. The counter distinguishes individuals of the same type.
 
-But the same person often appears several times, sometimes spelled differently
-("Patrick", "patrick"). All these occurrences must share the same token. An isolated
+But the same person often appears several times, sometimes with a different case
+(`Patrick`{ .pii }, `patrick`{ .pii }). All these occurrences must share the same token. An isolated
 detection is therefore not enough. You need a notion above it, the entity, which groups
 all the detections referring to the same value.
 
 Hence a new step, going from detections to entities. That is the linker
 (`AnyEntityLinker`). `ExactEntityLinker` groups the detections by canonical key
-`(lowercase text, label)`, one entity per key.
+`(value_key(text), label)`, that is the value whatever its case and spaces, and the
+label. It creates one entity per key, whose value is the first spelling seen.
 
 ```mermaid
 flowchart LR
     D["detections\nPatrick, patrick, Marie"] --> L{{"ExactEntityLinker"}}
-    L --> E1["entity PERSON 'patrick'"]
-    L --> E2["entity PERSON 'marie'"]
+    L --> E1["entity PERSON 'Patrick'"]
+    L --> E2["entity PERSON 'Marie'"]
 ```
 
 *The linker groups the detections of the same value into one entity, which will receive a
@@ -120,23 +122,7 @@ entity therefore share the same `<<PERSON:1>>`{ .placeholder }.
 
 ---
 
-## Step 4, catching missed occurrences, the expander
-
-The linker only groups the detections **you give it**. But a NER misses occurrences. It
-finds `Patrick`{ .pii } in sentence 1, but misses the lone `Patrick`{ .pii } in sentence
-3. If you stop at the linker, that occurrence stays in clear in the de-identified text.
-
-Catching missed occurrences is a separate job, the expander's (`AnyDetectionExpander`).
-`WordBoundaryExpander` searches, for each already-detected value, its other occurrences
-in the text by word-boundary search, and adds a detection for each.
-
-The expander is kept apart from the linker on purpose. The linker groups, the expander
-searches. Each has a single responsibility. The expander stays optional, because a
-detection set that is already complete does not need it.
-
----
-
-## Step 5, arbitrating detections that contradict each other, the span resolver
+## Step 4, the span resolver
 
 As soon as you combine detectors, or a detector finds several candidates on the same
 area, detections overlap. Classic example, one NER proposes `LOCATION` on "Paris" and
@@ -150,6 +136,22 @@ in the text, from its start to its end. `ConfidenceOverlapResolver` groups the
 overlapping detections, then keeps the highest-confidence one in each group.
 `MergeOverlapResolver` keeps the union of each group instead. That way, a sure but short
 detection never leaves part of a longer one in clear.
+
+---
+
+## Step 5, the expander
+
+The linker only groups the detections **you give it**. But a NER misses occurrences. It
+finds `Patrick`{ .pii } in sentence 1, but misses the lone `Patrick`{ .pii } in sentence
+3. If you stop at the linker, that occurrence stays in clear in the de-identified text.
+
+Catching missed occurrences is a separate job, the expander's (`AnyDetectionExpander`).
+`WordBoundaryExpander` searches, for each already-detected value, its other occurrences
+in the text by word-boundary search, and adds a detection for each.
+
+The expander is kept apart from the linker on purpose. The linker groups, the expander
+searches. Each has a single responsibility. The expander stays optional, because a
+detection set that is already complete does not need it.
 
 The order of the stages is constrained.
 
@@ -166,7 +168,7 @@ then group into entities, and resolve identities last (see the next step).
 
 ---
 
-## Step 6, merging equivalent entities, the entity resolver
+## Step 6, the entity resolver
 
 After linking, two entities can still refer to the same person. That is the case for
 "Patrick" and "Patric" (typo), or for two entities from different detectors that share a
@@ -178,27 +180,28 @@ That is the entity resolver (`AnyEntityResolver`).
 - `MergeEntityResolver` merges entities that share a detection (union-find, transitive).
 - `FuzzyEntityResolver` merges by text similarity (Jaro-Winkler), to catch spelling
   variants.
-- `SeparateEntityResolver` does the opposite, it splits entities that should not have
-  been conflated.
+- `SeparateEntityResolver` does the opposite, it keeps apart the entities that share a
+  detection. Each shared detection goes to the largest entity holding it, and leaves the
+  others.
 
 At this stage, you have a list of clean entities, each due to receive a unique and stable
 token.
 
 ---
 
-## Step 7, producing the text, the anonymizer
+## Step 7, the anonymizer
 
 The anonymizer (`AnyAnonymizer`) finally applies the replacement. It asks the factory for
 a token for each entity, then replaces each detection with its token.
 
-Thanks to step 5, the replacement happens in one pass over the spans, left to right. It
+Thanks to step 4, the replacement happens in one pass over the spans, left to right. It
 builds a new text by copying the text between the spans, so no replacement shifts the
-position of another. This single pass assumes spans that do not overlap, and step 5
+position of another. This single pass assumes spans that do not overlap, and step 4
 guarantees it.
 
 ---
 
-## Step 8, going back, restoration
+## Step 8, restoration
 
 De-identifying is only useful if you can restore the real values for the user. For that
 you must know that `<<PERSON:1>>`{ .placeholder } was `Patrick`{ .pii }. De-identifying a
@@ -220,12 +223,12 @@ flowchart LR
 
 Restoration is unambiguous only if the tokens preserve identity. Two entities sharing a
 token, as with `<<PERSON>>`{ .placeholder }, would collapse onto a single value. That is
-why the reversible mode requires a factory that identifies each entity,
+why the middleware requires a factory that identifies each entity,
 `<<PERSON:1>>`{ .placeholder } and not `<<PERSON>>`{ .placeholder }.
 
 ---
 
-## Step 9, the conversation, memory and counter consistency
+## Step 9, the conversation memory
 
 Everything above handles one text, in isolation. An agent chains messages, and the same
 `Patrick`{ .pii } must keep the same `<<PERSON:1>>`{ .placeholder } from the first to the
@@ -264,7 +267,7 @@ Message 2: "Marie calls Patrick back"  →  <<PERSON:2>> calls <<PERSON:1>> back
 
 ### The rules that follow
 
-- **Order frozen at first seen.** The counter of an entity is assigned to its first
+- **First-appearance order.** The counter of an entity is assigned to its first
   appearance in the conversation and never moves again. Without this rule, a new entity
   placed early in its message would steal the counter of an older entity.
 - **Isolation by `thread_id`.** The `thread_id` is mandatory, and there is no shared default
@@ -289,12 +292,12 @@ on the next turn, protecting nothing of the user.
 The memory therefore records the role of each value's first occurrence,
 `MessageRole.USER` or `MessageRole.ASSISTANT`. A value whose first occurrence comes from
 a model message is left in clear, because it is not the user's confidential data. The middleware controls
-this behavior through `EntityCreateByAssistantStrategy`, which offers three choices. It can preserve, de-identify anyway, or ignore
-the model's messages.
+this behavior through `EntityCreateByAssistantStrategy`. Its three members leave the value
+in clear, de-identify it anyway, or skip the model's messages.
 
 ---
 
-## Step 11, why everything is asynchronous
+## Step 11, asynchrony
 
 The pipeline is asynchronous end to end, for two concrete reasons.
 
@@ -305,8 +308,8 @@ The pipeline is asynchronous end to end, for two concrete reasons.
 
 But the inference of a local NER model is synchronous and heavy. It takes hundreds of
 milliseconds of CPU or GPU compute. Called directly in a coroutine, it freezes the whole
-loop, and no other request progresses during that time. Model detection is therefore to
-be offloaded to a thread. A detector that calls a remote API, in contrast, stays in native
+loop, and no other request progresses during that time. The model detectors therefore
+offload inference to a thread. A detector that calls a remote API, in contrast, stays in native
 async, because its work is network I/O and not compute.
 
 In short, asynchronous for I/O and orchestration, offloaded to a thread for blocking
@@ -314,22 +317,23 @@ compute.
 
 ---
 
-## Step 12, encrypting the reverse mapping
+## Step 12, encrypting the mapping
 
 On a single worker, the memory fits in a process-local dict
 (`InMemoryConversationMemory`). A multi-worker deployment needs a shared one,
-`RedisConversationMemory`, so one worker sees another's threads.
+`RedisConversationMemory` or `SqlAlchemyConversationMemory`, so one worker sees another's
+threads.
 
 But the reverse mapping, the table that links each token to its real value, is
-confidential data in clear. A store leak would reveal that data. Two crypto components
-protect the Redis backend. A hasher (`AnyHasher`) turns each message into a deterministic
+confidential data in clear. A store leak would reveal that data. Two optional crypto
+components protect the Redis and SQL backends. A hasher (`AnyHasher`) turns each message into a deterministic
 key without revealing the text. A cipher (`AnyCipher`) encrypts the detections at rest,
 so a store leak yields neither the message nor the values. The `thread_id` stays clear as a
 key prefix, so a thread can be enumerated and forgotten.
 
 ---
 
-## Step 13, the guard rail, defense in depth
+## Step 13, the guard rail
 
 Even with everything above, a value can slip through the net, for example a name the NER
 missed. The guard rail (`AnyGuardRail`) re-analyzes the de-identified text and raises
@@ -339,11 +343,12 @@ The guard rail examines only the de-identified output. A check meant for real va
 not mistake the placeholders in that output for real values, because they are clearly
 synthetic. The guard
 rail is optional but it is the last barrier before the output. `DetectorGuardRail`
-replays a detector, `LLMGuardRail` and `ModerationGuardRail` query an external model.
+replays a detector, `Gliner2GuardRail` classifies the output with a local GLiNER2 model,
+`LLMGuardRail` queries an LLM and `ModerationGuardRail` the Mistral moderation API.
 
 ---
 
-## Step 14, connecting to the agent world, the middleware
+## Step 14, the middleware
 
 It remains to wire all this into a LangChain agent loop, transparently. That is the
 `PIIAnonymizationMiddleware`, which acts at three points.
@@ -373,15 +378,15 @@ the pipeline.
 | You do not know where the confidential data is | Detector (`AnyDetector`) |
 | The model needs the type | Typed placeholder (`AnyPlaceholderFactory`) |
 | Distinguish two individuals of the same type | Identity per entity and linker (`AnyEntityLinker`) |
-| Occurrences missed by the detector | Expander (`AnyDetectionExpander`) |
 | Detections that overlap | Span resolver (`AnyOverlapResolver`) |
+| Occurrences missed by the detector | Expander (`AnyDetectionExpander`) |
 | Equivalent entities to merge | Entity resolver (`AnyEntityResolver`) |
 | Producing the text without corruption | Anonymizer, one left-to-right pass |
 | Going back on an arbitrary text | `deanonymize`, token-by-token replacement |
-| Consistency across the whole conversation | Memory per `thread_id`, first-seen order |
+| Consistency across the whole conversation | Memory per `thread_id`, first-appearance order |
 | A value from the model, not the user | Provenance in memory (`MessageRole`) |
 | I/O without blocking and heavy compute | Async and inference offloaded to a thread |
-| Persistent reverse mapping to protect | Crypto, hasher and cipher of the Redis backend |
+| Persistent reverse mapping to protect | Crypto, hasher and cipher of the Redis and SQL backends |
 | Residual confidential data | Guard rail (`AnyGuardRail`) |
 | Transparent agent integration | LangChain middleware |
 
@@ -391,7 +396,6 @@ the pipeline.
 
 ## See also
 
-- [Architecture](architecture.md), the map of the layers and the API of each component
-- [Placeholder factories](placeholder-factories.md), the families of tokens and what
-  they preserve
-- [Tool-call strategies](tool-call-strategies.md), the detail of `awrap_tool_call`
+- [Architecture](architecture.md): the map of the layers and the API of each component.
+- [Placeholder factories](placeholder-factories.md): the families of tokens and what they preserve.
+- [Tool-call strategies](tool-call-strategies.md): the detail of `awrap_tool_call`.

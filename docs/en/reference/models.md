@@ -216,5 +216,5 @@ Two more frozen dataclasses travel with the pipeline, each documented on the pag
 
 - [Detectors reference](detectors.md) for the detectors that produce a `Detection`.
 - [Pipeline reference](pipeline.md) for the stages these models pass through.
-- [Extending PIIGhost](../extending.md) for building them in your own component.
+- [Extending piighost](../extending.md) for building them in your own component.
 - [CLI reference](cli.md) for the JSON output built from `to_dict`.

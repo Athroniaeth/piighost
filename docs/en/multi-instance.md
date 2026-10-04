@@ -6,32 +6,29 @@ icon: lucide/network
 
 A thread pipeline keeps one placeholder per value for the length of a conversation, so a name seen early reads as the same token later. That consistency depends on where the conversation memory lives. The default `InMemoryConversationMemory` is process-local. So two workers behind a load balancer number the same value differently mid-conversation. A shared Redis memory fixes it.
 
-!!! note "Summary"
-    `InMemoryConversationMemory` holds each thread's detections in a process dictionary. Behind a load balancer, the same `thread_id` routed to two workers will see `Patrick`{ .pii } tokenized as `<<PERSON:1>>`{ .placeholder } on one worker and `<<PERSON:2>>`{ .placeholder } on the other, and the LLM can no longer relate the two. The fix is `RedisConversationMemory`, shared by every worker.
-
 ## Why one process is not enough
 
 `InMemoryConversationMemory` keeps each thread's detections in a dictionary that lives in one process. It suits development, tests, and a single-process deployment. Nothing survives a restart and nothing is shared across processes. It is bounded by default, and `max_threads` and `ttl` adjust its growth. A multi-worker deployment still needs a shared backend.
 
-The problem appears the moment a load balancer routes the same `thread_id` to more than one worker. Each worker holds its own memory, and these memories do not talk to each other. A value tokenized as `<<PERSON:1>>`{ .placeholder } on worker A is unknown to worker B, which numbers it fresh.
+The problem appears the moment a load balancer routes the same `thread_id` to more than one worker. Each worker holds its own memory, and these memories do not talk to each other. A value tokenized as `<<PERSON:1>>`{ .placeholder } on worker A is unknown to worker B, which numbers from scratch.
 
 ```text
-Turn 1 (routed to worker A)
+Turn 1, routed to worker A: "Patrick called."
   worker A memory: { Patrick -> <<PERSON:1>> }
   worker B memory: {}
 
-Turn 2 (routed to worker B, "Patrick" still in the context)
-  worker B memory: { Patrick -> <<PERSON:1>> }   # numbered fresh, may collide
+Turn 2, routed to worker B: "Marie called back."
+  worker A memory: { Patrick -> <<PERSON:1>> }
+  worker B memory: { Marie -> <<PERSON:1>> }
 
-Turn 3 (worker B sees "Marie")
-  worker B memory: { Patrick -> <<PERSON:1>>, Marie -> <<PERSON:2>> }
-
-Turn 4 (worker A sees "Marie", numbers from its own state)
+Turn 3, routed to worker A: "Patrick and Marie met."
   worker A memory: { Patrick -> <<PERSON:1>>, Marie -> <<PERSON:2>> }
-  # Marie could have taken another number if a different PII had preceded it on A.
+  worker B memory: { Marie -> <<PERSON:1>> }
 ```
 
-The failure is silent. No exception is raised, and the pipeline produces valid tokenized text. The inconsistency only shows in the LLM's answers. The LLM loses the thread between turns, because the same person now wears two names.
+The LLM receives `<<PERSON:1>>`{ .placeholder } for `Patrick`{ .pii } on turn 1, then for `Marie`{ .pii } on turn 2. On turn 3, `Marie`{ .pii } becomes `<<PERSON:2>>`{ .placeholder }. The same token names two people, and the same person wears two tokens.
+
+The failure is silent. No exception is raised, and the pipeline produces valid tokenized text. The inconsistency only shows in the LLM's answers. The LLM loses the thread between turns, because the tokens no longer name the same people.
 
 ## Configure a shared Redis memory
 
@@ -45,7 +42,7 @@ Point every worker at one Redis instance. The tokens are assigned over the union
 --8<-- "snippets/redis_load.py:example"
 ```
 
-Now the turn-2 case resolves the other way. Worker B reads `Patrick -> <<PERSON:1>>`{ .placeholder } straight from Redis and keeps it, because the store worker A wrote to is the store worker B reads from. Any worker that picks up the conversation reproduces the same token for the same value.
+With Redis, turn 2 goes differently. Worker B reads the memory worker A wrote on turn 1. `<<PERSON:1>>`{ .placeholder } is already given to `Patrick`{ .pii } there, so `Marie`{ .pii } receives `<<PERSON:2>>`{ .placeholder }. Any worker that picks up the conversation reproduces the same token for the same value.
 
 ## Check that the workers agree
 
@@ -63,7 +60,7 @@ The output should be:
 
 `bob@corp.com`{ .pii }, new to the thread, takes `<<EMAIL:2>>`{ .placeholder }. `alice@corp.com`{ .pii } keeps the `<<EMAIL:1>>`{ .placeholder } worker A gave it. Without the shared memory, worker B would number its message from scratch and give `<<EMAIL:1>>`{ .placeholder } to Bob. In production, run the same check against two worker processes behind the load balancer.
 
-The Redis backend can encrypt each stored value and hash each key. That protection is opt-in and all-or-nothing. The config shown above sets both a hasher and a cipher, so it gets that protection. It reads its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deploy a production pipeline](deployment.md). Every `[memory]` key is in the [configuration reference](configuration/toml.md).
+The Redis backend can encrypt each stored value and hash each key. That protection is opt-in and all-or-nothing. The config shown above sets both a hasher and a cipher, so it gets that protection. It reads its pepper and cipher key from the environment. Those secrets and the full setup are covered in [Deployment](deployment.md). Every `[memory]` key is in the [configuration reference](configuration/toml.md).
 
 A SQL database is the other shared store. `type = "sqlalchemy"` gives the same cross-worker consistency backed by PostgreSQL (or any async SQLAlchemy driver). This backend suits a stack that already runs a relational database and wants the token mapping to survive restarts durably. It reads the database URL from `PIIGHOST_DATABASE_URL` and takes the same optional hasher and cipher as Redis.
 
@@ -103,7 +100,7 @@ The same trap hits LangGraph's `checkpointer`. `MemorySaver` is process-local, `
 
 ## See also
 
-- [Deploy a production pipeline](deployment.md): the full Redis setup, extras, and secrets.
+- [Deployment](deployment.md): the full Redis setup, extras, and secrets.
 - [Configuration reference](configuration/toml.md): every `[memory]` key, TOML and JSON.
 - [Security](security.md): the at-rest guarantees of the Redis backend and the backend comparison.
 - [Conversational pipeline](getting-started/conversation.md): how tokens stay consistent across a thread.

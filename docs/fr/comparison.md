@@ -2,7 +2,7 @@
 icon: lucide/scale
 ---
 
-# Comment PIIGhost se compare
+# Comment piighost se compare
 
 `piighost` réunit quatre propriétés dont un agent conversationnel a besoin. Il restaure la réponse pour l'utilisateur, garde le même jeton sur toute la conversation, donne la vraie valeur aux outils, et restaure pendant le flux. Aucun des outils ci-dessous ne les réunit toutes. Chacun fait en revanche mieux que `piighost` sur un autre terrain, et sa fiche le dit.
 
@@ -13,7 +13,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     | | `piighost` | Presidio |
     |---|---|---|
     | Détection | regex, NER ou LLM | NER, regex, règles, clés de contrôle |
-    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | masque ou jeton chiffré |
+    | Traitement des valeurs | jeton réversible (mémoire, Redis ou SQL) | masque ou jeton chiffré |
     | Restauration pour l'utilisateur | ✅ | ⚠️ à la main (`decrypt`) |
     | Même jeton sur la conversation | ✅ par conversation | ❌ |
     | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
@@ -30,7 +30,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     | | `piighost` | LangChain PII |
     |---|---|---|
     | Détection | regex, NER ou LLM | regex, validateurs |
-    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | masque ou hash |
+    | Traitement des valeurs | jeton réversible (mémoire, Redis ou SQL) | masque ou hash |
     | Restauration pour l'utilisateur | ✅ | ❌ |
     | Même jeton sur la conversation | ✅ par conversation | ❌ |
     | Vraie valeur aux outils, jeton au LLM | ✅ | ✅ |
@@ -47,7 +47,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     | | `piighost` | AWS / Azure |
     |---|---|---|
     | Détection | regex, NER ou LLM | apprentissage automatique |
-    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | masque |
+    | Traitement des valeurs | jeton réversible (mémoire, Redis ou SQL) | masque |
     | Restauration pour l'utilisateur | ✅ | ❌ |
     | Même jeton sur la conversation | ✅ par conversation | ❌ |
     | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
@@ -64,7 +64,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     | | `piighost` | Google DLP |
     |---|---|---|
     | Détection | regex, NER ou LLM | apprentissage automatique, types prédéfinis (infoTypes) |
-    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | jeton chiffré sans état |
+    | Traitement des valeurs | jeton réversible (mémoire, Redis ou SQL) | jeton chiffré sans état |
     | Restauration pour l'utilisateur | ✅ | ⚠️ par appel d'API |
     | Même jeton sur la conversation | ✅ par conversation | ✅ toujours le même jeton pour une valeur |
     | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |
@@ -81,7 +81,7 @@ Ouvrez une solution pour voir ses différences avec `piighost`.
     | | `piighost` | pii-redactor |
     |---|---|---|
     | Détection | regex, NER ou LLM | regex, NER |
-    | Traitement des valeurs | jeton réversible (mémoire ou Redis) | jeton réversible (coffre) |
+    | Traitement des valeurs | jeton réversible (mémoire, Redis ou SQL) | jeton réversible (coffre) |
     | Restauration pour l'utilisateur | ✅ | ✅ |
     | Même jeton sur la conversation | ✅ par conversation | ✅ par session |
     | Vraie valeur aux outils, jeton au LLM | ✅ | ❌ |

@@ -4,7 +4,7 @@ icon: lucide/play
 
 # First pipeline
 
-You will build a pipeline that detects arbitrary names and locations, not only values known in advance, and watch it run at each step. Two detectors fit this, an NER model (GLiNER2) or a catalog of regex patterns. You start from a detector, add the three remaining components one at a time, then run the pipeline on a sentence.
+You will build a pipeline one component at a time, then run it on a sentence. You start from a detector, add the linker and the anonymizer, then put them together. The detector depends on what you look for. An NER model such as GLiNER2 detects names and locations it has never seen. A regex only recognizes fixed formats, such as an email address.
 
 !!! note "Prerequisites"
     `piighost` installed, see [Installation](installation.md). The regex path uses only the core, no extra. The GLiNER2 path needs the `gliner2` extra and downloads a model on first load.
@@ -15,13 +15,13 @@ The detector reads the text and returns detections, one per value found. The res
 
 === "Regex (catalog)"
 
-    A `RegexDetector` recognizes patterns, that is strings of characters following a fixed structure. For arbitrary names and locations, you pass it a dictionary mapping a label to a pattern. Here two patterns, one for first names, one for the city.
+    A `RegexDetector` recognizes patterns, that is strings of characters following a fixed structure. You pass it a dictionary mapping a label to a pattern. A first name has no fixed structure, so the two patterns below simply list the values of the example sentence. They show how the pipeline works, they detect no other name.
 
     ```python
     --8<-- "snippets/first_pipeline.en.py:detector"
     ```
 
-    For formats that are not language-specific, such as email and URL, the [piighost hub](https://hub.piighost.dev) publishes ready-made catalogs. The group below is fetched from the hub when the detector is built.
+    For fixed formats that do not depend on a language, such as email and URL, the [piighost hub](https://hub.piighost.dev) publishes ready-made catalogs. The `generic` group below holds no pattern for a name or a location. It is fetched from the hub every time the detector is built.
 
     ```python
     --8<-- "snippets/detector_hub.py:detector"
@@ -73,7 +73,7 @@ Each occurrence of `Patrick`{ .pii } receives the same `<<PERSON:1>>`{ .placehol
 
 `AnonymizationPipeline` runs three mandatory stages. The detector finds the confidential data. The linker groups the occurrences of the same value into one entity. The anonymizer replaces each entity with the token from its factory. Optional stages (missed-occurrence expansion, entity merging) exist, disabled by default. Overlap resolution, in contrast, runs by default. Only the detector is strictly required to construct the pipeline, and that minimum is enough for a first pipeline.
 
-## What's next
+## See also
 
-- To describe this pipeline in a file rather than in Python, see the [TOML reference](../configuration/toml.md). A regex detector takes its catalogs there with `catalogs = ["hub:piighost/generic"]`.
+- To describe this pipeline in a file rather than in Python, see the [configuration reference](../configuration/toml.md). A regex detector takes its catalogs there with `catalogs = ["hub:piighost/generic"]`.
 - To de-identify across a conversation with tokens stable between messages, see the [Conversational pipeline](conversation.md).

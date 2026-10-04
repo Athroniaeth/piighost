@@ -5,14 +5,14 @@ tags:
   - Middleware
 ---
 
-# Construire un agent LangChain avec un vrai détecteur
+# Intégration LangChain
 
 Vous voulez un agent LangGraph qui fonctionne, où le LLM ne voit jamais que des jetons, où un outil reçoit quand même les vraies valeurs dont il a besoin, et où la détection tourne sur un vrai modèle NER plutôt que sur une liste de valeurs figée. L'assemblage ci-dessous va de bout en bout. Il réunit un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, un system prompt qui apprend au modèle à traiter les jetons comme des données, et un outil qui cherche une personne par son nom.
 
 Pour la version minimale avec un détecteur bouchon, commencez par le tutoriel [Middleware LangChain](../getting-started/langchain.md). La suite en reprend la forme avec un vrai modèle et un system prompt.
 
 !!! note "Prérequis"
-    `piighost` installé avec les extras middleware et gliner2, `pip install piighost[langchain,gliner2]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
+    `piighost` installé avec les extras middleware et gliner2, `pip install "piighost[langchain,gliner2]"`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
 
 ## 1. Construire le pipeline sur un détecteur GLiNER2
 
@@ -54,7 +54,7 @@ Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l
 --8<-- "snippets/langchain_agent.py:run"
 ```
 
-La réponse est restaurée pour l'affichage, donc elle se lit avec les vraies valeurs :
+La réponse est restaurée pour l'affichage, donc elle se lit avec les vraies valeurs. Sa formulation dépend du modèle, par exemple :
 
 ```text
 --8<-- "snippets/langchain_agent.out"
@@ -70,8 +70,8 @@ GLiNER2 marque `Patrick`{ .pii } comme `PERSON` dans le message entrant. À part
 
 Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque étape.
 
-## Et ensuite
+## Voir aussi
 
 - Pour choisir un autre comportement d'outil, `INPUT` seul, `OUTPUT` seul ou `PASSTHROUGH`, voir [Stratégies d'appel d'outil](../tool-call-strategies.md).
-- Pour remplacer GLiNER2 par spaCy, un pack regex ou votre propre détecteur, voir [Étendre PIIGhost](../extending.md).
+- Pour remplacer GLiNER2 par spaCy, un pack regex ou votre propre détecteur, voir [Étendre piighost](../extending.md).
 - Pour exécuter le pipeline hors du processus contre un serveur partagé, voir [Client distant](../getting-started/api-client.md).

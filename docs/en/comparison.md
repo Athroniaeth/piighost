@@ -2,7 +2,7 @@
 icon: lucide/scale
 ---
 
-# How PIIGhost compares
+# How piighost compares
 
 `piighost` combines four properties a conversational agent needs. It restores the reply for the user, keeps the same placeholder over the whole conversation, hands the real value to tools, and restores while the reply streams. None of the tools below combines all four. Each one is better than `piighost` at something else, and its entry says what.
 
@@ -13,7 +13,7 @@ Open a solution to see how it differs from `piighost`.
     | | `piighost` | Presidio |
     |---|---|---|
     | Detection | regex, NER or LLM | NER, regex, rules, check digits |
-    | What happens to a value | reversible placeholder (memory or Redis) | mask or encrypted token |
+    | What happens to a value | reversible placeholder (memory, Redis or SQL) | mask or encrypted token |
     | Restored for the user | ✅ | ⚠️ by hand (`decrypt`) |
     | Same placeholder over the conversation | ✅ per conversation | ❌ |
     | Real value to tools, placeholder to the LLM | ✅ | ❌ |
@@ -30,7 +30,7 @@ Open a solution to see how it differs from `piighost`.
     | | `piighost` | LangChain PII |
     |---|---|---|
     | Detection | regex, NER or LLM | regex, validators |
-    | What happens to a value | reversible placeholder (memory or Redis) | mask or hash |
+    | What happens to a value | reversible placeholder (memory, Redis or SQL) | mask or hash |
     | Restored for the user | ✅ | ❌ |
     | Same placeholder over the conversation | ✅ per conversation | ❌ |
     | Real value to tools, placeholder to the LLM | ✅ | ✅ |
@@ -47,7 +47,7 @@ Open a solution to see how it differs from `piighost`.
     | | `piighost` | AWS / Azure |
     |---|---|---|
     | Detection | regex, NER or LLM | machine learning |
-    | What happens to a value | reversible placeholder (memory or Redis) | mask |
+    | What happens to a value | reversible placeholder (memory, Redis or SQL) | mask |
     | Restored for the user | ✅ | ❌ |
     | Same placeholder over the conversation | ✅ per conversation | ❌ |
     | Real value to tools, placeholder to the LLM | ✅ | ❌ |
@@ -64,7 +64,7 @@ Open a solution to see how it differs from `piighost`.
     | | `piighost` | Google DLP |
     |---|---|---|
     | Detection | regex, NER or LLM | machine learning, predefined types (infoTypes) |
-    | What happens to a value | reversible placeholder (memory or Redis) | stateless encrypted token |
+    | What happens to a value | reversible placeholder (memory, Redis or SQL) | stateless encrypted token |
     | Restored for the user | ✅ | ⚠️ through an API call |
     | Same placeholder over the conversation | ✅ per conversation | ✅ always the same token for a value |
     | Real value to tools, placeholder to the LLM | ✅ | ❌ |
@@ -81,7 +81,7 @@ Open a solution to see how it differs from `piighost`.
     | | `piighost` | pii-redactor |
     |---|---|---|
     | Detection | regex, NER or LLM | regex, NER |
-    | What happens to a value | reversible placeholder (memory or Redis) | reversible token (vault) |
+    | What happens to a value | reversible placeholder (memory, Redis or SQL) | reversible token (vault) |
     | Restored for the user | ✅ | ✅ |
     | Same placeholder over the conversation | ✅ per conversation | ✅ per session |
     | Real value to tools, placeholder to the LLM | ✅ | ❌ |

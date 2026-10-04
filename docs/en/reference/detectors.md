@@ -492,5 +492,5 @@ The rule assumes spaces between words, so it finds nothing in Chinese, Japanese 
 - [Pipeline reference](pipeline.md) for the pipeline that drives the detector.
 - [Pre-built detectors](../examples/detectors.md) for composing catalogs in practice.
 - [TOML configuration](../configuration/toml.md) for the declarative build.
-- [Extending PIIGhost](../extending.md) for writing your own detector.
+- [Extending piighost](../extending.md) for writing your own detector.
 - [Data models reference](models.md) for the full shape of a `Detection`.

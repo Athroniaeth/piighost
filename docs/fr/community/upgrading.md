@@ -48,7 +48,7 @@ Une version mineure ajoute des composants, des options et des factories de place
 | Surface | Pourquoi ça peut encore bouger |
 |---|---|
 | `piighost.integrations.claude_code` | Un prototype. Aucun hook Claude Code ne peut réécrire la réponse affichée par l'assistant, et ce manque n'est pas résolu. La dé-identification fait aussi un appel par feuille de texte au lieu de les grouper. |
-| `piighost.integrations.llama_index` | Récente, deux composants, et la forme du wrapper de moteur de requête n'a pas encore été éprouvée sur de vrais corpus. |
+| `piighost.integrations.llama_index` | Récente, deux composants, et la forme de l'enveloppe du moteur de requête n'a pas encore été éprouvée sur de vrais corpus. |
 | `LLMDetector`, `LLMGuardRail` | Le prompt et le schéma de sortie structurée peuvent être remaniés quand un fournisseur change, parce qu'ils dépendent de ce que ce fournisseur accepte. |
 | `ModerationGuardRail` | Lié à une API de modération Mistral tierce dont les catégories et les seuils échappent à ce projet. |
 | `BridgeDetector`, `AnySpanRunner` | Récent, et la forme de span qu'il accepte d'un exécuteur n'a pas encore été éprouvée sur assez d'exécuteurs pour être figée. |
@@ -136,7 +136,7 @@ En 1.x, la `whitelist` de l'override portait les valeurs toujours masquées, et 
 | `whitelist`, `[override.whitelist]` | `deny_list`, `[override.deny_list]` | valeurs toujours masquées |
 | `blacklist`, `[override.blacklist]` | `allow_list`, `[override.allow_list]` | valeurs toujours laissées en clair |
 | `whitelist_strategy`, `WhitelistStrategy` | `deny_list_strategy`, `DenyListStrategy` | ce que la liste à masquer fait d'une valeur écrite par l'assistant |
-| `blacklist_strategy`, `BlacklistStrategy` | `allow_list_strategy`, `AllowListStrategy` | les détections qu'un hit de la liste à laisser en clair écarte |
+| `blacklist_strategy`, `BlacklistStrategy` | `allow_list_strategy`, `AllowListStrategy` | les détections qu'une valeur trouvée par la liste à laisser en clair écarte |
 | `whitelist_wins`, `OverrideConflictStrategy.WHITELIST_WINS` | `deny_list_wins`, `OverrideConflictStrategy.DENY_LIST_WINS` | une valeur des deux listes est masquée |
 | `blacklist_wins`, `OverrideConflictStrategy.BLACKLIST_WINS` | `allow_list_wins`, `OverrideConflictStrategy.ALLOW_LIST_WINS` | une valeur des deux listes reste en clair |
 
@@ -170,7 +170,7 @@ patterns = { CODENAME = 'ACME-[A-Z]+' }
 - **Traits d'union.** Dans une recherche par mot entier, tout trait d'union Unicode relie deux mots, y compris le trait d'union insécable que tape Word. `Jean`{ .pii } n'est donc plus trouvé dans `Jean‑Paul`{ .pii } écrit avec ce trait d'union.
 - **Détecteurs NER.** Chaque adaptateur relit dans la source le texte d'une détection et applique lui-même son seuil, quoi que rende son modèle. Une détection de `Gliner2Detector` peut donc porter un texte un peu différent d'avant, celui du document plutôt que celui du modèle.
 - **Surcharges.** Après une liste à masquer, deux détections sur un même span gardent l'ordre de leurs détecteurs, comme quand aucune liste à masquer n'est posée.
-- **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 conversations et un jour d'inactivité. Une conversation évincée ou expirée ne restaure plus ses jetons. Passez `max_threads=None` et `ttl=None` pour retrouver le store sans borne de la 1.x.
+- **Mémoire en processus.** `InMemoryConversationMemory` est bornée par défaut à 10 000 conversations et un jour d'inactivité. Une conversation évincée ou expirée ne restaure plus ses jetons. Passez `max_threads=None` et `ttl=None` pour retrouver la mémoire sans borne de la 1.x.
 - **Détecteur et garde-fou LLM.** Une sortie que `LLMDetector` ou `LLMGuardRail` ne sait pas lire lève `UnreadableOutputError` au lieu de compter comme zéro détection, donc le message est refusé. Passez `fail_open=True`, ou `fail_open = true` dans une configuration, pour l'envoyer sans détection comme le faisait la 1.x.
 - **Hooks Claude Code.** Un hook qui ne peut pas dé-identifier, quand le serveur est arrêté par exemple, bloque le prompt ou l'appel d'outil et remplace une sortie d'outil par un avis. Réglez `PIIGHOST_HOOK_FAIL_OPEN=1` pour laisser passer le texte en clair comme le faisait la 1.x.
 
@@ -181,7 +181,7 @@ Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeu
 `piighost-api` demande `piighost>=2.0,<3`, et sa configuration suit les règles de la 2.0 ci-dessus, références du hub de `catalogs` comprises.
 
 - `--config` et `PIIGHOST_CONFIG` acceptent une référence du hub aussi bien qu'un chemin de fichier.
-- Une configuration sans section `[memory]` est servie avec la mémoire in-process au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les conversations entre instances.
+- Une configuration sans section `[memory]` est servie avec la mémoire du processus au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les conversations entre instances.
 - `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize` exigent un `thread_id`, et répondent `400` sans lui au lieu d'utiliser la conversation partagée `"default"`.
 - `/v1/labels` lit les labels d'un groupe du hub sur le hub.
 - L'observation passe par les variables standard `OTEL_*`. `LANGFUSE_PUBLIC_KEY` et `LANGFUSE_SECRET_KEY` ne servent qu'à `dataset extract`, et aucune variable `OPIK_*` n'est lue.
@@ -198,7 +198,7 @@ Cela concerne une mémoire de conversation Redis ou SQLAlchemy construite avec `
 
 Les entrées stockées sont orphelines, pas corrompues. Le pipeline ne trouve rien sous la nouvelle clé, considère le message comme jamais vu, et le redétecte. Une conversation en cours repart donc avec une numérotation de jetons remise à zéro, et une même valeur peut atterrir sur un numéro différent de celui que le modèle lisait jusque-là.
 
-Purgez le store pendant la montée de version, avant de redémarrer l'application :
+Purgez le stockage pendant la montée de version, avant de redémarrer l'application :
 
 ```bash
 # Redis, la base entière qui porte la mémoire de conversation
@@ -221,4 +221,4 @@ Un code en 0.x se porte en réécrivant son montage, pas en renommant ses import
 - les extras `faker`, `cache`, `langfuse` et `opik` ont disparu, et aucun étage ne met les détections en cache
 - l'extra `sqlalchemy` est revenu en 1.2.0, comme backend de mémoire de conversation
 
-Repartez du [Quickstart](../getting-started/quickstart.md), puis lisez [Premier pipeline](../getting-started/first-pipeline.md) pour les étages et la [référence TOML](../configuration/toml.md) pour déplacer le montage dans un fichier de configuration.
+Repartez du [Démarrage rapide](../getting-started/quickstart.md), puis lisez [Premier pipeline](../getting-started/first-pipeline.md) pour les étages et la [référence TOML](../configuration/toml.md) pour déplacer le montage dans un fichier de configuration.

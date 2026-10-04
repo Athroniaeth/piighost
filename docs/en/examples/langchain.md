@@ -5,14 +5,14 @@ tags:
   - Middleware
 ---
 
-# Build a LangChain agent with a real detector
+# LangChain integration
 
 You want a working LangGraph agent where the LLM only ever sees tokens, a tool still receives the real values it needs, and detection runs on a real NER model instead of a fixed value list. The assembly below runs end to end. It brings together a GLiNER2 detector, a `ThreadAnonymizationPipeline`, `PIIAnonymizationMiddleware`, a system prompt that teaches the model to treat tokens as data, and a tool that looks a person up by name.
 
 For the minimal version with a stub detector, start with the [LangChain middleware](../getting-started/langchain.md) tutorial. What follows is the same shape with a real model and a system prompt.
 
 !!! note "Prerequisites"
-    `piighost` installed with the middleware and gliner2 extras, `pip install piighost[langchain,gliner2]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The first run downloads the GLiNER2 weights, roughly 500 MB.
+    `piighost` installed with the middleware and gliner2 extras, `pip install "piighost[langchain,gliner2]"`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The first run downloads the GLiNER2 weights, roughly 500 MB.
 
 ## 1. Build the pipeline over a GLiNER2 detector
 
@@ -54,7 +54,7 @@ The `thread_id` goes in the LangGraph config, under `configurable`. The middlewa
 --8<-- "snippets/langchain_agent.py:run"
 ```
 
-The reply is restored for display, so it reads with the real values:
+The reply is restored for display, so it reads with the real values. Its wording depends on the model, for example:
 
 ```text
 --8<-- "snippets/langchain_agent.out"
@@ -70,8 +70,8 @@ The reply is restored for display, so it reads with the real values:
 
 The `thread_id` keeps `<<PERSON:1>>`{ .placeholder } bound to `Patrick`{ .pii } across every step.
 
-## What's next
+## See also
 
 - To pick a different tool behaviour, `INPUT` only, `OUTPUT` only, or `PASSTHROUGH`, see [Tool-call strategies](../tool-call-strategies.md).
-- To swap GLiNER2 for spaCy, a regex pack, or your own detector, see [Extending PIIGhost](../extending.md).
+- To swap GLiNER2 for spaCy, a regex pack, or your own detector, see [Extending piighost](../extending.md).
 - To run the pipeline out of process against a shared server, see [Remote client](../getting-started/api-client.md).

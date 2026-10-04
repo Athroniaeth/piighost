@@ -5,7 +5,7 @@ tags:
   - Détecteur
 ---
 
-# Étendre PIIGhost
+# Étendre piighost
 
 Chaque étape du pipeline est un **port**, un `Protocol` que vous satisfaites en implémentant sa méthode unique. Aucune classe de base à hériter, et rien d'autre dans le pipeline ne change. Là où un patron `Base*` existe, vous pouvez aussi le sous-classer. Ce patron fournit le squelette commun et vous laisse un seul point d'extension.
 
@@ -21,18 +21,12 @@ flowchart LR
     A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-*Le pipeline injecte un composant par port. Seul le détecteur est requis. Le linker, l'anonymiseur et le résolveur de chevauchements utilisent par défaut des composants intégrés. Seules les étapes expand, entity-resolve, guard et override sont désactivées par défaut.*
+*Le pipeline injecte un composant par port. Seul le détecteur est requis. Le linker, l'anonymiseur et le résolveur de chevauchements utilisent par défaut des composants intégrés. Les étapes d'expansion, de résolution d'entités, de garde-fou et de listes à masquer ou à laisser en clair sont désactivées par défaut.*
 { .figure-caption }
 
 Les ports vivent dans le `base.py` de chaque composant, sous `piighost.components.*`. Les modèles de données qu'ils échangent vivent dans `piighost.models`.
 
-```python
---8<-- "snippets/extending_models.py"
-```
-
 Une `Detection` est un `Span(start, end)` portant `text`, `label` et une `confidence` dans l'intervalle 0 à 1. Une `Entity` regroupe les détections qui partagent une valeur, et en dérive son `label`, son `text` et ses `spans`. Voir la [référence des modèles de données](reference/models.md) pour chaque champ, méthode et erreur de validation.
-
----
 
 ## Un détecteur personnalisé
 
@@ -50,7 +44,13 @@ Un détecteur trouve les données confidentielles (données personnelles, secret
     --8<-- "snippets/extending.py:handle_detector"
     ```
 
-Pour alimenter un détecteur depuis une liste de valeurs figée dans les tests, utilisez plutôt le détecteur intégré `ExactMatchDetector`. Voir [Tester un pipeline sans modèle](examples/testing.md).
+### Utiliser le détecteur
+
+```python
+--8<-- "snippets/extending.py:use_detector"
+```
+
+Pour alimenter un détecteur depuis une liste de valeurs figée dans les tests, utilisez plutôt le détecteur intégré `ExactMatchDetector`. Voir [Tester sans modèle](examples/testing.md).
 
 ### Pour les modèles NER, sous-classez `BaseNERDetector`
 
@@ -59,14 +59,6 @@ Les détecteurs adossés à un modèle (`Gliner2Detector`, `SpacyDetector`, `Tra
 ```python
 --8<-- "snippets/extending_gliner2.py:example"
 ```
-
-### Utilisation
-
-```python
---8<-- "snippets/extending.py:use_detector"
-```
-
----
 
 ## Un résolveur de chevauchements personnalisé
 
@@ -86,11 +78,9 @@ Plutôt que d'implémenter `resolve` de zéro, sous-classez `BaseOverlapResolver
 
 Le `ConfidenceOverlapResolver` intégré garde plutôt la détection de plus haute confiance. Le résolveur de chevauchements est toujours actif. Omettez-le et le pipeline installe un `ConfidenceOverlapResolver`. Passez le vôtre pour changer la règle. Il n'y a aucun moyen supporté de le désactiver, car le rendu suppose des spans disjoints et lève sinon `OverlappingSpansError`.
 
----
+## Un expander personnalisé
 
-## Un expandeur personnalisé
-
-Un expandeur trouve les occurrences qu'un détecteur a manquées, comme la répétition d'un nom repéré ailleurs. Le port :
+Un expander trouve les occurrences qu'un détecteur a manquées, comme la répétition d'un nom repéré ailleurs. Le port :
 
 ```python
 --8<-- "snippets/ports.py:expander"
@@ -105,8 +95,6 @@ Sous-classez `BaseDetectionExpander`. Il conserve les détections d'origine. Pou
     ```
 
 Le `WordBoundaryExpander` intégré fait exactement cela. L'étape est optionnelle.
-
----
 
 ## Un linker d'entités personnalisé
 
@@ -126,8 +114,6 @@ Sous-classez `BaseEntityLinker`. Il regroupe les détections selon une clé que 
 
 L'`ExactEntityLinker` intégré regroupe selon la clé de valeur. Cette clé est la même pour les mêmes mots, quelles que soient leurs espaces et leur casse. `Patrick`{ .pii } et `patrick`{ .pii } deviennent donc une seule entité. Utilisez `piighost.text.value_key` dans votre propre linker pour suivre la même règle, voir [Espaces Unicode](reference/detectors.md#espaces-unicode).
 
----
-
 ## Un résolveur d'entités personnalisé
 
 Un résolveur d'entités réconcilie les entités qui ne devraient pas coexister, comme deux entités qui partagent une détection. Le port :
@@ -143,8 +129,6 @@ Sous-classez `BaseEntityResolver`. Il regroupe les entités qui partagent une d�
 - `FuzzyEntityResolver` fusionne les entités aux valeurs proches (nécessite l'extra `fuzzy`).
 
 L'étape est optionnelle.
-
----
 
 ## Une fabrique de placeholders personnalisée
 
@@ -164,13 +148,11 @@ Un jeton est une instance du tag, et le tag est une sous-classe de `str`. Le jet
 
 `PreservesLabel` dit que le jeton révèle le type mais pas une identité unique. Cette fabrique convient donc au caviardage à usage unique, pas au middleware. Pour un jeton que le middleware sait dé-identifier et retrouver, taguez-le `PreservesRecognizableIdentity` (ou un sous-tag comme `PreservesLabeledIdentityOpaque`) et utilisez une grammaire délimitée comme `<<PERSON:1>>`{ .placeholder }. Pour envelopper une forme interne dans des délimiteurs sans écrire l'enveloppe vous-même, sous-classez `BaseDelimitedPlaceholderFactory`. Voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète des tags et des exemples détaillés.
 
-### Utilisation
+### Utiliser la fabrique
 
 ```python
 --8<-- "snippets/extending.py:use_factory"
 ```
-
----
 
 ## Un garde-fou personnalisé
 
@@ -190,13 +172,11 @@ Un garde-fou re-contrôle la sortie dé-identifiée à la recherche de données 
 
 Le `DetectorGuardRail` intégré relance un détecteur et rapporte les détections résiduelles. L'étape est optionnelle. Ne passez aucun `guard` et la sortie est renvoyée sans contrôle.
 
-### Utilisation
+### Utiliser le garde-fou
 
 ```python
 --8<-- "snippets/extending.py:use_guard"
 ```
-
----
 
 ## Composition complète
 
@@ -206,4 +186,4 @@ Les étapes sont indépendantes, donc un détecteur, une fabrique et un garde pe
 --8<-- "snippets/extending.py:assemble"
 ```
 
-Pour tester un composant personnalisé de façon déterministe, alimentez-le via `ExactMatchDetector`. Voir [Tester un pipeline sans modèle](examples/testing.md).
+Pour tester un composant personnalisé de façon déterministe, alimentez-le via `ExactMatchDetector`. Voir [Tester sans modèle](examples/testing.md).

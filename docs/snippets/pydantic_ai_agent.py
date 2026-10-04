@@ -14,7 +14,7 @@ from pydantic_ai import Agent
 
 from piighost.integrations.pydantic_ai import pii_hooks
 
-hooks = pii_hooks(pipeline, "thread-42")
+hooks = pii_hooks(pipeline, thread_id="thread-42")
 agent = Agent("openai:gpt-5.6-terra", capabilities=[hooks])
 # --8<-- [end:agent]
 
@@ -39,7 +39,7 @@ from piighost.integrations.langchain import InventedPlaceholderStrategy
 
 hooks = pii_hooks(
     pipeline,
-    "thread-42",
+    thread_id="thread-42",
     invented_strategy=InventedPlaceholderStrategy.DROP,
 )
 # --8<-- [end:invented]
@@ -49,7 +49,7 @@ hooks = pii_hooks(
 # --8<-- [start:tools]
 from piighost.integrations.langchain import ToolCallStrategy
 
-hooks = pii_hooks(pipeline, "thread-42", tool_strategy=ToolCallStrategy.FULL)
+hooks = pii_hooks(pipeline, thread_id="thread-42", tool_strategy=ToolCallStrategy.FULL)
 # --8<-- [end:tools]
 
 
@@ -59,7 +59,7 @@ from piighost.integrations.langchain import EntityCreateByAssistantStrategy
 
 hooks = pii_hooks(
     pipeline,
-    "thread-42",
+    thread_id="thread-42",
     assistant_strategy=EntityCreateByAssistantStrategy.ANONYMIZE,
 )
 # --8<-- [end:assistant]

@@ -13,30 +13,30 @@ Les détecteurs et les modes de `piighost` se placent face à deux cadres régle
 
 HIPAA est la loi américaine sur les données de santé. Sa méthode Safe Harbor pose deux conditions. Les 18 catégories d'identifiants sont retirées d'un dossier, et vous n'avez pas connaissance effective que le reste pourrait ré-identifier une personne. Le dossier n'est alors plus une donnée de santé protégée et sort du champ de la règle. Safe Harbor est une cible de dé-identification, pas une transformation sans perte, parce qu'il détruit les données qui dépendent de dates ou de lieux exacts.
 
-Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs livrés par `piighost` et des catalogues regex du hub. "Custom" signifie qu'aucun catalogue du hub n'a de pattern pour cet identifiant. Vous le couvrez avec un pattern `RegexDetector` pour votre format local, ou avec le `LLMDetector`.
+Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs livrés par `piighost` et des catalogues regex du hub. "Personnalisé" signifie qu'aucun catalogue du hub n'a de pattern pour cet identifiant. Vous le couvrez avec un pattern `RegexDetector` pour votre format local, ou avec le `LLMDetector`.
 
 <div class="wide-table" markdown="1">
 
 | Identifiant Safe Harbor | Couverture | Par |
 |-------------------------|------------|-----|
-| 1. Noms | Yes | `Gliner2PiiDetector` (`PERSON`), `SpacyDetector`, `TransformersDetector` |
-| 2. Unités géographiques sous l'État (rue, ville, code postal) | Partial | regex `US_ZIP`, `Gliner2PiiDetector` (`LOCATION`, `ADDRESS`). Ville et comté dépendent du modèle NER |
-| 3. Dates plus fines que l'année, et âges au-delà de 89 ans | Partial | `Gliner2PiiDetector` (`DATE_OF_BIRTH`). Une date générique demande une regex custom, les âges au-delà de 89 ans ne sont pas traités à part |
-| 4. Numéros de téléphone | Yes | regex `US_PHONE`, `FR_PHONE`, `Gliner2PiiDetector` (`PHONE`) |
-| 5. Numéros de fax | Partial | reconnus par les patterns de téléphone sur la forme, non distingués comme fax |
-| 6. Adresses e-mail | Yes | regex `EMAIL`, `Gliner2PiiDetector` (`EMAIL`) |
-| 7. Numéros de sécurité sociale | Yes | regex `US_SSN`, `FR_NIR`, `Gliner2PiiDetector` (`SSN`) |
-| 8. Numéros de dossier médical | Custom | fournir un pattern `RegexDetector` pour le format local |
-| 9. Numéros de bénéficiaire d'assurance santé | Custom | fournir un pattern `RegexDetector` |
-| 10. Numéros de compte | Partial | regex `IBAN` et `Gliner2PiiDetector` (`IBAN`). Les autres numéros de compte demandent un pattern custom |
-| 11. Numéros de certificat et de licence | Partial | `Gliner2PiiDetector` (`DRIVER_LICENSE`, `PASSPORT`). Les autres certificats demandent un pattern custom |
-| 12. Identifiants de véhicule et plaques | Custom | fournir un pattern `RegexDetector` |
-| 13. Identifiants d'appareil et numéros de série | Custom | fournir un pattern `RegexDetector` |
-| 14. URLs | Yes | regex `URL` |
-| 15. Adresses IP | Yes | regex `IPV4`, `Gliner2PiiDetector` (`IP_ADDRESS`). L'IPv6 demande un pattern custom |
-| 16. Identifiants biométriques | No | hors texte, hors périmètre |
-| 17. Photographies plein visage et images comparables | No | multimodal, un [hors-périmètre](roadmap.md#hors-perimetre) |
-| 18. Tout autre numéro ou code identifiant unique | Custom | un pattern `RegexDetector` ou le `LLMDetector`. `TAX_ID`, `CRYPTO`, `API_KEY` sont aussi couverts par `Gliner2PiiDetector` |
+| 1. Noms | Oui | `Gliner2PiiDetector` (`PERSON`), `SpacyDetector`, `TransformersDetector` |
+| 2. Unités géographiques sous l'État (rue, ville, code postal) | Partiel | regex `US_ZIP`, `Gliner2PiiDetector` (`LOCATION`, `ADDRESS`). Ville et comté dépendent du modèle NER |
+| 3. Dates plus fines que l'année, et âges au-delà de 89 ans | Partiel | `Gliner2PiiDetector` (`DATE_OF_BIRTH`). Une date générique demande une regex custom, les âges au-delà de 89 ans ne sont pas traités à part |
+| 4. Numéros de téléphone | Oui | regex `US_PHONE`, `FR_PHONE`, `Gliner2PiiDetector` (`PHONE`) |
+| 5. Numéros de fax | Partiel | reconnus par les patterns de téléphone sur la forme, non distingués comme fax |
+| 6. Adresses e-mail | Oui | regex `EMAIL`, `Gliner2PiiDetector` (`EMAIL`) |
+| 7. Numéros de sécurité sociale | Oui | regex `US_SSN`, `FR_NIR`, `Gliner2PiiDetector` (`SSN`) |
+| 8. Numéros de dossier médical | Personnalisé | fournir un pattern `RegexDetector` pour le format local |
+| 9. Numéros de bénéficiaire d'assurance santé | Personnalisé | fournir un pattern `RegexDetector` |
+| 10. Numéros de compte | Partiel | regex `IBAN` et `Gliner2PiiDetector` (`IBAN`). Les autres numéros de compte demandent un pattern custom |
+| 11. Numéros de certificat et de licence | Partiel | `Gliner2PiiDetector` (`DRIVER_LICENSE`, `PASSPORT`). Les autres certificats demandent un pattern custom |
+| 12. Identifiants de véhicule et plaques | Personnalisé | fournir un pattern `RegexDetector` |
+| 13. Identifiants d'appareil et numéros de série | Personnalisé | fournir un pattern `RegexDetector` |
+| 14. URLs | Oui | regex `URL` |
+| 15. Adresses IP | Oui | regex `IPV4`, `Gliner2PiiDetector` (`IP_ADDRESS`). L'IPv6 demande un pattern custom |
+| 16. Identifiants biométriques | Non | hors texte, hors périmètre |
+| 17. Photographies plein visage et images comparables | Non | multimodal, un [hors-périmètre](roadmap.md#hors-perimetre) |
+| 18. Tout autre numéro ou code identifiant unique | Personnalisé | un pattern `RegexDetector` ou le `LLMDetector`. `TAX_ID`, `CRYPTO`, `API_KEY` sont aussi couverts par `Gliner2PiiDetector` |
 
 </div>
 
@@ -106,7 +106,7 @@ La Cour a statué elle-même sur le moyen tiré de ce que les commentaires n'ét
 
 Le Comité a réuni les parties prenantes le 12 décembre 2025, à la suite de l'arrêt, pour nourrir ses travaux sur les lignes directrices 01/2025 sur la pseudonymisation et sur des lignes directrices consacrées à l'anonymisation. Les participants se sont divisés sur la perspective applicable à un sous-traitant, les uns pour celle du sous-traitant, les autres pour celle du responsable du traitement.
 
-Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique jusqu'au 30 octobre 2026. Elles tiennent compte de l'arrêt, qui portait sur la pseudonymisation. Trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
+Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique. Au 4 octobre 2026, cette consultation est ouverte jusqu'au 30 octobre 2026. Ces lignes directrices tiennent compte de l'arrêt, qui portait sur la pseudonymisation. Trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
 
 - L'anonymat s'apprécie du point de vue de chaque entité concernée, et la question de départ est de savoir pour qui les données sont censées être anonymes (paragraphes 11 et 12).
 - Une entité qui traite des informations pour le compte d'un responsable du traitement s'apprécie du point de vue de ce responsable. Une information qui est une donnée personnelle pour le responsable l'est aussi pour son sous-traitant (paragraphe 15).
@@ -132,7 +132,7 @@ Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation 
 
 ## Voir aussi
 
-- [Sécurité](security.md) : le modèle de menace, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
+- [Sécurité](security.md) : le modèle de menaces, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
 - [Comment documenter `piighost` dans une AIPD](dpia.md) : le traitement, les flux de données, les mesures et les risques résiduels, avec un modèle à remplir.
 - [Limites](limitations.md) : la regex par forme seule et ce qu'elle ne valide pas.
 - [Placeholder factories](placeholder-factories.md) : quels modes sont réversibles et lesquels ne le sont pas.

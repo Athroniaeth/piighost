@@ -53,5 +53,5 @@ La regex par forme seule, sans validation de checksum, est un autre hors-périm�
 ## Voir aussi
 
 - [Placeholder factories](placeholder-factories.md) : les axes de tags et les factories actuels.
-- [Sécurité](security.md) : le modèle de menace et la comparaison des backends de mémoire.
+- [Sécurité](security.md) : le modèle de menaces et la comparaison des backends de mémoire.
 - [Déployer un pipeline en production](deployment.md) : la mémoire Redis en production.

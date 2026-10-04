@@ -43,7 +43,7 @@ child span per stage that ran. A stage that is disabled emits no span. The tree
 for a full run is:
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[piighost.anonymize] --> B[piighost.detect]
     A --> C[piighost.override]
     A --> D[piighost.overlap]

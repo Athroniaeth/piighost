@@ -22,7 +22,7 @@ problème.
 
 ---
 
-## Étape 1, savoir quoi remplacer, le détecteur
+## Étape 1, le détecteur
 
 Dé-identifier, c'est remplacer une valeur sensible par un *placeholder*, c'est-à-dire le
 *jeton* qui prend sa place dans le texte. Sur un texte libre, on ne sait pas d'avance où
@@ -51,9 +51,10 @@ flowchart LR
 { .figure-caption }
 
 `piighost` fournit ces approches comme détecteurs interchangeables, `Gliner2Detector`,
-`SpacyDetector`, `TransformersDetector` pour le NER, `RegexDetector` pour les motifs,
-`LLMDetector` quand le contexte métier dépasse les détecteurs étroits, et
-`ExactMatchDetector` pour les tests. On peut les combiner avec `CompositeDetector`, parce
+`SpacyDetector`, `TransformersDetector` et `PresidioDetector` pour le NER,
+`BridgeDetector` pour un modèle exécuté ailleurs (en JavaScript dans le navigateur),
+`RegexDetector` pour les motifs, `LLMDetector` quand le contexte métier dépasse les
+détecteurs étroits, et `ExactMatchDetector` pour les tests. On peut les combiner avec `CompositeDetector`, parce
 qu'une regex plus un NER couvrent plus de cas qu'un seul détecteur. Le détecteur est donc
 un port (une interface que chaque détecteur implémente) et non une classe figée. On
 injecte celui qu'on veut.
@@ -66,14 +67,14 @@ clair.
 
 ---
 
-## Étape 2, dire de quel type il s'agit, le placeholder typé
+## Étape 2, le placeholder typé
 
 Avec la détection, on connaît le type de chaque valeur. Le placeholder le plus simple
 serait un jeton constant, le même pour tout, comme `<<REDACT>>`{ .placeholder }. On
 l'enrichit avec le type, `<<PERSON>>`{ .placeholder } ou `<<EMAIL>>`{ .placeholder }.
 
-Pourquoi est-ce utile. Parce que le modèle qui lit le texte dé-identifié a besoin du
-type pour raisonner. "Contacte `<<PERSON>>`{ .placeholder } à
+Le type est utile parce que le modèle qui lit le texte dé-identifié en a besoin pour
+raisonner. "Contacte `<<PERSON>>`{ .placeholder } à
 `<<EMAIL>>`{ .placeholder }" reste exploitable. "Contacte `<<REDACT>>`{ .placeholder }
 à `<<REDACT>>`{ .placeholder }" ne l'est plus.
 
@@ -83,7 +84,7 @@ une entité et rend son jeton. C'est elle qu'on change pour passer de
 
 ---
 
-## Étape 3, distinguer les individus, l'entité et son identité
+## Étape 3, l'entité et le linker
 
 Un texte peut citer deux personnes différentes. Si les deux deviennent
 `<<PERSON>>`{ .placeholder }, le modèle ne peut plus les distinguer, et on ne peut plus
@@ -96,20 +97,22 @@ Patrick écrit à Marie  →  <<PERSON:1>> écrit à <<PERSON:2>>
 `Patrick`{ .pii } devient `<<PERSON:1>>`{ .placeholder }, `Marie`{ .pii } devient
 `<<PERSON:2>>`{ .placeholder }. Le compteur distingue les individus du même type.
 
-Mais une même personne apparaît souvent plusieurs fois, parfois orthographiée
-différemment (`Patrick`{ .pii }, `patrick`{ .pii }). Toutes ces occurrences doivent partager le même
+Mais une même personne apparaît souvent plusieurs fois, parfois avec une casse
+différente (`Patrick`{ .pii }, `patrick`{ .pii }). Toutes ces occurrences doivent partager le même
 jeton. Une détection isolée ne suffit donc pas. Il faut une notion au-dessus, l'entité,
 qui regroupe toutes les détections désignant la même valeur.
 
 D'où une nouvelle étape, passer des détections aux entités. C'est le linker
 (`AnyEntityLinker`). `ExactEntityLinker` groupe les détections par clé canonique
-`(texte en minuscules, label)`, une entité par clé.
+`(value_key(texte), label)`, c'est-à-dire la valeur sans tenir compte de la casse ni des
+espaces, et le label. Il crée une entité par clé, dont la valeur est la première
+graphie rencontrée.
 
 ```mermaid
 flowchart LR
     D["détections\nPatrick, patrick, Marie"] --> L{{"ExactEntityLinker"}}
-    L --> E1["entité PERSON 'patrick'"]
-    L --> E2["entité PERSON 'marie'"]
+    L --> E1["entité PERSON 'Patrick'"]
+    L --> E2["entité PERSON 'Marie'"]
 ```
 
 *Le linker regroupe les détections d'une même valeur en une entité, qui recevra un jeton
@@ -121,25 +124,7 @@ entité partagent donc le même `<<PERSON:1>>`{ .placeholder }.
 
 ---
 
-## Étape 4, rattraper les occurrences ratées, l'expander
-
-Le linker ne groupe que les détections **qu'on lui donne**. Or un NER rate des
-occurrences. Il trouve `Patrick`{ .pii } dans la phrase 1, mais rate le `Patrick`{ .pii }
-tout seul de la phrase 3. Si on s'arrête au linker, cette occurrence reste en clair dans
-le texte dé-identifié.
-
-Rattraper les occurrences ratées est un travail à part, celui de l'expander
-(`AnyDetectionExpander`). `WordBoundaryExpander` cherche, pour chaque valeur déjà
-détectée, ses autres occurrences dans le texte par recherche aux frontières de mot, et
-ajoute une détection pour chacune.
-
-On sépare l'expander du linker à dessein. Le linker regroupe, l'expander cherche. Chacun
-a une seule responsabilité. L'expander reste optionnel, parce qu'un jeu de détections
-déjà complet n'en a pas besoin.
-
----
-
-## Étape 5, arbitrer les détections qui se contredisent, le résolveur de spans
+## Étape 4, le résolveur de spans
 
 Dès qu'on combine des détecteurs, ou qu'un détecteur trouve plusieurs candidats sur la
 même zone, des détections se chevauchent. Exemple classique, un NER propose `LOCATION`
@@ -155,6 +140,24 @@ détection dans le texte, de son début à sa fin. `ConfidenceOverlapResolver` g
 les détections qui se chevauchent, puis garde dans chaque groupe la plus confiante.
 `MergeOverlapResolver` garde plutôt l'union de chaque groupe. Ainsi, une détection sûre
 mais courte ne laisse jamais en clair une partie d'une détection plus longue.
+
+---
+
+## Étape 5, l'expander
+
+Le linker ne groupe que les détections **qu'on lui donne**. Or un NER rate des
+occurrences. Il trouve `Patrick`{ .pii } dans la phrase 1, mais rate le `Patrick`{ .pii }
+tout seul de la phrase 3. Si on s'arrête au linker, cette occurrence reste en clair dans
+le texte dé-identifié.
+
+Rattraper les occurrences ratées est un travail à part, celui de l'expander
+(`AnyDetectionExpander`). `WordBoundaryExpander` cherche, pour chaque valeur déjà
+détectée, ses autres occurrences dans le texte par recherche aux frontières de mot, et
+ajoute une détection pour chacune.
+
+On sépare l'expander du linker à dessein. Le linker regroupe, l'expander cherche. Chacun
+a une seule responsabilité. L'expander reste optionnel, parce qu'un jeu de détections
+déjà complet n'en a pas besoin.
 
 L'ordre des étapes est contraint.
 
@@ -172,7 +175,7 @@ occurrences ratées, puis on groupe en entités, et on résout les identités en
 
 ---
 
-## Étape 6, fusionner les entités équivalentes, le résolveur d'entités
+## Étape 6, le résolveur d'entités
 
 Après le linking, deux entités peuvent encore désigner la même personne. C'est le cas de
 `Patrick`{ .pii } et `Patric`{ .pii } (faute de frappe), ou de deux entités issues de
@@ -185,27 +188,28 @@ C'est le résolveur d'entités (`AnyEntityResolver`).
   transitif).
 - `FuzzyEntityResolver` fusionne par similarité de texte (Jaro-Winkler), pour rattraper
   les variantes orthographiques.
-- `SeparateEntityResolver` fait l'inverse, il sépare des entités qui n'auraient pas dû
-  se confondre.
+- `SeparateEntityResolver` fait l'inverse, il garde séparées les entités qui partagent
+  une détection. Chaque détection partagée revient à la plus grande entité qui la
+  contient, et quitte les autres.
 
 À ce stade, on a une liste d'entités propres, chacune devant recevoir un jeton unique et
 stable.
 
 ---
 
-## Étape 7, produire le texte, l'anonymiseur
+## Étape 7, l'anonymiseur
 
 L'anonymiseur (`AnyAnonymizer`) applique enfin le remplacement. Il demande un jeton à la
 factory pour chaque entité, puis remplace chaque détection par son jeton.
 
-Grâce à l'étape 5, le remplacement se fait en un seul passage sur les spans, de gauche à
+Grâce à l'étape 4, le remplacement se fait en un seul passage sur les spans, de gauche à
 droite. Il construit un nouveau texte en recopiant le texte situé entre les spans, si bien
 qu'aucun remplacement ne décale la position d'un autre. Ce passage unique suppose des
-spans qui ne se chevauchent pas, et l'étape 5 le garantit.
+spans qui ne se chevauchent pas, et l'étape 4 le garantit.
 
 ---
 
-## Étape 8, revenir en arrière, la restauration
+## Étape 8, la restauration
 
 Dé-identifier ne sert que si l'on peut restaurer les vraies valeurs pour l'utilisateur.
 Pour cela il faut savoir que `<<PERSON:1>>`{ .placeholder } valait `Patrick`{ .pii }.
@@ -229,13 +233,13 @@ texte.*
 
 La restauration n'est sans ambiguïté que si les jetons préservent l'identité. Deux
 entités qui partageraient un jeton, comme avec `<<PERSON>>`{ .placeholder }, se
-confondraient sur une seule valeur. C'est pourquoi le mode réversible impose une factory
-qui identifie chaque entité, `<<PERSON:1>>`{ .placeholder } et non
+confondraient sur une seule valeur. C'est pourquoi le middleware exige une factory qui
+identifie chaque entité, `<<PERSON:1>>`{ .placeholder } et non
 `<<PERSON>>`{ .placeholder }.
 
 ---
 
-## Étape 9, la conversation, mémoire et cohérence des compteurs
+## Étape 9, la mémoire de conversation
 
 Tout ce qui précède traite un texte, isolément. Un agent, lui, enchaîne des messages, et
 le même `Patrick`{ .pii } doit garder le même `<<PERSON:1>>`{ .placeholder } du premier
@@ -275,7 +279,7 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
 
 ### Les règles qui en découlent
 
-- **Ordre figé au premier vu.** Le compteur d'une entité est attribué à sa première
+- **Ordre de première apparition.** Le compteur d'une entité est attribué à sa première
   apparition dans la conversation et ne bouge plus. Sans cette règle, une nouvelle
   entité placée tôt dans son message volerait le compteur d'une entité plus ancienne.
 - **Isolation par `thread_id`.** Le `thread_id` est obligatoire, et il n'y a pas de conversation
@@ -301,12 +305,13 @@ cacherait ce nom au modèle au tour suivant, sans rien protéger de l'utilisateu
 La mémoire enregistre donc le rôle de la première occurrence de chaque valeur,
 `MessageRole.USER` ou `MessageRole.ASSISTANT`. Une valeur dont la première occurrence
 vient d'un message du modèle est laissée en clair, car elle n'est pas une donnée
-confidentielle de l'utilisateur. Le middleware règle ce comportement par `EntityCreateByAssistantStrategy`,
-qui offre trois choix. Elle peut préserver, dé-identifier quand même, ou ignorer les messages du modèle.
+confidentielle de l'utilisateur. Le middleware règle ce comportement par
+`EntityCreateByAssistantStrategy`. Ses trois valeurs laissent la valeur en clair,
+la dé-identifient quand même, ou ignorent les messages du modèle.
 
 ---
 
-## Étape 11, pourquoi tout est asynchrone
+## Étape 11, l'asynchrone
 
 Le pipeline est asynchrone de bout en bout, pour deux raisons concrètes.
 
@@ -317,8 +322,8 @@ Le pipeline est asynchrone de bout en bout, pour deux raisons concrètes.
 
 Mais l'inférence d'un modèle NER local est, elle, synchrone et lourde. Elle demande des
 centaines de millisecondes de calcul CPU ou GPU. Appelée directement dans une coroutine,
-elle gèle toute la boucle, et aucune autre requête ne progresse pendant ce temps. La
-détection modèle est donc à déporter dans un thread. Un détecteur qui appelle une API
+elle gèle toute la boucle, et aucune autre requête ne progresse pendant ce temps. Les
+détecteurs à modèle déportent donc l'inférence dans un thread. Un détecteur qui appelle une API
 distante reste, lui, en asynchrone natif, parce que son travail est de l'I/O réseau et
 non du calcul.
 
@@ -327,15 +332,16 @@ bloquant.
 
 ---
 
-## Étape 12, chiffrer le mapping inverse
+## Étape 12, le chiffrement du mapping
 
 Sur un seul worker, la mémoire tient dans un dictionnaire du processus
 (`InMemoryConversationMemory`). Un déploiement multi-worker a besoin d'une mémoire partagée,
-`RedisConversationMemory`, pour qu'un worker voie les conversations d'un autre.
+`RedisConversationMemory` ou `SqlAlchemyConversationMemory`, pour qu'un worker voie les
+conversations d'un autre.
 
 Mais le mapping inverse, la table qui relie chaque jeton à sa vraie valeur, est fait de
 données confidentielles en clair. Une fuite du store révélerait ces données. Deux
-composants crypto protègent le backend Redis. Un hasher (`AnyHasher`) transforme chaque
+composants crypto optionnels protègent les backends Redis et SQL. Un hasher (`AnyHasher`) transforme chaque
 message en clé déterministe sans révéler le texte. Un cipher (`AnyCipher`) chiffre les
 détections au repos, de sorte qu'une fuite de la base ne rende ni le message ni les valeurs.
 Le `thread_id` reste en clair comme préfixe de clé, pour qu'une conversation puisse être
@@ -343,7 +349,7 @@ Le `thread_id` reste en clair comme préfixe de clé, pour qu'une conversation p
 
 ---
 
-## Étape 13, le garde-fou, défense en profondeur
+## Étape 13, le garde-fou
 
 Même avec tout ce qui précède, une valeur peut passer entre les mailles, par exemple un nom
 que le NER a raté. Le garde-fou (`AnyGuardRail`) re-analyse le texte dé-identifié et lève
@@ -352,12 +358,13 @@ que le NER a raté. Le garde-fou (`AnyGuardRail`) re-analyse le texte dé-identi
 Le garde-fou n'examine que la sortie dé-identifiée. Un contrôle prévu pour de vraies
 valeurs ne prend pas les placeholders de cette sortie pour de vraies valeurs, parce
 qu'ils sont clairement synthétiques. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
-`DetectorGuardRail` rejoue un détecteur, `LLMGuardRail` et `ModerationGuardRail`
-interrogent un modèle externe.
+`DetectorGuardRail` rejoue un détecteur, `Gliner2GuardRail` classe la sortie avec un
+modèle GLiNER2 local, `LLMGuardRail` interroge un LLM et `ModerationGuardRail` l'API de
+modération de Mistral.
 
 ---
 
-## Étape 14, raccorder au monde agent, le middleware
+## Étape 14, le middleware
 
 Reste à brancher tout cela dans une boucle d'agent LangChain, de façon transparente.
 C'est le `PIIAnonymizationMiddleware`, qui intervient en trois points.
@@ -387,15 +394,15 @@ pas été émis par le pipeline.
 | On ne sait pas où sont les données confidentielles | Détecteur (`AnyDetector`) |
 | Le modèle a besoin du type | Placeholder typé (`AnyPlaceholderFactory`) |
 | Distinguer deux individus du même type | Identité par entité et linker (`AnyEntityLinker`) |
-| Occurrences ratées par le détecteur | Expander (`AnyDetectionExpander`) |
 | Détections qui se chevauchent | Résolveur de spans (`AnyOverlapResolver`) |
+| Occurrences ratées par le détecteur | Expander (`AnyDetectionExpander`) |
 | Entités équivalentes à fusionner | Résolveur d'entités (`AnyEntityResolver`) |
 | Produire le texte sans corruption | Anonymiseur, un seul passage de gauche à droite |
 | Revenir en arrière sur un texte quelconque | `deanonymize`, remplacement jeton par jeton |
-| Cohérence sur toute la conversation | Mémoire par `thread_id`, ordre first-seen |
+| Cohérence sur toute la conversation | Mémoire par `thread_id`, ordre de première apparition |
 | Valeur venant du modèle, pas de l'utilisateur | Provenance en mémoire (`MessageRole`) |
 | I/O sans bloquer et calcul lourd | Asynchrone et déport en thread de l'inférence |
-| Mapping inverse persistant à protéger | Crypto, hasher et cipher du backend Redis |
+| Mapping inverse persistant à protéger | Crypto, hasher et cipher des backends Redis et SQL |
 | Données confidentielles résiduelles | Garde-fou (`AnyGuardRail`) |
 | Intégration agent transparente | Middleware LangChain |
 
@@ -405,7 +412,6 @@ pas été émis par le pipeline.
 
 ## Voir aussi
 
-- [Architecture](architecture.md), la carte des couches et l'API de chaque composant
-- [Placeholder factories](placeholder-factories.md), les familles de jetons et ce
-  qu'elles préservent
-- [Stratégies d'appel outil](tool-call-strategies.md), le détail de `awrap_tool_call`
+- [Architecture](architecture.md) : la carte des couches et l'API de chaque composant.
+- [Placeholder factories](placeholder-factories.md) : les familles de jetons et ce qu'elles préservent.
+- [Stratégies d'appel outil](tool-call-strategies.md) : le détail de `awrap_tool_call`.

@@ -1,16 +1,20 @@
-from piighost.components.anonymizer import Anonymizer
-
 # --8<-- [start:factories]
-from piighost.components.placeholder import (
-    LabelHashPlaceholderFactory,
-    LabelPlaceholderFactory,
-)
+import asyncio
 
-# Opaque token, a sha256 of label:ordinal and never of the value: <<PERSON:a1b2c3d4>>
-hash_factory = LabelHashPlaceholderFactory()
-Anonymizer(hash_factory)
+from piighost.components.anonymizer import Anonymizer
+from piighost.components.detector import ExactMatchDetector
+from piighost.components.placeholder import LabelHashPlaceholderFactory
+from piighost.pipeline import AnonymizationPipeline
 
-# Label only, no counter: <<PERSON>>
-label_factory = LabelPlaceholderFactory()
-Anonymizer(label_factory)
+detector = ExactMatchDetector({"Patrick": "PERSON", "Marie": "PERSON"})
+anonymizer = Anonymizer(LabelHashPlaceholderFactory())
+pipeline = AnonymizationPipeline(detector, anonymizer=anonymizer)
+
+
+async def main() -> None:
+    result = await pipeline.anonymize("Patrick, Marie, Patrick.")
+    print(result.text)
+
+
+asyncio.run(main())
 # --8<-- [end:factories]

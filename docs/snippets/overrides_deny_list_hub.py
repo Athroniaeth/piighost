@@ -10,10 +10,9 @@ override = DetectionOverride(deny_list=deny_list)
 pipeline = AnonymizationPipeline(detector, override=override)
 
 
-async def main():
+async def main() -> None:
     result = await pipeline.anonymize("Ship ACME-FALCON to alice@example.com.")
     print(result.text)
-    # Ship <<CODENAME:1>> to <<EMAIL:1>>.
 
 
 asyncio.run(main())

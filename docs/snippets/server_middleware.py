@@ -10,7 +10,7 @@ from langchain.agents import create_agent
 from piighost.integrations.client import PIIGhostClient
 from piighost.integrations.langchain import PIIAnonymizationMiddleware
 
-client = PIIGhostClient("http://localhost:8000")
+client = PIIGhostClient("http://127.0.0.1:8000")
 
 agent = create_agent(
     model="openai:gpt-5.6-terra",

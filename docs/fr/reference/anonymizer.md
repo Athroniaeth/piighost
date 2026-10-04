@@ -134,4 +134,4 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
 
 - [Référence Pipeline](pipeline.md) pour le pipeline qui pilote l'anonymizer.
 - [Placeholder factories](../placeholder-factories.md) pour les jetons que l'anonymizer émet.
-- [Étendre PIIGhost](../extending.md) pour écrire son propre anonymizer.
+- [Étendre piighost](../extending.md) pour écrire son propre anonymizer.

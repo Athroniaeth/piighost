@@ -2,14 +2,14 @@
 icon: lucide/server
 ---
 
-# Déployer une API de dé-identification
+# Serveur d'API
 
 Vous allez lancer `piighost-api`, le serveur compagnon de `piighost`, sur une configuration publiée sur le [hub piighost](https://hub.piighost.dev), puis dé-identifier et restaurer un message en HTTP. Tout processus qui parle HTTP partage alors un seul pipeline, chargé une fois. La mémoire de conversation est tenue par le serveur.
 
 La configuration `hub:piighost/support-en` repère les noms, les adresses et les organisations avec le modèle GLiNER2 `fastino/gliner2-multi-v1`. Elle repère avec des regex les identifiants américains et les valeurs génériques comme les emails. Elle refuse aussi de rendre un texte dé-identifié qui contient encore une adresse email en clair.
 
 !!! note "Prérequis"
-    Python 3.12 ou plus récent, et un accès réseau au hub et à Hugging Face pour le premier démarrage. Les exemples supposent le serveur sur `http://127.0.0.1:8000`.
+    Python 3.12 ou plus récent pour le serveur, alors que la librairie `piighost` seule fonctionne dès Python 3.11. Le premier démarrage demande un accès réseau au hub et à Hugging Face. Les exemples supposent le serveur sur `http://127.0.0.1:8000`.
 
 ## 1. Installer le serveur
 
@@ -58,7 +58,7 @@ export SECRET_PEPPER="..."
 piighost-api serve --config hub:piighost/support-en
 ```
 
-Au premier démarrage, le serveur récupère la configuration sur le hub et la garde dans le cache disque, puis télécharge le modèle GLiNER2. Le journal affiche `API keys loaded, auth enabled`, puis `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, et uvicorn écoute sur `http://127.0.0.1:8000`.
+Le serveur récupère la configuration sur le hub à chaque démarrage, parce que la référence n'est pas épinglée sur un commit. Au premier démarrage, il télécharge aussi le modèle GLiNER2. Le journal affiche `API keys loaded, auth enabled`, puis `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, et uvicorn écoute sur `http://127.0.0.1:8000`.
 
 Vérifiez-le depuis un autre shell :
 
@@ -73,7 +73,7 @@ La sortie doit être :
 ```
 
 !!! tip "Sans modèle"
-    Une configuration en regex seules démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config hub:piighost/fr-default` sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
+    Une configuration qui n'utilise que des regex démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config hub:piighost/fr-default` sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
 
 ## 4. Dé-identifier un message
 
@@ -149,11 +149,11 @@ La sortie doit être :
 
 ## Comment ça marche
 
-Le serveur charge un seul pipeline conversationnel au démarrage et exécute chaque route dessus. Une configuration qui ne déclare pas de section `[memory]`, comme les deux configurations du hub de cette page, est servie avec la mémoire in-process. Les conversations vivent alors dans le processus du serveur, et disparaissent quand il s'arrête. Pour les garder d'un redémarrage à l'autre, ou les partager entre plusieurs instances, déclarez une mémoire Redis, comme le montre [Déployer un pipeline en production](../deployment.md).
+Le serveur charge un seul pipeline conversationnel au démarrage et exécute chaque route dessus. Une configuration qui ne déclare pas de section `[memory]`, comme les deux configurations du hub de cette page, est servie avec la mémoire du processus. Les conversations vivent alors dans le processus du serveur, et disparaissent quand il s'arrête. Pour les garder d'un redémarrage à l'autre, ou les partager entre plusieurs instances, déclarez une mémoire Redis, comme le montre [Déploiement](../deployment.md).
 
-## Et ensuite
+## Voir aussi
 
 - Pour faire passer un client OpenAI ou Anthropic par le serveur, voir [Proxy compatible OpenAI](../examples/openai-proxy.md) et [Proxy compatible Anthropic](../examples/anthropic-proxy.md).
 - Pour consulter chaque route et ses champs, voir [Endpoints de l'API](../reference/api-endpoints.md).
 - Pour consulter chaque option et variable d'environnement du serveur, voir [CLI du serveur](../reference/api-cli.md).
-- Pour lancer le serveur dans Docker avec une mémoire partagée, voir [Déployer un pipeline en production](../deployment.md).
+- Pour lancer le serveur dans Docker avec une mémoire partagée, voir [Déploiement](../deployment.md).

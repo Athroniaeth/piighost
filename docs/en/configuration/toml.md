@@ -8,7 +8,7 @@ A configuration file describes a whole pipeline declaratively. `piighost` reads 
 from piighost.config import load_config, load_pipeline, load_thread_pipeline
 ```
 
-The `config` extra is required (`pip install piighost[config]`). It pulls in `pydantic-settings`. Unknown keys are rejected, so a typo fails validation rather than being ignored. A component `type` can need an extra of its own, named in the Extra column of the table that documents it.
+The `config` extra is required (`pip install "piighost[config]"`). It pulls in `pydantic-settings`. Unknown keys are rejected, so a typo fails validation rather than being ignored. A component `type` can need an extra of its own, named in the Extra column of the table that documents it.
 
 ---
 

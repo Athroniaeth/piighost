@@ -2,7 +2,7 @@
 icon: lucide/container
 ---
 
-# Deploy a production pipeline
+# Deployment
 
 This guide sets up a thread pipeline for production. Its Redis conversation memory persists across restarts and workers, encrypts every stored value, and reads its secrets from the environment. If you only need a single process that keeps nothing after it exits, the in-RAM memory is enough and you can skip to [Conversational pipeline](getting-started/conversation.md).
 
@@ -12,11 +12,19 @@ The pipeline reads its shape from a config file, so the deployment carries a TOM
 
 The Redis memory pulls three extras beyond the config layer, plus one for the Argon2 hasher used below.
 
-```bash
-uv add 'piighost[config,redis,crypto,argon2]'
-```
+=== "uv"
 
-The `config` extra reads the file, `redis` talks to the store, `crypto` provides the AES-GCM cipher, and `argon2` provides the Argon2id hasher. Drop `argon2` if you key messages with HMAC-SHA256 instead.
+    ```bash
+    uv add "piighost[config,redis,crypto,argon2]"
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install "piighost[config,redis,crypto,argon2]"
+    ```
+
+The `config` extra reads the file, `redis` talks to the store, `crypto` provides the AES-GCM cipher, and `argon2` provides the Argon2id hasher. Drop `argon2` if you derive the keys with HMAC-SHA256 instead.
 
 ## Write the config file
 
@@ -26,7 +34,7 @@ A `[memory]` section turns the pipeline into a thread pipeline keeping per-threa
 --8<-- "snippets/redis_pipeline.toml"
 ```
 
-`namespace` prefixes every key so `piighost` shares a Redis instance with other applications without collisions. `ttl` is the seconds a stored message lives before Redis evicts it. Omit it to keep entries until the store decides to drop them. `label_counter` emits `<<PERSON:1>>`{ .placeholder }, a token that carries identity, meaning it points to a single value. The [middleware](getting-started/langchain.md) needs this identity to restore the value.
+`namespace` prefixes every key so `piighost` shares a Redis instance with other applications without collisions. `ttl` is the seconds a stored message lives before Redis evicts it. Omit it to keep entries until the store decides to drop them. The file declares no linker and no anonymizer, which keep their defaults. The default anonymizer emits `<<PERSON:1>>`{ .placeholder }, a token that carries identity, meaning it points to a single value. The [middleware](getting-started/langchain.md) needs this identity to restore the value.
 
 The full section catalogue, every component `type`, and the JSON form of the same file are in the [configuration reference](configuration/toml.md).
 
@@ -52,6 +60,12 @@ export PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"
 --8<-- "snippets/redis_run.py:example"
 ```
 
+The output should be:
+
+```text
+--8<-- "snippets/redis_run.out"
+```
+
 The `thread_id` scopes the conversation. The same value in a later message of `user-42` keeps its token. A different `thread_id` never sees it, so two users stay isolated. Behind the scenes, the pipeline hashes the message into a Redis key and stores the detections encrypted. A leak of the Redis disk therefore reveals neither the message nor the confidential data.
 
 ## Bound the in-memory store
@@ -61,7 +75,7 @@ The default memory, `InMemoryConversationMemory`, keeps every thread in a proces
 ```toml title="pipeline.toml"
 [memory]
 type = "in_memory"
-max_threads = 10000
+max_threads = 1000
 ttl = 3600
 ```
 
@@ -100,7 +114,7 @@ The URL must use an async driver (`postgresql+asyncpg://...`, `sqlite+aiosqlite:
 
 ## Serve it over HTTP with `piighost-api`
 
-If several applications share the pipeline, or one that is not written in Python needs it, serve the same file with `piighost-api`, the companion server. Its Docker image is `ghcr.io/athroniaeth/piighost-api`. A first server outside Docker is built step by step in [Deploy a de-identification API](getting-started/api-server.md).
+If several applications share the pipeline, or one that is not written in Python needs it, serve the same file with `piighost-api`, the companion server. Its Docker image is `ghcr.io/athroniaeth/piighost-api`. A first server outside Docker is built step by step in [API server](getting-started/api-server.md).
 
 ```yaml title="compose.yaml"
 services:
@@ -128,7 +142,7 @@ volumes:
   cache:
 ```
 
-The mounted `pipeline.toml` is the file above, with its `url` set to `redis://redis:6379/0`, the address of the `redis` service. `API_KEY_DEFAULT` holds a key printed by `keyshield generate`, and the server refuses to start without one. The image carries the Redis client and the Argon2 hasher, and `EXTRA_PACKAGES` adds the AES-GCM cipher. The `cache` volume keeps the hub downloads, the model weights and the packages of `EXTRA_PACKAGES` across container restarts.
+The mounted `pipeline.toml` is the file above, with its `url` set to `redis://redis:6379/0`, the address of the `redis` service. `API_KEY_DEFAULT` holds a key printed by `keyshield generate`, and the server refuses to start without one. The image carries the Redis client and the Argon2 hasher, and `EXTRA_PACKAGES` adds the AES-GCM cipher. The `cache` volume keeps the hub references pinned to a commit, the model weights and the packages of `EXTRA_PACKAGES` across container restarts.
 
 The image reads these variables:
 

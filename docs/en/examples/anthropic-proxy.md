@@ -2,12 +2,12 @@
 icon: lucide/link
 ---
 
-# De-identify Claude Code with the Anthropic proxy
+# Anthropic-compatible proxy
 
 `piighost-api` serves an Anthropic Messages-compatible proxy under `/anthropic/v1`. Claude Code, or any client of the Messages API, points its base URL at it. The proxy then de-identifies the messages and the tool contents, forwards them to Anthropic, and restores the reply, streamed or not. The model receives `<<PERSON:1>>`{ .placeholder }, never `Patrick`{ .pii }.
 
 !!! note "Prerequisites"
-    A running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md), and an Anthropic API key or a key for a compatible gateway.
+    A running `piighost-api` server, see [API server](../getting-started/api-server.md), and an Anthropic API key or a key for a compatible gateway.
 
 ## Point Claude Code at the proxy
 
@@ -77,6 +77,6 @@ The fields the proxy de-identifies and restores are listed in [API endpoints](..
 
 ## See also
 
-- [De-identify Claude Code with hooks](claude-code.md): the other route for Claude Code, through its hook system.
+- [Claude Code hooks](claude-code.md): the other route for Claude Code, through its hook system.
 - [OpenAI-compatible proxy](openai-proxy.md): the same relay for the OpenAI API.
 - [Server CLI](../reference/api-cli.md): every environment variable of the server.

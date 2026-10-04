@@ -53,7 +53,7 @@ PIIAnonymizationMiddleware(
 | `invented_strategy` | `InventedPlaceholderStrategy` | Comment un jeton que le pipeline n'a jamais émis est traité après restauration |
 | `assistant_strategy` | `EntityCreateByAssistantStrategy` | Comment les valeurs introduites par l'assistant sont traitées |
 
-Le pipeline doit exposer un reconnaisseur de jetons délimités via `pipeline.recognizer`, pour qu'un jeton inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte au type-checking pour les appelants typés.
+Le pipeline doit exposer un reconnaisseur de jetons délimités via `pipeline.recognizer`, pour qu'un jeton inventé par le modèle puisse être retrouvé. Un pipeline dont la factory de placeholders n'est pas délimitée, un masque par exemple, n'a pas de reconnaisseur, et le constructeur lève `UnrecognizableFactoryError`. La borne de type `IdentityT` impose la même contrainte à la vérification de types pour les appelants typés.
 
 Chaque appel de l'agent porte un identifiant de conversation dans sa config LangGraph. Un appel qui n'en porte pas lève `MissingThreadIdError`. Le middleware ne route pas cet appel vers une conversation partagée, parce que l'état des placeholders fuiterait alors d'une conversation à l'autre. Si vos conversations n'ont pas besoin d'être séparées, nommez vous-même la conversation `"default"` (`DEFAULT_THREAD_ID`).
 

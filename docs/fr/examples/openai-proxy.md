@@ -2,12 +2,12 @@
 icon: lucide/link
 ---
 
-# Dé-identifier un client OpenAI avec le proxy
+# Proxy compatible OpenAI
 
 `piighost-api` sert un proxy compatible OpenAI sous `/openai/v1`. Pointez le `base_url` d'un client dessus, et le proxy dé-identifie chaque requête, la relaie au vrai fournisseur, puis restaure la réponse. Le fournisseur reçoit `<<PERSON:1>>`{ .placeholder }, jamais `Jane Doe`{ .pii }.
 
 !!! note "Prérequis"
-    Un serveur `piighost-api` lancé, voir [Déployer une API de dé-identification](../getting-started/api-server.md), et une clé du fournisseur. Les exemples utilisent le SDK Python d'OpenAI.
+    Un serveur `piighost-api` lancé, voir [Serveur d'API](../getting-started/api-server.md), et une clé du fournisseur. Les exemples utilisent le SDK Python d'OpenAI.
 
 ## Pointer le client vers le proxy
 
@@ -25,7 +25,7 @@ Le même appel avec curl :
 curl http://127.0.0.1:8000/openai/v1/chat/completions \
   -H "Authorization: Bearer sk-..." \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "I am Jane Doe"}]}'
+  -d '{"model": "gpt-5.6-terra", "messages": [{"role": "user", "content": "I am Jane Doe"}]}'
 ```
 
 ## Choisir le fournisseur
@@ -56,7 +56,7 @@ Une conversation fixée reste dans la mémoire du serveur jusqu'à ce que `DELET
 
 ## Streamer la réponse
 
-`stream=True` fonctionne sans changement. Le proxy restaure chaque placeholder à l'arrivée des chunks, même quand le fournisseur coupe `<<PERSON:1>>`{ .placeholder } sur deux chunks.
+`stream=True` fonctionne sans changement. Le proxy restaure chaque placeholder à l'arrivée des fragments, même quand le fournisseur coupe `<<PERSON:1>>`{ .placeholder } sur deux fragments.
 
 ```python
 --8<-- "snippets/server_proxy.py:stream"

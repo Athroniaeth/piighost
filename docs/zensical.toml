@@ -1,9 +1,9 @@
 [project]
-site_name = "PIIGhost"
+site_name = "piighost"
 site_url = "https://athroniaeth.github.io/piighost/"
 site_description = "Protect confidential data, personal data (PII) and secrets, in your LLM prompts, so the model only sees placeholders while tools and the user still get the real values. Pluggable regex, NER, and LLM detectors, LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
-site_author = "PIIGhost"
-copyright = "Copyright &copy; 2026 PIIGhost contributors"
+site_author = "piighost"
+copyright = "Copyright &copy; 2026 piighost contributors"
 repo_url = "https://github.com/Athroniaeth/piighost"
 repo_name = "Athroniaeth/piighost"
 edit_uri = "edit/master/docs/en/"
@@ -24,7 +24,7 @@ nav = [
     { "Remote client" = "getting-started/api-client.md" },
   ]},
   { "Recipes" = [
-    { "Basic usage" = "examples/basic.md" },
+    { "De-identify and restore a text" = "examples/basic.md" },
     { "LangChain integration" = "examples/langchain.md" },
     { "Pydantic AI integration" = "examples/pydantic-ai.md" },
     { "LlamaIndex integration" = "examples/llama-index.md" },
@@ -32,9 +32,9 @@ nav = [
     { "OpenAI-compatible proxy" = "examples/openai-proxy.md" },
     { "Anthropic-compatible proxy" = "examples/anthropic-proxy.md" },
     { "Pre-built detectors" = "examples/detectors.md" },
-    { "Override lists" = "examples/overrides.md" },
-    { "Extending PIIGhost" = "extending.md" },
-    { "Testing" = "examples/testing.md" },
+    { "Deny and allow lists" = "examples/overrides.md" },
+    { "Extending piighost" = "extending.md" },
+    { "Testing without a model" = "examples/testing.md" },
     { "Deployment" = "deployment.md" },
     { "Multi-instance deployment" = "multi-instance.md" },
   ]},
@@ -53,11 +53,11 @@ nav = [
       { "Server CLI" = "reference/api-cli.md" },
     ]},
     { "Configuration" = [
-      { "TOML reference" = "configuration/toml.md" },
+      { "Configuration reference" = "configuration/toml.md" },
     ]},
   ]},
   { "Concepts" = [
-    { "How PIIGhost compares" = "comparison.md" },
+    { "How piighost compares" = "comparison.md" },
     { "Architecture" = "architecture.md" },
     { "Pipeline design" = "conception.md" },
     { "Placeholder factories" = "placeholder-factories.md" },
@@ -207,9 +207,9 @@ testing = "lucide/flask-conical"
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/Athroniaeth/piighost"
-name = "PIIGhost on GitHub"
+name = "piighost on GitHub"
 
 [[project.extra.social]]
 icon = "fontawesome/brands/python"
 link = "https://pypi.org/project/piighost/"
-name = "PIIGhost on PyPI"
+name = "piighost on PyPI"

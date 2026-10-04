@@ -51,9 +51,13 @@ git checkout -b feat/my-feature
 Before opening a PR:
 
 ```bash
-make lint       # Format + lint + type-check
-uv run pytest   # Test suite
+make format                          # fix the format and the lint with ruff
+make lint                            # check without changing anything
+uv run pytest                        # run the tests
+uv run pytest tests/ -k "test_name"  # run a single test
 ```
+
+`make lint` changes no file and fails on the first problem. It checks the format with `ruff format --check`, the lint with `ruff check`, the types with `pyrefly`, the security with `bandit`, then the documentation with the page audit script. `make format` fixes what ruff can fix.
 
 ### Open the pull request
 
@@ -66,6 +70,6 @@ uv run pytest   # Test suite
 
 The most common places to contribute without touching the core:
 
-- **New detector**: implement the `AnyDetector` protocol. See [Extending PIIGhost](../extending.md).
+- **New detector**: implement the `AnyDetector` protocol. See [Extending piighost](../extending.md).
 - **New regex pack**: publish a pattern group on the [piighost hub](https://hub.piighost.dev), which a config then pulls by reference.
 - **New placeholder factory**: implement `AnyPlaceholderFactory`.

@@ -10,7 +10,7 @@ from piighost.components.placeholder import LabelCounterPlaceholderFactory
 redactor = LabelCounterPlaceholderFactory()
 pipeline = AnonymizationPipeline(
     detector,
-    observation_redactor=redactor,  # <<PERSON:1>>, <<EMAIL:2>>, ...
+    observation_redactor=redactor,  # <<PERSON:1>>, <<PERSON:2>>, <<EMAIL:1>>, ...
 )
 # --8<-- [end:example]
 

@@ -7,7 +7,7 @@ icon: lucide/link
 You will wire `PIIAnonymizationMiddleware` into a LangChain agent so the LLM only ever sees tokens, while your tools receive the real values. The user asks `Where does Patrick live?`, the model reasons over `<<PERSON:1>>`{ .placeholder } and `<<LOCATION:1>>`{ .placeholder }, and a lookup tool still gets the real `Patrick`{ .pii } to do its job. You build the middleware over a `ThreadAnonymizationPipeline`, register a tool, and run one turn.
 
 !!! note "Prerequisites"
-    `piighost` installed with the middleware extra, `pip install piighost[langchain]`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The pipeline reuses the components from [Conversational pipeline](conversation.md).
+    `piighost` installed with the middleware extra, `pip install "piighost[langchain]"`, plus an LLM provider configured for `create_agent` (here `openai:...`, so an `OPENAI_API_KEY`). The pipeline reuses the components from [Conversational pipeline](conversation.md).
 
 ## 1. Build the thread pipeline
 
@@ -41,7 +41,7 @@ The `thread_id` goes in the LangGraph config, under `configurable`. The middlewa
 --8<-- "snippets/langchain_start.en.py:run"
 ```
 
-The final message is restored for display, so the answer reads with the real values:
+The final message is restored for display, so the answer reads with the real values. Its wording depends on the model, for example:
 
 ```text
 --8<-- "snippets/langchain_start.en.out"
@@ -53,8 +53,8 @@ The middleware is a thin adapter around the pipeline. Before the model call, `ab
 
 Two rules are worth knowing. A call without a thread id raises. The middleware does not route every conversation into one shared thread, where tokens would leak from one conversation to another. If your conversations need no separation, pass `"default"`. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuses a token that surfaces in the model's reply but was never issued by the pipeline, whether hallucinated or injected.
 
-## What's next
+## See also
 
 - To pick a different tool behaviour, `INPUT` only, `OUTPUT` only, or `PASSTHROUGH`, see [Tool-call strategies](../tool-call-strategies.md).
-- For a complete agent with a real detector, a system prompt, Langfuse observability, and an Aegra deployment, see [LangChain integration](../examples/langchain.md).
+- For a complete agent with a real detector and a system prompt, see [LangChain integration](../examples/langchain.md).
 - To run the pipeline out of process against a shared server, see [Remote client](api-client.md).

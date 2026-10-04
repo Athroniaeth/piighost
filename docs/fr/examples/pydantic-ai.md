@@ -4,14 +4,14 @@ tags:
   - Pydantic AI
 ---
 
-# Faire tourner un agent Pydantic AI derrière PIIGhost
+# Intégration Pydantic AI
 
 Vous voulez un agent Pydantic AI où le modèle ne voit jamais que des jetons, jamais les vrais noms de la conversation, et où une valeur garde le même jeton d'un tour à l'autre. Cette page assemble cet agent de bout en bout avec un détecteur GLiNER2, un `ThreadAnonymizationPipeline`, et `pii_hooks`, la capability qui dé-identifie autour du modèle.
 
 La capability couvre les messages, le prompt utilisateur et les réponses du modèle lui-même. Elle couvre aussi la frontière des outils, c'est-à-dire les appels d'outils et leurs résultats. Sous la stratégie par défaut, un outil reçoit les vraies valeurs pendant que le modèle continue de travailler sur des jetons.
 
 !!! note "Prérequis"
-    `piighost` installé avec les extras pydantic-ai et gliner2, `pip install piighost[pydantic-ai,gliner2]`, plus une clé OpenAI dans `OPENAI_API_KEY`. La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
+    `piighost` installé avec les extras pydantic-ai et gliner2, `pip install "piighost[pydantic-ai,gliner2]"`, plus une clé OpenAI dans `OPENAI_API_KEY`. La première exécution télécharge les poids de GLiNER2, environ 500 Mo.
 
 ## 1. Construire le pipeline sur un détecteur GLiNER2
 
@@ -37,18 +37,24 @@ La capability dé-identifie le prompt avant que le modèle ne le lise, et restau
 --8<-- "snippets/pydantic_ai_agent.py:run"
 ```
 
+La réponse est restaurée pour l'affichage. Sa formulation dépend du modèle, par exemple :
+
+```text
+--8<-- "snippets/pydantic_ai_agent.out"
+```
+
 ## Qui voit quoi
 
 `GLiNER2` repère `Patrick`{ .pii } comme `PERSON` dans le message entrant. À partir de là, la capability remplace dans un sens avant l'appel au modèle, et dans l'autre sens après :
 
-- `before_model_request` fait passer chaque texte utilisateur et assistant par `pipeline.anonymize`. Le modèle reçoit donc `Where does <<PERSON:1>> live?`. Ce hook réécrit aussi les textes de l'assistant. Une valeur restaurée pour l'affichage à un tour précédent est donc dé-identifiée à nouveau avant l'appel suivant, et ne refuit jamais dans l'historique.
+- `before_model_request` fait passer chaque texte utilisateur et assistant par `pipeline.anonymize`. Le modèle reçoit donc `Where does <<PERSON:1>> live?`. Ce hook réécrit aussi les textes de l'assistant. Une valeur restaurée pour l'affichage à un tour précédent est donc dé-identifiée à nouveau avant l'appel suivant, et ne réapparaît jamais en clair dans l'historique.
 - `after_model_request` fait passer la réponse par `pipeline.deanonymize`, vous lisez donc la vraie valeur.
 
 Le `thread_id` garde `<<PERSON:1>>`{ .placeholder } lié à `Patrick`{ .pii } à chaque tour.
 
 ## Les jetons que le modèle invente
 
-Après la restauration, chaque jeton émis est revenu à sa valeur. Un texte qui a encore la forme d'un jeton a donc été inventé par le modèle, par hallucination ou par injection de prompt. `pii_hooks` prend un `invented_strategy` qui décide de ce qui se passe alors. `RAISE` le refuse, le défaut fail-closed. `KEEP` le laisse. `DROP` le retire.
+Après la restauration, chaque jeton émis est revenu à sa valeur. Un texte qui a encore la forme d'un jeton a donc été inventé par le modèle, par hallucination ou par injection de prompt. `pii_hooks` prend un `invented_strategy` qui décide de ce qui se passe alors. `RAISE` le refuse. C'est le défaut, qui bloque plutôt que de laisser passer. `KEEP` le laisse. `DROP` le retire.
 
 ```python
 --8<-- "snippets/pydantic_ai_agent.py:invented"
@@ -70,8 +76,8 @@ Toute valeur n'est pas une donnée confidentielle de l'utilisateur. Le modèle i
 --8<-- "snippets/pydantic_ai_agent.py:assistant"
 ```
 
-## Et ensuite
+## Voir aussi
 
 - Pour comparer avec le middleware d'agent LangChain, voyez l'[intégration LangChain](langchain.md).
-- Pour remplacer GLiNER2 par spaCy, un pack de regex, ou votre propre détecteur, voyez [Étendre PIIGhost](../extending.md).
+- Pour remplacer GLiNER2 par spaCy, un pack de regex, ou votre propre détecteur, voyez [Étendre piighost](../extending.md).
 - Les scripts exécutables sont dans `examples/pydantic_ai/base.py` (messages) et `examples/pydantic_ai/tools.py` (un outil).

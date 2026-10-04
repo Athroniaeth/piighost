@@ -23,9 +23,7 @@ def lookup_city(person: str) -> str:
     """Return the city where a person lives."""
     directory = {"Patrick": "Paris"}
     return directory.get(person, "unknown")
-
-
-# --8<-- [end:tool]
+    # --8<-- [end:tool]
 
 
 # isort: split

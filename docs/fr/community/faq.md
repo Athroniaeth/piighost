@@ -8,7 +8,7 @@ icon: lucide/message-circle-question
     Oui, et ce indépendamment de `piighost`. Les enjeux (exfiltration vers les providers, réquisition légale, entraînement sur les conversations, conformité RGPD, fuites de données) sont détaillés dans [Pourquoi dé-identifier ?](../why-anonymize.md). La page est agnostique à la librairie. Elle explique pourquoi le problème existe avant de justifier une solution comme `piighost`.
 
 ??? question "Quelles langues sont supportées ?"
-    Cela dépend entièrement du détecteur que vous branchez. Le pipeline lui-même est agnostique à la langue. Avec un détecteur `gliner2` et un modèle GLiNER2 multilingue, vous obtenez environ 100 langues d'office. Avec un détecteur `spacy`, tout ce que spaCy supporte. Avec un détecteur `regex`, la langue n'a pas d'importance. Voir [Étendre PIIGhost](../extending.md) pour le catalogue de détecteurs.
+    Cela dépend entièrement du détecteur que vous branchez. Le pipeline lui-même est agnostique à la langue. Avec un détecteur `gliner2` et un modèle GLiNER2 multilingue, vous obtenez environ 100 langues d'office. Avec un détecteur `spacy`, tout ce que spaCy supporte. Avec un détecteur `regex`, la langue n'a pas d'importance. Voir [Étendre piighost](../extending.md) pour le catalogue de détecteurs.
 
 ??? question "Quelles entités sont détectées d'origine ?"
     Aucune. `piighost` ne livre pas son propre modèle NER, c'est un choix volontaire. Vous apportez le détecteur. Utilisez un détecteur `exact` pour des dictionnaires fixes, un détecteur `regex` avec un catalogue tiré du hub (`hub:piighost/generic`, `hub:piighost/us`, `hub:piighost/eu`, `hub:piighost/fr`) ou vos propres motifs, un détecteur `gliner2` pour du NER ouvert (`PERSON`, `LOCATION`, `ORGANIZATION`, `EMAIL`, n'importe quel label que vous lui demandez), ou composez-les avec un détecteur `composite`.
@@ -17,7 +17,7 @@ icon: lucide/message-circle-question
     Non, par conception. Un validateur de checksum rejette une valeur dont les chiffres ne calculent pas. Or c'est exactement ce que produit du bruit d'OCR ou une faute de frappe. Rejeter cette valeur ferait fuiter la PII que le validateur était censé attraper. Le détecteur `regex` matche sur la forme seule et penche vers la sur-détection, la direction sûre pour la dé-identification. Si vous devez resserrer un match, ajoutez un motif plus strict plutôt qu'un validateur.
 
 ??? question "Comment configurer un pipeline ?"
-    Écrivez un fichier TOML ou JSON décrivant chaque étage, puis chargez-le. `load_pipeline` construit un pipeline sans état. `load_thread_pipeline` construit un pipeline de conversation avec une mémoire de conversation. Le suffixe du fichier choisit le parser. Chaque section et chaque `type` de composant sont dans la [référence de configuration](../configuration/toml.md). L'extra `config` est requis (`pip install piighost[config]`).
+    Écrivez un fichier TOML ou JSON décrivant chaque étage, puis chargez-le. `load_pipeline` construit un pipeline sans état. `load_thread_pipeline` construit un pipeline de conversation avec une mémoire de conversation. Le suffixe du fichier choisit le parser. Chaque section et chaque `type` de composant sont dans la [référence de configuration](../configuration/toml.md). L'extra `config` est requis (`pip install "piighost[config]"`).
 
 ??? question "Quelle latence est ajoutée par le pipeline ?"
     Le pipeline lui-même est de l'ordre de la milliseconde (regex et lookups). Le vrai coût vient du détecteur. GLiNER2 sur CPU pour un message de 200 tokens, c'est typiquement 50 à 200 ms. Un LLM utilisé comme détecteur, plusieurs centaines de millisecondes. Renvoyer un message dans une conversation évite la détection, parce qu'un pipeline de conversation garde en cache les détections de chaque message. Une mesure sur votre charge réelle reste recommandée avant de dimensionner la production.
@@ -44,7 +44,7 @@ icon: lucide/message-circle-question
     Non. La mémoire est scopée par `thread_id`. Deux conversations parallèles ne voient pas les jetons l'une de l'autre. Ce cloisonnement évite les fuites latérales entre utilisateurs. Le `thread_id` est extrait automatiquement de la config LangGraph.
 
 ??? question "Comment faire tourner plus d'un worker derrière un load balancer ?"
-    Utilisez la mémoire de conversation Redis, partagée par tous les workers. La mémoire en RAM est locale au processus, donc deux workers numéroteraient la même valeur différemment en pleine conversation. Voir [Déploiement multi-instance](../multi-instance.md) pour le piège et la parade, et [Déployer un pipeline en production](../deployment.md) pour la mise en place complète.
+    Utilisez la mémoire de conversation Redis, partagée par tous les workers. La mémoire en RAM est locale au processus, donc deux workers numéroteraient la même valeur différemment en pleine conversation. Voir [Déploiement multi-instance](../multi-instance.md) pour le piège et la parade, et [Déploiement](../deployment.md) pour la mise en place complète.
 
 ??? question "Puis-je utiliser `piighost` sans LangChain ?"
     Oui. Les pipelines sans état et de conversation sont utilisables seuls, sans middleware. Voir [Comment dé-identifier un texte et le restaurer](../examples/basic.md).

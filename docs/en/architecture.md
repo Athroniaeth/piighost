@@ -26,19 +26,14 @@ ring, and an inner ring never imports an outer ring.
 
 ```mermaid
 flowchart TB
-    classDef core fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef app fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef adapter fill:#E1BEE7,stroke:#6A1B9A,color:#000
-    classDef config fill:#FFF9C4,stroke:#F9A825,color:#000
-
     CFG["`**Config**
-    load_pipeline…`"]:::config
+    load_pipeline…`"]
     ADP["`**Adapters**
-    detectors, memories, middleware`"]:::adapter
+    detectors, memories, middleware`"]
     APP["`**Application**
-    AnonymizationPipeline…`"]:::app
+    AnonymizationPipeline…`"]
     CORE["`**Core**
-    ports, Detection, Entity, Span`"]:::core
+    ports, Detection, Entity, Span`"]
 
     CFG --> ADP & APP
     ADP & APP --> CORE
@@ -78,10 +73,17 @@ written once in the base class, and each subclass provides only the step that va
 --8<-- "snippets/architecture_template.en.py:example"
 ```
 
-Five ports have no template, the detector, override, guard rail, memory backend and
-cipher ports. Their adapters have nothing common to factor out, because they differ by their whole
-mechanism, not by a single step. This
-is the deliberate exception to the always-template rule.
+Five ports have no template shared by all their adapters, the detector, override, guard
+rail, memory backend and cipher ports. Their adapters differ by their whole mechanism, not
+by a single step, so they have nothing common to factor out. This is the deliberate
+exception to the always-template rule.
+
+The detector is a partial exception. The model detectors (`Gliner2Detector`,
+`SpacyDetector`, `TransformersDetector`, `PresidioDetector`, `BridgeDetector`,
+`LLMDetector`) share the `BaseNERDetector` template. It re-reads each detection's text
+from the source, applies the confidence threshold and maps the labels. `RegexDetector`,
+`ExactMatchDetector`, `CompositeDetector` and `ChunkedDetector` implement the port
+directly.
 
 ---
 
@@ -96,39 +98,37 @@ are pass-throughs when not provided.
 
 ```mermaid
 flowchart TB
-    classDef req fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef opt fill:#FFF9C4,stroke:#F9A825,color:#000
-    classDef data fill:#A5D6A7,stroke:#2E7D32,color:#000
+    classDef opt stroke-dasharray:5 5
 
     IN(["`**Source text**
     _'Patrick lives in Paris.
-    Patrick loves Paris.'_`"]):::data
+    Patrick loves Paris.'_`"])
 
     DET["`**Detector**
-    _AnyDetector_`"]:::req
+    _AnyDetector_`"]
     OVR["`override
     _AnyDetectionOverride_`"]:::opt
-    OVL["`span resolver
-    _AnyOverlapResolver_`"]:::opt
+    OVL["`**Span resolver**
+    _AnyOverlapResolver_`"]
     EXP["`expander
     _AnyDetectionExpander_`"]:::opt
     LINK["`**Linker**
-    _AnyEntityLinker_`"]:::req
+    _AnyEntityLinker_`"]
     ENT["`entity resolver
     _AnyEntityResolver_`"]:::opt
     ANON["`**Anonymizer**
-    _AnyAnonymizer + factory_`"]:::req
+    _AnyAnonymizer + factory_`"]
     GUARD["`guard rail
     _AnyGuardRail_`"]:::opt
 
     OUT(["`**Output**
     _'#lt;#lt;PERSON:1#gt;#gt; lives in #lt;#lt;LOCATION:1#gt;#gt;.
-    #lt;#lt;PERSON:1#gt;#gt; loves #lt;#lt;LOCATION:1#gt;#gt;.'_`"]):::data
+    #lt;#lt;PERSON:1#gt;#gt; loves #lt;#lt;LOCATION:1#gt;#gt;.'_`"])
 
     IN --> DET --> OVR --> OVL --> EXP --> LINK --> ENT --> ANON --> GUARD --> OUT
 ```
 
-*The pipeline, mandatory stages in blue, optional stages in yellow.*
+*The pipeline. The stages that always run are in bold, the optional stages have a dashed border.*
 { .figure-caption }
 
 The [Pipeline design](conception.md) page explains why each stage exists and why
@@ -136,15 +136,15 @@ they run in this order. Here is the role and the default adapter of each.
 
 <div class="wide-table" markdown="1">
 
-| Stage | Port | Provided adapter | Role |
-|---|---|---|---|
-| Detector | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Finds the confidential data (personal data, secrets), returns positioned and typed `Detection` objects. |
-| Span resolver | `AnyOverlapResolver` | `ConfidenceOverlapResolver`, `MergeOverlapResolver` | Arbitrates overlapping detections, keeps the highest-confidence one or their union. |
-| Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Catches missed occurrences of an already-detected value. |
-| Linker | `AnyEntityLinker` | `ExactEntityLinker` | Groups the detections of one value into an `Entity`. |
-| Entity resolver | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Reconciles entities that share a detection. |
-| Anonymizer | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Replaces each entity with its token. |
-| Guard rail | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-checks the output, raises `PIIRemainingError` on residual confidential data. |
+| Port | Provided adapters | Role |
+|---|---|---|
+| `AnyDetector` | `Gliner2Detector`, `Gliner2PiiDetector`, `SpacyDetector`, `TransformersDetector`, `PresidioDetector`, `BridgeDetector`, `LLMDetector`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Finds the confidential data (personal data, secrets), returns positioned and typed `Detection` objects. |
+| `AnyOverlapResolver` | `ConfidenceOverlapResolver`, `MergeOverlapResolver` | Arbitrates overlapping detections, keeps the highest-confidence one or their union. |
+| `AnyDetectionExpander` | `WordBoundaryExpander` | Catches missed occurrences of an already-detected value. |
+| `AnyEntityLinker` | `ExactEntityLinker` | Groups the detections of one value into an `Entity`. |
+| `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Reconciles entities that share a detection. |
+| `AnyAnonymizer` and `AnyPlaceholderFactory` | `Anonymizer` and `LabelCounterPlaceholderFactory` | Replaces each entity with its token. |
+| `AnyGuardRail` | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-checks the output, raises `PIIRemainingError` on residual confidential data. |
 
 </div>
 
@@ -172,7 +172,7 @@ classDiagram
         &lt;&lt;PERSON&gt;&gt;
     }
     class PreservesShape {
-        j***@mail.com
+        "J*******"
     }
     class PreservesIdentity {
         abstraction
@@ -203,8 +203,8 @@ The provided factories range from the least to the most informative.
 `RedactPlaceholderFactory` emits `<<REDACT>>`{ .placeholder }, `LabelPlaceholderFactory`
 emits `<<PERSON>>`{ .placeholder }, `LabelCounterPlaceholderFactory` emits
 `<<PERSON:1>>`{ .placeholder }, `LabelHashPlaceholderFactory` emits
-`<<PERSON:a1b2c3d4>>`{ .placeholder }, `MaskPlaceholderFactory` emits
-`j***@mail.com`{ .placeholder }. The detail is in
+`<<PERSON:a1b2c3d4>>`{ .placeholder }. `MaskPlaceholderFactory` keeps the first character
+and masks the rest, so `Jonathan`{ .pii } becomes `J*******`{ .placeholder }. The detail is in
 [Placeholder factories](placeholder-factories.md).
 
 ---
@@ -237,7 +237,8 @@ override stages stay disabled when `None`.
 ## The conversation pipeline
 
 `ThreadAnonymizationPipeline` shares the same base but adds a **conversation memory**
-(`AnyConversationMemory`), passed as a mandatory argument. An agent chains messages, and
+(`AnyConversationMemory`), passed through the `memory` keyword argument. Without it, the
+pipeline builds an `InMemoryConversationMemory`. An agent chains messages, and
 the same `Patrick`{ .pii } must keep the same `<<PERSON:1>>`{ .placeholder } from the
 first to the last.
 
@@ -269,20 +270,22 @@ Tokenizing it would strip the model of its world knowledge. So the memory record
 
 ## The conversation memory and encryption
 
-The memory is a **repository**, an `AnyConversationMemory` port with two adapters.
+The memory is a **repository**, an `AnyConversationMemory` port with three adapters.
 
-- `InMemoryConversationMemory` keeps everything in a process-local dict. Simple, enough
-  for a single worker.
+- `InMemoryConversationMemory` keeps everything in a process-local dict, bounded by
+  default. Simple, enough for a single worker.
 - `RedisConversationMemory` persists to Redis, for a multi-worker deployment where each
   worker must see the others' threads.
+- `SqlAlchemyConversationMemory` persists to a SQL table, for long conversations that
+  outlive the process.
 
-By nature, the Redis backend stores confidential data in clear, because it keeps the
-reverse mapping, which leads each token back to its value. Two **crypto** components
-protect it. An `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`) turns each
-message into a deterministic key without revealing the text. An `AnyCipher`
-(`AesGcmCipher`) encrypts the detections at rest, so a store leak reveals neither the
-message nor the values. The `thread_id` stays clear as a key prefix, so a thread can be
-enumerated and forgotten.
+By nature, a persistent backend stores confidential data, because it keeps the reverse
+mapping, which leads each token back to its value. Two optional **crypto** components,
+passed together, protect it on Redis as on SQL. An `AnyHasher` (`Sha256Hasher`,
+`Argon2Hasher`) turns each message into a deterministic key without revealing the text.
+An `AnyCipher` (`AesGcmCipher`) encrypts the detections at rest, so a store leak reveals
+neither the message nor the values. The `thread_id` stays clear, a key prefix in Redis
+and a column in the SQL table, so a thread can be enumerated and forgotten.
 
 ---
 
@@ -322,8 +325,10 @@ sequenceDiagram
   (`ToolCallStrategy`), restoring the arguments so the tool receives real data, then
   de-identifying its response.
 
-The middleware requires a factory that preserves identity, at type-check time. It also
-recognizes the tokens the model **invents** (`InventedPlaceholderStrategy`). After
+The middleware requires a factory that preserves identity, at type-check time. At
+runtime, it also refuses a pipeline whose tokens have no delimited grammar, such as a
+mask (`UnrecognizableFactoryError`). That grammar lets it
+recognize the tokens the model **invents** (`InventedPlaceholderStrategy`). After
 restoration, any token still following the placeholder grammar was not emitted by the
 pipeline. The detail of the tool strategies is in
 [Tool-call strategies](tool-call-strategies.md).
@@ -374,10 +379,8 @@ coroutines without risk.
 
 ## See also
 
-- [Pipeline design](conception.md), why each stage exists and in which order
-- [Placeholder factories](placeholder-factories.md), the families of tokens and what
-  they preserve
-- [Tool-call strategies](tool-call-strategies.md), the detail of `awrap_tool_call`
-- [Extending PIIGhost](extending.md), plugging your own adapter behind a port
-- [Data models reference](reference/models.md), the fields, methods and validation of
-  `Detection`, `Entity`, `Span` and `Chunk`
+- [Pipeline design](conception.md): why each stage exists and in which order.
+- [Placeholder factories](placeholder-factories.md): the families of tokens and what they preserve.
+- [Tool-call strategies](tool-call-strategies.md): the detail of `awrap_tool_call`.
+- [Extending piighost](extending.md): plugging your own adapter behind a port.
+- [Data models reference](reference/models.md): the fields, methods and validation of `Detection`, `Entity`, `Span` and `Chunk`.

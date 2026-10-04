@@ -4,7 +4,7 @@ icon: lucide/wrench
 
 # Tool-call strategies
 
-`PIIAnonymizationMiddleware` sits on two channels, the LLM channel and the tool channel, which do not offer the same reliability guarantees. Three strategies drive its behaviour, one per independent decision the middleware has to make.
+`PIIAnonymizationMiddleware` sits on two channels, the LLM channel and the tool channel. Both restore tokens the same way, but the tool channel hands the real values to code that acts. Three strategies drive its behaviour, one per independent decision the middleware has to make.
 
 - **`ToolCallStrategy`** decides what crosses the tool boundary, in both directions. Default `FULL`.
 - **`InventedPlaceholderStrategy`** decides the fate of a token the pipeline never issued, surfacing in a response or a restored argument. Default `RAISE`.
@@ -16,24 +16,28 @@ icon: lucide/wrench
 
 ---
 
-## Family details
+## The two channels
 
-### The LLM channel: memory-based, reliable
+### The LLM channel
 
-In `abefore_model`, the middleware sends an *exact* de-identified text to the LLM and the pipeline records the entity-to-token mapping. When the LLM replies, `aafter_model` restores the values by reading that mapping. This is deterministic, it cannot be ambiguous, and it works regardless of which token was used. As long as the LLM forwards back the exact de-identified string it received, this channel is reliable.
+In `abefore_model`, the middleware de-identifies the messages and the pipeline records their detections in the thread's memory. When the LLM replies, `aafter_model` restores the reply through **string replacement**. It looks for every known token of the thread and replaces it with the value of its entity. The LLM writes for example "I wrote to `<<EMAIL:1>>`{ .placeholder }", and the user reads "I wrote to `jean@mail.com`{ .pii }". That reply is a text the pipeline never produced. Replacement is the only way to restore it.
 
-### The tool channel: string replacement, fragile
+### The tool channel
 
-In `awrap_tool_call`, the LLM produces tool arguments by combining, splitting, paraphrasing the tokens it just saw. That arbitrary text is not memorised, because the pipeline never produced it. The tool response, for its part, is a text `piighost` has never seen. The two directions are therefore handled differently.
+In `awrap_tool_call`, the LLM produces tool arguments by combining, splitting, paraphrasing the tokens it just saw. The two directions of the call are handled differently.
 
-- *Tool args (LLM to tool)*. That text has no mapping, so restoration falls back on **plain string replacement**. Scan the args for known tokens and replace each with the original value of its entity. For example, `<<EMAIL:1>>`{ .placeholder } becomes `jean@mail.com`{ .pii } again.
+- *Tool args (LLM to tool)*. The middleware restores them through the same string replacement as the LLM channel. It scans the args for known tokens and replaces each with the original value of its entity. For example, `<<EMAIL:1>>`{ .placeholder } becomes `jean@mail.com`{ .pii } again.
 - *Tool response (tool to LLM)*. The response goes through the thread's pipeline, detection included, like a user message. A value already seen takes its token back. A value the conversation never mentioned, an email returned by a CRM for example, is detected and gets its own.
 
-Plain replacement only works when the mapping is **unambiguous**. If two entities share the token `<<PERSON>>`{ .placeholder }, there is no way to decide which original to restore in the args. This is the structural reason the middleware accepts only factories whose tokens preserve a findable identity. See [Placeholder factories](placeholder-factories.md).
+On both channels, replacement only works when the mapping is **unambiguous**. If two entities share the token `<<PERSON>>`{ .placeholder }, there is no way to decide which original to restore. On the tool channel, the mistake has a concrete effect, for example an email sent to the wrong person. This is the reason the middleware accepts only factories whose tokens preserve a findable identity. See [Placeholder factories](placeholder-factories.md).
 
 The middleware acts only in the tool wrapper, never on the stored response afterwards. Arguments are restored recursively through nested `dict`, `list`, and `tuple` containers. Other containers pass through unchanged.
 
-### `ToolCallStrategy`: what crosses the tool boundary
+---
+
+## The three strategies
+
+### `ToolCallStrategy`, what crosses the tool boundary
 
 The two directions of a tool call are independent. `INPUT` restores the arguments so the tool receives real data. `OUTPUT` de-identifies the tool response to protect any confidential data (personal data, secrets) it returns. `FULL` does both. `PASSTHROUGH` touches neither.
 
@@ -48,9 +52,9 @@ The two directions of a tool call are independent. `INPUT` restores the argument
 
 `INPUT` restores the input only and leaves the response raw. Reserve it for tools whose output is known to hold no confidential data, such as an internal id lookup, a status flag or a numeric value. `OUTPUT` does the reverse. It leaves the arguments as tokens and only de-identifies the response.
 
-`PASSTHROUGH` is the strictest privacy boundary. Tools never observe confidential data. The tool receives the token string as-is and its response is forwarded back without rewriting. Useful when the agent's tools work on opaque identifiers, or when the tool is itself the LLM-facing layer of a separate de-identification system. It is the only mode that tolerates a `PreservesLabel`, `PreservesShape` or `PreservesNothing` factory. Since the tool boundary is never crossed in clear text, the uniqueness requirement disappears. You still cannot wire such a factory into `PIIAnonymizationMiddleware` directly, because the type-checker rejects it. The escape hatch is to use the bare pipeline outside the middleware.
+`PASSTHROUGH` is the strictest privacy boundary. Tools never observe confidential data. The tool receives the token string as-is and its response is forwarded back without rewriting. Useful when the agent's tools work on opaque identifiers, or when the tool is itself the LLM-facing layer of a separate de-identification system. `PASSTHROUGH` does not relax the requirement on the factory. The LLM channel still restores the model's reply, so each token must still denote a single entity. A `PreservesLabel`, `PreservesShape` or `PreservesNothing` factory only works with the bare pipeline, outside the middleware.
 
-### `InventedPlaceholderStrategy`: the token the model invented
+### `InventedPlaceholderStrategy`, the token the model invented
 
 After restoration, every token the pipeline issued has been replaced by its value. If a string still matches the token grammar, the model invented it, by hallucination or injection. The model may have produced a `<<PERSON:9>>`{ .placeholder } that maps to no known entity.
 
@@ -62,7 +66,7 @@ After restoration, every token the pipeline issued has been replaced by its valu
 
 This detection is possible only because the factory is findable. The `PreservesRecognizableIdentity` tag, which the middleware requires, guarantees it.
 
-### `EntityCreateByAssistantStrategy`: the value that came from the assistant
+### `EntityCreateByAssistantStrategy`, the value that came from the assistant
 
 The *provenance* of a value is the role of its first occurrence in the thread. A value the assistant introduced is not the user's confidential data. De-identifying it strips the model of its world knowledge of that entity. If the assistant cites a public place in its reply, de-identifying it on the next turn cuts the model off from information it produced itself.
 
@@ -107,7 +111,7 @@ classDiagram
 *The intersection the middleware narrows on, identity and findability at once.*
 { .figure-caption }
 
-One exception, `PASSTHROUGH`. Since the tool boundary is never crossed in clear text, the requirement falls away. It is still imposed at type-check, though. You must therefore step outside the middleware to use a weaker tag.
+The constraint holds for every `ToolCallStrategy`, `PASSTHROUGH` included, because the LLM channel always restores the model's reply. To use a weaker tag, you must step outside the middleware.
 
 ---
 
@@ -129,17 +133,14 @@ All three are plain `Enum`s with no external dependency, importable from `piigho
 
 ## Which strategy to pick?
 
-```mermaid
-flowchart TD
-    A{Tool reads or returns confidential data?} -->|tool must read real values| B{Response may contain new confidential data?}
-    A -->|tool needs nothing| E[PASSTHROUGH]
-    A -->|tool reads nothing but returns confidential data| F[OUTPUT]
-    B -->|yes| C[FULL]
-    B -->|no| D[INPUT]
-```
+Two questions are enough to pick a `ToolCallStrategy`.
 
-*Picking a `ToolCallStrategy` from what the tool reads and returns.*
-{ .figure-caption }
+| Does the tool need the real values? | Can its response hold confidential data? | Strategy |
+|---|---|---|
+| yes | yes | `FULL` |
+| yes | no | `INPUT` |
+| no | yes | `OUTPUT` |
+| no | no | `PASSTHROUGH` |
 
 For `ToolCallStrategy`.
 
@@ -152,13 +153,13 @@ For the other two, keep the defaults unless you have a reason not to. Set `Inven
 
 ---
 
-## Why the tool channel requires a findable identity
+## Why the middleware requires a findable identity
 
-The LLM channel restores by reading the memorised mapping, so it tolerates any factory. The tool channel falls back on string replacement, over a text the pipeline never produced. It therefore cannot read a mapping. It must **find** the tokens in the text and know **which unique entity** each one denotes.
+Both channels restore through string replacement, over a text the pipeline never produced, the model's reply or a tool's arguments. They must therefore **find** the tokens in the text and know **which unique entity** each one denotes.
 
 Two guarantees follow, carried by the `PreservesRecognizableIdentity` tag that `PIIAnonymizationMiddleware` requires. Uniqueness is required, otherwise two entities sharing a token make restoration ambiguous. Findability is required, otherwise the token has no fixed grammar and blends into the prose. Without findability, an invented token cannot be spotted either.
 
-The constraint is checked at type-check time by the generic bound. It is re-checked at runtime, when the middleware is constructed. The middleware then asks the pipeline for a recognizer and raises `UnrecognizableFactoryError` if there is none. See [Placeholder factories](placeholder-factories.md) for the tag detail and the full hierarchy.
+The type checker enforces the constraint through the generic bound. Constructing the middleware re-checks part of it at runtime. The middleware then asks the pipeline for a recognizer and raises `UnrecognizableFactoryError` if there is none, for example with a mask. See [Placeholder factories](placeholder-factories.md) for the tag detail and the full hierarchy.
 
 ---
 

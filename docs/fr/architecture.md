@@ -27,19 +27,14 @@ intérieur, et un anneau intérieur n'importe jamais un anneau extérieur.
 
 ```mermaid
 flowchart TB
-    classDef core fill:#A5D6A7,stroke:#2E7D32,color:#000
-    classDef app fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef adapter fill:#E1BEE7,stroke:#6A1B9A,color:#000
-    classDef config fill:#FFF9C4,stroke:#F9A825,color:#000
-
     CFG["`**Config**
-    load_pipeline…`"]:::config
+    load_pipeline…`"]
     ADP["`**Adaptateurs**
-    détecteurs, mémoires, middleware`"]:::adapter
+    détecteurs, mémoires, middleware`"]
     APP["`**Application**
-    AnonymizationPipeline…`"]:::app
+    AnonymizationPipeline…`"]
     CORE["`**Coeur**
-    ports, Detection, Entity, Span`"]:::core
+    ports, Detection, Entity, Span`"]
 
     CFG --> ADP & APP
     ADP & APP --> CORE
@@ -81,10 +76,17 @@ sous-classe ne fournit que le pas qui varie.
 --8<-- "snippets/architecture_template.fr.py:example"
 ```
 
-Cinq ports n'ont pas de template, ceux du détecteur, de l'override, des gardes-fous,
-des backends de mémoire et du chiffrement. Leurs adaptateurs n'ont rien de commun à factoriser, parce qu'ils diffèrent
-par tout leur mécanisme, pas par un seul pas.
-C'est l'exception assumée à la règle du template systématique.
+Cinq ports n'ont pas de template commun à tous leurs adaptateurs, ceux du détecteur, de
+l'override, des gardes-fous, des backends de mémoire et du chiffrement. Leurs adaptateurs
+diffèrent par tout leur mécanisme, pas par un seul pas, donc ils n'ont rien de commun à
+factoriser. C'est l'exception assumée à la règle du template systématique.
+
+Le détecteur est une exception partielle. Les détecteurs à modèle (`Gliner2Detector`,
+`SpacyDetector`, `TransformersDetector`, `PresidioDetector`, `BridgeDetector`,
+`LLMDetector`) partagent le template `BaseNERDetector`. Il relit le texte de chaque
+détection dans la source, applique le seuil de confiance et traduit les labels.
+`RegexDetector`, `ExactMatchDetector`, `CompositeDetector` et `ChunkedDetector`
+implémentent le port directement.
 
 ---
 
@@ -100,39 +102,37 @@ se comportent en passe-plat quand elles ne sont pas fournies.
 
 ```mermaid
 flowchart TB
-    classDef req fill:#90CAF9,stroke:#1565C0,color:#000
-    classDef opt fill:#FFF9C4,stroke:#F9A825,color:#000
-    classDef data fill:#A5D6A7,stroke:#2E7D32,color:#000
+    classDef opt stroke-dasharray:5 5
 
     IN(["`**Texte source**
     _'Patrick habite à Paris.
-    Patrick aime Paris.'_`"]):::data
+    Patrick aime Paris.'_`"])
 
     DET["`**Détecteur**
-    _AnyDetector_`"]:::req
+    _AnyDetector_`"]
     OVR["`override
     _AnyDetectionOverride_`"]:::opt
-    OVL["`résolveur de spans
-    _AnyOverlapResolver_`"]:::opt
+    OVL["`**Résolveur de spans**
+    _AnyOverlapResolver_`"]
     EXP["`expander
     _AnyDetectionExpander_`"]:::opt
     LINK["`**Linker**
-    _AnyEntityLinker_`"]:::req
+    _AnyEntityLinker_`"]
     ENT["`résolveur d'entités
     _AnyEntityResolver_`"]:::opt
     ANON["`**Anonymiseur**
-    _AnyAnonymizer + factory_`"]:::req
+    _AnyAnonymizer + factory_`"]
     GUARD["`garde-fou
     _AnyGuardRail_`"]:::opt
 
     OUT(["`**Sortie**
     _'#lt;#lt;PERSON:1#gt;#gt; habite à #lt;#lt;LOCATION:1#gt;#gt;.
-    #lt;#lt;PERSON:1#gt;#gt; aime #lt;#lt;LOCATION:1#gt;#gt;.'_`"]):::data
+    #lt;#lt;PERSON:1#gt;#gt; aime #lt;#lt;LOCATION:1#gt;#gt;.'_`"])
 
     IN --> DET --> OVR --> OVL --> EXP --> LINK --> ENT --> ANON --> GUARD --> OUT
 ```
 
-*Le pipeline, étapes obligatoires en bleu, étapes optionnelles en jaune.*
+*Le pipeline. Les étapes toujours exécutées sont en gras, les étapes optionnelles ont un cadre en pointillé.*
 { .figure-caption }
 
 La page [Conception du pipeline](conception.md) explique pourquoi chaque étape existe
@@ -141,15 +141,15 @@ chacune.
 
 <div class="wide-table" markdown="1">
 
-| Étape | Port | Adaptateur fourni | Rôle |
-|---|---|---|---|
-| Détecteur | `AnyDetector` | `Gliner2Detector`, `RegexDetector`, `LLMDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Trouve les données confidentielles (données personnelles, secrets), renvoie des `Detection` positionnées et typées. |
-| Résolveur de spans | `AnyOverlapResolver` | `ConfidenceOverlapResolver`, `MergeOverlapResolver` | Arbitre les détections qui se chevauchent, garde la plus confiante ou leur union. |
-| Expander | `AnyDetectionExpander` | `WordBoundaryExpander` | Rattrape les occurrences ratées d'une valeur déjà détectée. |
-| Linker | `AnyEntityLinker` | `ExactEntityLinker` | Regroupe les détections d'une même valeur en une `Entity`. |
-| Résolveur d'entités | `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Réconcilie les entités qui partagent une détection. |
-| Anonymiseur | `AnyAnonymizer` (+ `AnyPlaceholderFactory`) | `Anonymizer` + `LabelCounterPlaceholderFactory` | Remplace chaque entité par son jeton. |
-| Garde-fou | `AnyGuardRail` | `DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-vérifie la sortie, lève `PIIRemainingError` sur donnée confidentielle résiduelle. |
+| Port | Adaptateurs fournis | Rôle |
+|---|---|---|
+| `AnyDetector` | `Gliner2Detector`, `Gliner2PiiDetector`, `SpacyDetector`, `TransformersDetector`, `PresidioDetector`, `BridgeDetector`, `LLMDetector`, `RegexDetector`, `ExactMatchDetector`, `CompositeDetector`, `ChunkedDetector` | Trouve les données confidentielles (données personnelles, secrets), renvoie des `Detection` positionnées et typées. |
+| `AnyOverlapResolver` | `ConfidenceOverlapResolver`, `MergeOverlapResolver` | Arbitre les détections qui se chevauchent, garde la plus confiante ou leur union. |
+| `AnyDetectionExpander` | `WordBoundaryExpander` | Rattrape les occurrences ratées d'une valeur déjà détectée. |
+| `AnyEntityLinker` | `ExactEntityLinker` | Regroupe les détections d'une même valeur en une `Entity`. |
+| `AnyEntityResolver` | `MergeEntityResolver`, `FuzzyEntityResolver`, `SeparateEntityResolver` | Réconcilie les entités qui partagent une détection. |
+| `AnyAnonymizer` et `AnyPlaceholderFactory` | `Anonymizer` et `LabelCounterPlaceholderFactory` | Remplace chaque entité par son jeton. |
+| `AnyGuardRail` | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail`, `ModerationGuardRail` | Re-vérifie la sortie, lève `PIIRemainingError` sur donnée confidentielle résiduelle. |
 
 </div>
 
@@ -177,7 +177,7 @@ classDiagram
         &lt;&lt;PERSON&gt;&gt;
     }
     class PreservesShape {
-        j***@mail.com
+        "J*******"
     }
     class PreservesIdentity {
         abstraction
@@ -209,8 +209,8 @@ Les factories fournies vont du moins au plus informatif. `RedactPlaceholderFacto
 émet `<<REDACT>>`{ .placeholder }, `LabelPlaceholderFactory` émet
 `<<PERSON>>`{ .placeholder }, `LabelCounterPlaceholderFactory` émet
 `<<PERSON:1>>`{ .placeholder }, `LabelHashPlaceholderFactory` émet
-`<<PERSON:a1b2c3d4>>`{ .placeholder }, `MaskPlaceholderFactory` émet
-`j***@mail.com`{ .placeholder }. Le détail est dans
+`<<PERSON:a1b2c3d4>>`{ .placeholder }. `MaskPlaceholderFactory` garde le premier caractère
+et masque le reste, si bien que `Jonathan`{ .pii } devient `J*******`{ .placeholder }. Le détail est dans
 [Placeholder factories](placeholder-factories.md).
 
 ---
@@ -243,7 +243,8 @@ guard et override restent désactivées quand elles valent `None`.
 ## Le pipeline conversationnel
 
 `ThreadAnonymizationPipeline` partage le même socle mais ajoute une **mémoire de
-conversation** (`AnyConversationMemory`), passée en argument obligatoire. Un agent
+conversation** (`AnyConversationMemory`), passée par l'argument nommé `memory`. Sans cet
+argument, le pipeline construit une `InMemoryConversationMemory`. Un agent
 enchaîne des messages, et le même `Patrick`{ .pii } doit garder le même
 `<<PERSON:1>>`{ .placeholder } du premier au dernier.
 
@@ -278,21 +279,24 @@ les valeurs introduites par l'assistant.
 
 ## La mémoire de conversation et le chiffrement
 
-La mémoire est un **repository**, un port `AnyConversationMemory` avec deux
+La mémoire est un **repository**, un port `AnyConversationMemory` avec trois
 adaptateurs.
 
-- `InMemoryConversationMemory` garde tout dans un dictionnaire du processus. Simple,
-  suffisant pour un seul worker.
+- `InMemoryConversationMemory` garde tout dans un dictionnaire du processus, borné par
+  défaut. Simple, suffisant pour un seul worker.
 - `RedisConversationMemory` persiste dans Redis, pour un déploiement multi-worker où
   chaque worker doit voir les conversations des autres.
+- `SqlAlchemyConversationMemory` persiste dans une table SQL, pour des conversations
+  longues qui survivent au processus.
 
-Par nature, le backend Redis stocke des données confidentielles en clair, parce qu'il
-garde le mapping inverse, qui ramène chaque jeton à sa valeur. Deux composants
-**crypto** le protègent. Un `AnyHasher` (`Sha256Hasher`, `Argon2Hasher`)
-transforme chaque message en clé déterministe sans révéler le texte. Un `AnyCipher`
-(`AesGcmCipher`) chiffre les détections au repos, de sorte qu'une fuite de la base ne
-révèle ni le message ni les valeurs. Le `thread_id` reste en clair comme préfixe de clé,
-pour qu'une conversation puisse être énumérée et oubliée.
+Par nature, un backend persistant stocke des données confidentielles, parce qu'il garde
+le mapping inverse, qui ramène chaque jeton à sa valeur. Deux composants **crypto**
+optionnels, à fournir ensemble, le protègent sur Redis comme sur SQL. Un `AnyHasher`
+(`Sha256Hasher`, `Argon2Hasher`) transforme chaque message en clé déterministe sans
+révéler le texte. Un `AnyCipher` (`AesGcmCipher`) chiffre les détections au repos, de
+sorte qu'une fuite de la base ne révèle ni le message ni les valeurs. Le `thread_id` reste
+en clair, préfixe de clé dans Redis et colonne dans la table SQL, pour qu'une
+conversation puisse être énumérée et oubliée.
 
 ---
 
@@ -332,8 +336,10 @@ sequenceDiagram
   (`ToolCallStrategy`), en restaurant les arguments pour que l'outil reçoive de vraies
   données, puis en dé-identifiant sa réponse.
 
-Le type du middleware exige une factory qui préserve l'identité. Le middleware
-reconnaît aussi les jetons que le modèle **invente** (`InventedPlaceholderStrategy`).
+Le type du middleware exige une factory qui préserve l'identité. À l'exécution, il
+refuse aussi un pipeline dont les jetons n'ont pas de grammaire délimitée, comme un
+masque (`UnrecognizableFactoryError`). Cette grammaire lui permet de
+reconnaître les jetons que le modèle **invente** (`InventedPlaceholderStrategy`).
 Après la restauration, tout jeton qui suit encore la grammaire des placeholders n'a
 pas été émis par le pipeline. Le détail des stratégies d'outil est dans
 [Stratégies d'appel outil](tool-call-strategies.md).
@@ -385,11 +391,8 @@ entre coroutines sans risque.
 
 ## Voir aussi
 
-- [Conception du pipeline](conception.md), pourquoi chaque étape existe et dans quel
-  ordre
-- [Placeholder factories](placeholder-factories.md), les familles de jetons et ce
-  qu'elles préservent
-- [Stratégies d'appel outil](tool-call-strategies.md), le détail de `awrap_tool_call`
-- [Étendre PIIGhost](extending.md), brancher son propre adaptateur derrière un port
-- [Référence des modèles de données](reference/models.md), les champs, méthodes et
-  validations de `Detection`, `Entity`, `Span` et `Chunk`
+- [Conception du pipeline](conception.md) : pourquoi chaque étape existe et dans quel ordre.
+- [Placeholder factories](placeholder-factories.md) : les familles de jetons et ce qu'elles préservent.
+- [Stratégies d'appel outil](tool-call-strategies.md) : le détail de `awrap_tool_call`.
+- [Étendre piighost](extending.md) : brancher son propre adaptateur derrière un port.
+- [Référence des modèles de données](reference/models.md) : les champs, méthodes et validations de `Detection`, `Entity`, `Span` et `Chunk`.

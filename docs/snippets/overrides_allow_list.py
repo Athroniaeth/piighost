@@ -10,10 +10,9 @@ override = DetectionOverride(allow_list=allow_list)
 pipeline = AnonymizationPipeline(detector, override=override)
 
 
-async def main():
+async def main() -> None:
     result = await pipeline.anonymize("Emma works at Acme.")
     print(result.text)
-    # <<PERSON:1>> works at Acme.
 
 
 asyncio.run(main())

@@ -134,4 +134,4 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
 
 - [Pipeline reference](pipeline.md) for the pipeline that drives the anonymizer.
 - [Placeholder factories](../placeholder-factories.md) for the tokens the anonymizer emits.
-- [Extending PIIGhost](../extending.md) for writing your own anonymizer.
+- [Extending piighost](../extending.md) for writing your own anonymizer.

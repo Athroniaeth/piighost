@@ -55,7 +55,6 @@ SNIPPETS: list[Any] = [
     "overrides_deny_list_provenance.py",
     "overrides_conflict.py",
     "extending.py",
-    "extending_models.py",
     "ports.py",
     "architecture_port.py",
     "architecture_template.fr.py",
@@ -152,7 +151,7 @@ PAGES = sorted(
 """Every other page, whose Python all comes from docs/snippets/."""
 
 FILES = {
-    "overrides_config.py": {"piighost.toml": "overrides_config.toml"},
+    "overrides_config.py": {"pipeline.toml": "overrides_config.toml"},
     "loaders.py": {
         "pipeline.toml": "loaders.pipeline.toml",
         "thread.toml": "loaders.thread.toml",

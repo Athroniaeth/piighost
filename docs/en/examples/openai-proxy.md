@@ -2,12 +2,12 @@
 icon: lucide/link
 ---
 
-# De-identify an OpenAI client with the proxy
+# OpenAI-compatible proxy
 
 `piighost-api` serves an OpenAI-compatible proxy under `/openai/v1`. Point a client's `base_url` at it, and the proxy de-identifies each request, forwards it to the real provider, and restores the reply. The provider receives `<<PERSON:1>>`{ .placeholder }, never `Jane Doe`{ .pii }.
 
 !!! note "Prerequisites"
-    A running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md), and a key for the provider. The examples use the OpenAI Python SDK.
+    A running `piighost-api` server, see [API server](../getting-started/api-server.md), and a key for the provider. The examples use the OpenAI Python SDK.
 
 ## Point the client at the proxy
 
@@ -25,7 +25,7 @@ The same call with curl:
 curl http://127.0.0.1:8000/openai/v1/chat/completions \
   -H "Authorization: Bearer sk-..." \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "I am Jane Doe"}]}'
+  -d '{"model": "gpt-5.6-terra", "messages": [{"role": "user", "content": "I am Jane Doe"}]}'
 ```
 
 ## Choose the provider

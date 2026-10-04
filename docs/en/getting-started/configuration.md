@@ -7,7 +7,7 @@ icon: lucide/file-cog
 You will describe a whole pipeline in a TOML file. The file starts at three lines and grows into a conversational pipeline, which keeps a token stable across the turns of a conversation. Each step changes one thing in the file, then you check the file and run it to see what changed.
 
 !!! note "Prerequisites"
-    `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model. Step 4 fetches a catalog from the [piighost hub](https://hub.piighost.dev) once, then reads it from the on-disk cache. Step 6 adds the `fuzzy` extra.
+    `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model. From step 4 on, the pipeline fetches a catalog from the [piighost hub](https://hub.piighost.dev) at every run, which needs network access. Step 6 adds the `fuzzy` extra.
 
 ## 1. Set up the check loop
 
@@ -29,7 +29,7 @@ The output should be:
 --8<-- "snippets/configuration/typo.out"
 ```
 
-The command names the section and the key it choked on, and exits `1`. That exit code also makes it a CI gate. Run it after every edit below. It builds no component, so it loads no model.
+The command names the faulty section and key, and exits `1`. That exit code also makes it a CI gate. Run it after every edit below. It builds no component, so it loads no model.
 
 Dump the schema once and point your editor at it for completion on the section and key names.
 
@@ -50,6 +50,8 @@ Fix the key, `patterns` with an s. The file now carries one section, and that is
 ```bash
 --8<-- "snippets/configuration/validate.sh"
 ```
+
+The output should be:
 
 ```text
 --8<-- "snippets/configuration/validated.out"
@@ -95,7 +97,7 @@ The address is gone and its label with it. `examples/config/minimal.toml` carrie
 
 ## 4. Pull a catalog from the hub
 
-Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the hub, which carries email, URL, IPv4 and credit card. The `:fab51b33` suffix pins the group to a commit. The group is therefore fetched from the hub the first time the pipeline is built, then read from the cache. Four labels now reach the anonymizer, so put the numbered token back to tell them apart.
+Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the hub, which carries email, URL, IPv4 and credit card. Without a suffix, the reference follows the latest version of the group, fetched from the hub every time the pipeline is built. To freeze the group, pin it to a commit, as in `hub:piighost/generic:fab51b33`. It is then fetched once, and read from the on-disk cache afterwards. The file no longer has an `[anonymizer.placeholder]` section, so the default numbered token comes back and tells the four labels apart.
 
 ```toml
 --8<-- "snippets/configuration/hub.toml"
@@ -153,9 +155,17 @@ The names and the formats are caught in one pass. One person spelled two ways st
 
 `Patrick`{ .pii } and `Patrik`{ .pii } are the same person, and a model reading two tokens follows two people. Install the `fuzzy` extra.
 
-```bash
-pip install "piighost[config,fuzzy]"
-```
+=== "uv"
+
+    ```bash
+    uv add "piighost[config,fuzzy]"
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install "piighost[config,fuzzy]"
+    ```
 
 Append an `[entity_resolver]` section to the file. That section clusters the entities whose values are close enough to each other.
 
@@ -186,6 +196,8 @@ Each run of `run.py` restarts the numbering, since the pipeline keeps nothing fr
 ```bash
 --8<-- "snippets/configuration/validate.sh"
 ```
+
+The output should be:
 
 ```text
 --8<-- "snippets/configuration/validated.out"
@@ -221,8 +233,8 @@ The output should be:
 
 The second message reuses the `<<PERSON:1>>`{ .placeholder } assigned by the first. Each loader refuses the other's files. `load_thread_pipeline` on a file without a memory therefore raises `this configuration declares no memory; use load_pipeline`.
 
-## What's next
+## See also
 
 - [Configuration reference](../configuration/toml.md) for every section, every `type` and every key.
-- [Deploy a production pipeline](../deployment.md) for a memory shared between workers, Redis or a SQL database, with the stored values encrypted at rest. The two files are `examples/config/thread_redis.toml` and `examples/config/thread_sqlalchemy.toml`.
-- [Force a detection or keep a value in clear](../examples/overrides.md) for the deny list and the allow list.
+- [Deployment](../deployment.md) for a memory shared between workers, Redis or a SQL database, with the stored values encrypted at rest. The two files are `examples/config/thread_redis.toml` and `examples/config/thread_sqlalchemy.toml`.
+- [Deny and allow lists](../examples/overrides.md) for the deny list and the allow list.

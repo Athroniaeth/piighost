@@ -2,6 +2,3 @@
 type = "regex"
 catalogs = ["hub:piighost/generic"]
 patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
-
-[anonymizer.placeholder]
-type = "label_counter"
