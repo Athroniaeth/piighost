@@ -1,6 +1,6 @@
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
+catalogs = ["hub:piighost/generic"]
 patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
 
 [anonymizer.placeholder]

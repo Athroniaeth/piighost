@@ -408,11 +408,11 @@ Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous f
 
 | Groupe | Référence | Labels |
 |--------|-----------|--------|
-| Générique | `hub:piighost/generic:fab51b33` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| US | `hub:piighost/us:29d5c0a5` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
-| EU | `hub:piighost/eu:b0303ae6` | `IBAN` |
-| France | `hub:piighost/fr:6802f5ef` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
-| Secrets | `hub:piighost/secrets:d822d04c` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
+| Générique | `hub:piighost/generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
+| US | `hub:piighost/us` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
+| EU | `hub:piighost/eu` | `IBAN` |
+| France | `hub:piighost/fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
+| Secrets | `hub:piighost/secrets` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
 
 </div>
 
@@ -422,7 +422,7 @@ Construisez un détecteur à partir d'un groupe avec [`from_hub`](#from_hub). `p
 --8<-- "snippets/reference_regex_hub.py:merge"
 ```
 
-Une référence épinglée sur un commit se termine par les huit caractères hexadécimaux du commit, après le dernier deux-points. Elle est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, même hors ligne. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
+Une référence épinglée sur un commit se termine par les huit caractères hexadécimaux du commit, après le dernier deux-points, comme `hub:piighost/generic:fab51b33`. Elle est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, même hors ligne. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
 
 Le hub teste chaque pattern qu'il publie contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
 
@@ -435,7 +435,7 @@ Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée e
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
+catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
 
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"

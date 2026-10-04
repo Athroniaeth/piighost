@@ -9,14 +9,14 @@ tags:
 
 `piighost` tire du [hub piighost](https://hub.piighost.dev) des catalogues de patterns regex prêts à l'emploi pour les PII à structure fixe (email, IP, IBAN, téléphone). Ce guide montre comment les charger, les fusionner et combiner plusieurs détecteurs, avec le seul cœur de `piighost`.
 
-Quatre groupes du hub couvrent les formats courants. Chacun est un ensemble d'entrées `label` vers `pattern`. Le suffixe après le dernier deux-points épingle le groupe sur un commit.
+Quatre groupes du hub couvrent les formats courants. Chacun est un ensemble d'entrées `label` vers `pattern`.
 
-- `hub:piighost/generic:fab51b33`, email, URL, IPv4, carte bancaire, indépendants du pays
-- `hub:piighost/us:29d5c0a5`, téléphone, ZIP, ITIN, SSN, préfixés `US_`
-- `hub:piighost/eu:b0303ae6`, IBAN ISO 13616 pan-européen
-- `hub:piighost/fr:6802f5ef`, téléphone, IBAN, NIR, SIRET, SIREN, préfixés `FR_`
+- `hub:piighost/generic`, email, URL, IPv4, carte bancaire, indépendants du pays
+- `hub:piighost/us`, téléphone, ZIP, ITIN, SSN, préfixés `US_`
+- `hub:piighost/eu`, IBAN ISO 13616 pan-européen
+- `hub:piighost/fr`, téléphone, IBAN, NIR, SIRET, SIREN, préfixés `FR_`
 
-Un groupe épinglé est récupéré depuis le hub à la première construction d'un détecteur, puis relu depuis le cache sur disque, hors ligne compris. Les secrets comme les clés d'API sont dans les groupes du hub `piighost/secrets` et `piighost/secrets-extended`. Ces groupes se tirent de la même façon, par exemple avec `catalogs = ["hub:piighost/secrets:d822d04c"]` dans une config.
+Une référence sans suffixe suit la dernière version du groupe, récupérée à chaque construction d'un détecteur. Pour figer une version, ajoutez son commit après un deux-points, comme `hub:piighost/generic:fab51b33`. Le groupe est alors récupéré une seule fois, puis relu depuis le cache sur disque, hors ligne compris. Les secrets comme les clés d'API sont dans les groupes du hub `piighost/secrets` et `piighost/secrets-extended`. Ces groupes se tirent de la même façon, par exemple avec `catalogs = ["hub:piighost/secrets"]` dans une config.
 
 Pour le détail des labels, voir la [référence des détecteurs](../reference/detectors.md).
 

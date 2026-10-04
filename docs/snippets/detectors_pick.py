@@ -3,8 +3,8 @@ from piighost.hub import pull
 
 # isort: split
 # --8<-- [start:example]
-generic = pull("hub:piighost/generic:fab51b33")
-french = pull("hub:piighost/fr:6802f5ef")
+generic = pull("hub:piighost/generic")
+french = pull("hub:piighost/fr")
 patterns = {
     "EMAIL": generic["EMAIL"],
     "FR_IBAN": french["FR_IBAN"],

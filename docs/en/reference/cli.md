@@ -27,7 +27,7 @@ piighost validate <PATH>
 
 | Argument | Description |
 |----------|-------------|
-| `PATH` | Path to a TOML or JSON pipeline config, or a hub reference such as `hub:piighost/fr-notarial:2f602547` |
+| `PATH` | Path to a TOML or JSON pipeline config, or a hub reference such as `hub:piighost/fr-notarial` |
 
 The exit code is `0` on success and `1` on any configuration error, whether a missing file, invalid TOML or JSON syntax, a value that fails schema validation, or a hub that cannot be reached. The error message is written to stderr. So the command suits a CI gate.
 

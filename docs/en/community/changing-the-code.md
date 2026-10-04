@@ -11,7 +11,7 @@ This page is for whoever changes the code of `piighost`. For each common change,
 - **Stack**: Python 3.11 or later, `uv` package manager. The core depends only on `typing-extensions`. Everything else is an extra of `pyproject.toml` (`langchain`, `redis`, `gliner2`, `config`…), and `all` gathers them.
 - **Install**: `uv sync` at the root of the repository.
 - **Test**: `uv run pytest`, then `make lint` before any merge. Details in [Run and write tests](../../../openwiki/en/tests/run-and-write-tests.md).
-- **Try**: `uv run piighost anonymize "Write to claire.dubois@example.com"`. The first run downloads the catalog `hub:piighost/generic:fab51b33`.
+- **Try**: `uv run piighost anonymize "Write to claire.dubois@example.com"`. The first run downloads the catalog `hub:piighost/generic`.
 - **Services**: none for the tests. Redis, an SQL database or `piighost-api` are used only in operation. See [Store conversations](../../../openwiki/en/operations/storage-and-encryption.md) and [Configure a pipeline](../../../openwiki/en/operations/configuration-and-hub.md).
 - **Examples**: standalone scripts in `examples/`, run with `uv run examples/<script>.py`.
 

@@ -6,7 +6,7 @@ icon: lucide/server
 
 Vous allez lancer `piighost-api`, le serveur compagnon de `piighost`, sur une configuration publiée sur le [hub piighost](https://hub.piighost.dev), puis dé-identifier et restaurer un message en HTTP. Tout processus qui parle HTTP partage alors un seul pipeline, chargé une fois. La mémoire de conversation est tenue par le serveur.
 
-La configuration `hub:piighost/support-en:286909f6` repère les noms, les adresses et les organisations avec le modèle GLiNER2 `fastino/gliner2-multi-v1`. Elle repère avec des regex les identifiants américains et les valeurs génériques comme les emails. Elle refuse aussi de rendre un texte dé-identifié qui contient encore une adresse email en clair.
+La configuration `hub:piighost/support-en` repère les noms, les adresses et les organisations avec le modèle GLiNER2 `fastino/gliner2-multi-v1`. Elle repère avec des regex les identifiants américains et les valeurs génériques comme les emails. Elle refuse aussi de rendre un texte dé-identifié qui contient encore une adresse email en clair.
 
 !!! note "Prérequis"
     Python 3.12 ou plus récent, et un accès réseau au hub et à Hugging Face pour le premier démarrage. Les exemples supposent le serveur sur `http://127.0.0.1:8000`.
@@ -53,7 +53,7 @@ export SECRET_PEPPER="..."
 ## 3. Démarrer le serveur
 
 ```bash
-piighost-api serve --config hub:piighost/support-en:286909f6
+piighost-api serve --config hub:piighost/support-en
 ```
 
 Au premier démarrage, le serveur récupère la configuration sur le hub et la garde dans le cache disque, puis télécharge le modèle GLiNER2. Le journal affiche `API keys loaded, auth enabled`, puis `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, et uvicorn écoute sur `http://127.0.0.1:8000`.
@@ -71,7 +71,7 @@ La sortie doit être :
 ```
 
 !!! tip "Sans modèle"
-    Une configuration en regex seules démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config hub:piighost/fr-default:e6990159` sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
+    Une configuration en regex seules démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config hub:piighost/fr-default` sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
 
 ## 4. Dé-identifier un message
 

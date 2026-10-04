@@ -6,7 +6,7 @@ from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+detector = RegexDetector.from_hub("hub:piighost/generic")
 linker = ExactEntityLinker()
 factory = LabelCounterPlaceholderFactory()
 anonymizer = Anonymizer(factory)

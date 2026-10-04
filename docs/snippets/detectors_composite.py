@@ -14,7 +14,7 @@ from piighost.components.detector import (
 )
 
 exact_detector = ExactMatchDetector({"Patrick": "PERSON"})
-regex_detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+regex_detector = RegexDetector.from_hub("hub:piighost/generic")
 detector = CompositeDetector([exact_detector, regex_detector])
 
 linker = ExactEntityLinker()

@@ -43,7 +43,7 @@ class RegexDetectorConfig(_ComponentConfig):
 
     Attributes:
         patterns: Inline label to regex mappings, optional when a catalog is set.
-        catalogs: Hub references to pull, such as hub:piighost/generic:fab51b33.
+        catalogs: Hub references to pull, such as hub:piighost/generic.
     """
 
     type: Literal["regex"]
@@ -69,7 +69,7 @@ class RegexDetectorConfig(_ComponentConfig):
             except HubRefError as exc:
                 raise ValueError(
                     f"unknown catalog {catalog!r}: expected a hub reference "
-                    f"such as hub:piighost/generic:fab51b33"
+                    f"such as hub:piighost/generic"
                 ) from exc
         return catalogs
 

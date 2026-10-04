@@ -44,7 +44,7 @@ Il n'y a pas d'interface graphique. Toute la configuration passe par ce fichier 
 | Protéger des textes isolés | `load_pipeline(source)` | un `AnonymizationPipeline` |
 | Protéger une conversation | `load_thread_pipeline(source)` | un `ThreadAnonymizationPipeline` |
 
-`source` est un chemin de fichier ou une référence hub (`hub:piighost/generic:fab51b33`). Le suffixe `.json` choisit le lecteur JSON, tout autre suffixe le lecteur TOML (`config/settings.py:54-69`).
+`source` est un chemin de fichier ou une référence hub (`hub:piighost/generic`). Le suffixe `.json` choisit le lecteur JSON, tout autre suffixe le lecteur TOML (`config/settings.py:54-69`).
 
 ## Écrire un fichier minimal
 
