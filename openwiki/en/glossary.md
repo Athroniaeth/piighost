@@ -33,7 +33,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 PIIGhost has no screen. What you "see" is a placeholder in the text sent to the model, an error message, a key of the configuration file or an output of the `piighost` command. The "What you see" column gives this form. The "Technical name" column is for developers.
 
-For the context of each term, start from [Get started with the PIIGhost domain documentation](quickstart.md). The gaps between the existing documentation and the code are in the [gap register](reference/doc-code-gaps.md).
+For the context of each term, start from the [quickstart](quickstart.md). The gaps between the existing documentation and the code are in the [gap register](reference/doc-code-gaps.md).
 
 ## Protect the data
 

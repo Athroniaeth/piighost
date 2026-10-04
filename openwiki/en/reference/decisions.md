@@ -208,7 +208,7 @@ By default, PIIGhost restores a tool's arguments before the call. The model asks
 
 Three other settings exist. One only restores the arguments. Another only de-identifies the result. The last does neither. With the first and the last, the tool's result reaches the model unmasked.
 
-A tool's result goes through the same detection as the messages of the conversation. The history the agent records keeps tool calls with their placeholders, never with the real values.
+A tool's result goes through the same detection as the messages of the conversation. In the history the agent records, tool calls stay as placeholders. The text of the messages, though, is recorded restored, so with the real values.
 
 Implemented in `integrations/langchain/middleware.py` (`ToolCallStrategy.FULL`). Rules BR-TOOL-01, BR-TOOL-05 and BR-TOOL-10 follow from it.
 
@@ -239,7 +239,7 @@ Observation traces follow each step of the pipeline. By default, they hold the t
 
 Implemented in `crypto/`, `conversation_memory/redis_backend.py` and `conversation_memory/sqlalchemy_backend.py`. Rules BR-STO-01, BR-STO-02, BR-STO-03 and BR-STO-08 follow from it.
 
-### DEC-19: Fail on the side that protects
+### DEC-19: Prefer protection over availability
 
 A component can break down, and a memory can grow without limit. A breakdown must never become a leak. So each default setting picks the side that protects:
 

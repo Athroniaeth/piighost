@@ -1,6 +1,6 @@
 ---
 type: guide
-title: Démarrer avec la documentation métier de PIIGhost
+title: Par où commencer
 description: Point d'entrée de la documentation métier de PIIGhost, qui oriente selon le besoin (comprendre une règle de protection ou modifier le code), résume le trajet d'un message et liste les pièges qui traversent plusieurs processus.
 tags: [quickstart, overview, routing, pii, de-identification]
 sources:
@@ -17,7 +17,7 @@ sources:
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-# Démarrer avec la documentation métier de PIIGhost
+# Par où commencer
 
 ## En bref
 
@@ -102,7 +102,7 @@ Chaque règle découle d'une décision de conception. La page [Décisions de con
     - DEC-17 : Restaurer la réponse pendant qu'elle arrive.
 - **Mettre en production** :
     - DEC-18 : Protéger la mémoire stockée.
-    - DEC-19 : Échouer du côté qui protège.
+    - DEC-19 : Préférer la protection à la disponibilité.
     - DEC-20 : Configurer un pipeline par fichier et par le hub.
 - **L'architecture** :
     - DEC-21 : Faire de chaque étape un port remplaçable.
@@ -114,19 +114,35 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 
 ## Les groupes de la documentation métier
 
-- **Besoins** : [Besoins par profil](needs-by-profile.md).
-- **Processus** : [Protéger un message](processes/protect-a-message.md), [Suivre une conversation](processes/follow-a-conversation.md), [Imposer une liste blanche et une liste noire](processes/impose-a-whitelist-and-blacklist.md), [Laisser un outil agir](processes/let-a-tool-act.md), [Afficher une réponse streamée](processes/show-a-streamed-reply.md).
-- **Intégrations** : [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md).
-- **Exploitation** : [Configurer un pipeline par fichier, hub et ligne de commande](operations/configuration-and-hub.md), [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md).
-- **Architecture** : [Ajouter ou remplacer un composant du pipeline](architecture/ports-and-extension.md).
-- **Tests** : [Lancer et écrire les tests](tests/run-and-write-tests.md), [Tests d'acceptation](tests/acceptance-tests.md).
-- **Référence** : [Glossaire](glossary.md), [Registre des écarts doc / code](reference/doc-code-gaps.md), [Décisions de conception](reference/decisions.md), [Points à régler](reference/open-points.md).
+- **Besoins** :
+    - [Besoins par profil](needs-by-profile.md)
+- **Processus** :
+    - [Protéger un message](processes/protect-a-message.md)
+    - [Suivre une conversation](processes/follow-a-conversation.md)
+    - [Imposer une liste blanche et une liste noire](processes/impose-a-whitelist-and-blacklist.md)
+    - [Laisser un outil agir](processes/let-a-tool-act.md)
+    - [Afficher une réponse streamée](processes/show-a-streamed-reply.md)
+- **Intégrations** :
+    - [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md)
+- **Exploitation** :
+    - [Configurer un pipeline par fichier, hub et ligne de commande](operations/configuration-and-hub.md)
+    - [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md)
+- **Architecture** :
+    - [Ajouter ou remplacer un composant du pipeline](architecture/ports-and-extension.md)
+- **Tests** :
+    - [Lancer et écrire les tests](tests/run-and-write-tests.md)
+    - [Tests d'acceptation](tests/acceptance-tests.md)
+- **Référence** :
+    - [Glossaire](glossary.md)
+    - [Registre des écarts doc / code](reference/doc-code-gaps.md)
+    - [Décisions de conception](reference/decisions.md)
+    - [Points à régler](reference/open-points.md)
 
 ## Points de vigilance transverses
 
 1. **L'identifiant de conversation décide du partage des jetons.** Un appel sans identifiant est refusé, par LangChain, les hooks Claude Code et le serveur. Une application qui nomme `default` partage ses jetons entre tous ses utilisateurs. Seule la commande `piighost` se rabat sur `default`, pour une commande isolée. Voir [Suivre une conversation](processes/follow-a-conversation.md#règles-à-connaître).
 2. **Corriger un message ancien peut renuméroter les jetons**, et une réponse du modèle peut alors être restaurée avec le nom d'une autre personne. Voir [Suivre une conversation](processes/follow-a-conversation.md#règles-à-connaître).
-3. **La mémoire et l'historique de l'agent contiennent des données en clair.** Tout ce qui n'est pas traité en contient aussi, c'est-à-dire un outil Claude Code non listé (Grep), ou un résultat d'outil sous la stratégie « Entrée seule » ou « Aucun ». Chiffrez le stockage, et protégez l'historique de LangGraph ou de Pydantic AI. Voir [Stocker les conversations](operations/storage-and-encryption.md) et [Brancher la protection sur un agent](integrations/agents-and-tools.md#pièges).
+3. **Des vraies valeurs restent stockées hors du modèle.** Le modèle ne voit que des jetons, mais deux endroits gardent les vraies valeurs. La mémoire de PIIGhost les garde en clair si son stockage n'est pas chiffré. L'historique que l'agent enregistre, avec LangGraph ou Pydantic AI, garde le texte des messages restauré. Certains textes ne passent pas non plus par PIIGhost, comme le résultat d'un outil Claude Code hors de la liste traitée (Grep), ou d'un outil réglé sur « Entrée seule » ou « Aucun ». Chiffrez la mémoire, et protégez l'historique de l'agent comme une donnée personnelle. Voir [Stocker les conversations](operations/storage-and-encryption.md) et [Brancher la protection sur un agent](integrations/agents-and-tools.md#pièges).
 4. **Les traces techniques portent le texte en clair par défaut.** Configurez un masqueur de traces avant de les envoyer à un service tiers. Voir [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md#masquer-les-traces).
 5. **Effacer une conversation ne vide que le processus qui reçoit la demande.** Quand `token_memo_ttl` n'est pas réglé, les autres processus gardent une copie temporaire. Voir [Stocker les conversations](operations/storage-and-encryption.md#règles-à-connaître).
 6. **Un détecteur ou un garde-fou LLM refuse le message quand il ne peut pas lire la réponse de son propre LLM.** Le message ne part pas, et l'application reçoit une erreur. Un réglage explicite, `fail_open`, laisse partir le message sans cette détection ou sans cette vérification. Voir les [points de vigilance](needs-by-profile.md#points-de-vigilance) et DEC-19.

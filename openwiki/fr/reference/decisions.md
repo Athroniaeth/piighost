@@ -208,7 +208,7 @@ Par défaut, PIIGhost restaure les arguments d'un outil avant l'appel. Le modèl
 
 Trois autres réglages existent. L'un restaure seulement les arguments. Un autre dé-identifie seulement le résultat. Le dernier ne fait ni l'un ni l'autre. Avec le premier et le dernier, le résultat de l'outil arrive au modèle en clair.
 
-Le résultat d'un outil passe par la même détection que les messages de la conversation. L'historique que l'agent enregistre garde les appels d'outil avec leurs jetons, jamais avec les vraies valeurs.
+Le résultat d'un outil passe par la même détection que les messages de la conversation. Dans l'historique que l'agent enregistre, les appels d'outil restent en jetons. Le texte des messages y est en revanche enregistré restauré, donc avec les vraies valeurs.
 
 Cette décision vit dans `integrations/langchain/middleware.py` (`ToolCallStrategy.FULL`). Les règles BR-TOOL-01, BR-TOOL-05 et BR-TOOL-10 en découlent.
 
@@ -239,7 +239,7 @@ Les traces d'observation suivent chaque étape du pipeline. Par défaut, elles c
 
 Cette décision vit dans `crypto/`, `conversation_memory/redis_backend.py` et `conversation_memory/sqlalchemy_backend.py`. Les règles BR-STO-01, BR-STO-02, BR-STO-03 et BR-STO-08 en découlent.
 
-### DEC-19 : Échouer du côté qui protège
+### DEC-19 : Préférer la protection à la disponibilité
 
 Un composant peut tomber en panne, et une mémoire peut grandir sans limite. Une panne ne doit jamais devenir une fuite. Chaque réglage par défaut choisit donc le côté qui protège :
 

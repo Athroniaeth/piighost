@@ -238,7 +238,7 @@ Ce profil ne manipule jamais `piighost`. Il utilise l'application qu'un dévelop
 
 ## Points de vigilance
 
-Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle principal. Ces cas définissent ce que `piighost` doit faire, et le besoin qui le porte.
+Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle de conversation, c'est-à-dire le modèle qui répond à l'utilisateur. Ces cas définissent ce que `piighost` doit faire, et le besoin qui le porte.
 
 | Situation | Ce que fait `piighost` | Besoin |
 |---|---|---|
@@ -247,13 +247,13 @@ Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle
 | Le LLM détecteur cite une valeur absente du texte | La valeur n'est retrouvée nulle part dans le texte et n'est pas retenue | DPO-1 |
 | Le LLM détecteur oublie une valeur | Elle part en clair, sauf si un garde-fou relit le texte | DPO-4 |
 | Le texte analysé contient une balise qui imite la zone de données du prompt | La balise est neutralisée avant l'envoi au LLM détecteur | DPO-1 |
-| Le LLM principal invente un jeton, `<<PERSON:10>>` alors que la conversation n'a que `<<PERSON:1>>` | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
-| Le LLM principal change la casse ou les chiffres d'un jeton, `<<Person:1>>` ou `<<PERSON:01>>` | Il n'est pas restauré, et il est traité comme un jeton inventé | DEV-8 |
-| Le LLM principal abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel. Aucune valeur ne fuit, et ce comportement est accepté | USER-1 |
-| Le LLM principal devine la vraie valeur derrière un jeton et l'écrit | La valeur est traitée comme introduite par l'assistant | DEV-11 |
+| Le modèle de conversation invente un jeton, `<<PERSON:10>>` alors que la conversation n'a que `<<PERSON:1>>` | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
+| Le modèle de conversation change la casse ou les chiffres d'un jeton, `<<Person:1>>` ou `<<PERSON:01>>` | Il n'est pas restauré, et il est traité comme un jeton inventé | DEV-8 |
+| Le modèle de conversation abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel. Aucune valeur ne fuit, et ce comportement est accepté | USER-1 |
+| Le modèle de conversation devine la vraie valeur derrière un jeton et l'écrit | La valeur est traitée comme introduite par l'assistant | DEV-11 |
 | L'utilisateur tape lui-même un jeton, `<<PERSON:2>>` | Il ne fait pas apparaître la valeur d'une autre personne | DPO-1 |
 | Le flux de réponse s'arrête au milieu d'un jeton | Le fragment est rendu tel quel, sans valeur réelle | USER-4 |
-| Le LLM principal coupe ou reformule un jeton dans un argument d'outil | Seul un jeton écrit en entier est restauré, l'outil reçoit le reste tel quel | DEV-4 |
+| Le modèle de conversation coupe ou reformule un jeton dans un argument d'outil | Seul un jeton écrit en entier est restauré, l'outil reçoit le reste tel quel | DEV-4 |
 | Le serveur d'API est injoignable depuis les hooks Claude Code | Le prompt ou l'appel d'outil est bloqué, la sortie d'outil remplacée par un avis, sauf si l'échec ouvert est demandé | DPO-9 |
 
 ---

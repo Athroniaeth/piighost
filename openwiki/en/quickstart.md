@@ -1,6 +1,6 @@
 ---
 type: guide
-title: Get started with the PIIGhost domain documentation
+title: Where to start
 description: Entry point of the PIIGhost domain documentation, which routes by need (understand a protection rule or change the code), summarizes the path of a message and lists the pitfalls that cut across several processes.
 tags: [quickstart, overview, routing, pii, de-identification]
 sources:
@@ -17,7 +17,7 @@ sources:
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
 
-# Get started with the PIIGhost domain documentation
+# Where to start
 
 ## In short
 
@@ -102,7 +102,7 @@ Each rule follows from a design decision. The [Design decisions](reference/decis
     - DEC-17: Restore the reply while it arrives.
 - **Go to production**:
     - DEC-18: Protect the stored memory.
-    - DEC-19: Fail on the side that protects.
+    - DEC-19: Prefer protection over availability.
     - DEC-20: Configure a pipeline from a file and from the hub.
 - **The architecture**:
     - DEC-21: Make each step a replaceable port.
@@ -114,19 +114,35 @@ To change the code, the technical documentation says which pages to read and whi
 
 ## The domain documentation groups
 
-- **Needs**: [Needs by profile](needs-by-profile.md).
-- **Processes**: [Protect a message](processes/protect-a-message.md), [Follow a conversation](processes/follow-a-conversation.md), [Impose a whitelist and a blacklist](processes/impose-a-whitelist-and-blacklist.md), [Let a tool act](processes/let-a-tool-act.md), [Show a streamed reply](processes/show-a-streamed-reply.md).
-- **Integrations**: [Plug the protection into an agent and its tools](integrations/agents-and-tools.md).
-- **Operations**: [Configure a pipeline by file, hub and command line](operations/configuration-and-hub.md), [Store conversations and protect traces](operations/storage-and-encryption.md).
-- **Architecture**: [Add or replace a pipeline component](architecture/ports-and-extension.md).
-- **Tests**: [Run and write tests](tests/run-and-write-tests.md), [Acceptance tests](tests/acceptance-tests.md).
-- **Reference**: [Glossary](glossary.md), [Doc / code gap register](reference/doc-code-gaps.md), [Design decisions](reference/decisions.md), [Open points](reference/open-points.md).
+- **Needs**:
+    - [Needs by profile](needs-by-profile.md)
+- **Processes**:
+    - [Protect a message](processes/protect-a-message.md)
+    - [Follow a conversation](processes/follow-a-conversation.md)
+    - [Impose a whitelist and a blacklist](processes/impose-a-whitelist-and-blacklist.md)
+    - [Let a tool act](processes/let-a-tool-act.md)
+    - [Show a streamed reply](processes/show-a-streamed-reply.md)
+- **Integrations**:
+    - [Plug the protection into an agent and its tools](integrations/agents-and-tools.md)
+- **Operations**:
+    - [Configure a pipeline by file, hub and command line](operations/configuration-and-hub.md)
+    - [Store conversations and protect traces](operations/storage-and-encryption.md)
+- **Architecture**:
+    - [Add or replace a pipeline component](architecture/ports-and-extension.md)
+- **Tests**:
+    - [Run and write tests](tests/run-and-write-tests.md)
+    - [Acceptance tests](tests/acceptance-tests.md)
+- **Reference**:
+    - [Glossary](glossary.md)
+    - [Doc / code gap register](reference/doc-code-gaps.md)
+    - [Design decisions](reference/decisions.md)
+    - [Open points](reference/open-points.md)
 
 ## Cross-cutting watch points
 
 1. **The conversation identifier decides how placeholders are shared.** A call without an identifier is refused, by LangChain, the Claude Code hooks and the server. An application that names `default` shares its placeholders between all its users. Only the `piighost` command falls back to `default`, for an isolated command. See [Follow a conversation](processes/follow-a-conversation.md#rules-to-know).
 2. **Correcting an old message can renumber the placeholders**, and a reply of the model can then be restored with the name of another person. See [Follow a conversation](processes/follow-a-conversation.md#rules-to-know).
-3. **The memory and the agent history contain data in clear text.** So does everything that is not processed, that is a Claude Code tool that is not listed (Grep), or a tool result under the "Input only" or "None" strategy. Encrypt the storage, and protect the LangGraph or Pydantic AI history. See [Store conversations](operations/storage-and-encryption.md) and [Plug the protection into an agent](integrations/agents-and-tools.md#pitfalls).
+3. **Real values stay stored outside the model.** The model only sees placeholders, but two places keep the real values. PIIGhost's memory keeps them in clear text if its storage is not encrypted. The history the agent records, with LangGraph or Pydantic AI, keeps the text of the messages restored. Some texts do not go through PIIGhost either, such as the result of a Claude Code tool outside the handled list (Grep), or of a tool set to "Input only" or "None". Encrypt the memory, and protect the agent's history as personal data. See [Store conversations](operations/storage-and-encryption.md) and [Plug the protection into an agent](integrations/agents-and-tools.md#pitfalls).
 4. **The technical traces carry the text in clear by default.** Configure a trace redactor before you send them to a third-party service. See [Store conversations and protect traces](operations/storage-and-encryption.md#redact-the-traces).
 5. **Erasing a conversation only clears the process that receives the request.** When `token_memo_ttl` is not set, the other processes keep a temporary copy. See [Store conversations](operations/storage-and-encryption.md#rules-to-know).
 6. **An LLM detector or guard rail refuses the message when it cannot read the answer of its own LLM.** The message does not leave, and the application gets an error. An explicit setting, `fail_open`, lets the message leave without that detection or without that check. See the [watch points](needs-by-profile.md#watch-points) and DEC-19.
