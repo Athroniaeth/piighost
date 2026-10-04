@@ -29,7 +29,9 @@ L'extra `gliner2` apporte le moteur du modèle dont la configuration a besoin.
 
 ## 2. Créer une clé d'API
 
-Le serveur refuse de démarrer sans clé d'API. `keyshield`, installé avec le serveur, génère une clé et un pepper, le secret qui sert à hacher cette clé en mémoire.
+`piighost-api` protège ses routes par des clés d'API. Chaque requête doit porter une clé valide dans l'en-tête `Authorization: Bearer <clé>`. Pour gérer ces clés, le serveur utilise [`keyshield`](https://github.com/Athroniaeth/keyshield), une librairie Python de gestion de clés d'API, installée avec lui. Le serveur ne garde pas les clés en clair. Il garde leur empreinte, calculée avec Argon2 et un pepper, c'est-à-dire un secret ajouté avant le calcul.
+
+Le serveur refuse de démarrer sans clé d'API, parce qu'il ouvrirait sinon ses routes à tout le monde. Pour un essai en local, `PIIGHOST_ALLOW_ANONYMOUS=true` le laisse démarrer sans clé, toutes ses routes ouvertes. La commande `keyshield` génère une clé et un pepper.
 
 ```bash
 keyshield generate
