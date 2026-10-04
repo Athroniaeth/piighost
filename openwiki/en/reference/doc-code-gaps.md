@@ -54,7 +54,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 - No gap is fixed here. Each one awaits a decision from the maintainer, to fix the doc or to fix the code. A settled gap keeps its entry, with its status.
 - The gaps found concern the developer documentation and one FAQ example. None changes what the end user sees.
 
-The terms are defined in the [glossary](../glossary.md). Back to [Get started with the PIIGhost domain documentation](../quickstart.md).
+The terms are defined in the [glossary](../glossary.md). Back to the [quickstart](../quickstart.md).
 
 ## Read an entry
 

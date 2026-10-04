@@ -238,7 +238,7 @@ This profile never handles `piighost`. They use the application that a developer
 
 ## Watch points
 
-An LLM can answer badly, whether it serves as a detector, a guard rail or the main model. These cases define what `piighost` must do, and the need that carries it.
+An LLM can answer badly, whether it serves as a detector, a guard rail or the conversation model, the model that answers the user. These cases define what `piighost` must do, and the need that carries it.
 
 | Situation | What `piighost` does | Need |
 |---|---|---|
@@ -247,13 +247,13 @@ An LLM can answer badly, whether it serves as a detector, a guard rail or the ma
 | The detector LLM cites a value absent from the text | The value is found nowhere in the text and is not kept | DPO-1 |
 | The detector LLM misses a value | It leaves in clear text, unless a guard rail rereads the text | DPO-4 |
 | The analyzed text contains a tag that imitates the data area of the prompt | The tag is neutralized before it is sent to the detector LLM | DPO-1 |
-| The main LLM invents a placeholder, `<<PERSON:10>>` while the conversation only has `<<PERSON:1>>` | Refused by default, removed or kept depending on the strategy | DEV-8 |
-| The main LLM changes the case or the digits of a placeholder, `<<Person:1>>` or `<<PERSON:01>>` | It is not restored, and it is treated as an invented placeholder | DEV-8 |
-| The main LLM damages the delimiters of a placeholder, `<< PERSON:1 >>` or `PERSON:1` | It is neither restored nor recognized as a placeholder, and the user reads it as is. No value leaks, and this behavior is accepted | USER-1 |
-| The main LLM guesses the real value behind a placeholder and writes it | The value is treated as introduced by the assistant | DEV-11 |
+| The conversation model invents a placeholder, `<<PERSON:10>>` while the conversation only has `<<PERSON:1>>` | Refused by default, removed or kept depending on the strategy | DEV-8 |
+| The conversation model changes the case or the digits of a placeholder, `<<Person:1>>` or `<<PERSON:01>>` | It is not restored, and it is treated as an invented placeholder | DEV-8 |
+| The conversation model damages the delimiters of a placeholder, `<< PERSON:1 >>` or `PERSON:1` | It is neither restored nor recognized as a placeholder, and the user reads it as is. No value leaks, and this behavior is accepted | USER-1 |
+| The conversation model guesses the real value behind a placeholder and writes it | The value is treated as introduced by the assistant | DEV-11 |
 | The user types a placeholder themselves, `<<PERSON:2>>` | It does not reveal the value of another person | DPO-1 |
 | The reply stream stops in the middle of a placeholder | The fragment is returned as is, without a real value | USER-4 |
-| The main LLM cuts or rephrases a placeholder in a tool argument | Only a placeholder written in full is restored, the tool receives the rest as is | DEV-4 |
+| The conversation model cuts or rephrases a placeholder in a tool argument | Only a placeholder written in full is restored, the tool receives the rest as is | DEV-4 |
 | The API server is unreachable from the Claude Code hooks | The prompt or the tool call is blocked, the tool output replaced by a notice, unless fail open is requested | DPO-9 |
 
 ---
