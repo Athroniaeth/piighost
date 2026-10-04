@@ -82,7 +82,7 @@ La factory de placeholder décide de ce qui distingue deux entités. Certaines f
 - `MaskPlaceholderFactory` garde un fragment de la valeur, par défaut son premier caractère, si bien que `Jonathan`{ .pii } devient `J*******`{ .placeholder }. Deux valeurs de forme voisine peuvent se confondre sur un même masque, et un masque peut aussi se confondre avec une vraie valeur dans une réponse d'outil.
 - `LabelCounterPlaceholderFactory` (`<<PERSON:1>>`{ .placeholder }) et `LabelHashPlaceholderFactory` (`<<PERSON:a1b2c3d4>>`{ .placeholder }) donnent un jeton distinct par entité, que l'on retrouve dans le texte. Elles restent donc réversibles sans ambiguïté.
 
-**Parade** : voir [Placeholder factories](placeholder-factories.md) pour la taxonomie complète et le choix par usage.
+**Parade** : voir [Fabriques de placeholders](placeholder-factories.md) pour la taxonomie complète et le choix par usage.
 
 ## La restauration exige un jeton unique par entité
 
@@ -96,7 +96,7 @@ Restaurer une valeur à partir d'un placeholder suppose que le placeholder ident
 | `LabelCounterPlaceholderFactory` | `<<PERSON:1>>`{ .placeholder } | le type et l'identité | fiable |
 | `LabelHashPlaceholderFactory` | `<<PERSON:a1b2c3d4>>`{ .placeholder } | le type et l'identité | fiable |
 
-Le tag de préservation de chaque factory est dans [Placeholder factories](placeholder-factories.md).
+Le tag de préservation de chaque factory est dans [Fabriques de placeholders](placeholder-factories.md).
 
 Sur la phrase "`Patrick`{ .pii } et `Marie`{ .pii } habitent à `Paris`{ .pii }", la différence se voit tout de suite.
 

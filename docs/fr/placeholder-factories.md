@@ -2,7 +2,7 @@
 icon: lucide/replace
 ---
 
-# Placeholder factories
+# Fabriques de placeholders
 
 Un *placeholder* est le jeton synthétique qui prend la place d'une valeur détectée avant que le texte n'atteigne le LLM. Au lieu d'envoyer `Patrick`{ .pii } habite à `Paris`{ .pii } au LLM, le pipeline transmet `<<PERSON:1>>`{ .placeholder } habite à `<<LOCATION:1>>`{ .placeholder }. Les valeurs originales restent dans la mémoire de conversation, le LLM ne les voit jamais.
 

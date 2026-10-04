@@ -211,7 +211,7 @@ Les factories fournies vont du moins au plus informatif. `RedactPlaceholderFacto
 `<<PERSON:1>>`{ .placeholder }, `LabelHashPlaceholderFactory` émet
 `<<PERSON:a1b2c3d4>>`{ .placeholder }. `MaskPlaceholderFactory` garde le premier caractère
 et masque le reste, si bien que `Jonathan`{ .pii } devient `J*******`{ .placeholder }. Le détail est dans
-[Placeholder factories](placeholder-factories.md).
+[Fabriques de placeholders](placeholder-factories.md).
 
 ---
 
@@ -392,7 +392,7 @@ entre coroutines sans risque.
 ## Voir aussi
 
 - [Conception du pipeline](conception.md) : pourquoi chaque étape existe et dans quel ordre.
-- [Placeholder factories](placeholder-factories.md) : les familles de jetons et ce qu'elles préservent.
+- [Fabriques de placeholders](placeholder-factories.md) : les familles de jetons et ce qu'elles préservent.
 - [Stratégies d'appel outil](tool-call-strategies.md) : le détail de `awrap_tool_call`.
 - [Étendre piighost](extending.md) : brancher son propre adaptateur derrière un port.
 - [Référence des modèles de données](reference/models.md) : les champs, méthodes et validations de `Detection`, `Entity`, `Span` et `Chunk`.

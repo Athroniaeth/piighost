@@ -147,5 +147,5 @@ Langfuse n'est présent, est dans `examples/observation/langfuse_tracing.py`.
 ## Voir aussi
 
 - [Architecture](architecture.md) : chaque étape du pipeline émet un span.
-- [Placeholder factories](placeholder-factories.md) : les factories utilisables comme `observation_redactor`.
+- [Fabriques de placeholders](placeholder-factories.md) : les factories utilisables comme `observation_redactor`.
 - [Sécurité](security.md) : ce qu'une trace peut laisser fuir et comment le borner.

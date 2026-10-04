@@ -82,7 +82,7 @@ La sortie doit être :
 
 L'empreinte est calculée à partir du label et du rang de l'entité, jamais à partir de la valeur. `Patrick`{ .pii } garde donc le même jeton à ses deux apparitions, et `Marie`{ .pii } en reçoit un autre.
 
-Pour restaurer les valeurs, la factory doit préserver l'identité, c'est-à-dire donner un jeton distinct à chaque valeur. `LabelCounterPlaceholderFactory` le fait. `LabelPlaceholderFactory` ne le fait pas, parce qu'elle donne le même `<<PERSON>>`{ .placeholder } à deux personnes distinctes. Voir la page [Placeholder factories](../placeholder-factories.md).
+Pour restaurer les valeurs, la factory doit préserver l'identité, c'est-à-dire donner un jeton distinct à chaque valeur. `LabelCounterPlaceholderFactory` le fait. `LabelPlaceholderFactory` ne le fait pas, parce qu'elle donne le même `<<PERSON>>`{ .placeholder } à deux personnes distinctes. Voir la page [Fabriques de placeholders](../placeholder-factories.md).
 
 ## Voir aussi
 

@@ -413,5 +413,5 @@ pas été émis par le pipeline.
 ## Voir aussi
 
 - [Architecture](architecture.md) : la carte des couches et l'API de chaque composant.
-- [Placeholder factories](placeholder-factories.md) : les familles de jetons et ce qu'elles préservent.
+- [Fabriques de placeholders](placeholder-factories.md) : les familles de jetons et ce qu'elles préservent.
 - [Stratégies d'appel outil](tool-call-strategies.md) : le détail de `awrap_tool_call`.

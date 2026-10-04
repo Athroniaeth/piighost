@@ -110,7 +110,7 @@ L'article 35, paragraphe 7, point d), demande les mesures envisagées pour faire
 
 | Risque | Mesure | Réglage à consigner |
 |---|---|---|
-| Le fournisseur du LLM lit les PII | les valeurs sont remplacées avant que le texte parte, et un jeton à compteur ou à hash n'est jamais calculé à partir de la valeur qu'il remplace. Voir [Placeholder factories](placeholder-factories.md). | les détecteurs, la placeholder factory |
+| Le fournisseur du LLM lit les PII | les valeurs sont remplacées avant que le texte parte, et un jeton à compteur ou à hash n'est jamais calculé à partir de la valeur qu'il remplace. Voir [Fabriques de placeholders](placeholder-factories.md). | les détecteurs, la placeholder factory |
 | La correspondance atteint le fournisseur | la correspondance reste dans la mémoire, de votre côté, et n'est jamais envoyée avec le texte. Voir [Sécurité](security.md). | le backend de mémoire |
 | Vol du stockage persistant | la clé de chaque message est hachée (`Sha256Hasher` ou `Argon2Hasher`) et chaque valeur chiffrée (`AesGcmCipher`). Le hasher et le cipher se configurent ensemble ou pas du tout. Un stockage réseau construit sans eux émet un `PIIGhostSecurityWarning`. Voir [Sécurité](security.md). | le hasher, le cipher, où sont gardés `PIIGHOST_HASH_PEPPER` et `PIIGHOST_CIPHER_KEY` |
 | Une PII reste dans la sortie | un garde-fou revérifie le texte dé-identifié, et le pipeline lève `PIIRemainingError` quand il en signale une. Voir [Garde-fous](reference/guard-rails.md). | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail` ou `ModerationGuardRail` |

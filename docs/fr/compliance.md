@@ -135,5 +135,5 @@ Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation 
 - [Sécurité](security.md) : le modèle de menaces, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
 - [Comment documenter `piighost` dans une AIPD](dpia.md) : le traitement, les flux de données, les mesures et les risques résiduels, avec un modèle à remplir.
 - [Limites](limitations.md) : la regex par forme seule et ce qu'elle ne valide pas.
-- [Placeholder factories](placeholder-factories.md) : quels modes sont réversibles et lesquels ne le sont pas.
+- [Fabriques de placeholders](placeholder-factories.md) : quels modes sont réversibles et lesquels ne le sont pas.
 - [Roadmap](roadmap.md) : ce qui est en attente et ce qui est volontairement hors périmètre.
