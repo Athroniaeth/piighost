@@ -24,7 +24,7 @@ Two things therefore coexist at all times. The first is the de-identified text, 
     The middleware restores tool arguments just before execution, then de-identifies the results before they go back to the LLM. The real values never flow through the LLM's visible context.
 
 !!! success "Cross-message drift"
-    The `ConversationMemory` links variants of a value, so the same entity keeps the same placeholder across the whole conversation. `Patrick`{ .pii } and `patrick`{ .pii } group by `(value_key(text), label)`, whatever their spaces and case. The LLM never sees the same value under two different masks.
+    The linker (`ExactEntityLinker`) links variants of a value, and the conversation memory keeps each message's detections, so the same entity keeps the same placeholder across the whole conversation. `Patrick`{ .pii } and `patrick`{ .pii } group by `(value_key(text), label)`, whatever their spaces and case. The LLM never sees the same value under two different masks.
 
 !!! success "Theft of a stolen persistent store"
     A persistent backend (Redis or SQL) can encrypt every stored value and hash the key. A store leak then reveals neither the message nor the confidential data. See below.
@@ -72,7 +72,7 @@ turned off with `escape_existing_tokens=False` on the `Anonymizer`.
 
 ## The mapping is cleartext confidential data
 
-Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link, held by the `ConversationMemory`, contains cleartext confidential data. It is the system's most sensitive asset, and it must be protected as such.
+Reversibility has a price. To restore `jean@mail.com`{ .pii } from `<<EMAIL:1>>`{ .placeholder }, `piighost` keeps the link between the two. That link comes from the conversation memory, which contains cleartext confidential data. It is the system's most sensitive asset, and it must be protected as such.
 
 Three backends exist, with three security profiles.
 

@@ -81,8 +81,8 @@ sous-classe ne fournit que le pas qui varie.
 --8<-- "snippets/architecture_template.fr.py:example"
 ```
 
-Deux ports n'ont pas de template, celui des gardes-fous et celui des backends de
-mémoire. Leurs adaptateurs n'ont rien de commun à factoriser, parce qu'ils diffèrent
+Cinq ports n'ont pas de template, ceux du détecteur, de l'override, des gardes-fous,
+des backends de mémoire et du chiffrement. Leurs adaptateurs n'ont rien de commun à factoriser, parce qu'ils diffèrent
 par tout leur mécanisme, pas par un seul pas.
 C'est l'exception assumée à la règle du template systématique.
 

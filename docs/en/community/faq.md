@@ -29,7 +29,7 @@ icon: lucide/message-circle-question
     No. The format is driven by the placeholder factory chosen in `[anonymizer.placeholder]`. `label_counter` produces `<<PERSON:1>>`{ .placeholder }, `label_hash` produces `<<PERSON:a1b2c3d4>>`{ .placeholder }, `label` produces `<<PERSON>>`{ .placeholder } without a counter, `mask` produces `P***`{ .placeholder }, and you can write your own factory. See [Placeholder factories](../placeholder-factories.md).
 
 ??? question "Can I get realistic fake values instead of tokens?"
-    Not yet. A Faker factory that emits realistic values (a plausible name in place of `Patrick`{ .pii }) is on the [roadmap](../roadmap.md) but not reimplemented in v2. Today the factories emit synthetic tokens or masks, never a value that looks real.
+    No, and it is not planned. A Faker factory, which would emit a plausible name in place of `Patrick`{ .pii }, is ruled out on purpose in the [roadmap](../roadmap.md). Two people could draw the same fake name, and a fake could coincide with a real value, so restoration would no longer be reliable. Today the factories emit synthetic tokens or masks, never a value that looks real.
 
 ??? question "Does the LLM see raw confidential data when it calls a tool?"
     It depends on the tool-call strategy. With the default (`FULL`), no. The middleware restores arguments right before the tool executes, then de-identifies the tool response again before it flows back to the LLM. The tool sees real values, the LLM only sees placeholders. The `INPUT`, `OUTPUT` and `PASSTHROUGH` modes change this behaviour, see the next question and [Tool-call strategies](../tool-call-strategies.md). Full diagram in [Architecture](../architecture.md).
