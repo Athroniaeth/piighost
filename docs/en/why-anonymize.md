@@ -4,13 +4,14 @@ icon: lucide/shield-alert
 
 # Why de-identify?
 
-!!! abstract "In short"
-    - Text sent to a cloud LLM is read in clear by the provider, logged and retained.
-    - The provider's promise not to exploit your data can fail, through an incident, use for training or a court order.
-    - The law is not enough either. A US law such as the CLOUD Act can compel a US provider, even for data hosted in Europe.
-    - Once collected, this data can be cross-referenced for mass surveillance, political profiling or advertising targeting.
-    - De-identifying **before sending** protects you without depending on the provider, its promise, the security of its infrastructure or a future political decision.
-    - De-identification does not solve everything, see [What de-identification does not solve](#what-de-identification-does-not-solve).
+## In short
+
+- Text sent to a cloud LLM is read in clear by the provider, logged and retained.
+- The provider's promise not to exploit your data can fail, through an incident, use for training or a court order.
+- The law is not enough either. A US law such as the CLOUD Act can compel a US provider, even for data hosted in Europe.
+- Once collected, this data can be cross-referenced for mass surveillance, political profiling or advertising targeting.
+- De-identifying **before sending** protects you without depending on the provider, its promise, the security of its infrastructure or a future political decision.
+- De-identification does not solve everything, see [What de-identification does not solve](#what-de-identification-does-not-solve).
 
 The case for de-identifying personal data before it reaches an LLM holds **independently of `piighost`**. It is laid out below for a technical or non-technical reader, so you can put it in front of a decision-maker or a skeptical colleague.
 
