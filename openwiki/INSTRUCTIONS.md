@@ -232,7 +232,8 @@ Couvrir au minimum :
 Les identifiants sont en anglais, les mêmes quelle que soit la langue de la
 page : besoins `DPO-n`, `DEV-n`, `OPS-n`, `USER-n` ; règles
 `BR-<DOMAINE>-NN` ; décisions de conception `DEC-NN` ; tests d'acceptation `AT-<besoin>-<n>` ; écarts
-`ECART-NN`. Un identifiant publié ne change plus de sens : une règle retirée
+`ECART-NN`. Un besoin s'écrit en texte simple, sans gras, sous la forme
+`DPO-1 : En tant que …` (`DPO-1: As a …` en anglais). Un identifiant publié ne change plus de sens : une règle retirée
 laisse son numéro libre.
 
 ## Style

@@ -21,9 +21,9 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-**What PIIGhost is.** PIIGhost hides the confidential data of a text before an AI model reads it, then puts the real values back in the reply. It is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is used remotely through the `piighost-api` server. It is configured with a TOML or JSON file and the `piighost` command. The legal and technical reasons to de-identify are explained in [Why de-identify?](../../docs/en/why-anonymize.md).
+PIIGhost hides the confidential data of a text before an AI model reads it, then puts the real values back in the reply. It is a Python library, with no graphical interface. It plugs into LangChain, Pydantic AI, LlamaIndex or Claude Code, or is used remotely through the `piighost-api` server. It is configured with a TOML or JSON file and the `piighost` command. The legal and technical reasons to de-identify are explained in [Why de-identify?](../../docs/en/why-anonymize.md).
 
-The path of a message:
+**The path of a message:**
 
 1. The user writes a message with their real data, for example their name and email.
 2. PIIGhost finds the sensitive values, for example names, emails, phone numbers or secrets.
@@ -62,19 +62,6 @@ The path of a message:
 | The meaning of a term or an acronym | [Glossary](glossary.md) |
 | The places where the documentation and the code diverge | [Doc / code gap register](reference/doc-code-gaps.md) |
 | What is decided and remains to be done | [Open points](reference/open-points.md) |
-
-```mermaid
-flowchart LR
-    A["User message"] --> B["Spotting the values"]
-    B --> C["Whitelist and blacklist"]
-    C --> D["Replacement with placeholders"]
-    D --> E["Final check"]
-    E --> F["AI model"]
-    F --> G["Restoration of the values"]
-    G --> H["Displayed reply"]
-    D --> M["Conversation memory"]
-    M --> G
-```
 
 ## Why PIIGhost works this way
 
