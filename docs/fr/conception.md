@@ -107,9 +107,9 @@ D'où une nouvelle étape, passer des détections aux entités. C'est le linker
 
 ```mermaid
 flowchart LR
-    D["détections :\nPatrick(0,7)\npatrick(30,37)\nMarie(15,20)"] --> L{{"ExactEntityLinker"}}
-    L --> E1["Entité PERSON 'patrick'\n+ toutes ses occurrences"]
-    L --> E2["Entité PERSON 'marie'"]
+    D["détections\nPatrick, patrick, Marie"] --> L{{"ExactEntityLinker"}}
+    L --> E1["entité PERSON 'patrick'"]
+    L --> E2["entité PERSON 'marie'"]
 ```
 
 *Le linker regroupe les détections d'une même valeur en une entité, qui recevra un jeton
@@ -220,7 +220,7 @@ texte.
 
 ```mermaid
 flowchart LR
-    IN["texte porteur de jetons"] --> D["deanonymize :\nremplace chaque jeton connu\npar la valeur de son entité"] --> OUT["texte restauré"]
+    IN["Bien sûr, #lt;#lt;PERSON:1#gt;#gt;#160;!"] --> D{{"deanonymize"}} --> OUT["Bien sûr, Patrick#160;!"]
 ```
 
 *La restauration remplace les jetons connus par leur valeur, dans n'importe quel

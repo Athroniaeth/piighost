@@ -106,9 +106,9 @@ Hence a new step, going from detections to entities. That is the linker
 
 ```mermaid
 flowchart LR
-    D["detections:\nPatrick(0,7)\npatrick(30,37)\nMarie(15,20)"] --> L{{"ExactEntityLinker"}}
-    L --> E1["Entity PERSON 'patrick'\n+ all its occurrences"]
-    L --> E2["Entity PERSON 'marie'"]
+    D["detections\nPatrick, patrick, Marie"] --> L{{"ExactEntityLinker"}}
+    L --> E1["entity PERSON 'patrick'"]
+    L --> E2["entity PERSON 'marie'"]
 ```
 
 *The linker groups the detections of the same value into one entity, which will receive a
@@ -212,7 +212,7 @@ replace the token in any text.
 
 ```mermaid
 flowchart LR
-    IN["text carrying tokens"] --> D["deanonymize:\nreplaces every known token\nwith the value of its entity"] --> OUT["restored text"]
+    IN["Of course, #lt;#lt;PERSON:1#gt;#gt;!"] --> D{{"deanonymize"}} --> OUT["Of course, Patrick!"]
 ```
 
 *Restoration replaces known tokens with their value, in any text.*

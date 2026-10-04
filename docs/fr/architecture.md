@@ -32,35 +32,17 @@ flowchart TB
     classDef adapter fill:#E1BEE7,stroke:#6A1B9A,color:#000
     classDef config fill:#FFF9C4,stroke:#F9A825,color:#000
 
-    subgraph CONFIG ["Config, point de composition"]
-        direction LR
-        CFG["load_pipeline / load_thread_pipeline"]:::config
-    end
+    CFG["`**Config**
+    load_pipeline…`"]:::config
+    ADP["`**Adaptateurs**
+    détecteurs, mémoires, middleware`"]:::adapter
+    APP["`**Application**
+    AnonymizationPipeline…`"]:::app
+    CORE["`**Coeur**
+    ports, Detection, Entity, Span`"]:::core
 
-    subgraph ADAPTERS ["Adaptateurs, implémentations concrètes"]
-        direction LR
-        A_DET["Gliner2Detector, RegexDetector…"]:::adapter
-        A_MEM["InMemoryConversationMemory, Redis…"]:::adapter
-        A_MW["PIIAnonymizationMiddleware"]:::adapter
-    end
-
-    subgraph APP ["Application, orchestration"]
-        direction LR
-        P_BASE["BaseAnonymizationPipeline"]:::app
-        P_ONE["AnonymizationPipeline"]:::app
-        P_THREAD["ThreadAnonymizationPipeline"]:::app
-    end
-
-    subgraph CORE ["Coeur, ports et modèles"]
-        direction LR
-        PORTS["AnyDetector, AnyEntityLinker,\nAnyAnonymizer, AnyConversationMemory…"]:::core
-        MODELS["Detection, Entity, Span"]:::core
-    end
-
-    CONFIG --> ADAPTERS
-    CONFIG --> APP
-    ADAPTERS --> CORE
-    APP --> CORE
+    CFG --> ADP & APP
+    ADP & APP --> CORE
 ```
 
 *Trois anneaux et le point de composition. Les dépendances pointent toujours vers le
@@ -117,7 +99,7 @@ un `ConfidenceOverlapResolver`. Les étapes override, expand, entity-resolve et 
 se comportent en passe-plat quand elles ne sont pas fournies.
 
 ```mermaid
-flowchart LR
+flowchart TB
     classDef req fill:#90CAF9,stroke:#1565C0,color:#000
     classDef opt fill:#FFF9C4,stroke:#F9A825,color:#000
     classDef data fill:#A5D6A7,stroke:#2E7D32,color:#000
@@ -144,8 +126,8 @@ flowchart LR
     _AnyGuardRail_`"]:::opt
 
     OUT(["`**Sortie**
-    _'<<PERSON:1>> habite à <<LOCATION:1>>.
-    <<PERSON:1>> aime <<LOCATION:1>>.'_`"]):::data
+    _'#lt;#lt;PERSON:1#gt;#gt; habite à #lt;#lt;LOCATION:1#gt;#gt;.
+    #lt;#lt;PERSON:1#gt;#gt; aime #lt;#lt;LOCATION:1#gt;#gt;.'_`"]):::data
 
     IN --> DET --> OVR --> OVL --> EXP --> LINK --> ENT --> ANON --> GUARD --> OUT
 ```
@@ -213,7 +195,7 @@ classDiagram
 ```
 
 *Les tags de préservation, du jeton qui ne garde rien à celui qui identifie chaque
-entité.*
+entité. Chaque flèche va d'un tag vers son parent et se lit "est un".*
 { .figure-caption }
 
 Chaque tag est une sous-classe de `str`. Un jeton est donc une vraie chaîne qui porte

@@ -31,35 +31,17 @@ flowchart TB
     classDef adapter fill:#E1BEE7,stroke:#6A1B9A,color:#000
     classDef config fill:#FFF9C4,stroke:#F9A825,color:#000
 
-    subgraph CONFIG ["Config, composition root"]
-        direction LR
-        CFG["load_pipeline / load_thread_pipeline"]:::config
-    end
+    CFG["`**Config**
+    load_pipeline…`"]:::config
+    ADP["`**Adapters**
+    detectors, memories, middleware`"]:::adapter
+    APP["`**Application**
+    AnonymizationPipeline…`"]:::app
+    CORE["`**Core**
+    ports, Detection, Entity, Span`"]:::core
 
-    subgraph ADAPTERS ["Adapters, concrete implementations"]
-        direction LR
-        A_DET["Gliner2Detector, RegexDetector…"]:::adapter
-        A_MEM["InMemoryConversationMemory, Redis…"]:::adapter
-        A_MW["PIIAnonymizationMiddleware"]:::adapter
-    end
-
-    subgraph APP ["Application, orchestration"]
-        direction LR
-        P_BASE["BaseAnonymizationPipeline"]:::app
-        P_ONE["AnonymizationPipeline"]:::app
-        P_THREAD["ThreadAnonymizationPipeline"]:::app
-    end
-
-    subgraph CORE ["Core, ports and models"]
-        direction LR
-        PORTS["AnyDetector, AnyEntityLinker,\nAnyAnonymizer, AnyConversationMemory…"]:::core
-        MODELS["Detection, Entity, Span"]:::core
-    end
-
-    CONFIG --> ADAPTERS
-    CONFIG --> APP
-    ADAPTERS --> CORE
-    APP --> CORE
+    CFG --> ADP & APP
+    ADP & APP --> CORE
 ```
 
 *Three rings and the composition root. Dependencies always point toward the core.*
@@ -113,7 +95,7 @@ defaults are an `ExactEntityLinker`, an `Anonymizer` with a `LabelCounterPlaceho
 are pass-throughs when not provided.
 
 ```mermaid
-flowchart LR
+flowchart TB
     classDef req fill:#90CAF9,stroke:#1565C0,color:#000
     classDef opt fill:#FFF9C4,stroke:#F9A825,color:#000
     classDef data fill:#A5D6A7,stroke:#2E7D32,color:#000
@@ -140,8 +122,8 @@ flowchart LR
     _AnyGuardRail_`"]:::opt
 
     OUT(["`**Output**
-    _'<<PERSON:1>> lives in <<LOCATION:1>>.
-    <<PERSON:1>> loves <<LOCATION:1>>.'_`"]):::data
+    _'#lt;#lt;PERSON:1#gt;#gt; lives in #lt;#lt;LOCATION:1#gt;#gt;.
+    #lt;#lt;PERSON:1#gt;#gt; loves #lt;#lt;LOCATION:1#gt;#gt;.'_`"]):::data
 
     IN --> DET --> OVR --> OVL --> EXP --> LINK --> ENT --> ANON --> GUARD --> OUT
 ```
@@ -208,7 +190,7 @@ classDiagram
 ```
 
 *The preservation tags, from the token that keeps nothing to the one that identifies
-each entity.*
+each entity. Each arrow goes from a tag to its parent and reads "is a".*
 { .figure-caption }
 
 Each tag is a subclass of `str`. A token is therefore a real string carrying its
