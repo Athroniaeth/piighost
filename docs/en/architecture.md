@@ -78,8 +78,8 @@ written once in the base class, and each subclass provides only the step that va
 --8<-- "snippets/architecture_template.en.py:example"
 ```
 
-Two ports have no template, the guard rail port and the memory backend port. Their
-adapters have nothing common to factor out, because they differ by their whole
+Five ports have no template, the detector, override, guard rail, memory backend and
+cipher ports. Their adapters have nothing common to factor out, because they differ by their whole
 mechanism, not by a single step. This
 is the deliberate exception to the always-template rule.
 

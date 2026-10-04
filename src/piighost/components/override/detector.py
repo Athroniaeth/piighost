@@ -49,8 +49,10 @@ class DetectionOverride:
     replacing any detection they overlap, so the server's value and label win
     over the primary detector's reading. The blacklist is a detector whose
     detections invalidate existing ones, per the blacklist strategy. Because the
-    pipelines apply this component after every detection read and before every
-    memory write, both lists also trump a human's corrected set.
+    pipelines apply this component after every detector call and before every
+    memory write, both lists also trump a human's corrected set. A message
+    already in the conversation memory keeps the detections it was stored with,
+    so a list changed later applies to the messages detected after the change.
 
     This is the production way to force values: a whitelist built on an
     ExactMatchDetector or a RegexDetector survives HITL corrections, where

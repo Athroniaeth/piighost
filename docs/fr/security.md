@@ -24,7 +24,7 @@ Deux choses coexistent donc à tout moment. La première est le texte dé-identi
     Le middleware restaure les arguments d'outil juste avant l'exécution, puis dé-identifie les résultats avant qu'ils ne repartent vers le LLM. Les vraies valeurs ne transitent jamais par le contexte visible du LLM.
 
 !!! success "Dérive inter-messages"
-    La `ConversationMemory` lie les variantes d'une valeur, pour que la même entité garde le même placeholder sur toute la conversation. `Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(value_key(text), label)`, quelles que soient leurs espaces et leur casse. Le LLM ne voit jamais la même valeur sous deux masques différents.
+    Le linker (`ExactEntityLinker`) lie les variantes d'une valeur, et la mémoire de conversation garde les détections de chaque message, pour que la même entité garde le même placeholder sur toute la conversation. `Patrick`{ .pii } et `patrick`{ .pii } sont regroupés par `(value_key(text), label)`, quelles que soient leurs espaces et leur casse. Le LLM ne voit jamais la même valeur sous deux masques différents.
 
 !!! success "Fuite d'un store persistant volé"
     Un backend persistant (Redis ou SQL) peut chiffrer chaque valeur stockée et hacher la clé. Un vol du store ne révèle alors ni le message ni les données confidentielles. Voir plus bas.
@@ -73,7 +73,7 @@ et se désactive avec `escape_existing_tokens=False` sur l'`Anonymizer`.
 
 ## Le mapping est fait de données confidentielles en clair
 
-La réversibilité a un prix. Pour restaurer `jean@mail.com`{ .pii } à partir de `<<EMAIL:1>>`{ .placeholder }, `piighost` garde le lien entre les deux. Ce lien, porté par la `ConversationMemory`, contient des données confidentielles en clair. C'est l'actif le plus sensible du système, et il faut le protéger comme tel.
+La réversibilité a un prix. Pour restaurer `jean@mail.com`{ .pii } à partir de `<<EMAIL:1>>`{ .placeholder }, `piighost` garde le lien entre les deux. Ce lien vient de la mémoire de conversation, qui contient les données confidentielles en clair. C'est l'actif le plus sensible du système, et il faut le protéger comme tel.
 
 Trois backends existent, avec trois profils de sécurité.
 
