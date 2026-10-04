@@ -61,7 +61,7 @@ One problem remains. Two people still get the same placeholder, see DEC-05.
 
 Implemented in `components/detector/ner/base.py` (label translation) and `components/placeholder/streaming.py` (`LABEL_INNER`).
 
-### DEC-05: Give each individual their own identifier
+### DEC-05: Give each entity its own identifier
 
 With `<<PERSON>>`, two people in the same text get the same placeholder. "Summarize the exchange between `<<PERSON>>` and `<<PERSON>>`" no longer says who spoke, and the model mixes them up.
 
@@ -69,15 +69,22 @@ So the placeholder adds an identifier after the label, as in `<<PERSON:1>>` and 
 
 Another form replaces the number with a fingerprint, as in `<<PERSON:a1b2c3d4>>`. A fingerprint is a string of characters computed from a text, here with the SHA-256 algorithm. PIIGhost computes it from the label and the sequence number, never from the value. It needs no secret key, and reveals nothing about the value. Its only purpose is that two neighboring placeholders do not look consecutive.
 
-To assign these identifiers, you need to know which detections refer to the same individual, see DEC-06.
+To assign these identifiers, you need to know which detections refer to the same person or the same value, see DEC-06.
 
 Implemented in `components/placeholder/label_counter.py` and `components/placeholder/label_hash.py`. Rule BR-MSG-01 follows from it.
 
-### DEC-06: Group the detections of the same individual
+### DEC-06: Group the detections of the same entity
 
 The same person often appears several times in a text, sometimes written differently. All their occurrences must get the same placeholder. Otherwise, "Jean Dupont" and "jean dupont" would get two placeholders, and the model would think it is reading about two people.
 
-So PIIGhost groups the detections that have the same value and the same label. This group is called an entity, and it gets a single placeholder. Two values that differ only in spacing or capitalization count as the same value.
+So PIIGhost tells two notions apart:
+
+- The detection: one occurrence found in the text, at a precise position. It comes from the detector, see DEC-02.
+- The entity: the person or the value itself, which brings together all its detections. The entity is what gets a placeholder.
+
+In "Jean Dupont called. Call Jean Dupont back tomorrow.", the detector returns two detections, one per occurrence. They form a single entity, and both occurrences become `<<PERSON:1>>`.
+
+PIIGhost groups into one entity the detections that have the same value and the same label. Two values that differ only in spacing or capitalization count as the same value.
 
 Two options go further. One option searches the text for other occurrences of a value already found, in case a detector missed them. Another brings together close spellings, such as "Jean Dupont" and "Jean Dupond", through approximate matching. This matching can also bring two truly different people under one placeholder.
 
@@ -103,6 +110,17 @@ The user must read the reply with their real data, not with placeholders. So PII
 
 In the model's reply, each known placeholder is replaced with its value. "Hello `<<PERSON:1>>`" becomes "Hello Jean Dupont" again. A restored value is never examined a second time. A real value that looks like a placeholder is therefore shown as is.
 
+Another approach does without a mapping. Google Sensitive Data Protection (formerly Cloud DLP) can encrypt the value itself into the placeholder, with a key. The placeholder starts with a name chosen by the team, followed by the length of the encrypted text, then that text, in the form `PHONE_TOKEN(36):AYCL…`. Restoring the value takes the whole placeholder and the same key. No value is stored.
+
+PIIGhost chose the mapping for four reasons:
+
+- The placeholder stays short and readable: the model easily copies `<<PERSON:1>>`. A placeholder encrypted with AES-SIV is a long string of characters, harder to copy without a mistake.
+- The placeholder does not hold the value: an encrypted placeholder holds it. The placeholders sent to the model stay in its logs, and a leak of the key makes them all readable. A PIIGhost placeholder reveals nothing without the conversation's memory.
+- The placeholder holds for one conversation only: by default, with the same key, a value always gives the same placeholder. Someone can then link every conversation it appears in. With PIIGhost, `<<PERSON:1>>` can stand for another person in another conversation, see DEC-11.
+- A conversation can be forgotten: erasing its mapping makes its placeholders impossible to restore, once every process of the service has forgotten it. With a single key for the whole service, an encrypted placeholder stays decryptable as long as that key exists.
+
+This choice has a cost. PIIGhost must keep a memory that holds the values of each conversation. It is not a mere cache, because it cannot be rebuilt. Losing it prevents restoring the conversation's placeholders. This memory must be protected (DEC-18) and bounded (DEC-19). If the service runs on several servers, it must be shared between them (DEC-11).
+
 The real values can be recovered. Under the GDPR, this is therefore pseudonymization, not anonymization. The mapping is itself personal data to protect, see DEC-18.
 
 Implemented in `components/anonymizer/base.py`. Rule BR-CONV-05 follows from it.
@@ -124,9 +142,11 @@ Implemented in `components/override/` and `pipeline/thread.py`. Rules BR-LIST-01
 
 ### DEC-10: Reread the protected text before sending, as an option
 
-A value every detector missed goes out unmasked. A final check, called the guard rail, can reread the already de-identified text before it is sent. If it still finds confidential data there, the text is not sent.
+A value every detector missed goes out unmasked. A final check, called the guard rail, can reread the already de-identified text before it is sent. If it still finds confidential data there, the text is not sent, and the application gets an error.
 
-The guard rail is a second line of defense. It can use a different tool from the detectors, such as a classification model or an LLM. It reports a leak, but does not always say where the value is. It also makes sending slower.
+The guard rail is a second line of defense. Its main benefit is that it can use a different tool from the detectors. Take a classification model, a model that sorts a text into a category such as "safe" or "unsafe". It can tell that a text holds confidential data, without being able to say where it is. So it cannot serve as a detector, because a detector must give the position of each value (DEC-02). It can serve as a guard rail, though.
+
+The guard rail corrects nothing. It reports a leak and blocks the sending, but does not replace the value, because it does not always know where it is. A model that can locate values usually serves as a detector. A guard rail can still rerun a stronger detector than the pipeline's, to catch what the first one missed. The guard rail also makes sending slower.
 
 Implemented in `components/guard/`. Rules BR-MSG-10 and BR-MSG-11 follow from it.
 
@@ -223,7 +243,7 @@ Implemented in `crypto/`, `conversation_memory/redis_backend.py` and `conversati
 
 A component can break down, and a memory can grow without limit. A breakdown must never become a leak. So each default setting picks the side that protects:
 
-- An LLM detector whose output is unreadable refuses the message, instead of letting it go out without detection.
+- An LLM detector or guard rail whose output is unreadable refuses the message, instead of letting it go out without detection or without a check.
 - The Claude Code hooks, the points where PIIGhost rereads what the Claude Code coding assistant sends, block the action if the PIIGhost server does not answer.
 - The built-in memory, which lives in the application without a database, holds at most 10,000 conversations. It forgets a conversation one day after its last message.
 
@@ -231,7 +251,7 @@ A forgotten conversation loses its placeholders. A placeholder it held is then s
 
 Each protection can be lifted by an explicit setting, for those who prefer availability to protection. The LLM detector and the hooks then let the text through, and the memory has no limit.
 
-Implemented in `components/detector/llm.py`, `integrations/claude_code/runner.py` and `conversation_memory/memory.py`. It meets need DPO-9, and rules BR-STO-04 and BR-CONV-11 follow from it.
+Implemented in `components/detector/llm.py`, `components/guard/llm.py`, `integrations/claude_code/runner.py` and `conversation_memory/memory.py`. It meets need DPO-9, and rules BR-STO-04 and BR-CONV-11 follow from it.
 
 ### DEC-20: Configure a pipeline from a file and from the hub
 
