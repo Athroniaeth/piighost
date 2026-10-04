@@ -23,7 +23,7 @@ The conversation memory caches each message's detections per thread, so resendin
 
 ## ~~Configuration hub~~
 
-~~Now shipped as a separate project, the [piighost hub](https://hub.piighost.dev) publishes reviewed pattern groups and whole pipeline configurations under a short identifier, each pinned by commit. A regex detector pulls a group through `catalogs`. `load_config`, `load_pipeline`, `load_thread_pipeline` and `piighost --config` take a reference such as `hub:piighost/fr-notarial:2f602547` to run a configuration directly.~~
+~~Now shipped as a separate project, the [piighost hub](https://hub.piighost.dev) publishes reviewed pattern groups and whole pipeline configurations under a short identifier, each pinned by commit. A regex detector pulls a group through `catalogs`. `load_config`, `load_pipeline`, `load_thread_pipeline` and `piighost --config` take a reference such as `hub:piighost/fr-notarial` to run a configuration directly.~~
 
 ## ~~Agent-harness integration~~
 

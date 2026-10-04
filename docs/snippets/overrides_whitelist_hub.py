@@ -7,7 +7,7 @@ from piighost.components.override import DetectionOverride
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector.from_hub("hub:piighost/generic:fab51b33")
+detector = RegexDetector.from_hub("hub:piighost/generic")
 whitelist = RegexDetector({"CODENAME": r"ACME-[A-Z]+"})
 override = DetectionOverride(whitelist=whitelist)
 linker = ExactEntityLinker()

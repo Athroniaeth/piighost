@@ -11,7 +11,7 @@ Cette page s'adresse à qui change le code de `piighost`. Chaque changement cour
 - **Pile** : Python 3.11 ou plus, gestionnaire `uv`. Le cœur ne dépend que de `typing-extensions`. Tout le reste est un extra de `pyproject.toml` (`langchain`, `redis`, `gliner2`, `config`…), et `all` les réunit.
 - **Installer** : `uv sync` à la racine du dépôt.
 - **Tester** : `uv run pytest`, puis `make lint` avant toute fusion. Détails dans [Lancer et écrire les tests](../../../openwiki/fr/tests/run-and-write-tests.md).
-- **Essayer** : `uv run piighost anonymize "Écrivez à claire.dubois@example.com"`. La première exécution télécharge le catalogue `hub:piighost/generic:fab51b33`.
+- **Essayer** : `uv run piighost anonymize "Écrivez à claire.dubois@example.com"`. La première exécution télécharge le catalogue `hub:piighost/generic`.
 - **Services** : aucun pour les tests. Redis, une base SQL ou `piighost-api` ne servent qu'en exploitation. Voir [Stocker les conversations](../../../openwiki/fr/operations/storage-and-encryption.md) et [Configurer un pipeline](../../../openwiki/fr/operations/configuration-and-hub.md).
 - **Exemples** : scripts autonomes dans `examples/`, lancés par `uv run examples/<script>.py`.
 

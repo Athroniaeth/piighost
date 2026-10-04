@@ -9,14 +9,14 @@ tags:
 
 `piighost` pulls ready-to-use regex pattern catalogs for structured PII (email, IP, IBAN, phone) from the [piighost hub](https://hub.piighost.dev). This guide shows how to load them, merge them, and combine several detectors, with the `piighost` core alone.
 
-Four hub groups cover the common formats. Each one is a set of `label` to `pattern` entries. The suffix after the last colon pins the group to a commit.
+Four hub groups cover the common formats. Each one is a set of `label` to `pattern` entries.
 
-- `hub:piighost/generic:fab51b33`: email, URL, IPv4, credit card, country-agnostic
-- `hub:piighost/us:29d5c0a5`: phone, ZIP, ITIN, SSN, prefixed `US_`
-- `hub:piighost/eu:b0303ae6`: pan-European ISO 13616 IBAN
-- `hub:piighost/fr:6802f5ef`: phone, IBAN, NIR, SIRET, SIREN, prefixed `FR_`
+- `hub:piighost/generic`: email, URL, IPv4, credit card, country-agnostic
+- `hub:piighost/us`: phone, ZIP, ITIN, SSN, prefixed `US_`
+- `hub:piighost/eu`: pan-European ISO 13616 IBAN
+- `hub:piighost/fr`: phone, IBAN, NIR, SIRET, SIREN, prefixed `FR_`
 
-A pinned group is fetched from the hub the first time a detector is built, then read from the on-disk cache, offline included. Secrets such as API keys are in the hub groups `piighost/secrets` and `piighost/secrets-extended`. These groups are pulled the same way, for example with `catalogs = ["hub:piighost/secrets:d822d04c"]` in a config.
+A reference without a suffix follows the latest version of the group, fetched each time a detector is built. To freeze a version, add its commit after a colon, as in `hub:piighost/generic:fab51b33`. The group is then fetched once, and read from the on-disk cache afterwards, offline included. Secrets such as API keys are in the hub groups `piighost/secrets` and `piighost/secrets-extended`. These groups are pulled the same way, for example with `catalogs = ["hub:piighost/secrets"]` in a config.
 
 For the label details, see the [detectors reference](../reference/detectors.md).
 

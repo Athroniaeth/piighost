@@ -25,7 +25,7 @@ Secret
     d'API, un jeton d'accès, une clé privée ou une chaîne de connexion. Les
     secrets sont l'autre partie des données confidentielles. Ils sont détectés
     par les catalogues du hub `piighost/secrets` et `piighost/secrets-extended`,
-    tirés par exemple avec `catalogs = ["hub:piighost/secrets:d822d04c"]`. Les
+    tirés par exemple avec `catalogs = ["hub:piighost/secrets"]`. Les
     autres catalogues du hub, `piighost/generic` et les catalogues régionaux, ne
     contiennent aucun motif de secret. `Gliner2PiiDetector` demande
     aussi à son modèle les clés d'API et les mots de passe.

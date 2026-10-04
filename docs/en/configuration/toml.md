@@ -125,7 +125,7 @@ Matches confidential data by one regex per label, pulled from inline `patterns`,
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
+catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
@@ -145,7 +145,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
+catalogs = ["hub:piighost/generic"]
 
 [[detector.detectors]]
 type = "exact"
@@ -531,7 +531,7 @@ The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a cata
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
+catalogs = ["hub:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 [overlap_resolver]

@@ -9,7 +9,7 @@
 
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
+catalogs = ["hub:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 # Keep the most confident detection when two overlap.

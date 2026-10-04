@@ -33,12 +33,12 @@ pip install "piighost-api[gliner2,observation]"
 Builds the pipeline once and serves the [API endpoints](api-endpoints.md) with uvicorn, in a single process.
 
 ```bash
-piighost-api serve --config hub:piighost/support-en:286909f6 --host 0.0.0.0 --port 8000
+piighost-api serve --config hub:piighost/support-en --host 0.0.0.0 --port 8000
 ```
 
 | Option | Default | Description |
 |---|---|---|
-| `--config`, `-c` | `PIIGHOST_CONFIG` | A TOML or JSON pipeline config file, or a hub reference such as `hub:piighost/support-en:286909f6` |
+| `--config`, `-c` | `PIIGHOST_CONFIG` | A TOML or JSON pipeline config file, or a hub reference such as `hub:piighost/support-en` |
 | `--host` | `127.0.0.1` | Bind host |
 | `--port` | `8000` | Bind port |
 | `--log-level` | `info` | `debug`, `info`, `warning` or `error` |
@@ -51,7 +51,7 @@ piighost-api serve --config hub:piighost/support-en:286909f6 --host 0.0.0.0 --po
 
 ```bash
 export PIIGHOST_MEMORY='{"type": "redis", "url": "redis://redis:6379/0", "hasher": {"type": "argon2"}, "cipher": {"type": "aesgcm"}}'
-piighost-api serve --config hub:piighost/support-en:286909f6
+piighost-api serve --config hub:piighost/support-en
 ```
 
 ---

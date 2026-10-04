@@ -64,7 +64,7 @@ For the context of each term, start from the [quickstart](quickstart.md). The ga
 |---|---|---|---|
 | Detector | Component that finds the sensitive values in a text. By pattern, by AI model or by large language model. | key `[detector]` | `AnyDetector` |
 | Pattern (regex) | Expression that recognizes a value by its shape. The pattern checks no checksum (Luhn, IBAN). A value damaged by character recognition is therefore still detected. | key `patterns` | `RegexDetector` |
-| Catalog | List of patterns published on the hub and called by its reference. | `hub:piighost/generic:fab51b33` | `catalogs`, `hub.pull` |
+| Catalog | List of patterns published on the hub and called by its reference. | `hub:piighost/generic` | `catalogs`, `hub.pull` |
 | NER | *Named Entity Recognition*. AI model that classifies words as person, place, organization. | key `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
 | Detection | One occurrence found, with its position, text, type and confidence between 0 and 1. | one line of `piighost anonymize --json` | `Detection` |
 | Position (span) | Character interval `[start, end)` of a detection in the text. | `"start": 10, "end": 35` | `Span` |

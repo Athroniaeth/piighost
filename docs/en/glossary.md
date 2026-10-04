@@ -24,7 +24,7 @@ Secret
     token, a private key, or a connection string. Secrets are the other part of
     confidential data. They are detected through the hub catalogs
     `piighost/secrets` and `piighost/secrets-extended`, pulled for example with
-    `catalogs = ["hub:piighost/secrets:d822d04c"]`. The other hub catalogs,
+    `catalogs = ["hub:piighost/secrets"]`. The other hub catalogs,
     `piighost/generic` and the regional ones, hold no secret pattern. `Gliner2PiiDetector` also asks its model for API keys
     and passwords.
 

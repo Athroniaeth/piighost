@@ -74,10 +74,10 @@ Security fixes land on the latest minor only, on the stable and the experimental
 
 | 1.x | 2.0 |
 |---|---|
-| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `hub:piighost/generic:fab51b33` |
-| `US_PATTERNS`, `catalogs = ["us"]` | `hub:piighost/us:29d5c0a5` |
-| `EU_PATTERNS`, `catalogs = ["eu"]` | `hub:piighost/eu:b0303ae6` |
-| `FR_PATTERNS`, `catalogs = ["fr"]` | `hub:piighost/fr:6802f5ef` |
+| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `hub:piighost/generic` |
+| `US_PATTERNS`, `catalogs = ["us"]` | `hub:piighost/us` |
+| `EU_PATTERNS`, `catalogs = ["eu"]` | `hub:piighost/eu` |
+| `FR_PATTERNS`, `catalogs = ["fr"]` | `hub:piighost/fr` |
 
 ```python
 # 1.x
@@ -89,7 +89,7 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 --8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
-A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards. A pipeline therefore reaches the network once. The hub groups have moved on since the catalogs were copied. The group `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `hub:piighost/generic:fab51b33`.
+A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards. A pipeline therefore reaches the network once. The hub groups have moved on since the catalogs were copied. The group `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `hub:piighost/generic`.
 
 ### The 1.x aliases are removed
 

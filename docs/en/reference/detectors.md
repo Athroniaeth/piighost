@@ -408,11 +408,11 @@ Reusable regex pattern sets for `RegexDetector`, published as groups on the [pii
 
 | Group | Reference | Labels |
 |-------|-----------|--------|
-| Generic | `hub:piighost/generic:fab51b33` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| US | `hub:piighost/us:29d5c0a5` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
-| EU | `hub:piighost/eu:b0303ae6` | `IBAN` |
-| French | `hub:piighost/fr:6802f5ef` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
-| Secrets | `hub:piighost/secrets:d822d04c` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
+| Generic | `hub:piighost/generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
+| US | `hub:piighost/us` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
+| EU | `hub:piighost/eu` | `IBAN` |
+| French | `hub:piighost/fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
+| Secrets | `hub:piighost/secrets` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
 
 </div>
 
@@ -422,7 +422,7 @@ Build a detector from one group with [`from_hub`](#from_hub). `pull` (`piighost.
 --8<-- "snippets/reference_regex_hub.py:merge"
 ```
 
-A reference pinned to a commit ends with the commit's eight hex characters, after the last colon. It is fetched the first time a detector is built, then read from the on-disk cache, even offline. An unpinned reference, `hub:piighost/generic` or `hub:piighost/generic:latest`, is fetched at every build.
+A reference pinned to a commit ends with the commit's eight hex characters, after the last colon, as in `hub:piighost/generic:fab51b33`. It is fetched the first time a detector is built, then read from the on-disk cache, even offline. An unpinned reference, `hub:piighost/generic` or `hub:piighost/generic:latest`, is fetched at every build.
 
 The hub checks every pattern it publishes against catastrophic backtracking, so an adversarial input cannot turn a scan into a denial of service.
 
@@ -435,7 +435,7 @@ A regex detector config pulls catalogs via `catalogs`. An entry is a hub referen
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
+catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
 
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"

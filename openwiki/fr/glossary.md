@@ -64,7 +64,7 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md). Les éc
 |---|---|---|---|
 | Détecteur | Composant qui trouve les valeurs sensibles dans un texte. Par motif, par modèle d'IA ou par grand modèle de langage. | clé `[detector]` | `AnyDetector` |
 | Motif (regex) | Expression qui reconnaît une valeur à sa forme. Le motif ne vérifie pas de clé de contrôle (Luhn, IBAN). Une valeur abîmée par une reconnaissance de caractères reste donc détectée. | clé `patterns` | `RegexDetector` |
-| Catalogue | Liste de motifs publiée sur le hub et appelée par sa référence. | `hub:piighost/generic:fab51b33` | `catalogs`, `hub.pull` |
+| Catalogue | Liste de motifs publiée sur le hub et appelée par sa référence. | `hub:piighost/generic` | `catalogs`, `hub.pull` |
 | NER | *Named Entity Recognition*, reconnaissance d'entités nommées. Modèle d'IA qui classe les mots en personne, lieu, organisation. | clé `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
 | Détection | Une occurrence trouvée, avec sa position, son texte, son type et sa confiance entre 0 et 1. | une ligne de `piighost anonymize --json` | `Detection` |
 | Position (span) | Intervalle de caractères `[début, fin)` d'une détection dans le texte. | `"start": 10, "end": 35` | `Span` |

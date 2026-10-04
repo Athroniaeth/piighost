@@ -10,7 +10,7 @@ from piighost.pipeline import AnonymizationPipeline
 # --8<-- [start:example]
 from piighost.hub import pull
 
-patterns = {**pull("hub:piighost/generic:fab51b33"), **pull("hub:piighost/fr:6802f5ef")}
+patterns = {**pull("hub:piighost/generic"), **pull("hub:piighost/fr")}
 detector = RegexDetector(patterns)
 
 linker = ExactEntityLinker()

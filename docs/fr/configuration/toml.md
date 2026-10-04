@@ -125,7 +125,7 @@ Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` du hu
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33", "hub:piighost/fr:6802f5ef"]
+catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
@@ -145,7 +145,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
+catalogs = ["hub:piighost/generic"]
 
 [[detector.detectors]]
 type = "exact"
@@ -531,7 +531,7 @@ Les clés de `examples/config/pipeline.toml`, un pipeline sans état qui tire un
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic:fab51b33"]
+catalogs = ["hub:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 [overlap_resolver]

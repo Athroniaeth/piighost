@@ -23,7 +23,7 @@ La mémoire de conversation cache les détections de chaque message par conversa
 
 ## ~~Hub de configurations~~
 
-~~Désormais livré comme projet séparé, le [hub piighost](https://hub.piighost.dev) publie des groupes de motifs relus et des configurations de pipeline complètes sous un identifiant court, chacune épinglée par commit. Un détecteur regex tire un groupe via `catalogs`. `load_config`, `load_pipeline`, `load_thread_pipeline` et `piighost --config` prennent une référence comme `hub:piighost/fr-notarial:2f602547` pour lancer une configuration directement.~~
+~~Désormais livré comme projet séparé, le [hub piighost](https://hub.piighost.dev) publie des groupes de motifs relus et des configurations de pipeline complètes sous un identifiant court, chacune épinglée par commit. Un détecteur regex tire un groupe via `catalogs`. `load_config`, `load_pipeline`, `load_thread_pipeline` et `piighost --config` prennent une référence comme `hub:piighost/fr-notarial` pour lancer une configuration directement.~~
 
 ## ~~Intégration aux harness d'agents~~
 
