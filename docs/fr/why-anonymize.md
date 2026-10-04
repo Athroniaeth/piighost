@@ -4,13 +4,14 @@ icon: lucide/shield-alert
 
 # Pourquoi dé-identifier ?
 
-!!! abstract "En bref"
-    - Un texte envoyé à un LLM en cloud est lu en clair par le provider, journalisé et conservé.
-    - La promesse du provider de ne pas exploiter vos données peut tomber, par un incident, une exploitation pour l'entraînement ou une injonction judiciaire.
-    - Le droit ne suffit pas non plus. Une loi américaine comme le CLOUD Act peut contraindre un provider américain, même pour des données hébergées en Europe.
-    - Une fois collectées, ces données peuvent être croisées pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire.
-    - Dé-identifier **avant l'envoi** protège sans dépendre du provider, de sa promesse, de la sécurité de son infrastructure ni d'une décision politique future.
-    - La dé-identification ne règle pas tout, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
+## En bref
+
+- Un texte envoyé à un LLM en cloud est lu en clair par le provider, journalisé et conservé.
+- La promesse du provider de ne pas exploiter vos données peut tomber, par un incident, une exploitation pour l'entraînement ou une injonction judiciaire.
+- Le droit ne suffit pas non plus. Une loi américaine comme le CLOUD Act peut contraindre un provider américain, même pour des données hébergées en Europe.
+- Une fois collectées, ces données peuvent être croisées pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire.
+- Dé-identifier **avant l'envoi** protège sans dépendre du provider, de sa promesse, de la sécurité de son infrastructure ni d'une décision politique future.
+- La dé-identification ne règle pas tout, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
 
 Le constat qui justifie de dé-identifier les données personnelles avant qu'elles n'atteignent un LLM tient **indépendamment de `piighost`**. Il est posé ci-dessous pour un lecteur technique ou non, de façon à être opposable à un décideur ou à un interlocuteur sceptique.
 
