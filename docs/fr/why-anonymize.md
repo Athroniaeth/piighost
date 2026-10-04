@@ -4,18 +4,17 @@ icon: lucide/shield-alert
 
 # Pourquoi dé-identifier ?
 
-## En bref
-
-- Un texte envoyé à un LLM en cloud est lu en clair par le provider, journalisé et conservé.
-- La promesse du provider de ne pas exploiter vos données peut tomber, par un incident, une exploitation pour l'entraînement ou une injonction judiciaire.
-- Le droit ne suffit pas non plus. Une loi américaine comme le CLOUD Act peut contraindre un provider américain, même pour des données hébergées en Europe.
-- Une fois collectées, ces données peuvent être croisées pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire.
-- Dé-identifier **avant l'envoi** protège sans dépendre du provider, de sa promesse, de la sécurité de son infrastructure ni d'une décision politique future.
-- La dé-identification ne règle pas tout, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
-
 Le constat qui justifie de dé-identifier les données personnelles avant qu'elles n'atteignent un LLM tient **indépendamment de `piighost`**. Il est posé ci-dessous pour un lecteur technique ou non, de façon à être opposable à un décideur ou à un interlocuteur sceptique.
 
 La réflexion se construit en trois temps. D'abord, **comment un LLM en cloud fonctionne techniquement** et **pourquoi la promesse contractuelle d'un provider de ne pas exploiter la donnée ne suffit pas**. Ensuite, **le cadre juridique** qui s'applique à ces services, et ses zones grises. Enfin, **ce que la dé-identification change concrètement**, les cas où elle est avantageuse et ce qu'elle ne résout pas.
+
+!!! abstract "TLDR"
+    - Un texte envoyé à un LLM en cloud est lu en clair par le provider, journalisé et conservé.
+    - La promesse du provider de ne pas exploiter vos données peut tomber, par un incident, une exploitation pour l'entraînement ou une injonction judiciaire.
+    - Le droit ne suffit pas non plus. Une loi américaine comme le CLOUD Act peut contraindre un provider américain, même pour des données hébergées en Europe.
+    - Une fois collectées, ces données peuvent être croisées pour de la surveillance de masse, du fichage politique ou du ciblage publicitaire.
+    - Dé-identifier **avant l'envoi** protège sans dépendre du provider, de sa promesse, de la sécurité de son infrastructure ni d'une décision politique future.
+    - La dé-identification ne règle pas tout, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
 
 !!! note "Dé-identification, pas anonymisation"
     `piighost` remplace chaque PII par un placeholder (`<<PERSON:1>>`{ .placeholder }) et garde le lien entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Au sens du RGPD, c'est de la **pseudonymisation**, pas de l'anonymisation. Cette documentation emploie partout le mot dé-identification. Le mot anonymisation est réservé à un retrait irréversible, sans restauration possible, et signalé comme tel quand il apparaît.
