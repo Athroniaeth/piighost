@@ -40,9 +40,9 @@ DPO-2: As a DPO, I want to choose the types of protected data, so that I adapt t
 
 DPO-3: As a DPO, I want to force the protection of a value, or leave a public term in clear text, without waiting for the detector, so that I impose the company policy.
 
-- A value on the whitelist of the configuration (section `[override]`, in the application or in `piighost-api`) is masked even if no detector sees it.
-- A term on the blacklist of the same section stays in clear text even when a detector flags it.
-- See [Impose a whitelist and a blacklist](processes/impose-a-whitelist-and-blacklist.md). Tests: [AT-DPO-3-…](tests/acceptance-tests.md).
+- A value on the deny list of the configuration (`deny_list` in the section `[override]`, in the application or in `piighost-api`) is masked even if no detector sees it.
+- A term on the allow list (`allow_list`) of the same section stays in clear text even when a detector flags it.
+- See [Impose a deny list and an allow list](processes/impose-a-whitelist-and-blacklist.md). Tests: [AT-DPO-3-…](tests/acceptance-tests.md).
 
 DPO-4: As a DPO, I want to refuse a text that still contains a piece of data, so that a missed detection does not leave.
 
@@ -227,14 +227,14 @@ USER-4: As a user, I want to see the reply appear as it comes, without any place
 
 USER-5: As a user, I want public terms to stay readable, so that the reply keeps its meaning.
 
-- A city name put on the blacklist of the configuration stays in clear text, and a meeting date is not masked by a group of generic patterns.
-- See [Impose a whitelist and a blacklist](processes/impose-a-whitelist-and-blacklist.md). Tests: [AT-USER-5-…](tests/acceptance-tests.md).
+- A city name put on the allow list of the configuration stays in clear text, and a meeting date is not masked by a group of generic patterns.
+- See [Impose a deny list and an allow list](processes/impose-a-whitelist-and-blacklist.md). Tests: [AT-USER-5-…](tests/acceptance-tests.md).
 
 USER-6: As a user, I want to correct a detection, add a missed name or make readable a term masked by mistake, so that the assistant receives the right text.
 
 - After correction, the added name leaves as a placeholder and the removed term leaves in clear text, in the corrected message.
-- The whitelist and the blacklist of the configuration have the last word, so a term on the whitelist stays masked even if the user removes it.
-- See [Follow a conversation](processes/follow-a-conversation.md) and [Impose a whitelist and a blacklist](processes/impose-a-whitelist-and-blacklist.md). Tests: [AT-USER-6-…](tests/acceptance-tests.md).
+- The deny list and the allow list of the configuration have the last word, so a term on the deny list stays masked even if the user removes it.
+- See [Follow a conversation](processes/follow-a-conversation.md) and [Impose a deny list and an allow list](processes/impose-a-whitelist-and-blacklist.md). Tests: [AT-USER-6-…](tests/acceptance-tests.md).
 
 ---
 

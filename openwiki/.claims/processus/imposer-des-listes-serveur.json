@@ -4,7 +4,7 @@
   "claims": [
     {
       "id": "claim_9fb55a4ba7ce4f5b82c1eade7dac6363",
-      "statement": "The blacklist invalidates detections per BlacklistStrategy: VALUE by value key whatever span and label (the default), EXACT by identical span and label, OVERLAP by any overlapping span.",
+      "statement": "The allow list invalidates detections per AllowListStrategy: VALUE by value key whatever span and label (the default), EXACT by identical span and label, OVERLAP by any overlapping span.",
       "evidence": [
         {
           "resource": "repo://src/piighost/components/override/detector.py#L141-L150",
@@ -22,7 +22,7 @@
     },
     {
       "id": "claim_290b446e35dd4c91bd9a0daaa19331ea",
-      "statement": "Whitelist detections are forced into the set and replace any detection they overlap, the result sorted by span.",
+      "statement": "Deny list detections are forced into the set and replace any detection they overlap, the result sorted by span.",
       "evidence": [
         {
           "resource": "repo://src/piighost/components/override/detector.py#L122-L139",
@@ -32,7 +32,7 @@
     },
     {
       "id": "claim_2adb19ea2f544240b596eab71278f5ba",
-      "statement": "The conflict strategy orders the lists: WHITELIST_WINS (default) clears then forces, BLACKLIST_WINS forces then clears, RAISE refuses any overlap between the two lists with ConflictingOverrideError.",
+      "statement": "The conflict strategy orders the lists: DENY_LIST_WINS (default) clears then forces, ALLOW_LIST_WINS forces then clears, RAISE refuses any overlap between the two lists with ConflictingOverrideError.",
       "evidence": [
         {
           "resource": "repo://src/piighost/components/override/detector.py#L152-L162",
@@ -50,7 +50,7 @@
     },
     {
       "id": "claim_cd35c05dcb2f485b917b5d57ea370971",
-      "statement": "forces_value returns True only under WhitelistStrategy.FORCE when the whitelist matches the whole value, letting the thread pipeline tokenize an assistant-introduced value.",
+      "statement": "forces_value returns True only under DenyListStrategy.FORCE when the deny list matches the whole value, letting the thread pipeline tokenize an assistant-introduced value.",
       "evidence": [
         {
           "resource": "repo://src/piighost/components/override/detector.py#L113-L120",
@@ -64,7 +64,7 @@
     },
     {
       "id": "claim_a8703000c8d3494da39ffb6dcb1cda59",
-      "statement": "The override config defaults to blacklist_strategy VALUE, whitelist_strategy RESPECT_PROVENANCE and conflict_strategy WHITELIST_WINS, each list being a full detector config.",
+      "statement": "The override config defaults to allow_list_strategy VALUE, deny_list_strategy RESPECT_PROVENANCE and conflict_strategy DENY_LIST_WINS, each list being a full detector config.",
       "evidence": [
         {
           "resource": "repo://src/piighost/config/models/override.py#L13-L46",
@@ -74,7 +74,7 @@
     },
     {
       "id": "claim_5be56c7fadf147519608277cec8f8f0e",
-      "statement": "Blacklisted values found in the text are exempted from the guard rail verdict.",
+      "statement": "Values on the allow list found in the text are exempted from the guard rail verdict.",
       "evidence": [
         {
           "resource": "repo://src/piighost/pipeline/base.py#L225-L234",

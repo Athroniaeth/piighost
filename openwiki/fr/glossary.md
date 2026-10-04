@@ -1,7 +1,7 @@
 ---
 type: glossary
 title: Glossaire
-description: Définitions des termes de PIIGhost (dé-identification, jeton, détection, entité, conversation, provenance, liste blanche et liste noire, garde-fou, identifiants, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
+description: Définitions des termes de PIIGhost (dé-identification, jeton, détection, entité, conversation, provenance, liste à masquer et liste à laisser en clair, garde-fou, identifiants, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
 tags: [glossary, vocabulary, de-identification, placeholder, entity, thread]
 sources:
   - id: openwiki-source-aa685735384e8973ddee846d
@@ -85,12 +85,14 @@ Pour le contexte de chaque terme, partez du [quickstart](quickstart.md).
 | Décodeur de flux | Composant qui restaure une réponse diffusée au fil de l'eau, en retenant un jeton coupé jusqu'à ce qu'il soit entier. | « `<<PER` » retenu, puis « Jean Dupont » | `AsyncPlaceholderStreamDecoder`, `deanonymize_stream` |
 | Réglage d'outil | Ce que reçoit un outil (vraies valeurs ou jetons) et ce que lit le modèle de son résultat (masqué ou en clair). | « Complet », « Entrée seule », « Sortie seule », « Aucun » | `ToolCallStrategy` |
 
-## Liste blanche et liste noire de la configuration
+## Liste à masquer et liste à laisser en clair de la configuration
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Liste blanche | Valeurs toujours masquées, même si le détecteur les rate. Elle s'écrit dans la section `[override]` de la configuration de l'application ou de celle du serveur `piighost-api`. | clé `[override.whitelist]` | `DetectionOverride.whitelist` |
-| Liste noire | Valeurs jamais masquées, même si le détecteur les trouve. | clé `[override.blacklist]` | `DetectionOverride.blacklist` |
+| Liste à masquer | Valeurs toujours masquées, même si le détecteur les rate. Elle s'écrit dans la section `[override]` de la configuration de l'application ou de celle du serveur `piighost-api`. | clé `[override.deny_list]` | `DetectionOverride.deny_list` |
+| Liste à laisser en clair | Valeurs jamais masquées, même si le détecteur les trouve. | clé `[override.allow_list]` | `DetectionOverride.allow_list` |
+
+Avant PIIGhost 2.0, la liste à masquer s'appelait `whitelist` et la liste à laisser en clair `blacklist`. Une configuration qui emploie encore ces noms est refusée, voir DEC-09 dans les [décisions](reference/decisions.md).
 
 ## Stockage et sécurité
 

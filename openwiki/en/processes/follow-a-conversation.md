@@ -121,7 +121,7 @@ Typical case: a person exercises their right to erasure.
 
 A placeholder whose case or number has changed (`<<Person:1>>`, `<<PERSON:01>>`) counts as invented. A placeholder with damaged delimiters (`<< PERSON:1 >>`) is not recognized at all and stays as is.
 
-**BR-CONV-07.** When a person corrects the values of a message by hand, then the correction replaces the automatic detection of that message only. The whitelist and blacklist still apply. For example, removing "Claire Dubois" from turn 1 leaves it in clear text in turn 1, and it stays masked in turn 2. The numbers can then change for the whole conversation. After this removal, `<<PERSON:1>>` designates Marc Petit and `<<PERSON:2>>` Claire Dubois.
+**BR-CONV-07.** When a person corrects the values of a message by hand, then the correction replaces the automatic detection of that message only. The deny list (`deny_list` in the configuration) and the allow list (`allow_list`) still apply. For example, removing "Claire Dubois" from turn 1 leaves it in clear text in turn 1, and it stays masked in turn 2. The numbers can then change for the whole conversation. After this removal, `<<PERSON:1>>` designates Marc Petit and `<<PERSON:2>>` Claire Dubois.
 
 **BR-CONV-08.** When an identical message is sent again in the same conversation, then its detection is not run again. The result recorded the first time is reused.
 
@@ -143,7 +143,7 @@ A readable conversation, with the real values. An old reply can still display pl
 
 **A reply showed the name of another person.** An old message was probably corrected by hand (BR-CONV-07), or the memory of a message expired (see Pitfalls). Check the history of the conversation.
 
-**"Lyon" is not masked although the user wrote it.** The assistant had mentioned it first (BR-CONV-04). To force the masking, see [Impose a whitelist and a blacklist](impose-a-whitelist-and-blacklist.md).
+**"Lyon" is not masked although the user wrote it.** The assistant had mentioned it first (BR-CONV-04). To force the masking, see [Impose a deny list and an allow list](impose-a-whitelist-and-blacklist.md).
 
 **The reply stops with `Deanonymized text holds tokens the pipeline never issued`.** The model wrote an unknown placeholder (BR-CONV-06). It often copied a placeholder from another conversation or from a document.
 
@@ -194,7 +194,7 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 - **The in-process memory forgets silently.** An evicted or expired conversation (BR-CONV-11) raises nothing. Its placeholders stay as is at restoration. `max_threads=None` and `ttl=None` lift the bounds.
 - **Provenance applies to the value key** (`value_key`), so to every spelling of a value.
 - **The placeholder cache is memoized per process** (256 maps at most, `_TOKEN_MEMO_MAX`). See [Store conversations](../operations/storage-and-encryption.md) for the effect on erasure with multiple processes.
-- **`anonymize_corrected` does not resolve overlaps** and does not run the expansion again. The corrected set must be clean. It only goes through the whitelist and blacklist.
+- **`anonymize_corrected` does not resolve overlaps** and does not run the expansion again. The corrected set must be clean. It only goes through the deny list and allow list.
 
 ### Tests
 

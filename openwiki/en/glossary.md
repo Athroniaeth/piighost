@@ -1,7 +1,7 @@
 ---
 type: glossary
 title: Glossary
-description: Definitions of the PIIGhost terms (de-identification, placeholder, detection, entity, conversation, provenance, whitelist and blacklist, guard rail, identifiers, pepper, cipher) with the visible form of each notion and its name in the code.
+description: Definitions of the PIIGhost terms (de-identification, placeholder, detection, entity, conversation, provenance, deny list and allow list, guard rail, identifiers, pepper, cipher) with the visible form of each notion and its name in the code.
 tags: [glossary, vocabulary, de-identification, placeholder, entity, thread]
 sources:
   - id: openwiki-source-aa685735384e8973ddee846d
@@ -85,12 +85,14 @@ For the context of each term, start from the [quickstart](quickstart.md).
 | Stream decoder | Component that restores a reply sent as it comes, holding back a cut placeholder until it is whole. | "`<<PER`" held back, then "Jean Dupont" | `AsyncPlaceholderStreamDecoder`, `deanonymize_stream` |
 | Tool setting | What a tool receives (real values or placeholders) and what the model reads of its result (masked or in clear text). | "Full", "Input only", "Output only", "None" | `ToolCallStrategy` |
 
-## Whitelist and blacklist of the configuration
+## Deny list and allow list of the configuration
 
 | Term | Definition | What you see | Technical name |
 |---|---|---|---|
-| Whitelist | Values always masked, even if the detector misses them. It is written in the `[override]` section of the application's configuration or of the `piighost-api` server's configuration. | key `[override.whitelist]` | `DetectionOverride.whitelist` |
-| Blacklist | Values never masked, even if the detector finds them. | key `[override.blacklist]` | `DetectionOverride.blacklist` |
+| Deny list | Values always masked, even if the detector misses them. It is written in the `[override]` section of the application's configuration or of the `piighost-api` server's configuration. | key `[override.deny_list]` | `DetectionOverride.deny_list` |
+| Allow list | Values never masked, even if the detector finds them. | key `[override.allow_list]` | `DetectionOverride.allow_list` |
+
+Before PIIGhost 2.0, the deny list was called `whitelist` and the allow list `blacklist`. A configuration that still uses these names is refused, see DEC-09 in the [decisions](reference/decisions.md).
 
 ## Storage and security
 

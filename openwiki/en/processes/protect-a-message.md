@@ -1,7 +1,7 @@
 ---
 type: workflow
 title: Protect a message before it is sent to the model
-description: The stages a text goes through in PIIGhost before it reaches a model (detection, whitelist and blacklist, overlaps, missed occurrences, grouping, replacement with a placeholder, final check), the rules of each stage and where they live in the code.
+description: The stages a text goes through in PIIGhost before it reaches a model (detection, deny list and allow list, overlaps, missed occurrences, grouping, replacement with a placeholder, final check), the rules of each stage and where they live in the code.
 tags: [pipeline, detection, overlap, expander, linker, anonymizer, guard, placeholder]
 sources:
   - id: openwiki-source-fb8df46c8512226bd88d01a2
@@ -64,7 +64,7 @@ Before anything is sent, at least one detector must be configured. PIIGhost ship
 ```mermaid
 flowchart TD
     A["User text"] --> B["Detection of sensitive values"]
-    B --> C["Whitelist and blacklist"]
+    B --> C["Deny list and allow list"]
     C --> D["Overlap arbitration"]
     D --> E["Search for missed occurrences"]
     E --> F["Grouping of a same value"]
@@ -76,7 +76,7 @@ flowchart TD
 In the example followed from end to end, the user writes "Write to Jean Dupont, jean.dupont@exemple.fr".
 
 1. **Detection.** One or more detectors look for the values by shape (email, phone), by AI model (names, places) or by large language model. Here, "Jean Dupont" is detected as a person and "jean.dupont@exemple.fr" as an email.
-2. **Whitelist and blacklist.** The values to always mask or never mask, written in the configuration, are applied. See [Impose a whitelist and a blacklist](impose-a-whitelist-and-blacklist.md).
+2. **Deny list and allow list.** The values to always mask or never mask, written in the configuration (`deny_list` and `allow_list`), are applied. See [Impose a deny list and an allow list](impose-a-whitelist-and-blacklist.md).
 3. **Overlaps.** When two detections overlap, only one span is kept. Here, nothing overlaps.
 4. **Missed occurrences** (optional stage). Each value found is searched for elsewhere in the text.
 5. **Grouping.** The occurrences of the same value with the same type form a single group.
@@ -130,7 +130,7 @@ Nothing. The user writes in clear text and reads a reply in clear text. Only the
 
 **Part of a name left in clear text ("Loni M.").** Two detections overlapped, and the surest one covered only part of the name (BR-MSG-05). Ask for the "Union of spans" setting.
 
-**The company name is replaced by `<<PERSON:2>>`.** The detector takes it for a person, and the model loses useful information. Have it put in the blacklist, see [Impose a whitelist and a blacklist](impose-a-whitelist-and-blacklist.md).
+**The company name is replaced by `<<PERSON:2>>`.** The detector takes it for a person, and the model loses useful information. Have it put in the allow list, see [Impose a deny list and an allow list](impose-a-whitelist-and-blacklist.md).
 
 **A wrong card number was masked.** This is intended, because no check digit is checked (BR-MSG-07).
 
@@ -146,7 +146,7 @@ Nothing. The user writes in clear text and reads a reply in clear text. Only the
 
 | Rule | Location |
 |---|---|
-| Order of the stages | `src/piighost/pipeline/base.py:352-393` (`AnonymizationPipeline.anonymize`), whitelist and blacklist on line 365 |
+| Order of the stages | `src/piighost/pipeline/base.py:352-393` (`AnonymizationPipeline.anonymize`), deny list and allow list on line 365 |
 | BR-MSG-01 | `components/placeholder/label_counter.py`, default `pipeline/base.py:172` |
 | BR-MSG-02 | `components/linker/exact.py:8-21`, `text/normalization.py:61-71` (`value_key`) |
 | BR-MSG-03 | `components/anonymizer/base.py:151` (`deanonymize` replaces with `entity.text`), `models/entity.py` |
@@ -159,7 +159,7 @@ Nothing. The user writes in clear text and reads a reply in clear text. Only the
 | BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |
 
-When only the detector is provided, the default values are `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` and `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). Expansion, entity resolution, the whitelist and blacklist (`override`) and the final check (`guard`) are disabled.
+When only the detector is provided, the default values are `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` and `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). Expansion, entity resolution, the deny list and allow list (`override`) and the final check (`guard`) are disabled.
 
 ```python
 import asyncio
@@ -202,7 +202,7 @@ Then `echo "Tel. 06 12 34 56 78" | uv run piighost anonymize --config <file>` mu
 - **The neutralization character stays in the restored text.** A placeholder typed by the user comes back with an invisible U+200B after its first character. A downstream process that compares exact strings can fail. `Anonymizer(factory, escape_existing_tokens=False)` disables the neutralization, at the cost of BR-MSG-09.
 - **`RegexDetector` compiles under `re.ASCII`.** `\d` matches only 0 to 9, and `\w` stops at the first accented character.
 - **A detector on its own can return overlapping detections.** The port allows it. Do not test the output of a detector on its own as if it had already gone through the overlap resolver.
-- **A score-based guard rail (moderation) locates nothing.** The blacklist values cannot be exempted from it (`pipeline/base.py:318-322`).
+- **A score-based guard rail (moderation) locates nothing.** The allow list values cannot be exempted from it (`pipeline/base.py:318-322`).
 - **`LLMDetector` fails closed.** A model output that is unreadable, has no `entities` field or is rejected by the parser raises `UnreadableOutputError` and the message is refused (`components/detector/llm.py:174-181`, `_unreadable` at `:203`). `fail_open=True` reads it as zero detections, and the message then leaves without protection. See DPO-9 in [Needs by profile](../needs-by-profile.md#watch-points).
 
 ### Tests

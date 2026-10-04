@@ -131,10 +131,10 @@ Un détecteur fait deux sortes d'erreurs. Il rate des valeurs, et il en masque d
 
 Deux listes, fixées par le serveur, l'emportent donc sur le détecteur :
 
-- La liste blanche : elle masque une valeur, même si le détecteur l'a ratée.
-- La liste noire : elle laisse une valeur en clair, même si le détecteur l'a trouvée.
+- La liste à masquer (`deny_list` dans la configuration) : elle masque une valeur, même si le détecteur l'a ratée.
+- La liste à laisser en clair (`allow_list`) : elle laisse une valeur en clair, même si le détecteur l'a trouvée.
 
-Le sens est l'inverse de l'usage courant, où une liste blanche autorise. Ici, la liste blanche force le masquage. Une liste blanche qui contient le code client `CLI-4821` le masque partout. Une liste noire qui contient « Docteur » empêche ce mot d'être pris pour un nom. Si une valeur figure dans les deux listes, elle est masquée par défaut.
+Avant PIIGhost 2.0, ces listes s'appelaient `whitelist` et `blacklist`, et la whitelist forçait le masquage. La plupart des lecteurs comprennent qu'une whitelist autorise, et une liste lue à l'envers laisse en clair les valeurs qu'elle devait masquer. La version 2.0 reprend les noms de Presidio. Une configuration qui emploie encore les anciens noms est refusée au chargement, jamais lue avec le nouveau sens. Une liste à masquer qui contient le code client `CLI-4821` le masque partout. Une liste à laisser en clair qui contient « Docteur » empêche ce mot d'être pris pour un nom. Si une valeur figure dans les deux listes, elle est masquée par défaut.
 
 Une personne peut aussi corriger à la main les valeurs d'un message. Cette correction ne vaut que pour ce message, et les deux listes s'appliquent encore par-dessus.
 
@@ -192,7 +192,7 @@ Cette décision vit dans `integrations/_deidentify.py`. Les règles BR-CONV-06, 
 
 Le modèle peut citer une valeur que l'utilisateur n'a jamais écrite. Il propose par exemple « Lyon » pour un rendez-vous. Cette valeur ne vient pas de l'utilisateur, donc elle ne fait pas partie de ses données à protéger.
 
-Par défaut, une valeur que l'assistant cite le premier reste en clair pour toute la conversation. Elle reste en clair même si l'utilisateur l'écrit ensuite, et même si elle figure sur la liste blanche (voir DEC-09), sauf si cette liste est réglée pour forcer le masquage.
+Par défaut, une valeur que l'assistant cite le premier reste en clair pour toute la conversation. Elle reste en clair même si l'utilisateur l'écrit ensuite, et même si elle figure sur la liste à masquer (voir DEC-09), sauf si cette liste est réglée pour forcer le masquage.
 
 Deux autres réglages existent. Le premier masque cette valeur comme une donnée de l'utilisateur. Le second n'analyse pas du tout les messages de l'assistant, ce qui économise la détection.
 
