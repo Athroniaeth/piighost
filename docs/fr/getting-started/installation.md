@@ -34,17 +34,17 @@ Les détecteurs à modèle, le middleware et les backends optionnels sont des ex
 === "uv"
 
     ```bash
-    uv add 'piighost[gliner2]'     # détecteur GLiNER2 (NER)
-    uv add 'piighost[langchain]'   # middleware LangChain/LangGraph
-    uv add 'piighost[all]'         # tous les extras
+    uv add "piighost[gliner2]"     # détecteur GLiNER2 (NER)
+    uv add "piighost[langchain]"   # middleware LangChain/LangGraph
+    uv add "piighost[all]"         # tous les extras
     ```
 
 === "pip"
 
     ```bash
-    pip install 'piighost[gliner2]'
-    pip install 'piighost[langchain]'
-    pip install 'piighost[all]'
+    pip install "piighost[gliner2]"
+    pip install "piighost[langchain]"
+    pip install "piighost[all]"
     ```
 
 Les extras se combinent. Une mémoire de conversation Redis chiffrée s'installe avec `piighost[redis,crypto]`. Ajoutez l'extra `argon2` pour un hachage de clé plus résistant.
@@ -67,19 +67,7 @@ Affichez la version installée.
 
 La commande affiche un numéro de version, `2.0.0` par exemple. Une `ImportError` signifie que le paquet n'est pas installé dans l'environnement actif.
 
-## Installation pour le développement
+## Voir aussi
 
-```bash
-git clone https://github.com/Athroniaeth/piighost.git
-cd piighost
-uv sync
-```
-
-## Commandes de développement
-
-```bash
-uv sync                              # installer les dépendances
-make lint                            # format (ruff) + lint (ruff) + types (pyrefly)
-uv run pytest                        # lancer tous les tests
-uv run pytest tests/ -k "test_name"  # lancer un test précis
-```
+- [Démarrage rapide](quickstart.md) pour un premier essai sans modèle.
+- [Contribuer](../community/contributing.md) pour cloner le dépôt, lancer les tests et les vérifications.

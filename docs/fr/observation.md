@@ -7,7 +7,7 @@ icon: lucide/eye
 `piighost` émet une trace OpenTelemetry à chaque dé-identification. Chaque appel
 ouvre un span racine et un span enfant par étape du pipeline. On voit ainsi où
 une valeur a été détectée, comment elle a été liée, quel jeton l'a remplacée et si
-le guard rail a laissé passer. Le traçage est optionnel et n'est jamais requis
+le garde-fou a laissé passer. Le traçage est optionnel et n'est jamais requis
 pour dé-identifier.
 
 !!! note
@@ -47,7 +47,7 @@ puis un span enfant par étape exécutée. Une étape désactivée n'émet aucun
 L'arbre d'un run complet est le suivant.
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[piighost.anonymize] --> B[piighost.detect]
     A --> C[piighost.override]
     A --> D[piighost.overlap]

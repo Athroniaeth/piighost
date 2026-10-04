@@ -77,7 +77,7 @@ RedisConversationMemory(
 
 Un stockage persistant et multi-worker. Chaque worker pointé vers le même Redis lit la même numérotation, donc les jetons restent cohérents derrière un load balancer. `namespace` préfixe chaque clé. `ttl` est le nombre de secondes de vie d'un message avant éviction. Omettez-le pour garder le message jusqu'à ce que Redis le supprime. Requiert `piighost[redis]`.
 
-Passez à la fois un `hasher` et un `cipher` pour stocker de façon sécurisée (la clé est hachée sous un pepper, la valeur chiffrée), ou aucun des deux pour stocker en clair. En passer exactement un lève `ValueError`. Une configuration en clair sur un store en réseau émet un `PIIGhostSecurityWarning`.
+Passez à la fois un `hasher` et un `cipher` pour stocker de façon sécurisée (la clé est hachée sous un poivre, la valeur chiffrée), ou aucun des deux pour stocker en clair. En passer exactement un lève `ValueError`. Une configuration en clair sur un store en réseau émet un `PIIGhostSecurityWarning`.
 
 ## `SqlAlchemyConversationMemory`
 
@@ -94,7 +94,7 @@ Un stockage durable et multi-worker sur n'importe quel driver SQLAlchemy async (
 
 ## Construire depuis un fichier
 
-La section `[memory]` d'un fichier de config construit n'importe lequel de ces backends. Son champ `type` choisit lequel (`in_memory`, `redis`, `sqlalchemy`). Ses clés, les options de hacheur et de cipher, et les variables d'environnement pour les secrets sont dans la [référence de configuration](../configuration/toml.md).
+La section `[memory]` d'un fichier de config construit n'importe lequel de ces backends. Son champ `type` choisit lequel (`in_memory`, `redis`, `sqlalchemy`). Ses clés, les options de hasher et de cipher, et les variables d'environnement pour les secrets sont dans la [référence de configuration](../configuration/toml.md).
 
 ## Voir aussi
 

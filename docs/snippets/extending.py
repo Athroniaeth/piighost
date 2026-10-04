@@ -1,6 +1,23 @@
 import asyncio
 
 # isort: split
+# --8<-- [start:whole_word_expander]
+from collections.abc import Iterable
+
+from piighost.components.expander.base import BaseDetectionExpander
+from piighost.models import Detection, Span
+from piighost.text import find_all_word_boundary
+
+
+class WholeWordExpander(BaseDetectionExpander):
+    """Find whole-word repeats of a detected value."""
+
+    def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
+        return find_all_word_boundary(text, detection.text)
+        # --8<-- [end:whole_word_expander]
+
+
+# isort: split
 # --8<-- [start:handle_detector]
 import re
 
@@ -23,9 +40,7 @@ class HandleDetector:
                 )
             )
         return detections
-
-
-# --8<-- [end:handle_detector]
+        # --8<-- [end:handle_detector]
 
 
 # isort: split
@@ -48,28 +63,7 @@ class LongestOverlapResolver(BaseOverlapResolver):
 
     def _reduce(self, conflicting: list[Detection]) -> list[Detection]:
         return [max(conflicting, key=lambda d: d.span.length)]
-
-
-# --8<-- [end:longest_resolver]
-
-
-# isort: split
-# --8<-- [start:whole_word_expander]
-from collections.abc import Iterable
-
-from piighost.components.expander.base import BaseDetectionExpander
-from piighost.models import Detection
-
-
-class WholeWordExpander(BaseDetectionExpander):
-    """Find whole-word repeats of a detected value."""
-
-    def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
-        pattern = re.compile(rf"\b{re.escape(detection.text)}\b")
-        return [Span(m.start(), m.end()) for m in pattern.finditer(text)]
-
-
-# --8<-- [end:whole_word_expander]
+        # --8<-- [end:longest_resolver]
 
 
 # isort: split
@@ -85,9 +79,7 @@ class CaseSensitiveLinker(BaseEntityLinker):
 
     def _key(self, detection: Detection) -> Hashable:
         return (detection.text, detection.label)
-
-
-# --8<-- [end:case_sensitive_linker]
+        # --8<-- [end:case_sensitive_linker]
 
 
 # isort: split
@@ -104,9 +96,7 @@ class BracketLabelFactory(AnyPlaceholderFactory[PreservesLabel]):
 
     def create(self, entities: list[Entity]) -> Mapping[Entity, PreservesLabel]:
         return {entity: PreservesLabel(f"[{entity.label}]") for entity in entities}
-
-
-# --8<-- [end:bracket_factory]
+        # --8<-- [end:bracket_factory]
 
 
 # isort: split
@@ -128,9 +118,7 @@ class AtSignGuard:
 
     async def check(self, text: str) -> GuardVerdict:
         return GuardVerdict(flagged="@" in text)
-
-
-# --8<-- [end:at_sign_guard]
+        # --8<-- [end:at_sign_guard]
 
 
 # isort: split

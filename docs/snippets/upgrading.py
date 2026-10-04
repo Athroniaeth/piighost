@@ -1,4 +1,6 @@
-# Not shown: the model, the pipeline and the conversation the page assumes.
+# Not shown: the model, the pipeline and the conversation the page assumes. The
+# import the page shows ends its block, with no blank line for the import sorter.
+# isort: skip_file
 from _offline import offline_langchain
 
 from piighost.components.detector import ExactMatchDetector
@@ -13,8 +15,8 @@ messages = [{"role": "user", "content": "Say hello to Patrick."}]
 from piighost.integrations.langchain import (
     PIIAnonymizationMiddleware,
 )
-
 # --8<-- [end:aliases]
+
 
 # isort: split
 # --8<-- [start:middleware]

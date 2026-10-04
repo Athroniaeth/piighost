@@ -11,9 +11,9 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 
 ## 1. Assembler le pipeline
 
-`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. Seul le détecteur est obligatoire. Le code ci-dessous passe la mémoire explicitement et laisse le linker et l'anonymiseur à leurs valeurs par défaut. La mémoire accumule les détections de chaque message, conversation par conversation. Le pipeline peut ainsi attribuer les jetons sur l'ensemble de la conversation plutôt que sur un message isolé.
+`ThreadAnonymizationPipeline` prend les mêmes composants qu'`AnonymizationPipeline` (détecteur, linker, anonymiseur), plus une mémoire de conversation. Seul le détecteur est obligatoire. Le code ci-dessous ne passe que lui, et les autres composants gardent leurs valeurs par défaut. La mémoire accumule les détections de chaque message, conversation par conversation. Le pipeline peut ainsi attribuer les jetons sur l'ensemble de la conversation plutôt que sur un message isolé.
 
-`InMemoryConversationMemory` garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Cette mémoire convient donc au développement et aux tests. On garde le détecteur simple ici avec `ExactMatchDetector`, qui repère des valeurs connues. Le résultat est ainsi vérifiable, sans modèle.
+La mémoire par défaut, `InMemoryConversationMemory`, garde cet état dans un dictionnaire du processus. Rien ne survit à un redémarrage et rien n'est partagé entre processus. Cette mémoire convient donc au développement et aux tests. Le détecteur reste simple ici avec `ExactMatchDetector`, qui repère des valeurs connues. Le résultat est ainsi vérifiable, sans modèle.
 
 ```python
 --8<-- "snippets/conversation.fr.py:setup"
@@ -21,13 +21,10 @@ Vous allez construire un `ThreadAnonymizationPipeline` qui garde un jeton stable
 
 ## 2. Dé-identifier deux messages de la même conversation
 
-`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire. Il n'y a pas de conversation partagée par défaut, si bien que deux appelants ne peuvent pas tomber dans la même conversation et se fuiter mutuellement leurs données confidentielles. On envoie deux messages sur la conversation `"thread-42"`.
+`anonymize` prend le texte et un `thread_id`. Le `thread_id` est obligatoire. Il n'y a pas de conversation partagée par défaut. Deux appelants ne peuvent donc pas tomber par erreur dans la même conversation, où chacun verrait les données confidentielles de l'autre. Le code envoie deux messages sur la conversation `"thread-42"`.
 
 ```python
 --8<-- "snippets/conversation.fr.py:turns"
-
-
---8<-- "snippets/conversation.fr.py:run"
 ```
 
 La sortie doit être :
@@ -46,6 +43,12 @@ La sortie doit être :
 --8<-- "snippets/conversation.fr.py:restore"
 ```
 
+La sortie doit être :
+
+```text
+--8<-- "snippets/conversation.fr.out:restore"
+```
+
 ## 4. Oublier une conversation
 
 `forget_thread` efface la mémoire d'une conversation et renvoie le compte de ce qui a été supprimé. Utile pour respecter une demande d'effacement ou libérer la RAM à la fin d'une conversation.
@@ -54,12 +57,18 @@ La sortie doit être :
 --8<-- "snippets/conversation.fr.py:forget"
 ```
 
+La sortie doit être :
+
+```text
+--8<-- "snippets/conversation.fr.out:forget"
+```
+
 ## Comment ça marche
 
 `ThreadAnonymizationPipeline` encapsule le pipeline de base avec une mémoire par conversation. À chaque message, il met en cache les détections, puis attribue les jetons sur l'union des détections de toute la conversation, pas du seul message courant. Une valeur reçoit donc un jeton pour l'ensemble de la conversation. Le rendu reste par message. Seules les positions du message courant sont remplacées, car chaque message compte ses positions depuis son propre début.
 
-## Et ensuite
+## Voir aussi
 
-- Pour partager la mémoire entre plusieurs processus, remplacez `InMemoryConversationMemory` par une mémoire persistante. Voir la [Référence TOML](../configuration/toml.md) pour la déclarer en configuration.
+- Pour partager la mémoire entre plusieurs processus, remplacez `InMemoryConversationMemory` par une mémoire persistante. Voir la [référence de configuration](../configuration/toml.md) pour la déclarer en configuration.
 - Pour brancher ce pipeline dans un agent LangGraph, voir le [Middleware LangChain](langchain.md).
 - Pour lire les règles de gestion d'une conversation, de `BR-CONV-01` à `BR-CONV-11`, voir [Suivre une conversation et restaurer la réponse](../../../openwiki/fr/processes/follow-a-conversation.md).

@@ -13,14 +13,13 @@ detector = ChunkedDetector(regex_detector, splitter=splitter)
 pipeline = AnonymizationPipeline(detector)
 
 
-async def main():
+async def main() -> None:
     text = (
         "Filler text here. Reach alice@example.com now. "
         "More filler padding words. Then bob@example.org later."
     )
     result = await pipeline.anonymize(text)
     print(result.text)
-    # Filler text here. Reach <<EMAIL:1>> now. More filler padding words. Then <<EMAIL:2>> later.
 
 
 asyncio.run(main())

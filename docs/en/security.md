@@ -44,7 +44,7 @@ Two things therefore coexist at all times. The first is the de-identified text, 
     A placeholder preserves the structure around it. A de-identified value can stay identifiable through what surrounds it. "The patient `<<PERSON:1>>`{ .placeholder }, the only cardiologist in the village of 300 people" names a person without naming their PII. The detector sees only tokens, not that inference.
 
 !!! danger "Fallible detectors"
-    A detector is best-effort. Confidential data it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
+    Detection is not exhaustive. Confidential data it does not recognize passes in cleartext to the LLM. See [Limitations](limitations.md) for the guard rail.
 
 !!! danger "Assistant-introduced values under PRESERVE"
     With the default `EntityCreateByAssistantStrategy.PRESERVE`, a value the model itself introduced stays in clear for the whole thread, since the model already knows it. It stays clear even when a later user message repeats it, because the thread dates the value to its first occurrence. Use `ANONYMIZE` to tokenize values the assistant introduces too.
@@ -119,9 +119,9 @@ Legend:
 <span class="sec-legend c-red">problematic</span>
 </small>
 
-The red column for in-RAM memory is not a flaw, it is a scope choice. That backend does not claim to be secure storage. Built without crypto, the sqlite backend shows the same red on confidentiality. It is fit for local development only. As soon as the mapping must survive a restart or be shared across workers, switch to an encrypted persistent backend, Redis or PostgreSQL with a hasher and a cipher.
+The red row for in-RAM memory is not a flaw, it is a scope choice. That backend does not claim to be secure storage. Built without crypto, the sqlite backend shows the same red on confidentiality. It is fit for local development only. As soon as the mapping must survive a restart or be shared across workers, switch to an encrypted persistent backend, Redis or PostgreSQL with a hasher and a cipher.
 
-## Logging discipline for dataclasses that carry confidential data
+## Logging detections
 
 The `Detection` dataclass holds the raw surface form of the detected value in its `text` field. The dataclass-generated `__repr__` renders that value verbatim. This keeps the API predictable for inspection, debugging, and tests.
 
@@ -170,7 +170,7 @@ Any `AnyPlaceholderFactory` implementation is accepted. The observation redactor
 - **The mapping is treated as sensitive**: the mapping store holds cleartext confidential data. A persistent backend (Redis or SQL) can encrypt it at rest (AES-GCM) and hash its keys (HMAC-SHA256 or Argon2id). The secret lives outside the store. Crypto is opt-in and all-or-nothing. A networked backend built without it emits a warning.
 - **No logging of raw confidential data by the library**: `piighost` itself never writes confidential data to any logger. Your own code must follow the same discipline.
 - **Frozen dataclasses**: `Entity`, `Detection`, `Span` are immutable, preventing accidental mutation after de-identification has been applied.
-- **Optional guard rail**: a guard rail (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual confidential data. The pipeline then raises `PIIRemainingError`. See [Limitations](limitations.md).
+- **Optional guard rail**: a guard rail (`DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-checks the de-identified output and flags residual confidential data. The pipeline then raises `PIIRemainingError`. See [Limitations](limitations.md).
 
 ## Reporting a vulnerability
 

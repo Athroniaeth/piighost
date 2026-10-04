@@ -2,7 +2,7 @@
 icon: lucide/terminal
 ---
 
-# De-identify Claude Code with hooks
+# Claude Code hooks
 
 You cannot point Claude Code at the OpenAI-compatible proxy, because it speaks Anthropic's Messages API, not the OpenAI shape. Instead, `piighost` plugs into Claude Code's own hook system. A hook is a small command that Claude Code runs at a fixed point in a turn. The hooks de-identify what the model sees and restore the real values where they are actually needed, without touching your agent code. The other route is the [Anthropic-compatible proxy](anthropic-proxy.md), plugged in through Claude Code's base URL.
 
@@ -15,7 +15,7 @@ Three hooks cover a turn:
 So the model only ever sees placeholders like `<<PERSON:1>>`, while the tools that actually run (Bash, Read, Edit, ...) receive the real values. The Claude Code `session_id` is used as the de-identification thread, so a value keeps the same token for the whole session.
 
 !!! note "Prerequisites"
-    `piighost` installed with the client extra, `pip install piighost[client]`, and a running `piighost-api` server, see [Deploy a de-identification API](../getting-started/api-server.md). The hook is a thin client. It forwards each event to the API, which owns the pipeline and the conversation memory. The hook sends no API key. So start the server with `PIIGHOST_ALLOW_ANONYMOUS=true`, and keep it on a host only you can reach.
+    `piighost` installed with the client extra, `pip install "piighost[client]"`, and a running `piighost-api` server, see [API server](../getting-started/api-server.md). The hook is a thin client. It forwards each event to the API, which owns the pipeline and the conversation memory. The hook sends no API key. So start the server with `PIIGHOST_ALLOW_ANONYMOUS=true`, and keep it on a host only you can reach.
 
 ## Wire the hooks
 
@@ -70,7 +70,7 @@ The hook talks to `piighost-api` at `http://localhost:8000` by default. Override
 export PIIGHOST_API_URL="https://piighost.internal:8000"
 ```
 
-When the hook cannot de-identify, because the server is down or the event has no session id, it fails closed. A prompt or a tool call is blocked, and Claude Code shows the reason. A tool output has already been produced, so the hook replaces it with a notice instead. To let the text through in clear rather than block, for a session where availability matters more than protection, set:
+When the hook cannot de-identify, because the server is down or the event has no session id, it blocks by default. A prompt or a tool call is blocked, and Claude Code shows the reason. A tool output has already been produced, so the hook replaces it with a notice instead. To let the text through in clear rather than block, for a session where availability matters more than protection, set:
 
 ```bash
 export PIIGHOST_HOOK_FAIL_OPEN=1
@@ -103,11 +103,7 @@ A prompt and a tool input are plain enough to de-identify wholesale. A tool's ou
 
 ## Discover a new tool's shape
 
-To extend the allowlist to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` before starting Claude Code. The runner then logs each hook call to a JSONL file. A tool output it passed through is logged whole, so you can see the real field names:
-
-```bash
-export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
-```
+To extend the allowlist to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` as above before starting Claude Code. The log holds each hook call. A tool output the hook passed through is logged whole, so you can see the real field names.
 
 Exercise the tool, read the log to find which fields carry the text, and add the tool to the allowlist in the integration. The log holds clear text. Delete it afterwards.
 

@@ -2,12 +2,12 @@
 icon: lucide/link
 ---
 
-# Dé-identifier Claude Code avec le proxy Anthropic
+# Proxy compatible Anthropic
 
 `piighost-api` sert un proxy compatible avec l'API Messages d'Anthropic sous `/anthropic/v1`. Claude Code, ou tout client de l'API Messages, pointe son URL de base dessus. Le proxy dé-identifie alors les messages et le contenu des outils, les relaie à Anthropic, puis restaure la réponse, streamée ou non. Le modèle reçoit `<<PERSON:1>>`{ .placeholder }, jamais `Patrick`{ .pii }.
 
 !!! note "Prérequis"
-    Un serveur `piighost-api` lancé, voir [Déployer une API de dé-identification](../getting-started/api-server.md), et une clé d'API Anthropic ou la clé d'une passerelle compatible.
+    Un serveur `piighost-api` lancé, voir [Serveur d'API](../getting-started/api-server.md), et une clé d'API Anthropic ou la clé d'une passerelle compatible.
 
 ## Pointer Claude Code vers le proxy
 
@@ -37,7 +37,7 @@ piighost-api serve --config patrick.toml
 
 Lancez-le dans le shell où votre `API_KEY_DEV` est exportée, puisque le serveur refuse de démarrer sans clé. Pointez Claude Code dessus comme plus haut, puis demandez "What is the first letter of my name, Patrick?". Le modèle ne peut pas répondre, puisque la requête qu'il a reçue porte `<<PERSON:1>>`{ .placeholder }. La réponse que vous lisez est restaurée, donc elle affiche toujours `Patrick`{ .pii } là où le modèle a écrit le jeton.
 
-## Choisir l'upstream
+## Choisir le fournisseur
 
 Sans en-tête, le proxy relaie vers `https://api.anthropic.com/v1`. Si vous voulez une passerelle pour tous les clients, posez `PIIGHOST_ANTHROPIC_UPSTREAM` avant de démarrer le serveur :
 
@@ -71,12 +71,12 @@ export PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM=true
 !!! warning "Limites"
     - Par défaut, le prompt système reste intact. Une valeur écrite dedans atteint donc le modèle en clair.
     - Les images, les documents et les définitions d'outils de `tools` sont relayés intacts.
-    - Une requête streamée que l'upstream refuse reçoit le statut de l'upstream et ses en-têtes `retry-after` et `anthropic-ratelimit-*`. Un échec au milieu d'un stream arrive au client comme un stream tronqué.
+    - Une requête streamée que le fournisseur refuse reçoit le statut du fournisseur et ses en-têtes `retry-after` et `anthropic-ratelimit-*`. Un échec au milieu d'un stream arrive au client comme un stream tronqué.
 
 Les champs que le proxy dé-identifie et restaure sont listés dans [Endpoints de l'API](../reference/api-endpoints.md).
 
 ## Voir aussi
 
-- [Dé-identifier Claude Code avec les hooks](claude-code.md) : l'autre voie pour Claude Code, par son système de hooks.
+- [Hooks Claude Code](claude-code.md) : l'autre voie pour Claude Code, par son système de hooks.
 - [Proxy compatible OpenAI](openai-proxy.md) : le même relais pour l'API OpenAI.
 - [CLI du serveur](../reference/api-cli.md) : chaque variable d'environnement du serveur.

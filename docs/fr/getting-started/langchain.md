@@ -7,7 +7,7 @@ icon: lucide/link
 Vous allez brancher `PIIAnonymizationMiddleware` dans un agent LangChain pour que le LLM ne voie jamais que des jetons, pendant que vos outils reçoivent les vraies valeurs. L'utilisateur demande `Où habite Patrick ?`, le modèle raisonne sur `<<PERSON:1>>`{ .placeholder } et `<<LOCATION:1>>`{ .placeholder }, et un outil de recherche reçoit quand même le vrai `Patrick`{ .pii } pour faire son travail. Vous construisez le middleware au-dessus d'un `ThreadAnonymizationPipeline`, déclarez un outil, puis exécutez un tour.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra middleware, `pip install piighost[langchain]`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). Le pipeline reprend les composants de la page [Pipeline conversationnel](conversation.md).
+    `piighost` installé avec l'extra middleware, `pip install "piighost[langchain]"`, plus un fournisseur LLM configuré pour `create_agent` (ici `openai:...`, donc une `OPENAI_API_KEY`). Le pipeline reprend les composants de la page [Pipeline conversationnel](conversation.md).
 
 ## 1. Construire le pipeline de conversation
 
@@ -41,7 +41,7 @@ Le `thread_id` va dans la config LangGraph, sous `configurable`. Le middleware l
 --8<-- "snippets/langchain_start.fr.py:run"
 ```
 
-Le message final est restauré pour l'affichage, donc la réponse se lit avec les vraies valeurs :
+Le message final est restauré pour l'affichage, donc la réponse se lit avec les vraies valeurs. Sa formulation dépend du modèle, par exemple :
 
 ```text
 --8<-- "snippets/langchain_start.fr.out"
@@ -53,8 +53,8 @@ Le middleware est un adaptateur mince autour du pipeline. Avant l'appel du modè
 
 Deux règles méritent d'être connues. Un appel sans identifiant de conversation échoue. Le middleware ne range pas toutes les conversations dans une seule conversation partagée, où les jetons fuiteraient de l'une à l'autre. Si vos conversations n'ont pas besoin d'être séparées, passez `"default"`. `invented_strategy=InventedPlaceholderStrategy.RAISE` refuse un jeton qui apparaît dans la réponse du modèle mais que le pipeline n'a jamais émis, qu'il soit halluciné ou injecté.
 
-## Et ensuite
+## Voir aussi
 
 - Pour choisir un autre comportement d'outil, `INPUT` seul, `OUTPUT` seul ou `PASSTHROUGH`, voir [Stratégies d'appel d'outil](../tool-call-strategies.md).
-- Pour un agent complet avec un vrai détecteur, un system prompt, l'observabilité Langfuse et un déploiement Aegra, voir [Intégration LangChain](../examples/langchain.md).
+- Pour un agent complet avec un vrai détecteur et un system prompt, voir [Intégration LangChain](../examples/langchain.md).
 - Pour exécuter le pipeline hors du processus contre un serveur partagé, voir [Client distant](api-client.md).

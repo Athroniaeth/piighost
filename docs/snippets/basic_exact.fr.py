@@ -10,10 +10,9 @@ detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
 pipeline = AnonymizationPipeline(detector)
 
 
-async def main():
+async def main() -> None:
     result = await pipeline.anonymize("Patrick habite à Paris. Patrick aime Paris.")
     print(result.text)
-    # <<PERSON:1>> habite à <<LOCATION:1>>. <<PERSON:1>> aime <<LOCATION:1>>.
 
 
 asyncio.run(main())

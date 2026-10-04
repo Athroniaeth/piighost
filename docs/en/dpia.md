@@ -108,17 +108,17 @@ Article 35(7)(d) asks for the measures envisaged to address the risks. The table
 
 <div class="wide-table" markdown="1">
 
-| Risk | Measure | Setting to record | Detail |
-|---|---|---|---|
-| The LLM provider reads the PII | the values are replaced before the text leaves, and a counter or hash token is never computed from the value it replaces | the detectors, the placeholder factory | [Placeholder factories](placeholder-factories.md) |
-| The mapping reaches the provider | the mapping stays in the memory on your side and is never sent with the text | the memory backend | [Security](security.md) |
-| Theft of the persistent store | the key of each message is hashed (`Sha256Hasher` or `Argon2Hasher`) and each value encrypted (`AesGcmCipher`). The hasher and the cipher are configured together or not at all. A networked store built without them emits a `PIIGhostSecurityWarning` | the hasher, the cipher, where `PIIGHOST_HASH_PEPPER` and `PIIGHOST_CIPHER_KEY` are kept | [Security](security.md) |
-| A PII left in the output | a guard rail re-checks the de-identified text, and the pipeline raises `PIIRemainingError` when it flags one | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail` or `ModerationGuardRail` | [Guard rails](reference/guard-rails.md) |
-| Logs and traces carry PII | the library writes no PII to its loggers, and an `observation_redactor` tokenizes the trace payloads | the redactor, `trace_clear_text`, whether `PIIGHOST_HOOK_LOG` is unset | [Observation](observation.md) |
-| One conversation sees another's values | the memory is partitioned by `thread_id`, and the integrations refuse a turn without a `thread_id` instead of pouring it into a shared thread | how `thread_id` is derived | [Limitations](limitations.md) |
-| A user types a token to read someone else's value | a token typed in the input is neutralized before rendering (`escape_existing_tokens=True` by default) | left at its default | [Security](security.md) |
-| The LLM makes up a token | an invented token is refused by default (`InventedPlaceholderStrategy.RAISE`) | the strategy | [Tool-call strategies](tool-call-strategies.md) |
-| Retention, and a request for erasure | `forget_thread` erases a conversation from the memory and the local token memo, and returns how many messages and detections it dropped | the retention rule, `max_threads` and `ttl` on the in-memory backend, `ttl` on Redis, `token_memo_ttl` | [Pipeline reference](reference/pipeline.md) |
+| Risk | Measure | Setting to record |
+|---|---|---|
+| The LLM provider reads the PII | the values are replaced before the text leaves, and a counter or hash token is never computed from the value it replaces. See [Placeholder factories](placeholder-factories.md). | the detectors, the placeholder factory |
+| The mapping reaches the provider | the mapping stays in the memory on your side and is never sent with the text. See [Security](security.md). | the memory backend |
+| Theft of the persistent store | the key of each message is hashed (`Sha256Hasher` or `Argon2Hasher`) and each value encrypted (`AesGcmCipher`). The hasher and the cipher are configured together or not at all. A networked store built without them emits a `PIIGhostSecurityWarning`. See [Security](security.md). | the hasher, the cipher, where `PIIGHOST_HASH_PEPPER` and `PIIGHOST_CIPHER_KEY` are kept |
+| A PII left in the output | a guard rail re-checks the de-identified text, and the pipeline raises `PIIRemainingError` when it flags one. See [Guard rails](reference/guard-rails.md). | `DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail` or `ModerationGuardRail` |
+| Logs and traces carry PII | the library writes no PII to its loggers, and an `observation_redactor` tokenizes the trace payloads. See [Observation](observation.md). | the redactor, `trace_clear_text`, whether `PIIGHOST_HOOK_LOG` is unset |
+| One conversation sees another's values | the memory is partitioned by `thread_id`, and the integrations refuse a turn without a `thread_id` instead of pouring it into a shared thread. See [Limitations](limitations.md). | how `thread_id` is derived |
+| A user types a token to read someone else's value | a token typed in the input is neutralized before rendering (`escape_existing_tokens=True` by default). See [Security](security.md). | left at its default |
+| The LLM makes up a token | an invented token is refused by default (`InventedPlaceholderStrategy.RAISE`). See [Tool-call strategies](tool-call-strategies.md). | the strategy |
+| Retention, and a request for erasure | `forget_thread` erases a conversation from the memory and the local token memo, and returns how many messages and detections it dropped. See [Pipeline reference](reference/pipeline.md). | the retention rule, `max_threads` and `ttl` on the in-memory backend, `ttl` on Redis, `token_memo_ttl` |
 
 </div>
 
@@ -128,7 +128,7 @@ The debug log of the Claude Code hooks, written only when `PIIGHOST_HOOK_LOG` is
 
 Article 35(7)(c) asks for an assessment of the risks. `piighost` lowers the exposure toward the LLM provider without removing the following risks, to record as residual.
 
-- **Detection is best-effort.** A PII the detectors do not recognize reaches the provider in clear. A NER model can also truncate a text longer than its context. See [Limitations](limitations.md).
+- **Detection is not exhaustive.** A PII the detectors do not recognize reaches the provider in clear. A NER model can also truncate a text longer than its context. See [Limitations](limitations.md).
 - **Context and quasi-identifiers stay in clear.** "`<<PERSON:1>>`{ .placeholder }, the only notary in a village of 300" identifies a person without naming them. The detectors see values, not that inference.
 - **The LLM can write a PII it invented.** A name the model makes up is in no mapping. So nothing ties it to a person, and nothing removes it.
 - **Values the assistant introduces stay in clear** under the default `EntityCreateByAssistantStrategy.PRESERVE`. `ANONYMIZE` tokenizes them too.

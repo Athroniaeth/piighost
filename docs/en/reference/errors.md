@@ -16,47 +16,44 @@ from piighost.exceptions import PIIGhostError
 
 ## The hierarchy
 
-```mermaid
-flowchart LR
-    PIIGhostError --> SpanError
-    SpanError --> NegativeSpanStartError
-    SpanError --> SpanOrderingError
-    PIIGhostError --> DetectionError
-    DetectionError --> ConfidenceError
-    PIIGhostError --> EntityError
-    EntityError --> EmptyEntityError
-    EntityError --> MixedLabelError
-    PIIGhostError --> DetectorError
-    DetectorError --> LabelMappingError
-    DetectorError --> TextTooLongError
-    DetectorError --> UnreadableOutputError
-    DetectorError --> BridgePayloadError
-    DetectorError --> BridgeSpanRangeError
-    PIIGhostError --> TextError
-    TextError --> EmptyFragmentError
-    PIIGhostError --> AnonymizerError
-    AnonymizerError --> OverlappingSpansError
-    PIIGhostError --> OverrideError
-    OverrideError --> ConflictingOverrideError
-    PIIGhostError --> GuardError
-    GuardError --> PIIRemainingError
-    PIIGhostError --> MiddlewareError
-    MiddlewareError --> UnrecognizableFactoryError
-    MiddlewareError --> InventedPlaceholderError
-    MiddlewareError --> MissingThreadIdError
-    PIIGhostError --> HasherError
-    HasherError --> EmptyPepperError
-    PIIGhostError --> CipherError
-    CipherError --> InvalidKeyLengthError
-    PIIGhostError --> ClientError
-    ClientError --> RemoteError
-    PIIGhostError --> ConfigError
-    ConfigError --> ConfigFileError
-    ConfigError --> ConfigValidationError
-```
+The `PIIGhostError` tree, each grouping class above the errors it covers.
 
-*The `PIIGhostError` tree, each grouping class to the left of the errors it covers.*
-{ .figure-caption }
+- `PIIGhostError`
+    - `SpanError`
+        - `NegativeSpanStartError`
+        - `SpanOrderingError`
+    - `DetectionError`
+        - `ConfidenceError`
+    - `EntityError`
+        - `EmptyEntityError`
+        - `MixedLabelError`
+    - `DetectorError`
+        - `LabelMappingError`
+        - `TextTooLongError`
+        - `UnreadableOutputError`
+        - `BridgePayloadError`
+        - `BridgeSpanRangeError`
+    - `TextError`
+        - `EmptyFragmentError`
+    - `AnonymizerError`
+        - `OverlappingSpansError`
+    - `OverrideError`
+        - `ConflictingOverrideError`
+    - `GuardError`
+        - `PIIRemainingError`
+    - `MiddlewareError`
+        - `UnrecognizableFactoryError`
+        - `InventedPlaceholderError`
+        - `MissingThreadIdError`
+    - `HasherError`
+        - `EmptyPepperError`
+    - `CipherError`
+        - `InvalidKeyLengthError`
+    - `ClientError`
+        - `RemoteError`
+    - `ConfigError`
+        - `ConfigFileError`
+        - `ConfigValidationError`
 
 Of the thirty-five error classes, twenty-two are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, because it is a grouping class that is also raised on its own.
 
@@ -72,7 +69,7 @@ Module: `piighost.models`. `SpanError`, `DetectionError`, and `EntityError` grou
 | `EmptyEntityError` | `Entity.__post_init__` | the entity groups no detection |
 | `MixedLabelError` | `Entity.__post_init__` | the grouped detections do not all share one label |
 
-The invariants these errors enforce are in [Data models](models.md), and the ports that exchange the models in [Extending PIIGhost](../extending.md).
+The invariants these errors enforce are in [Data models](models.md), and the ports that exchange the models in [Extending piighost](../extending.md).
 
 ## Detectors
 

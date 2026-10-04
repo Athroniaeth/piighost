@@ -16,10 +16,9 @@ detector = CompositeDetector([exact_detector, regex_detector])
 pipeline = AnonymizationPipeline(detector)
 
 
-async def main():
+async def main() -> None:
     result = await pipeline.anonymize("Patrick emailed alice@example.com.")
     print(result.text)
-    # <<PERSON:1>> emailed <<EMAIL:1>>.
 
 
 asyncio.run(main())

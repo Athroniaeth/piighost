@@ -18,7 +18,7 @@ Deux choses coexistent donc à tout moment. La première est le texte dé-identi
 ## Ce contre quoi `piighost` protège
 
 !!! success "Exfiltration vers les LLM tiers"
-    Le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), jamais les vraies valeurs. Même si le provider journalise la requête, aucune donnée sensible ne fuit vers lui.
+    Le LLM ne voit jamais que des placeholders (`<<PERSON:1>>`{ .placeholder }, etc.), jamais les vraies valeurs. Même si le fournisseur journalise la requête, aucune donnée sensible ne fuit vers lui.
 
 !!! success "Fuite via les appels d'outils"
     Le middleware restaure les arguments d'outil juste avant l'exécution, puis dé-identifie les résultats avant qu'ils ne repartent vers le LLM. Les vraies valeurs ne transitent jamais par le contexte visible du LLM.
@@ -44,7 +44,7 @@ Deux choses coexistent donc à tout moment. La première est le texte dé-identi
     Un placeholder préserve la structure autour de lui. Une valeur dé-identifiée peut rester identifiable par ce qui l'entoure. "Le patient `<<PERSON:1>>`{ .placeholder }, seul cardiologue de la commune de 300 habitants" désigne une personne sans nommer sa PII. Le détecteur ne voit que des jetons, pas cette inférence.
 
 !!! danger "Détecteurs faillibles"
-    Un détecteur est au mieux. Une donnée confidentielle qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
+    La détection n'est pas exhaustive. Une donnée confidentielle qu'il ne reconnaît pas passe en clair vers le LLM. Voir [Limites](limitations.md) pour le garde-fou.
 
 !!! danger "Valeurs introduites par l'assistant sous PRESERVE"
     Avec le défaut `EntityCreateByAssistantStrategy.PRESERVE`, une valeur que le modèle a lui-même introduite reste en clair pour toute la conversation, puisque le modèle la connaît déjà. Elle reste en clair même quand un message utilisateur ultérieur la reprend, car la conversation date la valeur à sa première occurrence. Utilisez `ANONYMIZE` pour dé-identifier aussi les valeurs introduites par l'assistant.
@@ -120,9 +120,9 @@ Légende :
 <span class="sec-legend c-red">problématique</span>
 </small>
 
-La colonne rouge de la mémoire en RAM n'est pas un défaut, c'est un choix de périmètre. Ce backend ne prétend pas être un stockage sécurisé. Construit sans crypto, le backend sqlite montre le même rouge sur la confidentialité. Il est réservé au développement local. Dès que le mapping doit survivre à un redémarrage ou être partagé entre workers, passez à un backend persistant chiffré, Redis ou PostgreSQL avec un hasher et un cipher.
+La ligne rouge de la mémoire en RAM n'est pas un défaut, c'est un choix de périmètre. Ce backend ne prétend pas être un stockage sécurisé. Construit sans crypto, le backend sqlite montre le même rouge sur la confidentialité. Il est réservé au développement local. Dès que le mapping doit survivre à un redémarrage ou être partagé entre workers, passez à un backend persistant chiffré, Redis ou PostgreSQL avec un hasher et un cipher.
 
-## Discipline de journalisation pour les dataclasses porteuses de données confidentielles
+## Journaliser les détections
 
 La dataclass `Detection` porte la forme brute de la valeur détectée dans son champ `text`. Le `__repr__` généré par dataclass affiche cette valeur en clair. L'API reste ainsi prévisible pour l'inspection, le debug et les tests.
 
@@ -167,11 +167,11 @@ N'importe quelle implémentation de `AnyPlaceholderFactory` est acceptée. Le ma
 
 ## Décisions de conception qui soutiennent le modèle de menaces
 
-- **La dé-identification est locale** : les données confidentielles sont remplacées avant que la requête HTTP n'atteigne le provider du LLM.
+- **La dé-identification est locale** : les données confidentielles sont remplacées avant que la requête HTTP n'atteigne le fournisseur du LLM.
 - **Le mapping est reconnu comme sensible** : le store de mapping contient des données confidentielles en clair. Un backend persistant (Redis ou SQL) peut le chiffrer au repos (AES-GCM) et hacher ses clés (HMAC-SHA256 ou Argon2id). Le secret vit hors du store. La crypto est optionnelle et tout-ou-rien. Un backend en réseau construit sans elle émet un avertissement.
 - **Aucune journalisation des données confidentielles brutes par la librairie** : `piighost` lui-même n'écrit jamais de données confidentielles dans un logger. Votre propre code doit suivre la même discipline.
 - **Dataclasses gelées** : `Entity`, `Detection`, `Span` sont immuables, ce qui empêche la mutation accidentelle après que la dé-identification a été appliquée.
-- **Garde-fou optionnel** : un garde-fou (`DetectorGuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-vérifie la sortie dé-identifiée et signale des données confidentielles résiduelles. Le pipeline lève alors `PIIRemainingError`. Voir [Limites](limitations.md).
+- **Garde-fou optionnel** : un garde-fou (`DetectorGuardRail`, `Gliner2GuardRail`, `LLMGuardRail`, `ModerationGuardRail`) re-vérifie la sortie dé-identifiée et signale des données confidentielles résiduelles. Le pipeline lève alors `PIIRemainingError`. Voir [Limites](limitations.md).
 
 ## Signaler une vulnérabilité
 

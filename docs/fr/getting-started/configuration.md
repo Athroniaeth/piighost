@@ -7,7 +7,7 @@ icon: lucide/file-cog
 Vous allez décrire un pipeline complet dans un fichier TOML. Le fichier part de trois lignes et devient un pipeline conversationnel, qui garde un jeton stable d'un tour de conversation à l'autre. Chaque étape change une seule chose dans le fichier, puis vous vérifiez le fichier et vous le lancez pour voir ce qui a changé.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle. L'étape 4 récupère une fois un catalogue depuis le [hub piighost](https://hub.piighost.dev), puis le relit depuis le cache sur disque. L'étape 6 ajoute l'extra `fuzzy`.
+    `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle. À partir de l'étape 4, le pipeline récupère un catalogue sur le [hub piighost](https://hub.piighost.dev) à chaque exécution, ce qui demande un accès réseau. L'étape 6 ajoute l'extra `fuzzy`.
 
 ## 1. Mettre en place la boucle de vérification
 
@@ -29,7 +29,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/typo.out"
 ```
 
-La commande nomme la section et la clé qui coince, et sort en code `1`. Ce code de sortie en fait aussi un garde-fou de CI. Relancez-la après chaque modification ci-dessous. Elle ne construit aucun composant, donc elle ne charge aucun modèle.
+La commande nomme la section et la clé fautive, et sort en code `1`. Ce code de sortie en fait aussi un garde-fou de CI. Relancez-la après chaque modification ci-dessous. Elle ne construit aucun composant, donc elle ne charge aucun modèle.
 
 Exportez le schéma une fois et pointez votre éditeur dessus pour obtenir la complétion sur les noms de sections et de clés.
 
@@ -50,6 +50,8 @@ Corrigez la clé, `patterns` avec un s. Le fichier ne porte plus qu'une section,
 ```bash
 --8<-- "snippets/configuration/validate.sh"
 ```
+
+La sortie doit être :
 
 ```text
 --8<-- "snippets/configuration/validated.out"
@@ -95,7 +97,7 @@ L'adresse a disparu, et son label avec elle. `examples/config/minimal.toml` port
 
 ## 4. Tirer un catalogue du hub
 
-Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif inline par le groupe `generic` du hub, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Le suffixe `:fab51b33` épingle le groupe sur un commit. Le groupe est donc récupéré depuis le hub à la première construction du pipeline, puis relu depuis le cache. Quatre labels arrivent maintenant à l'anonymiseur, donc remettez le jeton numéroté pour les distinguer.
+Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif en ligne par le groupe `generic` du hub, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Sans suffixe, la référence suit la dernière version du groupe, récupérée sur le hub à chaque construction du pipeline. Pour figer le groupe, épinglez-le sur un commit, comme `hub:piighost/generic:fab51b33`. Il est alors récupéré une seule fois, puis relu depuis le cache sur disque. Le fichier n'a plus de section `[anonymizer.placeholder]`, donc le jeton numéroté par défaut revient et distingue les quatre labels.
 
 ```toml
 --8<-- "snippets/configuration/hub.toml"
@@ -111,7 +113,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/hub.out"
 ```
 
-L'adresse IP est couverte, et l'adresse accentuée aussi. Un format qui vous est propre, un numéro de commande comme `CMD-2024-0042`{ .pii }, n'est dans aucun catalogue. Déclarez-le inline, à côté du catalogue.
+L'adresse IP est couverte, et l'adresse accentuée aussi. Un format qui vous est propre, un numéro de commande comme `CMD-2024-0042`{ .pii }, n'est dans aucun catalogue. Déclarez-le en ligne, à côté du catalogue.
 
 ```toml
 --8<-- "snippets/configuration/order.toml"
@@ -127,7 +129,7 @@ La sortie doit être :
 --8<-- "snippets/configuration/order.out"
 ```
 
-Le numéro de commande est devenu un jeton. Un label déclaré des deux côtés prend votre motif, parce que les catalogues fusionnent d'abord et vos motifs inline ensuite.
+Le numéro de commande est devenu un jeton. Un label déclaré des deux côtés prend votre motif, parce que les catalogues fusionnent d'abord et vos motifs en ligne ensuite.
 
 ## 5. Faire tourner deux détecteurs à la fois
 
@@ -153,9 +155,17 @@ Les prénoms et les formats sont attrapés en une seule passe. Une même personn
 
 `Patrick`{ .pii } et `Patrik`{ .pii } sont la même personne, et un modèle qui lit deux jetons suit deux personnes. Installez l'extra `fuzzy`.
 
-```bash
-pip install "piighost[config,fuzzy]"
-```
+=== "uv"
+
+    ```bash
+    uv add "piighost[config,fuzzy]"
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install "piighost[config,fuzzy]"
+    ```
 
 Ajoutez une section `[entity_resolver]` à la fin du fichier. Cette section regroupe les entités dont les valeurs sont assez proches l'une de l'autre.
 
@@ -186,6 +196,8 @@ Chaque exécution de `run.py` repart de zéro dans la numérotation, car le pipe
 ```bash
 --8<-- "snippets/configuration/validate.sh"
 ```
+
+La sortie doit être :
 
 ```text
 --8<-- "snippets/configuration/validated.out"
@@ -221,8 +233,8 @@ La sortie doit être :
 
 Le second message réutilise le `<<PERSON:1>>`{ .placeholder } attribué par le premier. Chaque chargeur refuse les fichiers de l'autre. `load_thread_pipeline` sur un fichier sans mémoire lève donc `this configuration declares no memory; use load_pipeline`.
 
-## Et ensuite
+## Voir aussi
 
 - [Référence de configuration](../configuration/toml.md) pour chaque section, chaque `type` et chaque clé.
-- [Déployer un pipeline en production](../deployment.md) pour une mémoire partagée entre workers, Redis ou une base SQL, avec les valeurs stockées chiffrées au repos. Les deux fichiers sont `examples/config/thread_redis.toml` et `examples/config/thread_sqlalchemy.toml`.
-- [Forcer une détection ou laisser une valeur en clair](../examples/overrides.md) pour la liste à masquer et la liste à laisser en clair.
+- [Déploiement](../deployment.md) pour une mémoire partagée entre workers, Redis ou une base SQL, avec les valeurs stockées chiffrées au repos. Les deux fichiers sont `examples/config/thread_redis.toml` et `examples/config/thread_sqlalchemy.toml`.
+- [Masquer ou laisser en clair](../examples/overrides.md) pour la liste à masquer et la liste à laisser en clair.

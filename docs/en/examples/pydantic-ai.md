@@ -4,14 +4,14 @@ tags:
   - Pydantic AI
 ---
 
-# Run a Pydantic AI agent behind PIIGhost
+# Pydantic AI integration
 
 You want a Pydantic AI agent where the model only ever sees tokens, never the real names in the conversation, and where a value keeps the same token from one turn to the next. This page wires that agent end to end with a GLiNER2 detector, a `ThreadAnonymizationPipeline`, and `pii_hooks`, the capability that de-identifies around the model.
 
 The capability covers the messages, the user prompt and the model's own replies. It covers the tool boundary too, meaning the tool calls and their results. Under the default strategy a tool receives the real values while the model keeps working on tokens.
 
 !!! note "Prerequisites"
-    `piighost` installed with the pydantic-ai and gliner2 extras, `pip install piighost[pydantic-ai,gliner2]`, plus an OpenAI key in `OPENAI_API_KEY`. The first run downloads the GLiNER2 weights, roughly 500 MB.
+    `piighost` installed with the pydantic-ai and gliner2 extras, `pip install "piighost[pydantic-ai,gliner2]"`, plus an OpenAI key in `OPENAI_API_KEY`. The first run downloads the GLiNER2 weights, roughly 500 MB.
 
 ## 1. Build the pipeline over a GLiNER2 detector
 
@@ -35,6 +35,12 @@ The capability de-identifies the prompt before the model reads it, and restores 
 
 ```python
 --8<-- "snippets/pydantic_ai_agent.py:run"
+```
+
+The reply is restored for display. Its wording depends on the model, for example:
+
+```text
+--8<-- "snippets/pydantic_ai_agent.out"
 ```
 
 ## Who sees what
@@ -70,8 +76,8 @@ Not every value is the user's confidential data. Sometimes the model itself intr
 --8<-- "snippets/pydantic_ai_agent.py:assistant"
 ```
 
-## What's next
+## See also
 
 - To compare with the LangChain agent middleware, see the [LangChain integration](langchain.md).
-- To swap GLiNER2 for spaCy, a regex pack, or your own detector, see [Extending PIIGhost](../extending.md).
+- To swap GLiNER2 for spaCy, a regex pack, or your own detector, see [Extending piighost](../extending.md).
 - The runnable scripts are in `examples/pydantic_ai/base.py` (messages) and `examples/pydantic_ai/tools.py` (a tool).

@@ -16,47 +16,44 @@ from piighost.exceptions import PIIGhostError
 
 ## La hiérarchie
 
-```mermaid
-flowchart LR
-    PIIGhostError --> SpanError
-    SpanError --> NegativeSpanStartError
-    SpanError --> SpanOrderingError
-    PIIGhostError --> DetectionError
-    DetectionError --> ConfidenceError
-    PIIGhostError --> EntityError
-    EntityError --> EmptyEntityError
-    EntityError --> MixedLabelError
-    PIIGhostError --> DetectorError
-    DetectorError --> LabelMappingError
-    DetectorError --> TextTooLongError
-    DetectorError --> UnreadableOutputError
-    DetectorError --> BridgePayloadError
-    DetectorError --> BridgeSpanRangeError
-    PIIGhostError --> TextError
-    TextError --> EmptyFragmentError
-    PIIGhostError --> AnonymizerError
-    AnonymizerError --> OverlappingSpansError
-    PIIGhostError --> OverrideError
-    OverrideError --> ConflictingOverrideError
-    PIIGhostError --> GuardError
-    GuardError --> PIIRemainingError
-    PIIGhostError --> MiddlewareError
-    MiddlewareError --> UnrecognizableFactoryError
-    MiddlewareError --> InventedPlaceholderError
-    MiddlewareError --> MissingThreadIdError
-    PIIGhostError --> HasherError
-    HasherError --> EmptyPepperError
-    PIIGhostError --> CipherError
-    CipherError --> InvalidKeyLengthError
-    PIIGhostError --> ClientError
-    ClientError --> RemoteError
-    PIIGhostError --> ConfigError
-    ConfigError --> ConfigFileError
-    ConfigError --> ConfigValidationError
-```
+L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'elle couvre.
 
-*L'arbre `PIIGhostError`, chaque classe de regroupement à gauche des erreurs qu'elle couvre.*
-{ .figure-caption }
+- `PIIGhostError`
+    - `SpanError`
+        - `NegativeSpanStartError`
+        - `SpanOrderingError`
+    - `DetectionError`
+        - `ConfidenceError`
+    - `EntityError`
+        - `EmptyEntityError`
+        - `MixedLabelError`
+    - `DetectorError`
+        - `LabelMappingError`
+        - `TextTooLongError`
+        - `UnreadableOutputError`
+        - `BridgePayloadError`
+        - `BridgeSpanRangeError`
+    - `TextError`
+        - `EmptyFragmentError`
+    - `AnonymizerError`
+        - `OverlappingSpansError`
+    - `OverrideError`
+        - `ConflictingOverrideError`
+    - `GuardError`
+        - `PIIRemainingError`
+    - `MiddlewareError`
+        - `UnrecognizableFactoryError`
+        - `InventedPlaceholderError`
+        - `MissingThreadIdError`
+    - `HasherError`
+        - `EmptyPepperError`
+    - `CipherError`
+        - `InvalidKeyLengthError`
+    - `ClientError`
+        - `RemoteError`
+    - `ConfigError`
+        - `ConfigFileError`
+        - `ConfigValidationError`
 
 Sur les trente-cinq classes d'erreur, vingt-deux sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, parce que c'est une classe de regroupement qui est aussi levée pour elle-même.
 
@@ -72,7 +69,7 @@ Module : `piighost.models`. `SpanError`, `DetectionError` et `EntityError` regro
 | `EmptyEntityError` | `Entity.__post_init__` | l'entité ne regroupe aucune détection |
 | `MixedLabelError` | `Entity.__post_init__` | les détections regroupées ne partagent pas toutes le même label |
 
-Les invariants que ces erreurs font respecter sont dans [Référence des modèles de données](models.md), et les ports qui échangent les modèles dans [Étendre PIIGhost](../extending.md).
+Les invariants que ces erreurs font respecter sont dans [Référence des modèles de données](models.md), et les ports qui échangent les modèles dans [Étendre piighost](../extending.md).
 
 ## Détecteurs
 
@@ -146,7 +143,7 @@ Module : `piighost.crypto`. `HasherError` et `CipherError` regroupent les défai
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
-| `EmptyPepperError` | `BaseHasher.__init__` | le pepper est vide, ce qui laisserait des PII à faible entropie attaquables par force brute |
+| `EmptyPepperError` | `BaseHasher.__init__` | le poivre est vide, ce qui laisserait des PII à faible entropie attaquables par force brute |
 | `InvalidKeyLengthError` | `AesGcmCipher.__init__` | la clé AES ne fait pas 16, 24 ou 32 octets |
 
 Les deux échouent en fermeture à la construction, donc un store mal configuré ne démarre jamais. Ce que ces primitives protègent est dans [Sécurité](../security.md), et les backends de mémoire qui les prennent dans [Référence de la mémoire de conversation](memory.md).
@@ -169,7 +166,7 @@ Module : `piighost.config`. `ConfigError` regroupe les défaillances de chargeme
 |-----------|-----------|-------------|
 | `ConfigFileError` | `load_config` | le fichier est absent, illisible, ou du TOML ou JSON invalide, ou une référence du hub renvoie autre chose que du TOML |
 | `ConfigValidationError` | `load_config` | les données analysées échouent à la validation du schéma. L'erreur emballe alors la `ValidationError` de pydantic dans la famille de la librairie |
-| `ConfigError` | `load_pipeline`, `load_thread_pipeline`, et le `build()` d'une config de composant | le point d'entrée ne correspond pas à la section `[memory]` déclarée, une variable d'environnement de secret est absente ou malformée, ou une mémoire déclare un hacheur ou un cipher mais pas les deux |
+| `ConfigError` | `load_pipeline`, `load_thread_pipeline`, et le `build()` d'une config de composant | le point d'entrée ne correspond pas à la section `[memory]` déclarée, une variable d'environnement de secret est absente ou malformée, ou une mémoire déclare un hasher ou un cipher mais pas les deux |
 
 Attraper `ConfigError` couvre les trois. Chaque clé et chaque variable de secret est dans la [référence de configuration](../configuration/toml.md), et le CLI `piighost` rapporte les trois mêmes depuis `validate`, comme décrit dans [Interface en ligne de commande](cli.md).
 
@@ -189,7 +186,7 @@ Trois erreurs exposent les valeurs derrière la défaillance en attributs. Toute
 
 | Émis par | Émis quand |
 |----------|------------|
-| `warn_plaintext`, appelé depuis `RedisConversationMemory` et `SqlAlchemyConversationMemory` | un backend persistant est construit sans hacheur ni cipher, donc son store garde les données confidentielles en clair |
+| `warn_plaintext`, appelé depuis `RedisConversationMemory` et `SqlAlchemyConversationMemory` | un backend persistant est construit sans hasher ni cipher, donc son store garde les données confidentielles en clair |
 | `BaseAnonymizationPipeline.__init__` | aucun `observation_redactor` n'est posé, `trace_clear_text` est désactivé, et le tracer exporte, donc les traces enregistreraient du texte en clair |
 
 La comparaison des backends est dans [Référence de la mémoire de conversation](memory.md), et le masqueur dans [Observation](../observation.md).

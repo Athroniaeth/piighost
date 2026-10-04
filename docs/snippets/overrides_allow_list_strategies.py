@@ -14,7 +14,7 @@ def build_pipeline(strategy: AllowListStrategy) -> AnonymizationPipeline:
     return AnonymizationPipeline(detector, override=override)
 
 
-async def main():
+async def main() -> None:
     text = "Emma works at Acme, formerly Globex Ltd."
     for strategy in AllowListStrategy:
         pipeline = build_pipeline(strategy)

@@ -2,7 +2,7 @@
 icon: lucide/shield
 ---
 
-# PIIGhost
+# piighost
 
 `piighost` is a Python library that protects your confidential data (personal data or PII, secrets) in conversations with LLMs, through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
@@ -30,10 +30,7 @@ The same mechanism protects agents that call tools. With the LangChain middlewar
 
 A cloud LLM (GPT, Claude, Gemini) receives every piece of information you send it, including your users' PII. De-identifying upstream decouples the choice of LLM from the sensitivity of the content. When confidential data never reach the LLM, the choice of provider stops being a confidentiality decision. It goes back to being a question of quality, cost, and latency.
 
-To go further:
-
-- [Why de-identify?](why-anonymize.md), the provider spectrum, the legal detail (CLOUD Act, FISA 702, Schrems II) and the use cases
-- [How PIIGhost compares](comparison.md), the alternatives and their trade-offs
+The provider spectrum, the legal detail (CLOUD Act, FISA 702, Schrems II) and the use cases are in [Why de-identify?](why-anonymize.md). The alternatives and their trade-offs are in [How piighost compares](comparison.md).
 
 ## Where to start
 
@@ -60,11 +57,11 @@ To go further:
 
     Solve a specific task.
 
-    - [Basic usage](examples/basic.md)
+    - [De-identify and restore a text](examples/basic.md)
     - [Pre-built detectors](examples/detectors.md)
-    - [Override lists](examples/overrides.md)
-    - [Extending PIIGhost](extending.md)
-    - [Testing](examples/testing.md)
+    - [Deny and allow lists](examples/overrides.md)
+    - [Extending piighost](extending.md)
+    - [Testing without a model](examples/testing.md)
     - [Deployment](deployment.md)
     - [Multi-instance deployment](multi-instance.md)
 
@@ -89,8 +86,16 @@ To go further:
 
     - [Anonymizer](reference/anonymizer.md)
     - [Pipeline](reference/pipeline.md)
+    - [Data models](reference/models.md)
     - [LangChain](reference/langchain.md)
     - [Detectors](reference/detectors.md)
+    - [Guard rails](reference/guard-rails.md)
+    - [Conversation memory](reference/memory.md)
+    - [Exceptions](reference/errors.md)
+    - [CLI](reference/cli.md)
+    - [API endpoints](reference/api-endpoints.md)
+    - [Server CLI](reference/api-cli.md)
+    - [Configuration reference](configuration/toml.md)
 
 -   :lucide-layers: __Concepts__
 

@@ -1,4 +1,4 @@
-# Not shown: the server the page assumes at localhost:8000, which the test starts
+# Not shown: the server the page assumes at 127.0.0.1:8000, which the test starts
 # on a free port.
 from _offline import serve_locally
 
@@ -13,7 +13,7 @@ client = OpenAI(
     api_key="sk-...",
 )
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="gpt-5.6-terra",
     messages=[
         {
             "role": "user",
@@ -28,7 +28,7 @@ print(response.choices[0].message.content)
 # isort: split
 # --8<-- [start:thread]
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="gpt-5.6-terra",
     messages=[{"role": "user", "content": "I am Jane Doe"}],
     extra_headers={"X-PIIGhost-Thread-Id": "user-42"},
 )
@@ -38,7 +38,7 @@ response = client.chat.completions.create(
 # isort: split
 # --8<-- [start:stream]
 stream = client.chat.completions.create(
-    model="gpt-4o",
+    model="gpt-5.6-terra",
     messages=[{"role": "user", "content": "I am Jane Doe"}],
     stream=True,
 )

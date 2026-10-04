@@ -13,11 +13,13 @@ def build_pipeline(strategy: DenyListStrategy) -> ThreadAnonymizationPipeline:
     return ThreadAnonymizationPipeline(detector, override=override)
 
 
-async def main():
+async def main() -> None:
     for strategy in DenyListStrategy:
         pipeline = build_pipeline(strategy)
-        assistant = await pipeline.anonymize("Acme rocks", "t1", MessageRole.ASSISTANT)
-        user = await pipeline.anonymize("I love Acme", "t1")
+        assistant = await pipeline.anonymize(
+            "Acme rocks", thread_id="t1", role=MessageRole.ASSISTANT
+        )
+        user = await pipeline.anonymize("I love Acme", thread_id="t1")
         print(strategy.value, "->", assistant.text, "|", user.text)
 
 

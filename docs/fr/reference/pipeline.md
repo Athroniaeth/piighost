@@ -50,7 +50,7 @@ AnonymizationPipeline(
 | `trace_clear_text` | `bool` | `False` | Acquitte le traçage en clair de l'observation pour supprimer l'avertissement de sécurité quand aucun `observation_redactor` n'est défini |
 
 !!! note "Les composants sont des protocoles"
-    `AnyDetector`, `AnyEntityLinker`, `AnyAnonymizer`, `AnyOverlapResolver`, `AnyDetectionExpander`, `AnyEntityResolver`, `AnyGuardRail`, `AnyDetectionOverride`. Toute implémentation du protocole est acceptée. Voir [Étendre PIIGhost](../extending.md).
+    `AnyDetector`, `AnyEntityLinker`, `AnyAnonymizer`, `AnyOverlapResolver`, `AnyDetectionExpander`, `AnyEntityResolver`, `AnyGuardRail`, `AnyDetectionOverride`. Toute implémentation du protocole est acceptée. Voir [Étendre piighost](../extending.md).
 
 ### Méthodes
 
@@ -108,7 +108,7 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par conversation des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus. Passez `RedisConversationMemory` pour un backend partagé |
+| `memory` | `AnyConversationMemory \| None` | `None` | Stockage par conversation des détections de chaque message. Par défaut `InMemoryConversationMemory()` pour un seul processus. Passez `RedisConversationMemory` ou `SqlAlchemyConversationMemory` pour un backend partagé |
 | `token_memo_ttl` | `float \| None` | `None` | Secondes pendant lesquelles la correspondance de jetons mémoïsée d'une conversation est gardée. Ce mémo garde les valeurs de la conversation en clair. `forget_thread` n'atteint que le processus où il tourne. Sur un déploiement multi-worker, ce délai borne donc combien de temps les autres workers gardent le mémo. `None` garde une entrée jusqu'à ce que la borne de taille l'évince |
 | `time_source` | `Callable[[], float]` | `time.monotonic` | L'horloge que lit `token_memo_ttl`, injectable pour les tests |
 

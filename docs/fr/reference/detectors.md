@@ -324,7 +324,7 @@ Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine`
 
 ### `BridgeDetector`
 
-Délègue l'inférence à un exécuteur injecté et convertit sa réponse en détections. Il ne porte aucun modèle et ne demande aucun extra. Il existe pour un environnement où aucune pile NER n'est installable. Le cas courant est le navigateur. Le modèle y tourne dans le runtime JavaScript de l'hôte, et Python l'attend via le FFI de Pyodide. La même forme sert n'importe quel exécuteur hors du processus, un sous-processus ou un side-car.
+Délègue l'inférence à un exécuteur injecté et convertit sa réponse en détections. Il ne porte aucun modèle et ne demande aucun extra. Il existe pour un environnement où aucune pile NER n'est installable. Le cas courant est le navigateur. Le modèle y tourne dans l'environnement d'exécution JavaScript de l'hôte, et Python l'attend via le FFI de Pyodide. La même forme sert n'importe quel exécuteur hors du processus, un sous-processus ou un side-car.
 
 `labels` est obligatoire, puisque l'exécuteur est interrogé avec les labels internes et qu'un span dont le label n'est pas mappé est écarté, comme pour tout adaptateur NER. `offset_unit` est obligatoire aussi, puisque rien dans une réponse ne dit si ses décalages comptent des points de code ou des unités UTF-16.
 
@@ -492,5 +492,5 @@ La règle suppose des espaces entre les mots, elle ne trouve donc rien en chinoi
 - [Référence Pipeline](pipeline.md) pour le pipeline qui pilote le détecteur.
 - [Détecteurs prêts à l'emploi](../examples/detectors.md) pour composer les catalogues en pratique.
 - [Configuration TOML](../configuration/toml.md) pour la construction déclarative.
-- [Étendre PIIGhost](../extending.md) pour écrire son propre détecteur.
+- [Étendre piighost](../extending.md) pour écrire son propre détecteur.
 - [Référence des modèles de données](models.md) pour la forme complète d'une `Detection`.

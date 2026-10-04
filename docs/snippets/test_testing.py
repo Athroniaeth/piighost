@@ -13,9 +13,7 @@ async def test_person_is_tokenized() -> None:
     result = await pipeline.anonymize("Alice lives in Lyon.")
     assert result.text == "<<PERSON:1>> lives in Lyon."
     assert "Alice" not in result.text
-
-
-# --8<-- [end:helper]
+    # --8<-- [end:helper]
 
 
 # --8<-- [start:repeat]
@@ -24,6 +22,4 @@ async def test_repeat_shares_one_token() -> None:
     pipeline = build_pipeline({"Alice": "PERSON"})
     result = await pipeline.anonymize("Alice met Alice again.")
     assert result.text == "<<PERSON:1>> met <<PERSON:1>> again."
-
-
-# --8<-- [end:repeat]
+    # --8<-- [end:repeat]

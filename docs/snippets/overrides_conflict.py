@@ -18,7 +18,7 @@ def build_pipeline(strategy: OverrideConflictStrategy) -> AnonymizationPipeline:
     return AnonymizationPipeline(detector, override=override)
 
 
-async def main():
+async def main() -> None:
     for strategy in OverrideConflictStrategy:
         pipeline = build_pipeline(strategy)
         try:

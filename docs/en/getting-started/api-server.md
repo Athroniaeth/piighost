@@ -2,14 +2,14 @@
 icon: lucide/server
 ---
 
-# Deploy a de-identification API
+# API server
 
 You will run `piighost-api`, the companion server of `piighost`, over a configuration published on the [piighost hub](https://hub.piighost.dev), then de-identify and restore a message over HTTP. Any process that speaks HTTP then shares one pipeline, loaded once. The conversation memory is kept on the server.
 
 The configuration `hub:piighost/support-en` finds names, addresses and organizations with the GLiNER2 model `fastino/gliner2-multi-v1`. It finds US identifiers and generic values such as emails with regexes. It also refuses to return a de-identified text that still holds a clear email address.
 
 !!! note "Prerequisites"
-    Python 3.12 or later, and network access to the hub and to Hugging Face for the first start. The examples assume the server on `http://127.0.0.1:8000`.
+    Python 3.12 or later for the server, where the `piighost` library alone runs from Python 3.11. The first start needs network access to the hub and to Hugging Face. The examples assume the server on `http://127.0.0.1:8000`.
 
 ## 1. Install the server
 
@@ -58,7 +58,7 @@ export SECRET_PEPPER="..."
 piighost-api serve --config hub:piighost/support-en
 ```
 
-On the first start the server fetches the configuration from the hub and keeps it in the disk cache, then downloads the GLiNER2 model. The log reports `API keys loaded, auth enabled`, then `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, and uvicorn listens on `http://127.0.0.1:8000`.
+The server fetches the configuration from the hub at every start, because the reference is not pinned to a commit. On the first start, it also downloads the GLiNER2 model. The log reports `API keys loaded, auth enabled`, then `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, and uvicorn listens on `http://127.0.0.1:8000`.
 
 Check it from another shell:
 
@@ -149,11 +149,11 @@ The output should be:
 
 ## How it works
 
-The server loads one thread pipeline at start and runs every route on it. A configuration that declares no `[memory]` section, as the two hub configurations of this page, is served with the in-process memory. The threads then live in the server process, and vanish when it stops. To keep them across restarts, or to share them between several instances, declare a Redis memory, as [Deploy a production pipeline](../deployment.md) shows.
+The server loads one thread pipeline at start and runs every route on it. A configuration that declares no `[memory]` section, as the two hub configurations of this page, is served with the in-process memory. The threads then live in the server process, and vanish when it stops. To keep them across restarts, or to share them between several instances, declare a Redis memory, as [Deployment](../deployment.md) shows.
 
-## What's next
+## See also
 
 - To route an OpenAI or Anthropic client through the server, see [OpenAI-compatible proxy](../examples/openai-proxy.md) and [Anthropic-compatible proxy](../examples/anthropic-proxy.md).
 - To look up every route and its fields, see [API endpoints](../reference/api-endpoints.md).
 - To look up every option and environment variable of the server, see [Server CLI](../reference/api-cli.md).
-- To run the server in Docker with a shared memory, see [Deploy a production pipeline](../deployment.md).
+- To run the server in Docker with a shared memory, see [Deployment](../deployment.md).

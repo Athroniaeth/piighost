@@ -21,7 +21,7 @@ from piighost.models import Chunk, Detection, Entity, Span
 Les quatre modèles sont déclarés `@dataclass(frozen=True, slots=True)`. `Span` et `Detection` ajoutent `order=True`. Pour un appelant, cela veut dire :
 
 - **Immuable.** Affecter un champ lève `FrozenInstanceError`. Construisez une copie modifiée avec `dataclasses.replace`, comme `ChunkedDetector` le fait pour reporter une détection de chunk sur le texte original.
-- **Slotté.** Une instance ne porte pas de `__dict__`, donc aucun attribut hors des champs déclarés ne peut lui être posé.
+- **Sans dictionnaire d'attributs.** Une instance ne porte pas de `__dict__`, donc aucun attribut hors des champs déclarés ne peut lui être posé.
 - **Comparé par valeur et hachable.** Deux instances aux champs égaux sont égales et ont le même hash. Une `Detection` peut donc vivre dans un set, et une `Entity` servir de clé dans la correspondance `tokens` d'une `Anonymization`.
 - **Triable pour `Span` et `Detection` seulement.** Les deux se comparent dans l'ordre de leurs champs. `Entity` et `Chunk` ne déclarent aucun ordre, donc comparer deux d'entre eux lève `TypeError`.
 - **Validé à la construction.** Chaque invariant est vérifié dans `__post_init__`, donc une instance invalide n'existe jamais. Chaque exception dérive de `PIIGhostError`.
@@ -216,5 +216,5 @@ Deux autres dataclasses gelées circulent avec le pipeline, chacune documentée 
 
 - [Référence Détecteurs](detectors.md) pour les détecteurs qui produisent une `Detection`.
 - [Référence Pipeline](pipeline.md) pour les étages que ces modèles traversent.
-- [Étendre PIIGhost](../extending.md) pour les construire dans votre propre composant.
+- [Étendre piighost](../extending.md) pour les construire dans votre propre composant.
 - [Interface en ligne de commande](cli.md) pour la sortie JSON bâtie sur `to_dict`.

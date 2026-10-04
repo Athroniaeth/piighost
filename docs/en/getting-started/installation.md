@@ -34,17 +34,17 @@ Model-based detectors, the middleware, and the optional backends are extras to c
 === "uv"
 
     ```bash
-    uv add 'piighost[gliner2]'     # GLiNER2 NER detector
-    uv add 'piighost[langchain]'   # LangChain/LangGraph middleware
-    uv add 'piighost[all]'         # every extra
+    uv add "piighost[gliner2]"     # GLiNER2 NER detector
+    uv add "piighost[langchain]"   # LangChain/LangGraph middleware
+    uv add "piighost[all]"         # every extra
     ```
 
 === "pip"
 
     ```bash
-    pip install 'piighost[gliner2]'
-    pip install 'piighost[langchain]'
-    pip install 'piighost[all]'
+    pip install "piighost[gliner2]"
+    pip install "piighost[langchain]"
+    pip install "piighost[all]"
     ```
 
 Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`. Add the `argon2` extra for a more resistant key hash.
@@ -67,19 +67,7 @@ Print the installed version.
 
 The command prints a version number, such as `2.0.0`. An `ImportError` means the package is not installed in the active environment.
 
-## Development installation
+## See also
 
-```bash
-git clone https://github.com/Athroniaeth/piighost.git
-cd piighost
-uv sync
-```
-
-## Development commands
-
-```bash
-uv sync                              # install dependencies
-make lint                            # format (ruff) + lint (ruff) + types (pyrefly)
-uv run pytest                        # run all tests
-uv run pytest tests/ -k "test_name"  # run a single test
-```
+- [Quickstart](quickstart.md) for a first try without a model.
+- [Contributing](../community/contributing.md) to clone the repository, run the tests and the checks.

@@ -4,7 +4,7 @@ tags:
   - Tests
 ---
 
-# Tester un pipeline sans modèle
+# Tester sans modèle
 
 Vous voulez vérifier ce que produit un pipeline sans télécharger de modèle NER ni accéder au réseau. `ExactMatchDetector` vous le permet. Vous lui indiquez quelles valeurs littérales correspondent à quel label, et il trouve leurs occurrences avec une simple regex. Le reste du pipeline s'exécute sans changement. Un test exerce donc la vraie liaison, la vraie résolution et la vraie dé-identification contre un détecteur dont vous maîtrisez la sortie.
 
@@ -40,4 +40,4 @@ La liaison d'entités regroupe chaque occurrence d'une valeur sous une seule ent
 
 ## Tester un composant personnalisé
 
-Chaque étape du pipeline est un port, c'est-à-dire une interface que n'importe quel composant peut implémenter. Vous pouvez donc glisser votre propre composant à côté d'`ExactMatchDetector`, et laisser le détecteur déterministe l'alimenter. Donnez à l'étape une entrée fixe via `ExactMatchDetector`, puis vérifiez `result.text`. Voir [Étendre PIIGhost](../extending.md) pour les ports et des exemples de composants complets.
+Chaque étape du pipeline est un port, c'est-à-dire une interface que n'importe quel composant peut implémenter. Vous pouvez donc glisser votre propre composant à côté d'`ExactMatchDetector`, et laisser le détecteur déterministe l'alimenter. Donnez à l'étape une entrée fixe via `ExactMatchDetector`, puis vérifiez `result.text`. Voir [Étendre piighost](../extending.md) pour les ports et des exemples de composants complets.

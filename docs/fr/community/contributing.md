@@ -51,9 +51,13 @@ git checkout -b feat/my-feature
 Avant de soumettre une PR :
 
 ```bash
-make lint       # Format + lint + type-check
-uv run pytest   # Test suite
+make format                          # corriger le format et le lint avec ruff
+make lint                            # vérifier sans rien modifier
+uv run pytest                        # lancer les tests
+uv run pytest tests/ -k "test_name"  # lancer un test précis
 ```
+
+`make lint` ne modifie aucun fichier et échoue au premier problème. Il vérifie le format avec `ruff format --check`, le lint avec `ruff check`, les types avec `pyrefly`, la sécurité avec `bandit`, puis la documentation avec le script d'audit des pages. `make format` corrige ce que ruff sait corriger.
 
 ### Ouvrir la Pull Request
 
@@ -66,6 +70,6 @@ uv run pytest   # Test suite
 
 Les endroits les plus courants où contribuer sans toucher au cœur :
 
-- **Nouveau détecteur** : implémenter le protocole `AnyDetector`. Voir [Étendre PIIGhost](../extending.md).
+- **Nouveau détecteur** : implémenter le protocole `AnyDetector`. Voir [Étendre piighost](../extending.md).
 - **Nouveau pack regex** : publier un groupe de motifs sur le [hub piighost](https://hub.piighost.dev), qu'une config tire ensuite par sa référence.
 - **Nouvelle factory de placeholders** : implémenter `AnyPlaceholderFactory`.

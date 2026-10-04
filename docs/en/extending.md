@@ -5,7 +5,7 @@ tags:
   - Detector
 ---
 
-# Extending PIIGhost
+# Extending piighost
 
 Every pipeline stage is a **port**, a `Protocol` you satisfy by implementing its one method. There is no base class to inherit, and nothing else in the pipeline changes. Where a `Base*` template exists, you can also subclass it. That template supplies the shared skeleton and leaves you a single hook.
 
@@ -21,18 +21,12 @@ flowchart LR
     A -->|factory| F[AnyPlaceholderFactory]
 ```
 
-*The pipeline injects one component per port. Only the detector is required. The linker, anonymizer, and overlap resolver default to built-ins, and only the expand, entity-resolve, guard, and override stages default to disabled.*
+*The pipeline injects one component per port. Only the detector is required. The linker, anonymizer, and overlap resolver default to built-ins. The expansion, entity resolution, guard rail, and deny and allow list stages are disabled by default.*
 { .figure-caption }
 
 The ports live in each component's `base.py`, under `piighost.components.*`. The data models they exchange live in `piighost.models`.
 
-```python
---8<-- "snippets/extending_models.py"
-```
-
 A `Detection` is a `Span(start, end)` carrying `text`, `label`, and a `confidence` in the range 0 to 1. An `Entity` groups the detections that share a value, and derives its `label`, `text`, and `spans` from them. See the [data models reference](reference/models.md) for every field, method and validation error.
-
----
 
 ## A custom detector
 
@@ -50,7 +44,13 @@ A detector finds confidential data (personal data, secrets) in a text. Implement
     --8<-- "snippets/extending.py:handle_detector"
     ```
 
-To feed a detector from a fixed value list in tests, use the built-in `ExactMatchDetector` instead. See [Test a pipeline without models](examples/testing.md).
+### Use the detector
+
+```python
+--8<-- "snippets/extending.py:use_detector"
+```
+
+To feed a detector from a fixed value list in tests, use the built-in `ExactMatchDetector` instead. See [Testing without a model](examples/testing.md).
 
 ### For NER models, subclass `BaseNERDetector`
 
@@ -59,14 +59,6 @@ The model-backed detectors (`Gliner2Detector`, `SpacyDetector`, `TransformersDet
 ```python
 --8<-- "snippets/extending_gliner2.py:example"
 ```
-
-### Usage
-
-```python
---8<-- "snippets/extending.py:use_detector"
-```
-
----
 
 ## A custom overlap resolver
 
@@ -86,8 +78,6 @@ Rather than implement `resolve` from scratch, subclass `BaseOverlapResolver`. It
 
 The built-in `ConfidenceOverlapResolver` keeps the highest-confidence detection instead. The overlap resolver is always on. Omit it and the pipeline installs a `ConfidenceOverlapResolver`. Pass your own to change the rule. There is no supported way to disable it, since render assumes disjoint spans and raises `OverlappingSpansError` otherwise.
 
----
-
 ## A custom expander
 
 An expander finds occurrences a detector missed, such as a repeat of a name flagged elsewhere. The port:
@@ -105,8 +95,6 @@ Subclass `BaseDetectionExpander`. It keeps the original detections. For each one
     ```
 
 The built-in `WordBoundaryExpander` does exactly this. The stage is optional.
-
----
 
 ## A custom entity linker
 
@@ -126,8 +114,6 @@ Subclass `BaseEntityLinker`. It groups detections by a key you compute in `_key`
 
 The built-in `ExactEntityLinker` groups on the value key. That key is the same for the same words, whatever their spaces and case. `Patrick`{ .pii } and `patrick`{ .pii } therefore become one entity. Use `piighost.text.value_key` in your own linker to follow the same rule, see [Unicode spaces](reference/detectors.md#unicode-spaces).
 
----
-
 ## A custom entity resolver
 
 An entity resolver reconciles entities that should not coexist, such as two entities sharing a detection. The port:
@@ -143,8 +129,6 @@ Subclass `BaseEntityResolver`. It clusters entities that share a detection into 
 - `FuzzyEntityResolver` merges entities with similar values (needs the `fuzzy` extra).
 
 The stage is optional.
-
----
 
 ## A custom placeholder factory
 
@@ -164,13 +148,11 @@ A token is an instance of the tag, and the tag is a `str` subclass. The token is
 
 `PreservesLabel` says the token reveals the type but not a unique identity. This factory therefore suits one-shot redaction, not the middleware. For a token the middleware can restore and find again, tag it `PreservesRecognizableIdentity` (or a sub-tag such as `PreservesLabeledIdentityOpaque`) and use a delimited grammar like `<<PERSON:1>>`{ .placeholder }. To wrap an inner form in delimiters without writing the wrapping yourself, subclass `BaseDelimitedPlaceholderFactory`. See [Placeholder factories](placeholder-factories.md) for the full tag taxonomy and worked examples.
 
-### Usage
+### Use the factory
 
 ```python
 --8<-- "snippets/extending.py:use_factory"
 ```
-
----
 
 ## A custom guard rail
 
@@ -190,13 +172,11 @@ A guard rail re-checks the de-identified output for residual confidential data. 
 
 The built-in `DetectorGuardRail` re-runs a detector and reports the residual detections. The stage is optional. Pass no `guard` and the output is returned unchecked.
 
-### Usage
+### Use the guard rail
 
 ```python
 --8<-- "snippets/extending.py:use_guard"
 ```
-
----
 
 ## Full composition
 
@@ -206,4 +186,4 @@ The stages are independent, so a custom detector, factory, and guard combine fre
 --8<-- "snippets/extending.py:assemble"
 ```
 
-To unit-test a custom component deterministically, feed it through `ExactMatchDetector`. See [Test a pipeline without models](examples/testing.md).
+To unit-test a custom component deterministically, feed it through `ExactMatchDetector`. See [Testing without a model](examples/testing.md).

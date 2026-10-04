@@ -5,14 +5,14 @@ tags:
   - Detector
 ---
 
-# How to force a detection or keep a value in clear
+# Deny and allow lists
 
 Your detector reads your company name as a person and you want that name left alone. Your internal codenames go undetected and you want them replaced every time. Both are decisions about the detection set rather than about the detector. `DetectionOverride` is the stage that imposes them, with two detectors. The deny list (`deny_list`) holds what is always masked, and its detector's hits are forced into the set. The allow list (`allow_list`) holds what is always left in clear, and its detector's hits are dropped from the set.
 
 The stage runs right after detection, before overlap resolution and linking. Its two lists therefore trump the detector's reading, and also a corrected set coming back from a human review. See [Architecture](../architecture.md) for the full stage order.
 
 !!! note "Prerequisites"
-    `piighost` alone, `pip install piighost`. Every snippet below runs as is, with no model download. Section 2 and the config file pull the generic group of the [piighost hub](https://hub.piighost.dev), fetched once, then read from the on-disk cache. The last section reads a config file, which needs the config extra, `pip install piighost[config]`.
+    `piighost` alone, `pip install piighost`. Every example below runs as is, with no model download. Section 2 and the config file pull the generic group of the [piighost hub](https://hub.piighost.dev), fetched every time the pipeline is built, which needs network access. The last section reads a config file, which needs the config extra, `pip install "piighost[config]"`.
 
 !!! note "Renamed in 2.0"
     The deny list was called the whitelist before `piighost` 2.0, and the allow list the blacklist. A config that still uses the old names is refused at load time, see [Upgrading to 2.0](../community/upgrading.md#the-override-lists-are-renamed).
@@ -23,6 +23,12 @@ Point a detector at the value, hand it to `DetectionOverride` as the allow list,
 
 ```python
 --8<-- "snippets/overrides_allow_list.py"
+```
+
+The output should be:
+
+```text
+--8<-- "snippets/overrides_allow_list.out"
 ```
 
 `allow_list_strategy` decides which detections an allow list hit takes down.
@@ -36,6 +42,8 @@ The three modes on one text, with a detector that mislabels `Acme`{ .pii } as a 
 ```python
 --8<-- "snippets/overrides_allow_list_strategies.py"
 ```
+
+The output should be:
 
 ```text
 --8<-- "snippets/overrides_allow_list_strategies.out"
@@ -54,15 +62,27 @@ Point a detector at the pattern the primary detector misses, here a codename a r
 --8<-- "snippets/overrides_deny_list_hub.py"
 ```
 
+The output should be:
+
+```text
+--8<-- "snippets/overrides_deny_list_hub.out"
+```
+
 A forced hit also replaces every detection it overlaps, so the deny list label wins over the primary reading. Use that to correct a label, not only to add a detection.
 
 ```python
 --8<-- "snippets/overrides_deny_list_exact.py:example"
 ```
 
+The output should be:
+
+```text
+--8<-- "snippets/overrides_deny_list_exact.out"
+```
+
 A forced value goes through linking and token assignment like any other detection, so the conversational pipeline stores it in memory and `deanonymize` restores it.
 
-## 3. Tokenize a value the assistant introduced
+## 3. De-identify a value the assistant introduced
 
 In a thread, a value the assistant wrote first stays in clear even when the deny list matches it. The model produced that value because it was useful in context, and it does not know the value is confidential. Replacing it would strip the model's world knowledge, and signal that this precise value is sensitive. `deny_list_strategy` decides who wins.
 
@@ -72,6 +92,8 @@ In a thread, a value the assistant wrote first stays in clear even when the deny
 ```python
 --8<-- "snippets/overrides_deny_list_provenance.py"
 ```
+
+The output should be:
 
 ```text
 --8<-- "snippets/overrides_deny_list_provenance.out"
@@ -89,13 +111,15 @@ A value both lists match is a contradiction, and `conflict_strategy` names the w
 --8<-- "snippets/overrides_conflict.py"
 ```
 
+The output should be:
+
 ```text
 --8<-- "snippets/overrides_conflict.out"
 ```
 
 `ALLOW_LIST_WINS` clears a forced hit according to the allow list strategy. With the default `VALUE`, a forced value is therefore cleared whatever label the deny list attached to it. Under `EXACT` the two lists have to agree on the label for the allow list to win.
 
-## 5. Drive the override from a config file
+## 5. Drive both lists from a config file
 
 Both lists are detector configs, `[override.deny_list]` and `[override.allow_list]`, and the three strategies are keys of `[override]`. The file below forces the codename and keeps a public mailbox in clear.
 
@@ -103,10 +127,16 @@ Both lists are detector configs, `[override.deny_list]` and `[override.allow_lis
 --8<-- "snippets/overrides_config.toml"
 ```
 
-`load_pipeline` parses the file and builds the pipeline, override included.
+`load_pipeline` parses the file and builds the pipeline, both lists included.
 
 ```python
 --8<-- "snippets/overrides_config.py"
+```
+
+The output should be:
+
+```text
+--8<-- "snippets/overrides_config.out"
 ```
 
 For every key and every accepted value, see the [TOML configuration](../configuration/toml.md).

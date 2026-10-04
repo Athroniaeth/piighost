@@ -64,7 +64,7 @@ piighost-api serve --config hub:piighost/support-en
 |---|---|---|
 | `PIIGHOST_CONFIG` | aucun | Fichier de config ou référence du hub, lu quand `--config` est absent |
 | `API_KEY_<NAME>` | aucun | Une clé d'API acceptée par variable. La valeur est celle qu'imprime `keyshield generate` |
-| `SECRET_PEPPER` | le pepper intégré de `keyshield`, avec un avertissement | Pepper du hash Argon2 que le serveur garde de chaque clé, imprimé par `keyshield pepper` |
+| `SECRET_PEPPER` | le poivre intégré de `keyshield`, avec un avertissement | Poivre du hash Argon2 que le serveur garde de chaque clé, imprimé par `keyshield pepper` |
 | `PIIGHOST_ALLOW_ANONYMOUS` | désactivé | `1`, `true`, `yes` ou `on` laisse le serveur démarrer sans clé, chaque route est alors ouverte. S'applique aussi quand les clés échouent à se charger |
 | `PIIGHOST_MAX_BODY_BYTES` | `1000000` | Plus grand corps de requête accepté, au-delà `413` |
 | `PIIGHOST_RATE_LIMIT` | désactivé | `<unit>:<count>` par client, `unit` parmi `second`, `minute`, `hour`, `day`, comme `minute:300`. Une valeur mal formée arrête le serveur au démarrage |
