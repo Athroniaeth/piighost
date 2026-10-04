@@ -225,4 +225,4 @@ Le second message réutilise le `<<PERSON:1>>`{ .placeholder } attribué par le 
 
 - [Référence de configuration](../configuration/toml.md) pour chaque section, chaque `type` et chaque clé.
 - [Déployer un pipeline en production](../deployment.md) pour une mémoire partagée entre workers, Redis ou une base SQL, avec les valeurs stockées chiffrées au repos. Les deux fichiers sont `examples/config/thread_redis.toml` et `examples/config/thread_sqlalchemy.toml`.
-- [Forcer une détection ou laisser une valeur en clair](../examples/overrides.md) pour la whitelist et la blacklist.
+- [Forcer une détection ou laisser une valeur en clair](../examples/overrides.md) pour la liste à masquer et la liste à laisser en clair.

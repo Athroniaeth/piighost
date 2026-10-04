@@ -125,12 +125,51 @@ await agent.ainvoke({"messages": messages})
 --8<-- "snippets/upgrading.py:invoke"
 ```
 
+### The override lists are renamed
+
+In 1.x the override's `whitelist` held the values always masked, and its `blacklist` the values always left in clear. Most readers expect the reverse from these two words, and a reader who inverts them leaves in clear the values they meant to mask. 2.0 takes the names Presidio uses.
+
+<div class="wide-table" markdown="1">
+
+| 1.x | 2.0 | Meaning |
+|---|---|---|
+| `whitelist`, `[override.whitelist]` | `deny_list`, `[override.deny_list]` | values always masked |
+| `blacklist`, `[override.blacklist]` | `allow_list`, `[override.allow_list]` | values always left in clear |
+| `whitelist_strategy`, `WhitelistStrategy` | `deny_list_strategy`, `DenyListStrategy` | how the deny list treats a value the assistant wrote |
+| `blacklist_strategy`, `BlacklistStrategy` | `allow_list_strategy`, `AllowListStrategy` | which detections an allow list hit clears |
+| `whitelist_wins`, `OverrideConflictStrategy.WHITELIST_WINS` | `deny_list_wins`, `OverrideConflictStrategy.DENY_LIST_WINS` | a value on both lists is masked |
+| `blacklist_wins`, `OverrideConflictStrategy.BLACKLIST_WINS` | `allow_list_wins`, `OverrideConflictStrategy.ALLOW_LIST_WINS` | a value on both lists stays in clear |
+
+</div>
+
+The members `RESPECT_PROVENANCE`, `FORCE`, `EXACT`, `VALUE`, `OVERLAP` and `RAISE` keep their names. A config that still uses an old key or value is refused at load time with the name that replaces it, and is never read under the new meaning. `DetectionOverride(whitelist=...)` raises `TypeError`.
+
+```toml
+# 1.x
+[override]
+whitelist_strategy = "force"
+conflict_strategy = "whitelist_wins"
+
+[override.whitelist]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+# 2.0
+[override]
+deny_list_strategy = "force"
+conflict_strategy = "deny_list_wins"
+
+[override.deny_list]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+```
+
 ### Behaviours that changed
 
 - **Unicode spaces.** `RegexDetector` reads every Unicode space as an ordinary one, so a pattern that looked for a no-break space on purpose no longer finds one. Two values that differ only by their spaces are one value, and get one token.
 - **Hyphens.** In a whole-word search, every Unicode hyphen joins two words, the non-breaking one Word types included. `Jean`{ .pii } is therefore no longer found inside `Jean‑Paul`{ .pii } written with that hyphen.
 - **NER detectors.** Every adapter re-reads the text of a detection from the source and applies its threshold itself, whatever its model returns. A `Gliner2Detector` detection can therefore carry a slightly different text than before, the document's rather than the model's.
-- **Overrides.** After a whitelist, two detections on one span keep their detector order, as they do when no whitelist is set.
+- **Overrides.** After a deny list, two detections on one span keep their detector order, as they do when no deny list is set.
 - **In-process memory.** `InMemoryConversationMemory` is bounded by default to 10,000 threads and one day idle. An evicted or expired thread no longer restores its tokens. Pass `max_threads=None` and `ttl=None` to get the unbounded 1.x store back.
 - **LLM detector and guard.** An output `LLMDetector` or `LLMGuardRail` cannot read raises `UnreadableOutputError` instead of reading as zero detections, so the message is refused. Pass `fail_open=True`, or `fail_open = true` in a config, to send it on undetected as 1.x did.
 - **Claude Code hooks.** A hook that cannot de-identify, a server down for instance, blocks the prompt or the tool call and replaces a tool output by a notice. Set `PIIGHOST_HOOK_FAIL_OPEN=1` to let the text through in clear as 1.x did.

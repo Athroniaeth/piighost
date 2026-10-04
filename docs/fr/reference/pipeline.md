@@ -46,7 +46,7 @@ AnonymizationPipeline(
 | `entity_resolver` | `AnyEntityResolver \| None` | `None` | Réconcilie les entités en conflit. Désactivé quand `None` |
 | `guard` | `AnyGuardRail \| None` | `None` | Revérifie la sortie pour des valeurs confidentielles résiduelles. Désactivé quand `None` |
 | `observation_redactor` | `AnyPlaceholderFactory \| None` | `None` | Placeholder factory remplaçant les valeurs en clair dans les payloads d'observation. Avec `None`, les traces gardent le texte en clair et peuvent ainsi servir de jeux d'annotation. Avec un tracer actif et sans masqueur, le constructeur émet un `PIIGhostSecurityWarning` sauf si `trace_clear_text=True` l'acquitte |
-| `override` | `AnyDetectionOverride \| None` | `None` | Whitelist et blacklist du serveur imposées à chaque ensemble de détections. Désactivé quand `None` |
+| `override` | `AnyDetectionOverride \| None` | `None` | Liste à masquer et liste à laisser en clair du serveur imposées à chaque ensemble de détections. Désactivé quand `None` |
 | `trace_clear_text` | `bool` | `False` | Acquitte le traçage en clair de l'observation pour supprimer l'avertissement de sécurité quand aucun `observation_redactor` n'est défini |
 
 !!! note "Les composants sont des protocoles"

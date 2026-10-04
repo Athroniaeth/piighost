@@ -266,7 +266,7 @@ class OverrideError(PIIGhostError):
 
 
 class ConflictingOverrideError(OverrideError):
-    """Raised when the whitelist and the blacklist contradict each other.
+    """Raised when the deny list and the allow list contradict each other.
 
     Under the RAISE conflict strategy, a span both forced and cleared is a
     configuration error, refused loudly rather than resolved silently.

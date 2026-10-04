@@ -33,7 +33,7 @@ type = "exact"
 type = "label_counter"
 
 # Force a codename to be anonymized even when no detector caught it.
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 

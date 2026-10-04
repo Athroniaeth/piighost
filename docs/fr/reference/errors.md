@@ -110,11 +110,11 @@ L'hypothèse de spans disjoints derrière cette erreur est dans [Référence Ano
 
 ## Overrides de détection
 
-Module : `piighost.components.override`. `OverrideError` regroupe les défaillances de l'étage whitelist et blacklist et porte une sous-classe.
+Module : `piighost.components.override`. `OverrideError` regroupe les défaillances de l'étage de la liste à masquer et de la liste à laisser en clair, et porte une sous-classe.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
-| `ConflictingOverrideError` | `DetectionOverride.apply` | un span whitelisté chevauche un span blacklisté sous la stratégie de conflit `raise` |
+| `ConflictingOverrideError` | `DetectionOverride.apply` | un span de la liste à masquer chevauche un span de la liste à laisser en clair sous la stratégie de conflit `raise` |
 
 Les deux autres stratégies de conflit tranchent la collision au lieu de lever. Chaque clé `[override]` est dans la [référence de configuration](../configuration/toml.md).
 

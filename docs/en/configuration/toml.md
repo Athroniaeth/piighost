@@ -101,7 +101,7 @@ The top-level keys of a `PipelineConfig`.
 | `[expander]` | no | Re-finds missed occurrences of a detected value |
 | `[entity_resolver]` | no | Clusters entities that refer to the same thing |
 | `[guard]` | no | Re-checks the output for residual confidential data |
-| `[override]` | no | Forces or vetoes detections via a whitelist and a blacklist |
+| `[override]` | no | Forces or vetoes detections via a deny list and an allow list |
 | `[observation_redactor]` | no | A placeholder factory redacting trace payloads |
 | `[memory]` | no | The conversation memory, its presence makes a thread pipeline |
 
@@ -379,29 +379,29 @@ threshold = 0.5
 
 ## `[override]`
 
-Optional. Forces detections through a whitelist and vetoes them through a blacklist. Each list is a detector config, `[override.whitelist]` and `[override.blacklist]`, and both are optional.
+Optional. Forces detections through a deny list, whose values are always masked, and vetoes them through an allow list, whose values are always left in clear. Each list is a detector config, `[override.deny_list]` and `[override.allow_list]`, and both are optional. The 1.x keys, `whitelist`, `blacklist` and their strategies, are refused at load time with the key that replaces them, see [Upgrading to 2.0](../community/upgrading.md#the-override-lists-are-renamed).
 
 <div class="wide-table" markdown="1">
 
 | Key | Values | Default | Meaning |
 |-----|--------|---------|---------|
-| `[override.whitelist]` | detector | | A detector whose hits are forced into the set |
-| `[override.blacklist]` | detector | | A detector whose hits invalidate detections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | How a blacklist hit invalidates a detection. `value` needs the same value, whatever its spaces and case. `exact` needs the same span and label. `overlap` invalidates any overlapping span |
-| `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a whitelist hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
-| `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
+| `[override.deny_list]` | detector | | A detector whose hits are always masked, forced into the set |
+| `[override.allow_list]` | detector | | A detector whose hits are always left in clear, invalidating the detections they match |
+| `allow_list_strategy` | `exact`, `value`, `overlap` | `value` | How an allow list hit invalidates a detection. `value` needs the same value, whatever its spaces and case. `exact` needs the same span and label. `overlap` invalidates any overlapping span |
+| `deny_list_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a deny list hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
+| `conflict_strategy` | `deny_list_wins`, `allow_list_wins`, `raise` | `deny_list_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
 
 </div>
 
 ```toml
 [override]
-blacklist_strategy = "value"
+allow_list_strategy = "value"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 
-[override.blacklist]
+[override.allow_list]
 type = "exact"
 values = { "public@corp.com" = "EMAIL" }
 ```
@@ -550,7 +550,7 @@ type = "exact"
 [anonymizer.placeholder]
 type = "label_counter"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 

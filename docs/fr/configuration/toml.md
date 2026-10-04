@@ -101,7 +101,7 @@ Les clés de premier niveau d'un `PipelineConfig`.
 | `[expander]` | non | Retrouve les occurrences manquées d'une valeur détectée |
 | `[entity_resolver]` | non | Regroupe les entités qui désignent la même chose |
 | `[guard]` | non | Revérifie la sortie pour des données confidentielles résiduelles |
-| `[override]` | non | Force ou écarte des détections via une whitelist et une blacklist |
+| `[override]` | non | Force ou écarte des détections via une liste à masquer et une liste à laisser en clair |
 | `[observation_redactor]` | non | Une factory de placeholders caviardant les charges de trace |
 | `[memory]` | non | La mémoire de conversation. Sa présence fait un pipeline de conversation |
 
@@ -379,29 +379,29 @@ threshold = 0.5
 
 ## `[override]`
 
-Optionnel. Force des détections via une whitelist et en écarte via une blacklist. Chaque liste est une config de détecteur, `[override.whitelist]` et `[override.blacklist]`, toutes deux optionnelles.
+Optionnel. Force des détections via une liste à masquer, dont les valeurs sont toujours masquées, et en écarte via une liste à laisser en clair, dont les valeurs restent toujours en clair. Chaque liste est une config de détecteur, `[override.deny_list]` et `[override.allow_list]`, toutes deux optionnelles. Les clés de la 1.x, `whitelist`, `blacklist` et leurs stratégies, sont refusées au chargement avec la clé qui les remplace, voir [Passer à la 2.0](../community/upgrading.md#les-listes-de-loverride-sont-renommees).
 
 <div class="wide-table" markdown="1">
 
 | Clé | Valeurs | Défaut | Signification |
 |-----|---------|--------|---------------|
-| `[override.whitelist]` | détecteur | | Un détecteur dont les hits sont forcés dans l'ensemble |
-| `[override.blacklist]` | détecteur | | Un détecteur dont les hits invalident des détections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de blacklist invalide une détection. `value` exige la même valeur, quelles que soient ses espaces et sa casse. `exact` exige le même span et le même label. `overlap` invalide tout span en chevauchement |
-| `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de whitelist laisse en clair une valeur introduite par l'assistant, ou la dé-identifie quand même |
-| `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
+| `[override.deny_list]` | détecteur | | Un détecteur dont les hits sont toujours masqués, forcés dans l'ensemble |
+| `[override.allow_list]` | détecteur | | Un détecteur dont les hits restent toujours en clair, en invalidant les détections qu'ils recouvrent |
+| `allow_list_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de la liste à laisser en clair invalide une détection. `value` exige la même valeur, quelles que soient ses espaces et sa casse. `exact` exige le même span et le même label. `overlap` invalide tout span en chevauchement |
+| `deny_list_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de la liste à masquer laisse en clair une valeur introduite par l'assistant, ou la dé-identifie quand même |
+| `conflict_strategy` | `deny_list_wins`, `allow_list_wins`, `raise` | `deny_list_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
 
 </div>
 
 ```toml
 [override]
-blacklist_strategy = "value"
+allow_list_strategy = "value"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 
-[override.blacklist]
+[override.allow_list]
 type = "exact"
 values = { "public@corp.com" = "EMAIL" }
 ```
@@ -550,7 +550,7 @@ type = "exact"
 [anonymizer.placeholder]
 type = "label_counter"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 
