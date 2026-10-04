@@ -21,9 +21,9 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-**Ce qu'est PIIGhost.** PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA le lise, puis remet les vraies valeurs dans la réponse. C'est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou s'utilise à distance par le serveur `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`. Les raisons de dé-identifier, juridiques et techniques, sont expliquées dans [Pourquoi dé-identifier ?](../../docs/fr/why-anonymize.md).
+PIIGhost masque les données confidentielles d'un texte avant qu'un modèle d'IA le lise, puis remet les vraies valeurs dans la réponse. C'est une bibliothèque Python, sans interface graphique. Elle se branche sur LangChain, Pydantic AI, LlamaIndex ou Claude Code, ou s'utilise à distance par le serveur `piighost-api`. Elle se configure par un fichier TOML ou JSON et par la commande `piighost`. Les raisons de dé-identifier, juridiques et techniques, sont expliquées dans [Pourquoi dé-identifier ?](../../docs/fr/why-anonymize.md).
 
-Le trajet d'un message :
+**Le trajet d'un message :**
 
 1. L'utilisateur écrit son message avec ses vraies données, par exemple son nom et son e-mail.
 2. PIIGhost repère les valeurs sensibles, par exemple les noms, les e-mails, les téléphones ou les secrets.
@@ -62,19 +62,6 @@ Le trajet d'un message :
 | Le sens d'un terme ou d'un sigle | [Glossaire](glossary.md) |
 | Les endroits où la documentation et le code divergent | [Registre des écarts doc / code](reference/doc-code-gaps.md) |
 | Ce qui est décidé et reste à faire | [Points à régler](reference/open-points.md) |
-
-```mermaid
-flowchart LR
-    A["Message de l'utilisateur"] --> B["Repérage des valeurs"]
-    B --> C["Liste blanche et liste noire"]
-    C --> D["Remplacement par jetons"]
-    D --> E["Contrôle final"]
-    E --> F["Modèle d'IA"]
-    F --> G["Restauration des valeurs"]
-    G --> H["Réponse affichée"]
-    D --> M["Mémoire de la conversation"]
-    M --> G
-```
 
 ## Pourquoi PIIGhost fonctionne ainsi
 
