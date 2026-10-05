@@ -12,7 +12,6 @@ handle_hook is pure: it takes any AnyThreadPipeline, a local pipeline or a remot
 PIIGhostClient, so it is driven the same way in tests and in the runner.
 """
 
-import re
 from typing import Any
 
 from piighost.conversation_memory.base import MessageRole
@@ -44,18 +43,6 @@ def _output(event_name: str, fields: dict[str, Any]) -> dict[str, Any]:
     return {"hookSpecificOutput": {"hookEventName": event_name, **fields}}
 
 
-_PATH_SEGMENT = re.compile(r"[^.\[\]]+|\[\]")
-"""A field name, or a [] list marker, in a dotted field path."""
-
-
-def _split_path(path: str) -> list[str]:
-    """Split a dotted field path into segments, each [] list marker its own.
-
-    "structuredPatch[].lines[]" becomes ["structuredPatch", "[]", "lines", "[]"].
-    """
-    return _PATH_SEGMENT.findall(path)
-
-
 async def _apply_path(node: Any, segments: list[str], op: StringOp) -> Any:
     """Return node with op applied to the string leaves reached by segments.
 
@@ -79,10 +66,15 @@ async def _apply_path(node: Any, segments: list[str], op: StringOp) -> Any:
 async def _anonymize_fields(
     data: dict[str, Any], paths: tuple[str, ...], op: StringOp
 ) -> dict[str, Any]:
-    """Apply op to every allowlisted field path in a structured tool result."""
+    """Apply op to every allowlisted field path in a structured tool result.
+
+    A dotted path splits into segments, each [] list marker its own, so
+    "structuredPatch[].lines[]" reads as ["structuredPatch", "[]", "lines", "[]"].
+    """
     result: Any = data
     for path in paths:
-        result = await _apply_path(result, _split_path(path), op)
+        segments = path.replace("[]", ".[]").split(".")
+        result = await _apply_path(result, segments, op)
     return result
 
 
