@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0 (2026-10-05)
+
+### BREAKING CHANGE
+
+- the default origin is https://catalog.piighost.dev and pinned
+references are cached under ~/.cache/piighost/catalog, so a 1.x cache under
+piighost/hub is not reused and each pinned reference is fetched once more.
+- the override lists are renamed. whitelist -> deny_list
+(values always masked), blacklist -> allow_list (values always left in
+clear), whitelist_strategy -> deny_list_strategy, blacklist_strategy ->
+allow_list_strategy, WhitelistStrategy -> DenyListStrategy,
+BlacklistStrategy -> AllowListStrategy, OverrideConflictStrategy
+WHITELIST_WINS / "whitelist_wins" -> DENY_LIST_WINS / "deny_list_wins"
+and BLACKLIST_WINS / "blacklist_wins" -> ALLOW_LIST_WINS /
+"allow_list_wins". A config using an old key or conflict value fails
+validation with a message naming the replacement.
+- import from piighost.integrations.langchain, use
+EntityCreateByAssistantStrategy, and install piighost[langchain].
+- piighost.components.detector.patterns is removed, with
+GENERIC_PATTERNS, US_PATTERNS, EU_PATTERNS and FR_PATTERNS. Use
+RegexDetector.from_hub("hub:piighost/generic:fab51b33"), or piighost.hub.pull
+to merge several groups. In a config, catalogs = ["generic"] becomes
+catalogs = ["hub:piighost/generic:fab51b33"].
+- BridgeDetector requires offset_unit (OffsetUnit.CODE_POINT
+for a Python runner, OffsetUnit.UTF16 for a JavaScript one), and refuses a
+non-integer offset. BaseNERDetector takes threshold; the adapters' threshold
+attribute now lives on the base.
+- a pattern that looked for a no-break space on purpose no
+longer finds one, and provenance keys stored by an earlier version use the
+casefolded text rather than the value key.
+
+### Feat
+
+- piighost 2.0 (#49)
+- piighost 2.0
+- **catalog**: a pull names piighost/<version> as its client, so the catalog counts it
+- **catalog**: the hub becomes the catalog, served at catalog.piighost.dev
+- **override**: the whitelist becomes the deny list, the blacklist the allow list
+- **claude-code**: a hook that cannot de-identify blocks
+- **detector**: an unreadable LLM output refuses the message
+- **integrations**: every turn names its thread
+- **memory**: the in-process memory is bounded by default
+- **config**: load a whole pipeline configuration from a hub reference
+- remove the aliases 1.x kept for the old names
+- **detector**: the regex catalogs live on the hub only
+- **text**: every Unicode space is read as an ordinary one, at detection, search and identity
+
+### Fix
+
+- **text**: the Garay hyphen of Unicode 16 joins two words, and the hyphen test reads only what the interpreter's Unicode assigns
+- **deps**: pyjwt, urllib3 and virtualenv past their known vulnerabilities
+- **test**: a fence's indentation is spaces, never a blank line before it
+- **overlap_resolver**: merge names the union after its widest member at equal confidence
+- **cli,config**: anonymize reports a bad config in one line, --json lists what was replaced, a loader refuses before building
+- **text**: every Unicode hyphen joins two words, a dash still bounds them
+- **override**: two detections on one span keep their detector order after a whitelist
+- **detector**: every NER detector re-reads its text, applies its threshold, and the bridge reads JavaScript offsets
+- **text**: the apostrophe bounds a word in every language, no French list
+
+### Refactor
+
+- **placeholder**: split a stream buffer in one finditer pass
+- **text**: the separator and hyphen sets as escaped literals, each character named
+- **claude-code**: split a field path with str.split, no regex
+- **catalog**: the user agent reads the package version, the selector reuses the name grammar
+- **memory**: one first-occurrence provenance reading, one ordered thread query in the SQL backend
+- **pipeline**: one traced guard stage, the redactor passed to the token helper
+- the small cuts of the ponytail review
+- drop the capture logger and config/errors.py, one regex splits a field path
+- one clustering for both resolvers
+- one string walker, and one definition of each type variable
+- the cleanups the 2.0 review asked for
+- the cleanups a review of 1.9 and 1.10 asked for
+
 ## 1.10.0 (2026-09-29)
 
 ### Feat
