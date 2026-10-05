@@ -379,14 +379,14 @@ threshold = 0.5
 
 ## `[override]`
 
-Optional. Forces detections through a deny list, whose values are always masked, and vetoes them through an allow list, whose values are always left in clear. Each list is a detector config, `[override.deny_list]` and `[override.allow_list]`, and both are optional. The 1.x keys, `whitelist`, `blacklist` and their strategies, are refused at load time with the key that replaces them, see [Upgrading to 2.0](../community/upgrading.md#the-override-lists-are-renamed).
+Optional. Forces detections through a deny list, whose values are masked even when the detector misses them, and vetoes them through an allow list, whose values are left in clear even when the detector finds them. Each list is a detector config, `[override.deny_list]` and `[override.allow_list]`, and both are optional. The 1.x keys, `whitelist`, `blacklist` and their strategies, are refused at load time with the key that replaces them, see [Upgrading to 2.0](../community/upgrading.md#the-override-lists-are-renamed).
 
 <div class="wide-table" markdown="1">
 
 | Key | Values | Default | Meaning |
 |-----|--------|---------|---------|
-| `[override.deny_list]` | detector | | A detector whose hits are always masked, forced into the set |
-| `[override.allow_list]` | detector | | A detector whose hits are always left in clear, invalidating the detections they match |
+| `[override.deny_list]` | detector | | A detector whose hits are masked, forced into the set. `deny_list_strategy` decides for an assistant-introduced value |
+| `[override.allow_list]` | detector | | A detector whose hits are left in clear, invalidating the detections they match |
 | `allow_list_strategy` | `exact`, `value`, `overlap` | `value` | How an allow list hit invalidates a detection. `value` needs the same value, whatever its spaces and case. `exact` needs the same span and label. `overlap` invalidates any overlapping span |
 | `deny_list_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a deny list hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
 | `conflict_strategy` | `deny_list_wins`, `allow_list_wins`, `raise` | `deny_list_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |

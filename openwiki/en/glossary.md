@@ -82,7 +82,7 @@ For the context of each term, start from [Where to start](quickstart.md).
 | Term | Definition | What you see | Technical name |
 |---|---|---|---|
 | Conversation (thread) | Exchange followed from one message to the next, isolated from the other exchanges. A value keeps the same placeholder over the whole conversation. | conversation identifier, `--thread-id` | `thread_id` |
-| Default thread | Shared thread that the application names itself when its conversations do not need to be separated. No integration falls back to it on its own. A call without a conversation identifier is refused, except by the `piighost anonymize` command. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
+| Default thread | Shared thread that the application names itself when its conversations do not need to be separated. No integration falls back to it on its own. A call without a conversation identifier is refused, with two exceptions. The `piighost anonymize` command falls back to `default`. The OpenAI and Anthropic proxies of the `piighost-api` server open an ephemeral conversation, specific to the request and erased at its end. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
 | Provenance | Author of the first appearance of a value in the conversation, that is the user or the assistant. A value brought by the assistant stays in clear text by default. | no visible form | `MessageRole`, `get_provenance` |
 | Conversation memory | Storage of the detections of each message, per conversation. Contains personal data. When kept in the program, it keeps at most 10,000 conversations. Each one is forgotten one day after its last message. | key `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
 | Conversation erasure | Removal of the whole memory of a conversation, for the right to erasure. Returns the number of messages and detections removed. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
@@ -101,8 +101,8 @@ For the context of each term, start from [Where to start](quickstart.md).
 
 | Term | Definition | What you see | Technical name |
 |---|---|---|---|
-| Deny list | Values always masked, even if the detector misses them. It is written in the `[override]` section of the application's configuration or of the `piighost-api` server's configuration. | key `[override.deny_list]` | `DetectionOverride.deny_list` |
-| Allow list | Values never masked, even if the detector finds them. | key `[override.allow_list]` | `DetectionOverride.allow_list` |
+| Deny list | Values masked even if the detector misses them. The list is written in the `[override]` section of the application's configuration or of the `piighost-api` server's configuration. In a conversation, a value of the list that the assistant quotes first stays in clear text by default. The "force" setting masks it anyway (BR-LIST-05). | key `[override.deny_list]`, `deny_list_strategy = "force"` | `DetectionOverride.deny_list` |
+| Allow list | Values left in clear text even if the detector finds them. A value that is also on the deny list is masked by default (BR-LIST-04). | key `[override.allow_list]` | `DetectionOverride.allow_list` |
 
 Before `piighost` 2.0, the deny list was called `whitelist` and the allow list `blacklist`. A configuration that still uses these names is refused, see DEC-09 in the [decisions](reference/decisions.md).
 

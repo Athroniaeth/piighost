@@ -81,7 +81,7 @@ flowchart TD
 In the example followed from end to end, the user writes "Write to Jean Dupont, jean.dupont@exemple.fr".
 
 1. **Detection.** One or more detectors look for the values by shape (email, phone), by AI model (names, places) or by large language model. Here, "Jean Dupont" is detected as a person and "jean.dupont@exemple.fr" as an email.
-2. **Deny list and allow list.** The values to always mask or never mask, written in the configuration (`deny_list` and `allow_list`), are applied. See [Impose a deny list and an allow list](impose-a-deny-list-and-an-allow-list.md).
+2. **Deny list and allow list.** The values to mask or to leave in clear, written in the configuration (`deny_list` and `allow_list`), are applied. See [Impose a deny list and an allow list](impose-a-deny-list-and-an-allow-list.md).
 3. **Overlaps.** When two detections overlap, only one span is kept. Here, nothing overlaps.
 4. **Missed occurrences** (optional stage). Each value found is searched for elsewhere in the text.
 5. **Grouping.** The occurrences of the same value with the same type form a single group.

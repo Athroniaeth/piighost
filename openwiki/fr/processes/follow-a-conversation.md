@@ -26,7 +26,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - Dans une conversation, une même valeur garde le même jeton du premier au dernier message.
 - Deux conversations sont isolées. Le même nom peut porter le même numéro dans les deux, mais elles ne partagent rien.
-- Chaque appel nomme sa conversation. Un appel sans identifiant est refusé, au lieu de tomber dans une conversation partagée. Seule la commande `piighost anonymize` se rabat sur la conversation `default`.
+- Chaque appel nomme sa conversation. Un appel sans identifiant est refusé, au lieu de tomber dans une conversation partagée. Seule la commande `piighost anonymize` se rabat sur la conversation `default`. Les proxys OpenAI et Anthropic du serveur ouvrent une conversation éphémère, effacée à la fin de la requête.
 - Une valeur citée d'abord par l'assistant reste en clair, même si l'utilisateur la reprend ensuite.
 - Effacer une conversation supprime sa mémoire. Les jetons de cette conversation ne sont plus restaurés ensuite.
 
@@ -114,7 +114,7 @@ Sur un serveur qui tourne en plusieurs instances, l'effacement vide le stockage 
 
 **BR-CONV-02.** Quand la même valeur apparaît dans deux conversations différentes, alors chacune a sa propre numérotation, et un jeton ne se restaure que dans sa conversation. Par exemple, « Marc Petit » est `<<PERSON:2>>` dans une conversation et `<<PERSON:1>>` dans une autre. Restaurer `<<PERSON:1>>` dans une troisième conversation vide le laisse tel quel.
 
-**BR-CONV-03.** Quand un appel ne nomme aucune conversation, alors il est refusé, avant tout envoi au modèle. Une application dont les conversations n'ont pas besoin d'être séparées nomme elle-même la conversation `default`. La raison est que sans identifiant, tous les utilisateurs partageraient leurs jetons.
+**BR-CONV-03.** Quand un appel ne nomme aucune conversation, alors il est refusé, avant tout envoi au modèle. Une application dont les conversations n'ont pas besoin d'être séparées nomme elle-même la conversation `default`. La raison est que sans identifiant, tous les utilisateurs partageraient leurs jetons. Les proxys OpenAI et Anthropic du serveur `piighost-api` ne refusent pas une requête sans identifiant. Ils lui ouvrent une conversation éphémère, propre à la requête et effacée à sa fin.
 
 La commande `piighost anonymize` fait exception. Elle sert à essayer un texte isolé, et se rabat sur la conversation `default` quand aucun identifiant ne lui est donné.
 
@@ -200,7 +200,7 @@ Après la correction, `await pipeline.thread_token_map(thread_id)` doit montrer 
 
 ### Pièges
 
-- **Aucune intégration ne retombe sur `default`.** Le middleware LangChain et les hooks Claude Code lèvent `MissingThreadIdError`. Le serveur répond 400. Seule la commande `piighost anonymize` garde `--thread-id default`, pour une commande isolée.
+- **Aucune intégration ne retombe sur `default`.** Le middleware LangChain et les hooks Claude Code lèvent `MissingThreadIdError`. Le serveur répond 400 sur ses routes `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize`. Seule la commande `piighost anonymize` garde `--thread-id default`, pour une commande isolée. Sans en-tête `X-PIIGhost-Thread-Id`, les proxys `/openai/v1` et `/anthropic/v1` tirent un identifiant éphémère et effacent sa conversation à la fin de la requête (`piighost-api:src/piighost_api/routes/_relay.py:49-54`).
 - **La numérotation dépend de l'ordre de l'union.** Tout ce qui retire un message ancien de l'union décale la numérotation. C'est le cas d'une correction (BR-CONV-07), mais aussi de l'expiration d'un message Redis avec `ttl`, que `_read_all` retire de l'union (`conversation_memory/redis_backend.py:200-228`).
 - **La mémoire en processus oublie en silence.** Une conversation évincée ou expirée (BR-CONV-11) ne lève rien. Ses jetons restent tels quels à la restauration. `max_threads=None` et `ttl=None` lèvent les bornes.
 - **La provenance porte sur la clé de valeur** (`value_key`), donc sur toutes les graphies d'une valeur.

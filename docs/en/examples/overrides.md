@@ -7,7 +7,7 @@ tags:
 
 # Deny and allow lists
 
-Your detector reads your company name as a person and you want that name left alone. Your internal codenames go undetected and you want them replaced every time. Both are decisions about the detection set rather than about the detector. `DetectionOverride` is the stage that imposes them, with two detectors. The deny list (`deny_list`) holds what is always masked, and its detector's hits are forced into the set. The allow list (`allow_list`) holds what is always left in clear, and its detector's hits are dropped from the set.
+Your detector reads your company name as a person and you want that name left alone. Your internal codenames go undetected and you want them replaced every time. Both are decisions about the detection set rather than about the detector. `DetectionOverride` is the stage that imposes them, with two detectors. The deny list (`deny_list`) holds what is masked even when the detector misses it, and its detector's hits are forced into the set. The allow list (`allow_list`) holds what is left in clear even when the detector finds it, and its detector's hits are dropped from the set.
 
 The stage runs right after detection, before overlap resolution and linking. Its two lists therefore trump the detector's reading, and also a corrected set coming back from a human review. See [Architecture](../architecture.md) for the full stage order.
 

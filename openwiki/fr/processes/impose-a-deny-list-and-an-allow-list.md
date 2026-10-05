@@ -21,7 +21,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## En bref
 
-- Deux listes, écrites dans la section `[override]` de la configuration, corrigent le détecteur. La liste à masquer (`deny_list` dans la configuration) masque toujours, la liste à laisser en clair (`allow_list`) ne masque jamais.
+- Deux listes, écrites dans la section `[override]` de la configuration, corrigent le détecteur. La liste à masquer (`deny_list` dans la configuration) masque une valeur même si le détecteur la rate. La liste à laisser en clair (`allow_list`) garde une valeur en clair même si le détecteur la trouve. Une valeur que l'assistant cite le premier fait exception, et reste en clair par défaut.
 - La configuration est celle du pipeline, qu'il tourne dans l'application ou dans le serveur `piighost-api`.
 - Ces listes passent avant tout le reste, y compris avant une correction faite à la main par une personne.
 - Une valeur de la liste à laisser en clair part au modèle en clair, et le contrôle final ne la bloque pas.
