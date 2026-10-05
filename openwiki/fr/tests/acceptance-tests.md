@@ -127,7 +127,7 @@ Classés par risque, en commençant par ceux qui peuvent causer une fuite.
 6. AT-DEV-6-2 (partiel) : `piighost validate` sur une clé mal orthographiée, avec la clé nommée dans le message.
 7. AT-DEV-1-2 (partiel) : le SDK `openai` avec seulement `base_url` changé.
 8. AT-OPS-6-2 (partiel) : le cache disque vu à travers `load_pipeline`.
-9. AT-USER-5-2 (absent) : une date n'est pas masquée par un groupe générique. Dépend du contenu des groupes, à tester dans le dépôt du catalogue, `piighost-hub`.
+9. AT-USER-5-2 (absent) : une date n'est pas masquée par un groupe générique. Dépend du contenu des groupes, à tester dans le dépôt du catalogue, `piighost-catalog`.
 10. AT-USER-1-2 (absent) : réponse affichée restaurée sous Claude Code, impossible tant qu'aucun hook ne réécrit la réponse.
 11. AT-DPO-8-1 (absent) : contenu de la page AIPD, contrôlable par un test de documentation.
 
