@@ -129,7 +129,7 @@ catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
-Un groupe est récupéré depuis le catalogue à la construction de la config, pas à sa lecture. Une référence épinglée sur un commit est récupérée une fois, puis relue depuis le cache sur disque. `PIIGHOST_CATALOG_URL` désigne un registre privé, et `PIIGHOST_HUB_URL` de la 1.x est toujours lue quand elle n'est pas posée. Les noms `generic`, `us`, `eu` et `fr` sont refusés. Voir [Groupes du catalogue](../reference/detectors.md#groupes-du-catalogue) pour les groupes qui les remplacent.
+Un groupe est récupéré depuis le catalogue à la construction de la config, pas à sa lecture. Une référence épinglée sur un commit est récupérée une fois, puis relue depuis le cache sur disque. `PIIGHOST_CATALOG_URL` désigne un catalogue privé, et `PIIGHOST_HUB_URL` de la 1.x est toujours lue quand elle n'est pas posée. Les noms `generic`, `us`, `eu` et `fr` sont refusés. Voir [Groupes du catalogue](../reference/detectors.md#groupes-du-catalogue) pour les groupes qui les remplacent.
 
 ### `type = "composite"`
 

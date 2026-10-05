@@ -84,7 +84,7 @@ export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 
 ## Which fields get de-identified
 
-A prompt and a tool input are plain enough to de-identify wholesale. A tool's output, though, is a structured object where only some fields hold model-facing text. The `PostToolUse` hook therefore does not de-identify the whole payload, so it never mangles a path, an exit code, or a line number. It de-identifies a per-tool allowlist of text fields:
+A prompt and a tool input are plain enough to de-identify wholesale. A tool's output, though, is a structured object where only some fields hold model-facing text. The `PostToolUse` hook therefore does not de-identify the whole payload, so it never mangles a path, an exit code, or a line number. It de-identifies only the text fields listed for each tool:
 
 | Tool | De-identified fields |
 |------|-------------------|
@@ -97,15 +97,15 @@ A prompt and a tool input are plain enough to de-identify wholesale. A tool's ou
 | `WebSearch` | result titles |
 | `ToolSearch` | `query` |
 
-!!! warning "The allowlist fails open"
+!!! warning "The field list fails open"
 
     A tool that is not in the list, or an output whose shape is unexpected, passes through untouched. Its text therefore reaches the model in clear. The notable gap is `Grep`, which the list does not cover yet. Its matches are lines of the files it searched. Until it does, either keep `Grep` out of the session or extend the list as described below.
 
 ## Discover a new tool's shape
 
-To extend the allowlist to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` as above before starting Claude Code. The log holds each hook call. A tool output the hook passed through is logged whole, so you can see the real field names.
+To extend the field list to a tool it does not yet cover, set `PIIGHOST_HOOK_LOG` as above before starting Claude Code. The log holds each hook call. A tool output the hook passed through is logged whole, so you can see the real field names.
 
-Exercise the tool, read the log to find which fields carry the text, and add the tool to the allowlist in the integration. The log holds clear text. Delete it afterwards.
+Exercise the tool, read the log to find which fields carry the text, and add the tool to the field list in the integration. The log holds clear text. Delete it afterwards.
 
 ## Use it programmatically
 

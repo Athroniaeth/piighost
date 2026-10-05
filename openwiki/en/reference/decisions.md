@@ -257,7 +257,7 @@ Implemented in `components/detector/llm.py`, `components/guard/llm.py`, `integra
 
 A team must be able to deploy the same pipeline on several servers, without writing code. So a pipeline is described in a TOML or JSON file.
 
-`piighost` ships no regular expression itself. Groups of regular expressions, specific to a country or a profession, come from the catalog, `piighost`'s shared registry. Without a catalog group, no email or IBAN is recognized by regular expression. The catalog also provides complete configurations.
+`piighost` ships no regular expression itself. Groups of regular expressions, specific to a country or a profession, come from the catalog, the online service that publishes them. Without a catalog group, no email or IBAN is recognized by regular expression. The catalog also provides complete configurations.
 
 The file names a group by a reference. A reference can point to a frozen version, by its identifier, as in `:2f602547`. This version never changes, so `piighost` keeps a local copy. A reference by name, or `latest` for the newest version, can change. So `piighost` downloads it at each load, because a stale copy would detect fewer values without saying so.
 

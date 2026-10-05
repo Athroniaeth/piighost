@@ -257,7 +257,7 @@ Cette décision vit dans `components/detector/llm.py`, `components/guard/llm.py`
 
 Une équipe doit pouvoir déployer le même pipeline sur plusieurs serveurs, sans écrire de code. Un pipeline se décrit donc dans un fichier TOML ou JSON.
 
-`piighost` ne livre lui-même aucune expression régulière. Les groupes d'expressions régulières, propres à un pays ou à un métier, viennent du catalogue, le registre partagé de `piighost`. Sans groupe du catalogue, aucun e-mail ni IBAN n'est reconnu par expression régulière. Le catalogue fournit aussi des configurations complètes.
+`piighost` ne livre lui-même aucune expression régulière. Les groupes d'expressions régulières, propres à un pays ou à un métier, viennent du catalogue, le service en ligne qui les publie. Sans groupe du catalogue, aucun e-mail ni IBAN n'est reconnu par expression régulière. Le catalogue fournit aussi des configurations complètes.
 
 Le fichier désigne un groupe par une référence. Une référence peut viser une version figée, par son identifiant, comme `:2f602547`. Cette version ne change jamais, donc `piighost` en garde une copie locale. Une référence par nom, ou `latest` pour la dernière version, peut changer. `piighost` la télécharge donc à chaque chargement, parce qu'une copie périmée détecterait moins de valeurs sans le signaler.
 
