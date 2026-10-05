@@ -1,7 +1,7 @@
 ---
 type: reference
 title: Points à régler
-description: Les décisions prises sur les besoins et ce qui reste à faire pour les tenir, la forme de stockage des corrections et les modèles sur le hub, puis les propositions qui restent à trancher.
+description: Les décisions prises sur les besoins et ce qui reste à faire pour les tenir, la forme de stockage des corrections et les modèles sur le catalogue, puis les propositions qui restent à trancher.
 tags: [backlog, decisions, personas]
 generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 ---
@@ -19,7 +19,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 Décidé le 2 octobre 2026.
 
 - DPO-10 : concevoir l'export des validations humaines, vers Langfuse par exemple. Trois formes seront au choix, les jetons à la place des valeurs, les valeurs en clair, ou l'entrée et la sortie entièrement masquées. La forme par défaut est les jetons.
-- OPS-6 : accepter les configurations à modèle sur le hub. Leur refus actuel est temporaire. Il faut un format qui répartit les labels entre les motifs et le modèle, parce que chaque modèle NER est plus fort sur certains labels.
+- OPS-6 : accepter les configurations à modèle sur le catalogue. Leur refus actuel est temporaire. Il faut un format qui répartit les labels entre les motifs et le modèle, parce que chaque modèle NER est plus fort sur certains labels.
 
 ## Proposé, pas encore tranché
 

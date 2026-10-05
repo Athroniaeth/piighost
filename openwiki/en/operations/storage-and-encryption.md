@@ -169,4 +169,4 @@ The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piig
 
 The Redis tests run against `fakeredis` (`tests/conversation_memory/test_redis.py:21-27`), not against a real server. `test_concurrent_identical_remembers_do_not_duplicate` checks atomicity under `WATCH` with this fake client. The behavior of a real Redis cluster is not covered.
 
-See also [Configure a pipeline](configuration-and-hub.md) for the secrets and the `[memory]` section.
+See also [Configure a pipeline](configuration-and-catalog.md) for the secrets and the `[memory]` section.

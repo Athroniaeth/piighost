@@ -117,7 +117,7 @@ Ici, un motif sûr à 100 % a trouvé « Wirth » et un modèle sûr à 70 % a t
 
 **BR-MSG-07.** Quand un motif reconnaît la forme d'une carte ou d'un IBAN, alors la valeur est masquée sans vérifier sa clé de contrôle. La raison est qu'une valeur abîmée par une reconnaissance de caractères aurait une clé fausse, et que la rejeter la laisserait partir en clair.
 
-**BR-MSG-08.** Quand un message contient une clé d'API, alors elle n'est masquée que si la configuration charge un groupe de motifs de secrets ou un modèle qui cherche les secrets. Le groupe `piighost/logs` du hub est un tel groupe. Par exemple, avec ce groupe, une clé OpenAI part sous la forme `<<OPENAI_API_KEY:1>>`.
+**BR-MSG-08.** Quand un message contient une clé d'API, alors elle n'est masquée que si la configuration charge un groupe de motifs de secrets ou un modèle qui cherche les secrets. Le groupe `piighost/logs` du catalogue est un tel groupe. Par exemple, avec ce groupe, une clé OpenAI part sous la forme `<<OPENAI_API_KEY:1>>`.
 
 **BR-MSG-09.** Quand l'utilisateur tape lui-même un texte qui a la forme d'un jeton, alors ce texte est neutralisé par un caractère invisible. Par exemple, « Claire écrit `<<PERSON:2>>` ici » ne pourra pas se faire passer pour un vrai jeton à la restauration. Sans cela, un jeton tapé à la main pourrait récupérer la valeur d'une autre personne.
 
@@ -159,9 +159,9 @@ Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les 
 | BR-MSG-03 | `components/anonymizer/base.py:151` (`deanonymize` remplace par `entity.text`), `models/entity.py` |
 | BR-MSG-04 | `text/boundaries.py:38` (`WORD_JOIN_CHARS`) |
 | BR-MSG-05 | `components/overlap_resolver/confidence.py:10-21`, `merge.py:7-15` (`_surest`), `overlap_resolver/base.py` (`by_confidence`, `_conflict_groups`) |
-| BR-MSG-06 | `text/normalization.py:45-58`, `components/detector/regex.py:65-79` |
+| BR-MSG-06 | `text/normalization.py:45-58`, `components/detector/regex.py:76-90` |
 | BR-MSG-07 | `components/detector/regex.py:10-30` |
-| BR-MSG-08 | `components/detector/regex.py:33-56` (`from_hub`), `config/models/detector.py` (`catalogs`) |
+| BR-MSG-08 | `components/detector/regex.py:33-57` (`from_catalog`), `config/models/detector.py` (`catalogs`) |
 | BR-MSG-09 | `components/anonymizer/span.py:26-40`, `_neutralize` ligne 79 |
 | BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |

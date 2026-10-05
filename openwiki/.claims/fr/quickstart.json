@@ -14,14 +14,14 @@
     },
     {
       "id": "claim_ccd9cd097b20451399869fbeab230520",
-      "statement": "Running piighost anonymize without --config or --api builds a regex detector over the pinned hub group hub:piighost/generic:fab51b33.",
+      "statement": "Running piighost anonymize without --config or --api builds a regex detector over the pinned catalog group catalog:piighost/generic:fab51b33.",
       "evidence": [
         {
-          "resource": "repo://src/piighost/cli/__init__.py#L195-L206",
+          "resource": "repo://src/piighost/cli/__init__.py#L196-L207",
           "version": "repo-lines-v1:sha256:9b2e9fcca394426ca2c55cf62c4f3be62f3b44ffd79ef5f88862cf0e8e1ab5fe:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzNjA4MTZjNDYwODEyZDNmYmM0ZTJkMTM4MzJiNzkwMGU4NTk4NTI3YWI4Yjk4NTIxZTQxN2M4ZjBiZGYyOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkOWNmNWMwMzUwMGU0OWJiNGYzOTkwNmJhNGIzNjczODYzZDFiZDFjMGQ2Nzk4ZGY3OTY0N2IzZDZiYWU0ZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiMGE4ZDViYWUwMWNlZWY3MWJhNzAzMWQxMWZjNTUzNWM5ODA3ZDg0YjhhNzIxMGY1NGQ1ZmJmMzMwZjgxYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI1NzgzODhjNGY3NjJhMWFiNmY5MWM3NGVlMmU5MDg3Y2IyZTQyZjhjMDY5ZjhlN2FlM2NlZGY3NzIyYmM0Y2QifQ"
         },
         {
-          "resource": "repo://src/piighost/cli/__init__.py#L28-L33",
+          "resource": "repo://src/piighost/cli/__init__.py#L29-L34",
           "version": "repo-lines-v1:sha256:2c21db1dad794d804b3d91a9cc228e3bee3b18828171cd9eace03bc220b3ba39:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjk2OTMyZGUxNTRkM2E4N2M0MjIzMTgzYWUwZDY5NTNhYmY4YThhMjEwNzQxY2I2MWIyYmM5MzQ0YjMzNTZiZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTMwM2VjZGQ0YTRkMTBmMTljNzNmZDQyZmQxMjQzN2ZkMzM1NGE4MjY4MTYwNWRhNTI1NWE5N2EzOTA2OGRiYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTdjZWJjYTlhZjNkNjYyZjYzZTRiZjc1NzIxNGZjMDU2MzZhNzZiMzQ2NDViOWUzMjAzZTZkM2RkODUxNjc5OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWZiNjRlZDI2NzE2MmFhYTBmZjU5NjQxOWQ0MGJjNjAwMmE5MTQ0NGRhYjQyOTcyOTQ2MzZmY2VmYzU3ZTRmZiJ9"
         }
       ]
@@ -31,7 +31,7 @@
       "statement": "The CLI anonymize command and the Claude Code hooks fall back to the shared default thread when no thread id is given, while the LangChain middleware refuses it by default.",
       "evidence": [
         {
-          "resource": "repo://src/piighost/cli/__init__.py#L95-L100",
+          "resource": "repo://src/piighost/cli/__init__.py#L96-L101",
           "version": "repo-lines-v1:sha256:0ab3c6a81e730611ef3e260a39f3b17d5c0215a9ae5147347720e9ff93c135ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQ3ODQ3MjNiOWM0ZGFjY2U2ZTg3YWNjOWMyNDVlNDJlOGNiNzViZDM3ZjE3OGMzNjA1OTk1MjU1MzczNGQ1OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmY5NmUxMTg4ZTIzMTBkM2ZhODYyN2QzNWY4NjhiNzU1N2IzZDMyN2RkNTNhMDFmMjYzYzVkN2FlNzJmYTEyYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWQzZmI4MzNjNWI1OTEwZGJjNGI0ODFjZGIyMGU4MzExNjhiYzVjM2Q2NzczMTJiNmI1ZmQwZWFjNjc2Yjc4ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGU1OTcwODdmZGMxYjYzOTFhY2YzOTQ1ODJmYWI1NTA5ZjZkNWUyNmUyZGQ5MGJjZDUzNWYzOGE4NzI1ZGRlOSJ9"
         },
         {

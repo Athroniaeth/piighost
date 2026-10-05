@@ -67,7 +67,7 @@ Les termes sont définis dans le [glossaire](../glossary.md).
 | `tests/components/` | Un sous-dossier par étape, c'est-à-dire détecteurs, liste à masquer et liste à laisser en clair, chevauchements, expansion, liens, résolveurs, anonymiseur, jetons, garde-fous |
 | `tests/pipeline/` | Pipeline simple, pipeline de conversation, correction humaine, listes intégrées au pipeline |
 | `tests/conversation_memory/`, `tests/crypto/` | Stockages et chiffrement |
-| `tests/config/`, `tests/cli/`, `tests/test_hub.py` | Configuration, ligne de commande, hub |
+| `tests/config/`, `tests/cli/`, `tests/test_catalog.py` | Configuration, ligne de commande, catalogue |
 | `tests/integrations/` | LangChain, Pydantic AI, LlamaIndex, Claude Code, client HTTP |
 | `tests/observation/` | Spans OpenTelemetry et masquage des traces |
 | `tests/models/`, `tests/text/` | Modèles de données, limites de mots, espaces, découpage |

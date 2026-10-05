@@ -117,7 +117,7 @@ Here, a pattern that is 100% sure found "Wirth" and a model that is 70% sure fou
 
 **BR-MSG-07.** When a pattern recognizes the shape of a card or an IBAN, then the value is masked without checking its check digits. The reason is that a value damaged by character recognition would have wrong check digits, and rejecting it would let it leave in clear text.
 
-**BR-MSG-08.** When a message contains an API key, then it is masked only if the configuration loads a pattern group for secrets or a model that looks for secrets. The `piighost/logs` group of the hub is such a group. For example, with this group, an OpenAI key leaves as `<<OPENAI_API_KEY:1>>`.
+**BR-MSG-08.** When a message contains an API key, then it is masked only if the configuration loads a pattern group for secrets or a model that looks for secrets. The `piighost/logs` group of the catalog is such a group. For example, with this group, an OpenAI key leaves as `<<OPENAI_API_KEY:1>>`.
 
 **BR-MSG-09.** When the user types a text that has the shape of a placeholder, then this text is neutralized with an invisible character. For example, "Claire writes `<<PERSON:2>>` here" cannot pass for a real placeholder at restoration. Without this, a hand-typed placeholder could retrieve the value of another person.
 
@@ -159,9 +159,9 @@ Nothing. The user writes in clear text and reads a reply in clear text. Only the
 | BR-MSG-03 | `components/anonymizer/base.py:151` (`deanonymize` replaces with `entity.text`), `models/entity.py` |
 | BR-MSG-04 | `text/boundaries.py:38` (`WORD_JOIN_CHARS`) |
 | BR-MSG-05 | `components/overlap_resolver/confidence.py:10-21`, `merge.py:7-15` (`_surest`), `overlap_resolver/base.py` (`by_confidence`, `_conflict_groups`) |
-| BR-MSG-06 | `text/normalization.py:45-58`, `components/detector/regex.py:65-79` |
+| BR-MSG-06 | `text/normalization.py:45-58`, `components/detector/regex.py:76-90` |
 | BR-MSG-07 | `components/detector/regex.py:10-30` |
-| BR-MSG-08 | `components/detector/regex.py:33-56` (`from_hub`), `config/models/detector.py` (`catalogs`) |
+| BR-MSG-08 | `components/detector/regex.py:33-57` (`from_catalog`), `config/models/detector.py` (`catalogs`) |
 | BR-MSG-09 | `components/anonymizer/span.py:26-40`, `_neutralize` on line 79 |
 | BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |

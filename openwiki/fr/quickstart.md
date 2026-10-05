@@ -89,7 +89,7 @@ Chaque règle découle d'une décision de conception. La page [Décisions de con
 - **Mettre en production** :
     - DEC-18 : Protéger la mémoire stockée.
     - DEC-19 : Préférer la protection à la disponibilité.
-    - DEC-20 : Configurer un pipeline par fichier et par le hub.
+    - DEC-20 : Configurer un pipeline par fichier et par le catalogue.
 - **L'architecture** :
     - DEC-21 : Faire de chaque étape un port remplaçable.
     - DEC-22 : Rendre asynchrones les étapes qui attendent.
@@ -111,7 +111,7 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 - **Intégrations** :
     - [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md)
 - **Exploitation** :
-    - [Configurer un pipeline par fichier, hub et ligne de commande](operations/configuration-and-hub.md)
+    - [Configurer un pipeline par fichier, catalogue et ligne de commande](operations/configuration-and-catalog.md)
     - [Stocker les conversations et protéger les traces](operations/storage-and-encryption.md)
 - **Architecture** :
     - [Ajouter ou remplacer un composant du pipeline](architecture/ports-and-extension.md)

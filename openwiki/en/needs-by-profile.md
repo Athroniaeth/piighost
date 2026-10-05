@@ -33,9 +33,9 @@ DPO-1: As a DPO, I want no personal data and no secret to leave in clear text to
 
 DPO-2: As a DPO, I want to choose the types of protected data, so that I adapt the protection to my activity.
 
-- A configuration that pulls the French group from the hub masks an IBAN and a social security number.
+- A configuration that pulls the French group from the catalog masks an IBAN and a social security number.
 - A pattern specific to the company, a case number for example, is added in one line.
-- See [Configure a pipeline](operations/configuration-and-hub.md) and [Protect a message](processes/protect-a-message.md). Tests: [AT-DPO-2-…](tests/acceptance-tests.md).
+- See [Configure a pipeline](operations/configuration-and-catalog.md) and [Protect a message](processes/protect-a-message.md). Tests: [AT-DPO-2-…](tests/acceptance-tests.md).
 
 DPO-3: As a DPO, I want to force the protection of a value, or leave a public term in clear text, without waiting for the detector, so that I impose the company policy.
 
@@ -119,7 +119,7 @@ DEV-5: As a developer, I want to add my own detectors or values, so that I cover
 DEV-6: As a developer, I want to describe the pipeline in a file and validate it in CI, so that I have it reviewed without reading code.
 
 - Validation succeeds on a correct configuration and fails, naming the faulty key, on a typo.
-- See [Configure a pipeline](operations/configuration-and-hub.md). Tests: [AT-DEV-6-…](tests/acceptance-tests.md).
+- See [Configure a pipeline](operations/configuration-and-catalog.md). Tests: [AT-DEV-6-…](tests/acceptance-tests.md).
 
 DEV-7: As a developer, I want to test my integration without downloading a model, so that I have fast and reproducible tests.
 
@@ -154,8 +154,8 @@ DEV-11: As a developer, I want to choose the fate of a value that the assistant 
 
 OPS-1: As an operator, I want to deploy a shared de-identification API, so that several applications use a single pipeline and a single model.
 
-- The server starts on a configuration from the hub and answers de-identification requests.
-- See the tutorial [Deploy a de-identification API](../../docs/en/getting-started/api-server.md) and [Configure a pipeline](operations/configuration-and-hub.md). Tests: [AT-OPS-1-…](tests/acceptance-tests.md).
+- The server starts on a configuration from the catalog and answers de-identification requests.
+- See the tutorial [Deploy a de-identification API](../../docs/en/getting-started/api-server.md) and [Configure a pipeline](operations/configuration-and-catalog.md). Tests: [AT-OPS-1-…](tests/acceptance-tests.md).
 
 OPS-2: As an operator, I want the memory to survive restarts and be shared between instances, so that a conversation does not lose its placeholders.
 
@@ -179,14 +179,14 @@ OPS-5: As an operator, I want to process a long document without the model trunc
 - A value placed beyond the model window is detected when the text is split.
 - See [Limitations](../../docs/en/limitations.md) and [Add or replace a component](architecture/ports-and-extension.md). Tests: [AT-OPS-5-…](tests/acceptance-tests.md).
 
-OPS-6: As an operator, I want to load a reviewed configuration from the hub by its reference, so that I do not maintain a local copy.
+OPS-6: As an operator, I want to load a reviewed configuration from the catalog by its reference, so that I do not maintain a local copy.
 
 - A reference pinned to a commit is downloaded at the first startup, then read from the cache.
 - A reference without a commit, which can change, is read again at each load and never cached.
-- The hub is reached only over HTTP or HTTPS, and a hub configuration that embeds a model is refused.
-- See [Configure a pipeline](operations/configuration-and-hub.md). Tests: [AT-OPS-6-…](tests/acceptance-tests.md).
+- The catalog is reached only over HTTP or HTTPS, and a catalog configuration that embeds a model is refused.
+- See [Configure a pipeline](operations/configuration-and-catalog.md). Tests: [AT-OPS-6-…](tests/acceptance-tests.md).
 
-**Known limit.** For now the hub serves only pattern groups. An NER model recognizes some labels better than others. Splitting the labels between patterns and model requires a configuration format that the hub does not have yet.
+**Known limit.** For now the catalog serves only pattern groups. An NER model recognizes some labels better than others. Splitting the labels between patterns and model requires a configuration format that the catalog does not have yet.
 
 OPS-7: As an operator, I want the in-process memory to be bounded by default, so that a server that runs for weeks does not keep every value it has seen.
 

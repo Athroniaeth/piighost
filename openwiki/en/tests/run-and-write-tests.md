@@ -67,7 +67,7 @@ The terms are defined in the [glossary](../glossary.md).
 | `tests/components/` | One subfolder per stage, that is detectors, deny list and allow list, overlaps, expansion, links, resolvers, anonymizer, placeholders, guard rails |
 | `tests/pipeline/` | Simple pipeline, conversation pipeline, human correction, lists built into the pipeline |
 | `tests/conversation_memory/`, `tests/crypto/` | Storage and encryption |
-| `tests/config/`, `tests/cli/`, `tests/test_hub.py` | Configuration, command line, hub |
+| `tests/config/`, `tests/cli/`, `tests/test_catalog.py` | Configuration, command line, catalog |
 | `tests/integrations/` | LangChain, Pydantic AI, LlamaIndex, Claude Code, HTTP client |
 | `tests/observation/` | OpenTelemetry spans and trace masking |
 | `tests/models/`, `tests/text/` | Data models, word boundaries, spaces, splitting |

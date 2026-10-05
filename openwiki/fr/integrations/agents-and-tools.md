@@ -144,4 +144,4 @@ Dans une trace de l'agent, le message reçu par le modèle doit contenir `<<PERS
 | `tests/integrations/test_claude_code_hooks.py` | Les trois événements, liste des champs, outil inconnu laissé passer, blocage quand `piighost-api` est injoignable, échec ouvert |
 | `tests/integrations/client/test_client.py` | Client HTTP |
 
-Voir aussi [Configurer un pipeline](../operations/configuration-and-hub.md).
+Voir aussi [Configurer un pipeline](../operations/configuration-and-catalog.md).

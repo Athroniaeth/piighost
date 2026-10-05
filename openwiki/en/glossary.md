@@ -41,7 +41,7 @@ For the context of each term, start from [Where to start](quickstart.md).
 |---|---|---|---|
 | Confidential data | Everything `piighost` protects, that is personal data and secrets. | the original value, before protection | none |
 | Personal data (PII) | Value that can identify a person, for example a name, an address, a phone or an e-mail. PII stands for *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | label `PERSON`, `EMAIL`… |
-| Secret | Access credential that must never reach a model, for example an API key, a password or a private key. | an API key in a message | hub group `piighost/logs` |
+| Secret | Access credential that must never reach a model, for example an API key, a password or a private key. | an API key in a message | catalog group `piighost/logs` |
 | De-identification | Replacement of confidential data with placeholders, keeping what is needed to restore them. In the sense of the GDPR (General Data Protection Regulation), it is a pseudonymization. | `Hello <<PERSON:1>>` | default pipeline |
 | Anonymization | Removal with no way back. `piighost` achieves it only with a placeholder that keeps nothing. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restoration | Putting the real values back in place of the placeholders, in the reply shown to the user. | `Hello Patrick` in the reply | `deanonymize` |
@@ -67,7 +67,8 @@ For the context of each term, start from [Where to start](quickstart.md).
 |---|---|---|---|
 | Detector | Component that finds the sensitive values in a text. By pattern, by AI model or by large language model. | key `[detector]` | `AnyDetector` |
 | Pattern (regex) | Expression that recognizes a value by its shape. The pattern checks no checksum (Luhn, IBAN). A value damaged by character recognition is therefore still detected. | key `patterns` | `RegexDetector` |
-| Catalog | List of patterns published on the hub and called by its reference. | `hub:piighost/generic` | `catalogs`, `hub.pull` |
+| Catalog | Online service that publishes pattern groups and whole configurations, each addressed by its reference. It was called the hub up to `piighost` 1.x. | `https://catalog.piighost.dev`, variable `PIIGHOST_CATALOG_URL` | `piighost.catalog` |
+| Catalog group | List of patterns published on the catalog, for a country, a profession or secrets, and called by its reference. | `catalog:piighost/generic` | key `catalogs`, `RegexDetector.from_catalog` |
 | NER | *Named Entity Recognition*. AI model that classifies words as person, place, organization. | key `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
 | Detection | One occurrence found, with its position, text, type and confidence between 0 and 1. | one line of `piighost anonymize --json` | `Detection` |
 | Position (span) | Character interval `[start, end)` of a detection in the text. | `"start": 10, "end": 35` | `Span` |
@@ -113,7 +114,6 @@ Before `piighost` 2.0, the deny list was called `whitelist` and the allow list `
 | Pepper | Secret that makes the digests of the messages impossible to recompute without it. | variable `PIIGHOST_HASH_PEPPER` | `AnyHasher` |
 | Hasher | Component that computes the digest of each message with the pepper. It is always configured with a cipher. | key `[memory.hasher]` | `Sha256Hasher`, `Argon2Hasher` |
 | Cipher | Component that encrypts the stored detections, with an AES (*Advanced Encryption Standard*) key in GCM mode. | variable `PIIGHOST_CIPHER_KEY` | `AesGcmCipher` |
-| Hub | Online registry of patterns and configurations, addressed by reference. | `https://hub.piighost.dev`, variable `PIIGHOST_HUB_URL` | `piighost.hub` |
 | Trace redactor | Placeholder factory applied to the technical traces, so that they contain no data in clear text. | key `[observation_redactor]` | `observation_redactor` |
 
 ## Domain documentation identifiers
