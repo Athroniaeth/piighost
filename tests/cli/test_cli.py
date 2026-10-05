@@ -7,8 +7,8 @@ from typing import Self
 import pytest
 from typer.testing import CliRunner
 
+from piighost.catalog import CatalogUnreachableError
 from piighost.cli import DEFAULT_CATALOG, app
-from piighost.hub import HubUnreachableError
 
 runner = CliRunner()
 
@@ -75,30 +75,40 @@ class TestValidate:
         assert result.stderr
 
 
-class TestValidateHub:
-    def test_a_hub_reference_is_validated(
+class TestValidateCatalog:
+    def test_a_catalog_reference_is_validated(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """validate takes a hub reference as it takes a file."""
+        """validate takes a catalog reference as it takes a file."""
+        monkeypatch.setattr(
+            "piighost.config.settings.pull_config", lambda ref: _VALID_TOML
+        )
+        result = runner.invoke(app, ["validate", "catalog:piighost/demo:2f602547"])
+        assert result.exit_code == 0
+        assert "OK: catalog:piighost/demo:2f602547" in result.stdout
+
+    def test_a_1x_hub_reference_is_validated(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """validate still takes the hub: prefix 1.x wrote."""
         monkeypatch.setattr(
             "piighost.config.settings.pull_config", lambda ref: _VALID_TOML
         )
         result = runner.invoke(app, ["validate", "hub:piighost/demo:2f602547"])
         assert result.exit_code == 0
-        assert "OK: hub:piighost/demo:2f602547" in result.stdout
 
-    def test_an_unreachable_hub_fails_with_a_message(
+    def test_an_unreachable_catalog_fails_with_a_message(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A hub that cannot be reached exits 1 with a line, not a traceback."""
+        """A catalog that cannot be reached exits 1 with a line, not a traceback."""
 
         def pull_config(ref: str) -> str:
-            raise HubUnreachableError(f"{ref}: the hub answered 404")
+            raise CatalogUnreachableError(f"{ref}: the catalog answered 404")
 
         monkeypatch.setattr("piighost.config.settings.pull_config", pull_config)
-        result = runner.invoke(app, ["validate", "hub:piighost/nope:2f602547"])
+        result = runner.invoke(app, ["validate", "catalog:piighost/nope:2f602547"])
         assert result.exit_code == 1
-        assert "the hub answered 404" in result.stderr
+        assert "the catalog answered 404" in result.stderr
 
 
 class TestSchema:
@@ -111,24 +121,26 @@ class TestSchema:
 
 
 @pytest.fixture(autouse=True)
-def fake_hub(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """Answer every hub pull with an email pattern, recording each reference."""
+def fake_catalog(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Answer every catalog pull with an email pattern, recording each reference."""
     pulled: list[str] = []
 
-    def pull(ref: str, hub: str | None = None) -> dict[str, str]:
+    def pull(ref: str, catalog: str | None = None) -> dict[str, str]:
         pulled.append(ref)
         return {"EMAIL": "[a-z]+@[a-z.]+"}
 
-    monkeypatch.setattr("piighost.hub.pull", pull)
+    monkeypatch.setattr("piighost.catalog.pull", pull)
     return pulled
 
 
 class TestAnonymize:
-    def test_default_detector_anonymizes_an_argument(self, fake_hub: list[str]) -> None:
-        """With no config, the regex detector over the pinned hub group tokenizes."""
+    def test_default_detector_anonymizes_an_argument(
+        self, fake_catalog: list[str]
+    ) -> None:
+        """With no config, the regex detector over the pinned catalog group tokenizes."""
         result = runner.invoke(app, ["anonymize", "mail me at a@b.co please"])
         assert result.exit_code == 0
-        assert fake_hub == [DEFAULT_CATALOG]
+        assert fake_catalog == [DEFAULT_CATALOG]
         assert "a@b.co" not in result.stdout
         assert "<<EMAIL:1>>" in result.stdout
 
@@ -147,18 +159,18 @@ class TestAnonymize:
         assert payload["anonymized_text"] == "<<EMAIL:1>>"
         assert [d["text"] for d in payload["detections"]] == ["a@b.co"]
 
-    def test_an_unreachable_hub_fails_with_a_message(
+    def test_an_unreachable_catalog_fails_with_a_message(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A hub that cannot be reached exits 1 with a line, not a traceback."""
+        """A catalog that cannot be reached exits 1 with a line, not a traceback."""
 
-        def pull(ref: str, hub: str | None = None) -> dict[str, str]:
-            raise HubUnreachableError("no route to hub")
+        def pull(ref: str, catalog: str | None = None) -> dict[str, str]:
+            raise CatalogUnreachableError("no route to the catalog")
 
-        monkeypatch.setattr("piighost.hub.pull", pull)
+        monkeypatch.setattr("piighost.catalog.pull", pull)
         result = runner.invoke(app, ["anonymize", "a@b.co"])
         assert result.exit_code == 1
-        assert "Could not pull a hub catalog" in result.stderr
+        assert "Could not pull from the catalog" in result.stderr
 
     def test_config_pipeline_is_used(self, tmp_path: Path) -> None:
         """--config anonymizes through the configured pipeline."""

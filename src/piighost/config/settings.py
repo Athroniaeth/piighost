@@ -2,8 +2,8 @@
 
 PipelineConfig is a pydantic-settings model layering, in decreasing precedence,
 explicit init arguments, environment variables prefixed PIIGHOST_, then the
-config source: a file, TOML or JSON by its suffix, or the configuration a hub
-reference names. The source is injected per call through a context variable
+config source: a file, TOML or JSON by its suffix, or the configuration a
+catalog reference names. The source is injected per call through a context variable
 read by settings_customise_sources, so it is not frozen at class definition.
 """
 
@@ -23,6 +23,7 @@ from pydantic_settings import (
     TomlConfigSettingsSource,
 )
 
+from piighost.catalog import SCHEMES, pull_config
 from piighost.components.placeholder.tags import PlaceholderPreservation
 from piighost.config.models.anonymizer import AnonymizerConfig
 from piighost.config.models.detector import DetectorConfig
@@ -35,7 +36,6 @@ from piighost.config.models.overlap_resolver import OverlapResolverConfig
 from piighost.config.models.override import OverrideConfig
 from piighost.config.models.placeholder import PlaceholderConfig
 from piighost.exceptions import ConfigError, ConfigFileError, ConfigValidationError
-from piighost.hub import HUB_SCHEME, pull_config
 from piighost.pipeline import (
     AnonymizationPipeline,
     BaseAnonymizationPipeline,
@@ -45,7 +45,7 @@ from piighost.pipeline import (
 _config_source: ContextVar[Path | dict[str, Any] | None] = ContextVar(
     "_config_source", default=None
 )
-"""What the current load reads, a file or a hub configuration already parsed.
+"""What the current load reads, a file or a catalog configuration already parsed.
 
 Set by a loader, read by the settings source.
 """
@@ -54,10 +54,10 @@ Set by a loader, read by the settings source.
 def _file_source(settings_cls: type[BaseSettings]) -> PydanticBaseSettingsSource | None:
     """The config settings source for the current load.
 
-    A file is read as JSON or TOML by its suffix. A hub configuration arrives
-    parsed, and takes the file's place below the environment, so a PIIGHOST_
-    variable overrides it as it overrides a file. Returns None when nothing is
-    set, so init and env still apply on their own.
+    A file is read as JSON or TOML by its suffix. A catalog configuration
+    arrives parsed, and takes the file's place below the environment, so a
+    PIIGHOST_ variable overrides it as it overrides a file. Returns None when
+    nothing is set, so init and env still apply on their own.
     """
     path = _config_source.get()
     if path is None:
@@ -191,18 +191,20 @@ class PipelineConfig(BaseSettings):
 def load_config(source: str | Path) -> PipelineConfig:
     """Parse and validate a configuration into a PipelineConfig, building nothing.
 
-    The source is a file, TOML or JSON by its suffix, or a hub reference such as
-    hub:piighost/fr-notarial:2f602547, whose whole configuration is pulled and
-    read as the file would be. A reference pinned to a commit is cached on disk
-    after the first load.
+    The source is a file, TOML or JSON by its suffix, or a catalog reference such
+    as catalog:piighost/fr-notarial:2f602547, whose whole configuration is
+    pulled and read as the file would be. A reference written with the 1.x
+    prefix, hub:piighost/fr-notarial:2f602547, loads the same way. A reference
+    pinned to a commit is cached on disk after the first load.
 
     Raises:
         ConfigFileError: If the file is missing or unreadable, or the file or the
-            hub's answer is not valid TOML/JSON.
+            catalog's answer is not valid TOML/JSON.
         ConfigValidationError: If the parsed data fails schema validation.
-        HubError: If the hub cannot be reached or the reference does not parse.
+        CatalogError: If the catalog cannot be reached or the reference does not
+            parse.
     """
-    if str(source).startswith(HUB_SCHEME):
+    if str(source).startswith(SCHEMES):
         ref = str(source)
         try:
             data = tomllib.loads(pull_config(ref))

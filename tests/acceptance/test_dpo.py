@@ -1,7 +1,7 @@
 """Acceptance tests of the compliance officer's stories, through public entry points.
 
 Each test carries the id of the acceptance test it implements, AT-<story>-<n>,
-the same in every language of the documentation. The hub is faked: each
+the same in every language of the documentation. The catalog is faked: each
 reference answers with patterns copied from the group it names.
 """
 
@@ -13,16 +13,16 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.config import load_pipeline
 from piighost.pipeline import ThreadAnonymizationPipeline
 
-SECRETS = "hub:piighost/logs:b635d867"
-"""The hub group of secrets and machine identifiers."""
+SECRETS = "catalog:piighost/logs:b635d867"
+"""The catalog group of secrets and machine identifiers."""
 
-PAYMENT = "hub:piighost/payment:b1b1cd64"
-"""A hub group carrying the IBAN."""
+PAYMENT = "catalog:piighost/payment:b1b1cd64"
+"""A catalog group carrying the IBAN."""
 
-GENERIC = "hub:piighost/generic:fab51b33"
-"""A hub group carrying the email address."""
+GENERIC = "catalog:piighost/generic:fab51b33"
+"""A catalog group carrying the email address."""
 
-HUB = {
+CATALOG = {
     SECRETS: {
         "OPENAI_API_KEY": r"(?<![A-Za-z0-9])sk-(?!ant-)(?:proj-)?[A-Za-z0-9_-]{20,}",
         "AWS_ACCESS_KEY": r"\bAKIA[0-9A-Z]{16}\b",
@@ -30,7 +30,7 @@ HUB = {
     PAYMENT: {"IBAN": r"\bFR\d{2}(?: ?\d{4}){5} ?\d{3}\b"},
     GENERIC: {"EMAIL": r"[\w.+-]+@[\w-]+\.[\w.]+"},
 }
-"""What the fake hub answers, the secret patterns copied from the real group."""
+"""What the fake catalog answers, the secret patterns copied from the real group."""
 
 OPENAI_KEY = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8t"
 """A key shaped like an OpenAI project key, issued by nobody."""
@@ -43,9 +43,9 @@ IBAN = "FR76 3000 6000 0112 3456 7890 189"
 
 
 @pytest.fixture(autouse=True)
-def fake_hub(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answer every catalog pull from HUB, so no test reaches the network."""
-    monkeypatch.setattr("piighost.config.models.detector.pull", HUB.__getitem__)
+def fake_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer every catalog pull from CATALOG, so no test reaches the network."""
+    monkeypatch.setattr("piighost.config.models.detector.pull", CATALOG.__getitem__)
 
 
 def _config(tmp_path: Path, *catalogs: str) -> str:

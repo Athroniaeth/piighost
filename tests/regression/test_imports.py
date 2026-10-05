@@ -103,6 +103,23 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "ConfigError"),
     ("piighost.exceptions", "ConfigFileError"),
     ("piighost.exceptions", "ConfigValidationError"),
+    ("piighost.catalog", "CatalogError"),
+    ("piighost.catalog", "CatalogRefError"),
+    ("piighost.catalog", "CatalogUrlError"),
+    ("piighost.catalog", "CatalogUnreachableError"),
+    ("piighost.catalog", "CatalogPayloadError"),
+    ("piighost.catalog", "pull"),
+    ("piighost.catalog", "pull_config"),
+    ("piighost.catalog", "parse_ref"),
+    # The 1.x names, kept so code written for 1.8 and later still imports.
+    ("piighost.hub", "HubError"),
+    ("piighost.hub", "HubRefError"),
+    ("piighost.hub", "HubUrlError"),
+    ("piighost.hub", "HubUnreachableError"),
+    ("piighost.hub", "HubPayloadError"),
+    ("piighost.hub", "pull"),
+    ("piighost.hub", "pull_config"),
+    ("piighost.hub", "parse_ref"),
 ]
 
 

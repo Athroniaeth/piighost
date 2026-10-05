@@ -17,37 +17,46 @@ from piighost.config.models.detector import (
     RegexDetectorConfig,
 )
 
-HUB = {
-    "hub:piighost/generic:fab51b33": {"EMAIL": r"\S+@\S+", "URL": r"https?://\S+"},
-    "hub:piighost/logs:fd79aec6": {"EMAIL": "FROM_LOGS", "TOKEN": r"tok_\w+"},
+CATALOG = {
+    "catalog:piighost/generic:fab51b33": {"EMAIL": r"\S+@\S+", "URL": r"https?://\S+"},
+    "catalog:piighost/logs:fd79aec6": {"EMAIL": "FROM_LOGS", "TOKEN": r"tok_\w+"},
 }
-"""What the fake hub answers for each reference, in registry order."""
+"""What the fake catalog answers for each reference, in registry order."""
 
 
 @pytest.fixture
-def fake_hub(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answer every pull from HUB, so no test reaches the network."""
-    monkeypatch.setattr("piighost.config.models.detector.pull", HUB.__getitem__)
+def fake_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer every pull from CATALOG, so no test reaches the network."""
+    monkeypatch.setattr("piighost.config.models.detector.pull", CATALOG.__getitem__)
 
 
 class TestRegexCatalogs:
-    def test_a_hub_reference_is_accepted_as_a_catalog(self) -> None:
-        """A config can name a reviewed catalogue instead of copying it."""
+    def test_a_catalog_reference_is_accepted(self) -> None:
+        """A config can name a reviewed pattern group instead of copying it."""
+        config = RegexDetectorConfig(
+            type="regex", catalogs=["catalog:piighost/logs:fd79aec6"]
+        )
+        assert config.catalogs == ["catalog:piighost/logs:fd79aec6"]
+
+    def test_a_1x_hub_reference_is_still_accepted(self) -> None:
+        """A config written for 1.x, with hub: references, still validates."""
         config = RegexDetectorConfig(
             type="regex", catalogs=["hub:piighost/logs:fd79aec6"]
         )
         assert config.catalogs == ["hub:piighost/logs:fd79aec6"]
 
     @pytest.mark.parametrize("name", ["generic", "us", "eu", "fr"])
-    def test_a_removed_catalog_name_points_to_its_hub_group(self, name: str) -> None:
+    def test_a_removed_catalog_name_points_to_its_catalog_group(
+        self, name: str
+    ) -> None:
         """A pre-2.0 catalog name is refused with the reference that replaces it."""
         bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": [name]}
-        with pytest.raises(ValidationError, match=f"hub:piighost/{name}"):
+        with pytest.raises(ValidationError, match=f"catalog:piighost/{name}"):
             RegexDetectorConfig(**bad_kwargs)
 
-    def test_a_malformed_hub_reference_is_rejected(self) -> None:
+    def test_a_malformed_reference_is_rejected(self) -> None:
         """A typo fails at load time rather than as a malformed URL later."""
-        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["hub:Logs"]}
+        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["catalog:Logs"]}
         with pytest.raises(ValidationError, match="unknown catalog"):
             RegexDetectorConfig(**bad_kwargs)
 
@@ -56,21 +65,24 @@ class TestRegexCatalogs:
         with pytest.raises(ValidationError):
             RegexDetectorConfig(type="regex")
 
-    @pytest.mark.usefixtures("fake_hub")
-    def test_a_hub_catalog_is_pulled_at_build(self) -> None:
-        """Building a config that names a hub catalog fetches its patterns."""
+    @pytest.mark.usefixtures("fake_catalog")
+    def test_a_catalog_is_pulled_at_build(self) -> None:
+        """Building a config that names a catalog fetches its patterns."""
         detector = RegexDetectorConfig(
-            type="regex", catalogs=["hub:piighost/generic:fab51b33"]
+            type="regex", catalogs=["catalog:piighost/generic:fab51b33"]
         ).build()
         assert isinstance(detector, RegexDetector)
-        assert detector.patterns == HUB["hub:piighost/generic:fab51b33"]
+        assert detector.patterns == CATALOG["catalog:piighost/generic:fab51b33"]
 
-    @pytest.mark.usefixtures("fake_hub")
+    @pytest.mark.usefixtures("fake_catalog")
     def test_catalogs_merge_in_order_then_inline_patterns(self) -> None:
         """A later catalog overrides an earlier one, and an inline pattern both."""
         detector = RegexDetectorConfig(
             type="regex",
-            catalogs=["hub:piighost/generic:fab51b33", "hub:piighost/logs:fd79aec6"],
+            catalogs=[
+                "catalog:piighost/generic:fab51b33",
+                "catalog:piighost/logs:fd79aec6",
+            ],
             patterns={"TOKEN": "INLINE"},
         ).build()
         assert isinstance(detector, RegexDetector)
