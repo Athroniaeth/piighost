@@ -1,6 +1,6 @@
 [project]
 site_name = "piighost"
-site_url = "https://athroniaeth.github.io/piighost/"
+site_url = "https://docs.piighost.dev/en/guide/"
 site_description = "Protect confidential data, personal data (PII) and secrets, in your LLM prompts, so the model only sees placeholders while tools and the user still get the real values. Pluggable regex, NER, and LLM detectors, LangChain and Pydantic AI integrations, and a companion OpenAI/Anthropic proxy."
 site_author = "piighost"
 copyright = "Copyright &copy; 2026 piighost contributors"

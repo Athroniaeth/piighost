@@ -46,7 +46,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/Athroniaeth/piighost"
-Documentation = "https://athroniaeth.github.io/piighost/"
+Documentation = "https://docs.piighost.dev/en/guide/"
 Repository = "https://github.com/Athroniaeth/piighost"
 Issues = "https://github.com/Athroniaeth/piighost/issues"
 Changelog = "https://github.com/Athroniaeth/piighost/blob/master/CHANGELOG.md"
@@ -153,7 +153,6 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=6.0",
     "pyrefly>=0.55.0",
-    "zensical>=0.0.27",
     "commitizen>=4.13.9",
     "pre-commit>=4.0",
     "pytest-asyncio>=0.25",

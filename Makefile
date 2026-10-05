@@ -1,5 +1,5 @@
 # Load environment variables from .env file if it exists
-.PHONY: format lint test docs-build docs docs-watch docs-watch-fr
+.PHONY: format lint test
 
 format:
 	uv run ruff format .
@@ -17,16 +17,3 @@ lint:
 
 test:
 	uv run pytest
-
-docs-build:
-	uv run python -m zensical build -f docs/zensical.toml
-	uv run python -m zensical build -f docs/zensical.fr.toml
-
-docs: docs-build
-	python3 -m http.server 8000 --directory docs/site
-
-docs-watch:
-	uv run python -m zensical serve -f docs/zensical.toml -a localhost:8000 -o
-
-docs-watch-fr:
-	uv run python -m zensical serve -f docs/zensical.fr.toml -a localhost:8001 -o

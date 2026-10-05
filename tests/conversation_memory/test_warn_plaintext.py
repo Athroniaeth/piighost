@@ -13,4 +13,4 @@ class TestWarnPlaintext:
             warn_plaintext("RedisConversationMemory")
         message = str(record[0].message)
         assert "RedisConversationMemory" in message
-        assert "https://athroniaeth.github.io/piighost/security/" in message
+        assert "https://docs.piighost.dev/en/guide/security/" in message
