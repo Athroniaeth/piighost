@@ -93,10 +93,10 @@ Four settings decide what the tool receives and what the model reads. The choice
 |---|---|
 | BR-AGT-01 | `src/piighost/integrations/langchain/middleware.py:47-66` (`_thread_id`) |
 | BR-AGT-02 | `src/piighost/integrations/_deidentify.py:133-155`, default `RAISE` line 57 |
-| BR-AGT-03 | `src/piighost/integrations/langchain/middleware.py:370` (`_message_role`), `pipeline/thread.py:322-329` |
+| BR-AGT-03 | `src/piighost/integrations/langchain/middleware.py:370` (`_message_role`), `pipeline/thread.py:317-324` |
 | BR-AGT-04 | `middleware.py:220-272` (LangChain), `pydantic_ai/hooks.py:138-154` (Pydantic AI) |
-| BR-AGT-05 | `src/piighost/integrations/claude_code/hooks.py:101-105` |
-| BR-AGT-06 | `src/piighost/integrations/claude_code/hooks.py:22-38` |
+| BR-AGT-05 | `src/piighost/integrations/claude_code/hooks.py:93-97` |
+| BR-AGT-06 | `src/piighost/integrations/claude_code/hooks.py:20-36` |
 | BR-AGT-07 | `middleware.py:206-218`, `_deidentify.py:83-107` |
 
 Related components:

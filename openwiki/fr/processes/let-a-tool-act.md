@@ -135,7 +135,7 @@ Le guide technique décrit les réglages d'outil dans [Stratégies d'appel outil
 | BR-TOOL-08 | `integrations/_deidentify.py:25-37` (`map_strings`) |
 | BR-TOOL-09 | `middleware.py:337-368` (`_reanonymize_tool_calls`), appelé ligne 183 |
 | BR-TOOL-10 | `middleware.py:244` (`request.override(tool_call=...)`, l'état n'est pas modifié) |
-| BR-TOOL-11 | `integrations/_deidentify.py:109-117` (`deanonymize_value`), `pipeline/thread.py:219-231` (`deanonymize`, qui ne remplace que les jetons entiers) |
+| BR-TOOL-11 | `integrations/_deidentify.py:109-117` (`deanonymize_value`), `pipeline/thread.py:214-226` (`deanonymize`, qui ne remplace que les jetons entiers) |
 | Pydantic AI | `integrations/pydantic_ai/hooks.py:124-154` (`deanonymize_tool_args`, `anonymize_tool_result`) |
 
 | Réglage de la page | `ToolCallStrategy` |
