@@ -138,7 +138,8 @@ DEV-9 : En tant que développeur, je veux restaurer une réponse streamée au fi
 
 DEV-10 : En tant que développeur, je veux que chaque conversation soit nommée explicitement, afin que deux utilisateurs ne partagent jamais leurs jetons par accident.
 
-- Un appel sans identifiant de conversation est refusé, par le middleware LangChain, par les hooks Claude Code et par le serveur d'API.
+- Un appel sans identifiant de conversation est refusé, par le middleware LangChain, par les hooks Claude Code et par les routes de dé-identification et de restauration du serveur d'API.
+- Les proxys OpenAI et Anthropic du serveur d'API ne refusent pas une requête sans identifiant de conversation. Ils lui ouvrent une conversation éphémère, effacée à la fin de la requête.
 - Une application dont les conversations n'ont pas besoin d'être séparées passe `"default"`.
 - Voir [Suivre une conversation](processes/follow-a-conversation.md) et [Brancher la protection sur un agent](integrations/agents-and-tools.md). Tests : [AT-DEV-10-…](tests/acceptance-tests.md).
 

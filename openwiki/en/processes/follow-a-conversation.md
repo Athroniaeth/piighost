@@ -26,7 +26,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 - In a conversation, a given value keeps the same placeholder from the first message to the last.
 - Two conversations are isolated. The same name can carry the same number in both, but they share nothing.
-- Each call names its conversation. A call without an identifier is refused, instead of falling into a shared conversation. Only the `piighost anonymize` command falls back to the `default` conversation.
+- Each call names its conversation. A call without an identifier is refused, instead of falling into a shared conversation. Only the `piighost anonymize` command falls back to the `default` conversation. The OpenAI and Anthropic proxies of the server open an ephemeral conversation, erased at the end of the request.
 - A value first mentioned by the assistant stays in clear text, even if the user repeats it later.
 - Erasing a conversation deletes its memory. The placeholders of that conversation are no longer restored afterwards.
 
@@ -114,7 +114,7 @@ On a server that runs as several instances, the erasure empties the storage and 
 
 **BR-CONV-02.** When the same value appears in two different conversations, then each has its own numbering, and a placeholder is restored only in its own conversation. For example, "Marc Petit" is `<<PERSON:2>>` in one conversation and `<<PERSON:1>>` in another. Restoring `<<PERSON:1>>` in a third, empty conversation leaves it as is.
 
-**BR-CONV-03.** When a call names no conversation, then it is refused, before anything is sent to the model. An application whose conversations do not need to be separated names the conversation `default` itself. The reason is that without an identifier, all users would share their placeholders.
+**BR-CONV-03.** When a call names no conversation, then it is refused, before anything is sent to the model. An application whose conversations do not need to be separated names the conversation `default` itself. The reason is that without an identifier, all users would share their placeholders. The OpenAI and Anthropic proxies of the `piighost-api` server do not refuse a request without an identifier. They open an ephemeral conversation for it, specific to the request and erased at its end.
 
 The `piighost anonymize` command is the exception. It is meant for trying out a single text, and falls back to the `default` conversation when it is given no identifier.
 
@@ -200,7 +200,7 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 
 ### Pitfalls
 
-- **No integration falls back to `default`.** The LangChain middleware and the Claude Code hooks raise `MissingThreadIdError`, and the server answers 400. Only the `piighost anonymize` command keeps `--thread-id default`, for a standalone command.
+- **No integration falls back to `default`.** The LangChain middleware and the Claude Code hooks raise `MissingThreadIdError`, and the server answers 400 on its `/v1/anonymize`, `/v1/anonymize/corrected` and `/v1/deanonymize` routes. Only the `piighost anonymize` command keeps `--thread-id default`, for a standalone command. Without an `X-PIIGhost-Thread-Id` header, the `/openai/v1` and `/anthropic/v1` proxies draw an ephemeral identifier and erase its conversation at the end of the request (`piighost-api:src/piighost_api/routes/_relay.py:49-54`).
 - **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts the numbering. A correction does it (BR-CONV-07), but also the expiry of a Redis message with `ttl`, which `_read_all` drops from the union (`conversation_memory/redis_backend.py:200-228`).
 - **The in-process memory forgets silently.** An evicted or expired conversation (BR-CONV-11) raises nothing. Its placeholders stay as is at restoration. `max_threads=None` and `ttl=None` lift the bounds.
 - **Provenance applies to the value key** (`value_key`), so to every spelling of a value.

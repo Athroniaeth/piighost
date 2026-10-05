@@ -82,7 +82,7 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
 | Conversation (thread) | Échange suivi d'un message à l'autre, isolé des autres échanges. Une valeur garde le même jeton sur toute la conversation. | identifiant de conversation, `--thread-id` | `thread_id` |
-| Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration ne s'y rabat d'elle-même. Un appel sans identifiant de conversation est refusé, sauf par la commande `piighost anonymize`. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
+| Fil par défaut | Fil commun que l'application nomme elle-même quand ses conversations n'ont pas besoin d'être séparées. Aucune intégration ne s'y rabat d'elle-même. Un appel sans identifiant de conversation est refusé, avec deux exceptions. La commande `piighost anonymize` se rabat sur `default`. Les proxys OpenAI et Anthropic du serveur `piighost-api` ouvrent une conversation éphémère, propre à la requête et effacée à sa fin. | `default` | `DEFAULT_THREAD_ID`, `MissingThreadIdError` |
 | Provenance | Auteur de la première apparition d'une valeur dans la conversation, c'est-à-dire l'utilisateur ou l'assistant. Une valeur apportée par l'assistant reste en clair par défaut. | aucune forme visible | `MessageRole`, `get_provenance` |
 | Mémoire de conversation | Stockage des détections de chaque message, par conversation. Contient des données personnelles. Quand elle est gardée dans le programme, elle conserve au plus 10 000 conversations. Chacune est oubliée un jour après son dernier message. | clé `[memory]` | `AnyConversationMemory`, `InMemoryConversationMemory` |
 | Effacement d'une conversation | Suppression de toute la mémoire d'une conversation, pour le droit à l'effacement. Renvoie le nombre de messages et de détections supprimés. | `Forgotten(messages=…, detections=…)` | `forget_thread` |
@@ -101,8 +101,8 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 
 | Terme | Définition | Ce que vous voyez | Nom technique |
 |---|---|---|---|
-| Liste à masquer | Valeurs toujours masquées, même si le détecteur les rate. Elle s'écrit dans la section `[override]` de la configuration de l'application ou de celle du serveur `piighost-api`. | clé `[override.deny_list]` | `DetectionOverride.deny_list` |
-| Liste à laisser en clair | Valeurs jamais masquées, même si le détecteur les trouve. | clé `[override.allow_list]` | `DetectionOverride.allow_list` |
+| Liste à masquer | Valeurs masquées même si le détecteur les rate. La liste s'écrit dans la section `[override]` de la configuration de l'application ou de celle du serveur `piighost-api`. Dans une conversation, une valeur de la liste que l'assistant cite le premier reste en clair par défaut. Le réglage "forcer" la masque quand même (BR-LIST-05). | clé `[override.deny_list]`, `deny_list_strategy = "force"` | `DetectionOverride.deny_list` |
+| Liste à laisser en clair | Valeurs laissées en clair même si le détecteur les trouve. Une valeur qui figure aussi dans la liste à masquer est masquée par défaut (BR-LIST-04). | clé `[override.allow_list]` | `DetectionOverride.allow_list` |
 
 Avant `piighost` 2.0, la liste à masquer s'appelait `whitelist` et la liste à laisser en clair `blacklist`. Une configuration qui emploie encore ces noms est refusée, voir DEC-09 dans les [décisions](reference/decisions.md).
 

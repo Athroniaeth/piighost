@@ -134,7 +134,7 @@ So two lists, set by the server, override the detector:
 - The deny list (`deny_list` in the configuration): it masks a value, even if the detector missed it.
 - The allow list (`allow_list`): it leaves a value unmasked, even if the detector found it.
 
-Before `piighost` 2.0, these lists were called `whitelist` and `blacklist`, and the whitelist forced masking. Most readers take a whitelist to allow, and a list read the wrong way round leaves in clear the values it was written to mask. Version 2.0 takes the names Presidio uses. A configuration that still uses the old names is refused at load time, never read under the new meaning. A deny list holding the client code `CLI-4821` masks it everywhere. An allow list holding "Doctor" keeps this word from being taken for a name. If a value is on both lists, it is masked by default.
+Before `piighost` 2.0, these lists were called `whitelist` and `blacklist`, and the whitelist forced masking. Most readers take a whitelist to allow, and a list read the wrong way round leaves in clear the values it was written to mask. Version 2.0 takes the names Presidio uses. A configuration that still uses the old names is refused at load time, never read under the new meaning. A deny list holding the client code `CLI-4821` masks it even when the detector misses it. An allow list holding "Doctor" keeps this word from being taken for a name. If a value is on both lists, it is masked by default.
 
 A person can also correct the values of a message by hand. This correction holds for that message only, and the two lists still apply on top of it.
 
@@ -166,7 +166,7 @@ Implemented in `pipeline/thread.py` and `conversation_memory/`. Rules BR-CONV-01
 
 Each conversation has its own memory, looked up by the conversation's identifier. Without an identifier, two users would share the same memory, and one could read the other's values.
 
-So every de-identification or restoration request must give the identifier of its conversation. A request without an identifier fails, instead of falling back to a shared conversation. A leak between conversations cannot happen by accident. An application that really wants a shared conversation gives the same identifier to all its requests, for example `default`. Only the `piighost anonymize` command, meant for trying out a single text, falls back to `default` when it is given no identifier.
+So every de-identification or restoration request must give the identifier of its conversation. A request without an identifier fails, instead of falling back to a shared conversation. A leak between conversations cannot happen by accident. An application that really wants a shared conversation gives the same identifier to all its requests, for example `default`. Only the `piighost anonymize` command, meant for trying out a single text, falls back to `default` when it is given no identifier. The OpenAI and Anthropic proxies of the `piighost-api` server do not fall back to a shared conversation either. A request without an identifier gets an ephemeral conversation there, its own, erased at its end.
 
 Implemented in `pipeline/thread.py` and `integrations/`. Rules BR-CONV-03, BR-AGT-01 and BR-AGT-05 follow from it.
 

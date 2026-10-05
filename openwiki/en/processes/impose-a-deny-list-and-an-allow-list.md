@@ -21,7 +21,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 
 ## In short
 
-- Two lists, written in the `[override]` section of the configuration, correct the detector. The deny list (`deny_list` in the configuration) always masks, the allow list (`allow_list`) never masks.
+- Two lists, written in the `[override]` section of the configuration, correct the detector. The deny list (`deny_list` in the configuration) masks a value even if the detector misses it. The allow list (`allow_list`) keeps a value in clear even if the detector finds it. A value the assistant quotes first is an exception, and stays in clear by default.
 - The configuration is the pipeline's, whether it runs in the application or in the `piighost-api` server.
 - These lists come before everything else, including a correction made by hand by a person.
 - A value on the allow list goes to the model in clear, and the final check does not block it.

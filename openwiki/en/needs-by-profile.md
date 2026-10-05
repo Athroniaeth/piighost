@@ -138,7 +138,8 @@ DEV-9: As a developer, I want to restore a streamed reply chunk by chunk, so tha
 
 DEV-10: As a developer, I want each conversation to be named explicitly, so that two users never share their placeholders by accident.
 
-- A call without a conversation identifier is refused, by the LangChain middleware, by the Claude Code hooks and by the API server.
+- A call without a conversation identifier is refused, by the LangChain middleware, by the Claude Code hooks and by the de-identification and restoration routes of the API server.
+- The OpenAI and Anthropic proxies of the API server do not refuse a request without a conversation identifier. They open an ephemeral conversation for it, erased at the end of the request.
 - An application whose conversations do not need to be separated passes `"default"`.
 - See [Follow a conversation](processes/follow-a-conversation.md) and [Plug the protection into an agent](integrations/agents-and-tools.md). Tests: [AT-DEV-10-…](tests/acceptance-tests.md).
 

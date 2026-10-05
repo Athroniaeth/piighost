@@ -81,7 +81,7 @@ flowchart TD
 Dans l'exemple suivi d'un bout à l'autre, l'utilisateur écrit « Écrivez à Jean Dupont, jean.dupont@exemple.fr ».
 
 1. **Repérage.** Un ou plusieurs détecteurs cherchent les valeurs par forme (e-mail, téléphone), par modèle d'IA (noms, lieux) ou par grand modèle de langage. Ici, « Jean Dupont » est repéré comme personne et « jean.dupont@exemple.fr » comme e-mail.
-2. **Liste à masquer et liste à laisser en clair.** Les valeurs à toujours masquer ou à ne jamais masquer, écrites dans la configuration (`deny_list` et `allow_list`), sont appliquées. Voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-deny-list-and-an-allow-list.md).
+2. **Liste à masquer et liste à laisser en clair.** Les valeurs à masquer ou à laisser en clair, écrites dans la configuration (`deny_list` et `allow_list`), sont appliquées. Voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-deny-list-and-an-allow-list.md).
 3. **Chevauchements.** Quand deux repérages se recouvrent, un seul passage est gardé. Ici, rien ne se recouvre.
 4. **Occurrences oubliées** (étape facultative). Chaque valeur trouvée est recherchée ailleurs dans le texte.
 5. **Regroupement.** Les occurrences d'une même valeur et d'un même type forment un seul groupe.

@@ -134,7 +134,7 @@ Deux listes, fixées par le serveur, l'emportent donc sur le détecteur :
 - La liste à masquer (`deny_list` dans la configuration) : elle masque une valeur, même si le détecteur l'a ratée.
 - La liste à laisser en clair (`allow_list`) : elle laisse une valeur en clair, même si le détecteur l'a trouvée.
 
-Avant `piighost` 2.0, ces listes s'appelaient `whitelist` et `blacklist`, et la whitelist forçait le masquage. La plupart des lecteurs comprennent qu'une whitelist autorise, et une liste lue à l'envers laisse en clair les valeurs qu'elle devait masquer. La version 2.0 reprend les noms de Presidio. Une configuration qui emploie encore les anciens noms est refusée au chargement, jamais lue avec le nouveau sens. Une liste à masquer qui contient le code client `CLI-4821` le masque partout. Une liste à laisser en clair qui contient « Docteur » empêche ce mot d'être pris pour un nom. Si une valeur figure dans les deux listes, elle est masquée par défaut.
+Avant `piighost` 2.0, ces listes s'appelaient `whitelist` et `blacklist`, et la whitelist forçait le masquage. La plupart des lecteurs comprennent qu'une whitelist autorise, et une liste lue à l'envers laisse en clair les valeurs qu'elle devait masquer. La version 2.0 reprend les noms de Presidio. Une configuration qui emploie encore les anciens noms est refusée au chargement, jamais lue avec le nouveau sens. Une liste à masquer qui contient le code client `CLI-4821` le masque même quand le détecteur le rate. Une liste à laisser en clair qui contient « Docteur » empêche ce mot d'être pris pour un nom. Si une valeur figure dans les deux listes, elle est masquée par défaut.
 
 Une personne peut aussi corriger à la main les valeurs d'un message. Cette correction ne vaut que pour ce message, et les deux listes s'appliquent encore par-dessus.
 
@@ -166,7 +166,7 @@ Cette décision vit dans `pipeline/thread.py` et `conversation_memory/`. Les rè
 
 Chaque conversation a sa propre mémoire, retrouvée par l'identifiant de la conversation. Sans identifiant, deux utilisateurs partageraient la même mémoire, et l'un pourrait lire les valeurs de l'autre.
 
-Chaque demande de dé-identification ou de restauration doit donc donner l'identifiant de sa conversation. Une demande sans identifiant échoue, au lieu de retomber sur une conversation commune. Une fuite entre conversations ne peut pas arriver par accident. Une application qui veut vraiment une conversation commune donne le même identifiant à toutes ses demandes, par exemple `default`. Seule la commande `piighost anonymize`, qui sert à essayer un texte isolé, se rabat sur `default` quand aucun identifiant ne lui est donné.
+Chaque demande de dé-identification ou de restauration doit donc donner l'identifiant de sa conversation. Une demande sans identifiant échoue, au lieu de retomber sur une conversation commune. Une fuite entre conversations ne peut pas arriver par accident. Une application qui veut vraiment une conversation commune donne le même identifiant à toutes ses demandes, par exemple `default`. Seule la commande `piighost anonymize`, qui sert à essayer un texte isolé, se rabat sur `default` quand aucun identifiant ne lui est donné. Les proxys OpenAI et Anthropic du serveur `piighost-api` ne retombent pas non plus sur une conversation commune. Une requête sans identifiant y reçoit une conversation éphémère, à elle seule, effacée à sa fin.
 
 Cette décision vit dans `pipeline/thread.py` et `integrations/`. Les règles BR-CONV-03, BR-AGT-01 et BR-AGT-05 en découlent.
 

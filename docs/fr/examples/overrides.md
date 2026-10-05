@@ -7,7 +7,7 @@ tags:
 
 # Masquer ou laisser en clair
 
-Votre détecteur lit le nom de votre entreprise comme une personne et vous voulez qu'il reste en clair. Vos noms de code internes ne sont jamais détectés et vous voulez qu'ils soient remplacés à chaque fois. Ces deux décisions portent sur le jeu de détections plutôt que sur le détecteur. `DetectionOverride` est l'étape qui les impose, avec deux détecteurs. La liste à masquer (`deny_list`) porte ce qui est toujours masqué, et ce que son détecteur trouve est forcé dans le jeu. La liste à laisser en clair (`allow_list`) porte ce qui reste toujours en clair, et ce que son détecteur trouve est retiré du jeu.
+Votre détecteur lit le nom de votre entreprise comme une personne et vous voulez qu'il reste en clair. Vos noms de code internes ne sont jamais détectés et vous voulez qu'ils soient remplacés à chaque fois. Ces deux décisions portent sur le jeu de détections plutôt que sur le détecteur. `DetectionOverride` est l'étape qui les impose, avec deux détecteurs. La liste à masquer (`deny_list`) porte ce qui est masqué même quand le détecteur le rate, et ce que son détecteur trouve est forcé dans le jeu. La liste à laisser en clair (`allow_list`) porte ce qui reste en clair même quand le détecteur le trouve, et ce que son détecteur trouve est retiré du jeu.
 
 L'étape s'exécute juste après la détection, avant la résolution des chevauchements et la liaison. Ses deux listes l'emportent donc sur la lecture du détecteur, et aussi sur un jeu corrigé qui revient d'une relecture humaine. Voir [Architecture](../architecture.md) pour l'ordre complet des étapes.
 

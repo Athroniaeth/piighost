@@ -379,14 +379,14 @@ threshold = 0.5
 
 ## `[override]`
 
-Optionnel. Force des détections via une liste à masquer, dont les valeurs sont toujours masquées, et en écarte via une liste à laisser en clair, dont les valeurs restent toujours en clair. Chaque liste est une config de détecteur, `[override.deny_list]` et `[override.allow_list]`, toutes deux optionnelles. Les clés de la 1.x, `whitelist`, `blacklist` et leurs stratégies, sont refusées au chargement avec la clé qui les remplace, voir [Passer à la 2.0](../community/upgrading.md#les-listes-de-loverride-sont-renommees).
+Optionnel. Force des détections via une liste à masquer, dont les valeurs sont masquées même quand le détecteur les rate, et en écarte via une liste à laisser en clair, dont les valeurs restent en clair même quand le détecteur les trouve. Chaque liste est une config de détecteur, `[override.deny_list]` et `[override.allow_list]`, toutes deux optionnelles. Les clés de la 1.x, `whitelist`, `blacklist` et leurs stratégies, sont refusées au chargement avec la clé qui les remplace, voir [Passer à la 2.0](../community/upgrading.md#les-listes-de-loverride-sont-renommees).
 
 <div class="wide-table" markdown="1">
 
 | Clé | Valeurs | Défaut | Signification |
 |-----|---------|--------|---------------|
-| `[override.deny_list]` | détecteur | | Un détecteur dont les hits sont toujours masqués, forcés dans l'ensemble |
-| `[override.allow_list]` | détecteur | | Un détecteur dont les hits restent toujours en clair, en invalidant les détections qu'ils recouvrent |
+| `[override.deny_list]` | détecteur | | Un détecteur dont les hits sont masqués, forcés dans l'ensemble. `deny_list_strategy` décide pour une valeur introduite par l'assistant |
+| `[override.allow_list]` | détecteur | | Un détecteur dont les hits restent en clair, en invalidant les détections qu'ils recouvrent |
 | `allow_list_strategy` | `exact`, `value`, `overlap` | `value` | Comment un hit de la liste à laisser en clair invalide une détection. `value` exige la même valeur, quelles que soient ses espaces et sa casse. `exact` exige le même span et le même label. `overlap` invalide tout span en chevauchement |
 | `deny_list_strategy` | `respect_provenance`, `force` | `respect_provenance` | Si un hit de la liste à masquer laisse en clair une valeur introduite par l'assistant, ou la dé-identifie quand même |
 | `conflict_strategy` | `deny_list_wins`, `allow_list_wins`, `raise` | `deny_list_wins` | Qui l'emporte quand les deux listes se contredisent. `raise` refuse la collision avec `ConflictingOverrideError` |
