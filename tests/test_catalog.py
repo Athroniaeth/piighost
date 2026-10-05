@@ -1,5 +1,6 @@
 """Tests for the catalog client: reference parsing, payloads, and the cache."""
 
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Never, Self
@@ -98,8 +99,10 @@ def served(monkeypatch: pytest.MonkeyPatch) -> Serve:
     def serve(body: str) -> list[str]:
         asked: list[str] = []
 
-        def urlopen(url: str, timeout: float | None = None) -> _Answer:
-            asked.append(url)
+        def urlopen(
+            request: urllib.request.Request, timeout: float | None = None
+        ) -> _Answer:
+            asked.append(request.full_url)
             return _Answer(body)
 
         monkeypatch.setattr("piighost.catalog.urllib.request.urlopen", urlopen)
@@ -341,3 +344,21 @@ class TestHubCompatibility:
         )
         assert list(detector.patterns) == ["EMAIL", "IPV4"]
         assert asked[0].startswith("https://x.example.com/")
+
+
+class TestUserAgent:
+    def test_a_pull_names_piighost_as_its_client(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The catalog counts the library's pulls by the agent it sends."""
+        agents: list[str | None] = []
+
+        def urlopen(
+            request: urllib.request.Request, timeout: float | None = None
+        ) -> _Answer:
+            agents.append(request.get_header("User-agent"))
+            return _Answer(DETECTOR_TOML)
+
+        monkeypatch.setattr("piighost.catalog.urllib.request.urlopen", urlopen)
+        pull("piighost/generic", cache=False)
+        assert agents and (agents[0] or "").startswith("piighost")
