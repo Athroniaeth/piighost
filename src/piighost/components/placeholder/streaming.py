@@ -118,17 +118,16 @@ def _split_buffer(
     token segment.
     """
     segments: list[_Segment] = []
-    remaining = buffer
+    cursor = 0
 
-    match = pattern.search(remaining)
-    while match is not None:
-        before = remaining[: match.start()]
+    for match in pattern.finditer(buffer):
+        before = buffer[cursor : match.start()]
         token = match.group()
         segments.append(_Segment(text=before, is_token=False))
         segments.append(_Segment(text=token, is_token=True))
-        remaining = remaining[match.end() :]
-        match = pattern.search(remaining)
+        cursor = match.end()
 
+    remaining = buffer[cursor:]
     held = _held_length(remaining, prefix)
     boundary = len(remaining) - held
     safe = remaining[:boundary]
