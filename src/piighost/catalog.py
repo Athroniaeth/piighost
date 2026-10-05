@@ -28,6 +28,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from functools import cache
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from piighost._runtime import EMSCRIPTEN
@@ -56,6 +57,18 @@ LATEST = "latest"
 
 TIMEOUT = 10.0
 """Seconds to wait on the catalog before giving up, connect and read together."""
+
+
+def _user_agent() -> str:
+    """Name the caller piighost/<version>, so the catalog counts its pulls."""
+    try:
+        return f"piighost/{version('piighost')}"
+    except PackageNotFoundError:  # a source checkout without its metadata
+        return "piighost"
+
+
+USER_AGENT = _user_agent()
+"""Sent with every request: the catalog tells the library's pulls from a browser's."""
 
 ALLOWED_SCHEMES = frozenset({"https", "http"})
 """Schemes a catalog origin may use.
@@ -251,7 +264,8 @@ def _fetch(url: str, ref: str) -> str:
     try:
         # The scheme is checked in _origin and the rest of the URL is built
         # from a reference parse_ref has validated, so the open is not blind.
-        with urllib.request.urlopen(url, timeout=TIMEOUT) as answer:  # nosec B310
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as answer:  # nosec B310
             return answer.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         raise CatalogUnreachableError(
