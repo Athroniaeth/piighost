@@ -28,9 +28,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from functools import cache
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from piighost import __version__
 from piighost._runtime import EMSCRIPTEN
 from piighost.exceptions import PIIGhostError
 
@@ -58,17 +58,12 @@ LATEST = "latest"
 TIMEOUT = 10.0
 """Seconds to wait on the catalog before giving up, connect and read together."""
 
+USER_AGENT = f"piighost/{__version__}"
+"""Sent with every request: the catalog tells the library's pulls from a browser's.
 
-def _user_agent() -> str:
-    """Name the caller piighost/<version>, so the catalog counts its pulls."""
-    try:
-        return f"piighost/{version('piighost')}"
-    except PackageNotFoundError:  # a source checkout without its metadata
-        return "piighost"
-
-
-USER_AGENT = _user_agent()
-"""Sent with every request: the catalog tells the library's pulls from a browser's."""
+It names the caller piighost/<version>, so the catalog counts its pulls. A source
+checkout without its metadata reads the package's fallback version.
+"""
 
 ALLOWED_SCHEMES = frozenset({"https", "http"})
 """Schemes a catalog origin may use.
@@ -79,13 +74,14 @@ otherwise turn a pull into a local file read.
 """
 
 _NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-"""Kebab-case namespace or object name, the grammar the registry enforces."""
+"""Kebab-case namespace, object name or selector, the grammar the registry enforces.
+
+A selector is a commit or a kebab-case tag, and an eight-hex commit fits the same
+grammar, so one pattern checks all three parts of a reference.
+"""
 
 _COMMIT = re.compile(r"^[0-9a-f]{8}$")
 """A selector designating a commit: eight hex characters of its digest."""
-
-_SELECTOR = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-"""A selector, which is either a commit or a kebab-case tag."""
 
 
 class CatalogError(PIIGhostError):
@@ -215,7 +211,7 @@ def parse_ref(ref: str) -> tuple[str, str, str]:
     valid = (
         _NAME.fullmatch(namespace)
         and _NAME.fullmatch(name)
-        and _SELECTOR.fullmatch(selector)
+        and _NAME.fullmatch(selector)
     )
     if not valid:
         raise CatalogRefError(
