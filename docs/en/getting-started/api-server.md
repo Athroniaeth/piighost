@@ -9,33 +9,25 @@ You will run `piighost-api`, the companion server of `piighost`, over a configur
 The configuration `catalog:piighost/support-en` finds names, addresses and organizations with the GLiNER2 model `fastino/gliner2-multi-v1`. It finds US identifiers and generic values such as emails with regexes. It also refuses to return a de-identified text that still holds a clear email address.
 
 !!! note "Prerequisites"
-    Python 3.12 or later for the server, where the `piighost` library alone runs from Python 3.11. The first start needs network access to the catalog and to Hugging Face. The examples assume the server on `http://127.0.0.1:8000`.
+    Docker, because the server ships as a Docker image. Step 6 also needs Python 3.11 or later. The first start needs network access to the catalog and to Hugging Face. The examples assume the server on `http://127.0.0.1:8000`.
 
-## 1. Install the server
+## 1. Pull the image
 
-The `gliner2` extra pulls the model runtime the configuration needs.
+`piighost-api` is not published on PyPI. It ships as a Docker image, `ghcr.io/athroniaeth/piighost-api`.
 
-=== "uv"
-
-    ```bash
-    uv add "piighost-api[gliner2]"
-    ```
-
-=== "pip"
-
-    ```bash
-    pip install "piighost-api[gliner2]"
-    ```
+```bash
+docker pull ghcr.io/athroniaeth/piighost-api:latest
+```
 
 ## 2. Create an API key
 
-`piighost-api` protects its routes with API keys. Each request must carry a valid key in the `Authorization: Bearer <key>` header. To manage these keys, the server uses [`keyshield`](https://github.com/Athroniaeth/keyshield), a Python library for API key management, installed with it. The server does not keep the keys in clear. It keeps their fingerprint, computed with Argon2 and a pepper, a secret added before the computation.
+`piighost-api` protects its routes with API keys. Each request must carry a valid key in the `Authorization: Bearer <key>` header. To manage these keys, the server uses [`keyshield`](https://github.com/Athroniaeth/keyshield), a Python library for API key management, installed in the image. The server does not keep the keys in clear. It keeps their fingerprint, computed with Argon2 and a pepper, a secret added before the computation.
 
 The server refuses to start without an API key, because it would otherwise open its routes to anyone. For a local trial, `PIIGHOST_ALLOW_ANONYMOUS=true` lets it start without a key, every route open. The `keyshield` command generates a key and a pepper.
 
 ```bash
-keyshield generate
-keyshield pepper
+docker run --rm ghcr.io/athroniaeth/piighost-api:latest /app/.venv/bin/keyshield generate
+docker run --rm ghcr.io/athroniaeth/piighost-api:latest /app/.venv/bin/keyshield pepper
 ```
 
 Each command prints a line of this form, with your own values:
@@ -55,10 +47,18 @@ export SECRET_PEPPER="..."
 ## 3. Start the server
 
 ```bash
-piighost-api serve --config catalog:piighost/support-en
+docker run --name piighost-api -p 8000:8000 \
+  -e API_KEY_DEV -e SECRET_PEPPER \
+  -e PIIGHOST_CONFIG=catalog:piighost/support-en \
+  -e EXTRA_PACKAGES="piighost[gliner2]" \
+  -v piighost-uv-cache:/root/.cache/uv \
+  -v piighost-hf-cache:/root/.cache/huggingface \
+  ghcr.io/athroniaeth/piighost-api:latest
 ```
 
-The server fetches the configuration from the catalog at every start, because the reference is not pinned to a commit. On the first start, it also downloads the GLiNER2 model. The log reports `API keys loaded, auth enabled`, then `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, and uvicorn listens on `http://127.0.0.1:8000`.
+`-e API_KEY_DEV -e SECRET_PEPPER` hands the container the two variables exported in step 2. `EXTRA_PACKAGES` installs the `gliner2` extra, the model runtime the configuration needs, when the container starts. The two volumes keep the downloaded packages and the GLiNER2 model from one start to the next. The first start downloads them, the next ones take them from the volumes.
+
+The server fetches the configuration from the catalog at every start, because the reference is not pinned to a commit. The log reports `API keys loaded, auth enabled`, then `Pipeline ready: piighost/support-en:<commit> (detector: composite)`, and uvicorn listens on `http://0.0.0.0:8000`, reachable from the machine on `http://127.0.0.1:8000`.
 
 Check it from another shell:
 
@@ -73,7 +73,7 @@ The output should be:
 ```
 
 !!! tip "Without a model"
-    A regex-only configuration starts without downloading anything but the configuration. `piighost-api serve --config catalog:piighost/fr-default` serves the French configuration. It detects phone numbers, IBAN, NIR, SIREN and emails among others.
+    A regex-only configuration starts without downloading anything but the configuration. With `-e PIIGHOST_CONFIG=catalog:piighost/fr-default` and no `EXTRA_PACKAGES`, the container serves the French configuration. It detects phone numbers, IBAN, NIR, SIREN and emails among others.
 
 ## 4. De-identify a message
 

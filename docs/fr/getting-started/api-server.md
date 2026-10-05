@@ -9,33 +9,25 @@ Vous allez lancer `piighost-api`, le serveur compagnon de `piighost`, sur une co
 La configuration `catalog:piighost/support-en` repère les noms, les adresses et les organisations avec le modèle GLiNER2 `fastino/gliner2-multi-v1`. Elle repère avec des regex les identifiants américains et les valeurs génériques comme les emails. Elle refuse aussi de rendre un texte dé-identifié qui contient encore une adresse email en clair.
 
 !!! note "Prérequis"
-    Python 3.12 ou plus récent pour le serveur, alors que la librairie `piighost` seule fonctionne dès Python 3.11. Le premier démarrage demande un accès réseau au catalogue et à Hugging Face. Les exemples supposent le serveur sur `http://127.0.0.1:8000`.
+    Docker, parce que le serveur est livré en image Docker. L'étape 6 demande en plus Python 3.11 ou plus récent. Le premier démarrage demande un accès réseau au catalogue et à Hugging Face. Les exemples supposent le serveur sur `http://127.0.0.1:8000`.
 
-## 1. Installer le serveur
+## 1. Récupérer l'image
 
-L'extra `gliner2` apporte le moteur du modèle dont la configuration a besoin.
+`piighost-api` n'est pas publié sur PyPI. Il est livré en image Docker, `ghcr.io/athroniaeth/piighost-api`.
 
-=== "uv"
-
-    ```bash
-    uv add "piighost-api[gliner2]"
-    ```
-
-=== "pip"
-
-    ```bash
-    pip install "piighost-api[gliner2]"
-    ```
+```bash
+docker pull ghcr.io/athroniaeth/piighost-api:latest
+```
 
 ## 2. Créer une clé d'API
 
-`piighost-api` protège ses routes par des clés d'API. Chaque requête doit porter une clé valide dans l'en-tête `Authorization: Bearer <clé>`. Pour gérer ces clés, le serveur utilise [`keyshield`](https://github.com/Athroniaeth/keyshield), une librairie Python de gestion de clés d'API, installée avec lui. Le serveur ne garde pas les clés en clair. Il garde leur empreinte, calculée avec Argon2 et un pepper, c'est-à-dire un secret ajouté avant le calcul.
+`piighost-api` protège ses routes par des clés d'API. Chaque requête doit porter une clé valide dans l'en-tête `Authorization: Bearer <clé>`. Pour gérer ces clés, le serveur utilise [`keyshield`](https://github.com/Athroniaeth/keyshield), une librairie Python de gestion de clés d'API, installée dans l'image. Le serveur ne garde pas les clés en clair. Il garde leur empreinte, calculée avec Argon2 et un pepper, c'est-à-dire un secret ajouté avant le calcul.
 
 Le serveur refuse de démarrer sans clé d'API, parce qu'il ouvrirait sinon ses routes à tout le monde. Pour un essai en local, `PIIGHOST_ALLOW_ANONYMOUS=true` le laisse démarrer sans clé, toutes ses routes ouvertes. La commande `keyshield` génère une clé et un pepper.
 
 ```bash
-keyshield generate
-keyshield pepper
+docker run --rm ghcr.io/athroniaeth/piighost-api:latest /app/.venv/bin/keyshield generate
+docker run --rm ghcr.io/athroniaeth/piighost-api:latest /app/.venv/bin/keyshield pepper
 ```
 
 Chaque commande imprime une ligne de cette forme, avec vos propres valeurs :
@@ -55,10 +47,18 @@ export SECRET_PEPPER="..."
 ## 3. Démarrer le serveur
 
 ```bash
-piighost-api serve --config catalog:piighost/support-en
+docker run --name piighost-api -p 8000:8000 \
+  -e API_KEY_DEV -e SECRET_PEPPER \
+  -e PIIGHOST_CONFIG=catalog:piighost/support-en \
+  -e EXTRA_PACKAGES="piighost[gliner2]" \
+  -v piighost-uv-cache:/root/.cache/uv \
+  -v piighost-hf-cache:/root/.cache/huggingface \
+  ghcr.io/athroniaeth/piighost-api:latest
 ```
 
-Le serveur récupère la configuration sur le catalogue à chaque démarrage, parce que la référence n'est pas épinglée sur un commit. Au premier démarrage, il télécharge aussi le modèle GLiNER2. Le journal affiche `API keys loaded, auth enabled`, puis `Pipeline ready: piighost/support-en:286909f6 (detector: composite)`, et uvicorn écoute sur `http://127.0.0.1:8000`.
+`-e API_KEY_DEV -e SECRET_PEPPER` passe au conteneur les deux variables exportées à l'étape 2. `EXTRA_PACKAGES` installe l'extra `gliner2`, le moteur du modèle dont la configuration a besoin, au démarrage du conteneur. Les deux volumes gardent les paquets téléchargés et le modèle GLiNER2 d'un démarrage à l'autre. Le premier démarrage les télécharge, les suivants les reprennent des volumes.
+
+Le serveur récupère la configuration sur le catalogue à chaque démarrage, parce que la référence n'est pas épinglée sur un commit. Le journal affiche `API keys loaded, auth enabled`, puis `Pipeline ready: piighost/support-en:<commit> (detector: composite)`, et uvicorn écoute sur `http://0.0.0.0:8000`, joignable depuis la machine sur `http://127.0.0.1:8000`.
 
 Vérifiez-le depuis un autre shell :
 
@@ -73,7 +73,7 @@ La sortie doit être :
 ```
 
 !!! tip "Sans modèle"
-    Une configuration qui n'utilise que des regex démarre sans rien télécharger d'autre que la configuration. `piighost-api serve --config catalog:piighost/fr-default` sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
+    Une configuration qui n'utilise que des regex démarre sans rien télécharger d'autre que la configuration. Avec `-e PIIGHOST_CONFIG=catalog:piighost/fr-default` et sans `EXTRA_PACKAGES`, le conteneur sert la configuration française. Elle détecte entre autres les numéros de téléphone, IBAN, NIR, SIREN et emails.
 
 ## 4. Dé-identifier un message
 
