@@ -1,63 +1,29 @@
 """Tests for the LLMGuardRail.
 
 A fake chat model returns canned structured output, so no real LLM or network is
-needed. The tests are guarded with importorskip for environments without the llm
-extra, but run in the dev venv where langchain-core is installed.
+needed. langchain-core comes with the dev group, so the tests always run.
 """
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from piighost.components.guard import AnyGuardRail
+from piighost.exceptions import UnreadableOutputError
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
     from langchain_core.messages import BaseMessage
 
 
-class _FakeLabel:
-    """A stand-in for a schema label enum member."""
-
-    def __init__(self, value: str) -> None:
-        self.value = value
-
-
-class _FakeEntity:
-    """A stand-in for one extracted entity."""
-
-    def __init__(self, text: str, label: str) -> None:
-        self.text = text
-        self.label = _FakeLabel(label)
-
-
-class _FakeExtraction:
-    """A stand-in for the structured extraction result."""
-
-    def __init__(self, entities: list[_FakeEntity]) -> None:
-        self.entities = entities
-
-
-class _FakeStructured:
-    """A stand-in for model.with_structured_output(schema)."""
-
-    def __init__(self, result: object) -> None:
-        self._result = result
-
-    async def ainvoke(self, messages: object, **kwargs: object) -> object:
-        return self._result
-
-
-class _FakeChatModel:
-    """A stand-in chat model whose structured output is canned."""
-
-    def __init__(self, result: object) -> None:
-        self._result = result
-
-    def with_structured_output(
-        self, schema: object, **kwargs: object
-    ) -> _FakeStructured:
-        return _FakeStructured(self._result)
+def _extraction(*entities: tuple[str, str]) -> SimpleNamespace:
+    """Build a stand-in structured extraction result from (text, label) pairs."""
+    found = [
+        SimpleNamespace(text=text, label=SimpleNamespace(value=label))
+        for text, label in entities
+    ]
+    return SimpleNamespace(entities=found)
 
 
 class _CapturingStructured:
@@ -93,10 +59,9 @@ def _as_model(fake: object) -> "BaseChatModel":
 class TestConformance:
     def test_satisfies_the_port(self) -> None:
         """LLMGuardRail built on an injected model is an AnyGuardRail."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
-        model = _FakeChatModel(_FakeExtraction([]))
+        model = _CapturingModel(_extraction(), [])
         assert isinstance(
             LLMGuardRail(model=_as_model(model), labels=["PERSON"]), AnyGuardRail
         )
@@ -105,33 +70,54 @@ class TestConformance:
 class TestCheck:
     async def test_clean_text_is_not_flagged(self) -> None:
         """When the model returns no entities, the verdict is unflagged."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
-        model = _FakeChatModel(_FakeExtraction([]))
+        model = _CapturingModel(_extraction(), [])
         guard = LLMGuardRail(model=_as_model(model), labels=["PERSON"])
         verdict = await guard.check("nothing to see here")
         assert verdict.flagged is False
         assert verdict.detections == ()
 
-    async def test_residual_pii_is_flagged_and_carried(self) -> None:
-        """A value the model returns and that is in the text flags the verdict."""
-        pytest.importorskip("langchain_core")
+    async def test_an_unreadable_output_is_not_a_clean_verdict(self) -> None:
+        """An output the guard cannot read raises instead of passing the text (DPO-9)."""
         from piighost.components.guard import LLMGuardRail
 
-        result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
-        guard = LLMGuardRail(model=_as_model(_FakeChatModel(result)), labels=["PERSON"])
+        guard = LLMGuardRail(
+            model=_as_model(_CapturingModel(object(), [])), labels=["PERSON"]
+        )
+        with pytest.raises(UnreadableOutputError):
+            await guard.check("Emma slipped through")
+
+    async def test_fail_open_reads_an_unreadable_output_as_clean(self) -> None:
+        """With fail_open, an unreadable output leaves the verdict unflagged."""
+        from piighost.components.guard import LLMGuardRail
+
+        guard = LLMGuardRail(
+            model=_as_model(_CapturingModel(object(), [])),
+            labels=["PERSON"],
+            fail_open=True,
+        )
+        verdict = await guard.check("Emma slipped through")
+        assert verdict.flagged is False
+
+    async def test_residual_pii_is_flagged_and_carried(self) -> None:
+        """A value the model returns and that is in the text flags the verdict."""
+        from piighost.components.guard import LLMGuardRail
+
+        result = _extraction(("Emma", "PERSON"))
+        guard = LLMGuardRail(
+            model=_as_model(_CapturingModel(result, [])), labels=["PERSON"]
+        )
         verdict = await guard.check("Emma slipped through")
         assert verdict.flagged is True
         assert [detection.text for detection in verdict.detections] == ["Emma"]
 
     async def test_custom_prompt_reaches_the_model(self) -> None:
         """A custom prompt is forwarded and appears in the model's system message."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         captured: list[object] = []
-        result = _FakeExtraction([_FakeEntity("Emma", "PERSON")])
+        result = _extraction(("Emma", "PERSON"))
         guard = LLMGuardRail(
             model=_as_model(_CapturingModel(result, captured)),
             labels=["PERSON"],
@@ -146,12 +132,11 @@ class TestCheck:
 
     async def test_placeholder_hint_follows_custom_delimiters(self) -> None:
         """The default prompt's placeholder examples match the given delimiters."""
-        pytest.importorskip("langchain_core")
         from piighost.components.guard import LLMGuardRail
 
         captured: list[object] = []
         guard = LLMGuardRail(
-            model=_as_model(_CapturingModel(_FakeExtraction([]), captured)),
+            model=_as_model(_CapturingModel(_extraction(), captured)),
             labels=["PERSON"],
             prefix="[[",
             suffix="]]",

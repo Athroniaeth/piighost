@@ -1,0 +1,172 @@
+---
+type: operations
+title: Stocker les conversations et protéger les traces
+description: Où piighost garde la mémoire de chaque conversation (en processus, Redis, base SQL), comment chiffrer ce stockage, ce que l'effacement d'une conversation supprime vraiment, et comment éviter que les traces OpenTelemetry contiennent des données personnelles.
+tags: [conversation-memory, redis, sqlalchemy, encryption, hashing, observation, opentelemetry, erasure]
+sources:
+  - id: openwiki-source-884a2e563fa6c83993666a78
+    resource: repo://src/piighost/config/models/memory.py
+  - id: openwiki-source-beb42dcd927067e197327036
+    resource: repo://src/piighost/conversation_memory/base.py
+  - id: openwiki-source-19f6f6edbb7533ba166dd534
+    resource: repo://src/piighost/conversation_memory/memory.py
+  - id: openwiki-source-32946ba53121de4a935726de
+    resource: repo://src/piighost/conversation_memory/redis_backend.py
+  - id: openwiki-source-193d64415b599d0fdb371fa1
+    resource: repo://src/piighost/conversation_memory/sqlalchemy_backend.py
+  - id: openwiki-source-c10b33bddc7cace9a0f2a3d4
+    resource: repo://src/piighost/crypto/cipher/aesgcm.py
+  - id: openwiki-source-48c4068b03eac61e74ad885e
+    resource: repo://src/piighost/crypto/hasher/argon2id.py
+  - id: openwiki-source-99e6f9e034c36653e9d7ed97
+    resource: repo://src/piighost/crypto/hasher/base.py
+  - id: openwiki-source-de8939b13acb1ab2a99cd229
+    resource: repo://src/piighost/crypto/hasher/sha256.py
+  - id: openwiki-source-53ef27c248d6c400169169a3
+    resource: repo://src/piighost/observation/__init__.py
+  - id: openwiki-source-5ddce4dd4539293afb49cdfd
+    resource: repo://src/piighost/pipeline/base.py
+  - id: openwiki-source-07566b3f03a831d37fa4fbce
+    resource: repo://src/piighost/pipeline/thread.py
+  - id: openwiki-source-c23087b7f2444e82c0c323e1
+    resource: repo://tests/conversation_memory/test_redis.py
+generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
+---
+
+# Stocker les conversations et protéger les traces
+
+## En bref
+
+- Pour rendre la réponse lisible, `piighost` garde, pour chaque conversation, les valeurs sensibles trouvées dans chaque message. Ce stockage contient donc des données personnelles.
+- Les trois lieux de stockage sont la mémoire du programme (perdue au redémarrage), Redis et une base SQL.
+- Redis et la base SQL peuvent chiffrer ce qu'ils gardent. Le chiffrement exige deux secrets fournis par l'environnement du serveur.
+- Effacer une conversation supprime son stockage. Sur un serveur à plusieurs processus, une copie temporaire peut survivre dans les autres processus tant qu'aucune durée de vie n'est réglée.
+- Les traces techniques contiennent par défaut le texte en clair. Un réglage les remplace par des jetons.
+
+Cette page s'adresse surtout aux développeurs et aux exploitants. Le déroulé d'une conversation est décrit dans [Suivre une conversation et restaurer la réponse](../processes/follow-a-conversation.md). Les termes sont définis dans le [glossaire](../glossary.md). La mise en production est décrite dans le guide technique. [Déployer un pipeline en production](../../../docs/fr/deployment.md) couvre un serveur, et [Déploiement multi-instance](../../../docs/fr/multi-instance.md) couvre plusieurs instances derrière un répartiteur de charge. Les garanties de stockage y sont détaillées dans [Sécurité](../../../docs/fr/security.md).
+
+## Choisir un stockage
+
+| Stockage | Clé `[memory] type` | Survit au redémarrage | Partagé entre processus | Durée de vie |
+|---|---|---|---|---|
+| Mémoire du programme | `in_memory` | non | non | `ttl` par conversation, `max_threads` (10 000 conversations et un jour par défaut) |
+| Redis | `redis` | oui | oui | `ttl` par message |
+| Base SQL (SQLAlchemy) | `sqlalchemy` | oui | oui | aucune |
+
+Recommandation : `in_memory` pour le développement et les tests, Redis ou SQL dès que plusieurs processus servent la même conversation.
+
+### Ce qui est stocké
+
+Chaque message est stocké avec son empreinte, c'est-à-dire une courte suite de caractères calculée à partir de son texte, qui sert à le reconnaître sans garder ce texte. Le stockage garde aussi le rôle de son auteur (`user` ou `assistant`) et ses détections (position, texte, étiquette, confiance). Le texte des détections est la donnée sensible.
+
+- Redis : `{namespace}:{thread_id}:msg:{empreinte}` contient le rôle et les détections. `{namespace}:{thread_id}:index` contient l'ordre d'arrivée des messages (`conversation_memory/redis_backend.py:7-12`).
+- SQL : une ligne par message dans `piighost_conversation_messages` (`id`, `thread_id`, `message_digest`, `role`, `detections`, `detection_count`).
+
+Le chiffrement d'un stockage repose sur deux composants, toujours configurés ensemble :
+
+- Le hacheur : il calcule l'empreinte de chaque message avec un secret, le poivre (`PIIGHOST_HASH_PEPPER`). Sans le poivre, personne ne peut recalculer l'empreinte d'un texte connu pour vérifier s'il a été stocké.
+- Le chiffreur : il chiffre les détections stockées avec une clé AES (`PIIGHOST_CIPHER_KEY`). Sans la clé, les valeurs stockées sont illisibles.
+
+## Règles à connaître
+
+**BR-STO-01.** Quand vous fournissez un hacheur sans chiffreur, ou un chiffreur sans hacheur, alors la construction échoue. En code, l'erreur est `ValueError("Provide both a hasher and a cipher, or neither")`. En configuration, c'est `ConfigError("Configure both a hasher and a cipher, or neither")`. Hacher les clés en laissant les valeurs en clair ne protège rien.
+
+**BR-STO-02.** Quand Redis ou une base SQL est construit sans chiffrement, alors un `PIIGhostSecurityWarning` est émis. Une base SQLite fait exception et ne déclenche pas l'avertissement (`conversation_memory/sqlalchemy_backend.py:99-100`).
+
+**BR-STO-03.** Quand le chiffrement est actif, alors l'identifiant de conversation reste en clair. Il sert de préfixe de clé Redis et de colonne SQL, pour pouvoir lister et effacer une conversation. N'y mettez pas de donnée personnelle (une adresse e-mail, un nom).
+
+**BR-STO-04.** Quand la mémoire du programme est créée sans réglage, alors elle garde au plus 10 000 conversations. Au-delà, la moins récemment utilisée est évincée. Chaque conversation expire un jour (86 400 secondes) après sa dernière écriture, et elle est retirée au prochain accès. `max_threads` et `ttl` changent ces bornes. Par exemple, une conversation écrite le 2 octobre 2026 à 9 h et plus touchée ensuite est oubliée le 3 octobre 2026 à partir de 9 h.
+
+**BR-STO-05.** Quand Redis a un `ttl`, alors chaque message expire ce nombre de secondes après son écriture. L'index de la conversation reçoit la même durée à chaque nouveau message. La base SQL n'a aucune expiration. Effacez les conversations vous-même.
+
+**BR-STO-06.** Quand une conversation est effacée, alors son stockage et le cache de jetons du processus qui reçoit la demande sont vidés. Les autres processus gardent leur cache jusqu'à son éviction (256 cartes au plus) ou jusqu'à `token_memo_ttl`. Par exemple, sur un serveur à 4 processus, une demande d'effacement reçue par le processus 1 laisse les valeurs dans le cache des processus 2 à 4 tant que `token_memo_ttl` n'est pas réglé.
+
+**BR-STO-07.** Quand la clé de chiffrement ne fait pas 16, 24 ou 32 octets une fois décodée du base64, alors la construction échoue avec `InvalidKeyLengthError`.
+
+**BR-STO-08.** Quand aucun masqueur de traces n'est configuré et qu'un exportateur OpenTelemetry est actif, alors les traces portent le texte en clair. Un `PIIGhostSecurityWarning` est émis à la construction, sauf si `trace_clear_text=True` l'acquitte.
+
+## Configurer Redis chiffré
+
+1. Installez les extras : `uv add "piighost[redis,crypto,argon2,config]"`.
+2. Exportez le poivre : `PIIGHOST_HASH_PEPPER` (toute chaîne non vide, gardée hors du dépôt).
+3. Exportez la clé : `PIIGHOST_CIPHER_KEY="$(openssl rand -base64 32)"`.
+4. Partez de `examples/config/thread_redis.toml`, qui déclare déjà `[memory.hasher]` et `[memory.cipher]`. La section mémoire a cette forme :
+
+```toml
+[memory]
+type = "redis"
+url = "redis://localhost:6379/0"
+ttl = 86400
+
+[memory.hasher]
+type = "argon2"
+
+[memory.cipher]
+type = "aesgcm"
+```
+
+5. Chargez le pipeline avec `load_thread_pipeline("pipeline.toml")`.
+
+Pour une base SQL, remplacez la section par `type = "sqlalchemy"`, exportez l'URL asynchrone dans `PIIGHOST_DATABASE_URL`, puis appelez `await pipeline.memory.create_schema()` une fois au démarrage. Le chargement de la configuration ne crée pas la table.
+
+### Vérifier
+
+```bash
+redis-cli --scan --pattern 'piighost:*'
+```
+
+Vous devez voir des clés `piighost:<thread_id>:msg:<empreinte>`. `redis-cli GET` sur l'une d'elles doit renvoyer des octets illisibles, pas un JSON contenant les valeurs.
+
+## Choisir le hacheur
+
+| Hacheur | `type` | Coût | Résiste à une fuite du poivre |
+|---|---|---|---|
+| HMAC-SHA256 | `sha256` | rapide | non |
+| Argon2id | `argon2` | lent, gourmand en mémoire | oui, en partie |
+
+Argon2id prend par défaut `time_cost = 2`, `memory_cost = 19456` Kio, `parallelism = 1`, `hash_length = 32`. Le hacheur tourne à chaque message. Mesurez donc la latence avant de durcir ces valeurs.
+
+## Masquer les traces
+
+Le pipeline ouvre un span par étape (`piighost.detect`, `piighost.link`, `piighost.render`, etc.) via OpenTelemetry. Un span est une entrée de trace qui mesure une étape et porte ses données. Sans l'extra `observation`, le traceur ne fait rien. Avec lui, les spans vont au `TracerProvider` de l'application.
+
+- Sans masqueur, le texte et les valeurs détectées sont tracés en clair. Les traces contiennent alors des données personnelles. Réservez ce mode à un service de traces que vous contrôlez, et acquittez-le par `trace_clear_text=True` (BR-STO-08).
+- Avec `observation_redactor` (une fabrique de jetons, section `[observation_redactor]`), les valeurs sont remplacées par des jetons dans les traces.
+- Le pipeline de conversation pose l'identifiant de conversation dans l'attribut `langfuse.session.id`, en clair, même avec un masqueur.
+
+## Pièges
+
+- **Le cache de jetons n'est pas partagé** entre processus. Réglez `token_memo_ttl` dès que vous effacez des conversations sur un déploiement multi-processus (BR-STO-06).
+- **La table SQL n'est pas créée par la configuration.** Sans `create_schema()`, le premier message échoue.
+- **Deux écritures SQL simultanées du même message** peuvent lever une erreur de contrainte d'unicité, parce que la vérification puis l'écriture ne sont pas atomiques (`sqlalchemy_backend.py:124-127`). Redis, lui, retente sous `WATCH`.
+- **Le cache des motifs de mots** est commun à tout le processus. `forget_thread` ne le vide pas. Appelez `clear_boundary_cache` si la demande d'effacement couvre tout le processus.
+- **Une clé AES perdue rend la mémoire illisible.** Les conversations en cours ne peuvent plus être restaurées.
+
+> [!WARNING]
+> Changer `PIIGHOST_HASH_PEPPER` ou `PIIGHOST_CIPHER_KEY` sur un stockage existant rend les conversations déjà stockées introuvables ou indéchiffrables. Videz le stockage ou planifiez une migration avant de changer un secret.
+
+## Où vivent les règles
+
+| Règle | Emplacement |
+|---|---|
+| BR-STO-01 | `conversation_memory/base.py:59-71` (`require_paired_crypto`), `config/models/memory.py:61` (le même refus en configuration) |
+| BR-STO-02 | `conversation_memory/base.py:43` (`warn_plaintext`), appelé par `conversation_memory/redis_backend.py:105` et `conversation_memory/sqlalchemy_backend.py:99-100`, qui épargne SQLite |
+| BR-STO-03 | `conversation_memory/redis_backend.py:107-113` (`_index_key`, clés préfixées par l'identifiant de conversation), `conversation_memory/sqlalchemy_backend.py:92` (colonne `thread_id`) |
+| BR-STO-04 | `conversation_memory/memory.py:45-62` (`__init__`, bornes `DEFAULT_MAX_THREADS` et `DEFAULT_TTL` lignes 13 et 20), `_expired` lignes 140-144, `_evict` lignes 150-157 |
+| BR-STO-05 | `conversation_memory/redis_backend.py:148-152` (`remember`, expiration du message et de l'index) |
+| BR-STO-06 | `pipeline/thread.py:244-262` (`forget_thread`), `pipeline/thread.py:29` (`_TOKEN_MEMO_MAX = 256`) |
+| BR-STO-07 | `crypto/cipher/aesgcm.py:46-52` (`AesGcmCipher.__init__`) |
+| BR-STO-08 | `pipeline/base.py:190-202` (l'avertissement de `__init__`, acquitté par `trace_clear_text`) |
+
+## Tests
+
+| Test | Couvre |
+|---|---|
+| `tests/conversation_memory/` | Chaque stockage : isolement des conversations, effacement, durées de vie, avertissement en clair (`test_warn_plaintext.py`) |
+| `tests/conversation_memory/test_sqlalchemy.py` | Création de table, stockage chiffré en SQL |
+| `tests/crypto/` | Longueur de clé AES, poivre vide refusé, déterminisme des hacheurs |
+| `tests/observation/` | Spans émis, masquage de leur contenu, avertissement de traces en clair |
+
+Les tests Redis tournent contre `fakeredis` (`tests/conversation_memory/test_redis.py:21-27`), pas contre un vrai serveur. `test_concurrent_identical_remembers_do_not_duplicate` vérifie l'atomicité sous `WATCH` avec ce faux client. Le comportement d'un vrai cluster Redis n'est pas couvert.
+
+Voir aussi [Configurer un pipeline](configuration-and-catalog.md) pour les secrets et la section `[memory]`.

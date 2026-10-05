@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from pydantic import Field
+from pydantic import Discriminator
 
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.config.models.common import _ComponentConfig
@@ -36,6 +36,6 @@ class MergeOverlapResolverConfig(_ComponentConfig):
 
 OverlapResolverConfig = Annotated[
     ConfidenceOverlapResolverConfig | MergeOverlapResolverConfig,
-    Field(discriminator="type"),
+    Discriminator("type"),
 ]
 """The overlap resolver configuration, discriminated on type."""

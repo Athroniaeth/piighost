@@ -1,10 +1,17 @@
 """Merge overlap resolver: keep the union where spans overlap."""
 
-from piighost.components.overlap_resolver.base import (
-    BaseOverlapResolver,
-    by_confidence,
-)
+from piighost.components.overlap_resolver.base import BaseOverlapResolver
 from piighost.models import Detection, Span
+
+
+def _surest(detection: Detection) -> tuple[float, int, Span]:
+    """Sort key ordering detections most confident, then widest, then first.
+
+    A stable sort on it keeps the earliest detector's detection on a true tie,
+    since a conflict group is in detector order.
+    """
+    span = detection.span
+    return -detection.confidence, span.start - span.end, span
 
 
 class MergeOverlapResolver(BaseOverlapResolver):
@@ -14,9 +21,11 @@ class MergeOverlapResolver(BaseOverlapResolver):
     clear. A regex at confidence 1.0 that found "Wirth" beats a model that
     found "Loni M. Wirth" at 0.7, and "Loni M." is sent as it is. This resolver
     hides the union instead, so no character any detector flagged is left out.
-    The merged detection takes the label and confidence of the member the
-    confidence resolver would keep first: the most confident, then the earliest
-    span, then the earliest detector.
+    The merged detection takes the label and confidence of its surest member:
+    the most confident, then the widest, then the earliest span, then the
+    earliest detector. The width comes before the position because the union
+    is named after what it holds. A phone pattern that matched the first nine
+    digits of a fourteen-digit company number does not name the whole number.
 
     The members of a group overlap one another in a chain, so their union is one
     contiguous range, and its text is rebuilt from theirs.
@@ -32,7 +41,7 @@ class MergeOverlapResolver(BaseOverlapResolver):
         for detection in conflicting:
             offset = detection.span.start - start
             characters[offset : offset + len(detection.text)] = detection.text
-        surest = min(conflicting, key=by_confidence)
+        surest = min(conflicting, key=_surest)
         span = Span(start, end)
         text = "".join(characters)
         merged = Detection(

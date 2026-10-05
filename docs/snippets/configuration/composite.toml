@@ -1,0 +1,11 @@
+[detector]
+type = "composite"
+
+[[detector.detectors]]
+type = "regex"
+catalogs = ["catalog:piighost/generic"]
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }
+
+[[detector.detectors]]
+type = "exact"
+values = { Patrick = "PERSON", Patrik = "PERSON" }

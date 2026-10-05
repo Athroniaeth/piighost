@@ -55,6 +55,8 @@ class LLMGuardRailConfig(_ComponentConfig):
             model mapping.
         prompt: The prompt overriding the default guard instructions, or None.
         provider: The chat model provider, or None to infer it from the model.
+        fail_open: Whether an unreadable model output passes as clean, instead
+            of raising UnreadableOutputError.
     """
 
     type: Literal["llm"]
@@ -62,6 +64,7 @@ class LLMGuardRailConfig(_ComponentConfig):
     labels: list[str] | dict[str, str]
     prompt: str | None = None
     provider: str | None = None
+    fail_open: bool = False
 
     def build(self) -> AnyGuardRail:
         """Build an LLMGuardRail from the model, labels, prompt, and provider."""
@@ -72,6 +75,7 @@ class LLMGuardRailConfig(_ComponentConfig):
             labels=self.labels,
             prompt=self.prompt,
             provider=self.provider,
+            fail_open=self.fail_open,
         )
 
 

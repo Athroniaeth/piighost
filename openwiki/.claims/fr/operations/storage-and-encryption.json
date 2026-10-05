@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:fb7267f4fa1174868d189e36a258dd50ce86e1d99771260f94dca551a31b0b21",
+  "claims": [
+    {
+      "id": "claim_9326460fe47648f4b64f136fecf344bd",
+      "statement": "Persistent memory backends require a hasher and a cipher together or neither, raising ValueError in code and ConfigError from config.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/memory.py#L52-L70",
+          "version": "repo-lines-v1:sha256:af1ba8e1ec7aa0f6d64428a4039e027ee667474b6b81102e3e06941312435370:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NjdmZDMyZjk4YTk1NDNlMGYzNjUyNjY1M2I5NTUxNjFhZjAwYjAxODE0MTEwNzUxNGYwNTgwZDY1OTQzYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmODdjM2QxZmI2OTYwZDk1NGVkZjFjMjlmMzNlMmFiNzcyMTMxMjFkYzEyMmVhMzVhNTEzNWNmNWM2ZWE0MDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliZDk4ZmQxZGI3MDQxNmE5MjY2ZjY1ZDNmNjc5NTcwYjdlZDA2OTMyNzg3MzI0Mzc0MzI1M2E5OTQ1NjBiYTIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/base.py#L58-L70",
+          "version": "repo-lines-v1:sha256:dc6d97a9c9274d07538a3606ae2e1c9a322f957a7300bb9099ec45257ee202cb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyMDQwZWZkZGY4Nzc2NGVhYWU4YjU3MGJiMWQ3YzQzMGEzZjBkNzFhOTkyN2YwNTk3MDZlZWFmM2M0OTUxODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzZWJiZGRmOWY0YTRiMTZjZjc5YWRlMWYyZmZhOTVhNTQ3ODQzMWQyMDdhZjdkMmU5MTI0Yjg3ODgyNDA3YmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjYzRhN2QxY2M3OTZhYmEzZTQ2NzIzMzI3ZjUxN2U5ZjgxMTk4MmQyNTBmMDcwMjk4NmU0YjU3NjRhZDk1ODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQyNWVjYzBjY2I3ZGVlZGI4NTM1YmNhYThlNmI5NGIyOTViOTNjNzgxNTlhOTYxNTE1MjU2NjFiY2NjZTJiZGEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_25c9c56500374634ab77a7820cb33596",
+      "statement": "Redis warns with PIIGhostSecurityWarning when built without crypto; the SQLAlchemy backend warns only for non-SQLite dialects.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/redis_backend.py#L84-L106",
+          "version": "repo-lines-v1:sha256:ebe5a7e47fd56fd2d3911d4fce591f1778f819dc325d0bdfb6e03dfc8c82ad39:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZDdhMDdhODNkZDE5OTZmYjUxNjg0YjQyYWVjYWY0ZTkwZmI3OGJhNzIzMGU1NDJlZDdiZDAxZDQyMzAxYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhMDM3OGExMzc3MzRjYjQwZDRiZDE0MDY4ZGM2OWIzNzA0MjgwZTg1NWQ5MzNlM2Q0M2Q2ZjYxOWY2YWIyMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyNjMwOTViYmVlNDNlNjUwY2Q3N2ZiODhlN2M0NWNlYjhlZmE1Yjk4MDdmMDM5ZmIwNDhmN2M2ODFjNTYyMTEifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/sqlalchemy_backend.py#L74-L100",
+          "version": "repo-lines-v1:sha256:5460908b66278c006410731e0341be6f4a55bd25f8517f790e08917f83b09183:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZDdhMDdhODNkZDE5OTZmYjUxNjg0YjQyYWVjYWY0ZTkwZmI3OGJhNzIzMGU1NDJlZDdiZDAxZDQyMzAxYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkZjNmNDg5YTU3NzFjMjUyZWQ4OTczZjk1OGE5NzQ2MTJjMGMzYjY2ZTEzZTg4MDJiMzJlZTQ4ZmMzMTI2N2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlYTFhZTdkYzBlMmIzYjg4MzI4YzI0ZWE0YzAyNDlkNjIzOGE3MDM1YmQ0ZmYzNDhmOGExMDJkNGNkZTczM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkODU0Y2Q0YjQxYzg5ZjUwNDk5MGVhN2MyYjg2NTc0N2Y3ZTIyNjk0NmFkYjAzODUyODBmOGRkYWM3YTk5N2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6fbb0b17c8dc4e97b5a176cf15267e9e",
+      "statement": "The thread id stays in clear in storage: it prefixes Redis keys and is a SQL column, while the message is keyed by a digest and detections are optionally encrypted.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/redis_backend.py#L1-L19",
+          "version": "repo-lines-v1:sha256:624d94f7cf41dfb906a02d278caaf6ba333355c782a6d7082a538899bf6dc7e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkNDhmNTY3ODFmYjgyZmEwMjFhODI1MWZhZDNmZTM4NjcwNjk3NTczZWFlZTBlOWU2MTMyNzM0ZjI1NjRhMDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzMDNlY2RkNGE0ZDEwZjE5YzczZmQ0MmZkMTI0MzdmZDMzNTRhODI2ODE2MDVkYTUyNTVhOTdhMzkwNjhkYmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmNWZjYjRmMjYxMmE2NjU2MmI5MmU5MDgwMTE1MzZmYmRhYjc2MjMxZTA1ODY2MTA0MGNmZDdkODRlZjgwODUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/sqlalchemy_backend.py#L1-L15",
+          "version": "repo-lines-v1:sha256:4e107d4a3dde27c5d8fe8d947073a4d19a2936f8f96d8b9843e01cbdbb2f6da2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkZDU4OGYxYTk4ODZkYTk1MWMzZmUzOWU1YmRiMGI2Y2MzODEyYTlmNjEyOTkyNjcxOTkwZjQ1NzFjZTMxMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzMDNlY2RkNGE0ZDEwZjE5YzczZmQ0MmZkMTI0MzdmZDMzNTRhODI2ODE2MDVkYTUyNTVhOTdhMzkwNjhkYmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmNWZjYjRmMjYxMmE2NjU2MmI5MmU5MDgwMTE1MzZmYmRhYjc2MjMxZTA1ODY2MTA0MGNmZDdkODRlZjgwODUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a986de288366453baf259cca85f79f15",
+      "statement": "Without a hasher, a message is keyed by a plain unkeyed SHA-256 digest.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/base.py#L73-L77",
+          "version": "repo-lines-v1:sha256:fc1ee40b72499f9e14c2f1584b40e9c4231fd017fdf1655036e6d6d3847254b7:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzNmYzc4ODlhMzFmZDNjMGVlODc4ZDE3N2E1MDg0ZDczMDA3OTM5MzhmODZmYjA2MThkODdhYjI1Yzk5ZDBiNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjMwOThlNWE3NDEyMTc2ZDZmNzRlNzI5NzBhNDY5YTVjOWE5MjMwN2JkOGJmZGY5NmEwOWFlMzM4NzBlZTIzNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjA4YWY2ZDIwMDA2NThjOWIxOWVjOTgzYjU2MWM5YjY4ZTlkYzg2ODIzNDI4NzZiOWFlNWJlN2FmN2MxZjkyYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDM0MzUyY2MyMmFhNWNjOWFiNzZmMmVhOTEyOGYwMDRjMDg2M2IwZTdjODBhZWU1NTY1ZjkzNzljZGEwYTBiMyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_96c7c9d8f4764d1fa1741efc0a1242ad",
+      "statement": "InMemoryConversationMemory is process-local and unbounded unless max_threads (LRU eviction) or ttl (expiry after the last write, applied lazily on access) is set.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/memory.py#L111-L142",
+          "version": "repo-lines-v1:sha256:acf34c14858694d8442f27e5a162e2965020491e7646d78a7275a34d0846151a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzYWIxMDIzNGFmOTM5M2I4MTYyNmM1MGU3MmY5ZTkwOGE4Mzc0N2EzNzEyZTRkNGZiMzY3NGJmYmUyNmM0ZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNzM2ZjAwYjI4OTAxNGMxYTg0MjhlNDljYjY0NDhiZjMzZmY2MzNjNGY1MGZlNTRiYjkyODJlYjJjMWRiNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxYmI4MDcyNzY0MTgyMGYxODcwNzczYmYyNzY2OTFjNzhmMDM5ODliMTZkMTUyMGM5NjQwNzI2ZjM2OTMzNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/memory.py#L14-L70",
+          "version": "repo-lines-v1:sha256:e51cab2a8368e0dbe13549c2164bd8571751b2cbe62520fe5634439e99dbeda3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YWI1MGI2YmE0NDE4YmExMDJkZjJiZDFhMDhlNzI3MTc3MWY4YzFhMmY5YjJkOTM3MWQyNDg1NDBkMjVlYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxNzMwNWM3YTdkYzhjZDJjOWY4Mzc1NDkxYjU3ZTcyMDc4M2NmOGU0NGFhMTYxMzE5ZmI3NGQ4OTgxOGVkMmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkMTIwZDA4NjFmODM1ZmNlY2VkMjdmOGU4MTNlODFhZDI3ODMyMmRkY2ViMjQ4N2FjYTU3NzI5YjMzYzJkYTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NDI0MzhjMWVkZWU4OTUwYmQ2ODhmOTRhYmRkMGI3YTAzZmQ5YWNlNjU0ZTUyMGQ5MjUzZWFjNjFjNDY2MzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_690e709810794404966fe8141d4ae4a8",
+      "statement": "Redis writes are atomic under WATCH and expire each message key after ttl seconds; the SQL backend has no expiry and its check-then-write can raise a unique-constraint error under concurrent first writes.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/redis_backend.py#L123-L156",
+          "version": "repo-lines-v1:sha256:7ea27fefc683e13f8bf43924783276ea12ca7f66a3ab9a21cde1c5c8f10e3fa0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNzUyYjExOWYyMTFkOTE3NTI0OWE0YWNlMzMzMTIwZmM3MTIyNDcxNGJiNTg1MzU1YmM3ZDUwNjg5MDM0MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyNmU0MzY4ZjIxZjg4OTFjZWQyNGNmYWY3Y2EzYmY5OTg1YjNmNDY5ZDRhNjgyNTZlMTYwOWQ2NTZmMWE3OWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2NjdlOTE4NWQxMGFkNzhmNmRkMGFhYTRjNTE1MmU1ZTBmNzJjYjBkOGZhZGYxZDY5ZmQ2YTc3MGVjYzRkMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NDI0MzhjMWVkZWU4OTUwYmQ2ODhmOTRhYmRkMGI3YTAzZmQ5YWNlNjU0ZTUyMGQ5MjUzZWFjNjFjNDY2MzYifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/sqlalchemy_backend.py#L117-L158",
+          "version": "repo-lines-v1:sha256:1fcf689f963c54259279b65059db79c1bb0d09bff416a76c8ab2b54471d2e4aa:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNzUyYjExOWYyMTFkOTE3NTI0OWE0YWNlMzMzMTIwZmM3MTIyNDcxNGJiNTg1MzU1YmM3ZDUwNjg5MDM0MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMDM0ODFjNTdkMGYwZGMwZjc2Y2QyY2M4YjM2MDRjNGU4Mjk2ZGE0MTIyYWRkMTllODE3NDVkYzdlMzMxYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjYWFlMTBmYzlhZTc3NTJiOTQzYTExYTY0ZDI4NzdlNDdlMzg1NDRiYzM0OGE2YWI1ODAwYWRlYWZkZTIzOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NDI0MzhjMWVkZWU4OTUwYmQ2ODhmOTRhYmRkMGI3YTAzZmQ5YWNlNjU0ZTUyMGQ5MjUzZWFjNjFjNDY2MzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f269a15379d5498e922418b30bc7c593",
+      "statement": "The SQL table is created only by an explicit create_schema call, which config loading does not perform.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/memory.py#L90-L117",
+          "version": "repo-lines-v1:sha256:fd5fd8ea2f06bf75424a439bed2fa1315af100332777c236fecb641684b342a1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NjdmZDMyZjk4YTk1NDNlMGYzNjUyNjY1M2I5NTUxNjFhZjAwYjAxODE0MTEwNzUxNGYwNTgwZDY1OTQzYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmODdjM2QxZmI2OTYwZDk1NGVkZjFjMjlmMzNlMmFiNzcyMTMxMjFkYzEyMmVhMzVhNTEzNWNmNWM2ZWE0MDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0NjIxMjE3YTlkNjFlODc0ZDMzNDhmZmZlMjJkNjEwNGI4Yjc5NjdjMDhjN2U0OWEzOTY1OWJhNzg4N2EzYjkifQ"
+        },
+        {
+          "resource": "repo://src/piighost/conversation_memory/sqlalchemy_backend.py#L102-L105",
+          "version": "repo-lines-v1:sha256:26d7505791453f4e2b8960fa8f82c1782df1410278e87bed3b7d5ce0352a3360:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDBjMGFkN2UzOWE5MDJiYmYyODQ5YTdkMmIzOTkzNDRhMDNhZDRiNmM5OTdjMThjYzc1MTQ1NDU1OWE1NDg1ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTVkMmE2OGUwZGMxMGQ4N2E5YjU0M2E3OTVmZjJhNjQ3NzZlYWE4ZjAwMjg5ZjdkMTE2ZmIwNTVlMzBmMmZiZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWNkYTBkOGVmNzlmNTk1ZGRlMjZiYmIyYjNjZjJlYTNkNTVjNDE0ZDdlNWQ1YjkyYzRmMWFiYTQzYWE5MTdkNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWM0MTk2NTNhOGQ0ZjFjZThiM2M5NWUxODQxNzM4YzNjNDIzY2JkNWJhNjQyYjNlMjkzNmY2YTVmZWE0YmViZCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_2b54cac7f67046baaa8e06992a828d4a",
+      "statement": "forget_thread erases the memory and the token memo of the current process only; other workers keep their memo until LRU eviction at 256 entries or token_memo_ttl.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L244-L262",
+          "version": "repo-lines-v1:sha256:e90558a670a33c22499ee07abb4df24949cca0620658acf2b575f8b03da2333a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMzhlNzA0MmExYzgxZWQ4NjE0OTQyNTM3Zjc3OGJiZTkyMmNhMTg4NTdkNmNhMmZjYWVjZjc4N2ZiNDQ4OGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkNzZhN2YwMGI3MWIwZTE2Y2FmNWY2ZWI3MmMyOTdlYmZhYjFiM2Q3MGFjN2NlYjliMmY1NzM1YjM4YmQ1Y2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlYjc5MDk2MWYxOTVkMDk3YjUwZjkzYzI0NDliYzk1OTVjOTUyMmVhOTQxODQ2YTFjZTdkYTBmMmVlZDJmNDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwZTM3ZmI3MmJmMzRlMzc1MzI0NWJlY2FmYzEzODVjM2ExMTVlNzg3NzQ1MjYzYWFjOTJkYTk5ZmRmM2IxZTEifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L29-L30",
+          "version": "repo-lines-v1:sha256:047c63dda2215b31b02b0bb44cea09782409a512f1e51ef051e4dffa3bdd52f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzVkMmQ2OGYxOTNkMzdhZTY3ZmNlNTVjMmU2ODdkOTM4ZjNlOGU3NTBmYTMyNjAyODVhM2QyMjc5ZTcyZDA4OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjg5NTEzNjE1NjQzNWZmMzhmZjE0MWJkOTUxZWI5NTMxNDIxZjY5MDg3ZjRkMGQwM2Q3MTg1YWY5Y2ZmMmQ2MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjlhMDY4MGQyN2UyYTY3ZTk1OThmNjg3YzQ2OWEwNDM4OGUzNWU4ZTdhYjMwYWQzMGVmNzMwZWI1MWM4Zjg5MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzljNTBiNDRkMDE4ZGRhZjdhZGU1NzgwZmI0ZTQ4MjE1NDk1YzliYmRkNzAwOTNjMmJlOTljM2NjNGFlZTE5MSJ9"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L76-L83",
+          "version": "repo-lines-v1:sha256:3eac06c4c0e2a790b7c74685dc6b7669592fdbd6c4d914ecbfaaddb4f9bdff2b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTExZTRlZWNhNzNiODgwOGQyOTRkZjNjNjViN2RlYTk2NjdjZWU2YWYyMWUxNWUyOWIyNjE4M2IyODYxZWI5YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTBkZTI1ODcxOTYxNDkyNjA3MWM4ZmIxOWZkODY2MTUwNTU1ZjFiMDEzNTRmOGNkMTYwM2ExMDlhN2RkYWU0MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjMwMjg0ZGZjZWUwMzNlOTIzODNlYmEzZTEyNzBjOTlmYzQ3M2M2YzY5MzY0OWE4Mzc3NzgyNThjNGZkOTQ3YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2FiMDI0OTU2MzI0NDIyM2U3ODE5YTkyYzA5NDY3NDlmMjAwMzczMThhOTg0NjRlODFhZjRkNDk3ZmZkNDA4YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_5bd91f899a3547989b4c218cdcb4a383",
+      "statement": "AesGcmCipher accepts 16, 24 or 32 byte keys, draws a fresh 12-byte nonce per message and prepends it to the ciphertext.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/crypto/cipher/aesgcm.py#L21-L65",
+          "version": "repo-lines-v1:sha256:32abcc05fb5cc679a979ae486010b398206f2676ecc555838ee0234f26ccef1c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhM2JjOGFlODlhZTljYTE3NmI2ZTFlZTg1YTAxMjA0NTcxMTQwNGQ5YzIxMGI1M2YwMjc4ZDZkMGQ2YTQ1ZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlZTI3YjQ3ZjdiNTYzMjEyZmVmYTNjOTAxMmQ1YTJkM2RhYTBiZDRhOTFlNTgzMmZjZTBhOTViMDFmYmFiZjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4N2VjMTZkMGExZTYxMTM1ZTQ1MDExNWFmMzhhZGI5YTkyOTQwN2MwOTA1ZjFkODRiNmE4OWY2NjQyNGMyMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_092907fadca04e2d90838d32aa1e904c",
+      "statement": "Argon2Hasher HMACs the value under the pepper before Argon2id with a pepper-derived fixed salt; Sha256Hasher is HMAC-SHA256; both refuse an empty pepper.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/crypto/hasher/argon2id.py#L39-L92",
+          "version": "repo-lines-v1:sha256:72247d84bb3df443c78abd994f2b36d0eabe432b5cfd2fd7f34f6d176f37c0a4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzODgwMDUwOWIxYzJhMjg1N2UzYmRhMzczYjE1YWNjNDU3NmM0YzU2OTlmOTJkNzNhMzEwNTk0NmY3NWI3ZGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0OTE2M2RkOTIyNzAyZWQ1ZjA5N2E2NTc1NjY2MDBlZjVhYWY2MDE5ZTMxNWVkN2VlYWNmZDE4OTQ1NzFhNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/crypto/hasher/base.py#L32-L58",
+          "version": "repo-lines-v1:sha256:f8bbb939f3a89362f65fa091c1b93a97066bde56784f58f1e203980dc23e70f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxYmMxZmU3MjUxMjI1MGQ0ZmIzMDExNTNiNjU0ODM1MWU5ZTZlNzMxNzRhOGUwYzAxYTZjY2ExMTZjMTIxYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjBkODVkZTRlZDdhYjgwMjFiNGE4ZGQ0ZmExNWVjNTE5MjVjZGZjY2RlMTgwNTg5NWE0YzhhM2MzYmE0OGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlMTAyYTE5YmE2NTQwZmFhMjNhMTQ4NTZkYmM0MTMyZTQ5MjFkYjA4OWM1NjA5NThjZGQ2ZDlkYTAwZjkyODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/crypto/hasher/sha256.py#L1-L21",
+          "version": "repo-lines-v1:sha256:97390de3d766e67bfa514219bd4e419ce12851fe64894ca9c0e30a2192164cd0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkYzJhMjhhNzQ0OGExYzA5N2IzYmI0NzY4YWM5ODkwMzA4NTJkYzk4NzM1ZjFjMmY0ZTYxN2FkM2Y1YjE3MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzZDBjNWI4NDQ2YWExNTc1OWY3OTBmYjJiOGJkYTI5MTU0MDFjMjg1YWM0MDAzNTVjZDY2OThmZTE0NjUxZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9dc187f93c5146ee82b8e3bb1185ab3c",
+      "statement": "Without an observation_redactor and with an active tracer, the pipeline warns that traces carry clear text unless trace_clear_text is set; the tracer is a no-op without the opentelemetry extra.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/observation/__init__.py#L30-L37",
+          "version": "repo-lines-v1:sha256:5d55547bed1477f80ae79373802069e62f724729501f2c5197238913306c8cea:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzNkZjc5OTM1MWExZjUwZTI0MDE4NGI4ZTkyYTI4ZjZkMTU4MjM3YzY3NDI1ZDFlYThlODY5MDQ0NjYyYTI3ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzcyMTNmNzY2N2NlNjkyNGJhN2VjYWVhZmQ0Y2ExY2I3ZjQ4ZmQxYWNjNTBlOTIxYTQwNjRiNjdjZDk1OGUxMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDNkMTcxZGU3NTQzMWEwMjFhMGQ5NGZhNzZmYWJmMGQ3MTM5Yzg5OGMxYTBiNDRiNDNjYTYwOTAzZmExYjg0NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L186-L203",
+          "version": "repo-lines-v1:sha256:f1923eb441132929069db2cb3aa7cc2ed14cd21d3dcdb714ea0c4a114a3b764f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNDY4N2Y4M2ZlMzE4NGFhMjBiMzAzNmZlYzUzMDZmOTk2ZDM2ZTAzMjk2NmRiNWI4YjI5MmYyN2ZmNTY5ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZjE3NWNlMzNmNDc3MWU5ZDQwZTJlYjkxZTY5MWU4YWM4OWQ0YWNlMmJkY2Y3OWFmNTM1NmExNjExNTlkYTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1ZDg2OTAzYjliY2RjNzgzM2ZkODAyMWU4ZGI3YjM1NDY2NGU3YmZlMDdlMjExOGZhMzMyMDA4NjQxNGJlNWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c7fe5a8cfd91440c8ad4512e0a0dda11",
+      "statement": "The thread pipeline records the thread id in clear as the langfuse.session.id span attribute.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L142-L143",
+          "version": "repo-lines-v1:sha256:e6f279f48ba57d368d1bbc0e5af340aed781cc5a906c1dfd23dc044938fc3f83:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTJjOTQ0MDA2YmU0YTA0NWMyYjhiZWY5MzU5ZGNmNzE2NDQxMTYwMmY1ZDg4M2FlMWZjMmYzMWIzNDQ0ZmU2ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2Q0ZDA2Y2UwZTA4YTY3MGQ0NDgxMDhiYTRiZTQ0ZDk1MDYxZTRjOWEzODI1OTFhZmYwNTBkMzkwMmQ3YWI2ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmJlYjRhM2E0YmEzYWM1MDhhMDcwZjI4YWY1OWM1MTRiNjliNTU4ZDc5OTE4ZGU4N2YwOWQ4ZWUyNDNmZjJmNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODRlM2VjM2NmMGQzOTVjZDYxNWNhZTJkZGY1OWI2NzRjZmRlMmZkZWE5N2VjOGFhOWQ3ODE5ZjEyNzIwZDYzYyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_61cc44a7bb7e400a937193e68ac11f69",
+      "statement": "Redis memory tests run against fakeredis, including the concurrent identical-write atomicity test.",
+      "evidence": [
+        {
+          "resource": "repo://tests/conversation_memory/test_redis.py#L21-L70",
+          "version": "repo-lines-v1:sha256:f7e52d835fbfc8585b308b712dd2d7d921eb69042cc0f0f5415dad23a9b8d07c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMTMzODQ0ZWJhNzljNjE2N2JlMWQxOTg0YWU2OWU3NGZmY2M2ODFlMTQ5NThjNjQ5N2M3YTg0MTdjZGJmZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyYWUyNTEwOGU0MDAwNGNhNWFjNmJmOTFkZTI2NTE4M2ZmOTk2OGJiYjA1YTY2NDcwZDZhMTUwNTc1YTNkYmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkMmJhOTU1YmQ4Y2UyN2E0ZDAyMDcxOGE2YzA2ZWJhMmVjYmJiZDMxYzcyY2JiOGFkNmI2NjcxYTZjZmIxYzcifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

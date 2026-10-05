@@ -2,7 +2,7 @@
 
 import importlib
 import importlib.util
-import sys
+import inspect
 from typing import Any, cast
 
 import pytest
@@ -15,6 +15,7 @@ from piighost.components.placeholder import (
     PreservesRecognizableIdentity,
 )
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
+from piighost.conversation_memory.base import DEFAULT_THREAD_ID
 from piighost.exceptions import (
     InventedPlaceholderError,
     MissingThreadIdError,
@@ -47,27 +48,6 @@ def _text(message: Any) -> str:
     return content if isinstance(content, str) else str(content)
 
 
-class TestOptionalDependencyGuard:
-    def test_missing_langchain_explains_how_to_install(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Importing without langchain points the user at piighost[middleware]."""
-        real_find_spec = importlib.util.find_spec
-
-        def find_spec(name: str, *args: Any, **kwargs: Any) -> object:
-            if name == "langchain":
-                return None
-            return real_find_spec(name, *args, **kwargs)
-
-        monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        sys.modules.pop(_MODULE, None)
-
-        with pytest.raises(ImportError, match=r"piighost\[middleware\]"):
-            importlib.import_module(_MODULE)
-
-        sys.modules.pop(_MODULE, None)
-
-
 class TestWhenInstalled:
     def _middleware(self, monkeypatch: pytest.MonkeyPatch) -> Any:
         """Build the middleware with a stubbed thread-id config."""
@@ -81,7 +61,6 @@ class TestWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The user message is anonymized before the model sees it."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage
 
         middleware = self._middleware(monkeypatch)
@@ -93,7 +72,6 @@ class TestWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A model reply carrying thread tokens is restored for the user."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import AIMessage, HumanMessage
 
         middleware = self._middleware(monkeypatch)
@@ -107,7 +85,6 @@ class TestWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A message with nothing to anonymize yields no update."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage
 
         middleware = self._middleware(monkeypatch)
@@ -124,7 +101,6 @@ class TestWhenInstalled:
         The block form is the Anthropic default and the multimodal shape; it must
         not slip past the anonymizer in clear.
         """
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage
 
         middleware = self._middleware(monkeypatch)
@@ -139,7 +115,6 @@ class TestWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """An image or non-text block passes through unchanged."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage
 
         middleware = self._middleware(monkeypatch)
@@ -158,7 +133,6 @@ class TestWhenInstalled:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A reply whose content is text blocks is restored block by block."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import AIMessage, HumanMessage
 
         middleware = self._middleware(monkeypatch)
@@ -175,24 +149,18 @@ class TestWhenInstalled:
 class TestThreadId:
     """The thread-id resolution guarding against cross-conversation leakage."""
 
-    def _thread_id(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        config: Any,
-        require_thread_id: bool,
-    ) -> str:
+    def _thread_id(self, monkeypatch: pytest.MonkeyPatch, config: Any) -> str:
         """Resolve the thread id against a stubbed LangGraph config."""
         module = importlib.import_module(_MODULE)
         monkeypatch.setattr(module, "get_config", lambda: config)
-        return cast(str, module._thread_id(require_thread_id))
+        return cast(str, module._thread_id())
 
     def test_reads_the_configured_thread_id(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The id declared in the LangGraph config is the thread the turn uses."""
-        pytest.importorskip("langchain")
         config = {"configurable": {"thread_id": "t1"}}
-        assert self._thread_id(monkeypatch, config, True) == "t1"
+        assert self._thread_id(monkeypatch, config) == "t1"
 
     @pytest.mark.parametrize(
         "config",
@@ -205,20 +173,24 @@ class TestThreadId:
             {"configurable": None},
         ],
     )
-    def test_missing_id_raises_when_required(
+    def test_a_missing_id_raises(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
-        """Without a thread id, require_thread_id refuses the shared default."""
-        pytest.importorskip("langchain")
-        with pytest.raises(MissingThreadIdError):
-            self._thread_id(monkeypatch, config, True)
+        """Without a thread id, the turn is refused, never routed to a shared thread."""
+        with pytest.raises(MissingThreadIdError, match="'default'"):
+            self._thread_id(monkeypatch, config)
 
-    def test_missing_id_falls_back_when_not_required(
+    def test_the_shared_thread_is_named_explicitly(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """With require_thread_id off, a missing id lands on the shared default."""
-        pytest.importorskip("langchain")
-        assert self._thread_id(monkeypatch, {"configurable": None}, False) == "default"
+        """A caller that needs no separation names DEFAULT_THREAD_ID itself."""
+        config = {"configurable": {"thread_id": DEFAULT_THREAD_ID}}
+        assert self._thread_id(monkeypatch, config) == DEFAULT_THREAD_ID
+
+    def test_the_opt_out_is_gone(self) -> None:
+        """require_thread_id no longer exists, so no flag reaches the shared thread."""
+        parameters = inspect.signature(PIIAnonymizationMiddleware).parameters
+        assert "require_thread_id" not in parameters
 
 
 class _FakeRequest:
@@ -247,7 +219,6 @@ class TestToolCalls:
 
         Returns the arguments the tool actually received and the response content.
         """
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
 
         module = importlib.import_module(_MODULE)
@@ -294,7 +265,6 @@ class TestToolCalls:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A tool result whose content is a list of text blocks is anonymized."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
 
         module = importlib.import_module(_MODULE)
@@ -325,7 +295,6 @@ class TestToolCalls:
         ToolMessage rather than the message itself; that shape used to skip the
         output side entirely, so the tool's PII reached the model in clear.
         """
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
         from langgraph.types import Command
 
@@ -360,7 +329,6 @@ class TestToolCalls:
         key-value pairs, and either may hold one message or a sequence of them.
         A shape left unwalked passes the tool's PII to the model in clear.
         """
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
         from langgraph.types import Command
 
@@ -392,7 +360,6 @@ class TestToolCalls:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A Command carrying only plain state values yields no message to rewrite."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage
         from langgraph.types import Command
 
@@ -416,7 +383,6 @@ class TestToolCalls:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Under PASSTHROUGH a Command's tool message is left as the tool wrote it."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
         from langgraph.types import Command
 
@@ -446,7 +412,6 @@ class TestToolCalls:
         already be tokenized, but if a clear value slips into tool_calls it must
         not reach the model on the next turn.
         """
-        pytest.importorskip("langchain")
         from langchain_core.messages import AIMessage, HumanMessage
 
         module = importlib.import_module(_MODULE)
@@ -476,7 +441,6 @@ class TestToolCalls:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The before-model pass leaves a tool message raw, even under INPUT."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
 
         module = importlib.import_module(_MODULE)
@@ -530,7 +494,6 @@ class TestInventedPlaceholders:
         expected: str,
     ) -> None:
         """KEEP leaves an invented token in the reply, DROP strips it out."""
-        pytest.importorskip("langchain")
         middleware = self._middleware(monkeypatch, strategy)
         content = await self._reply(middleware, "Hi <<PERSON:1>>, cc <<PERSON:9>>")
         assert content == expected
@@ -539,7 +502,6 @@ class TestInventedPlaceholders:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """RAISE refuses a reply carrying a token the pipeline never issued."""
-        pytest.importorskip("langchain")
         middleware = self._middleware(monkeypatch, InventedPlaceholderStrategy.RAISE)
         with pytest.raises(InventedPlaceholderError, match=r"<<PERSON:9>>"):
             await self._reply(middleware, "Hi <<PERSON:1>>, cc <<PERSON:9>>")
@@ -548,7 +510,6 @@ class TestInventedPlaceholders:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A reply carrying only issued tokens restores cleanly under RAISE."""
-        pytest.importorskip("langchain")
         middleware = self._middleware(monkeypatch, InventedPlaceholderStrategy.RAISE)
         content = await self._reply(middleware, "Hi <<PERSON:1>>")
         assert content == "Hi Emma"
@@ -557,7 +518,6 @@ class TestInventedPlaceholders:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """An invented token in a deanonymized tool argument is refused too."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import HumanMessage, ToolMessage
 
         module = importlib.import_module(_MODULE)
@@ -603,7 +563,6 @@ class TestAssistantProvenance:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Under PRESERVE, a user reference to an assistant value stays in clear."""
-        pytest.importorskip("langchain")
         middleware = self._middleware(
             monkeypatch, EntityCreateByAssistantStrategy.PRESERVE
         )
@@ -613,7 +572,6 @@ class TestAssistantProvenance:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Under ANONYMIZE, an assistant-introduced value is anonymized."""
-        pytest.importorskip("langchain")
         middleware = self._middleware(
             monkeypatch, EntityCreateByAssistantStrategy.ANONYMIZE
         )
@@ -623,7 +581,6 @@ class TestAssistantProvenance:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Under IGNORE, an assistant message is left untouched."""
-        pytest.importorskip("langchain")
         from langchain_core.messages import AIMessage
 
         middleware = self._middleware(
@@ -638,7 +595,6 @@ class TestAssistantProvenance:
 class TestFactoryContract:
     async def test_a_non_delimited_factory_is_refused(self) -> None:
         """Building the middleware on a non-delimited factory fails fast."""
-        pytest.importorskip("langchain")
         from piighost.components.placeholder import MaskPlaceholderFactory
 
         module = importlib.import_module(_MODULE)

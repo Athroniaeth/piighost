@@ -1,0 +1,10 @@
+# --8<-- [start:turns]
+<<PERSON:1>> habite à <<LOCATION:1>>.
+Est-ce que <<PERSON:1>> aime <<LOCATION:1>> ?
+# --8<-- [end:turns]
+# --8<-- [start:restore]
+Bonjour Patrick !
+# --8<-- [end:restore]
+# --8<-- [start:forget]
+Forgotten(messages=2, detections=4)
+# --8<-- [end:forget]

@@ -11,9 +11,7 @@ import importlib.util
 from collections.abc import Callable
 from typing import Any
 
-from typing_extensions import TypeVar
-
-from piighost.components.placeholder.tags import PreservesRecognizableIdentity
+from piighost.components.placeholder.tags import IdentityT
 from piighost.conversation_memory import MessageRole
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import (
@@ -36,12 +34,6 @@ from pydantic_ai.messages import (
     TextPart,
     ToolCallPart,
     UserPromptPart,
-)
-
-IdentityT = TypeVar(
-    "IdentityT",
-    bound=PreservesRecognizableIdentity,
-    default=PreservesRecognizableIdentity,
 )
 
 
@@ -94,25 +86,6 @@ def pii_hooks(
             return thread_id
         return thread_id(ctx)
 
-    async def anonymize_content(content: Any, thread: str, role: MessageRole) -> Any:
-        """Anonymize a content that is a string or a sequence of strings.
-
-        The sequence form is the multimodal default. Only the string elements are
-        anonymized and the sequence is rebuilt, leaving image and other non-text
-        elements untouched, so a block form never slips past in clear.
-        """
-        if isinstance(content, str):
-            return await deid.anonymize(content, thread, role)
-        if isinstance(content, (list, tuple)):
-            items = [
-                await deid.anonymize(item, thread, role)
-                if isinstance(item, str)
-                else item
-                for item in content
-            ]
-            return items if isinstance(content, list) else tuple(items)
-        return content
-
     hooks = Hooks()
 
     @hooks.on.before_model_request
@@ -124,11 +97,11 @@ def pii_hooks(
         for message in request_context.messages:
             for part in message.parts:
                 if isinstance(part, UserPromptPart):
-                    part.content = await anonymize_content(
+                    part.content = await deid.anonymize_value(
                         part.content, current_thread, MessageRole.USER
                     )
                 elif not skip_assistant and isinstance(part, TextPart):
-                    part.content = await anonymize_content(
+                    part.content = await deid.anonymize_value(
                         part.content, current_thread, assistant_role
                     )
         return request_context

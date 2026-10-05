@@ -8,7 +8,7 @@ Module: `piighost.cli`
 pip install "piighost[config]"
 ```
 
-The tool needs `typer`, shipped with the `config` extra. Run without it, the CLI prints a short install hint to stderr and exits `1`, rather than a traceback. The `validate` and `schema` subcommands instantiate no pipeline component, so they build no detector and load no model, which makes them fast and safe to run in CI.
+The tool needs `typer`, shipped with the `config` extra. If `typer` is missing, the CLI prints a short install hint to stderr and exits `1`, rather than a traceback. The `validate` and `schema` subcommands instantiate no pipeline component. So they build no detector and load no model. They are therefore fast and safe to run in CI.
 
 ---
 
@@ -27,9 +27,9 @@ piighost validate <PATH>
 
 | Argument | Description |
 |----------|-------------|
-| `PATH` | Path to a TOML or JSON pipeline config |
+| `PATH` | Path to a TOML or JSON pipeline config, or a catalog reference such as `catalog:piighost/fr-notarial` |
 
-The exit code is `0` on success and `1` on any configuration error, whether a missing file, invalid TOML or JSON syntax, or a value that fails schema validation. The error message is written to stderr, which suits the command for a CI gate.
+The exit code is `0` on success and `1` on any configuration error, whether a missing file, invalid TOML or JSON syntax, a value that fails schema validation, or a catalog that cannot be reached. The error message is written to stderr. So the command suits a CI gate.
 
 ```bash
 $ piighost validate ./broken.toml
@@ -54,7 +54,7 @@ Point an editor at `schema.json` for autocompletion and inline validation of a c
 
 ## `piighost anonymize`
 
-De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default it runs a generic `RegexDetector`. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
+De-identifies a text and prints the result. The text is an argument, or `-` to read stdin. By default, the command runs a `RegexDetector` over the catalog group `catalog:piighost/generic:fab51b33` (`DEFAULT_CATALOG` in `piighost.cli`). The group is fetched on the first run, then read from the on-disk cache. `--config` runs a configured pipeline, and `--api` runs a remote `piighost-api` server. Unlike `validate` and `schema`, this builds and runs the pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -74,14 +74,12 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | Option | Description |
 |--------|-------------|
 | `TEXT` | The text to de-identify, or `-` to read stdin |
-| `--config PATH` | A pipeline config file (TOML or JSON) |
+| `--config PATH` | A pipeline config file (TOML or JSON), or a catalog reference |
 | `--api URL` | Base URL of a `piighost-api` server, used through the HTTP client |
 | `--thread-id ID` | Thread id for the API or a thread-scoped config (default `default`) |
 | `--json` | Print the de-identified text and the detections as JSON |
 
-`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`.
-
-Those detections are the detector's own output, read straight from the detector for the listing. They are not the set the de-identified text was rendered from, so an overlap the resolver dropped and a value an override cleared both still appear. Read them as what the detector saw, and `anonymized_text` as what the pipeline decided.
+`--config` and `--api` are mutually exclusive. With `--json`, the output is `{"anonymized_text": ..., "detections": [...]}`. The listed detections are those the text replaced, after overlap resolution, overrides and the expander. A configuration that does not validate prints the same message as `validate` and exits `1`. When a catalog group cannot be pulled, the command prints `Could not pull from the catalog:` followed by the cause and exits `1`. `--api` sends no API key. So it reaches only a server started with `PIIGHOST_ALLOW_ANONYMOUS`, see [Server CLI](api-cli.md).
 
 ---
 

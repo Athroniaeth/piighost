@@ -8,14 +8,12 @@ the extra to install.
 """
 
 import importlib.util
-import logging
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from typing import Any, Generic, cast
 
-from typing_extensions import TypeVar
-
-from piighost.components.placeholder.tags import PreservesRecognizableIdentity
+from piighost.components.placeholder.tags import IdentityT
 from piighost.conversation_memory import MessageRole
+from piighost.conversation_memory.base import DEFAULT_THREAD_ID
 from piighost.exceptions import MissingThreadIdError
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import (
@@ -28,7 +26,7 @@ from piighost.pipeline import AnyThreadPipeline
 if importlib.util.find_spec("langchain") is None:
     raise ImportError(
         "PIIAnonymizationMiddleware requires the langchain package. "
-        "Install it with: pip install piighost[middleware]"
+        "Install it with: pip install piighost[langchain]"
     )
 
 from langchain.agents.middleware import AgentMiddleware, AgentState
@@ -45,57 +43,27 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 
-logger = logging.getLogger(__name__)
 
-_DEFAULT_THREAD = "default"
-"""Shared fallback thread id used when no thread id is present.
+def _thread_id() -> str:
+    """Return the thread id from the LangGraph config, or raise when it has none.
 
-Falling back to it lets distinct conversations share placeholder state, which
-leaks entities across them; require_thread_id exists to reject that fallback.
-"""
-_missing_thread_id_warned = False
-
-IdentityT = TypeVar(
-    "IdentityT",
-    bound=PreservesRecognizableIdentity,
-    default=PreservesRecognizableIdentity,
-)
-
-
-def _thread_id(require_thread_id: bool) -> str:
-    """Return the thread id from the LangGraph config.
-
-    Without one, every conversation would share a thread and leak placeholders.
-    With require_thread_id, a missing id is an error; otherwise it warns once and
-    falls back to a shared default thread, because get_config does not surface the
-    id reliably across LangGraph versions.
+    Without one, every conversation would share a thread and leak placeholders,
+    so a missing id is an error. A caller that needs no separation between
+    conversations names DEFAULT_THREAD_ID itself.
     """
-    global _missing_thread_id_warned
-
     try:
         configurable = get_config().get("configurable") or {}
         thread_id = configurable.get("thread_id")
     except RuntimeError:
         thread_id = None
 
-    if thread_id is not None:
-        return thread_id
-
-    if require_thread_id:
+    if thread_id is None:
         raise MissingThreadIdError(
-            "No thread_id in the LangGraph config and require_thread_id=True; "
-            "pass config={'configurable': {'thread_id': ...}} on the agent call."
+            "No thread_id in the LangGraph config; pass "
+            "config={'configurable': {'thread_id': ...}} on the agent call, or "
+            f"{DEFAULT_THREAD_ID!r} if your conversations need no separation."
         )
-
-    if not _missing_thread_id_warned:
-        _missing_thread_id_warned = True
-        logger.warning(
-            "No thread_id in the LangGraph config; falling back to the shared "
-            "'default' thread, so distinct conversations share placeholder "
-            "state. Pass a thread_id or set require_thread_id=True."
-        )
-
-    return _DEFAULT_THREAD
+    return thread_id
 
 
 def _update_values(update: object) -> list[Any]:
@@ -156,16 +124,14 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         self,
         pipeline: AnyThreadPipeline[IdentityT],
         tool_strategy: ToolCallStrategy = ToolCallStrategy.FULL,
-        require_thread_id: bool = True,
         invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
         assistant_strategy: EntityCreateByAssistantStrategy = EntityCreateByAssistantStrategy.PRESERVE,
     ) -> None:
-        """Store the pipeline, the strategies, and the thread-id policy.
+        """Store the pipeline and the strategies.
 
-        require_thread_id defaults to True so a missing thread id raises rather
-        than routing every conversation into the shared default thread and
-        leaking placeholders across them. Pass False to opt into that shared
-        fallback knowingly, for single-conversation or stateless use.
+        Every agent call must carry a thread id in its LangGraph config, or the
+        turn raises MissingThreadIdError rather than route every conversation
+        into one shared thread and leak placeholders across them.
 
         invented_strategy defaults to RAISE so a token the pipeline never issued,
         surfacing in a deanonymized model reply or tool argument, is refused
@@ -182,7 +148,6 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         # remote pipeline without one fails loudly here.
         self._deid = TextDeidentifier(pipeline, invented_strategy)
         self.tool_strategy = tool_strategy
-        self._require_thread_id = require_thread_id
         self.assistant_strategy = assistant_strategy
 
     async def abefore_model(
@@ -191,7 +156,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         runtime: Runtime[Any],
     ) -> dict[str, Any] | None:
         """Anonymize the user and model messages before the model sees them."""
-        thread_id = _thread_id(self._require_thread_id)
+        thread_id = _thread_id()
         allowed: tuple[type[BaseMessage], ...] = (HumanMessage, AIMessage)
 
         if self.assistant_strategy is EntityCreateByAssistantStrategy.IGNORE:
@@ -207,7 +172,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         async def anonymize(message: BaseMessage, content: str) -> str:
             """Anonymize one message under the role its type contributes."""
             role = self._message_role(message)
-            return await self._anonymize(content, thread_id, role)
+            return await self._deid.anonymize(content, thread_id, role)
 
         messages = state["messages"]
         changed = await self._rewrite_content(messages, allowed, anonymize)
@@ -224,11 +189,11 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         runtime: Runtime[Any],
     ) -> dict[str, Any] | None:
         """Deanonymize the user and model messages for display."""
-        thread_id = _thread_id(self._require_thread_id)
+        thread_id = _thread_id()
 
         async def restore(message: BaseMessage, content: str) -> str:
             """Deanonymize one message's content for display."""
-            return await self._deanonymize(content, thread_id)
+            return await self._deid.deanonymize(content, thread_id)
 
         messages = state["messages"]
         # Only content is restored for display; tool_calls stay tokenized in the
@@ -263,7 +228,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         if strategy is ToolCallStrategy.PASSTHROUGH:
             return await handler(request)
 
-        thread_id = _thread_id(self._require_thread_id)
+        thread_id = _thread_id()
         deanonymize_input = strategy in (ToolCallStrategy.INPUT, ToolCallStrategy.FULL)
         anonymize_output = strategy in (ToolCallStrategy.OUTPUT, ToolCallStrategy.FULL)
 
@@ -297,7 +262,7 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
 
         async def anonymize(_message: BaseMessage, content: str) -> str:
             """Anonymize one tool-result string under the user role."""
-            return await self._anonymize(content, thread_id)
+            return await self._deid.anonymize(content, thread_id)
 
         for message in _tool_messages(response):
             new_content, changed = await self._transform_content(
@@ -413,13 +378,3 @@ class PIIAnonymizationMiddleware(AgentMiddleware, Generic[IdentityT]):
         if self.assistant_strategy is EntityCreateByAssistantStrategy.ANONYMIZE:
             return MessageRole.USER
         return MessageRole.ASSISTANT
-
-    async def _anonymize(
-        self, text: str, thread_id: str, role: MessageRole = MessageRole.USER
-    ) -> str:
-        """Anonymize a text within the thread and return the anonymized string."""
-        return await self._deid.anonymize(text, thread_id, role)
-
-    async def _deanonymize(self, text: str, thread_id: str) -> str:
-        """Deanonymize a text, applying the invented-placeholder strategy."""
-        return await self._deid.deanonymize(text, thread_id)

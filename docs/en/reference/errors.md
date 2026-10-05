@@ -6,7 +6,7 @@ icon: lucide/circle-alert
 
 Module: `piighost.exceptions`
 
-Every error the library raises derives from `PIIGhostError`, so one `except PIIGhostError` covers the whole family. Between the root and the leaves sit the grouping classes, one per subsystem, which a caller catches to react to a stage rather than to a single failure. The module depends on nothing outside the standard library, so every class imports without an optional extra, including the errors raised by components that need one.
+Every error the library raises derives from `PIIGhostError`, so one `except PIIGhostError` covers the whole family. Between the root and the leaves sit the grouping classes, one per subsystem, which a caller catches to react to a stage rather than to a single failure. Every class imports without an optional extra, because the module depends on nothing outside the standard library. That holds for the errors raised by components that need an extra too.
 
 ```python
 from piighost.exceptions import PIIGhostError
@@ -16,46 +16,46 @@ from piighost.exceptions import PIIGhostError
 
 ## The hierarchy
 
-```mermaid
-flowchart LR
-    PIIGhostError --> SpanError
-    SpanError --> NegativeSpanStartError
-    SpanError --> SpanOrderingError
-    PIIGhostError --> DetectionError
-    DetectionError --> ConfidenceError
-    PIIGhostError --> EntityError
-    EntityError --> EmptyEntityError
-    EntityError --> MixedLabelError
-    PIIGhostError --> DetectorError
-    DetectorError --> LabelMappingError
-    DetectorError --> TextTooLongError
-    PIIGhostError --> TextError
-    TextError --> EmptyFragmentError
-    PIIGhostError --> AnonymizerError
-    AnonymizerError --> OverlappingSpansError
-    PIIGhostError --> OverrideError
-    OverrideError --> ConflictingOverrideError
-    PIIGhostError --> GuardError
-    GuardError --> PIIRemainingError
-    PIIGhostError --> MiddlewareError
-    MiddlewareError --> UnrecognizableFactoryError
-    MiddlewareError --> InventedPlaceholderError
-    MiddlewareError --> MissingThreadIdError
-    PIIGhostError --> HasherError
-    HasherError --> EmptyPepperError
-    PIIGhostError --> CipherError
-    CipherError --> InvalidKeyLengthError
-    PIIGhostError --> ClientError
-    ClientError --> RemoteError
-    PIIGhostError --> ConfigError
-    ConfigError --> ConfigFileError
-    ConfigError --> ConfigValidationError
-```
+The `PIIGhostError` tree, each grouping class above the errors it covers.
 
-*The `PIIGhostError` tree, each grouping class to the left of the errors it covers.*
-{ .figure-caption }
+- `PIIGhostError`
+    - `SpanError`
+        - `NegativeSpanStartError`
+        - `SpanOrderingError`
+    - `DetectionError`
+        - `ConfidenceError`
+    - `EntityError`
+        - `EmptyEntityError`
+        - `MixedLabelError`
+    - `DetectorError`
+        - `LabelMappingError`
+        - `TextTooLongError`
+        - `UnreadableOutputError`
+        - `BridgePayloadError`
+        - `BridgeSpanRangeError`
+    - `TextError`
+        - `EmptyFragmentError`
+    - `AnonymizerError`
+        - `OverlappingSpansError`
+    - `OverrideError`
+        - `ConflictingOverrideError`
+    - `GuardError`
+        - `PIIRemainingError`
+    - `MiddlewareError`
+        - `UnrecognizableFactoryError`
+        - `InventedPlaceholderError`
+        - `MissingThreadIdError`
+    - `HasherError`
+        - `EmptyPepperError`
+    - `CipherError`
+        - `InvalidKeyLengthError`
+    - `ClientError`
+        - `RemoteError`
+    - `ConfigError`
+        - `ConfigFileError`
+        - `ConfigValidationError`
 
-Of the thirty-three error classes, twenty are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, a grouping class that is also raised on its own.
+Of the thirty-five error classes, twenty-two are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, because it is a grouping class that is also raised on its own.
 
 ## Data models
 
@@ -69,18 +69,21 @@ Module: `piighost.models`. `SpanError`, `DetectionError`, and `EntityError` grou
 | `EmptyEntityError` | `Entity.__post_init__` | the entity groups no detection |
 | `MixedLabelError` | `Entity.__post_init__` | the grouped detections do not all share one label |
 
-The invariants these errors enforce are in [Data models](models.md), and the ports that exchange the models in [Extending PIIGhost](../extending.md).
+The invariants these errors enforce are in [Data models](models.md), and the ports that exchange the models in [Extending piighost](../extending.md).
 
 ## Detectors
 
-Module: `piighost.components.detector.ner`. `DetectorError` groups two failures of `BaseNERDetector`, so they reach the model-backed detectors only. A regex, exact-match, composite, or chunked detector raises neither.
+Module: `piighost.components.detector.ner`. `DetectorError` groups five failures. Two belong to `BaseNERDetector`, so they reach the model-backed detectors only. One belongs to `LLMDetector`, and so to `LLMGuardRail` too. The last two belong to `BridgeDetector`, which checks every span its runner returns rather than trusting it. A regex, exact-match, composite, or chunked detector raises none of them.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | two external labels map to one internal label, which would make the reverse lookup ambiguous |
-| `TextTooLongError` | `BaseNERDetector`, on detection | a text exceeds `max_chars` while `auto_chunk` is off, so a prefix-only scan is refused |
+| `TextTooLongError` | `BaseNERDetector`, on detection | a text exceeds `max_chars` while `auto_chunk` is off, rather than scanning only the start of the text |
+| `UnreadableOutputError` | `LLMDetector`, on detection | the model returns an output the detector cannot read, a broken JSON or a result without its `entities` field, while `fail_open` is off |
+| `BridgePayloadError` | `BridgeDetector`, on detection | the runner returns a span missing a field, or an offset that is not an integer. A float is refused too |
+| `BridgeSpanRangeError` | `BridgeDetector`, on detection | the runner returns an empty or inverted span, one that overruns the text, or, in UTF-16 units, one that cuts a character in two |
 
-Both are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern the second.
+All five are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern `TextTooLongError`, the `fail_open` argument that governs `UnreadableOutputError`, and the `offset_unit` that the bridge's offsets are read in.
 
 ## Text helpers
 
@@ -90,7 +93,7 @@ Module: `piighost.text`. `TextError` groups the failures of the word-boundary he
 |-----------|-----------|-------------|
 | `EmptyFragmentError` | `boundary_wrap`, `find_all_word_boundary`, and `ExactMatchDetector.__init__` | the fragment searched for is empty, which would match at every position of the text |
 
-An empty fragment would yield zero-width spans a `Span` refuses, so the failure would otherwise surface as a `SpanOrderingError` far from its cause. `ExactMatchDetector` checks its configured values at construction, so a config typo fails at load rather than on the first message. `LLMDetector` does not raise it, because a model's output is untrusted, so a blank extracted value is dropped with a warning instead.
+Without this error, an empty fragment would yield zero-width spans, which a `Span` refuses. The failure would then surface as a `SpanOrderingError`, far from its cause. `ExactMatchDetector` checks its configured values at construction, so a config typo fails at load rather than on the first message. `LLMDetector` does not raise it, because a model's output is untrusted. It drops a blank extracted value with a warning instead.
 
 ## Anonymizer
 
@@ -104,11 +107,11 @@ The disjoint-span assumption behind it is in [Anonymizer](anonymizer.md), and th
 
 ## Detection overrides
 
-Module: `piighost.components.override`. `OverrideError` groups the failures of the whitelist and blacklist stage and carries one subclass.
+Module: `piighost.components.override`. `OverrideError` groups the failures of the deny list and allow list stage and carries one subclass.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
-| `ConflictingOverrideError` | `DetectionOverride.apply` | a whitelisted span overlaps a blacklisted one under the `raise` conflict strategy |
+| `ConflictingOverrideError` | `DetectionOverride.apply` | a span on the deny list overlaps one on the allow list under the `raise` conflict strategy |
 
 The other two conflict strategies resolve the collision instead of raising. Every `[override]` key is in the [configuration reference](../configuration/toml.md).
 
@@ -128,9 +131,9 @@ Module: `piighost.integrations`. `MiddlewareError` groups the failures of the in
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
-| `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | the pipeline exposes no token recognizer, its placeholder factory having no re-findable grammar |
+| `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | the pipeline exposes no token recognizer, because its placeholder factory has no re-findable grammar |
 | `InventedPlaceholderError` | `TextDeidentifier.deanonymize` and `deanonymize_stream` | restored text still holds a token the pipeline never issued, under the `RAISE` invented-placeholder strategy |
-| `MissingThreadIdError` | the LangChain middleware, on each turn | the LangGraph config carries no `thread_id` while `require_thread_id` is set |
+| `MissingThreadIdError` | the LangChain middleware and the Claude Code hooks, on each turn | the LangGraph config carries no `thread_id`, or the hook event no `session_id` |
 
 The three are covered in [LangChain integration](langchain.md), with the strategies that decide whether the second is raised at all.
 
@@ -157,12 +160,12 @@ The status guard is all it covers. A 2xx body missing an expected key surfaces a
 
 ## Configuration
 
-Module: `piighost.config`. `ConfigError` groups the load-time and build-time failures, and unlike the other grouping classes it is also raised on its own.
+Module: `piighost.config`. `ConfigError` groups the load-time and build-time failures. Unlike the other grouping classes, it is also raised on its own.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
-| `ConfigFileError` | `load_config` | the file is missing, unreadable, or invalid TOML or JSON |
-| `ConfigValidationError` | `load_config` | the parsed data fails schema validation, wrapping pydantic's `ValidationError` in the library's family |
+| `ConfigFileError` | `load_config` | the file is missing, unreadable, or invalid TOML or JSON, or a catalog reference answers something that is not TOML |
+| `ConfigValidationError` | `load_config` | the parsed data fails schema validation. The error then wraps pydantic's `ValidationError` in the library's family |
 | `ConfigError` | `load_pipeline`, `load_thread_pipeline`, and a component config's `build()` | the entry point does not match the `[memory]` section declared, a secret environment variable is unset or malformed, or a memory declares exactly one of a hasher and a cipher |
 
 Catching `ConfigError` covers all three. Every key and every secret variable is in the [configuration reference](../configuration/toml.md), and the `piighost` CLI reports the same three from `validate`, as described in [CLI](cli.md).
@@ -179,7 +182,7 @@ Three errors expose the values behind the failure as attributes. Every other err
 
 ## `PIIGhostSecurityWarning`
 
-A `UserWarning`, outside the `PIIGhostError` tree, so it never fails a call and the standard `warnings` filters govern it. It marks a setup that runs but keeps confidential data readable, so a knowing choice still works while a forgotten one is loud. Two sites emit it, both at construction.
+`PIIGhostSecurityWarning` is a `UserWarning`, outside the `PIIGhostError` tree. So it never fails a call, and the standard `warnings` filters govern it. It marks a setup that runs but keeps confidential data readable. Because it is only a warning, a knowing choice still works, and a forgotten one stays loud. Two sites emit it, both at construction.
 
 | Emitted by | Emitted when |
 |------------|--------------|

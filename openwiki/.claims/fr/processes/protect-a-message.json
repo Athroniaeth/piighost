@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:adb6b7f2e1197fe1d25cfc8614026eb0325e11f1e5de1c1be96523b69fb75f9b",
+  "claims": [
+    {
+      "id": "claim_fa5dd9b0c17146af9484bb5be73c7113",
+      "statement": "AnonymizationPipeline runs detect, override, overlap resolution, expansion, linking, entity resolution, rendering and the guard, in that order.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L352-L393",
+          "version": "repo-lines-v1:sha256:e6afd4695112c47b68d80033f0a2c72fe385213e1c64e088aefba30abbdc8805:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwYzNlNjlkNzI2MjM2NTQ3ZmJkZmUyZDQ3OWM1YzUwMmFmOGMyYmQ0M2E2ZGRhZjgxNzgyMzI5YjdlZTUzYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzYmE5OWQ0ODc1ZDA1NDE0MWE2NjYxYjE5MmM4YTBiZTYxYjEwMjNkMWU1ODE1MDEyMDgyY2QwMTRjYzk1YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkNjg5MzU0NzRiOTc0YmZkNmQ1N2UxYTFmNmVmNWQ1ZTI4OWQ1Y2VkMWUxNzlkYzdmNDAyNTFlMDA1ZDFmZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0NzIzZjAwZTUxNTMxMDIyN2U5MGExYTgxYmY5ODQzMTc3ZWYzMDdhOTA3YTI2MDcyNmNkNDZhN2NlNzQ3YTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e29f293d9f954838b536fc991d6c89b4",
+      "statement": "With only a detector, the pipeline defaults to ExactEntityLinker, Anonymizer over LabelCounterPlaceholderFactory and ConfidenceOverlapResolver, and leaves expand, entity-resolve, guard and override disabled; the overlap stage cannot be disabled.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L136-L187",
+          "version": "repo-lines-v1:sha256:1f1deabace78216e31d6f2be6a1dd3b418d35bf5bf9bebb538075a55263cce47:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmZDdhMDdhODNkZDE5OTZmYjUxNjg0YjQyYWVjYWY0ZTkwZmI3OGJhNzIzMGU1NDJlZDdiZDAxZDQyMzAxYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4OGZiNjQxMjI2ZDBhNmIzZDU5MzE3ODBmZmI0ZTU2ZGZlMDhkMDk5MTZmYTQzMTYwNzdiZjllODczZTNhNmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODRiMWUwNmUwZTA5ZjFkYzdkMjZiNDRmNzk1YzRhMDZiMDlmYjhhNDQ0MmNmYzdlZDAwYjcwMzkzNjIzYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjZDM1NTczZGRlYjg0ODQ4MjI0NTU4N2M5MTgwN2Q1ZGMwMzc4NjUxZDA5ZmRjMzMxYzczZDRiMDI0NWI3YjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_604df498e8574288bc1dd14ccec5ea42",
+      "statement": "value_key joins a value's words with one space and casefolds it, so values differing in case or spacing link into one entity.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/linker/exact.py#L8-L21",
+          "version": "repo-lines-v1:sha256:8c58cf73c5f37759f578e3fdffd5b1d939d368d2cdb1341025a3a4e5d8aa7c02:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5OGE2YWMzMWY5YzJiYjAxNDJmMjk1YTYxNjFkOThkOGNiYjY4YzkxZmUyMzg4Yzk0ZTFlNTA3YjFiNGI1MGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZmMwMTY4MDE3MmVhNmM5YzY1ZjA4NTMwYjY4OGNmY2I4MmU4MTA4MzEzMDJiZDlhNDgzMWQ5NGYwNzE5MTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5NGNjNjA0MmExMmM0YWFmMWJmMDM2YjEwMjc2ODAyZTk1NGMwZTQ2NjJiYzA0MDJkOThjMWI2OWIzMTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/text/normalization.py#L61-L71",
+          "version": "repo-lines-v1:sha256:0437fcf90ca3a3ca487c6dee286623e786f38bf1931162dcb20bbafcc6f59ce1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2ZWY5NWM1ZDYzMWZiYzBlNzg0MDM1NTRkZTJhMDE5MzczYmFmNmEzMjMwZDJkMmU3ZTViMjg4ZTU3NWYzZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkNjY1NTVlMjdiNWRjNjYwZTNlNzhiMDAyN2I4MTQ3NTlhYmNhMTYzNWI4ZjU2ZTY3MjhiNGE5NWI2NWRlOWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1ZDIyNWQ2NWI5MDA1MmQxYjY2MDkwMmVhNzY1ZTBiMTVlOWIzNjQxYWQ1ZGNhYjNiOWJlM2QwYzA1OGU4ZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3d2e5b576e5149748c6385dbbef278d6",
+      "statement": "Deanonymization replaces each token by its entity text, the first spelling seen, in a single longest-first regex pass.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/anonymizer/base.py#L147-L166",
+          "version": "repo-lines-v1:sha256:b4f9d1f80758c7c27b85d5a0621c4709f608209510882ade1e55a29cfa9e47cd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3ZDMzMTlhZTJhOTVhMmVmYTBmMDEwMjYxZjAwNTFjNTBiM2U1MGU4YWZjYzcxNjBlODNiZWExNmU5MjkwZjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwNDNlMmFiMjI2ZTBhYzc3ZTc5MzRjOTllNTBiNDJhYjBiMDBkZDk1MTY4Y2ZhM2VjNzAzMmU3OWI4MGJkNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNmU0NjMyMzhlZGFkZDlhOTYzNWM1ZjdhNjUzZmRmOTE3YjBiZTdkZjhmODMyYjVlZmFmNzYxYWRmZTBkOTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5ZmNlNjFlZjQ0YjA3YWJiYmVhMzhlYmIyNDNiNTFiZjQwOTVmZDcyODRiNTcyOTc0MzMxNDIwNDVjMGU2NWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dc284f4ce805403d863e016b49b45a8c",
+      "statement": "Hyphens are word characters for boundary matching, so a fragment glued to a hyphen is not matched as a whole word.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/text/boundaries.py#L9-L66",
+          "version": "repo-lines-v1:sha256:0ba20fcad0fc0422832fde8233379a37dacc92177a4224cd2cb69667810a29ef:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxNDRjNjA1OWRlOTNjMTA4NmQ3NWQxZGI2ZmI0NDJmNjIxZjcwYzgzZWY2Y2RjM2U3MmZjZDE2OGMzZDc0ZTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2NTdiYzNjY2Q0NDkzNTRmM2Y2ODFkOWRmODY4Y2EyYjNiZGNjMDJhNWZhOTY3NTkzNjM4ZDU5Y2I2MTgwNWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjNWFlMDVmNTMzMzg1YzM2YjYxMWQwOWI5NDQ4NDBkMzM5OGQwMWE0YzcyNTAxZmM5NzVlMmQ0M2E5ZjJkZmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllOWFhMjcwYjE1YjY0ODAwOTEzNDhkOWViM2IyZjNhNjc5NjI2ZjEyMzZjMDkwZmVmZDA2OWM0NWQ0ZjQ2MGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a859f1a555774fe28c1351467f5961f0",
+      "statement": "ConfidenceOverlapResolver keeps the most confident non-overlapping detections of each conflict group, a true tie going to the earliest detector; MergeOverlapResolver replaces a group by its union labelled after its surest member.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/overlap_resolver/base.py#L1-L69",
+          "version": "repo-lines-v1:sha256:f86b06b3ba97345387601c33a0bf68f4fd1ce13e7ea94ab8ff42e423da1f56c9:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiYjU4MzAxZGQ2OWIyYzg3YzU0NDA5NTRhYzllYjg4MjRmYzg3OGNkZWYwZTk4NDBkN2ViNTU4N2RiYjE4OTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjBkODVkZTRlZDdhYjgwMjFiNGE4ZGQ0ZmExNWVjNTE5MjVjZGZjY2RlMTgwNTg5NWE0YzhhM2MzYmE0OGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/overlap_resolver/confidence.py#L1-L22",
+          "version": "repo-lines-v1:sha256:447a32b2c77f30af2d0f18293d2a0d6d15221ce0890f53da7784c4d0fed46f72:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkMjM1ZTkxY2NlNmU2MWZlNjgwZmZlOTMxM2RhNGY0NDRiMDVhZDU4YjIwNzY0MzI4M2Q1MTBlYmJlNzg1NzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkMTA4ZDZlM2IwMzA4ZmRiZWM1ZjU3YzRkYTMxYWFkMWU5ZDZkZDgwYjRkNzQ0Zjc0Y2ZjZDVmMzdhMWMzZDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/overlap_resolver/merge.py#L1-L53",
+          "version": "repo-lines-v1:sha256:16ed4a8d028a8eefa2672ed1a06e52c5113d49c83e7f90a83df8d91913d32feb:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZDRkMzc3ZmNjMmNjMTZkODFhYjNkMzk3ZmZkMzlhYTIwYjYxOWJjMWEwYzI2ZjMzYWY2MGRhNjk2Njg5ZWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyOTQ3OTQzYTIzMzI5MWU2YTQ0YWM2Njg1ZDBlZTU4MWE2MTkwNmU3MmM0NjNkMTJiZWE3ZGE1NDlhNmMzNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c46c30f87c0447c28fd69bc8685828c3",
+      "statement": "RegexDetector compiles patterns under re.ASCII, matches on a space-normalized copy of the text of the same length, emits confidence 1.0 and validates no checksum.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/detector/regex.py#L10-L90",
+          "version": "repo-lines-v1:sha256:00fe2f112a95f126455a655f7d06a0c7fe2da2c85dbea1213472d274a4cc8daa:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZjUzMmJlNTc0Y2RkNjYxYWY1NDg2MmY1Mjc5NmU2YTQzYmFkYjAzZDRiMTllODc5YjQwMzY2N2NmODVmMzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMjZjMTI3ZjdmZTQ1MjU5OGFiMTZiOWVjOGMwMTNiZWQ5MzAwMjliOThiNWZiYjcyODNiYTdhZWNlMDQ4ZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzZjljMzNkNzdhYzY4ZTY2OTEzMTA0M2FjMjY3ZGZlYjQ2YzA0MzRkMTc5Y2NkYTk5MmI2ODA0YTc4YjQwMTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/text/normalization.py#L45-L58",
+          "version": "repo-lines-v1:sha256:bcfce4dfa37398ac3be56e628b8b6137e3e9258521412ba4df651cd8dbd446e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzM2RkOTMzYmRiMWU3ZjE4YzBkNGEyZDMzYmRhZDBiOThiNDI3OWYzYmY4ZjEzZGE2OGRlMTdhOTFiODBlNjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYjgxMDA2YzMxZDdmYzk2M2YxYjZhN2JiMzU0OWQ0M2Q0N2ZlY2NiM2UwOWQ1MWQwNDA2NzlkMzY4ZTVhMWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhNGQ1MDhkNzkwZGEyNzdlYTgxODI5YTk3NmEwZmM5N2ExZWJiNDgxYTI2MjI3ZTBlMDQ1YzE1ODhiOTgyOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhZDE4ZTM0MzIxNWUxZTVmMGQ1MDU5NDFkZDhlNTAzNjUzZTI0ZDdmOTBlM2RlYzEwMzQ4M2VkYWM3MDBjNDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5e68da07f15c45d38f368a0ae37ae62a",
+      "statement": "Anonymizer neutralizes user-typed tokens in literal runs by splicing a zero-width space after their first character, and refuses overlapping spans with OverlappingSpansError.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/anonymizer/span.py#L13-L95",
+          "version": "repo-lines-v1:sha256:96d49b52a7bcf74473421ad658da00b86077c8a4fcd5c3e8a28c58a82d044073:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwNzIyNDY4ZWQ0NDY1NTc2ZWEyMTM4ZmM0M2NmZWYwNDY3MDA4YTk5ZWIxYTY4M2ExNzY4NWY3Y2VlOTlhNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhMDY1MmUyZjZmZGI2ZTc5Mzg1Nzc4NTU3NTJlMjU5YTkxYjQxZDgyZjc5MTYwNGYzZGFhYjQxN2Q3ZTU0MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a3f36a8cffcc4ec4a55b649685d6118c",
+      "statement": "The expander keeps original detections, searches values longest first, and skips any occurrence touching an already covered character; WordBoundaryExpander is case-insensitive by default.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/expander/base.py#L30-L91",
+          "version": "repo-lines-v1:sha256:c099472d10af5a43f35cf0bd35bf1ac00c84a75dc8aa39c3321114122efcde54:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhZjNlMjAxMDJkNmUwZmUzMjQ2ZDE5MjgzYWM4NGViNDU5ZmQyMGRjYzY0MDU0ZGM4MDkwMjIzODg4OTZlMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2ZmRiYjgxNDFlNTE2ZmE3MWE1NTg3ZGY0NDkzNWJkZmQwMzViMjRmYzI3YTA3MGJjYThhOTI5ODFmMjYxODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/expander/word_boundary.py#L11-L32",
+          "version": "repo-lines-v1:sha256:2d7314e7083e8d66e96d04356618664751362c3c750dcc3d211290f5e8796cc2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2N2Q3ZjBkY2NmNDQyMDQ2YzFmMmQwNzExNTEzZDQxZmZkMzM5ZTZjMTE5YzFmYTc4OWVlNzQ2YjI0YTUyMzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5NDUxZWEyMjE4MDA2ZTgwMjc2YjE3Mjk5ZDZmZDJhZGY2MzY2NDNlM2QyODY3OGI5ODJkOGIzOWRhN2VmNjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRlN2E5MzExMDE0NzlkOTg3ZGFjZjMwOGIzYjg2ZjNkYTZjYjk5YTAyYmY5ZWRiMDQ4Yzc4MmY0NDY2MWZlYmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_90cc751fc9274aa3a8e222e96f875d8d",
+      "statement": "A guard verdict drops residual detections whose value the pipeline chose to leave clear and raises PIIRemainingError naming labels when still flagged; a score-only verdict cannot be filtered.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/guard/base.py#L10-L58",
+          "version": "repo-lines-v1:sha256:9fb8f6cdcfd3fb8b07fbb1120c9374535ccfc78c5b41dcd72e6232ca88607c74:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjNTU0MmU4MmFlNDgzNjhhZjhlZmJkYTI3NjQyZjhkODYzM2E2OWE5ZmU0YzBkNjQ5ZmQ2ODNjZGQ3OGMyYzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjBkODVkZTRlZDdhYjgwMjFiNGE4ZGQ0ZmExNWVjNTE5MjVjZGZjY2RlMTgwNTg5NWE0YzhhM2MzYmE0OGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhOGI5Y2MwZmJmZGU2Y2ZlMGRiNjFlMTBjOGFmYTkzNzg4NDkxZTY5ZWViZGRhMjJkNWZjOWUzODkxODNlMzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L313-L341",
+          "version": "repo-lines-v1:sha256:9c277611b64fa9d579d06bc0d7192a6bd3df47222d1f2b55bbca91efd70cfcdf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyZGI0MjExZGIzMjNjM2M3NzFkYzliNWZhN2QwZTdjMTMzYWJkNGZkOTRhMzk4NmU2ODlhYWM4NTZkNjI2OGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhOWY4MDhjM2Y0ZDQ3MTFhOWIzNDZiNzEwMjBlZWQ3ZmQ0OGMyMzIxNGYxY2Q5ODU5ZTYyZmUzNGI1MDAxODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NDE3N2M3OWJlODRhMjFkZWIwZGQwNmIyOGU1NjViZWI0MWYzNjgyN2NjYTBmYmM2MTQxYjcwNDRiZWM3NmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmODcwYjZjODFlNTRjMzVhZGViNjVhYjkxMGVlYjhiMThhODM3ODg3M2ZjODVjYTc2MWM1NTI3MjcyNGUxOTcifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L400-L410",
+          "version": "repo-lines-v1:sha256:b1532042f5c8bcfc0682ad0d145586113e5b63597c64d9171d76fca0d72fb3b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxZDhhNGQ1MzIzZjMxMjNmMGY1OWMxOTQ0MWIyMzdkMDBkYmJlZjA5YzM5NzEwM2FmM2E1Y2MwMDE2NmVlNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNjBkMmU3NzBjZTg2NDY2NGFhMjY4MjY3N2IxNTg2ODkyMWE0MWY0MjgwODc0ODg1YjgxNTgzNmQ5YWIzNmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI4Zjk4Y2ExM2EzYWIzNWJjOTYxMGQwNTViZTJmOTg5NzJkNTk0NDI0Y2QyNTI2MGQ2YWM0MTI5YmU3Mzk1MjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

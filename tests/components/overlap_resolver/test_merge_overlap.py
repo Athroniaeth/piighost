@@ -2,6 +2,8 @@
 
 from itertools import pairwise
 
+import pytest
+
 from piighost.components.overlap_resolver import (
     AnyOverlapResolver,
     MergeOverlapResolver,
@@ -65,12 +67,29 @@ class TestResolve:
         (merged,) = MergeOverlapResolver().resolve([first, middle, last])
         assert merged.text == "Monsieur Loni M. Wirth"
 
-    def test_a_tie_keeps_the_first_detector_label(self) -> None:
-        """At equal confidence the earliest detection's label wins."""
-        a = _detection("Loni M. Wirth", "PERSON", 0.9)
-        b = _detection("M. Wirth", "NAME", 0.9)
-        (merged,) = MergeOverlapResolver().resolve([a, b])
-        assert merged.label == "PERSON"
+    def test_the_widest_member_wins_at_equal_confidence(self) -> None:
+        """At equal confidence the member covering most of the union names it."""
+        fragment = _detection("Loni M.", "FRAGMENT", 0.9)
+        whole = _detection("Loni M. Wirth", "WHOLE", 0.9)
+        (merged,) = MergeOverlapResolver().resolve([fragment, whole])
+        assert merged.label == "WHOLE"
+
+    def test_an_earlier_span_wins_at_equal_confidence(self) -> None:
+        """At equal confidence and width, the member that starts first names it."""
+        late = _detection("Loni M. Wirth", "LATE", 0.9)
+        early = _detection("Monsieur Loni", "EARLY", 0.9)
+        (merged,) = MergeOverlapResolver().resolve([late, early])
+        assert merged.label == "EARLY"
+
+    @pytest.mark.parametrize("labels", [("FIRST", "SECOND"), ("SECOND", "FIRST")])
+    def test_a_true_tie_keeps_the_first_detector_label(
+        self, labels: tuple[str, str]
+    ) -> None:
+        """On one span at one confidence, the detection listed first wins."""
+        tied = [_detection("Loni M. Wirth", label, 0.9) for label in labels]
+        wider = _detection("Monsieur Loni", "WIDER", 0.5)
+        (merged,) = MergeOverlapResolver().resolve([*tied, wider])
+        assert merged.label == labels[0]
 
     def test_the_result_never_overlaps(self) -> None:
         """Whatever the input, no two kept detections overlap."""

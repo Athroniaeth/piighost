@@ -11,7 +11,7 @@ class LabelHashPlaceholderFactory(BaseCounterPlaceholderFactory):
     """Number each entity within its label, then render that count as a hash.
 
     Like the counter factory it numbers entities per label in order, but it
-    shows the number as a short hash, so <<PERSON:1>> reads as <<PERSON:6b86b273>>.
+    shows the number as a short hash, so <<PERSON:1>> reads as <<PERSON:09ef3b74>>.
     The hash is only for the opaque look: it digests the label and the ordinal,
     never the value, so the token carries nothing about the PII and consecutive
     entities look unrelated. It is trivially reversible, which does not matter

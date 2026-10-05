@@ -16,7 +16,6 @@ import asyncio
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
     AnyPlaceholderFactory,
     LabelCounterPlaceholderFactory,
@@ -44,11 +43,7 @@ async def main() -> None:
     print("text:", text, "\n")
 
     for name, factory in factories.items():
-        pipeline = AnonymizationPipeline(
-            detector,
-            ExactEntityLinker(),
-            Anonymizer(factory),
-        )
+        pipeline = AnonymizationPipeline(detector, anonymizer=Anonymizer(factory))
         result = await pipeline.anonymize(text)
         print(f"{name:>13}: {result.text}")
 

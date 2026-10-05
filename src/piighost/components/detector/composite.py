@@ -21,8 +21,6 @@ class CompositeDetector:
 
     async def detect(self, text: str) -> list[Detection]:
         """Run every child concurrently and concatenate detections in order."""
-        if not self._detectors:
-            return []
         results = await asyncio.gather(
             *(detector.detect(text) for detector in self._detectors)
         )

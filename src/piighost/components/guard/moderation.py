@@ -58,11 +58,7 @@ class ModerationGuardRail:
             model=self.model, inputs=text
         )
         results = response.results
-
-        if not results:
-            score = 0.0
-        else:
-            scores = results[0].category_scores or {}
-            score = scores.get(_PII_CATEGORY, 0.0)
+        scores = (results[0].category_scores or {}) if results else {}
+        score = scores.get(_PII_CATEGORY, 0.0)
 
         return GuardVerdict(flagged=score >= self.threshold, score=score)

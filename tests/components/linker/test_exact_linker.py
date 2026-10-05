@@ -68,3 +68,14 @@ class TestLink:
     def test_no_detections_yields_no_entities(self) -> None:
         """Linking nothing returns no entities."""
         assert ExactEntityLinker().link([]) == []
+
+
+class TestUnicodeSpaces:
+    def test_spellings_that_differ_by_their_spaces_are_one_entity(self) -> None:
+        """A value written with a no-break space and with a plain one is linked once."""
+        plain = _detection(0, 11, "Paul Martin")
+        no_break = _detection(20, 31, "Paul\u00a0Martin")
+        doubled = _detection(40, 52, "Paul  Martin")
+        entities = ExactEntityLinker().link([plain, no_break, doubled])
+        assert len(entities) == 1
+        assert entities[0].detections == (plain, no_break, doubled)

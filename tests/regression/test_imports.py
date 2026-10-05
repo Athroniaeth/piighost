@@ -6,14 +6,19 @@ here before any behavioral test runs.
 """
 
 import importlib
+import importlib.util
 import pkgutil
+import re
+import sys
+from typing import Any
 
 import pytest
 
 import piighost
 
 # The public symbols consumers import, as (module, name) pairs. Adding a public
-# export is one line here; renaming or removing one breaks the matching case.
+# export is one line here; renaming or removing one breaks the matching case. The
+# exceptions test_exceptions.py imports for its hierarchy are guarded there.
 PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.models", "Span"),
     ("piighost.models", "Detection"),
@@ -25,10 +30,6 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.detector", "RegexDetector"),
     ("piighost.components.detector", "CompositeDetector"),
     ("piighost.components.detector.ner", "BaseNERDetector"),
-    ("piighost.components.detector.patterns", "GENERIC_PATTERNS"),
-    ("piighost.components.detector.patterns", "US_PATTERNS"),
-    ("piighost.components.detector.patterns", "EU_PATTERNS"),
-    ("piighost.components.detector.patterns", "FR_PATTERNS"),
     ("piighost.text", "AnySplitter"),
     ("piighost.text", "RecursiveCharacterTextSplitter"),
     ("piighost.text", "boundary_wrap"),
@@ -55,10 +56,10 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.guard", "DetectorGuardRail"),
     ("piighost.components.guard", "GuardVerdict"),
     ("piighost.components.override", "AnyDetectionOverride"),
-    ("piighost.components.override", "BlacklistStrategy"),
+    ("piighost.components.override", "AllowListStrategy"),
     ("piighost.components.override", "DetectionOverride"),
     ("piighost.components.override", "OverrideConflictStrategy"),
-    ("piighost.components.override", "WhitelistStrategy"),
+    ("piighost.components.override", "DenyListStrategy"),
     ("piighost.pipeline", "AnonymizationPipeline"),
     ("piighost.pipeline", "AnyPipeline"),
     ("piighost.pipeline", "BaseAnonymizationPipeline"),
@@ -89,28 +90,8 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.components.placeholder", "LabelPlaceholderFactory"),
     ("piighost.components.placeholder", "MaskPlaceholderFactory"),
     ("piighost.components.placeholder", "RedactPlaceholderFactory"),
-    ("piighost.exceptions", "PIIGhostError"),
-    ("piighost.exceptions", "SpanError"),
-    ("piighost.exceptions", "NegativeSpanStartError"),
-    ("piighost.exceptions", "SpanOrderingError"),
-    ("piighost.exceptions", "DetectionError"),
-    ("piighost.exceptions", "ConfidenceError"),
-    ("piighost.exceptions", "EntityError"),
-    ("piighost.exceptions", "EmptyEntityError"),
-    ("piighost.exceptions", "MixedLabelError"),
-    ("piighost.exceptions", "HasherError"),
-    ("piighost.exceptions", "EmptyPepperError"),
-    ("piighost.exceptions", "CipherError"),
-    ("piighost.exceptions", "InvalidKeyLengthError"),
     ("piighost.exceptions", "AnonymizerError"),
     ("piighost.exceptions", "OverlappingSpansError"),
-    ("piighost.exceptions", "DetectorError"),
-    ("piighost.exceptions", "LabelMappingError"),
-    ("piighost.exceptions", "TextTooLongError"),
-    ("piighost.exceptions", "TextError"),
-    ("piighost.exceptions", "EmptyFragmentError"),
-    ("piighost.exceptions", "GuardError"),
-    ("piighost.exceptions", "PIIRemainingError"),
     ("piighost.exceptions", "MiddlewareError"),
     ("piighost.exceptions", "InventedPlaceholderError"),
     ("piighost.exceptions", "MissingThreadIdError"),
@@ -122,6 +103,36 @@ PUBLIC_API: list[tuple[str, str]] = [
     ("piighost.exceptions", "ConfigError"),
     ("piighost.exceptions", "ConfigFileError"),
     ("piighost.exceptions", "ConfigValidationError"),
+    ("piighost.catalog", "CatalogError"),
+    ("piighost.catalog", "CatalogRefError"),
+    ("piighost.catalog", "CatalogUrlError"),
+    ("piighost.catalog", "CatalogUnreachableError"),
+    ("piighost.catalog", "CatalogPayloadError"),
+    ("piighost.catalog", "pull"),
+    ("piighost.catalog", "pull_config"),
+    ("piighost.catalog", "parse_ref"),
+    # The 1.x names, kept so code written for 1.8 and later still imports.
+    ("piighost.hub", "HubError"),
+    ("piighost.hub", "HubRefError"),
+    ("piighost.hub", "HubUrlError"),
+    ("piighost.hub", "HubUnreachableError"),
+    ("piighost.hub", "HubPayloadError"),
+    ("piighost.hub", "pull"),
+    ("piighost.hub", "pull_config"),
+    ("piighost.hub", "parse_ref"),
+]
+
+
+# The modules guarded behind an optional dependency, as (module, missing
+# dependency, extra) rows: without the dependency, importing the module names the
+# extra to install.
+OPTIONAL_DEPENDENCY_GUARDS: list[tuple[str, str, str]] = [
+    ("piighost.conversation_memory.redis_backend", "redis", "redis"),
+    ("piighost.crypto.cipher.aesgcm", "cryptography", "crypto"),
+    ("piighost.crypto.hasher.argon2id", "argon2", "argon2"),
+    ("piighost.components.guard.moderation", "mistralai", "mistral"),
+    ("piighost.components.guard.gliner2", "gliner2", "gliner2"),
+    ("piighost.integrations.langchain.middleware", "langchain", "langchain"),
 ]
 
 
@@ -193,3 +204,24 @@ def test_every_module_imports_cleanly() -> None:
         except ImportError as exc:
             if "piighost[" not in str(exc):
                 raise
+
+
+@pytest.mark.parametrize(("module", "dependency", "extra"), OPTIONAL_DEPENDENCY_GUARDS)
+def test_missing_optional_dependency_names_its_extra(
+    module: str, dependency: str, extra: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Check that a guarded module imported without its dependency names its extra."""
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == dependency:
+            return None
+        return real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec)
+    # The already imported module comes back after the test, so the classes other
+    # tests hold stay the ones sys.modules serves.
+    monkeypatch.delitem(sys.modules, module, raising=False)
+
+    with pytest.raises(ImportError, match=re.escape(f"piighost[{extra}]")):
+        importlib.import_module(module)

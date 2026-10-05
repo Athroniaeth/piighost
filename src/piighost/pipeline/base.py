@@ -6,8 +6,6 @@ from contextlib import AbstractContextManager, nullcontext
 from dataclasses import replace
 from typing import Any, Generic, Protocol, cast, runtime_checkable
 
-from typing_extensions import TypeVar
-
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.anonymizer.base import Anonymization, AnyAnonymizer
 from piighost.components.detector.base import AnyDetector
@@ -24,34 +22,15 @@ from piighost.components.placeholder.base import (
     AnyPlaceholderFactory,
     BaseDelimitedPlaceholderFactory,
 )
-from piighost.components.placeholder.tags import PlaceholderPreservation
+from piighost.components.placeholder.tags import (
+    PreservationT,
+    PreservationT_co,
+)
 from piighost.conversation_memory.base import Forgotten, MessageRole
 from piighost.exceptions import PIIGhostSecurityWarning, PIIRemainingError
 from piighost.models import Detection, Entity
 from piighost.observation import AnyObservationSpan, NoOpSpan, get_tracer
-
-PreservationT = TypeVar(
-    "PreservationT",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-)
-"""What the concrete pipeline's tokens preserve, invariant on the implementations.
-
-Invariant, since a pipeline both consumes its anonymizer's tag and hands the same
-tokens back out, so it cannot vary in either direction.
-"""
-
-PreservationT_co = TypeVar(
-    "PreservationT_co",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-    covariant=True,
-)
-"""What a pipeline's tokens preserve, on the AnyPipeline and AnyThreadPipeline ports.
-
-Covariant, so a pipeline whose tokens preserve identity satisfies a consumer such
-as the middleware that requires only identity or less.
-"""
+from piighost.text import value_key
 
 
 @runtime_checkable
@@ -182,7 +161,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         tokens, making traces safe for a PII-untrusted backend but unusable as
         datasets. With no redactor and a live tracer, clear-text tracing warns
         unless trace_clear_text is set to acknowledge it. override imposes the
-        server's whitelist and blacklist on every detection set, trumping the
+        server's deny list and allow list on every detection set, trumping the
         detector and any corrected set.
         """
         self.detector = detector
@@ -223,21 +202,11 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
                 stacklevel=2,
             )
 
-    def _resolve_overlaps(self, detections: list[Detection]) -> list[Detection]:
-        """Resolve overlapping detections, or pass them through when disabled."""
-        if self.overlap_resolver is None:
-            return detections
-        return self.overlap_resolver.resolve(detections)
-
     def _expand(self, text: str, detections: list[Detection]) -> list[Detection]:
         """Add missed occurrences, or pass the detections through when disabled."""
         if self.expander is None:
             return detections
         return self.expander.expand(text, detections)
-
-    def _link(self, detections: list[Detection]) -> list[Entity]:
-        """Group detections into entities. A subclass may widen this to a thread."""
-        return self.linker.link(detections)
 
     def _resolve_entities(self, entities: list[Entity]) -> list[Entity]:
         """Reconcile entity conflicts, or pass them through when disabled."""
@@ -254,9 +223,9 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         return await self.override.apply(text, detections)
 
     async def _cleared_values(self, text: str) -> frozenset[str]:
-        """The values the blacklist clears here, exempted from the guard.
+        """The values the allow list clears here, exempted from the guard.
 
-        A blacklisted value is deliberately left in clear, so a detector-based
+        A value on the allow list is deliberately left in clear, so a detector-based
         guard would re-find it and refuse the output. Empty when no override or
         no guard is configured, since the exemption only serves the guard.
         """
@@ -265,7 +234,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         return await self.override.cleared_values(text)
 
     async def _forces_value(self, value: str) -> bool:
-        """Whether the override's whitelist forces this value to a token."""
+        """Whether the override's deny list forces this value to a token."""
         if self.override is None:
             return False
         return await self.override.forces_value(value)
@@ -280,9 +249,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
 
     def _payload_detections(self, detections: list[Detection]) -> list[dict[str, Any]]:
         """Serialize detections for a span payload, tokened when redacting."""
-        if self.observation_redactor is None:
+        redactor = self.observation_redactor
+        if redactor is None:
             return [detection.to_dict() for detection in detections]
-        tokens = self._redaction_tokens(detections)
+        tokens = self._redaction_tokens(detections, redactor)
         return [
             {**detection.to_dict(), "text": tokens[detection]}
             for detection in detections
@@ -312,9 +282,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         survive a splice made for another. A merged range takes the token of its
         first detection.
         """
-        if self.observation_redactor is None:
+        redactor = self.observation_redactor
+        if redactor is None:
             return text
-        tokens = self._redaction_tokens(detections)
+        tokens = self._redaction_tokens(detections, redactor)
         merged: list[tuple[int, int, str]] = []
         for detection in sorted(detections, key=lambda detection: detection.span):
             span = detection.span
@@ -328,11 +299,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             redacted = redacted[:start] + token + redacted[end:]
         return redacted
 
-    def _redaction_tokens(self, detections: list[Detection]) -> dict[Detection, str]:
+    def _redaction_tokens(
+        self, detections: list[Detection], redactor: AnyPlaceholderFactory
+    ) -> dict[Detection, str]:
         """Token every detection with the redactor, grouped so values share one."""
-        redactor = self.observation_redactor
-        if redactor is None:
-            return {}
         entities = self.linker.link(detections)
         tokens = redactor.create(entities)
         return {
@@ -340,6 +310,25 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             for entity in entities
             for detection in entity.detections
         }
+
+    async def _traced_guard(
+        self, text: str, rendered: str, expected: frozenset[str] = frozenset()
+    ) -> None:
+        """Run the guard stage over a rendered text inside its span.
+
+        The values the allow list clears in the source text join expected, so the
+        guard ignores them as well. The span records whether the verdict flagged
+        and the labels it saw; it stays a no-op when no guard is configured.
+
+        Raises:
+            PIIRemainingError: If the guard flags unexpected PII in the output.
+        """
+        with self._stage_span("piighost.guard", self.guard) as span:
+            cleared = await self._cleared_values(text)
+            verdict = await self._guard(rendered, expected | cleared)
+            if verdict is not None:
+                labels = sorted({d.label for d in verdict.detections})
+                span.set_output({"flagged": verdict.flagged, "labels": labels})
 
     async def _guard(
         self, text: str, expected: frozenset[str] = frozenset()
@@ -361,7 +350,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             residual = tuple(
                 detection
                 for detection in verdict.detections
-                if detection.text.casefold() not in expected
+                if value_key(detection.text) not in expected
             )
             if not residual:
                 return replace(verdict, flagged=False, detections=())
@@ -396,13 +385,13 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 detections = await self._override(text, detections)
             root.set_input(self._payload_text(text, detections))
 
-            with self._stage_span("piighost.overlap", self.overlap_resolver):
-                detections = self._resolve_overlaps(detections)
+            with self._tracer.span("piighost.overlap"):
+                detections = self.overlap_resolver.resolve(detections)
             with self._stage_span("piighost.expand", self.expander):
                 detections = self._expand(text, detections)
 
             with self._tracer.span("piighost.link") as span:
-                entities = self._link(detections)
+                entities = self.linker.link(detections)
                 span.set_output(self._payload_entities(entities))
 
             with self._stage_span("piighost.entity_resolve", self.entity_resolver):
@@ -413,12 +402,7 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 span.set_attribute("tokens", len(result.tokens))
                 span.set_output(result.text)
 
-            with self._stage_span("piighost.guard", self.guard) as span:
-                cleared = await self._cleared_values(text)
-                verdict = await self._guard(result.text, cleared)
-                if verdict is not None:
-                    labels = sorted({d.label for d in verdict.detections})
-                    span.set_output({"flagged": verdict.flagged, "labels": labels})
+            await self._traced_guard(text, result.text)
 
             root.set_output(result.text)
             return result

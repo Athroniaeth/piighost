@@ -33,7 +33,6 @@ class PresidioDetector(BaseNERDetector):
     Attributes:
         analyzer: The Presidio AnalyzerEngine queried for entities.
         language: The language code passed to analyze.
-        threshold: The score at or above which Presidio keeps a finding.
     """
 
     def __init__(
@@ -45,10 +44,9 @@ class PresidioDetector(BaseNERDetector):
         max_concurrency: int | None = None,
     ) -> None:
         """Store the analyzer, then set the labels, language, and threshold."""
-        super().__init__(labels, max_concurrency=max_concurrency)
+        super().__init__(labels, threshold=threshold, max_concurrency=max_concurrency)
         self.analyzer = analyzer
         self.language = language
-        self.threshold = threshold
 
     async def _raw_detect(self, text: str) -> list[Detection]:
         """Run Presidio and build one detection per finding, native types kept."""

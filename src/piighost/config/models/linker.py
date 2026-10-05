@@ -8,7 +8,7 @@ from piighost.config.models.common import _ComponentConfig
 
 
 class ExactLinkerConfig(_ComponentConfig):
-    """Config for the exact entity linker, grouping by casefolded value."""
+    """Config for the exact entity linker, grouping by value key."""
 
     type: Literal["exact"]
 

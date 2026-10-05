@@ -132,7 +132,7 @@ class PIIGhostClient:
             detections=cast(int, data["detections"]),
         )
 
-    async def detect(self, text: str, thread_id: str = "default") -> list[Entity]:
+    async def detect(self, text: str, thread_id: str) -> list[Entity]:
         """Preview the entities a message's PII groups into, without anonymizing.
 
         The server runs detection and linking but does not tokenize the text or

@@ -18,11 +18,17 @@ neither to store in clear (a PIIGhostSecurityWarning is emitted). Passing
 exactly one is a misuse and raises ValueError.
 """
 
-import hashlib
 import importlib.util
 import json
 
-from piighost.conversation_memory.base import Forgotten, MessageRole, warn_plaintext
+from piighost.conversation_memory.base import (
+    Forgotten,
+    MessageRole,
+    _first_occurrence_roles,
+    message_digest,
+    require_paired_crypto,
+    warn_plaintext,
+)
 from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
@@ -89,8 +95,7 @@ class RedisConversationMemory:
         store securely, or neither to store in clear. Passing exactly one is a
         misuse. Redis is a networked store, so a plaintext backend warns.
         """
-        if (hasher is None) != (cipher is None):
-            raise ValueError("Provide both a hasher and a cipher, or neither")
+        require_paired_crypto(hasher, cipher)
         self._client = client
         self._hasher = hasher
         self._cipher = cipher
@@ -106,12 +111,6 @@ class RedisConversationMemory:
     def _message_key(self, thread_id: str, digest_message: str) -> str:
         """Return the key of one message's stored detections."""
         return f"{self.namespace}:{thread_id}:msg:{digest_message}"
-
-    def _digest(self, message: str) -> str:
-        """Key a message: the security hasher if set, else a plain SHA-256."""
-        if self._hasher is not None:
-            return self._hasher.hash(message)
-        return hashlib.sha256(message.encode()).hexdigest()
 
     def _encrypt(self, data: bytes) -> bytes:
         """Encrypt a value if a cipher is set, else pass it through in clear."""
@@ -135,7 +134,7 @@ class RedisConversationMemory:
         first writes of the same message cannot both append it. A concurrent
         change to the key retries the transaction.
         """
-        digest_message = self._digest(message)
+        digest_message = message_digest(message, self._hasher)
         key = self._message_key(thread_id, digest_message)
         index_key = self._index_key(thread_id)
         blob = self._encrypt(_dumps(role, detections))
@@ -163,7 +162,7 @@ class RedisConversationMemory:
     ) -> list[Detection] | None:
         """Return a thread's detections, for one message or the whole thread."""
         if message is not None:
-            digest_message = self._digest(message)
+            digest_message = message_digest(message, self._hasher)
             key = self._message_key(thread_id, digest_message)
             blob = await self._client.get(key)
             if blob is None:
@@ -179,13 +178,9 @@ class RedisConversationMemory:
 
     async def get_provenance(self, thread_id: str) -> dict[str, MessageRole]:
         """Return the first-occurrence role of every value in the thread."""
-        provenance: dict[str, MessageRole] = {}
-
-        for _, role, detections in await self._read_all(thread_id):
-            for detection in detections:
-                provenance.setdefault(detection.text.casefold(), role)
-
-        return provenance
+        records = await self._read_all(thread_id)
+        messages = ((role, detections) for _, role, detections in records)
+        return _first_occurrence_roles(messages)
 
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""

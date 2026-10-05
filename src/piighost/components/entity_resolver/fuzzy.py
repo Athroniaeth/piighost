@@ -13,6 +13,7 @@ from collections.abc import Callable
 
 from piighost.components.entity_resolver.merge import MergeEntityResolver
 from piighost.models import Entity
+from piighost.text import value_key
 
 if importlib.util.find_spec("rapidfuzz") is None:
     raise ImportError(
@@ -33,8 +34,8 @@ without collapsing genuinely distinct names.
 class FuzzyEntityResolver(MergeEntityResolver):
     """Merge same-label entities whose values are nearly identical.
 
-    Two entities read as one value when they share a label and their casefolded
-    texts score at or above the threshold, by Jaro-Winkler unless another
+    Two entities read as one value when they share a label and the value keys of
+    their texts score at or above the threshold, by Jaro-Winkler unless another
     similarity is injected. The merge itself is inherited: a group combines into
     one entity, its detections deduplicated and position-ordered.
 
@@ -62,26 +63,17 @@ class FuzzyEntityResolver(MergeEntityResolver):
         groups: list[list[Entity]] = []
 
         for entity in entities:
-            group = self._anchored_group(groups, entity)
+            anchored = (g for g in groups if self._same_value(entity, g[0]))
+            group = next(anchored, None)
             if group is None:
                 groups.append([entity])
             else:
                 group.append(entity)
         return groups
 
-    def _anchored_group(
-        self, groups: list[list[Entity]], entity: Entity
-    ) -> list[Entity] | None:
-        """Return the first group whose anchor reads as the entity's value."""
-        for group in groups:
-            anchor = group[0]
-            if self._same_value(entity, anchor):
-                return group
-        return None
-
     def _same_value(self, first: Entity, second: Entity) -> bool:
         """Whether two entities read as one value: one label, similar texts."""
         if first.label != second.label:
             return False
-        score = self._similarity(first.text.casefold(), second.text.casefold())
+        score = self._similarity(value_key(first.text), value_key(second.text))
         return score >= self.threshold

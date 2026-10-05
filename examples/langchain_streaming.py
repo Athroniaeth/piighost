@@ -22,14 +22,8 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessageChunk, HumanMessage
 from langchain_openai import ChatOpenAI  # pyrefly: ignore[missing-import]
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import (
-    LabelCounterPlaceholderFactory,
-    PreservesLabeledIdentityOpaque,
-)
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.integrations.langchain import PIIAnonymizationMiddleware
 from piighost.pipeline import ThreadAnonymizationPipeline
 
@@ -42,11 +36,7 @@ SYSTEM = (
 def _build_pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """A thread pipeline over a counter factory, whose tokens preserve identity."""
     detector = ExactMatchDetector({"Emma": "PERSON"})
-    linker = ExactEntityLinker()
-    factory = LabelCounterPlaceholderFactory()
-    anonymizer = Anonymizer(factory)
-    memory = InMemoryConversationMemory()
-    return ThreadAnonymizationPipeline(detector, linker, anonymizer, memory)
+    return ThreadAnonymizationPipeline(detector)
 
 
 async def main() -> None:

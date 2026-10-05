@@ -12,6 +12,7 @@ import re
 from enum import Enum
 
 from piighost.components.detector.ner.base import BaseNERDetector
+from piighost.exceptions import UnreadableOutputError
 from piighost.models import Detection
 from piighost.text import find_all_word_boundary
 
@@ -21,9 +22,10 @@ if importlib.util.find_spec("langchain_core") is None:
         "Install it with: pip install piighost[llm]"
     )
 
+from langchain_core.exceptions import OutputParserException
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -57,21 +59,12 @@ _DATA_TAG_PATTERN = re.compile(
     f"{re.escape(_TEXT_OPEN)}|{re.escape(_TEXT_CLOSE)}", re.IGNORECASE
 )
 """Matches either data tag, in any case, so neither can close the data region
-from inside the source text."""
+from inside the source text.
 
-
-def _escape_data_tag(match: re.Match[str]) -> str:
-    """Escape the leading angle bracket of a matched data tag."""
-    return match.group().replace("<", "&lt;")
-
-
-def _neutralize_data_tags(text: str) -> tuple[str, int]:
-    """Escape every data tag in a text, returning the copy and how many were found.
-
-    The escaped form is ordinary text, so it survives any provider-side
-    normalization that would silently strip an invisible separator.
-    """
-    return _DATA_TAG_PATTERN.subn(_escape_data_tag, text)
+A match is escaped by its leading angle bracket, as &lt;. The escaped form is
+ordinary text, so it survives any provider-side normalization that would
+silently strip an invisible separator.
+"""
 
 
 def _make_schema(labels: list[str]) -> type[BaseModel]:
@@ -106,6 +99,11 @@ class LLMDetector(BaseNERDetector):
     A custom prompt must contain a {labels} placeholder and, per LangChain's
     f-string format, double any other literal curly brace as {{ or }}. The source
     text is passed as a template value, so curly braces in it are safe.
+
+    An output the model returns but the detector cannot read raises
+    UnreadableOutputError, so a broken model refuses the message instead of
+    letting it through undetected. fail_open=True trades that protection for
+    availability: the message then goes on without detection, with a warning.
     """
 
     def __init__(
@@ -115,6 +113,7 @@ class LLMDetector(BaseNERDetector):
         prompt: str | None = None,
         provider: str | None = None,
         confidence: float = 1.0,
+        fail_open: bool = False,
     ) -> None:
         """Store or load the model, then build the schema, prompt, and chain.
 
@@ -125,6 +124,8 @@ class LLMDetector(BaseNERDetector):
         the region cannot be closed from within.
         confidence is carried on every detection, so an LLM detector can be scored
         against a NER one at the overlap-resolution stage.
+        fail_open reads an unreadable output as zero detections instead of
+        raising UnreadableOutputError.
         """
         super().__init__(labels)
         if isinstance(model, str):
@@ -132,6 +133,7 @@ class LLMDetector(BaseNERDetector):
 
             model = init_chat_model(model, model_provider=provider)
         self._confidence = confidence
+        self._fail_open = fail_open
         self._schema = _make_schema(self.internal_labels)
         self._structured = model.with_structured_output(self._schema)
         system_prompt = (prompt or _DEFAULT_PROMPT) + _INJECTION_GUARD
@@ -155,7 +157,9 @@ class LLMDetector(BaseNERDetector):
         if not text:
             return []
 
-        tagged_text, tag_count = _neutralize_data_tags(text)
+        tagged_text, tag_count = _DATA_TAG_PATTERN.subn(
+            lambda match: match.group().replace("<", "&lt;"), text
+        )
         if tag_count:
             logger.warning(
                 "LLMDetector source text carried %d data tag(s); they were "
@@ -167,16 +171,14 @@ class LLMDetector(BaseNERDetector):
         messages = self._prompt_template.format_messages(
             labels=", ".join(self.internal_labels), text=tagged_text
         )
-        result = await self._structured.ainvoke(messages)
+        try:
+            result = await self._structured.ainvoke(messages)
+        except (OutputParserException, ValidationError) as error:
+            return self._unreadable(type(error).__name__)
 
         entities = getattr(result, "entities", None)
         if entities is None:
-            logger.warning(
-                "LLMDetector structured output returned no usable result "
-                "(got %s); treating as no detections.",
-                type(result).__name__,
-            )
-            return []
+            return self._unreadable(type(result).__name__)
 
         detections: list[Detection] = []
         for entity in entities:
@@ -197,3 +199,26 @@ class LLMDetector(BaseNERDetector):
                 )
                 detections.append(detection)
         return detections
+
+    def _unreadable(self, got: str) -> list[Detection]:
+        """Refuse an output the detector cannot read, or let it pass if fail_open.
+
+        Only the type of what came back is named, never its content: a broken
+        output can still quote the text, and so its PII. For the same reason the
+        parser's own error is not chained, since its message carries that output.
+
+        Raises:
+            UnreadableOutputError: Unless the detector was built with fail_open.
+        """
+        if not self._fail_open:
+            raise UnreadableOutputError(
+                f"LLMDetector could not read the model's output (got {got}), so "
+                "the message is refused rather than sent undetected. Build the "
+                "detector with fail_open=True to send it without detection."
+            ) from None
+        logger.warning(
+            "LLMDetector could not read the model's output (got %s); fail_open "
+            "is set, so the message goes on without detection.",
+            got,
+        )
+        return []

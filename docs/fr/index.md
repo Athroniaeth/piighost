@@ -2,16 +2,16 @@
 icon: lucide/shield
 ---
 
-# PIIGhost
+# piighost
 
-`piighost` est une librairie Python qui permet de protéger vos données confidentielles, données personnelles (PII) et secrets, dans les conversations avec les LLM via de la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
+`piighost` est une librairie Python qui permet de protéger vos données confidentielles (données personnelles ou PII, secrets) dans les conversations avec les LLM, grâce à la dé-identification. Les valeurs sensibles sont cachées avant l'envoi, puis restaurées dans la réponse. Les intégrations LangChain, Pydantic AI, LlamaIndex et Claude Code sont fournies, ainsi qu'un connecteur d'API OpenAI et Anthropic.
 
-Cette dé-identification repère les données confidentielles grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le token qui prend sa place. Par exemple :
+Cette dé-identification repère les données confidentielles grâce à des détecteurs modulables (regex, NER, LLM) et remplace chaque valeur par un placeholder, le jeton qui prend sa place. Par exemple :
 
 - `John Doe`{ .pii } devient `<<PERSON:1>>`{ .placeholder }
 - `john.doe@example.com`{ .pii } devient `<<EMAIL:1>>`{ .placeholder }
 
-Ce placeholder reste le même d'un message à l'autre avec le pipeline conversationnel, qui garde la correspondance entre une valeur et son placeholder sur toute la conversation. Si `john.doe@example.com`{ .pii } réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`{ .placeholder }, ce qui permet au LLM de suivre le fil.
+Avec le pipeline conversationnel, ce placeholder reste le même d'un message à l'autre. Ce pipeline garde la correspondance entre une valeur et son placeholder sur toute la conversation. Si `john.doe@example.com`{ .pii } réapparaît trois messages plus tard, le placeholder reste `<<EMAIL:1>>`{ .placeholder }, et le LLM peut ainsi suivre le fil.
 
 Le LLM ne reçoit donc que du texte dé-identifié. Quand il retourne des placeholders, par exemple en répondant "Bonjour `<<PERSON:1>>`{ .placeholder }", `piighost` les remplace par les vraies valeurs. L'utilisateur voit `John Doe`{ .pii } et ne voit jamais la dé-identification.
 
@@ -28,12 +28,9 @@ La même mécanique protège les agents qui appellent des outils. Avec le middle
 
 ## Pourquoi dé-identifier ?
 
-Un LLM en cloud (GPT, Claude, Gemini) reçoit chaque information que vous lui envoyez, PII de vos utilisateurs comprises. Dé-identifier en amont découple le choix du LLM de la sensibilité du contenu. Quand les données confidentielles n'atteignent jamais le LLM, le fournisseur cesse d'être une décision de confidentialité et redevient une question de qualité, de coût et de latence.
+Un LLM en cloud (GPT, Claude, Gemini) reçoit chaque information que vous lui envoyez, PII de vos utilisateurs comprises. Dé-identifier en amont découple le choix du LLM de la sensibilité du contenu. Quand les données confidentielles n'atteignent jamais le LLM, le choix du fournisseur cesse d'être une décision de confidentialité. Il redevient une question de qualité, de coût et de latence.
 
-Pour aller plus loin :
-
-- [Pourquoi dé-identifier ?](why-anonymize.md), le spectre des fournisseurs, le détail juridique (CLOUD Act, FISA 702, Schrems II) et les cas d'usage
-- [Comment PIIGhost se compare](comparison.md), les alternatives et leurs compromis
+Le spectre des fournisseurs, le détail juridique (CLOUD Act, FISA 702, Schrems II) et les cas d'usage sont dans [Pourquoi dé-identifier ?](why-anonymize.md). Les alternatives et leurs compromis sont dans [Comment piighost se compare](comparison.md).
 
 ## Par où commencer
 
@@ -46,10 +43,13 @@ Pour aller plus loin :
     Installer et prendre `piighost` en main.
 
     - [Installation](getting-started/installation.md)
-    - [Quickstart](getting-started/quickstart.md)
+    - [Démarrage rapide](getting-started/quickstart.md)
     - [Premier pipeline](getting-started/first-pipeline.md)
     - [Pipeline conversationnel](getting-started/conversation.md)
+    - [Fichier de configuration](getting-started/configuration.md)
     - [Middleware LangChain](getting-started/langchain.md)
+    - [Serveur d'API](getting-started/api-server.md)
+    - [Client distant](getting-started/api-client.md)
 
 -   :lucide-wrench: __Recettes__
 
@@ -57,11 +57,26 @@ Pour aller plus loin :
 
     Résoudre une tâche précise.
 
-    - [Usage basique](examples/basic.md)
-    - [Intégration LangChain](examples/langchain.md)
+    - [Dé-identifier et restaurer un texte](examples/basic.md)
     - [Détecteurs prêts à l'emploi](examples/detectors.md)
-    - [Étendre PIIGhost](extending.md)
-    - [Tests](examples/testing.md)
+    - [Masquer ou laisser en clair](examples/overrides.md)
+    - [Étendre piighost](extending.md)
+    - [Tester sans modèle](examples/testing.md)
+    - [Déploiement](deployment.md)
+    - [Déploiement multi-instance](multi-instance.md)
+
+-   :lucide-plug: __Intégrations__
+
+    ---
+
+    Brancher `piighost` dans un agent, un framework ou un client.
+
+    - [Intégration LangChain](examples/langchain.md)
+    - [Intégration Pydantic AI](examples/pydantic-ai.md)
+    - [Intégration LlamaIndex](examples/llama-index.md)
+    - [Hooks Claude Code](examples/claude-code.md)
+    - [Proxy compatible OpenAI](examples/openai-proxy.md)
+    - [Proxy compatible Anthropic](examples/anthropic-proxy.md)
 
 -   :lucide-book-open: __Référence__
 
@@ -71,8 +86,16 @@ Pour aller plus loin :
 
     - [Anonymizer](reference/anonymizer.md)
     - [Pipeline](reference/pipeline.md)
+    - [Modèles de données](reference/models.md)
     - [LangChain](reference/langchain.md)
     - [Détecteurs](reference/detectors.md)
+    - [Garde-fous](reference/guard-rails.md)
+    - [Mémoire de conversation](reference/memory.md)
+    - [Exceptions](reference/errors.md)
+    - [CLI](reference/cli.md)
+    - [Endpoints de l'API](reference/api-endpoints.md)
+    - [CLI du serveur](reference/api-cli.md)
+    - [Référence de configuration](configuration/toml.md)
 
 -   :lucide-layers: __Concepts__
 
@@ -80,9 +103,8 @@ Pour aller plus loin :
 
     Comprendre les choix de conception.
 
-    - [Pourquoi dé-identifier ?](why-anonymize.md)
     - [Architecture](architecture.md)
-    - [Placeholder factories](placeholder-factories.md)
+    - [Fabriques de placeholders](placeholder-factories.md)
     - [Sécurité](security.md)
 
 </div>

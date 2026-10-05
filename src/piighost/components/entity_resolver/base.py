@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Protocol, runtime_checkable
 
+from piighost.components._groups import connected_groups
 from piighost.models import Entity
 
 
@@ -42,32 +43,13 @@ class BaseEntityResolver(ABC):
 
     def resolve(self, entities: list[Entity]) -> list[Entity]:
         """Return consistent entities, reducing each conflict group."""
-        kept: list[Entity] = []
-
-        for group in self._conflict_groups(entities):
-            value = self._reduce(group)
-            kept.extend(value)
-        return kept
+        groups = self._conflict_groups(entities)
+        return [kept for group in groups for kept in self._reduce(group)]
 
     def _conflict_groups(self, entities: list[Entity]) -> list[list[Entity]]:
         """Cluster entities so each shares a detection with another in its group."""
-        groups: list[list[Entity]] = []
-
-        for entity in entities:
-            merged = [entity]
-            overlapping = [
-                group
-                for group in groups
-                if any(self._shares_detection(entity, member) for member in group)
-            ]
-
-            for group in overlapping:
-                merged.extend(group)
-                groups.remove(group)
-
-            groups.append(merged)
-
-        return groups
+        groups = connected_groups(entities, self._shares_detection)
+        return [[entities[index] for index in group] for group in groups]
 
     def _shares_detection(self, first: Entity, second: Entity) -> bool:
         """Whether the two entities have at least one detection in common."""

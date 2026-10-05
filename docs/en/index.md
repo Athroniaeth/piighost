@@ -2,16 +2,16 @@
 icon: lucide/shield
 ---
 
-# PIIGhost
+# piighost
 
-`piighost` is a Python library that protects your confidential data, personal data (PII) and secrets, in conversations with LLMs through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
+`piighost` is a Python library that protects your confidential data (personal data or PII, secrets) in conversations with LLMs, through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
 This de-identification spots confidential data with pluggable detectors (regex, NER, LLM) and replaces each value with a placeholder, the token that takes its place. For example:
 
 - `John Doe`{ .pii } becomes `<<PERSON:1>>`{ .placeholder }
 - `john.doe@example.com`{ .pii } becomes `<<EMAIL:1>>`{ .placeholder }
 
-This placeholder stays the same from one message to the next with the conversational pipeline, which keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com`{ .pii } reappears three messages later, the placeholder is still `<<EMAIL:1>>`{ .placeholder }, which lets the LLM follow the thread.
+With the conversational pipeline, this placeholder stays the same from one message to the next. That pipeline keeps the mapping between a value and its placeholder across the whole conversation. If `john.doe@example.com`{ .pii } reappears three messages later, the placeholder is still `<<EMAIL:1>>`{ .placeholder }, so the LLM can follow the thread.
 
 The LLM therefore only receives de-identified text. When it returns placeholders, for example by answering "Hello `<<PERSON:1>>`{ .placeholder }", `piighost` replaces them with the real values. The user sees `John Doe`{ .pii } and never sees the de-identification.
 
@@ -28,12 +28,9 @@ The same mechanism protects agents that call tools. With the LangChain middlewar
 
 ## Why de-identify?
 
-A cloud LLM (GPT, Claude, Gemini) receives every piece of information you send it, including your users' PII. De-identifying upstream decouples the choice of LLM from the sensitivity of the content. When confidential data never reach the LLM, the provider stops being a confidentiality decision and goes back to being a question of quality, cost, and latency.
+A cloud LLM (GPT, Claude, Gemini) receives every piece of information you send it, including your users' PII. De-identifying upstream decouples the choice of LLM from the sensitivity of the content. When confidential data never reach the LLM, the choice of provider stops being a confidentiality decision. It goes back to being a question of quality, cost, and latency.
 
-To go further:
-
-- [Why de-identify?](why-anonymize.md), the provider spectrum, the legal detail (CLOUD Act, FISA 702, Schrems II) and the use cases
-- [How PIIGhost compares](comparison.md), the alternatives and their trade-offs
+The provider spectrum, the legal detail (CLOUD Act, FISA 702, Schrems II) and the use cases are in [Why de-identify?](why-anonymize.md). The alternatives and their trade-offs are in [How piighost compares](comparison.md).
 
 ## Where to start
 
@@ -49,7 +46,10 @@ To go further:
     - [Quickstart](getting-started/quickstart.md)
     - [First pipeline](getting-started/first-pipeline.md)
     - [Conversational pipeline](getting-started/conversation.md)
+    - [Configuration file](getting-started/configuration.md)
     - [LangChain middleware](getting-started/langchain.md)
+    - [API server](getting-started/api-server.md)
+    - [Remote client](getting-started/api-client.md)
 
 -   :lucide-wrench: __Recipes__
 
@@ -57,11 +57,26 @@ To go further:
 
     Solve a specific task.
 
-    - [Basic usage](examples/basic.md)
-    - [LangChain integration](examples/langchain.md)
+    - [De-identify and restore a text](examples/basic.md)
     - [Pre-built detectors](examples/detectors.md)
-    - [Extending PIIGhost](extending.md)
-    - [Testing](examples/testing.md)
+    - [Deny and allow lists](examples/overrides.md)
+    - [Extending piighost](extending.md)
+    - [Testing without a model](examples/testing.md)
+    - [Deployment](deployment.md)
+    - [Multi-instance deployment](multi-instance.md)
+
+-   :lucide-plug: __Integrations__
+
+    ---
+
+    Plug `piighost` into an agent, a framework or a client.
+
+    - [LangChain integration](examples/langchain.md)
+    - [Pydantic AI integration](examples/pydantic-ai.md)
+    - [LlamaIndex integration](examples/llama-index.md)
+    - [Claude Code hooks](examples/claude-code.md)
+    - [OpenAI-compatible proxy](examples/openai-proxy.md)
+    - [Anthropic-compatible proxy](examples/anthropic-proxy.md)
 
 -   :lucide-book-open: __Reference__
 
@@ -71,8 +86,16 @@ To go further:
 
     - [Anonymizer](reference/anonymizer.md)
     - [Pipeline](reference/pipeline.md)
+    - [Data models](reference/models.md)
     - [LangChain](reference/langchain.md)
     - [Detectors](reference/detectors.md)
+    - [Guard rails](reference/guard-rails.md)
+    - [Conversation memory](reference/memory.md)
+    - [Exceptions](reference/errors.md)
+    - [CLI](reference/cli.md)
+    - [API endpoints](reference/api-endpoints.md)
+    - [Server CLI](reference/api-cli.md)
+    - [Configuration reference](configuration/toml.md)
 
 -   :lucide-layers: __Concepts__
 
@@ -80,7 +103,6 @@ To go further:
 
     Understand the design choices.
 
-    - [Why de-identify?](why-anonymize.md)
     - [Architecture](architecture.md)
     - [Placeholder factories](placeholder-factories.md)
     - [Security](security.md)

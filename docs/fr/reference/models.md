@@ -6,7 +6,7 @@ icon: lucide/boxes
 
 Module : `piighost.models`
 
-Les objets valeur que les étages du pipeline échangent. Un détecteur renvoie des `Detection`, le linker les regroupe en `Entity`, les deux portent leur position sous forme de `Span`, et un splitter découpe un texte long en `Chunk`. Du Python pur, sans dépendance externe.
+Les objets valeur que les étages du pipeline échangent. Un détecteur renvoie des `Detection`, et le linker les regroupe en `Entity`. Une `Detection` et une `Entity` portent leur position sous forme de `Span`. Un splitter découpe un texte long en `Chunk`. Du Python pur, sans dépendance externe.
 
 ```python
 from piighost.models import Chunk, Detection, Entity, Span
@@ -21,19 +21,13 @@ from piighost.models import Chunk, Detection, Entity, Span
 Les quatre modèles sont déclarés `@dataclass(frozen=True, slots=True)`. `Span` et `Detection` ajoutent `order=True`. Pour un appelant, cela veut dire :
 
 - **Immuable.** Affecter un champ lève `FrozenInstanceError`. Construisez une copie modifiée avec `dataclasses.replace`, comme `ChunkedDetector` le fait pour reporter une détection de chunk sur le texte original.
-- **Slotté.** Une instance ne porte pas de `__dict__`, donc aucun attribut hors des champs déclarés ne peut lui être posé.
-- **Comparé par valeur et hachable.** Deux instances aux champs égaux sont égales et ont le même hash, ce qui permet à une `Detection` de vivre dans un set et à une `Entity` de servir de clé dans la correspondance `tokens` d'une `Anonymization`.
+- **Sans dictionnaire d'attributs.** Une instance ne porte pas de `__dict__`, donc aucun attribut hors des champs déclarés ne peut lui être posé.
+- **Comparé par valeur et hachable.** Deux instances aux champs égaux sont égales et ont le même hash. Une `Detection` peut donc vivre dans un set, et une `Entity` servir de clé dans la correspondance `tokens` d'une `Anonymization`.
 - **Triable pour `Span` et `Detection` seulement.** Les deux se comparent dans l'ordre de leurs champs. `Entity` et `Chunk` ne déclarent aucun ordre, donc comparer deux d'entre eux lève `TypeError`.
 - **Validé à la construction.** Chaque invariant est vérifié dans `__post_init__`, donc une instance invalide n'existe jamais. Chaque exception dérive de `PIIGhostError`.
 
 ```python
-from dataclasses import replace
-
-from piighost.models import Detection, Span
-
-detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=1.0)
-moved = replace(detection, span=detection.span.shift(10))
-# moved == Detection(span=Span(10, 17), text="Patrick", label="PERSON", confidence=1.0)
+--8<-- "snippets/reference_models.py:replace"
 ```
 
 ---
@@ -51,7 +45,7 @@ Un intervalle de caractères semi-ouvert sur un texte, `[start, end)`, qui repre
 | `start` | `int` | Offset de début inclus, supérieur ou égal à 0 |
 | `end` | `int` | Offset de fin exclu, strictement supérieur à `start` |
 
-Le tri se fait sur `(start, end)`, donc une liste de spans s'ordonne de gauche à droite. L'étage de rendu s'appuie sur ça pour appliquer ses éditions sans décaler un offset qu'il n'a pas encore traité.
+Le tri se fait sur `(start, end)`, donc une liste de spans s'ordonne de gauche à droite. L'étage de rendu s'appuie sur cet ordre pour appliquer ses éditions sans décaler un offset qu'il n'a pas encore traité.
 
 ### Propriétés
 
@@ -71,20 +65,14 @@ Si `other` est entièrement inclus dans ce span, bornes comprises.
 
 #### `shift(offset) -> Span`
 
-Une copie translatée de `offset` caractères. Elle reporte un span trouvé sur un chunk ou sur du texte normalisé vers le texte original. Un décalage qui pousserait `start` sous zéro lève via le constructeur au lieu de rogner, donc le bug remonte.
+Une copie translatée de `offset` caractères. Elle reporte un span trouvé sur un chunk ou sur du texte normalisé vers le texte original. Un décalage qui pousserait `start` sous zéro lève une erreur dans le constructeur au lieu de rogner le span. Le bug remonte ainsi.
 
 #### `extract(text) -> str`
 
 La sous-chaîne de `text` que ce span couvre.
 
 ```python
-from piighost.models import Span
-
-span = Span(9, 26)
-span.length                                  # 17
-span.extract("write to alice@example.com")   # "alice@example.com"
-span.overlaps(Span(26, 30))                  # False, les deux intervalles sont adjacents
-span.shift(-9)                               # Span(0, 17)
+--8<-- "snippets/reference_span.fr.py:example"
 ```
 
 ### Validation
@@ -92,7 +80,7 @@ span.shift(-9)                               # Span(0, 17)
 | Exception | Condition |
 |-----------|-----------|
 | `NegativeSpanStartError` | `start` est négatif |
-| `SpanOrderingError` | `end` n'est pas strictement supérieur à `start`, un intervalle vide ou inversé |
+| `SpanOrderingError` | `end` n'est pas strictement supérieur à `start`, c'est-à-dire un intervalle vide ou inversé |
 
 Les deux dérivent de `SpanError`. Un intervalle vide est refusé parce qu'une détection couvre toujours au moins un caractère.
 
@@ -102,7 +90,7 @@ Les deux dérivent de `SpanError`. Un intervalle vide est refusé parce qu'une d
 
 Module : `piighost.models.detection`
 
-Une occurrence de donnée confidentielle trouvée par un détecteur. Un span qui porte le texte correspondant, un label et une confiance.
+Une occurrence de donnée confidentielle trouvée par un détecteur. Elle porte un span, le texte trouvé, un label et une confiance.
 
 ### Champs
 
@@ -113,7 +101,7 @@ Une occurrence de donnée confidentielle trouvée par un détecteur. Un span qui
 | `label` | `str` | La catégorie de la valeur détectée, par exemple `PERSON` ou `EMAIL` |
 | `confidence` | `float` | La confiance du détecteur, dans l'intervalle fermé 0 à 1 |
 
-Le tri se fait sur `(span, text, label, confidence)`, donc les détections s'ordonnent d'abord par position, ce dont l'étage de résolution des chevauchements dépend.
+Le tri se fait sur `(span, text, label, confidence)`, donc les détections s'ordonnent d'abord par position. L'étage de résolution des chevauchements dépend de cet ordre.
 
 ### Méthodes
 
@@ -123,18 +111,14 @@ Si le span de cette détection chevauche celui de l'autre. Elle délègue à `Sp
 
 #### `to_dict() -> dict[str, str | int | float]`
 
-La détection sous forme de dict plat prêt pour JSON, le span étant aplati en `start` et `end`. La forme tient sur un niveau, donc un stockage ou un format de transport la sérialise sans connaître le modèle. La CLI les imprime sous `piighost anonymize --json`.
+La détection sous forme de dict plat prêt pour JSON, le span étant aplati en `start` et `end`. La forme tient sur un niveau, donc un stockage ou un format de transport la sérialise sans connaître le modèle. La CLI imprime les détections sous cette forme avec `piighost anonymize --json`.
 
 #### `from_dict(data) -> Detection` (méthode de classe)
 
 Une détection reconstruite depuis le dict plat que `to_dict` produit.
 
 ```python
-from piighost.models import Detection, Span
-
-detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=1.0)
-detection.to_dict()
-# {"start": 0, "end": 7, "text": "Patrick", "label": "PERSON", "confidence": 1.0}
+--8<-- "snippets/reference_models.py:to_dict"
 ```
 
 ### Validation
@@ -151,7 +135,7 @@ Elle dérive de `DetectionError`.
 
 Module : `piighost.models.entity`
 
-Les détections identifiées comme une même valeur, regroupées par l'étage de liaison. Le groupe partage un token et se restaure en une seule valeur.
+Les détections identifiées comme une même valeur, regroupées par l'étage de liaison. Le groupe partage un jeton et se restaure en une seule valeur.
 
 ### Champs
 
@@ -173,18 +157,10 @@ La valeur canonique, prise sur la première occurrence.
 
 Le span de chaque occurrence, dans l'ordre des détections.
 
-Le label, le texte canonique et les spans sont dérivés des détections au lieu d'être stockés, donc rien ne peut se désynchroniser et la valeur ne vit qu'à un seul endroit.
+Le label, le texte canonique et les spans sont dérivés des détections au lieu d'être stockés. Rien ne peut donc se désynchroniser, et la valeur ne vit qu'à un seul endroit.
 
 ```python
-from piighost.models import Detection, Entity, Span
-
-first = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=1.0)
-second = Detection(span=Span(20, 27), text="Patrick", label="PERSON", confidence=0.8)
-entity = Entity(detections=(first, second))
-
-entity.label   # "PERSON"
-entity.text    # "Patrick"
-entity.spans   # (Span(0, 7), Span(20, 27))
+--8<-- "snippets/reference_models.py:entity"
 ```
 
 ### Validation
@@ -217,15 +193,10 @@ Une tranche contiguë d'un texte plus grand, avec son offset dans ce texte.
 
 L'offset de fin exclu dans le texte original, `start + len(text)`.
 
-Un splitter produit les chunks. Tout `AnySplitter` de `piighost.text` les renvoie dans l'ordre, et `RecursiveCharacterTextSplitter` fait se recouvrir deux chunks consécutifs pour qu'une valeur posée sur une frontière reste vue entière dans un chunk. `ChunkedDetector` exécute le détecteur qu'il enveloppe sur `chunk.text`, puis décale chaque détection de `chunk.start` pour la reporter sur le texte original.
+Un splitter produit les chunks. Tout `AnySplitter` de `piighost.text` renvoie les chunks dans l'ordre. `RecursiveCharacterTextSplitter` fait se recouvrir deux chunks consécutifs, pour qu'une valeur posée sur une frontière reste vue entière dans un chunk. `ChunkedDetector` exécute le détecteur qu'il enveloppe sur `chunk.text`, puis décale chaque détection de `chunk.start` pour la reporter sur le texte original.
 
 ```python
-from piighost.text import RecursiveCharacterTextSplitter
-
-splitter = RecursiveCharacterTextSplitter(chunk_size=20, chunk_overlap=5)
-chunks = splitter.split("Patrick lives in Lyon and works in Paris.")
-# chunks[0] == Chunk(text="Patrick lives in", start=0)
-# chunks[1] == Chunk(text="in Lyon and works in", start=14)
+--8<-- "snippets/reference_models.py:splitter"
 ```
 
 ---
@@ -245,5 +216,5 @@ Deux autres dataclasses gelées circulent avec le pipeline, chacune documentée 
 
 - [Référence Détecteurs](detectors.md) pour les détecteurs qui produisent une `Detection`.
 - [Référence Pipeline](pipeline.md) pour les étages que ces modèles traversent.
-- [Étendre PIIGhost](../extending.md) pour les construire dans votre propre composant.
+- [Étendre piighost](../extending.md) pour les construire dans votre propre composant.
 - [Interface en ligne de commande](cli.md) pour la sortie JSON bâtie sur `to_dict`.

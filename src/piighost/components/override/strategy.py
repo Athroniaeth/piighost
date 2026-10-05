@@ -1,16 +1,20 @@
-"""Override strategies: how the blacklist invalidates and who wins a conflict."""
+"""Override strategies for the deny list, the allow list, and their conflicts.
+
+The deny list holds the values always masked, the allow list the values always
+left in clear.
+"""
 
 from enum import Enum
 
 
-class WhitelistStrategy(Enum):
-    """Whether the whitelist outranks assistant provenance for tokenization.
+class DenyListStrategy(Enum):
+    """Whether the deny list outranks assistant provenance for tokenization.
 
-    RESPECT_PROVENANCE, the default: the whitelist guarantees detection, but a
+    RESPECT_PROVENANCE, the default: the deny list guarantees detection, but a
     value the assistant introduced first stays in clear. The model emitted it
     because it was useful in context and does not know it is confidential;
     replacing it with a token would both strip its world knowledge and signal
-    that this precise value is sensitive. FORCE tokenizes a whitelisted value
+    that this precise value is sensitive. FORCE tokenizes a value on the deny list
     regardless of who introduced it first.
     """
 
@@ -18,16 +22,16 @@ class WhitelistStrategy(Enum):
     FORCE = "force"
 
 
-class BlacklistStrategy(Enum):
-    """How a blacklist detection invalidates an already-detected one.
+class AllowListStrategy(Enum):
+    """How an allow list detection invalidates an already-detected one.
 
-    VALUE, the default, invalidates every detection carrying the same
-    casefolded text, positions and labels ignored, the classic
-    never-anonymize-this-value list. It is the default because a blacklist
+    VALUE, the default, invalidates every detection carrying the same value,
+    compared by value key, positions and labels ignored, the classic
+    never-anonymize-this-value list. It is the default because an allow list
     names a value, and the label a caller writes beside it is a guess about
     what the primary detector will emit. EXACT invalidates only a detection
     with the identical span and label, the narrow rule to pick when the label
-    is the point. OVERLAP invalidates any detection overlapping a blacklisted
+    is the point. OVERLAP invalidates any detection overlapping an allow list
     span, labels ignored, the most aggressive rule.
     """
 
@@ -37,16 +41,16 @@ class BlacklistStrategy(Enum):
 
 
 class OverrideConflictStrategy(Enum):
-    """Who wins when the whitelist and the blacklist contradict each other.
+    """Who wins when the deny list and the allow list contradict each other.
 
-    WHITELIST_WINS, the default, applies the blacklist to the primary
-    detections first and adds the whitelist last, so a contradicted value is
-    anonymized, the fail-closed reading. BLACKLIST_WINS applies the whitelist
-    first and lets the blacklist invalidate the result, forced values included.
+    DENY_LIST_WINS, the default, applies the allow list to the primary
+    detections first and adds the deny list last, so a contradicted value is
+    anonymized, the fail-closed reading. ALLOW_LIST_WINS applies the deny list
+    first and lets the allow list invalidate the result, forced values included.
     RAISE refuses a collision between the two lists' outputs with a
     ConflictingOverrideError.
     """
 
-    WHITELIST_WINS = "whitelist_wins"
-    BLACKLIST_WINS = "blacklist_wins"
+    DENY_LIST_WINS = "deny_list_wins"
+    ALLOW_LIST_WINS = "allow_list_wins"
     RAISE = "raise"

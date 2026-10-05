@@ -2,124 +2,90 @@
 icon: lucide/code
 ---
 
-# Comment dé-identifier un texte et le restaurer
+# Dé-identifier et restaurer un texte
 
-Vous avez un texte contenant des données confidentielles et vous voulez le dé-identifier, l'envoyer à un LLM, puis restaurer les valeurs d'origine dans la réponse. Ce guide fait l'aller-retour avec le seul cœur de `piighost`, sans modèle ni dépendance optionnelle.
+Vous avez un texte contenant des données confidentielles et vous voulez le dé-identifier, l'envoyer à un LLM, puis restaurer les valeurs d'origine dans la réponse. Ce guide fait l'aller-retour avec le seul cœur de `piighost`, sans modèle ni dépendance optionnelle. Les motifs du détecteur viennent du [catalogue piighost](https://catalog.piighost.dev). Ils sont récupérés à chaque construction du détecteur, ce qui demande un accès réseau.
 
 Installez le cœur.
 
-```bash
-uv add piighost
-```
+=== "uv"
+
+    ```bash
+    uv add piighost
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install piighost
+    ```
 
 ## Faire l'aller-retour
 
-Un pipeline enchaîne un détecteur, un linker et un anonymiseur. `anonymize` renvoie le texte dé-identifié et le token attribué à chaque entité. `deanonymize` rejoue cette correspondance en sens inverse.
+Un pipeline enchaîne un détecteur, un linker et un anonymiseur. Seul le détecteur est obligatoire. Le linker vaut par défaut `ExactEntityLinker` et l'anonymiseur `Anonymizer(LabelCounterPlaceholderFactory())`. `anonymize` renvoie le texte dé-identifié et le jeton attribué à chaque entité. `deanonymize` rejoue cette correspondance en sens inverse.
 
 ```python
-import asyncio
-
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.detector import RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.pipeline import AnonymizationPipeline
-
-detector = RegexDetector(GENERIC_PATTERNS)
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-)
-
-
-async def main():
-    result = await pipeline.anonymize("Contact alice@example.com from 192.168.1.42.")
-    print(result.text)
-    # Contact <<EMAIL:1>> from <<IPV4:1>>.
-
-    restored = pipeline.deanonymize(result.text, result.tokens)
-    print(restored)
-    # Contact alice@example.com from 192.168.1.42.
-
-
-asyncio.run(main())
+--8<-- "snippets/basic.py:catalog"
 ```
 
-`result.text` porte `<<EMAIL:1>>`{ .placeholder } à la place de `alice@example.com`{ .pii }. `result.tokens` associe chaque entité à son token. Passez-le tel quel à `deanonymize` pour retrouver le texte d'origine.
+La sortie doit être :
+
+```text
+--8<-- "snippets/basic.out:catalog"
+```
+
+`result.text` porte `<<EMAIL:1>>`{ .placeholder } à la place de `alice@example.com`{ .pii }. `result.tokens` associe chaque entité à son jeton. Passez-le tel quel à `deanonymize` pour retrouver le texte d'origine.
 
 ## Restaurer une réponse du LLM
 
-`deanonymize` restaure n'importe quel texte portant les tokens, pas seulement celui que le pipeline a produit. Si le LLM répond avec `<<EMAIL:1>>`{ .placeholder }, réinjectez les vraies valeurs avec la même correspondance `result.tokens`.
+`deanonymize` restaure n'importe quel texte portant les jetons, pas seulement celui que le pipeline a produit. Si le LLM répond avec `<<EMAIL:1>>`{ .placeholder }, réinjectez les vraies valeurs avec la même correspondance `result.tokens`.
 
 ```python
-async def main():
-    result = await pipeline.anonymize("Contact alice@example.com from 192.168.1.42.")
+--8<-- "snippets/basic.py:reply"
+```
 
-    llm_reply = "I sent the message to <<EMAIL:1>>."
-    print(pipeline.deanonymize(llm_reply, result.tokens))
-    # I sent the message to alice@example.com.
+La sortie doit être :
 
-
-asyncio.run(main())
+```text
+--8<-- "snippets/basic.out:reply"
 ```
 
 ## Regrouper les occurrences répétées
 
-Une même valeur citée plusieurs fois reçoit un seul token, donc le LLM garde le fil. `ExactEntityLinker` regroupe les occurrences par valeur et par label.
+Une même valeur citée plusieurs fois reçoit un seul jeton, donc le LLM garde le fil. `ExactEntityLinker` regroupe les occurrences par valeur et par label.
 
 ```python
-from piighost.components.detector import ExactMatchDetector
-
-detector = ExactMatchDetector({"Patrick": "PERSON", "Paris": "LOCATION"})
-linker = ExactEntityLinker()
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-pipeline = AnonymizationPipeline(
-    detector,
-    linker,
-    anonymizer,
-)
-
-
-async def main():
-    result = await pipeline.anonymize("Patrick lives in Paris. Patrick loves Paris.")
-    print(result.text)
-    # <<PERSON:1>> lives in <<LOCATION:1>>. <<PERSON:1>> loves <<LOCATION:1>>.
-
-
-asyncio.run(main())
+--8<-- "snippets/basic_exact.fr.py:exact"
 ```
 
-`ExactMatchDetector` détecte des valeurs littérales fixées, ce qui rend l'exemple reproductible sans charger de modèle. Pour du texte libre, remplacez-le par un détecteur NER ou LLM, voir la [référence des détecteurs](../reference/detectors.md).
+La sortie doit être :
 
-## Changer la forme des tokens
+```text
+--8<-- "snippets/basic_exact.fr.out"
+```
 
-`LabelCounterPlaceholderFactory` produit `<<LABEL:N>>`{ .placeholder }. Si vous voulez une autre forme de token, changez la factory passée à l'`Anonymizer`.
+`ExactMatchDetector` détecte des valeurs littérales fixées. L'exemple reste ainsi reproductible sans charger de modèle. Pour du texte libre, remplacez-le par un détecteur NER (reconnaissance d'entités nommées) ou LLM, voir la [référence des détecteurs](../reference/detectors.md).
+
+## Changer la forme des jetons
+
+`LabelCounterPlaceholderFactory`, la factory par défaut, produit `<<LABEL:N>>`{ .placeholder }. Si vous voulez une autre forme de jeton, passez au pipeline un `Anonymizer` construit sur une autre factory. Ici, `LabelHashPlaceholderFactory` remplace le numéro par une empreinte courte.
 
 ```python
-from piighost.components.placeholder import (
-    LabelHashPlaceholderFactory,
-    LabelPlaceholderFactory,
-)
-
-# Opaque token, a sha256 of label:ordinal and never of the value: <<PERSON:a1b2c3d4>>
-hash_factory = LabelHashPlaceholderFactory()
-Anonymizer(hash_factory)
-
-# Label only, no counter: <<PERSON>>
-label_factory = LabelPlaceholderFactory()
-Anonymizer(label_factory)
+--8<-- "snippets/basic_factories.py:factories"
 ```
 
-Pour restaurer les valeurs, la factory doit préserver l'identité, ce que fait `LabelCounterPlaceholderFactory` et pas `LabelPlaceholderFactory`, qui donne le même `<<PERSON>>`{ .placeholder } à deux personnes distinctes. Voir la page [Placeholder factories](../placeholder-factories.md).
+La sortie doit être :
+
+```text
+--8<-- "snippets/basic_factories.out"
+```
+
+L'empreinte est calculée à partir du label et du rang de l'entité, jamais à partir de la valeur. `Patrick`{ .pii } garde donc le même jeton à ses deux apparitions, et `Marie`{ .pii } en reçoit un autre.
+
+Pour restaurer les valeurs, la factory doit préserver l'identité, c'est-à-dire donner un jeton distinct à chaque valeur. `LabelCounterPlaceholderFactory` le fait. `LabelPlaceholderFactory` ne le fait pas, parce qu'elle donne le même `<<PERSON>>`{ .placeholder } à deux personnes distinctes. Voir la page [Fabriques de placeholders](../placeholder-factories.md).
 
 ## Voir aussi
 
-- [Détecteurs prêts à l'emploi](detectors.md) pour combiner catalogues et détecteurs.
+- [Détecteurs prêts à l'emploi](detectors.md) pour combiner groupes du catalogue et détecteurs.
 - [Référence du pipeline](../reference/pipeline.md) pour les étages optionnels.
-- [Étendre PIIGhost](../extending.md) pour écrire vos propres composants.
+- [Étendre piighost](../extending.md) pour écrire vos propres composants.

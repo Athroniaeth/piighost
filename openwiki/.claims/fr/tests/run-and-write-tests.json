@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:2e71443bf4e60ecdf046791148007f5de7b41ff9b92d22d7f8ba8088ec256fc4",
+  "claims": [
+    {
+      "id": "claim_7005cb14d8634d5fb4be82e6f8aac3a9",
+      "statement": "pytest deselects the integration marker by default, disables the anyio and langsmith plugins, runs in asyncio auto mode, and filters the clear-text tracing warning suite-wide.",
+      "evidence": [
+        {
+          "resource": "repo://pyproject.toml#L165-L177",
+          "version": "repo-lines-v1:sha256:3839d0422469775258e2d68cc22941a2d870c5b7b50ba671cd77797a8842f8e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2NzZlNjQxNDY1YTY1NTFlOWU5Y2ZmZDdmYWExZTZhNDJmOWI3MjQ4MDk4MTNjOTAzZDdlZGNiNTJmMzAwNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkNjY0ODAyNjMyMjZhMjU3ZmJhNWE2YmZjYTQ0NjBjMTA2YWI1YjY3OWMyYzQ5ZDYxMmRiOTE5M2QwODAyMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE0ODM4MjM5Mzk3ZDA4YTJkNTRjMmUxZTJmZGUyYmI5ZjU3ODE1ZWE2ODQzM2EzZDA4ZmQxYWZjNDNlNzI2NmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2a7018d7d1864a01a059571087218b28",
+      "statement": "The dev dependency group installs the config, argon2, crypto, redis, mistral, langchain, pydantic-ai, observation, fuzzy and sqlalchemy extras plus fakeredis and the OpenTelemetry SDK, but not llama-index, gliner2, spacy, transformers or presidio.",
+      "evidence": [
+        {
+          "resource": "repo://pyproject.toml#L149-L163",
+          "version": "repo-lines-v1:sha256:8ac5a39d26bda09c92c01f362a2a42440ad13f98b248b3961f1d64134c3cf5c2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiYjc0OTliMWNlMWM0ZjRiMjUyN2YzYTMyODRjYWM2YjZhMWUzYmY0OTg4YjU2Nzk4MmMzZGM4ZTlhMTdmMjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NDE2ZTA5Zjc4YmEzMTZjMDMyNTY4MjEzYjg1NWVlNzU2ZTQxNTY1ZDkxOGYwOTUxOWM4MWZkNjIwZjQwNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2ZjNiZjFmMmYyYzYzYmM5NWQ4ZmRiZmQ0ZGI3YjQxYzRiM2E4NDZjMDhmOWY4NmQxOGY0YjgzMGI4NmQ5OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyZWJkOWNiNjcwMjU0MWU5MjZjYmVjZTVhNTgwNWVlODQzYjBiYWM1NmUxMWJmODRjNDZlYmYxZDAxYTU2N2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_61b15f50c8614e75944ca88ec379dfd0",
+      "statement": "make lint runs ruff format check, ruff check, pyrefly on explicit paths, bandit and the docs audit script without modifying files.",
+      "evidence": [
+        {
+          "resource": "repo://Makefile#L8-L16",
+          "version": "repo-lines-v1:sha256:e308a48931668cbf1c5fd4d589babfbf64ceed8af01e371d27f8ca237f169483:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWFmZjNmN2E3YzRmMjkyZWQwMzY5NTNiZTk2MDI5NjkzMDdiZjYyZGRiOTQzN2VlMTBjYWRjMWUwNDI3MTQyZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzI3NWQ5YmQwODU1ZjdjOTBjZDczYTRlYTIxN2UzYTU5YWE5OGZjYTBmNGJkNjVjNDdmZDQwOGY1NDUwYTlkZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQzZDNlZmJmMjkzODY4OWVhZjk0ZDM5NjEzMDE0ZGM2ZDY3ODk3YmRmN2Q2OWNjMzU3Y2M0ZWQ3Y2E0YzA0ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODlmMDYyN2IzMWEyN2QxYjRhYWUzYjBmNmVkYTIzYTUxOWU0NTM1ZjMzYTVkYjFmOTM1ZmQwODc4MTIwNWY0NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a8bfee2b15f6424aa8a2fc65ff62b1c4",
+      "statement": "ci.yml runs lint and pip-audit, then pytest with coverage on Python 3.11 to 3.14, using only the dev group, and skips documentation-only changes.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/ci.yml#L1-L83",
+          "version": "repo-lines-v1:sha256:cc92c09ac91437593575ab1ff7c351808cb4c0712d675984df71df244a8db1de:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2ZTFiMzJmYTA5MDc5YWUyZjAwMDFmZmYwZWNhMjdiNDk4NTk1N2Q0ZWI0ODU3OTI5YjNjZjA1OGZhYWU1NDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyZjQzZWE0YWQ3Y2Q3MzU1MTk0MTY4MTIxYjc4YTdiYjJjMzFmMTUyMGQzODM2NzE5ODA1ZGE4M2MxM2IxZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1MmRjZGViYTNlMjllMmI4MjhiMjRiZDNhZjQ1ODk5YzllMWQwMmY5ZmE1OGVhZWM4ZTc5YmMwZDQxMDA0YWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_30dbab12002c4ab2b44796561a257263",
+      "statement": "integration.yml runs nightly at 03:00 UTC with all extras and groups, downloads en_core_web_sm and runs only tests marked integration.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/integration.yml",
+          "version": "repo-file-v1:sha256:9f18006352680de3db0547e846e49f3b7b9cbfd6da407e867b2b00400ddf88a7"
+        }
+      ]
+    },
+    {
+      "id": "claim_2a850b71b58a4aae9ec95f19d17b55fe",
+      "statement": "Tests needing llama-index, gliner2, presidio, spacy or transformers use importorskip without the integration marker, so they are skipped in the CI tests job and deselected by the integration job.",
+      "evidence": [
+        {
+          "resource": "repo://tests/components/detector/test_contract.py#L55-L112",
+          "version": "repo-lines-v1:sha256:88431a4bafcd6a76d2f5bcf43b4ce7f2dcdcf934c30f9a40c7a1566003fad3bb:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNWZlOThmYmRmYWQ0MjQ5YmQxZGRmZjg3NmYyNTI4NmU0OTQ4NGNhM2I4ZTNlNGRlYjMxMTE5OTZiYTFiZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4YzEzYjc3MjQ4NGFhMzllNGY4N2NjYzA2N2E5ZjcwNTI0YzFkMzE4MzBhMzUzMDQ3NzE5ZWY1M2EzNzkyNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxNGIxZWYxYTI3Zjc1OTVmM2Y2OTAzMTg0OWIyNjk4ZWJiYzg4N2Y1YjUyNTQ4ZjFiYWI0MTM2NmEzZjA5NzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3MWZmMWZjYTM4NzViYTdkM2E5ZGU1ZmFlZTJiMGZlMDczNzQ4OWUxZTBkMzAxN2U5NzM5Yzg3OGU1MDU2NzYifQ"
+        },
+        {
+          "resource": "repo://tests/integrations/llama_index/test_query_engine.py#L1-L12",
+          "version": "repo-lines-v1:sha256:1eb6c5ffe6860a856fc4b83fcc494a203d95c556e588fd7064fdc5511cdcfc34:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4NDVhMTQ0MzE4Y2RlZmNiZjljNmMxOGZmYTk1MTI0NmNmNWJhYWM1YzIxMDJmNzBkNmIwYjMxNmRkZGM0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmZTUzZjAyMWIwZWUxMmE4ZjRkZTY5ZTE3NTJhMTUzNmJkNmMzNDNiYzk1NzZhZDU5OWVhY2I1OWM4MzFlYjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3MTY2N2NlNjhhYmRiZDMwZWMyNzAyM2VjZjdkMjhmNWQyNTcxMGMwYTk4MTM2OTc4NTg2MzllNjU4OTlmN2IifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

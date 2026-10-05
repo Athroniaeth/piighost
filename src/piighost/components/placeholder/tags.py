@@ -4,9 +4,9 @@ Placeholder factories differ in what survives a replacement. Some emit a
 distinct reversible token per entity, some collapse every entity of one label
 into the same string, some leak part of the original value. The consumers of a
 factory, the anonymizer, the pipeline, and the middleware, care about this
-level. The middleware, outside its passthrough mode, needs tokens that uniquely
-identify each entity so it can deanonymize arguments reliably, and that carry a
-delimited grammar so a token the model invented can be found and refused.
+level. The middleware restores the model's reply in every mode, so it needs
+tokens that uniquely identify each entity, and that carry a delimited grammar
+so a token the model invented can be found and refused.
 
 These tags are phantom types: they exist only for the type checker. Attached to
 a factory through a generic parameter, they turn an incompatible combination,
@@ -66,6 +66,8 @@ The full hierarchy:
       - PreservesLabeledIdentityHashed
 """
 
+from typing_extensions import TypeVar
+
 
 class PlaceholderPreservation(str):
     """Root type for placeholder preservation tags, and for tokens themselves.
@@ -80,8 +82,8 @@ class PreservesNothing(PlaceholderPreservation):
     """The token is a constant marker carrying no information.
 
     Every entity collapses to the same string, such as <<REDACT>>. The mapping
-    cannot be reversed, so this fits one-shot redaction or the middleware's
-    passthrough mode, never its deanonymizing modes.
+    cannot be reversed, so this fits one-shot redaction, never the middleware,
+    which restores the model's reply in every mode.
     """
 
 
@@ -90,7 +92,7 @@ class PreservesLabel(PlaceholderPreservation):
 
     Distinct entities sharing a label collide into the same token, such as
     <<PERSON>>. This suits one-shot redaction but cannot be reversed, which rules
-    it out for the middleware's tool-call handling outside passthrough mode.
+    it out for the middleware, which restores the model's reply in every mode.
     """
 
 
@@ -182,6 +184,40 @@ class PreservesLabeledIdentityHashed(PreservesLabeledIdentityRealistic):
     its content derives from a hash, so it is unique and cannot coincidentally
     match a real-world value.
     """
+
+
+PreservationT = TypeVar(
+    "PreservationT",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+)
+"""What a component's tokens preserve, invariant.
+
+For a class that both takes tokens of the tag and hands them back out, such as
+the anonymizer template and the concrete pipelines, so it cannot vary in either
+direction.
+"""
+
+PreservationT_co = TypeVar(
+    "PreservationT_co",
+    bound=PlaceholderPreservation,
+    default=PlaceholderPreservation,
+    covariant=True,
+)
+"""What a component's tokens preserve, covariant.
+
+For a port that only returns tokens, the factory, the anonymizer and the
+pipelines, so one whose tokens preserve more satisfies a consumer asking for
+less. Defaults to PlaceholderPreservation so a bare annotation still
+type-checks.
+"""
+
+IdentityT = TypeVar(
+    "IdentityT",
+    bound=PreservesRecognizableIdentity,
+    default=PreservesRecognizableIdentity,
+)
+"""Tokens that identify an entity and can be found again, as the integrations need."""
 
 
 __all__ = [

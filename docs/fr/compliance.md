@@ -11,36 +11,36 @@ Les détecteurs et les modes de `piighost` se placent face à deux cadres régle
 
 ## HIPAA Safe Harbor
 
-HIPAA est la loi américaine sur les données de santé. Sa méthode Safe Harbor établit qu'une fois retirées 18 catégories d'identifiants d'un dossier, et sans connaissance effective que le reste pourrait ré-identifier une personne, le dossier n'est plus une donnée de santé protégée et sort du champ de la règle. Safe Harbor est destructif pour les données qui dépendent de dates ou de lieux exacts, c'est donc une cible de dé-identification, pas une transformation sans perte.
+HIPAA est la loi américaine sur les données de santé. Sa méthode Safe Harbor pose deux conditions. Les 18 catégories d'identifiants sont retirées d'un dossier, et vous n'avez pas connaissance effective que le reste pourrait ré-identifier une personne. Le dossier n'est alors plus une donnée de santé protégée et sort du champ de la règle. Safe Harbor est une cible de dé-identification, pas une transformation sans perte, parce qu'il détruit les données qui dépendent de dates ou de lieux exacts.
 
-Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs livrés par `piighost`. "Custom" signifie que `piighost` n'a pas de pattern préétabli, mais qu'un pattern `RegexDetector` pour votre format local, ou le `LLMDetector`, le couvre.
+Le tableau ci-dessous met chacun des 18 identifiants en regard des détecteurs livrés par `piighost` et des groupes regex du catalogue. "Personnalisé" signifie qu'aucun groupe du catalogue n'a de pattern pour cet identifiant. Vous le couvrez avec un pattern `RegexDetector` pour votre format local, ou avec le `LLMDetector`.
 
 <div class="wide-table" markdown="1">
 
 | Identifiant Safe Harbor | Couverture | Par |
 |-------------------------|------------|-----|
-| 1. Noms | Yes | `Gliner2PiiDetector` (`PERSON`), `SpacyDetector`, `TransformersDetector` |
-| 2. Unités géographiques sous l'État (rue, ville, code postal) | Partial | regex `US_ZIP`, `Gliner2PiiDetector` (`LOCATION`, `ADDRESS`). Ville et comté dépendent du modèle NER |
-| 3. Dates plus fines que l'année, et âges au-delà de 89 ans | Partial | `Gliner2PiiDetector` (`DATE_OF_BIRTH`). Une date générique demande une regex custom, les âges au-delà de 89 ans ne sont pas traités à part |
-| 4. Numéros de téléphone | Yes | regex `US_PHONE`, `FR_PHONE`, `Gliner2PiiDetector` (`PHONE`) |
-| 5. Numéros de fax | Partial | reconnus par les patterns de téléphone sur la forme, non distingués comme fax |
-| 6. Adresses e-mail | Yes | regex `EMAIL`, `Gliner2PiiDetector` (`EMAIL`) |
-| 7. Numéros de sécurité sociale | Yes | regex `US_SSN`, `FR_NIR`, `Gliner2PiiDetector` (`SSN`) |
-| 8. Numéros de dossier médical | Custom | fournir un pattern `RegexDetector` pour le format local |
-| 9. Numéros de bénéficiaire d'assurance santé | Custom | fournir un pattern `RegexDetector` |
-| 10. Numéros de compte | Partial | regex `IBAN` et `Gliner2PiiDetector` (`IBAN`). Les autres numéros de compte demandent un pattern custom |
-| 11. Numéros de certificat et de licence | Partial | `Gliner2PiiDetector` (`DRIVER_LICENSE`, `PASSPORT`). Les autres certificats demandent un pattern custom |
-| 12. Identifiants de véhicule et plaques | Custom | fournir un pattern `RegexDetector` |
-| 13. Identifiants d'appareil et numéros de série | Custom | fournir un pattern `RegexDetector` |
-| 14. URLs | Yes | regex `URL` |
-| 15. Adresses IP | Yes | regex `IPV4`, `Gliner2PiiDetector` (`IP_ADDRESS`). L'IPv6 demande un pattern custom |
-| 16. Identifiants biométriques | No | hors texte, hors périmètre |
-| 17. Photographies plein visage et images comparables | No | multimodal, un [hors-périmètre](roadmap.md#hors-perimetre) |
-| 18. Tout autre numéro ou code identifiant unique | Custom | un pattern `RegexDetector` ou le `LLMDetector`. `TAX_ID`, `CRYPTO`, `API_KEY` sont aussi couverts par `Gliner2PiiDetector` |
+| 1. Noms | Oui | `Gliner2PiiDetector` (`PERSON`), `SpacyDetector`, `TransformersDetector` |
+| 2. Unités géographiques sous l'État (rue, ville, code postal) | Partiel | regex `US_ZIP`, `Gliner2PiiDetector` (`LOCATION`, `ADDRESS`). Ville et comté dépendent du modèle NER |
+| 3. Dates plus fines que l'année, et âges au-delà de 89 ans | Partiel | `Gliner2PiiDetector` (`DATE_OF_BIRTH`). Une date générique demande une regex custom, les âges au-delà de 89 ans ne sont pas traités à part |
+| 4. Numéros de téléphone | Oui | regex `US_PHONE`, `FR_PHONE`, `Gliner2PiiDetector` (`PHONE`) |
+| 5. Numéros de fax | Partiel | reconnus par les patterns de téléphone sur la forme, non distingués comme fax |
+| 6. Adresses e-mail | Oui | regex `EMAIL`, `Gliner2PiiDetector` (`EMAIL`) |
+| 7. Numéros de sécurité sociale | Oui | regex `US_SSN`, `FR_NIR`, `Gliner2PiiDetector` (`SSN`) |
+| 8. Numéros de dossier médical | Personnalisé | fournir un pattern `RegexDetector` pour le format local |
+| 9. Numéros de bénéficiaire d'assurance santé | Personnalisé | fournir un pattern `RegexDetector` |
+| 10. Numéros de compte | Partiel | regex `IBAN` et `Gliner2PiiDetector` (`IBAN`). Les autres numéros de compte demandent un pattern custom |
+| 11. Numéros de certificat et de licence | Partiel | `Gliner2PiiDetector` (`DRIVER_LICENSE`, `PASSPORT`). Les autres certificats demandent un pattern custom |
+| 12. Identifiants de véhicule et plaques | Personnalisé | fournir un pattern `RegexDetector` |
+| 13. Identifiants d'appareil et numéros de série | Personnalisé | fournir un pattern `RegexDetector` |
+| 14. URLs | Oui | regex `URL` |
+| 15. Adresses IP | Oui | regex `IPV4`, `Gliner2PiiDetector` (`IP_ADDRESS`). L'IPv6 demande un pattern custom |
+| 16. Identifiants biométriques | Non | hors texte, hors périmètre |
+| 17. Photographies plein visage et images comparables | Non | multimodal, un [hors-périmètre](roadmap.md#hors-perimetre) |
+| 18. Tout autre numéro ou code identifiant unique | Personnalisé | un pattern `RegexDetector` ou le `LLMDetector`. `TAX_ID`, `CRYPTO`, `API_KEY` sont aussi couverts par `Gliner2PiiDetector` |
 
 </div>
 
-Les catalogues regex préétablis reconnaissent sur la forme seule, sans validation de checksum, donc ils ne lâchent jamais une valeur abîmée par l'OCR mais acceptent aussi une non-valeur bien formée. Voir [Limites](limitations.md).
+Les groupes regex du catalogue reconnaissent une valeur sur sa forme seule, sans validation de checksum. Ils ne lâchent donc jamais une valeur abîmée par l'OCR, mais ils acceptent aussi une chaîne qui a la bonne forme sans être une vraie valeur. Voir [Limites](limitations.md).
 
 ## RGPD
 
@@ -51,11 +51,11 @@ Le RGPD trace une ligne entre deux traitements, souvent confondus.
 
 Où tombe `piighost` dépend du mode choisi.
 
-- Les jetons réversibles par défaut, restaurés depuis la mémoire de conversation, `<<PERSON:1>>`{ .placeholder } restauré en `Patrick`{ .pii }, relèvent de la **pseudonymisation**. La correspondance existe, donc la donnée reste personnelle. Protéger cette correspondance, le backend de mémoire et son chiffrement au repos, est ce qui donne son sens à la pseudonymisation. Voir [Sécurité](security.md).
+- Par défaut, les jetons sont réversibles. La mémoire de conversation les restaure, par exemple `<<PERSON:1>>`{ .placeholder } en `Patrick`{ .pii }. Ce mode relève de la **pseudonymisation**. La correspondance existe, donc la donnée reste personnelle. La pseudonymisation n'a de sens que si cette correspondance est protégée, par le backend de mémoire et son chiffrement au repos. Voir [Sécurité](security.md).
 - Un `RedactPlaceholderFactory` ou un masque utilisé sans mémoire abandonne la correspondance, donc se rapproche de l'**anonymisation**. Que le résultat soit vraiment anonyme dépend encore du risque de ré-identification résiduel dans le texte alentour.
 
 !!! note "Le mot qu'emploie cette documentation"
-    Ces pages disent dé-identification pour ce que fait le pipeline, un terme technique qui couvre les deux modes ci-dessus. Ce n'est pas une catégorie juridique. Dans le mode réversible par défaut, le nom juridique est pseudonymisation, et c'est le mot à employer envers les personnes concernées, dans une mention d'information ou une AIPD. Le Comité demande aux responsables du traitement de ne pas qualifier de "dé-identifiées" des données tant que les personnes restent identifiables (lignes directrices 02/2026, paragraphe 40, voir [plus bas](#ce-que-dit-le-comite-europeen-depuis-larret)).
+    Ces pages disent dé-identification pour ce que fait le pipeline, un terme technique qui couvre les deux modes ci-dessus. Ce n'est pas une catégorie juridique. Dans le mode réversible par défaut, le nom juridique est pseudonymisation, et c'est le mot à employer envers les personnes concernées, dans une mention d'information ou une AIPD. Le Comité européen de la protection des données (EDPB) demande aux responsables du traitement de ne pas qualifier de "dé-identifiées" des données tant que les personnes restent identifiables (lignes directrices 02/2026, paragraphe 40, voir [plus bas](#ce-que-dit-le-comite-europeen-depuis-larret)).
 
 ### Ce que dit le règlement
 
@@ -75,14 +75,14 @@ Le Comité européen de la protection des données (EDPB) a adopté ses lignes d
 - Les données pseudonymisées qui pourraient être attribuées à une personne par des informations supplémentaires sont des données personnelles, et cela vaut aussi lorsque les données pseudonymisées et les informations supplémentaires ne sont pas entre les mains de la même personne (paragraphe 22).
 - Les informations supplémentaires comprennent les tables de correspondance entre les pseudonymes et les attributs identifiants qu'ils remplacent, ainsi que les clés cryptographiques (paragraphe 20). La mémoire de conversation et la clé de chiffrement sont ces informations supplémentaires.
 - La levée de la pseudonymisation devrait être réservée à des personnes spécialement autorisées, conformément au considérant 29 (paragraphe 32).
-- Les lignes directrices appellent domaine de pseudonymisation le contexte dans lequel l'attribution doit être empêchée (paragraphe 35), et les informations supplémentaires ne devraient pas y entrer (paragraphe 40). Avec `piighost`, le fournisseur du LLM se trouve dans ce domaine et la correspondance reste en dehors.
+- Les lignes directrices appellent "domaine de pseudonymisation" le contexte dans lequel l'attribution doit être empêchée (paragraphe 35). Les informations supplémentaires ne devraient pas entrer dans ce domaine (paragraphe 40). Avec `piighost`, le fournisseur du LLM se trouve dans ce domaine et la correspondance reste en dehors.
 - Avant de transmettre des données pseudonymisées à un tiers, il faut au minimum identifier et prendre en compte les moyens dont dispose le destinataire pour attribuer les données (paragraphe 70). Pour `piighost`, ce tiers est le fournisseur du LLM.
 
 ### Ce qu'a jugé la Cour de justice dans CEPD/CRU
 
-Le Conseil de résolution unique (CRU) avait recueilli les commentaires des actionnaires et créanciers d'une banque mise en résolution. Il en a transmis une partie à Deloitte, la société chargée d'une valorisation, pseudonymisés sous un code alphanumérique que seul le CRU pouvait relier à un auteur. Des auteurs se sont plaints auprès du Contrôleur européen de la protection des données (CEPD, à ne pas confondre avec le Comité), qui a jugé que le CRU avait manqué à son obligation de les informer que Deloitte recevrait leurs données. Le Tribunal a annulé cette décision (T-557/20, 26 avril 2023). Sur pourvoi du CEPD, la Cour de justice a annulé cet arrêt le 4 septembre 2025 (C-413/23 P, ECLI:EU:C:2025:645).
+Le Conseil de résolution unique (CRU) avait recueilli les commentaires des actionnaires et créanciers d'une banque mise en résolution. Il en a transmis une partie à Deloitte, la société chargée d'une valorisation. Ces commentaires étaient pseudonymisés sous un code alphanumérique que seul le CRU pouvait relier à un auteur. Des auteurs se sont plaints auprès du Contrôleur européen de la protection des données (CEPD, à ne pas confondre avec le Comité), qui a jugé que le CRU avait manqué à son obligation de les informer que Deloitte recevrait leurs données. Le Tribunal a annulé cette décision (T-557/20, 26 avril 2023). Sur pourvoi du CEPD, la Cour de justice a annulé cet arrêt le 4 septembre 2025 (C-413/23 P, ECLI:EU:C:2025:645).
 
-L'arrêt interprète le règlement 2018/1725, qui régit les institutions et organes de l'Union, et non le RGPD. La Cour relève que sa définition des données à caractère personnel est en substance identique à celle du RGPD et appelle une interprétation identique (point 52), et la définition de la pseudonymisation qu'elle applique reprend mot pour mot l'article 4, point 5).
+L'arrêt interprète le règlement 2018/1725, qui régit les institutions et organes de l'Union, et non le RGPD. La Cour relève que la définition des données à caractère personnel de ce règlement est en substance identique à celle du RGPD et appelle une interprétation identique (point 52). La définition de la pseudonymisation qu'elle applique reprend mot pour mot l'article 4, point 5).
 
 La Cour a jugé ce qui suit.
 
@@ -106,7 +106,7 @@ La Cour a statué elle-même sur le moyen tiré de ce que les commentaires n'ét
 
 Le Comité a réuni les parties prenantes le 12 décembre 2025, à la suite de l'arrêt, pour nourrir ses travaux sur les lignes directrices 01/2025 sur la pseudonymisation et sur des lignes directrices consacrées à l'anonymisation. Les participants se sont divisés sur la perspective applicable à un sous-traitant, les uns pour celle du sous-traitant, les autres pour celle du responsable du traitement.
 
-Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique jusqu'au 30 octobre 2026. Elles tiennent compte de l'arrêt, qui portait sur la pseudonymisation, et trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
+Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation le 7 juillet 2026, en version soumise à consultation publique. Au 4 octobre 2026, cette consultation est ouverte jusqu'au 30 octobre 2026. Ces lignes directrices tiennent compte de l'arrêt, qui portait sur la pseudonymisation. Trois points touchent `piighost`. Les passages ci-dessous traduisent librement la version anglaise.
 
 - L'anonymat s'apprécie du point de vue de chaque entité concernée, et la question de départ est de savoir pour qui les données sont censées être anonymes (paragraphes 11 et 12).
 - Une entité qui traite des informations pour le compte d'un responsable du traitement s'apprécie du point de vue de ce responsable. Une information qui est une donnée personnelle pour le responsable l'est aussi pour son sous-traitant (paragraphe 15).
@@ -116,9 +116,9 @@ Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation 
 
 - Pour vous, responsable du traitement qui détient la correspondance, le texte dé-identifié reste une donnée personnelle. Toutes les obligations du RGPD s'appliquent à l'ensemble du traitement, correspondance comprise.
 - Un fournisseur de LLM qui traite le texte pour votre compte est votre sous-traitant. Selon les lignes directrices 02/2026, le texte s'apprécie alors de votre point de vue, et reste donc une donnée personnelle pour le fournisseur aussi.
-- Un fournisseur de LLM qui utilise le texte pour ses propres finalités s'apprécie de son propre point de vue. L'arrêt laisse ouverte la possibilité que le texte ne soit pas une donnée personnelle pour lui, mais seulement si les deux conditions du point 77 sont réunies. `piighost` répond à la première par construction, puisque la correspondance ne quitte jamais votre périmètre. La seconde dépend de ce que le texte porte encore en clair, le contexte, les quasi-identifiants, une PII que le détecteur a manquée, et de ce que le fournisseur peut recouper. Voir [Sécurité](security.md) et [Limites](limitations.md).
-- Votre obligation d'informer les personnes que leurs messages parviennent à un fournisseur de LLM s'apprécie de votre point de vue à la collecte, elle vaut donc quelle que soit la position du fournisseur. Dans cette information, qualifiez le traitement de pseudonymisation, et non d'anonymisation ou de dé-identification, comme le demande le paragraphe 40 des lignes directrices 02/2026.
-- Une AIPD qui traite le texte dé-identifié comme une donnée personnelle pour le fournisseur tient quelle que soit l'issue de ces questions.
+- Un fournisseur de LLM qui utilise le texte pour ses propres finalités s'apprécie de son propre point de vue. L'arrêt laisse ouverte la possibilité que le texte ne soit pas une donnée personnelle pour lui, mais seulement si les deux conditions du point 77 sont réunies. `piighost` remplit la première condition par construction, puisque la correspondance ne quitte jamais votre périmètre. La seconde condition dépend de deux choses. D'abord, ce que le texte porte encore en clair, c'est-à-dire le contexte, les quasi-identifiants, une PII que le détecteur a manquée. Ensuite, ce que le fournisseur peut recouper avec ce texte. Voir [Sécurité](security.md) et [Limites](limitations.md).
+- Vous devez informer les personnes que leurs messages parviennent à un fournisseur de LLM. Cette obligation s'apprécie de votre point de vue, au moment de la collecte. Elle vaut donc quelle que soit la position du fournisseur. Dans cette information, qualifiez le traitement de pseudonymisation, et non d'anonymisation ou de dé-identification, comme le demande le paragraphe 40 des lignes directrices 02/2026.
+- Une AIPD qui traite le texte dé-identifié comme une donnée personnelle pour le fournisseur reste valable quelle que soit l'issue de ces questions.
 
 ### Sources
 
@@ -132,8 +132,8 @@ Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation 
 
 ## Voir aussi
 
-- [Sécurité](security.md) : le modèle de menace, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
+- [Sécurité](security.md) : le modèle de menaces, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
 - [Comment documenter `piighost` dans une AIPD](dpia.md) : le traitement, les flux de données, les mesures et les risques résiduels, avec un modèle à remplir.
 - [Limites](limitations.md) : la regex par forme seule et ce qu'elle ne valide pas.
-- [Placeholder factories](placeholder-factories.md) : quels modes sont réversibles et lesquels ne le sont pas.
+- [Fabriques de placeholders](placeholder-factories.md) : quels modes sont réversibles et lesquels ne le sont pas.
 - [Roadmap](roadmap.md) : ce qui est en attente et ce qui est volontairement hors périmètre.

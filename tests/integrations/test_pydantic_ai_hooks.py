@@ -3,9 +3,6 @@
 from dataclasses import dataclass
 
 import pytest
-
-pytest.importorskip("pydantic_ai")
-
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
     ModelMessage,

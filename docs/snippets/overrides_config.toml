@@ -1,0 +1,14 @@
+[detector]
+type = "regex"
+catalogs = ["catalog:piighost/generic"]
+
+[override]
+allow_list_strategy = "value"
+
+[override.deny_list]
+type = "regex"
+patterns = { CODENAME = 'ACME-[A-Z]+' }
+
+[override.allow_list]
+type = "exact"
+values = { "public@corp.com" = "EMAIL" }

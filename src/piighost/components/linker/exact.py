@@ -2,18 +2,20 @@
 
 from piighost.components.linker.base import BaseEntityLinker
 from piighost.models import Detection
+from piighost.text import value_key
 
 
 class ExactEntityLinker(BaseEntityLinker):
     """Group detections that share a case-insensitive value and label.
 
-    Two detections belong to the same entity when their texts are equal under
-    casefold and their labels match, so Patrick and patrick under PERSON become
+    Two detections belong to the same entity when their texts share a value key
+    (the same words, whatever the spaces between them, under casefold) and their
+    labels match, so Patrick and patrick under PERSON become
     one entity while the same text under another label stays separate. Entities
     and their detections keep first-occurrence order, so an entity's canonical
     value is the first spelling seen.
     """
 
     def _key(self, detection: Detection) -> tuple[str, str]:
-        """Group by the casefolded text paired with the label."""
-        return (detection.text.casefold(), detection.label)
+        """Group by the value key of the text paired with the label."""
+        return (value_key(detection.text), detection.label)

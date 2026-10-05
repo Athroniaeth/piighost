@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:f3fb68e95ad73bf894a81d3f349e2c839bde4afdca7f4e95d5d879f5118663e9",
+  "claims": [
+    {
+      "id": "claim_9fb55a4ba7ce4f5b82c1eade7dac6363",
+      "statement": "The allow list invalidates detections per AllowListStrategy: VALUE by value key whatever span and label (the default), EXACT by identical span and label, OVERLAP by any overlapping span.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L141-L150",
+          "version": "repo-lines-v1:sha256:b328b030b8c1f0ea7fdde37374092251c989b7131707d6aa154eceafb663ab04:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1YjZiOWVkYzIxNWE1NjliMWEwMTViMzY4NzdlZDU5MTMzMjY5NjMwZWEzZDZlOTZmMTk4MDgwNjMyNmJmNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyM2Y4NTViMzgzNGM1NzQ4NTEwMWJjZGY3NmE0MTI0NjRkMGFhMzI1YWQ0MzAwMmZmODQ3YmU2OTJjMjgzMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNGY2ODQxM2JkNzRhNzFhMTFhYzZlNmYyYjhjMzljYjUyMzA3NGQ1OWJmNTg1Yjg4OGY4ZTIyMzhlMjNjNzcifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L16-L42",
+          "version": "repo-lines-v1:sha256:8e4a638668a495b1e12c0c181926c5610b7cf33af23f8b783b6fdc77cc5e35ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyNWQxZWE5ZWVlNDQ1ZDYxMTIxZTkwOWJmNjFjMDQ3ODA2MjdlMjI5ODkzYWM5ODk5M2NlMjFmYjZhOTRhMTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5ZDQ1MzAxNjEwY2EyMGM1MzUyNzE5MTE1ZmY0NDM3ZTllZTk3NjdmZWMyMGM4OTQ5MTAyYzRiMTY1ZDk3MDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5NGNjNjA0MmExMmM0YWFmMWJmMDM2YjEwMjc2ODAyZTk1NGMwZTQ2NjJiYzA0MDJkOThjMWI2OWIzMTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliZDUyMzY3YWEwNDAxY2VkYTg1OWZjNzUwZmI0MDE1YzcyMzliN2RjMGZkY2MwNzhhZTQzZmE0YmEyYTYzM2YifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/override/strategy.py#L21-L36",
+          "version": "repo-lines-v1:sha256:6c683614d9990d5ba36841a5e5b9e3d80edd906db9303853e06bf453e08f8b82:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4Mzg2NzhkMWRiZjBjYjc1OWRhNGFlNWQ1YjI4Y2RhY2MzYmI4ZTVhNTUyNGE0YTBiMGJjOTJiMDY1MWM1ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NGFiYjZmNjFjZDhmYjk3ODRkMjM1ZGMxMzlhOTk0ZjRhNDJlMjRlNDhkZWQxYmQxNDE4MjY5NjMxZjUxNTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlMTFiOTQ5NGE5MzE1NzljNDI1YTIzMWU3YjIxYWEzYjZhY2MxMjU5NzFjMmU3ZmEyM2Q0ZGIxNjlkYzc5MTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmZDFkMTM5ZTJlMzhlOWJmMjYyMDM0Y2JkZWI5YzNjNzc4ZGU2ZDhlM2YwZWExNzlmNmE2ODliZjgwOWM1MGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_290b446e35dd4c91bd9a0daaa19331ea",
+      "statement": "Deny list detections are forced into the set and replace any detection they overlap, the result sorted by span.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L122-L139",
+          "version": "repo-lines-v1:sha256:cac46ff868383df480eaa79deabeb38730b19017be2378bc5c1e1a3825e07145:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMjY4ZTA0ODU0NzA4YjE0M2ZkMGNlNDRjOGY3ZWM0MzljMzNjNWJkYzRjNTA3NDkxZjUwMTA3MDZkM2E0Y2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzMGVkZWMxODA4ZTRjYmU3OTRiZGM2NjZiNzNiN2VjYTE3MTgxNjE5MTExNjJlZDIwNGY2M2U0MmE0NmNmNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWNiMGEwMjUyMTU4NzU1MjZkYTgyNThiMzU4MzFmNDViMTY0ZGZhY2NlYmMzZGFhNjhmYjk1MjIzNWFjMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlNWVhN2FiYmZiNWNiYzQxMTQ4YjhiNTc0YTEwODQ2OTljMTRhZTYxZDMzY2IxMjU0OTRkYjRlNzkyNzg4NjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2adb19ea2f544240b596eab71278f5ba",
+      "statement": "The conflict strategy orders the lists: DENY_LIST_WINS (default) clears then forces, ALLOW_LIST_WINS forces then clears, RAISE refuses any overlap between the two lists with ConflictingOverrideError.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L152-L162",
+          "version": "repo-lines-v1:sha256:967368f4107ce0c2f6c8e9b33142e8085c01533c1cf25048bf26155a7b95eac8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxOGI0MDk5YWVhY2FlYWIxMTBjZWE2OTk1ZDdkNzk5MzgxZTA1OGI4ZTljNzUyMDlkZTEyNDU5ZTRmMmI1MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwMDEwNWUwYTY4NTIxYzNkMzMyNjE1MzkwZTg1OWUzOWNmMjQxMjc0YTdkNzgxZDE5NmEzYWRhMDdiMTBmZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1NWI3YzRmMTY0YzkwYWRmNzI3OGU5NmM3MzI4YjgwZjJiZmM0YzAzZTk1ODFkNDQ3NzJlZDJiMGU5Mzk1MTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L84-L104",
+          "version": "repo-lines-v1:sha256:c4925adf3e2bc8cdf6a859601b1de3476fbf299602a30bec427b0e4e1ae4f8a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzYzE2YzljZGZjMDg0NjlmOGQ3NWUyZTlkMWFiMDU1MjY1YmI5ZWJkZWViMDIzYWM5NGU0ZDhkMTFjYWI4YzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyZjJiY2ZhN2UxMzdiMDFiNTI1NDE5ZjhjYmQzMGY2YjdmY2IzZDQ3MGIwM2ExNTFhYjU3M2I3MDA0NTg3YTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhMjEzNWJhMDMyZGY5NTc2NjFmNWZlNGIzZjVjNjhhOWM3MjlkNzIzM2Y1MGM2MjZlNjQ4Mjg0NmM4ZDMxN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2NjRkN2E4ODdiNTQ3ZWIzOTI5ZGVlMTcwOTA2MTMxZWUyNTU3MDg4ZTFlZTA1YzgyZDU1ZDRjYTM0NmVjMWQifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/override/strategy.py#L39-L52",
+          "version": "repo-lines-v1:sha256:1a8ed0d1e8da08c5c281863db7a5368bd7bf7d3684bf741a31c32de7095aa158:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5NzYwNDdiYzE3M2I1YzFjNTI2NDE3NTBlZTQ1Njg3MGUwMjZkOThhODQ0YTk1N2NiMDk4ZmYxMmI2OGM3ZDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkNDJkZGJjNTJlYjNhNTU5NzhlNTYzMjZkNjZmYzBhYTg4MjA3ODQ0ZmM3YWVkYzE1M2NkNzZlMzliNWUwNWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NTIwZTQzYmM1ZGVkYmM3MmE3YWVhMDAwMjNhNjNmYmFmYTI5YTFhNjk5Y2ZlNDA2ZmQ3ZjI3NDhiZTc1ZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cd35c05dcb2f485b917b5d57ea370971",
+      "statement": "forces_value returns True only under DenyListStrategy.FORCE when the deny list matches the whole value, letting the thread pipeline tokenize an assistant-introduced value.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L113-L120",
+          "version": "repo-lines-v1:sha256:803143f50603ac2d5082d780cf979c71f207543477122c7a213b81f0010d4a36:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjlkNGZmYjM1MDA1OTBiMmNiYmY2MjMyYzE3NTNmNzc1M2FkN2EwZjk0NjRkZjhlNGZjYWQ4YjliMDhhYjgyZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTExNWI1NjY0NDIxNmNlOTU2YmY3OTVmM2I2YTA5MmYyYmE1N2M2Y2YwNDVlZmE0NDFjMzI4ODIzMzdkYzVmNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGU1MjQwYTRkZjE1YTk0MDE5ZmJjNDFkNjBlNmNhYmM4MTQ1NGNlMmIxYzc1ZWY2NDU4ZWUxYWQ4M2ZiZGYwNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjVjOTEyZWQxZDI0Y2E4OTcyNzUyZjZmOGZhOTQ5N2EzNjUzZjUyNjc1YjlmYjc0YjM2NzY2ZmNhZTJlODI5OCJ9"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L322-L329",
+          "version": "repo-lines-v1:sha256:aac51380ecd952c10a92cce05ba2783df3f380bd8ea336ccd0d8da03662cce6d:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjYwMWZmYjAwOWIxNmVhZGU3YjkyMTE4MmI5MGQ5YzFjYjBjMzAxNDgyOTQ0N2UxZjhlMWJiMTRlYzFlZWNjNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzhkN2ViZTNiZTgwNmEwMTI3NmMyODVjYzUzMmFlYzhkYWIxMzljNTRlYTdmYmU2Zjk5OWM5N2FiMDljYjdlMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTAxMGEwZWJhNjliZTBlODg2OTFkNjNjMTM3NjljODgxOGI2YmU1YjZiY2FkZGVmODJiMGNmNzc1YmUwNDFjMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a8703000c8d3494da39ffb6dcb1cda59",
+      "statement": "The override config defaults to allow_list_strategy VALUE, deny_list_strategy RESPECT_PROVENANCE and conflict_strategy DENY_LIST_WINS, each list being a full detector config.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/override.py#L13-L46",
+          "version": "repo-lines-v1:sha256:f7b5de973d9bf6b6946c2ecabab9e3da533b15927951f62d294f63d14b91dc98:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMmFlZGI4NzViN2ZlNDFmMDcxZWQ5ZjkyYWVlODgwYTIwODJlYTk2NDNmMDU5ZTAwMWFmNmIwOTE5ZjI0NDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwY2IzY2QxODExZDNkZGFiYzBlYzljMGVhNzRhZWU5YTZhZmVmNTJhZjhlMGM2OWU2NmM5M2M4YjJhZTVhNTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5be56c7fadf147519608277cec8f8f0e",
+      "statement": "Values on the allow list found in the text are exempted from the guard rail verdict.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L225-L234",
+          "version": "repo-lines-v1:sha256:349437864cdda54427be86274bab3a008c2327e5aa90966c5af0e1812caf113a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjMDllMTA0ZjY2YjZmNzMzZDFhMzgzZWY4YzI5NGUyYWI3NmE0YzhkMWY2MGJmMDdkMjRiMWI2ZWUzYWU4MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzYTVhNTQzMmU5ZWI3ZjgwMjRlYTljYTdhMGUyYjgyMjc5NTU4MGJhZDYxMmYxMzU3MDdhYzI0MDVkZDgxYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNWY5Mjk5NmMzMDVhODc3NDc5MTAxOTE2MDdkMmI4NzgwNTFjOTQ2Njk1ZTlmZGZjOWZhZGU3ZjM5YzQ4MDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU5OGY3NTgyZmU0YzRkZmVmNzBhZDQwZWI1YTM5YjQ4MWNhNWRjYjU0Mjc0OGY4YzQyNzhiMjIzNmJkZjdiZTkifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L313-L341",
+          "version": "repo-lines-v1:sha256:9c277611b64fa9d579d06bc0d7192a6bd3df47222d1f2b55bbca91efd70cfcdf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyZGI0MjExZGIzMjNjM2M3NzFkYzliNWZhN2QwZTdjMTMzYWJkNGZkOTRhMzk4NmU2ODlhYWM4NTZkNjI2OGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhOWY4MDhjM2Y0ZDQ3MTFhOWIzNDZiNzEwMjBlZWQ3ZmQ0OGMyMzIxNGYxY2Q5ODU5ZTYyZmUzNGI1MDAxODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NDE3N2M3OWJlODRhMjFkZWIwZGQwNmIyOGU1NjViZWI0MWYzNjgyN2NjYTBmYmM2MTQxYjcwNDRiZWM3NmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmODcwYjZjODFlNTRjMzVhZGViNjVhYjkxMGVlYjhiMThhODM3ODg3M2ZjODVjYTc2MWM1NTI3MjcyNGUxOTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ab7bff94fef74ec7a71b8b7a70f32d58",
+      "statement": "A human-corrected detection set passes through the override before it is stored.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L190-L217",
+          "version": "repo-lines-v1:sha256:6ac569d95640aa2a3d64c91d248d124a21bc8304421cf32778f56ecd054eaa23:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhYjA2YmIxZGMxNDM4NWY0MzBkNWFjYzZlYmQ3ZGU0ZmY5YjQ4NTU4YTQ2M2RkZTE4OGVjZGNlZjg0MDA2OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4YTgyYzhhOGUwZjEzYzA5NzQwZDEzMzU4ZjQ4ZjMzNDNkNTVjNjEzNGZmNjNkOTI5OTU5NDEzYTcyZTAzZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4OTUyYTE4ZTQwMWZjZjAxZTkyMjRjYzAxNTljMmVlYjlmY2RjNjViNDNkYjFlMTRkMWI2ZDQxMDkyOWU4NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyOGFlMGE4NDI4YmU0YjYxZWUwYWI2ZmJiNWY5MjMyOTNiZTJlZWQ4ZTcxMDIwZjQzZTI3ZjFiN2Q4ZmM1MzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_29a9baa645d8416b9a8e890ee9130cfc",
+      "statement": "The override runs right after detection and before overlap resolution and expansion; in the thread pipeline it runs only on fresh detections, so a cached message is not re-checked against changed lists.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L358-L371",
+          "version": "repo-lines-v1:sha256:d7467afabdcdc0edb63d4bbe00d648a3a81cf9056829b79a9d4021fa909baed0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyYzk0NDAwNmJlNGEwNDVjMmI4YmVmOTM1OWRjZjcxNjQ0MTE2MDJmNWQ4ODNhZTFmYzJmMzFiMzQ0NGZlNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyNWMxMGQ1YjIxNDczMjdhZDM1ZDYxMGYwNDg5M2VkYmU5MTc3ZWNlNWY4ODY1NmE4OWFjMGYxZmUwNDE5Y2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiZWI0YTNhNGJhM2FjNTA4YTA3MGYyOGFmNTljNTE0YjY5YjU1OGQ3OTkxOGRlODdmMDlkOGVlMjQzZmYyZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5ZTQ0YTY5MGFjOTQ4ZjUzNDJkM2ExNTc3NWM1NzBhYWIyYmRkZDc5MTlhNjI0MmZkYjJlMTIzNzA4YWY4ZjIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L264-L287",
+          "version": "repo-lines-v1:sha256:99f3e1cae7b600fb04f56559f012776c068a2970e2d1c9f1335686076e355b21:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNmNiZWI3ZTMwYTk5NWVmNTEyZmEwOTdhYWYyMzBjN2RhZDNkMTRlZTNlODFiNmMzMTM2M2EyMzg1MmNiOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkYjEyMmNkMmQ3OWRlOWZjZWU4OTg5MjA5ZjNlNTcyNzE0ZmViM2FlYWRkZjllODg1OTY5MjRhZDQ4MzhiOWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYxOGFmOTViOWViYzhmZmU5YWNiM2ZhNjg2MmM2YmQ3ODE3ZjA0MzUxZTlmMzU1NmNkNDI2ZWQ5ODRlYzhhNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1N2RlMmQ0Yzg4YzdmMWUxMDliMDIwNGNhZWU1YTI0NzZkNDU4M2NhNThiMjNkMDdkZTZjZjI4ZDA5Yzg4YTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4a1cde3028254c1bb82e6d0aad8c32ff",
+      "statement": "The DetectionOverride docstring claims the lists apply after every detection read, while cached reads bypass them.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/override/detector.py#L45-L60",
+          "version": "repo-lines-v1:sha256:4a75814c00c9c0e6d975b1fcb2bd22a06e3acf78038642a95433278028a0a42c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMzMxMjE3ODc4MjE1NmFjNjg4MDNmMGQyODEzMDZiMGYwZmRiMGJlNTA1ZGE1YWM1OTM0Nzg4OWRjZDJjYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzYzIwMWFkMzQzYmMyZTY3NWQ1MmYzODY1ZTQzODU4Nzg1YmJmM2RkMTg5NGJlODg4MTgzOTE5MmJiNDkyZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3N2ExMGVhOGMzZTUzNDhmOTIzZjY5YTFhOGE5ZmI2ZmQwODgyNjcwMWNjNDNkYWZhNzllZmVkMWY1NmQzODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNzRkMTFlYzJiMTM1ZTA1MjgzY2RjZmQ2ODAxMzZjZDk2NzMwMWRkMGY2OGQxNzY2OTE0ZDRjZTY0YTIwMGEifQ"
+        },
+        {
+          "resource": "repo://src/piighost/pipeline/thread.py#L271-L274",
+          "version": "repo-lines-v1:sha256:0f776b8816c68ba64d5cedcb5a98c4d0eab81150687742aa024e093f039a755d:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmVhZWE4N2EyM2I5YzFjM2ZhNWIxZDg2ZjQ0NWU1YjU3OWQzOTU4ZjBlYTUyZjExODZjNjgyZTdlODE2NjViMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzFhMDQzYjZhMTA5NDBlODYwZjU5YzI5ZGYyY2YyNTU5NjNiM2RjZGI4NWEyNTEwN2FiNjFhNTU5MDI4NDE3NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWJhNDFhN2FlZjViZGFlOWZkNjI4ZGE2ZTU0YTFkYWU1OTUyZjEzZjRjYzRlMjhhMWM0NzViNDkyZjhhNGI1MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2E5ZWY3MWJhODM1ZThhNGY0NjU4MDA0ZmUwNDVjMTAxODQwNjkwNzk2Y2FjNjNkMTk2ODUwMmIyYzcyODUzZSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

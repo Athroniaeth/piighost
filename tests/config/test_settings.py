@@ -147,7 +147,7 @@ case_sensitive = true
 [entity_resolver]
 type = "merge"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODE = "banana" }
 """
@@ -191,8 +191,8 @@ class TestOptionalStagesWiring:
 
 
 class TestOverrideEffect:
-    async def test_whitelist_forces_a_detection(self, tmp_path: Path) -> None:
-        """A whitelist detector forces anonymization of a value the detector missed."""
+    async def test_deny_list_forces_a_detection(self, tmp_path: Path) -> None:
+        """A deny list detector forces anonymization of a value the detector missed."""
         pipeline = load_pipeline(_write(tmp_path, _STAGES_TOML))
         result = await pipeline.anonymize("mail a@b.co about banana")
         assert "banana" not in result.text
@@ -240,3 +240,34 @@ class TestObservationRedactorWiring:
         toml = _VALID_TOML + '\n[observation_redactor]\ntype = "label"\n'
         pipeline = load_pipeline(_write(tmp_path, toml))
         assert pipeline.observation_redactor is not None
+
+
+class TestRenamedOverrideKeys:
+    def test_a_1x_whitelist_fails_the_load_with_its_new_name(
+        self, tmp_path: Path
+    ) -> None:
+        """A 1.x [override.whitelist] table is refused at load, never reinterpreted.
+
+        Read as the 2.0 allow list, the old whitelist would leave in clear every
+        value it was written to mask.
+        """
+        toml = _STAGES_TOML.replace("[override.deny_list]", "[override.whitelist]")
+        with pytest.raises(
+            ConfigValidationError,
+            match="'whitelist' was renamed 'deny_list' in piighost 2.0",
+        ):
+            load_config(_write(tmp_path, toml))
+
+    def test_a_1x_conflict_value_fails_the_load_with_its_new_name(
+        self, tmp_path: Path
+    ) -> None:
+        """A 1.x conflict strategy value is refused at load with the 2.0 value."""
+        toml = _STAGES_TOML.replace(
+            "[override.deny_list]",
+            '[override]\nconflict_strategy = "blacklist_wins"\n\n[override.deny_list]',
+        )
+        with pytest.raises(
+            ConfigValidationError,
+            match="'blacklist_wins' was renamed 'allow_list_wins' in piighost 2.0",
+        ):
+            load_config(_write(tmp_path, toml))
