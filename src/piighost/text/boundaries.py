@@ -6,37 +6,28 @@ from functools import lru_cache
 from piighost.exceptions import EmptyFragmentError
 from piighost.models import Span
 
-_HYPHEN_CODE_POINTS = (
-    0x002D,
-    0x00AD,
-    0x058A,
-    0x05BE,
-    0x1400,
-    0x1806,
-    0x2010,
-    0x2011,
-    0x2E17,
-    0x2E1A,
-    0x2E40,
-    0x2E5D,
-    0x30A0,
-    0xFE63,
-    0xFF0D,
-    0x10EAD,
+WORD_JOIN_CHARS = (
+    "\u002d"  # hyphen-minus
+    "\u00ad"  # soft hyphen
+    "\u058a"  # Armenian hyphen
+    "\u05be"  # Hebrew maqaf
+    "\u1400"  # Canadian syllabics hyphen
+    "\u1806"  # Mongolian todo soft hyphen
+    "\u2010"  # hyphen
+    "\u2011"  # non-breaking hyphen, the one Word types in place of the hyphen
+    "\u2e17"  # double oblique hyphen
+    "\u2e1a"  # hyphen with diaeresis
+    "\u2e40"  # double hyphen
+    "\u2e5d"  # oblique hyphen
+    "\u30a0"  # katakana double hyphen
+    "\ufe63"  # small hyphen-minus
+    "\uff0d"  # fullwidth hyphen-minus
+    "\U00010ead"  # Yezidi hyphenation mark
 )
-"""Code points of the hyphens: every dash punctuation named a hyphen, and the soft one.
-
-The hyphen-minus, the soft hyphen, the Armenian hyphen, the Hebrew maqaf, the
-Canadian syllabics hyphen, the Mongolian todo soft hyphen, the hyphen and the
-non-breaking hyphen Word types in its place, the double oblique hyphen, the
-hyphen with diaeresis, the double hyphen, the oblique hyphen, the katakana
-double hyphen, the small and the fullwidth hyphen-minus, and the Yezidi
-hyphenation mark. Written as numbers, since several are invisible or look like
-the ASCII one in source.
-"""
-
-WORD_JOIN_CHARS = "".join(map(chr, _HYPHEN_CODE_POINTS))
 """Characters treated as part of a word, in addition to the word class.
+
+Every dash punctuation named a hyphen, and the soft one. Written as escapes,
+since several are invisible or look like the ASCII one in source.
 
 A bare word boundary treats the hyphen as a separator, so a search for "Jean"
 would match the "Jean" inside "Jean-Paul", wrongly linking a short name to an
