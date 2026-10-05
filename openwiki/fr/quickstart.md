@@ -100,13 +100,14 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 
 ## Les groupes de la documentation métier
 
-- **Besoins** :
+- **Besoins et vocabulaire** :
     - [Besoins par profil](needs-by-profile.md)
+    - [Glossaire](glossary.md)
 - **Processus** :
-    - [Protéger un message](processes/protect-a-message.md)
     - [Suivre une conversation](processes/follow-a-conversation.md)
     - [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-deny-list-and-an-allow-list.md)
     - [Laisser un outil agir](processes/let-a-tool-act.md)
+    - [Protéger un message](processes/protect-a-message.md)
     - [Afficher une réponse au fil de l'eau](processes/show-a-streamed-reply.md)
 - **Intégrations** :
     - [Brancher la protection sur un agent et ses outils](integrations/agents-and-tools.md)
@@ -116,10 +117,9 @@ Pour modifier le code, la documentation technique indique quelles pages lire et 
 - **Architecture** :
     - [Ajouter ou remplacer un composant du pipeline](architecture/ports-and-extension.md)
 - **Tests** :
-    - [Lancer et écrire les tests](tests/run-and-write-tests.md)
     - [Tests d'acceptation](tests/acceptance-tests.md)
+    - [Lancer et écrire les tests](tests/run-and-write-tests.md)
 - **Référence** :
-    - [Glossaire](glossary.md)
     - [Décisions de conception](reference/decisions.md)
     - [Points à régler](reference/open-points.md)
 
