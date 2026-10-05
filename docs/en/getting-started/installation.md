@@ -9,7 +9,7 @@ icon: lucide/download
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
-## Installation
+## Install the core
 
 The core has no optional dependency. It is enough for a local pipeline that de-identifies by regex or by known values, with no model and no network.
 
@@ -34,34 +34,40 @@ Model-based detectors, the middleware, and the optional backends are extras to c
 === "uv"
 
     ```bash
-    uv add 'piighost[gliner2]'     # GLiNER2 NER detector
-    uv add 'piighost[langchain]'   # LangChain/LangGraph middleware
-    uv add 'piighost[all]'         # every extra
+    uv add "piighost[gliner2]"     # GLiNER2 NER detector
+    uv add "piighost[langchain]"   # LangChain/LangGraph middleware
+    uv add "piighost[all]"         # every extra
     ```
 
 === "pip"
 
     ```bash
-    pip install 'piighost[gliner2]'
-    pip install 'piighost[langchain]'
-    pip install 'piighost[all]'
+    pip install "piighost[gliner2]"
+    pip install "piighost[langchain]"
+    pip install "piighost[all]"
     ```
 
-Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`, adding `argon2` for a more resistant key hash.
+Extras compose. An encrypted Redis conversation memory installs with `piighost[redis,crypto]`. Add the `argon2` extra for a more resistant key hash.
 
-## Development installation
+## Check the installation
 
-```bash
-git clone https://github.com/Athroniaeth/piighost.git
-cd piighost
-uv sync
-```
+Print the installed version.
 
-## Development commands
+=== "uv"
 
-```bash
-uv sync                              # install dependencies
-make lint                            # format (ruff) + lint (ruff) + types (pyrefly)
-uv run pytest                        # run all tests
-uv run pytest tests/ -k "test_name"  # run a single test
-```
+    ```bash
+    uv run python -c "import piighost; print(piighost.__version__)"
+    ```
+
+=== "pip"
+
+    ```bash
+    python -c "import piighost; print(piighost.__version__)"
+    ```
+
+The command prints a version number, such as `2.0.0`. An `ImportError` means the package is not installed in the active environment.
+
+## See also
+
+- [Quickstart](quickstart.md) for a first try without a model.
+- [Contributing](../community/contributing.md) to clone the repository, run the tests and the checks.

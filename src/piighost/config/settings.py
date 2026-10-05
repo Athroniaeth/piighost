@@ -2,26 +2,28 @@
 
 PipelineConfig is a pydantic-settings model layering, in decreasing precedence,
 explicit init arguments, environment variables prefixed PIIGHOST_, then the
-config file, TOML or JSON by its suffix. The file path is injected per call
-through a context variable read by settings_customise_sources, so the path is
-not frozen at class definition.
+config source: a file, TOML or JSON by its suffix, or the configuration a
+catalog reference names. The source is injected per call through a context variable
+read by settings_customise_sources, so it is not frozen at class definition.
 """
 
 import json
 import tomllib
 from contextvars import ContextVar
 from pathlib import Path
-from typing import ClassVar, cast
+from typing import Any, ClassVar, cast
 
 from pydantic import Field, ValidationError, model_validator
 from pydantic_settings import (
     BaseSettings,
+    InitSettingsSource,
     JsonConfigSettingsSource,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
 
+from piighost.catalog import SCHEMES, pull_config
 from piighost.components.placeholder.tags import PlaceholderPreservation
 from piighost.config.models.anonymizer import AnonymizerConfig
 from piighost.config.models.detector import DetectorConfig
@@ -40,18 +42,28 @@ from piighost.pipeline import (
     ThreadAnonymizationPipeline,
 )
 
-_config_path: ContextVar[Path | None] = ContextVar("_config_path", default=None)
-"""The config file the current load reads, set by a loader, read by the source."""
+_config_source: ContextVar[Path | dict[str, Any] | None] = ContextVar(
+    "_config_source", default=None
+)
+"""What the current load reads, a file or a catalog configuration already parsed.
+
+Set by a loader, read by the settings source.
+"""
 
 
 def _file_source(settings_cls: type[BaseSettings]) -> PydanticBaseSettingsSource | None:
-    """The file settings source for the current load, JSON or TOML by suffix.
+    """The config settings source for the current load.
 
-    Returns None when no path is set, so init and env still apply on their own.
+    A file is read as JSON or TOML by its suffix. A catalog configuration
+    arrives parsed, and takes the file's place below the environment, so a
+    PIIGHOST_ variable overrides it as it overrides a file. Returns None when
+    nothing is set, so init and env still apply on their own.
     """
-    path = _config_path.get()
+    path = _config_source.get()
     if path is None:
         return None
+    if isinstance(path, dict):
+        return InitSettingsSource(settings_cls, init_kwargs=path)
     if path.suffix.lower() == ".json":
         return JsonConfigSettingsSource(settings_cls, json_file=path)
     return TomlConfigSettingsSource(settings_cls, toml_file=path)
@@ -176,51 +188,70 @@ class PipelineConfig(BaseSettings):
         )
 
 
-def load_config(path: str | Path) -> PipelineConfig:
-    """Parse and validate a config file into a PipelineConfig, building nothing.
+def load_config(source: str | Path) -> PipelineConfig:
+    """Parse and validate a configuration into a PipelineConfig, building nothing.
 
-    The file may be TOML or JSON, chosen by its suffix.
+    The source is a file, TOML or JSON by its suffix, or a catalog reference such
+    as catalog:piighost/fr-notarial:2f602547, whose whole configuration is
+    pulled and read as the file would be. A reference written with the 1.x
+    prefix, hub:piighost/fr-notarial:2f602547, loads the same way. A reference
+    pinned to a commit is cached on disk after the first load.
 
     Raises:
-        ConfigFileError: If the file is missing, unreadable, or invalid TOML/JSON.
+        ConfigFileError: If the file is missing or unreadable, or the file or the
+            catalog's answer is not valid TOML/JSON.
         ConfigValidationError: If the parsed data fails schema validation.
+        CatalogError: If the catalog cannot be reached or the reference does not
+            parse.
     """
-    resolved = Path(path)
+    if str(source).startswith(SCHEMES):
+        ref = str(source)
+        try:
+            data = tomllib.loads(pull_config(ref))
+        except tomllib.TOMLDecodeError as exc:
+            raise ConfigFileError(f"invalid config at {ref}: {exc}") from exc
+        return _validate(data, ref)
+
+    resolved = Path(source)
     if not resolved.is_file():
         raise ConfigFileError(f"configuration file not found: {resolved}")
+    return _validate(resolved, str(resolved))
 
-    token = _config_path.set(resolved)
+
+def _validate(source: Path | dict[str, Any], origin: str) -> PipelineConfig:
+    """Validate one configuration source, naming its origin in any error."""
+    token = _config_source.set(source)
     try:
         return PipelineConfig()
     except (tomllib.TOMLDecodeError, json.JSONDecodeError) as exc:
-        raise ConfigFileError(f"invalid config file {resolved}: {exc}") from exc
+        raise ConfigFileError(f"invalid config file {origin}: {exc}") from exc
     except OSError as exc:
-        raise ConfigFileError(f"cannot read {resolved}: {exc}") from exc
+        raise ConfigFileError(f"cannot read {origin}: {exc}") from exc
     except ValidationError as exc:
         raise ConfigValidationError(
-            f"invalid configuration in {resolved}: {exc}"
+            f"invalid configuration in {origin}: {exc}"
         ) from exc
     finally:
-        _config_path.reset(token)
+        _config_source.reset(token)
 
 
-def load_pipeline(path: str | Path) -> AnonymizationPipeline[PlaceholderPreservation]:
+def load_pipeline(source: str | Path) -> AnonymizationPipeline[PlaceholderPreservation]:
     """Load a configuration and build its stateless AnonymizationPipeline.
 
     Raises:
         ConfigError: If the configuration declares a memory, which describes a
             thread pipeline; use load_thread_pipeline instead.
     """
-    pipeline = load_config(path).build()
-    if not isinstance(pipeline, AnonymizationPipeline):
+    config = load_config(source)
+    if config.memory is not None:
         raise ConfigError(
             "this configuration declares a memory; use load_thread_pipeline"
         )
-    return cast(AnonymizationPipeline[PlaceholderPreservation], pipeline)
+    return cast(AnonymizationPipeline[PlaceholderPreservation], config.build())
 
 
 def load_thread_pipeline(
-    path: str | Path,
+    source: str | Path,
 ) -> ThreadAnonymizationPipeline[PlaceholderPreservation]:
     """Load a configuration and build its ThreadAnonymizationPipeline.
 
@@ -228,7 +259,7 @@ def load_thread_pipeline(
         ConfigError: If the configuration declares no memory, which a thread
             pipeline needs; use load_pipeline instead.
     """
-    pipeline = load_config(path).build()
-    if not isinstance(pipeline, ThreadAnonymizationPipeline):
+    config = load_config(source)
+    if config.memory is None:
         raise ConfigError("this configuration declares no memory; use load_pipeline")
-    return cast(ThreadAnonymizationPipeline[PlaceholderPreservation], pipeline)
+    return cast(ThreadAnonymizationPipeline[PlaceholderPreservation], config.build())

@@ -4,9 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from piighost.config import load_pipeline, load_thread_pipeline
+from piighost.config import PipelineConfig, load_pipeline, load_thread_pipeline
 from piighost.config.models.memory import InMemoryConfig
 from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.conversation_memory.memory import DEFAULT_MAX_THREADS, DEFAULT_TTL
 from piighost.exceptions import ConfigError
 from piighost.pipeline import AnonymizationPipeline, ThreadAnonymizationPipeline
 
@@ -52,6 +53,11 @@ class TestInMemoryConfig:
         """The in_memory config builds an InMemoryConversationMemory."""
         memory = InMemoryConfig(type="in_memory").build()
         assert isinstance(memory, InMemoryConversationMemory)
+
+    def test_a_bare_section_is_bounded_like_the_store(self) -> None:
+        """A section with no bound carries the store's default bounds."""
+        config = InMemoryConfig(type="in_memory")
+        assert (config.max_threads, config.ttl) == (DEFAULT_MAX_THREADS, DEFAULT_TTL)
 
 
 class TestLoadThreadPipeline:
@@ -128,3 +134,30 @@ class TestLoadPipelineRejectsMemory:
         assert isinstance(pipeline, AnonymizationPipeline)
         result = await pipeline.anonymize("hi Patrick")
         assert "<<PERSON:1>>" in result.text
+
+
+WRONG_LOADER = [
+    pytest.param(load_pipeline, _THREAD_TOML, "declares a memory", id="memory"),
+    pytest.param(load_thread_pipeline, _SIMPLE_TOML, "declares no memory", id="none"),
+]
+"""A loader handed the other kind of config, and the message that refuses it."""
+
+
+class TestWrongLoaderBuildsNothing:
+    @pytest.mark.parametrize(("loader", "config", "message"), WRONG_LOADER)
+    def test_the_config_is_refused_before_any_component_is_built(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        loader: object,
+        config: str,
+        message: str,
+    ) -> None:
+        """No client, secret, catalog or model is touched before the refusal."""
+
+        def build(self: PipelineConfig) -> None:
+            raise AssertionError("the pipeline was built before the refusal")
+
+        monkeypatch.setattr(PipelineConfig, "build", build)
+        with pytest.raises(ConfigError, match=message):
+            loader(_write(tmp_path, config))  # type: ignore[operator]

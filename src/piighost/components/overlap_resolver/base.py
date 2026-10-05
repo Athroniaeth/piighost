@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Protocol, runtime_checkable
 
+from piighost.components._groups import connected_groups
 from piighost.models import Detection, Span
 
 
@@ -48,13 +49,8 @@ class BaseOverlapResolver(ABC):
 
     def resolve(self, detections: list[Detection]) -> list[Detection]:
         """Return non-overlapping detections, resolving each conflict group."""
-        kept: list[Detection] = []
         groups = self._conflict_groups(detections)
-
-        for group in groups:
-            reduced = self._reduce(group)
-            kept.extend(reduced)
-        return sorted(kept)
+        return sorted(kept for group in groups for kept in self._reduce(group))
 
     def _conflict_groups(self, detections: list[Detection]) -> list[list[Detection]]:
         """Cluster detections so each overlaps at least one other in its group.
@@ -64,23 +60,8 @@ class BaseOverlapResolver(ABC):
         in order), so a subclass that reduces a group with a stable sort keeps the
         earliest detector's detection on a true tie.
         """
-        groups: list[list[tuple[int, Detection]]] = []
-
-        for index, detection in enumerate(detections):
-            merged = [(index, detection)]
-            overlapping = [
-                group
-                for group in groups
-                if any(detection.overlaps(member) for _, member in group)
-            ]
-
-            for group in overlapping:
-                merged.extend(group)
-                groups.remove(group)
-
-            groups.append(merged)
-
-        return [[detection for _, detection in sorted(group)] for group in groups]
+        groups = connected_groups(detections, Detection.overlaps)
+        return [[detections[index] for index in sorted(group)] for group in groups]
 
     @abstractmethod
     def _reduce(self, conflicting: list[Detection]) -> list[Detection]:

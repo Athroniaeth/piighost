@@ -7,7 +7,8 @@ from typing import Self
 import pytest
 from typer.testing import CliRunner
 
-from piighost.cli import app
+from piighost.catalog import CatalogUnreachableError
+from piighost.cli import DEFAULT_CATALOG, app
 
 runner = CliRunner()
 
@@ -74,6 +75,42 @@ class TestValidate:
         assert result.stderr
 
 
+class TestValidateCatalog:
+    def test_a_catalog_reference_is_validated(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """validate takes a catalog reference as it takes a file."""
+        monkeypatch.setattr(
+            "piighost.config.settings.pull_config", lambda ref: _VALID_TOML
+        )
+        result = runner.invoke(app, ["validate", "catalog:piighost/demo:2f602547"])
+        assert result.exit_code == 0
+        assert "OK: catalog:piighost/demo:2f602547" in result.stdout
+
+    def test_a_1x_hub_reference_is_validated(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """validate still takes the hub: prefix 1.x wrote."""
+        monkeypatch.setattr(
+            "piighost.config.settings.pull_config", lambda ref: _VALID_TOML
+        )
+        result = runner.invoke(app, ["validate", "hub:piighost/demo:2f602547"])
+        assert result.exit_code == 0
+
+    def test_an_unreachable_catalog_fails_with_a_message(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A catalog that cannot be reached exits 1 with a line, not a traceback."""
+
+        def pull_config(ref: str) -> str:
+            raise CatalogUnreachableError(f"{ref}: the catalog answered 404")
+
+        monkeypatch.setattr("piighost.config.settings.pull_config", pull_config)
+        result = runner.invoke(app, ["validate", "catalog:piighost/nope:2f602547"])
+        assert result.exit_code == 1
+        assert "the catalog answered 404" in result.stderr
+
+
 class TestSchema:
     def test_schema_prints_json_with_expected_fields(self) -> None:
         """schema exits 0 and prints a JSON schema covering the components."""
@@ -83,11 +120,27 @@ class TestSchema:
         assert {"detector", "linker", "anonymizer"} <= set(document["properties"])
 
 
+@pytest.fixture(autouse=True)
+def fake_catalog(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Answer every catalog pull with an email pattern, recording each reference."""
+    pulled: list[str] = []
+
+    def pull(ref: str, catalog: str | None = None) -> dict[str, str]:
+        pulled.append(ref)
+        return {"EMAIL": "[a-z]+@[a-z.]+"}
+
+    monkeypatch.setattr("piighost.catalog.pull", pull)
+    return pulled
+
+
 class TestAnonymize:
-    def test_default_detector_anonymizes_an_argument(self) -> None:
-        """With no config, a generic regex detector tokenizes a known shape."""
+    def test_default_detector_anonymizes_an_argument(
+        self, fake_catalog: list[str]
+    ) -> None:
+        """With no config, the regex detector over the pinned catalog group tokenizes."""
         result = runner.invoke(app, ["anonymize", "mail me at a@b.co please"])
         assert result.exit_code == 0
+        assert fake_catalog == [DEFAULT_CATALOG]
         assert "a@b.co" not in result.stdout
         assert "<<EMAIL:1>>" in result.stdout
 
@@ -106,6 +159,19 @@ class TestAnonymize:
         assert payload["anonymized_text"] == "<<EMAIL:1>>"
         assert [d["text"] for d in payload["detections"]] == ["a@b.co"]
 
+    def test_an_unreachable_catalog_fails_with_a_message(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A catalog that cannot be reached exits 1 with a line, not a traceback."""
+
+        def pull(ref: str, catalog: str | None = None) -> dict[str, str]:
+            raise CatalogUnreachableError("no route to the catalog")
+
+        monkeypatch.setattr("piighost.catalog.pull", pull)
+        result = runner.invoke(app, ["anonymize", "a@b.co"])
+        assert result.exit_code == 1
+        assert "Could not pull from the catalog" in result.stderr
+
     def test_config_pipeline_is_used(self, tmp_path: Path) -> None:
         """--config anonymizes through the configured pipeline."""
         path = _write(tmp_path, _VALID_TOML)
@@ -115,6 +181,30 @@ class TestAnonymize:
         assert result.exit_code == 0
         assert "a@b.co" not in result.stdout
         assert "<<REDACT>>" in result.stdout
+
+    def test_an_invalid_config_fails_with_a_message(self, tmp_path: Path) -> None:
+        """A config that does not validate exits 1 with the reason, no traceback."""
+        path = _write(tmp_path, _VALID_TOML.replace("patterns =", "pattern ="))
+        result = runner.invoke(app, ["anonymize", "a@b.co", "--config", str(path)])
+        assert result.exit_code == 1
+        assert "invalid configuration" in result.stderr
+        assert result.exception is None or isinstance(result.exception, SystemExit)
+
+    def test_json_lists_the_detections_the_text_replaced(self, tmp_path: Path) -> None:
+        """--json reports what the pipeline kept, not the detector's raw overlaps."""
+        overlapping = """
+[detector]
+type = "regex"
+patterns = { EMAIL = '[a-z]+@[a-z.]+', DOMAIN = '[a-z]+[.]co' }
+"""
+        path = _write(tmp_path, overlapping)
+        result = runner.invoke(
+            app, ["anonymize", "write alice@corp.co", "--config", str(path), "--json"]
+        )
+        assert result.exit_code == 0
+        payload = json.loads(result.stdout)
+        assert payload["anonymized_text"] == "write <<EMAIL:1>>"
+        assert [d["text"] for d in payload["detections"]] == ["alice@corp.co"]
 
     def test_config_and_api_are_mutually_exclusive(self) -> None:
         """Passing both --config and --api exits 1 with a message."""

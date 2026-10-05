@@ -11,9 +11,7 @@ an ImportError pointing at the extra.
 import asyncio
 from typing import Any, Generic
 
-from typing_extensions import TypeVar
-
-from piighost.components.placeholder.tags import PreservesRecognizableIdentity
+from piighost.components.placeholder.tags import IdentityT
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
 from piighost.pipeline import AnyThreadPipeline
@@ -28,12 +26,6 @@ except ImportError as exc:
         "Install it with: pip install piighost[llama-index]"
     ) from exc
 
-IdentityT = TypeVar(
-    "IdentityT",
-    bound=PreservesRecognizableIdentity,
-    default=PreservesRecognizableIdentity,
-)
-
 
 class PIIQueryEngine(BaseQueryEngine, Generic[IdentityT]):
     """Anonymize a RAG query and restore the answer around any inner engine.
@@ -44,10 +36,8 @@ class PIIQueryEngine(BaseQueryEngine, Generic[IdentityT]):
     already active event loop; from async code, use aquery so _aquery is awaited
     directly. It wraps a non-streaming engine; a streaming inner engine raises,
     since restoring a token split across stream chunks is a separate concern.
-
-    Attributes:
-        invented_strategy: How a token the pipeline never issued is handled when
-            restoring the answer, KEEP, DROP, or RAISE.
+    invented_strategy decides how a token the pipeline never issued is handled
+    when restoring the answer, KEEP, DROP, or RAISE.
     """
 
     def __init__(
@@ -63,7 +53,6 @@ class PIIQueryEngine(BaseQueryEngine, Generic[IdentityT]):
         self._inner = inner
         self._deidentifier = TextDeidentifier(pipeline, invented_strategy)
         self._thread_id = thread_id
-        self.invented_strategy = invented_strategy
 
     async def _aquery(self, query_bundle: Any) -> Any:
         """Anonymize the query, delegate, then deanonymize the answer."""

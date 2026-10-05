@@ -1,9 +1,6 @@
-"""Tests for the Redis conversation memory backend and its dependency guard."""
+"""Tests for the Redis conversation memory backend."""
 
 import asyncio
-import importlib
-import importlib.util
-import sys
 from typing import Any
 
 import pytest
@@ -12,7 +9,6 @@ from piighost.conversation_memory import Forgotten, MessageRole
 from piighost.exceptions import PIIGhostSecurityWarning
 from piighost.models import Detection, Span
 
-_MODULE = "piighost.conversation_memory.redis_backend"
 _AES_KEY = b"0123456789abcdef0123456789abcdef"
 """A 32-byte key, the AES-256 size."""
 
@@ -24,8 +20,7 @@ def _detection(text: str, label: str = "PERSON") -> Detection:
 
 def _make() -> tuple[Any, Any]:
     """Build a RedisConversationMemory over a fresh fake Redis client."""
-    pytest.importorskip("cryptography")
-    fakeredis = pytest.importorskip("fakeredis.aioredis")
+    import fakeredis.aioredis as fakeredis
 
     from piighost.conversation_memory import RedisConversationMemory
     from piighost.crypto.cipher import AesGcmCipher
@@ -36,27 +31,6 @@ def _make() -> tuple[Any, Any]:
         client, Sha256Hasher("pepper"), AesGcmCipher(_AES_KEY)
     )
     return memory, client
-
-
-class TestOptionalDependencyGuard:
-    def test_missing_redis_explains_how_to_install(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Importing without redis points the user at piighost[redis]."""
-        real_find_spec = importlib.util.find_spec
-
-        def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
-            if name == "redis":
-                return None
-            return real_find_spec(name, *args, **kwargs)
-
-        monkeypatch.setattr(importlib.util, "find_spec", find_spec)
-        sys.modules.pop(_MODULE, None)
-
-        with pytest.raises(ImportError, match=r"piighost\[redis\]"):
-            importlib.import_module(_MODULE)
-
-        sys.modules.pop(_MODULE, None)
 
 
 class TestConformance:

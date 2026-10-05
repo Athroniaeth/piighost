@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:1360106213eccdb23ba16b9b3f5b0d5995cce2373e58549aa3f1c7ce15bdb9a1",
+  "claims": [
+    {
+      "id": "claim_c15e76878fbe45648620c486e0ea1cc9",
+      "statement": "LabelCounterPlaceholderFactory numbers entities per label in order of appearance, so the first person is <<PERSON:1>> and an email starts its own count.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/base.py#L128-L161",
+          "version": "repo-lines-v1:sha256:02a4623a288146d92f00047109ac3376c1563cbb17c945a87881c59da11c8600:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxMDJjMDYwNTE3NmQxZGVkNTRlNzgwYTk1NzhjNzA2NGZiMzM3MzU3NjVmZmYzMWM4ZmVmNGEwOTNlOGY1YTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2MjBkODVkZTRlZDdhYjgwMjFiNGE4ZGQ0ZmExNWVjNTE5MjVjZGZjY2RlMTgwNTg5NWE0YzhhM2MzYmE0OGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzZGYyYWNmMDZlOGMzZjAzYzcxMzVjNmU4YWM1YTljYTU0MzJhYmUwNmE3NGFjYTBmZGQ5YTUzYTAwOGY5ODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c2bb9cedee7c4f81b0ad67335c59b266",
+      "statement": "LabelHashPlaceholderFactory renders the token from a SHA-256 of label:ordinal truncated to hash_length (8 by default), never of the value, so the first person is <<PERSON:09ef3b74>>.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/label_hash.py#L10-L40",
+          "version": "repo-lines-v1:sha256:c3cdfd49865ffe4dbdb5572f22b850f0e4ec519c1e13dd3b56c1fa3fdd0f2333:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxYmQ5OGVkYjc4ZjVjMTA5MzI1MjViM2RkYzVmNWE5MGE1OTllMDk1ZTY5MjA2OTRlY2ZlMjM4MDc1MGI4Y2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YjY2MzhhYjUzYmNiOWY0MWZjMWQxMGVhMGM0ZmQwM2RkYjZjZjhiYjE0MmRkNTllNjg5OGFkY2M0OGU2MGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3NWE4YmQ3ZTljNjk1ZDhlNmZlYTM0ODVjMzA1ZjRiOWJmODg1MDYwNzNlZGZkNTJjNTM2ZGExODQ2ZjgyNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3fb513ba24dd4ddfbbecac950b801610",
+      "statement": "RedactPlaceholderFactory maps every entity to the same <<REDACT>> token and LabelPlaceholderFactory to <<LABEL>>, so neither can be reversed reliably.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/label.py#L12-L28",
+          "version": "repo-lines-v1:sha256:2a71ceeba0e451574c11e94cd9a36e0305272f946874bc6410bc54bb68e407c2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkMWRiZDU1NDU1Y2M5NDllY2UzMjgwZmM1NzIyYjc1YjE1MjIwY2U1ZGE5MzQwM2JmMWQ1NDUwMjMxM2I5ZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NDhkMjQzNGE5YzFhN2E2NjVhZDI1NzJmYTc2M2NkOTJjODA5ZDM1NTljNWIwZjI1YjEyMWU1ZTY4YTAwNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwYmRlZmFlM2VkOWFjMjg3MDY1ZmVmNGUxODdiMDI0ZDVhYzc3MjhkMDExZDNjZjUyYTc2YzkzODQ0Yzg4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/components/placeholder/redact.py#L12-L28",
+          "version": "repo-lines-v1:sha256:4ea596baae1f65fad21bb2794bf356b39763ca5b6b58547a41e731e70360a1a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlZmJmNTY4ZTQ4Mjc0NjA2Y2UxMTc3NzNiZWJiMGY1NTA4Mzk2NWQxNTk3YjViZjA4ZjAxYTI1NGJjYmI5MzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ODA0NDk4ZDIzZTMwYWVlMTdlZTFhN2QzZmM2MjI2NGU1OWI1NDU5NGJjOWRmYzJiNWEzYzRiZjNkMjMyYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwYmRlZmFlM2VkOWFjMjg3MDY1ZmVmNGUxODdiMDI0ZDVhYzc3MjhkMDExZDNjZjUyYTc2YzkzODQ0Yzg4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f72096cdc49e42598675643b52c5403f",
+      "statement": "MaskPlaceholderFactory keeps at most visible leading characters and always masks at least one character.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/placeholder/mask.py#L8-L42",
+          "version": "repo-lines-v1:sha256:3b57d5170b7faf810a493badfcaab85f5e63a6d8fa8ca5cb71dbdfa9e45a311d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OTdkZDBkYWVkNDQ1Zjc2OGVmNzI3YmI2MjA1NjEwNmVjN2RhNzRlZmExODZhNDJlOGM5Y2VmMmI3ODVmYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiZmY3OTEyNTIwOWFiOGY3ZDg1NWU3NTIzMzM0MTQwY2RiN2Y2NDlkM2EyNDJlN2VjYTA2Y2Y1NTM3ZGUyN2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwYmRlZmFlM2VkOWFjMjg3MDY1ZmVmNGUxODdiMDI0ZDVhYzc3MjhkMDExZDNjZjUyYTc2YzkzODQ0Yzg4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_95aa9916a1d34ccc94f6788472c69c0e",
+      "statement": "A Span is a half-open interval [start, end) with a non-negative start and end strictly greater than start; a Detection carries a confidence in the closed range 0 to 1.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/models/detection.py#L14-L32",
+          "version": "repo-lines-v1:sha256:55c2d263c91de1b61ab63e4efd39b41e482f205e6072575ea80c48f73bfa9e71:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxZDk1ZDk2NDg0MWU4MzAzZDc1YmUyNTBlMjY1NWNhZjgwMjRkZWViMGRkZTFjYWIyNWEwZTI1NWU1YjBjYzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZjE2OGEyNjU1NGUxYWZhZGZmMWMyMGYzODA4MjczY2E4NmNmYTk3Yjg1N2JmZGEyMzFhMjg2ZGY2MWZkOTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3MzI3ZmQ0NTE1NGNkMzAxMDI5ZWQ0OWM1NjdlMWM4NjA5NjVlZDFkNDRkZGI3MTkyNDcyNmU2NzI5NWUzYzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5YzU4ZDM1MDFhYzQ2MDBlNjQ0ODkxODBlZWExMWEwOWRjMWVlYzdhOTIxODkzZmUxNjM5OGE1ODgyNDljZjYifQ"
+        },
+        {
+          "resource": "repo://src/piighost/models/span.py#L16-L35",
+          "version": "repo-lines-v1:sha256:f0a05e8370d819864ab4b7d3a142333abccc1a765a915b7bf77aee177936bc65:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4ZTdjZDYxOGU2NDBhMjU3ZmNkZGExYzM3YjAyMGM3NDgwN2FlYzNjMDQ3MmM4Y2FhZDJjOTgzZjgwNjg4MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwMmMzNjBmMzM4ZDAyYmY5YmRjODI3YjNiMDZhNjBlZmM4MmUyNDBjNjUyYzhhM2ZiNDViNTE1OGYxODNmMWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0MzcxYzgxODdiM2U3NTRjNjdmZDMzNjMwZDA4MWFlZGJiMDQ2YWM4MTBjMjdjZDk0NzZkYWY4YzQwZTdkNjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjNzc4MDZlOGIwOTFhZjczODM1NmMyNWYxOWI4YTBiOTY4ZjM0MTRlMjdmNTZmZDNlZTdkYWNlZDA3MGM1MjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_eac83cd38f864c75a4a39873c037bd39",
+      "statement": "ExactEntityLinker groups detections sharing a case-insensitive value key and the same label into one entity.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/components/linker/exact.py#L8-L21",
+          "version": "repo-lines-v1:sha256:8c58cf73c5f37759f578e3fdffd5b1d939d368d2cdb1341025a3a4e5d8aa7c02:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5OGE2YWMzMWY5YzJiYjAxNDJmMjk1YTYxNjFkOThkOGNiYjY4YzkxZmUyMzg4Yzk0ZTFlNTA3YjFiNGI1MGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZmMwMTY4MDE3MmVhNmM5YzY1ZjA4NTMwYjY4OGNmY2I4MmU4MTA4MzEzMDJiZDlhNDgzMWQ5NGYwNzE5MTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5NGNjNjA0MmExMmM0YWFmMWJmMDM2YjEwMjc2ODAyZTk1NGMwZTQ2NjJiYzA0MDJkOThjMWI2OWIzMTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_df66703aaa9340bba65c6ad7ee683504",
+      "statement": "A flagged guard verdict with detections raises PIIRemainingError naming the residual labels.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/pipeline/base.py#L400-L410",
+          "version": "repo-lines-v1:sha256:b1532042f5c8bcfc0682ad0d145586113e5b63597c64d9171d76fca0d72fb3b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxZDhhNGQ1MzIzZjMxMjNmMGY1OWMxOTQ0MWIyMzdkMDBkYmJlZjA5YzM5NzEwM2FmM2E1Y2MwMDE2NmVlNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNjBkMmU3NzBjZTg2NDY2NGFhMjY4MjY3N2IxNTg2ODkyMWE0MWY0MjgwODc0ODg1YjgxNTgzNmQ5YWIzNmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI4Zjk4Y2ExM2EzYWIzNWJjOTYxMGQwNTViZTJmOTg5NzJkNTk0NDI0Y2QyNTI2MGQ2YWM0MTI5YmU3Mzk1MjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f36e585836d54c6f9d2ca5b2ffeecc1a",
+      "statement": "DEFAULT_THREAD_ID is the string default, shared by every caller that names no thread.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/conversation_memory/base.py#L31-L36",
+          "version": "repo-lines-v1:sha256:433cbf94da30be926bf8d4bede6e3889a0734e36a1506d86415dba98dee1fc29:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzg2YjE1NzljZjJlZWRjZTY4MDk1MTkyODdhNjY4ZGE3OTQ1ZDkyZjI2ZjM4MmZkMWE4ODM3MTkzNDY4MDEzZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTMwM2VjZGQ0YTRkMTBmMTljNzNmZDQyZmQxMjQzN2ZkMzM1NGE4MjY4MTYwNWRhNTI1NWE5N2EzOTA2OGRiYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2E4MzA0NWNiMTNjMDQxZDcyYzM1NmYzY2UwYTdhNGQ2NmJkZmQ5YTk2NDExNjcwOTcyMWEwYzVlYjFiNzgwNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDA1YTlkNmJlNGVjNWM0YTkzNWEzOGIyYTQ4MmUzMDY4ZTM1MzIxOWM2ZjVlM2JlZTk2NjY1MmNhZGFkNmMxZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_821632fd24f14e889b674b45485cfece",
+      "statement": "The override configuration exposes deny_list and allow_list as detector configs.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/override.py#L14-L27",
+          "version": "repo-lines-v1:sha256:7d1b9da474fbcc7c24e2518b7ce325284800c2caafc67d64ac49456f39ebc92e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxOTI5MTVlZjRiOGYxYzBmNWFiOGVkZDBkZDM4MjliYjM4ODQ1Yzk0MmFlMjljODQ5YzVlMzUxYTRlZGEwMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2MWRkNTAyZDIxY2UwNzA3YWMzOTM1N2FhNGE0MTdkYzIwYzNhMjRlZTYzZTkzMTg5YzBiNmFlOWViNGVhMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MjlhMDExNjU1ODU3ZjNlMDUzZWJkODAzNDYyZDg5YzVhMzNlMWIzNmYzZmNjODIwYmYxNDZkYWRmNDkyNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1OWY5YjJmZWM4NDQzZDEyNTI4NTliNDg5Nzk2OWYzOGRkNDYzMTI5Y2E3NGQ5NGM2NmViNDQ1NjJiNTcxMmEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

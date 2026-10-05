@@ -84,7 +84,7 @@ class TestSpanTree:
             overlap_resolver=ConfidenceOverlapResolver(),
             guard=DetectorGuardRail(ExactMatchDetector({})),
             override=DetectionOverride(
-                whitelist=ExactMatchDetector({"Liam": "PERSON"})
+                deny_list=ExactMatchDetector({"Liam": "PERSON"})
             ),
         )
         await pipeline.anonymize("Hi Emma!")
@@ -149,7 +149,7 @@ class TestRedaction:
         pipeline = _pipeline(
             observation_redactor=RedactPlaceholderFactory(),
             override=DetectionOverride(
-                whitelist=ExactMatchDetector({"Liam": "PERSON"})
+                deny_list=ExactMatchDetector({"Liam": "PERSON"})
             ),
         )
         await pipeline.anonymize("Hi Liam!")

@@ -11,23 +11,22 @@ format:
 lint:
 	uv run ruff format --check .
 	uv run ruff check .
-	uv run pyrefly check src tests examples
+	uv run pyrefly check src tests examples docs/tools
 	uv run bandit -c pyproject.toml -r src examples
+	uv run python skills/piighost-docs/scripts/audit.py
 
 test:
 	uv run pytest
 
 docs-build:
-	uv run python -m zensical build
-	uv run python -m zensical build -f zensical.fr.toml
+	uv run python -m zensical build -f docs/zensical.toml
+	uv run python -m zensical build -f docs/zensical.fr.toml
 
-docs:
-	uv run python -m zensical build
-	uv run python -m zensical build -f zensical.fr.toml
-	python3 -m http.server 8000 --directory site
+docs: docs-build
+	python3 -m http.server 8000 --directory docs/site
 
 docs-watch:
-	uv run python -m zensical serve -a localhost:8000 -o
+	uv run python -m zensical serve -f docs/zensical.toml -a localhost:8000 -o
 
 docs-watch-fr:
-	uv run python -m zensical serve -f zensical.fr.toml -a localhost:8001 -o
+	uv run python -m zensical serve -f docs/zensical.fr.toml -a localhost:8001 -o

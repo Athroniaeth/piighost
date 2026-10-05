@@ -6,35 +6,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Generic, Protocol, runtime_checkable
 
-from typing_extensions import TypeVar
-
 from piighost.components.placeholder.base import AnyPlaceholderFactory
-from piighost.components.placeholder.tags import PlaceholderPreservation
+from piighost.components.placeholder.tags import (
+    PreservationT,
+    PreservationT_co,
+)
 from piighost.models import Entity
-
-PreservationT_co = TypeVar(
-    "PreservationT_co",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-    covariant=True,
-)
-"""What the anonymizer's tokens preserve, on the port and its result.
-
-Covariant, since an anonymizer only returns tokens, so one whose tokens preserve
-more satisfies a consumer asking for less.
-"""
-
-PreservationT = TypeVar(
-    "PreservationT",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-)
-"""Invariant tag for the template and its adapters.
-
-The AnyAnonymizer port is covariant, since it only returns tokens; the template
-below both takes a factory of this tag and returns tokens of it, so it needs the
-invariant variable rather than the covariant PreservationT_co.
-"""
 
 
 @dataclass(frozen=True, slots=True)

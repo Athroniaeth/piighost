@@ -1,0 +1,20 @@
+# The server the examples of the API pages run against, started by
+# tests/docs/test_snippets.py. It knows the values those examples write, with
+# no model to download.
+
+[detector]
+type = "composite"
+
+[[detector.detectors]]
+type = "exact"
+values = { "Jane Doe" = "PERSON", Patrick = "PERSON", Paris = "LOCATION" }
+
+[[detector.detectors]]
+type = "regex"
+patterns = { EMAIL = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' }
+
+[anonymizer.placeholder]
+type = "label_counter"
+
+[memory]
+type = "in_memory"

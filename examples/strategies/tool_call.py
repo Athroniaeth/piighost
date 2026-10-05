@@ -35,14 +35,8 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import (
-    LabelCounterPlaceholderFactory,
-    PreservesLabeledIdentityOpaque,
-)
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.integrations.langchain import ToolCallStrategy
 from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 from piighost.models import Detection
@@ -110,13 +104,7 @@ def _build_pipeline(
     detector: AnyDetector,
 ) -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     """Wire a thread pipeline over the given detector, knowing both people."""
-    ph_factory = LabelCounterPlaceholderFactory()
-    return ThreadAnonymizationPipeline(
-        detector,
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
-    )
+    return ThreadAnonymizationPipeline(detector)
 
 
 async def _run_once(strategy: ToolCallStrategy) -> tuple[str, str, int]:

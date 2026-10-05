@@ -5,7 +5,7 @@ makes it silently inert would report zero findings for the wrong reason. These
 cases run it over temporary docs/en and docs/fr trees, asserting both directions:
 a known violation is reported, and a look-alike that is legitimate is not.
 
-The script lives under .claude, which is not a package and is excluded from ruff
+The script lives under skills/, which is not a package and is excluded from ruff
 and pyrefly, so it is loaded by path rather than imported.
 """
 
@@ -17,7 +17,6 @@ import pytest
 
 _AUDIT_PATH = (
     Path(__file__).resolve().parents[2]
-    / ".claude"
     / "skills"
     / "piighost-docs"
     / "scripts"
@@ -110,7 +109,7 @@ _NAV_CASES: dict[str, tuple[str, str | None]] = {
 
 @pytest.fixture(scope="module")
 def audit() -> ModuleType:
-    """Load the audit script by path, since .claude is not an importable package."""
+    """Load the audit script by path, since skills/ is not an importable package."""
     spec = importlib.util.spec_from_file_location("piighost_docs_audit", _AUDIT_PATH)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load the docs audit script at {_AUDIT_PATH}")
@@ -245,7 +244,7 @@ class TestNav:
         """A page missing from the nav, or a nav entry with no page, is reported."""
         _prepare_tree(tmp_path, monkeypatch)
         _write_page(tmp_path, "en", "# Title\n")
-        (tmp_path / "zensical.toml").write_text(config, encoding="utf-8")
+        (tmp_path / "docs" / "zensical.toml").write_text(config, encoding="utf-8")
         findings: list[str] = []
         audit.nav(findings)
         _assert_marker(findings, marker)
@@ -258,7 +257,7 @@ class TestNav:
         include = tmp_path / "docs" / "en" / "includes" / "abbreviations.md"
         include.parent.mkdir(parents=True, exist_ok=True)
         include.write_text("*[PII]: Personally Identifiable Information\n", "utf-8")
-        (tmp_path / "zensical.toml").write_text("[project]\nnav = []\n", "utf-8")
+        (tmp_path / "docs" / "zensical.toml").write_text("[project]\nnav = []\n", "utf-8")
         findings: list[str] = []
         audit.nav(findings)
         assert findings == []

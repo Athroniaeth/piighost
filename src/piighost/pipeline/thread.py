@@ -24,6 +24,7 @@ from piighost.conversation_memory.base import (
 from piighost.conversation_memory.memory import InMemoryConversationMemory
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
+from piighost.text import value_key
 
 _TOKEN_MEMO_MAX = 256
 """How many thread-token maps to memoize before evicting the least recently used."""
@@ -165,7 +166,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 if entity.detections[0] in token_of
             }
             preserved = frozenset(
-                entity.text.casefold()
+                value_key(entity.text)
                 for entity in message_entities
                 if entity.detections[0] not in token_of
             )
@@ -176,12 +177,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 span.set_attribute("tokens", len(message_tokens))
                 span.set_output(rendered)
 
-            with self._stage_span("piighost.guard", self.guard) as span:
-                cleared = await self._cleared_values(text)
-                verdict = await self._guard(rendered, preserved | cleared)
-                if verdict is not None:
-                    labels = sorted({d.label for d in verdict.detections})
-                    span.set_output({"flagged": verdict.flagged, "labels": labels})
+            await self._traced_guard(text, rendered, preserved)
 
             root.set_output(rendered)
             return Anonymization(text=rendered, tokens=message_tokens)
@@ -255,14 +251,10 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """
         forgotten = await self.memory.forget(thread_id)
         self._forget_epoch += 1
-        self._forget_token_memo(thread_id)
-        return forgotten
-
-    def _forget_token_memo(self, thread_id: str) -> None:
-        """Drop every memoized token map derived from this thread."""
-        stale = [key for key in self._token_memo if key[0] == thread_id]
-        for key in stale:
+        # Every memoized token map derived from this thread goes with it.
+        for key in [key for key in self._token_memo if key[0] == thread_id]:
             self._drop_memo(key)
+        return forgotten
 
     async def _detect(
         self,
@@ -279,7 +271,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         detections = await self.detector.detect(text)
         with self._stage_span("piighost.override", self.override):
             detections = await self._override(text, detections)
-        detections = self._resolve_overlaps(detections)
+        detections = self.overlap_resolver.resolve(detections)
         detections = self._expand(text, detections)
         await self.memory.remember(
             message=text,
@@ -293,7 +285,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         """Assign a token to every anonymizable entity across the thread.
 
         An entity whose value was first introduced by the assistant is left out,
-        so it gets no token and stays in clear, unless the override's whitelist
+        so it gets no token and stays in clear, unless the override's deny list
         forces it under the FORCE strategy.
 
         The result is memoized by the union and provenance it derives from, so
@@ -326,7 +318,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         anonymizable = []
         for entity in thread_entities:
             introduced_by_assistant = (
-                provenance.get(entity.text.casefold()) is MessageRole.ASSISTANT
+                provenance.get(value_key(entity.text)) is MessageRole.ASSISTANT
             )
             if not introduced_by_assistant or await self._forces_value(entity.text):
                 anonymizable.append(entity)

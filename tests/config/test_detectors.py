@@ -1,6 +1,6 @@
 """Tests for the catalog, exact, and chunked detector config models."""
 
-from typing import Any, cast, get_args
+from typing import Any
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
@@ -11,115 +11,86 @@ from piighost.components.detector import (
     RegexDetector,
 )
 from piighost.config.models.detector import (
-    _CATALOGS,
-    CatalogName,
     ChunkedDetectorConfig,
     DetectorConfig,
     ExactMatchDetectorConfig,
     RegexDetectorConfig,
 )
 
-
-@pytest.mark.parametrize("name", get_args(CatalogName))
-def test_each_catalog_builds_non_empty_patterns(name: str) -> None:
-    """Every catalog name wires a non-empty pattern set into the detector."""
-    detector = RegexDetectorConfig(
-        type="regex", catalogs=[cast(CatalogName, name)]
-    ).build()
-    assert isinstance(detector, RegexDetector)
-    assert detector.patterns
+CATALOG = {
+    "catalog:piighost/generic:fab51b33": {"EMAIL": r"\S+@\S+", "URL": r"https?://\S+"},
+    "catalog:piighost/logs:fd79aec6": {"EMAIL": "FROM_LOGS", "TOKEN": r"tok_\w+"},
+}
+"""What the fake catalog answers for each reference, in registry order."""
 
 
-def test_catalog_names_match_the_registry() -> None:
-    """The CatalogName literal and the _CATALOGS registry stay in sync."""
-    assert set(get_args(CatalogName)) == set(_CATALOGS)
+@pytest.fixture
+def fake_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer every pull from CATALOG, so no test reaches the network."""
+    monkeypatch.setattr("piighost.config.models.detector.pull", CATALOG.__getitem__)
 
 
 class TestRegexCatalogs:
-    def test_catalog_populates_patterns(self) -> None:
-        """A catalog name fills the regex detector with the catalog's patterns."""
-        detector = RegexDetectorConfig(type="regex", catalogs=["generic"]).build()
-        assert isinstance(detector, RegexDetector)
-        assert "EMAIL" in detector.patterns
-
-    async def test_catalog_detector_detects(self) -> None:
-        """A generic-catalog regex detector detects an email."""
-        detector = RegexDetectorConfig(type="regex", catalogs=["generic"]).build()
-        detections = await detector.detect("reach me at a@b.co")
-        assert any(detection.label == "EMAIL" for detection in detections)
-
-    def test_inline_overrides_catalog(self) -> None:
-        """An inline pattern overrides a catalog pattern on the same label."""
+    def test_a_catalog_reference_is_accepted(self) -> None:
+        """A config can name a reviewed pattern group instead of copying it."""
         config = RegexDetectorConfig(
-            type="regex", catalogs=["generic"], patterns={"EMAIL": "OVERRIDE"}
+            type="regex", catalogs=["catalog:piighost/logs:fd79aec6"]
         )
-        detector = config.build()
-        assert isinstance(detector, RegexDetector)
-        assert detector.patterns["EMAIL"] == "OVERRIDE"
+        assert config.catalogs == ["catalog:piighost/logs:fd79aec6"]
 
-    def test_catalog_and_inline_both_survive(self) -> None:
-        """Catalog and inline patterns on different labels both reach the detector."""
+    def test_a_1x_hub_reference_is_still_accepted(self) -> None:
+        """A config written for 1.x, with hub: references, still validates."""
         config = RegexDetectorConfig(
-            type="regex", catalogs=["generic"], patterns={"CUSTOM": "x"}
+            type="regex", catalogs=["hub:piighost/logs:fd79aec6"]
         )
-        detector = config.build()
-        assert isinstance(detector, RegexDetector)
-        assert "EMAIL" in detector.patterns
-        assert "CUSTOM" in detector.patterns
+        assert config.catalogs == ["hub:piighost/logs:fd79aec6"]
+
+    @pytest.mark.parametrize("name", ["generic", "us", "eu", "fr"])
+    def test_a_removed_catalog_name_points_to_its_catalog_group(
+        self, name: str
+    ) -> None:
+        """A pre-2.0 catalog name is refused with the reference that replaces it."""
+        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": [name]}
+        with pytest.raises(ValidationError, match=f"catalog:piighost/{name}"):
+            RegexDetectorConfig(**bad_kwargs)
+
+    def test_a_malformed_reference_is_rejected(self) -> None:
+        """A typo fails at load time rather than as a malformed URL later."""
+        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["catalog:Logs"]}
+        with pytest.raises(ValidationError, match="unknown catalog"):
+            RegexDetectorConfig(**bad_kwargs)
 
     def test_neither_patterns_nor_catalogs_is_rejected(self) -> None:
         """A regex config with no inline patterns and no catalog fails validation."""
         with pytest.raises(ValidationError):
             RegexDetectorConfig(type="regex")
 
-    def test_unknown_catalog_name_is_rejected(self) -> None:
-        """An unknown catalog name fails validation."""
-        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["mars"]}
-        with pytest.raises(ValidationError):
-            RegexDetectorConfig(**bad_kwargs)
-
-    def test_a_hub_reference_is_accepted_as_a_catalog(self) -> None:
-        """A config can name a reviewed catalogue instead of copying it."""
-        config = RegexDetectorConfig(
-            type="regex", catalogs=["hub:piighost/logs:fd79aec6"]
-        )
-        assert config.catalogs == ["hub:piighost/logs:fd79aec6"]
-
-    def test_a_malformed_hub_reference_is_rejected(self) -> None:
-        """A typo fails at load time rather than as a malformed URL later."""
-        bad_kwargs: dict[str, Any] = {"type": "regex", "catalogs": ["hub:Logs"]}
-        with pytest.raises(ValidationError, match="unknown catalog"):
-            RegexDetectorConfig(**bad_kwargs)
-
-    def test_a_hub_catalog_is_pulled_at_build(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Building a config that names a hub catalog fetches its patterns."""
-        monkeypatch.setattr(
-            "piighost.config.models.detector.pull",
-            lambda ref: {"EMAIL": r"\S+@\S+"},
-        )
+    @pytest.mark.usefixtures("fake_catalog")
+    def test_a_catalog_is_pulled_at_build(self) -> None:
+        """Building a config that names a catalog fetches its patterns."""
         detector = RegexDetectorConfig(
-            type="regex", catalogs=["hub:piighost/logs:fd79aec6"]
+            type="regex", catalogs=["catalog:piighost/generic:fab51b33"]
         ).build()
         assert isinstance(detector, RegexDetector)
-        assert detector.patterns == {"EMAIL": r"\S+@\S+"}
+        assert detector.patterns == CATALOG["catalog:piighost/generic:fab51b33"]
 
-    def test_an_inline_pattern_still_overrides_a_hub_catalog(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """The merge order holds for a hub catalog as for a prebuilt one."""
-        monkeypatch.setattr(
-            "piighost.config.models.detector.pull",
-            lambda ref: {"EMAIL": "FROM_HUB"},
-        )
+    @pytest.mark.usefixtures("fake_catalog")
+    def test_catalogs_merge_in_order_then_inline_patterns(self) -> None:
+        """A later catalog overrides an earlier one, and an inline pattern both."""
         detector = RegexDetectorConfig(
             type="regex",
-            catalogs=["hub:piighost/logs:fd79aec6"],
-            patterns={"EMAIL": "INLINE"},
+            catalogs=[
+                "catalog:piighost/generic:fab51b33",
+                "catalog:piighost/logs:fd79aec6",
+            ],
+            patterns={"TOKEN": "INLINE"},
         ).build()
         assert isinstance(detector, RegexDetector)
-        assert detector.patterns["EMAIL"] == "INLINE"
+        assert detector.patterns == {
+            "EMAIL": "FROM_LOGS",
+            "URL": r"https?://\S+",
+            "TOKEN": "INLINE",
+        }
 
 
 class TestExactDetectorConfig:

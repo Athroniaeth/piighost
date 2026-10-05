@@ -89,22 +89,33 @@ class TextTooLongError(DetectorError):
     """
 
 
+class UnreadableOutputError(DetectorError):
+    """Raised when an LLM detector cannot read its model's output.
+
+    A broken JSON, a missing field or a result of the wrong shape says nothing
+    about the text, so reading it as zero detections would send the message
+    unprotected. The detector fails closed here, and the message is refused,
+    unless it was built with fail_open=True.
+    """
+
+
 class BridgePayloadError(DetectorError):
     """Raised when a bridged runner returns a span the detector cannot read.
 
     The runner is foreign code, often reached across a language boundary, so its
     answer is checked rather than trusted. A span missing a field, or carrying
-    offsets that are not integers, fails here instead of producing a detection
-    built on a guess.
+    an offset that is not an integer, a float included, fails here instead of
+    producing a detection built on a guess.
     """
 
 
 class BridgeSpanRangeError(DetectorError):
-    """Raised when a bridged runner returns a span outside the text it was given.
+    """Raised when a bridged runner returns a span that names no run of the text.
 
-    Offsets that overrun the text would slice a shorter substring than the
-    runner meant, so the anonymizer would replace the wrong characters and leave
-    part of the value in clear. The detector fails closed rather than trim.
+    The span is empty or inverted, overruns the text, or, in UTF-16 units, cuts
+    a character in two. Any of them would slice other characters than the
+    runner meant, so the anonymizer would replace the wrong ones and leave part
+    of the value in clear. The detector fails closed rather than trim.
     """
 
 
@@ -202,8 +213,8 @@ class MiddlewareError(PIIGhostError):
     subclasses, UnrecognizableFactoryError and InventedPlaceholderError, are
     raised by the TextDeidentifier those integrations share with the LangChain
     middleware, so they reach any caller that de-identifies text through an
-    integration. Only MissingThreadIdError is specific to the LangChain
-    middleware.
+    integration. MissingThreadIdError is raised by the LangChain middleware and
+    the Claude Code hooks.
 
     Catch this to handle any of them at once, or catch one of its subclasses to
     react to a specific violation.
@@ -228,10 +239,12 @@ class InventedPlaceholderError(MiddlewareError):
 
 
 class MissingThreadIdError(MiddlewareError):
-    """Raised when a thread id is required but absent from the LangGraph config.
+    """Raised when an integration receives a turn that names no thread.
 
-    With require_thread_id set, the middleware refuses to fall back to the shared
-    default thread rather than route unrelated conversations into one bucket.
+    The LangChain middleware raises it for a LangGraph config without a
+    thread_id, the Claude Code hooks for an event without a session_id. Neither
+    falls back to a shared thread, which would route unrelated conversations
+    into one bucket. A caller that needs no separation names DEFAULT_THREAD_ID.
     """
 
 
@@ -253,7 +266,7 @@ class OverrideError(PIIGhostError):
 
 
 class ConflictingOverrideError(OverrideError):
-    """Raised when the whitelist and the blacklist contradict each other.
+    """Raised when the deny list and the allow list contradict each other.
 
     Under the RAISE conflict strategy, a span both forced and cleared is a
     configuration error, refused loudly rather than resolved silently.

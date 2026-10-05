@@ -7,9 +7,9 @@ from piighost.components.detector import ExactMatchDetector
 from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.override import (
-    BlacklistStrategy,
+    AllowListStrategy,
+    DenyListStrategy,
     DetectionOverride,
-    WhitelistStrategy,
 )
 from piighost.components.placeholder import LabelCounterPlaceholderFactory
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
@@ -34,27 +34,27 @@ def _pipeline(
 
 
 class TestBasePipelineOverride:
-    async def test_whitelist_forces_a_value_the_detector_missed(self) -> None:
-        """A whitelisted value is anonymized though the detector never saw it."""
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+    async def test_deny_list_forces_a_value_the_detector_missed(self) -> None:
+        """A value on the deny list is anonymized though the detector never saw it."""
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Acme": "ORG"}))
         pipeline = _pipeline(ExactMatchDetector({}), override)
         result = await pipeline.anonymize("Acme rocks")
         assert result.text == "<<ORG:1>> rocks"
 
-    async def test_blacklist_keeps_a_false_positive_in_clear(self) -> None:
-        """A blacklisted value the detector flags stays in clear."""
+    async def test_allow_list_keeps_a_false_positive_in_clear(self) -> None:
+        """A value on the allow list the detector flags stays in clear."""
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"})
         )
         pipeline = _pipeline(ExactMatchDetector({"Paris": "LOCATION"}), override)
         result = await pipeline.anonymize("Visit Paris")
         assert result.text == "Visit Paris"
 
-    async def test_blacklisted_value_does_not_trip_the_guard(self) -> None:
-        """A guard that knows the blacklisted value exempts it, by design."""
+    async def test_allow_listed_value_does_not_trip_the_guard(self) -> None:
+        """A guard that knows the value on the allow list exempts it, by design."""
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"}),
-            blacklist_strategy=BlacklistStrategy.VALUE,
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"}),
+            allow_list_strategy=AllowListStrategy.VALUE,
         )
         guard = DetectorGuardRail(ExactMatchDetector({"Paris": "LOCATION"}))
         pipeline = _pipeline(ExactMatchDetector({"Emma": "PERSON"}), override, guard)
@@ -62,9 +62,9 @@ class TestBasePipelineOverride:
         assert result.text == "<<PERSON:1>> visits Paris"
 
     async def test_a_real_leak_still_trips_the_guard(self) -> None:
-        """The exemption covers the blacklist only, other leaks still refuse."""
+        """The exemption covers the allow list only, other leaks still refuse."""
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"})
         )
         guard = DetectorGuardRail(ExactMatchDetector({"leak@x.com": "EMAIL"}))
         pipeline = _pipeline(ExactMatchDetector({"Emma": "PERSON"}), override, guard)
@@ -73,9 +73,9 @@ class TestBasePipelineOverride:
 
 
 class TestThreadPipelineOverride:
-    async def test_whitelist_trumps_a_hitl_drop(self) -> None:
-        """A correction removing a whitelisted value sees it re-imposed."""
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Emma": "PERSON"}))
+    async def test_deny_list_trumps_a_hitl_drop(self) -> None:
+        """A correction removing a value on the deny list sees it re-imposed."""
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Emma": "PERSON"}))
         pipeline = ThreadAnonymizationPipeline(
             ExactMatchDetector({}),
             ExactEntityLinker(),
@@ -86,10 +86,10 @@ class TestThreadPipelineOverride:
         result = await pipeline.anonymize_corrected("Hi Emma", "t1", [])
         assert result.text == "Hi <<PERSON:1>>"
 
-    async def test_blacklist_trumps_a_hitl_add(self) -> None:
-        """A correction adding a blacklisted value sees it cleared."""
+    async def test_allow_list_trumps_a_hitl_add(self) -> None:
+        """A correction adding a value on the allow list sees it cleared."""
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"})
         )
         pipeline = ThreadAnonymizationPipeline(
             ExactMatchDetector({}),
@@ -107,9 +107,9 @@ class TestThreadPipelineOverride:
         result = await pipeline.anonymize_corrected("Visit Paris", "t1", [added])
         assert result.text == "Visit Paris"
 
-    async def test_whitelisted_value_is_deanonymizable(self) -> None:
+    async def test_deny_listed_value_is_deanonymizable(self) -> None:
         """A forced value enters the thread token map and restores."""
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Emma": "PERSON"}))
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Emma": "PERSON"}))
         pipeline = ThreadAnonymizationPipeline(
             ExactMatchDetector({}),
             ExactEntityLinker(),
@@ -121,10 +121,10 @@ class TestThreadPipelineOverride:
         restored = await pipeline.deanonymize("<<PERSON:1>>", "t1")
         assert restored == "Emma"
 
-    async def test_blacklist_clears_a_fresh_thread_detection(self) -> None:
-        """A blacklisted value the detector finds on a fresh message stays clear."""
+    async def test_allow_list_clears_a_fresh_thread_detection(self) -> None:
+        """A value on the allow list the detector finds on a fresh message stays clear."""
         override = DetectionOverride(
-            blacklist=ExactMatchDetector({"Paris": "LOCATION"})
+            allow_list=ExactMatchDetector({"Paris": "LOCATION"})
         )
         pipeline = ThreadAnonymizationPipeline(
             ExactMatchDetector({"Paris": "LOCATION"}),
@@ -138,9 +138,9 @@ class TestThreadPipelineOverride:
         restored = await pipeline.deanonymize("Visit Paris", "t1")
         assert restored == "Visit Paris"
 
-    async def test_assistant_introduced_whitelisted_value_stays_clear(self) -> None:
-        """By default, provenance outranks the whitelist for tokenization."""
-        override = DetectionOverride(whitelist=ExactMatchDetector({"Acme": "ORG"}))
+    async def test_assistant_introduced_deny_listed_value_stays_clear(self) -> None:
+        """By default, provenance outranks the deny list for tokenization."""
+        override = DetectionOverride(deny_list=ExactMatchDetector({"Acme": "ORG"}))
         pipeline = ThreadAnonymizationPipeline(
             ExactMatchDetector({}),
             ExactEntityLinker(),
@@ -154,10 +154,10 @@ class TestThreadPipelineOverride:
         assert later.text == "I love Acme"
 
     async def test_force_strategy_outranks_assistant_provenance(self) -> None:
-        """Under FORCE, a whitelisted value is tokenized whoever introduced it."""
+        """Under FORCE, a value on the deny list is tokenized whoever introduced it."""
         override = DetectionOverride(
-            whitelist=ExactMatchDetector({"Acme": "ORG"}),
-            whitelist_strategy=WhitelistStrategy.FORCE,
+            deny_list=ExactMatchDetector({"Acme": "ORG"}),
+            deny_list_strategy=DenyListStrategy.FORCE,
         )
         pipeline = ThreadAnonymizationPipeline(
             ExactMatchDetector({}),

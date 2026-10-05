@@ -14,14 +14,28 @@ This is the pairwise exception to the always-template rule, the same reason the
 fuzzy entity resolver stands apart from the linker.
 """
 
+import hashlib
 import warnings
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from piighost.exceptions import PIIGhostSecurityWarning
 from piighost.models import Detection
+from piighost.text import value_key
+
+if TYPE_CHECKING:
+    from piighost.crypto.cipher.base import AnyCipher
+    from piighost.crypto.hasher.base import AnyHasher
+
+DEFAULT_THREAD_ID = "default"
+"""The thread to name when conversations need no separation.
+
+No integration falls back to it on its own: a turn without a thread id raises.
+Every caller that names it shares it, and with it the tokens of every value they
+sent, so name it only for a single conversation or a one-off command.
+"""
 
 _SECURITY_DOC_URL = "https://athroniaeth.github.io/piighost/security/"
 """Documentation page explaining the at-rest crypto options for a backend."""
@@ -43,6 +57,28 @@ def warn_plaintext(backend: str) -> None:
     )
 
 
+def require_paired_crypto(
+    hasher: "AnyHasher | None", cipher: "AnyCipher | None"
+) -> None:
+    """Refuse a persistent backend given a hasher or a cipher, but not both.
+
+    Hashing the keys while storing the values in clear, or the reverse, protects
+    nothing, so the crypto is all or nothing.
+
+    Raises:
+        ValueError: If exactly one of the two is given.
+    """
+    if (hasher is None) != (cipher is None):
+        raise ValueError("Provide both a hasher and a cipher, or neither")
+
+
+def message_digest(message: str, hasher: "AnyHasher | None") -> str:
+    """Key a message: the security hasher if set, else a plain SHA-256."""
+    if hasher is not None:
+        return hasher.hash(message)
+    return hashlib.sha256(message.encode()).hexdigest()
+
+
 class MessageRole(Enum):
     """Who authored a message, used to date a value's first occurrence.
 
@@ -53,6 +89,25 @@ class MessageRole(Enum):
 
     USER = "user"
     ASSISTANT = "assistant"
+
+
+def _first_occurrence_roles(
+    messages: Iterable[tuple[MessageRole, Iterable[Detection]]],
+) -> dict[str, MessageRole]:
+    """Map every value key to the role of the first message holding it.
+
+    The backends share this reading of provenance. They hand over their messages
+    in first-seen order, each as its author's role and its detections, and the
+    first role recorded for a value key wins, so a later message repeating the
+    value never overwrites it.
+    """
+    provenance: dict[str, MessageRole] = {}
+
+    for role, detections in messages:
+        for detection in detections:
+            provenance.setdefault(value_key(detection.text), role)
+
+    return provenance
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,8 +152,8 @@ class AnyConversationMemory(Protocol):
     async def get_provenance(self, thread_id: str) -> Mapping[str, MessageRole]:
         """Return, per value, the role of its first occurrence in the thread.
 
-        The value is the detection text, casefolded, so case variants share one
-        entry. The role is that of the earliest message holding the value, in
+        The value is the value key of the detection text (piighost.text.value_key),
+        so variants in case or in spacing share one entry. The role is that of the earliest message holding the value, in
         first-seen order, so a value the assistant introduced reads as ASSISTANT
         even if a later user message repeats it.
 
@@ -106,7 +161,7 @@ class AnyConversationMemory(Protocol):
             thread_id: The conversation to read.
 
         Returns:
-            A mapping from each casefolded value to its first-occurrence role,
+            A mapping from each value key to its first-occurrence role,
             empty for a thread never written to.
         """
         ...

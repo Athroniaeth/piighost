@@ -1,0 +1,1 @@
+piighost.exceptions.ConfigError: this configuration declares a memory; use load_thread_pipeline

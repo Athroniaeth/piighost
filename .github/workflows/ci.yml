@@ -15,18 +15,12 @@ on:
     paths-ignore:
       - "**/*.md"
       - "docs/**"
-      - "zensical.toml"
-      - "zensical.fr.toml"
-      - "overrides/**"
       - "LICENSE"
   push:
     branches: [master, develop]
     paths-ignore:
       - "**/*.md"
       - "docs/**"
-      - "zensical.toml"
-      - "zensical.fr.toml"
-      - "overrides/**"
       - "LICENSE"
 
 permissions:
@@ -47,26 +41,9 @@ jobs:
           key: ${{ runner.os }}-uv-3.13-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-3.13-
-      # Sync full workspace (3.13 required by examples/graph) for lint
+      # Sync the dev group, which make lint needs for its type and security checks
       - run: uv sync --locked --dev --no-progress -q
       - run: make lint
-
-  security:
-    name: Security (bandit)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.13"
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-3.13-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-3.13-
-      - run: uv sync --locked --dev --no-progress -q
-      - run: uv run bandit -c pyproject.toml -r src examples
 
   audit:
     name: Dependency audit (pip-audit)
@@ -86,7 +63,7 @@ jobs:
   tests:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    needs: [lint, security, audit]
+    needs: [lint, audit]
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]

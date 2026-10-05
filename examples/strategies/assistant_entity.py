@@ -25,25 +25,22 @@ uv run examples/strategies/assistant_entity.py
 """
 
 import asyncio
-import logging
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.runnables.config import var_child_runnable_config
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.integrations.langchain import EntityCreateByAssistantStrategy
 from piighost.integrations.langchain.middleware import PIIAnonymizationMiddleware
 from piighost.models import Detection
 from piighost.pipeline import ThreadAnonymizationPipeline
 
-# The demo calls abefore_model directly, outside a LangGraph run, so no thread id
-# is in scope. require_thread_id=False routes every turn to the shared default
-# thread; silence the one-time warning that points this out.
-logging.getLogger(PIIAnonymizationMiddleware.__module__).setLevel(logging.ERROR)
+# The demo calls abefore_model directly, outside a LangGraph run, so it sets the
+# config an agent call would carry. Each strategy runs on a fresh pipeline, so
+# one thread id serves them all.
+var_child_runnable_config.set({"configurable": {"thread_id": "demo"}})
 
 
 class _CountingDetector:
@@ -74,16 +71,9 @@ def _middleware(
     strategy: EntityCreateByAssistantStrategy, detector: AnyDetector
 ) -> Any:
     """Build the middleware over a fresh pipeline under one strategy."""
-    ph_factory = LabelCounterPlaceholderFactory()
-    pipeline = ThreadAnonymizationPipeline(
-        detector,
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
-        InMemoryConversationMemory(),
-    )
-    return PIIAnonymizationMiddleware(
-        pipeline, assistant_strategy=strategy, require_thread_id=False
-    )
+    pipeline: ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]
+    pipeline = ThreadAnonymizationPipeline(detector)
+    return PIIAnonymizationMiddleware(pipeline, assistant_strategy=strategy)
 
 
 async def _run_once(strategy: EntityCreateByAssistantStrategy) -> tuple[str, str, int]:

@@ -22,17 +22,20 @@ uv run examples/guard_rail.py
 
 import asyncio
 
-from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector, RegexDetector
-from piighost.components.detector.patterns import GENERIC_PATTERNS, US_PATTERNS
 from piighost.components.guard import DetectorGuardRail
-from piighost.components.linker import ExactEntityLinker
-from piighost.components.placeholder import (
-    LabelCounterPlaceholderFactory,
-    PreservesLabeledIdentityOpaque,
-)
+from piighost.components.placeholder import PreservesLabeledIdentityOpaque
 from piighost.exceptions import PIIRemainingError
 from piighost.pipeline import AnonymizationPipeline
+
+STRUCTURED = {
+    "EMAIL": r"[\w.%+-]+@[\w-]+(?:\.[\w-]+)+",
+    "US_PHONE": r"\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b",
+}
+"""Shapes the guard looks for, kept inline so the example needs no network.
+
+RegexDetector.from_catalog("catalog:piighost/generic") runs a reviewed set instead.
+"""
 
 
 def _build_pipeline() -> AnonymizationPipeline[PreservesLabeledIdentityOpaque]:
@@ -41,12 +44,9 @@ def _build_pipeline() -> AnonymizationPipeline[PreservesLabeledIdentityOpaque]:
     The detector only knows the literal name; the guard re-runs an email and
     phone regex over the output, catching structured PII the detector missed.
     """
-    guard_detector = RegexDetector({**GENERIC_PATTERNS, **US_PATTERNS})
-    ph_factory = LabelCounterPlaceholderFactory()
+    guard_detector = RegexDetector(STRUCTURED)
     return AnonymizationPipeline(
         ExactMatchDetector({"Emma Doe": "PERSON"}),
-        ExactEntityLinker(),
-        Anonymizer(ph_factory),
         guard=DetectorGuardRail(guard_detector),
     )
 
@@ -70,8 +70,7 @@ async def main() -> None:
 
     # 3. A guard is usable on its own, returning a verdict rather than raising.
     #    It flags the clear email but leaves the synthetic placeholder alone.
-    generic_detector = RegexDetector(GENERIC_PATTERNS)
-    guard = DetectorGuardRail(generic_detector)
+    guard = DetectorGuardRail(RegexDetector(STRUCTURED))
     verdict = await guard.check("Reach <<PERSON:1>> at leaked@corp.com.")
     residual = [detection.text for detection in verdict.detections]
     print("standalone:    ", f"flagged={verdict.flagged}, residual={residual}")

@@ -6,8 +6,6 @@ from collections import defaultdict
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Protocol, runtime_checkable
 
-from typing_extensions import TypeVar
-
 from piighost.components.placeholder.streaming import (
     DEFAULT_INNER,
     DEFAULT_PREFIX,
@@ -18,23 +16,10 @@ from piighost.components.placeholder.streaming import (
     compile_token_pattern,
 )
 from piighost.components.placeholder.tags import (
-    PlaceholderPreservation,
+    PreservationT_co,
     PreservesLabeledIdentityOpaque,
 )
 from piighost.models import Entity
-
-PreservationT_co = TypeVar(
-    "PreservationT_co",
-    bound=PlaceholderPreservation,
-    default=PlaceholderPreservation,
-    covariant=True,
-)
-"""Phantom tag stating how much information a factory's tokens preserve.
-
-Defaults to PlaceholderPreservation so a bare AnyPlaceholderFactory annotation
-still type-checks. Covariant, so a factory tagged with a more specific
-preservation satisfies a consumer asking for a looser one.
-"""
 
 
 @runtime_checkable

@@ -2,13 +2,13 @@
 
 Module: `piighost.config`
 
-A configuration file describes a whole pipeline declaratively. `piighost` reads it as TOML or JSON, chosen by the file suffix, validates it with Pydantic, and builds the pipeline the file describes. This page documents every section and every component `type`.
+A configuration file describes a whole pipeline declaratively. `piighost` reads it as TOML or JSON, depending on the file suffix. It then validates it with Pydantic and builds the pipeline the file describes. This page documents every section and every component `type`.
 
 ```python
 from piighost.config import load_config, load_pipeline, load_thread_pipeline
 ```
 
-The `config` extra is required (`pip install piighost[config]`), which pulls in `pydantic-settings`. Unknown keys are rejected, so a typo fails validation rather than being ignored. A component `type` can need an extra of its own, named in the Extra column of the table that documents it.
+The `config` extra is required (`pip install "piighost[config]"`). It pulls in `pydantic-settings`. Unknown keys are rejected, so a typo fails validation rather than being ignored. A component `type` can need an extra of its own, named in the Extra column of the table that documents it.
 
 ---
 
@@ -27,17 +27,14 @@ The `config` extra is required (`pip install piighost[config]`), which pulls in 
 `load_config` parses and validates a file into a `PipelineConfig` without building any component, so no model loads. `load_pipeline` builds a stateless `AnonymizationPipeline` and raises `ConfigError` if the file declares a `[memory]` section, since a memory describes a thread pipeline. `load_thread_pipeline` builds a `ThreadAnonymizationPipeline` and raises `ConfigError` if the file declares no `[memory]` section.
 
 ```python
-from piighost.config import load_pipeline, load_thread_pipeline
-
-stateless = load_pipeline("pipeline.toml")       # no [memory]
-thread = load_thread_pipeline("thread.toml")     # has [memory]
+--8<-- "snippets/toml_loaders.py"
 ```
 
 ---
 
 ## File format
 
-The suffix picks the parser. A `.json` suffix is read as JSON, compared without regard to case, and anything else as TOML. The two formats carry the same schema. A section is a TOML table or a JSON object.
+The suffix picks the parser. A `.json` suffix is read as JSON, whatever its case. Any other suffix is read as TOML. The two formats carry the same schema. A section is a TOML table or a JSON object.
 
 ```toml
 [detector]
@@ -63,14 +60,14 @@ type = "redact"
 
 ## Environment overrides
 
-Every top-level key accepts an override from an environment variable prefixed `PIIGHOST_`, whether it holds a scalar or a whole section. `PIIGHOST_NAME` overrides the `name` scalar, and `PIIGHOST_DETECTOR` overrides the `[detector]` section with a JSON object, rejected as a validation error when it is not valid JSON. Overrides layer above the file key by key, so an environment value wins over the file value and the keys it leaves out keep theirs.
+Every top-level key accepts an override from an environment variable prefixed `PIIGHOST_`, whether it holds a scalar or a whole section. `PIIGHOST_NAME` overrides the `name` scalar. `PIIGHOST_DETECTOR` overrides the `[detector]` section with a JSON object. If it is not valid JSON, the variable is rejected as a validation error. Overrides layer above the file key by key. An environment value wins over the file value, and the keys it leaves out keep the file value.
 
 ```bash
 export PIIGHOST_NAME="local-en"
 export PIIGHOST_DETECTOR='{"type": "exact", "values": {"Patrick": "PERSON"}}'
 ```
 
-No nested delimiter is configured, so a variable such as `PIIGHOST_DETECTOR__TYPE` names no field, and it is ignored without an error rather than reaching the `type` key. A section is overridden by its JSON object only.
+No nested delimiter is configured. A variable such as `PIIGHOST_DETECTOR__TYPE` therefore names no field. It is ignored without an error rather than reaching the `type` key. A section is overridden by its JSON object only.
 
 Secrets are never read from the file. Each is read from its own environment variable at build time, and a missing one raises `ConfigError` from `build()`.
 
@@ -96,7 +93,7 @@ The top-level keys of a `PipelineConfig`.
 | Section | Required | Meaning |
 |---------|----------|---------|
 | `name` | no | An optional pipeline name, a top-level scalar overridable by `PIIGHOST_NAME` |
-| `token_memo_ttl` | no | The seconds a thread's memoized token map is kept, a top-level scalar, needs a `[memory]` |
+| `token_memo_ttl` | no | The number of seconds a thread's memoized token map is kept. A top-level scalar, which needs a `[memory]` |
 | `[detector]` | yes | The detect stage |
 | `[linker]` | no | The entity linker, defaults to `ExactEntityLinker` |
 | `[anonymizer]` | no | The render stage, defaults to an `Anonymizer` with a label-counter factory |
@@ -104,7 +101,7 @@ The top-level keys of a `PipelineConfig`.
 | `[expander]` | no | Re-finds missed occurrences of a detected value |
 | `[entity_resolver]` | no | Clusters entities that refer to the same thing |
 | `[guard]` | no | Re-checks the output for residual confidential data |
-| `[override]` | no | Forces or vetoes detections via a whitelist and a blacklist |
+| `[override]` | no | Forces or vetoes detections via a deny list and an allow list |
 | `[observation_redactor]` | no | A placeholder factory redacting trace payloads |
 | `[memory]` | no | The conversation memory, its presence makes a thread pipeline |
 
@@ -118,19 +115,21 @@ Discriminated on `type`. Required.
 
 ### `type = "regex"`
 
-Matches confidential data by one regex per label, pulled from inline `patterns`, named `catalogs`, or both. Catalogs merge first, then inline patterns, so an inline pattern overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. Each pattern is validated as a compilable regex at load time, then compiled under `re.ASCII`, so `\d` matches `0-9` and a shape class stops at the first non-ASCII character. A value such as `prénom@corp.com`{ .pii } is therefore matched from `nom` onwards.
+Matches confidential data by one regex per label, pulled from inline `patterns`, catalog groups in `catalogs`, or both. The groups merge first, then inline patterns. An inline pattern therefore overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. At load time, each pattern is validated as a compilable regex. It is then compiled under `re.ASCII`, so `\d` matches `0-9` and `\w` stops at the first non-ASCII character. A pattern written with `\w` therefore matches `prénom@corp.com`{ .pii } from `nom` onwards. To take every letter in, scope the Unicode flag to the class, `(?u:\w)`, or name a range. The `EMAIL` pattern of `catalog:piighost/generic` names the Latin range `À-ɏ` this way. See [Limitations](../limitations.md) for what each choice misses.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
 | `patterns` | `dict[str, str]` | `{}` | Inline label-to-regex mapping |
-| `catalogs` | `list[str]` | `[]` | Prebuilt catalogs, only `generic`, `us`, `eu`, `fr`, any other name failing validation |
+| `catalogs` | `list[str]` | `[]` | Catalog references, `catalog:namespace/name` with an optional `:selector`. A 1.x `hub:` reference is still accepted. Any other entry fails validation |
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic", "fr"]
+catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
+
+A group is fetched from the catalog when the config is built, not when it is parsed. A reference pinned to a commit is fetched once, then read from the on-disk cache. `PIIGHOST_CATALOG_URL` points at a private registry, and `PIIGHOST_HUB_URL` from 1.x is still read when it is unset. The names `generic`, `us`, `eu` and `fr` are refused. See [Catalog groups](../reference/detectors.md#catalog-groups) for the groups that replace them.
 
 ### `type = "composite"`
 
@@ -146,7 +145,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["catalog:piighost/generic"]
 
 [[detector.detectors]]
 type = "exact"
@@ -190,7 +189,7 @@ model = "en_core_web_sm"
 
 ### Model-backed detectors
 
-Each needs its own extra, and every one but `presidio` needs a model. `labels` accepts a list or an `{emitted: internal}` map. `max_concurrency` caps concurrent inferences, or `None` for unbounded.
+Each needs its own extra, and every one but `presidio` needs a model. `labels` accepts a list or an `{emitted: internal}` map. `max_concurrency` caps concurrent inferences. `None` leaves them unbounded.
 
 <div class="wide-table" markdown="1">
 
@@ -213,7 +212,7 @@ threshold = 0.5
 max_chars = 2000
 ```
 
-The `gliner2` and `transformers` detectors take `max_chars`, the longest text one inference sees. A longer text is split into overlapping chunks scanned separately, and the spans are mapped back. Without it the whole text goes to the model in one pass, which a model with a short window truncates and a long document can exhaust memory on.
+The `gliner2` and `transformers` detectors take `max_chars`, the longest text one inference sees. A longer text is split into overlapping chunks. Each chunk is scanned separately, then the spans are mapped back. Without this key, the whole text goes to the model in one pass. A model with a short window then truncates the text, and a long document can exhaust memory.
 
 The `transformers` detector passes `aggregation_strategy` to its token-classification pipeline, which groups sub-word tokens into whole entities.
 
@@ -229,7 +228,7 @@ Optional. Defaults to `ExactEntityLinker`. One linker exists, so `type` names it
 
 | `type` | Meaning |
 |--------|---------|
-| `exact` | Groups detections by casefolded value |
+| `exact` | Groups detections by value, the same words whatever their spaces and case |
 
 ```toml
 [linker]
@@ -259,25 +258,25 @@ Optional. Defaults to an `Anonymizer` with a label-counter factory. When present
 type = "label_counter"
 ```
 
-The middleware needs a delimited factory, so `redact`, `label`, `label_counter`, or `label_hash`. The `mask` factory produces `P***`{ .placeholder }, which keeps no delimiters and has no recognizer.
+The middleware needs a delimited factory, meaning `redact`, `label`, `label_counter`, or `label_hash`. The `mask` factory produces `P***`{ .placeholder }, which keeps no delimiters and has no recognizer.
 
 ---
 
 ## `[overlap_resolver]`
 
-Optional in the file, but the stage runs either way. Omitting the section builds a `ConfidenceOverlapResolver`, and there is no supported way to disable the stage, since the render stage assumes disjoint spans.
+Optional in the file, but the stage runs either way. Omitting the section builds a `ConfidenceOverlapResolver`. There is no supported way to disable the stage, since the render stage assumes disjoint spans.
 
 | `type` | Meaning |
 |--------|---------|
 | `confidence` | Keeps the highest-confidence detection when two overlap |
-| `merge` | Keeps the union of overlapping detections, with the label of the most confident |
+| `merge` | Keeps the union of overlapping detections, with the label of the most confident. At equal confidence, the label of the widest |
 
 ```toml
 [overlap_resolver]
 type = "merge"
 ```
 
-`merge` hides every character a detector flagged. With `confidence`, a regex at confidence 1.0 that found `Wirth`{ .pii } beats a model that found `Loni M. Wirth`{ .pii }, and `Loni M.`{ .pii } is sent in clear. Choose `merge` when a leak costs more than a masked neighbour word, as in a document with rules and a model together.
+`merge` hides every character a detector flagged. With `confidence`, a regex at confidence 1.0 that found `Wirth`{ .pii } beats a model that found `Loni M. Wirth`{ .pii }. `Loni M.`{ .pii } is then sent in clear. Choose `merge` when a leak costs more than a masked neighbour word, as in a document with rules and a model together.
 
 ---
 
@@ -287,7 +286,7 @@ Optional, and disabled when omitted. One expander exists, so `type` names it rat
 
 | `type` | Keys | Meaning |
 |--------|------|---------|
-| `word_boundary` | `case_sensitive` (default `false`) | Re-finds a detected value's other whole-word occurrences |
+| `word_boundary` | `case_sensitive` (default `false`) | Re-finds a detected value's other whole-word occurrences, whatever spaces separate its words |
 
 ```toml
 [expander]
@@ -324,6 +323,7 @@ Optional. Discriminated on `type`. Re-checks the de-identified output for residu
 | `detector` | | A detector re-run on the output |
 | `llm` | `llm` | A chat model prompted to find residual PII |
 | `moderation` | `mistral` | A Mistral moderation model scoring the output |
+| `gliner2` | `gliner2` | A local GLiNER2 guardrail model classifying the output |
 
 ### `type = "detector"`
 
@@ -358,33 +358,50 @@ Scores the output with a Mistral moderation model. The credential is read from `
 | `model` | `str` | `mistral-moderation-latest` | The moderation model |
 | `threshold` | `float` | `0.5` | The category score at or above which the text is flagged |
 
+### `type = "gliner2"`
+
+Classifies the output with a GLiNER2 guardrail model that runs in the process, so it needs no credential. The checkpoint is downloaded on the first build, then read from the Hugging Face cache.
+
+| Key | Type | Default | Meaning |
+|-----|------|---------|---------|
+| `model` | `str` | `fastino/GLiNER2-Guardrails-PII-Multi` | The GLiNER2 checkpoint the guard classifies with |
+| `task` | `str` | `response_safety` | The classification task read from the model's answer |
+| `labels` | `list` | `["safe", "unsafe"]` | The answers the task chooses between, two at least. The unsafe one comes last |
+| `threshold` | `float` | `0.5` | The confidence at or above which an unsafe answer flags the output |
+
+```toml
+[guard]
+type = "gliner2"
+threshold = 0.5
+```
+
 ---
 
 ## `[override]`
 
-Optional. Forces detections through a whitelist and vetoes them through a blacklist. Each list is a detector config, `[override.whitelist]` and `[override.blacklist]`, and both are optional.
+Optional. Forces detections through a deny list, whose values are always masked, and vetoes them through an allow list, whose values are always left in clear. Each list is a detector config, `[override.deny_list]` and `[override.allow_list]`, and both are optional. The 1.x keys, `whitelist`, `blacklist` and their strategies, are refused at load time with the key that replaces them, see [Upgrading to 2.0](../community/upgrading.md#the-override-lists-are-renamed).
 
 <div class="wide-table" markdown="1">
 
 | Key | Values | Default | Meaning |
 |-----|--------|---------|---------|
-| `[override.whitelist]` | detector | | A detector whose hits are forced into the set |
-| `[override.blacklist]` | detector | | A detector whose hits invalidate detections |
-| `blacklist_strategy` | `exact`, `value`, `overlap` | `value` | How a blacklist hit invalidates, same casefolded value, same span and label, or any overlapping span |
-| `whitelist_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a whitelist hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
-| `conflict_strategy` | `whitelist_wins`, `blacklist_wins`, `raise` | `whitelist_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
+| `[override.deny_list]` | detector | | A detector whose hits are always masked, forced into the set |
+| `[override.allow_list]` | detector | | A detector whose hits are always left in clear, invalidating the detections they match |
+| `allow_list_strategy` | `exact`, `value`, `overlap` | `value` | How an allow list hit invalidates a detection. `value` needs the same value, whatever its spaces and case. `exact` needs the same span and label. `overlap` invalidates any overlapping span |
+| `deny_list_strategy` | `respect_provenance`, `force` | `respect_provenance` | Whether a deny list hit leaves an assistant-introduced value in clear, or tokenizes it regardless |
+| `conflict_strategy` | `deny_list_wins`, `allow_list_wins`, `raise` | `deny_list_wins` | Who wins when the two lists contradict. `raise` refuses the collision with `ConflictingOverrideError` |
 
 </div>
 
 ```toml
 [override]
-blacklist_strategy = "value"
+allow_list_strategy = "value"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 
-[override.blacklist]
+[override.allow_list]
 type = "exact"
 values = { "public@corp.com" = "EMAIL" }
 ```
@@ -393,14 +410,14 @@ values = { "public@corp.com" = "EMAIL" }
 
 ## `[observation_redactor]`
 
-Optional. A placeholder factory config, same `type` values as `[anonymizer.placeholder]`, redacting the payloads sent to a tracing backend so a trace holds tokens, not raw values.
+Optional. A placeholder factory config, with the same `type` values as `[anonymizer.placeholder]`. It redacts the payloads sent to a tracing backend, so a trace holds tokens, not raw values.
 
 ```toml
 [observation_redactor]
 type = "label"
 ```
 
-Omitting the section traces the clear text and the detection values, and a live tracer then emits a `PIIGhostSecurityWarning`. The pipeline's `trace_clear_text` flag, which silences that warning, has no key in a configuration file, so a file-built pipeline cannot acknowledge clear-text tracing. Passing `trace_clear_text=True` to the pipeline is the programmatic path.
+Without this section, the clear text and the detection values are traced. A live tracer then emits a `PIIGhostSecurityWarning`. The pipeline's `trace_clear_text` flag silences that warning, but it has no key in a configuration file. A file-built pipeline therefore cannot acknowledge clear-text tracing. Passing `trace_clear_text=True` to the pipeline is the programmatic path.
 
 ---
 
@@ -408,7 +425,7 @@ Omitting the section traces the clear text and the detection values, and a live 
 
 Optional. Its presence makes the pipeline a `ThreadAnonymizationPipeline` keeping per-thread state. Discriminated on `type`.
 
-The `token_memo_ttl` scalar goes with it, at the top level rather than in this section, since it bounds the pipeline's own memoized token map and not the store. Setting it without a `[memory]` raises, because a stateless pipeline memoizes nothing. Why it matters on a multi-worker deployment is in [Multi-instance deployment](../multi-instance.md).
+The `token_memo_ttl` scalar goes with this section, but it sits at the top level, because it bounds the pipeline's own memoized token map and not the store. Setting it without a `[memory]` raises, because a stateless pipeline memoizes nothing. [Multi-instance deployment](../multi-instance.md) explains why it matters on a multi-worker deployment.
 
 | `type` | Extra | Store |
 |--------|-------|-------|
@@ -422,8 +439,8 @@ A process-local store, lost on restart and not shared across workers.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
-| `max_threads` | `int` | `None` | Cap on kept threads, LRU eviction beyond it (at least 1) |
-| `ttl` | `float` | `None` | Expire an idle thread lazily on next access, in seconds (greater than 0) |
+| `max_threads` | `int` | `10000` | Cap on kept threads, LRU eviction beyond it (at least 1) |
+| `ttl` | `float` | `86400` | Idle time, in seconds, after which a thread expires (greater than 0). It is only dropped on the next access |
 
 ```toml
 [memory]
@@ -432,7 +449,7 @@ type = "in_memory"
 
 ### `type = "redis"`
 
-A persistent, multi-worker store, optionally keying each stored message with a hasher and encrypting each stored value with a cipher.
+A persistent, multi-worker store. Optionally, it keys each stored message with a hasher and encrypts each stored value with a cipher.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
@@ -509,12 +526,12 @@ type = "aesgcm"
 
 ## Full example
 
-The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a catalog, adding one inline pattern, and enabling several optional stages. The file itself carries the same keys with a comment on each stage.
+The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a catalog group, adding one inline pattern, and enabling several optional stages. The file itself carries the same keys with a comment on each stage.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["generic"]
+catalogs = ["catalog:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 [overlap_resolver]
@@ -533,7 +550,7 @@ type = "exact"
 [anonymizer.placeholder]
 type = "label_counter"
 
-[override.whitelist]
+[override.deny_list]
 type = "regex"
 patterns = { CODENAME = 'ACME-[A-Z]+' }
 
@@ -574,3 +591,4 @@ The same content in JSON, chosen by a `.json` suffix, is equivalent. A table bec
 - [Command-line interface](../reference/cli.md) for validating a file from the shell.
 - [Detectors reference](../reference/detectors.md) for the detector each `type` builds.
 - [LangChain middleware reference](../reference/langchain.md) for driving a thread pipeline in an agent.
+- [Configure a pipeline by file, catalog and command line](../../../openwiki/en/operations/configuration-and-catalog.md), for the configuration rules `BR-CFG-01` to `BR-CFG-09` and where each lives in the code.

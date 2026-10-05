@@ -8,7 +8,7 @@ Module : `piighost.cli`
 pip install "piighost[config]"
 ```
 
-L'outil a besoin de `typer`, livré avec l'extra `config`. Lancé sans lui, la CLI imprime un court message d'installation sur stderr et sort en `1`, plutôt qu'une traceback. Les sous-commandes `validate` et `schema` n'instancient aucun composant du pipeline, donc aucun détecteur n'est construit et aucun modèle chargé, ce qui les rend rapides et sûres à lancer en CI.
+L'outil a besoin de `typer`, livré avec l'extra `config`. Si `typer` manque, la CLI imprime un court message d'installation sur stderr et sort en `1`, plutôt qu'une traceback. Les sous-commandes `validate` et `schema` n'instancient aucun composant du pipeline. Elles ne construisent donc aucun détecteur et ne chargent aucun modèle. Elles sont ainsi rapides et sûres à lancer en CI.
 
 ---
 
@@ -27,9 +27,9 @@ piighost validate <PATH>
 
 | Argument | Description |
 |----------|-------------|
-| `PATH` | Chemin vers une config de pipeline TOML ou JSON |
+| `PATH` | Chemin vers une config de pipeline TOML ou JSON, ou une référence du catalogue comme `catalog:piighost/fr-notarial` |
 
-Le code de sortie est `0` en cas de succès et `1` en cas d'erreur de configuration, qu'il s'agisse d'un fichier absent, d'une syntaxe TOML ou JSON invalide, ou d'une valeur qui échoue à la validation. Le message d'erreur est écrit sur stderr, ce qui rend la commande adaptée à une barrière de CI.
+Le code de sortie est `0` en cas de succès et `1` en cas d'erreur de configuration, qu'il s'agisse d'un fichier absent, d'une syntaxe TOML ou JSON invalide, d'une valeur qui échoue à la validation, ou d'un catalogue injoignable. Le message d'erreur est écrit sur stderr. La commande convient donc comme barrière de CI.
 
 ```bash
 $ piighost validate ./broken.toml
@@ -54,7 +54,7 @@ Pointez un éditeur vers `schema.json` pour l'autocomplétion et la validation e
 
 ## `piighost anonymize`
 
-Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut elle lance un `RegexDetector` générique. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
+Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut, la commande lance un `RegexDetector` sur le groupe du catalogue `catalog:piighost/generic:fab51b33` (`DEFAULT_CATALOG` dans `piighost.cli`). Ce groupe est récupéré à la première exécution, puis relu depuis le cache sur disque. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -74,14 +74,12 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | Option | Description |
 |--------|-------------|
 | `TEXT` | Le texte à dé-identifier, ou `-` pour lire stdin |
-| `--config PATH` | Un fichier de config de pipeline (TOML ou JSON) |
+| `--config PATH` | Un fichier de config de pipeline (TOML ou JSON), ou une référence du catalogue |
 | `--api URL` | URL de base d'un serveur `piighost-api`, utilisé via le client HTTP |
-| `--thread-id ID` | Thread id pour l'API ou une config à mémoire (défaut `default`) |
+| `--thread-id ID` | Identifiant de conversation pour l'API ou une config à mémoire (défaut `default`) |
 | `--json` | Imprime le texte dé-identifié et les détections en JSON |
 
-`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`.
-
-Ces détections sont la sortie propre du détecteur, lue directement chez lui pour l'affichage. Ce n'est pas l'ensemble à partir duquel le texte dé-identifié a été rendu, donc un recouvrement écarté par le resolver et une valeur effacée par un override y figurent encore. Lisez-les comme ce que le détecteur a vu, et `anonymized_text` comme ce que le pipeline a décidé.
+`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`. Les détections listées sont celles que le texte a remplacées, après la résolution des chevauchements, les overrides et l'expander. Une configuration qui ne passe pas la validation affiche le même message que `validate` et sort avec le code `1`. Quand un groupe du catalogue ne peut pas être tiré, la commande imprime `Could not pull from the catalog:` suivi de la cause et sort avec le code `1`. `--api` n'envoie aucune clé d'API. Il ne joint donc qu'un serveur démarré avec `PIIGHOST_ALLOW_ANONYMOUS`, voir [CLI du serveur](api-cli.md).
 
 ---
 

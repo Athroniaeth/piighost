@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:3a95ecf5b0b1999bc57f2e9c0d19ac3f28c3079c19898d17cf0e0abb1cc29751",
+  "claims": [
+    {
+      "id": "claim_4ee74aa767de4004a09dcd96204b91fb",
+      "statement": "PipelineConfig layers init arguments, then PIIGHOST_-prefixed environment variables, then the config file or catalog configuration, and forbids undeclared keys; no nested env delimiter is configured.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/settings.py#L96-L142",
+          "version": "repo-lines-v1:sha256:e5bd8fd8f69257ca274f5f17865e292ff0457976e344e7ba4d0ebc02b13f5d9e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZDJmNjllMmIyNmYxNzYzZDY1Yzc2N2MzYjg1MWExY2RhOTdjMmFlNTliMDZkYjAzMTVjZTgxNmFlMzkwZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmYjE2YTcwYjhlM2QzZmMwYmZhYjhiNzhmMTdkMTUzNTU0OGQxYTkwZWZiYWU3ZTgxNzkzNGZhOTMzZTBlNjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllN2EwOTZhMzhhYjFmNGMxNjkyMzMwMTAxMjEwYzA2Yzg3OGU5NGFhMDhmMzFmMzk5ZjI4YzZhOThmNzUwODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkwODNiZjIyNTk0YWM0NzAyNTk1YzYzZGQwNGQzNzlhYzEyOGFhMmJmYzE5OTQ5MmMwZmJmN2RiNDc0OWZiOTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9b4883aacc714029828c8e5d25f484ef",
+      "statement": "A config file is read as JSON when its suffix is .json and as TOML otherwise; a catalog configuration is injected as an init source below the environment.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/settings.py#L54-L69",
+          "version": "repo-lines-v1:sha256:8378d6b3126b2e553032bfa6c0f615eeb9ed734cec4223f5983896602dda4057:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMjk0ZjFkNDBjMDM1NTA1MDQxYjJhNTdiOGE3N2MwMzNkOGVhY2IyM2ZjNjM4YWEyYzVmZWQ0ZTNiOWM2M2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0NDYxYzhiYWQ5ODk4YWU2NGQzYThjNGE5ZjNlMzcwYzJkZmRiYzcwN2RhN2JmYzY4MGZhMzdlYjc5ZTEyZWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4YWU2MGEwOWE3ODRiNDdlYTA4NTMxNmJmZjkyYzY4MDExZGQ2NzBkODlmMjhkYWY1ZGE5YmI2YWU0MWJjNDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE0Y2FlZDk0Zjk5MTdjZDE1ODVkOWNlMTdiZTI1ZGE5NjhmNjI3YmE2MjQxMGQwMTA3YWMzNDhlOGE0MTI2ZDUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ba3caa665d014422856b900a1f12fdf0",
+      "statement": "load_pipeline refuses a configuration declaring a memory and load_thread_pipeline refuses one without, both with ConfigError; token_memo_ttl without a memory fails validation.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/settings.py#L113-L126",
+          "version": "repo-lines-v1:sha256:fd16ede9d07145dd4f34d7bd0c709d3506e183ab6617ce153ef5bc385727feed:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZjFjZGQwZjU3NDMzY2U1MDc3OTA3MjJlMmY1MWQ5NzM1NmNiZmZhN2IyNGRkN2NhMTM0NDgzMmQ0ZTUyNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyYWIwOTBiY2QxNjIwZmE2MmVhZWUxNTdhNzRmY2E2MzVhYTI5ZTEyY2JmZmQ2MThiNTc5MmQ4N2JjMDNhM2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkODYwMmJhNzNjM2QwZWU0NjQ2N2VhMWVhZmEzY2Y2YzFkMjNhZDZlMDNiZThhMzk0YzhkMDM2MGY2MDMxZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjM2Y0ZjM2YzEwOTRlYTI4Y2FiYzYzMmQ5NzJiZmVmZjg4NzJkM2QyMDk5MmEyYTdiM2QwOTNkYmE4ZmIyNTkifQ"
+        },
+        {
+          "resource": "repo://src/piighost/config/settings.py#L238-L265",
+          "version": "repo-lines-v1:sha256:574ad05bb4a8bfa130836e790d7c631985d8a696a5b2cd2d70621a7eeea96455:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiNTIwZTBlYTJhZmExMzVmYzU2YTQ5ZmVjNTUwZjA0NzdlYzQ0NWZjNGEwOWUzYmNkZDgxMmFhN2Q2ODNjMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMTM2MzBjYTBmYjQyMDVmMDFkYjdmYWVhNjM2YjNiMTNhMTk5MTYxZjVmNGI5ZjQwZWU2ZjgwOGQ3ZjZkNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkZGJlODExYzM4NzlmYzgwOTdlNDBmOTIxYjQ0NTQ4M2RhOTNlNTIxY2YyMzNjMmFjNmIyYzEzZDJjN2VhZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_532f8d17a2594edd845a4267d5faba3d",
+      "statement": "Secrets (hash pepper, cipher key, database URL) are read from environment variables at build time and raise ConfigError when missing, so validation alone succeeds without them.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/cipher.py#L17-L44",
+          "version": "repo-lines-v1:sha256:d0309da600fdccd0525e989474afabdc90805796b2879a00b0cb588148676988:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMzM5NzdjZTdiODkwNGM2YjRjZDc5NjZlYjJhZDMxMWI4OGNhNTBjODhiMTIwNTI1ZGM3ZTFkY2VhYzlkMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxMzViYmQzMWI5YzUzZDc1YjMwZTZjZGE2YmU2OWZiMDI0Yjk1OTIyZDhmOWM5ZTFmMjUyOWExMDlhODJjMzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzM2QyZDlhOGFiZDE2ZTNkMDljZDRkNDk3NzdjYTVkNTAzODI2NDA1NWE3OTgxZjU0MzUyZjFiYTJlNzk4NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3MDM0YjJlMmNmNGU2ZDVkMmQyNDY4Y2I0MjRjMjc2NGFkMDlkN2IzMjliYTViNjM4NzZjOGZmZGEyNTk2MjIifQ"
+        },
+        {
+          "resource": "repo://src/piighost/config/models/hasher.py#L17-L32",
+          "version": "repo-lines-v1:sha256:5cb4e16c4f50fec10029f0c44d4a63af12264e393b4274ef376a46463b181a1b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxNDU3ZmQ1NWY3YWEwYjFhNTMyYTk5NzQxMWYxNDhlYjhjNTYwNjA4NzBiY2IwYzQ4NmM1NzA1OGE5NjcyYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiMzc3OTBiYWFmYzYwZjYwNzcwYmU0Nzk3YWYwMDJmNTMyMzkyM2VlNWY0NmViOWIzYzVlZGVkNDQ1NDYwNmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NWZiNGVhODgzYmIxZDcxNWNjNzhlODBhY2Y4Yjc5YTBkMmViZTMyODE0MzZhNmMyMzAxM2UxMGUwODI5MzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllZDIzZWZiMzczYTg0NGExOTI5NDc1NjRkNjNkNTZlM2I1YzMwYzQ5MWU2YzU0MTM5MzBmNTYyZmY4MDc5MDEifQ"
+        },
+        {
+          "resource": "repo://src/piighost/config/models/memory.py#L95-L117",
+          "version": "repo-lines-v1:sha256:8fc51b3814d6189d192e6bc1293e0d4f807ea7baabee2df1fd572eb3ddae9f0b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyNmRlZjE5MzhhOWIzYjlhMDgzYTViZWZkYTA0OTY2MTk0YTFiYzQ2YjlhOWM5YjMwMmI5MWZmZGU4NDk4MGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0NjIxMjE3YTlkNjFlODc0ZDMzNDhmZmZlMjJkNjEwNGI4Yjc5NjdjMDhjN2U0OWEzOTY1OWJhNzg4N2EzYjkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_db18247108754736a619704c122a8fd6",
+      "statement": "A catalog reference pinned to an eight-hex commit is cached on disk under XDG_CACHE_HOME or ~/.cache/piighost/catalog keyed by a SHA-256 of the URL; moving selectors are fetched every time; only http and https origins are accepted; the timeout is 10 seconds; cache write failures are ignored.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/catalog.py#L161-L227",
+          "version": "repo-lines-v1:sha256:db15fdee635ee2a589fb867bca329b49cc15a0b988ab36623a745b04fcb86cd6:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxMjEyNmEzODg2NWY4NmMwNTBhMGM4OGRkMmIwNDQ3YzU0NDQ3OTc5ZTg1MGMxNDkzZDYzNzU4ZmY4NjRhZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwNDkwZjJiYjYwZTA4NTllYjc3ZWRiMTc1MTNhMDRhMTY2YTdmMzZhMGE2MGVkYWEwZGNlNzI5NmM3MzQ4YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3OWU0OTY3OGY5MThhMGRmMDIzNWI5YzVmOGFkZTE3Y2NkNTMwZmEyNzgyM2I2NzBlNWUzNjQ2OTJiNDdiNDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhODU0Mjk4YmZkMWVhOWFiZmE5MTEzYmY3ZjEzZjUxMjI4MWU5NzNhNWU1MTQ1NDg2ZjVhMTA3YzlhOWJhMzkifQ"
+        },
+        {
+          "resource": "repo://src/piighost/catalog.py#L285-L308",
+          "version": "repo-lines-v1:sha256:3bf519d6a4de2717d0b23402bd94445eb2c432f5e05017ba0d862577830490ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhOWM5MmZlYWQxOTdlYmE3Y2RmOGQzNjg0ZTYxNWIxOTA5ODljODBjMjM2MWEwY2RiMGJkZjJkMmRiZmQ1ZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwNjJlNThlYTBiMGZkMTk1YmEwNzY2MTNiNjMwZDU5ZTY3YmQ0NzBiYjE5ZTk3YTIwYzkwMjM2NmU1YmEwZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MjdjZTFiNmFiNDg2M2Q5YjliZjNjYmViNDlkYzg5ZDdiOTcwODYzODAyMDgxNWRjMzcwOTY5ODhjY2Y4ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/catalog.py#L36-L75",
+          "version": "repo-lines-v1:sha256:5b6926b1674500d27d748c4559ebbcd9d59adaf07713bff951533d7d2c2a31e1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxMDFmMGNjODdiNDk3NGY1NTRlYmFlMTQ3MWFiZDYxZjJiMjA5ZDlmM2QzMGExNWJlNzgwNWY3YTQ0ZGI3YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1ZjhmZTc5ZDM0MzhiYTBlNDI3YTI4NWY2Nzg2NGEyYjg0MzFjZGM2NTEzYzQzYmExMDUxZGY5Nzg3ZTFmNjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3OTU1MzZlMDc0ODE0NzcwNDUxMDFiNGEzOWYzYTBjNGNiZDRiN2I5YTAxNDI1OTk4ODRlM2Y2ZDRmMTA0MGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyZDIyZGFkOTUwZTIyNTk5YjU2YzA5YmZhMGY0OTIwODY2NWYwNTg5OTY2MjhhZTdiNzM0YWVlNDE0MGM0NjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_59a217f616834c08ab1e285284f45891",
+      "statement": "A regex detector config merges catalog groups in order then inline patterns, so later entries win on the same label; catalogs are fetched at build time, and legacy catalog names are refused.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/config/models/detector.py#L56-L114",
+          "version": "repo-lines-v1:sha256:9d6a952b1914364775b59268b1ab2b0ca6bc0d11b8f8ce23121b20f440a8c63e:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjZjI2NTQ4YWQ1OTA3NmNmOTBhMDYwYmQ1MWFmYzYwZmY4MzA1Y2NmOGI2NTRmYTg0YjE5MDFlYTI4NGQ3ODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyYTkyYzkxNDg3OWU3MDQxMzhmNGRiZTk4NzJjZjQzYzVhMWFkMzgzZTgzZGRmOGM2MTM1MzJkMWFlZDI0NWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmZTAyYTA0NzQ4MWVkZmQ3MTEyZWRkNzAzMmRhYWMyMWNjZGI5MmMwNWFjNjI2ZGMyNWVhMjI4NDEwZTI3OGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1NDVhY2Q2MGM1NzhiYTFjZjU3ZmJmODFhZjgzYjIzOWE2MDE0N2ZmZTc3YzI2NDU1NTE3ZDY3YmY5OTEyYzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d7c05f018d7a4c599bf35bdb27276911",
+      "statement": "The piighost CLI exposes validate, schema and anonymize; validate and anonymize exit 1 on ConfigError or CatalogError; anonymize defaults to a regex detector over catalog:piighost/generic:fab51b33 and to the default thread id; --config and --api are mutually exclusive.",
+      "evidence": [
+        {
+          "resource": "repo://src/piighost/cli/__init__.py#L196-L222",
+          "version": "repo-lines-v1:sha256:12316b13240bc5e51a6eedfdd59734cec21f9a5d2699ebff75224fc3557bf9cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzNjA4MTZjNDYwODEyZDNmYmM0ZTJkMTM4MzJiNzkwMGU4NTk4NTI3YWI4Yjk4NTIxZTQxN2M4ZjBiZGYyOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2ZTQ2NGYxZDBjMzgzNTI0ZDNkZTQ3ZjQwYzNhZjM4ZDc1MWZjMmM2YzVjZjQ5ZDgwMmQ3Y2JiODNhODIzYzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiMGE4ZDViYWUwMWNlZWY3MWJhNzAzMWQxMWZjNTUzNWM5ODA3ZDg0YjhhNzIxMGY1NGQ1ZmJmMzMwZjgxYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/piighost/cli/__init__.py#L29-L127",
+          "version": "repo-lines-v1:sha256:f495ba23caadaf86a065ffaeede4d2573116f7a19040f3bfb0b183f9dba8fa6c:eyJzZWxlY3RlZExpbmVDb3VudCI6OTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5NjkzMmRlMTU0ZDNhODdjNDIyMzE4M2FlMGQ2OTUzYWJmOGE4YTIxMDc0MWNiNjFiMmJjOTM0NGIzMzU2YmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkNjdiNDY2Mzc4NzVjM2JiN2Y5MDNiMWRiODczNGI0YTI5NjY4NWRmNGRiZTY2YTRmNmNlZjdmZGM0MTE2M2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3Y2ViY2E5YWYzZDY2MmY2M2U0YmY3NTcyMTRmYzA1NjM2YTc2YjM0NjQ1YjllMzIwM2U2ZDNkZDg1MTY3OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4MzhjMWVjNjc3NGUzNDFiZTRmNWVlOGZlNjMwN2VhN2IyMWIwM2NkNjM0ODAyNjllYTI4ZjhiNmJiNmJmN2IifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.1",
+    "at": "2026-10-01T18:36:49.731Z"
+  }
+}

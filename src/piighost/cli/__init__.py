@@ -10,7 +10,8 @@ Subcommands:
   component, exiting 0 on success and 1 on any configuration error.
 - schema prints the JSON Schema of PipelineConfig to stdout.
 - anonymize anonymizes a text from an argument or stdin, through a config file, a
-  remote piighost-api, or a default generic regex detector.
+  remote piighost-api, or a default regex detector over the catalog's generic
+  group.
 """
 
 import asyncio
@@ -25,6 +26,13 @@ if TYPE_CHECKING:
 
     from piighost.pipeline.base import BaseAnonymizationPipeline
 
+DEFAULT_CATALOG = "catalog:piighost/generic:fab51b33"
+"""The catalog group the default detector runs: email, URL, IPv4 and card number.
+
+It is pinned to a commit, so the first run fetches it and every later one reads
+it from the on-disk cache, offline included.
+"""
+
 _TYPER_HINT = (
     "The piighost CLI requires typer. Install it with: pip install piighost[config]"
 )
@@ -34,21 +42,27 @@ def _build_app() -> "typer.Typer":
     """Build the typer application and its commands. Requires typer."""
     import typer
 
+    from piighost.conversation_memory.base import DEFAULT_THREAD_ID
+
     app = typer.Typer(no_args_is_help=True, add_completion=False)
 
     @app.command()
     def validate(
         path: Annotated[
-            Path, typer.Argument(help="Path to a TOML or JSON pipeline config.")
+            Path,
+            typer.Argument(
+                help="Path to a TOML or JSON pipeline config, or a catalog: reference."
+            ),
         ],
     ) -> None:
-        """Validate a pipeline configuration file, TOML or JSON, without building it."""
+        """Validate a pipeline configuration, a file or a catalog reference, unbuilt."""
+        from piighost.catalog import CatalogError
         from piighost.config import load_config
         from piighost.exceptions import ConfigError
 
         try:
             load_config(path)
-        except ConfigError as exc:
+        except (ConfigError, CatalogError) as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(code=1) from exc
         typer.echo(f"OK: {path}")
@@ -70,7 +84,10 @@ def _build_app() -> "typer.Typer":
         ] = None,
         config: Annotated[
             Path | None,
-            typer.Option("--config", help="Pipeline config file (TOML or JSON)."),
+            typer.Option(
+                "--config",
+                help="Pipeline config file (TOML or JSON), or a catalog: reference.",
+            ),
         ] = None,
         api: Annotated[
             str | None,
@@ -81,7 +98,7 @@ def _build_app() -> "typer.Typer":
             typer.Option(
                 "--thread-id", help="Thread id for the API or a thread config."
             ),
-        ] = "default",
+        ] = DEFAULT_THREAD_ID,
         as_json: Annotated[
             bool,
             typer.Option(
@@ -93,8 +110,18 @@ def _build_app() -> "typer.Typer":
         if config is not None and api is not None:
             typer.echo("Pass at most one of --config and --api.", err=True)
             raise typer.Exit(code=1)
+        from piighost.catalog import CatalogError
+        from piighost.exceptions import ConfigError
+
         source = sys.stdin.read() if text is None or text == "-" else text
-        output = asyncio.run(_anonymize(source, config, api, thread_id, as_json))
+        try:
+            output = asyncio.run(_anonymize(source, config, api, thread_id, as_json))
+        except ConfigError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from exc
+        except CatalogError as exc:
+            typer.echo(f"Could not pull from the catalog: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
         typer.echo(output)
 
     return app
@@ -154,26 +181,29 @@ async def _anonymize_local(
     else:  # pragma: no cover - the config builds one of the two concrete pipelines
         raise TypeError(f"unsupported pipeline type: {type(pipeline).__name__}")
 
-    detections: list[dict[str, Any]] = []
-    if as_json:
-        detections = [
-            detection.to_dict() for detection in await pipeline.detector.detect(text)
-        ]
-    return result.text, detections
+    if not as_json:
+        return result.text, []
+    # The entities are what the text replaced: every stage after the detector,
+    # overlaps, overrides and the expander, has already run on them.
+    detections = [
+        detection.to_dict()
+        for entity in result.tokens
+        for detection in entity.detections
+    ]
+    return result.text, sorted(detections, key=lambda detection: detection["start"])
 
 
 def _load_or_default(config: Path | None) -> "BaseAnonymizationPipeline[Any]":
-    """Build the pipeline from a config, or a default generic regex one."""
+    """Build the pipeline from a config, or a regex one over DEFAULT_CATALOG."""
     if config is not None:
         from piighost.config import load_config
 
         return load_config(config).build()
 
     from piighost.components.detector import RegexDetector
-    from piighost.components.detector.patterns import GENERIC_PATTERNS
     from piighost.pipeline import AnonymizationPipeline
 
-    detector = RegexDetector(GENERIC_PATTERNS)
+    detector = RegexDetector.from_catalog(DEFAULT_CATALOG)
     return AnonymizationPipeline(detector)
 
 

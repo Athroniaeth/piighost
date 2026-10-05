@@ -1,0 +1,4 @@
+[detector]
+type = "regex"
+catalogs = ["catalog:piighost/generic"]
+patterns = { ORDER = 'CMD-\d{4}-\d{4}' }

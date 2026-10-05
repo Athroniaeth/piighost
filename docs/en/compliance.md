@@ -11,9 +11,9 @@ The detectors and modes `piighost` ships line up against two regulatory framewor
 
 ## HIPAA Safe Harbor
 
-HIPAA is the United States health-data law. Its Safe Harbor method says that once you remove 18 categories of identifiers from a record, and hold no actual knowledge that the remainder could re-identify someone, the record is no longer protected health information and leaves the scope of the rule. Safe Harbor is destructive for data that depends on exact dates or places, so it is a de-identification target, not a lossless transform.
+HIPAA is the United States health-data law. Its Safe Harbor method sets two conditions. You remove 18 categories of identifiers from a record, and you hold no actual knowledge that the remainder could re-identify someone. The record is then no longer protected health information and leaves the scope of the rule. Safe Harbor is a de-identification target, not a lossless transform, because it destroys data that depends on exact dates or places.
 
-The table below maps each of the 18 identifiers onto the detectors `piighost` ships. "Custom" means `piighost` has no prebuilt pattern for it, but a `RegexDetector` pattern for your local format, or the `LLMDetector`, covers it.
+The table below maps each of the 18 identifiers onto the detectors `piighost` ships and the regex groups of the catalog. "Custom" means no catalog group carries a pattern for that identifier. You cover it with a `RegexDetector` pattern for your local format, or with the `LLMDetector`.
 
 <div class="wide-table" markdown="1">
 
@@ -40,7 +40,7 @@ The table below maps each of the 18 identifiers onto the detectors `piighost` sh
 
 </div>
 
-The prebuilt regex catalogs match on shape alone, with no checksum validation, so they never drop an OCR-mangled value but they also accept a well-shaped non-value. See [Limitations](limitations.md).
+The regex groups of the catalog match a value on its shape alone, with no checksum validation. So they never drop an OCR-mangled value, but they also accept a string that has the right shape without being a real value. See [Limitations](limitations.md).
 
 ## GDPR
 
@@ -51,11 +51,11 @@ The GDPR draws a line between two treatments, and they are often confused.
 
 Where `piighost` sits depends on the mode you choose.
 
-- The default reversible tokens, restored from the conversation memory, `<<PERSON:1>>`{ .placeholder } restored back to `Patrick`{ .pii }, are **pseudonymization**. The mapping exists, so the data stays personal data. Protecting that mapping, the memory backend and its at-rest crypto, is what keeps the pseudonymization meaningful. See [Security](security.md).
+- By default, tokens are reversible. The conversation memory restores them, for example `<<PERSON:1>>`{ .placeholder } back to `Patrick`{ .pii }. This mode is **pseudonymization**. The mapping exists, so the data stays personal data. The pseudonymization only means something if that mapping is protected, by the memory backend and its at-rest crypto. See [Security](security.md).
 - A `RedactPlaceholderFactory` or a mask used with no memory drops the mapping, so it moves toward **anonymization**. Whether the result is truly anonymous still depends on the residual re-identification risk in the surrounding text.
 
 !!! note "The word this documentation uses"
-    These pages say de-identification for what the pipeline does, a technical term covering both modes above. It is not a legal category. In the reversible default the legal name is pseudonymization, and it is the word to use toward data subjects, in a privacy notice or a DPIA. The EDPB asks controllers not to describe data as "de-identified" while individuals stay identifiable (Guidelines 02/2026, paragraph 40, see [below](#what-the-edpb-says-since-the-judgment)).
+    These pages say de-identification for what the pipeline does, a technical term covering both modes above. It is not a legal category. In the reversible default the legal name is pseudonymization, and it is the word to use toward data subjects, in a privacy notice or a DPIA. The European Data Protection Board (EDPB) asks controllers not to describe data as "de-identified" while individuals stay identifiable (Guidelines 02/2026, paragraph 40, see [below](#what-the-edpb-says-since-the-judgment)).
 
 ### What the regulation says
 
@@ -75,14 +75,14 @@ The European Data Protection Board (EDPB) adopted its Guidelines 01/2025 on pseu
 - Pseudonymized data that could be attributed to a person with additional information is personal data, and this "also holds true if pseudonymised data and additional information are not in the hands of the same person" (paragraph 22).
 - The additional information includes "tables matching pseudonyms with the identifying attributes they replace" and cryptographic keys (paragraph 20). The conversation memory and the cipher key are that additional information.
 - Reversal should be performed by persons specifically authorized for it, as per Recital 29 (paragraph 32).
-- The guidelines call the context in which attribution is to be precluded the pseudonymisation domain (paragraph 35), and the additional information should not enter it (paragraph 40). With `piighost`, the LLM provider sits in that domain and the mapping stays out of it.
+- The guidelines call the context in which attribution is to be precluded the "pseudonymisation domain" (paragraph 35). The additional information should not enter that domain (paragraph 40). With `piighost`, the LLM provider sits in that domain and the mapping stays out of it.
 - Before pseudonymized data is transmitted to a third party, "the means available to the recipient for attribution of the data need to be identified and taken into account" (paragraph 70). For `piighost`, the third party is the LLM provider.
 
 ### What the Court of Justice held in EDPS v SRB
 
-The Single Resolution Board (SRB) had collected comments from the shareholders and creditors of a failed bank. It sent some of them to Deloitte, the firm it had tasked with a valuation, pseudonymized under an alphanumeric code that only the SRB could link to an author. Some authors complained to the European Data Protection Supervisor (EDPS), who found that the SRB had failed to tell them that Deloitte would receive their data. The General Court annulled that decision (T-557/20, 26 April 2023). On the appeal of the EDPS, the Court of Justice set aside that judgment on 4 September 2025 (C-413/23 P, ECLI:EU:C:2025:645).
+The Single Resolution Board (SRB) had collected comments from the shareholders and creditors of a failed bank. It sent some of them to Deloitte, the firm it had tasked with a valuation. These comments were pseudonymized under an alphanumeric code that only the SRB could link to an author. Some authors complained to the European Data Protection Supervisor (EDPS), who found that the SRB had failed to tell them that Deloitte would receive their data. The General Court annulled that decision (T-557/20, 26 April 2023). On the appeal of the EDPS, the Court of Justice set aside that judgment on 4 September 2025 (C-413/23 P, ECLI:EU:C:2025:645).
 
-The judgment interprets Regulation 2018/1725, which governs the EU institutions and bodies, not the GDPR. The Court notes that its definition of personal data is essentially identical to that of the GDPR and must be interpreted in the same way (paragraph 52), and the definition of pseudonymization it applies is worded exactly as Article 4(5).
+The judgment interprets Regulation 2018/1725, which governs the EU institutions and bodies, not the GDPR. The Court notes that this regulation's definition of personal data is essentially identical to that of the GDPR and must be interpreted in the same way (paragraph 52). The definition of pseudonymization it applies is worded exactly as Article 4(5).
 
 The Court held the following.
 
@@ -106,7 +106,7 @@ The Court gave final judgment itself on the plea that the comments were not pers
 
 The EDPB held a stakeholder event on 12 December 2025, following the judgment, to inform its work on Guidelines 01/2025 on pseudonymisation and on guidelines on anonymisation. Participants disagreed on the perspective that applies to a processor, some arguing for the processor's own, others for the controller's.
 
-The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation open until 30 October 2026. They take the judgment into account, and three points bear on `piighost`.
+The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as a version for public consultation. As of 4 October 2026, that consultation is open until 30 October 2026. These guidelines take the judgment into account. Three points bear on `piighost`.
 
 - Anonymity is assessed from the perspective of each relevant entity, and the basic question is for whom the data is intended to be anonymous (paragraphs 11 and 12).
 - An entity that processes information on behalf of a controller is assessed from that controller's perspective. Information that is personal data for the controller is personal data for its processor too (paragraph 15).
@@ -116,9 +116,9 @@ The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as
 
 - For you, the controller holding the mapping, the de-identified text stays personal data. Every obligation of the GDPR applies to the whole processing, the mapping included.
 - An LLM provider that processes the text on your behalf is your processor. Under Guidelines 02/2026, the text is then assessed from your perspective, so it stays personal data for the provider too.
-- An LLM provider that uses the text for its own purposes is assessed from its own perspective. The judgment leaves open that the text is not personal data for it, but only if both conditions of paragraph 77 hold. `piighost` addresses the first by design, since the mapping never leaves your side. The second depends on what the text still carries in clear, the context, the quasi-identifiers, a PII the detector missed, and on what the provider can cross-check it with. See [Security](security.md) and [Limitations](limitations.md).
-- Your duty to tell data subjects that their messages reach an LLM provider is assessed from your point of view at collection, so it holds whatever the provider's position. In that notice, call the processing pseudonymization, not anonymization or de-identification, as paragraph 40 of Guidelines 02/2026 asks.
-- A DPIA that treats the de-identified text as personal data for the provider holds whichever way these questions are settled.
+- An LLM provider that uses the text for its own purposes is assessed from its own perspective. The judgment leaves open that the text is not personal data for it, but only if both conditions of paragraph 77 hold. `piighost` meets the first condition by design, since the mapping never leaves your side. The second condition depends on two things. First, what the text still carries in clear, that is the context, the quasi-identifiers, a PII the detector missed. Second, what the provider can cross-check the text with. See [Security](security.md) and [Limitations](limitations.md).
+- You must tell data subjects that their messages reach an LLM provider. This duty is assessed from your point of view, at the time of collection. So it holds whatever the provider's position. In that notice, call the processing pseudonymization, not anonymization or de-identification, as paragraph 40 of Guidelines 02/2026 asks.
+- A DPIA that treats the de-identified text as personal data for the provider stays valid whichever way these questions are settled.
 
 ### Sources
 

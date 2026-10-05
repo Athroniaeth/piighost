@@ -29,32 +29,32 @@ class AnyDetectionOverride(Protocol):
         ...
 
     async def cleared_values(self, text: str) -> frozenset[str]:
-        """Return the casefolded values the blacklist matches in this text.
+        """Return the value keys of what the allow list matches in this text.
 
-        The pipeline exempts them from the guard rail: a blacklisted value is
-        deliberately left in clear, so a detector-based guard would otherwise
+        The pipeline exempts them from the guard rail: a value on the allow list
+        is deliberately left in clear, so a detector-based guard would otherwise
         re-find it and refuse the output.
 
         Args:
-            text: The message to scan with the blacklist.
+            text: The message to scan with the allow list.
 
         Returns:
-            The casefolded matched values, empty without a blacklist.
+            The value keys of the matches, empty without an allow list.
         """
         ...
 
     async def forces_value(self, value: str) -> bool:
-        """Return whether the whitelist forces this value to a token.
+        """Return whether the deny list forces this value to a token.
 
         The thread pipeline's provenance filter leaves assistant-introduced
         values in clear; a True here keeps the value tokenized anyway, which
-        only the FORCE whitelist strategy requests.
+        only the FORCE deny list strategy requests.
 
         Args:
-            value: The entity value to test against the whitelist.
+            value: The entity value to test against the deny list.
 
         Returns:
-            True when the whitelist matches the whole value and the strategy
+            True when the deny list matches the whole value and the strategy
             is FORCE, else False.
         """
         ...

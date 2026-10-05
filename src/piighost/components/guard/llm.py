@@ -8,7 +8,7 @@ it without the dependency raises an ImportError pointing at the extra.
 
 import importlib.util
 
-from piighost.components.guard.base import GuardVerdict
+from piighost.components.guard.detector import DetectorGuardRail
 
 if importlib.util.find_spec("langchain_core") is None:
     raise ImportError(
@@ -45,7 +45,7 @@ def _guard_prompt(prefix: str, suffix: str) -> str:
     )
 
 
-class LLMGuardRail:
+class LLMGuardRail(DetectorGuardRail):
     """Guard rail backed by a LangChain chat model.
 
     It wraps an LLMDetector configured with a guard prompt that tells the model
@@ -54,6 +54,10 @@ class LLMGuardRail:
     as-is. A custom prompt must contain a {labels} placeholder. When no custom
     prompt is given, the default prompt's placeholder examples follow prefix and
     suffix, so they match the delimiters the pipeline emits.
+
+    An output the model returns but the guard cannot read raises
+    UnreadableOutputError rather than report the text clean, unless fail_open is
+    set, as for LLMDetector.
     """
 
     def __init__(
@@ -64,16 +68,14 @@ class LLMGuardRail:
         provider: str | None = None,
         prefix: str = "<<",
         suffix: str = ">>",
+        fail_open: bool = False,
     ) -> None:
         """Build the internal LLMDetector with the guard prompt."""
-        self._detector = LLMDetector(
+        detector = LLMDetector(
             model=model,
             labels=labels,
             prompt=prompt or _guard_prompt(prefix, suffix),
             provider=provider,
+            fail_open=fail_open,
         )
-
-    async def check(self, text: str) -> GuardVerdict:
-        """Return a verdict flagged when the model finds residual clear-form PII."""
-        residual = await self._detector.detect(text)
-        return GuardVerdict(flagged=bool(residual), detections=tuple(residual))
+        super().__init__(detector)

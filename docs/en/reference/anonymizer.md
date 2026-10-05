@@ -26,24 +26,24 @@ class Anonymization(Generic[PreservationT_co]):
 | `text` | `str` | The text with every entity occurrence replaced by its token |
 | `tokens` | `Mapping[Entity, str]` | The token each entity was replaced with |
 
-The mapping is typed by what the factory preserves, so a caller can reverse it to restore only when the tokens preserve identity.
+The type of the mapping says what the factory preserves. A caller can therefore reverse the mapping to restore the original, but only when the tokens preserve identity.
 
 ---
 
 ## `Anonymizer`
 
-Replaces each entity's spans with the token a factory assigns it. It edits the spans left to right in one pass, which stays correct because upstream stages leave them non-overlapping, so no edit shifts an offset another edit still needs. Stateless, no internal state between calls.
+Replaces each entity's spans with the token a factory assigns it. It edits the spans left to right in one pass. This single pass stays correct because upstream stages leave the spans non-overlapping. No edit therefore shifts an offset another edit still needs. Stateless, no internal state between calls.
 
 ### Constructor
 
 ```python
-Anonymizer(ph_factory: AnyPlaceholderFactory, escape_existing_tokens: bool = True)
+Anonymizer(ph_factory: AnyPlaceholderFactory[PreservationT], escape_existing_tokens: bool = True)
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `ph_factory` | `AnyPlaceholderFactory` | The placeholder factory that assigns a token to each entity (required) |
-| `escape_existing_tokens` | `bool` | Neutralizes tokens the user typed in the input so they cannot masquerade as factory tokens and hijack a value at restoration. Only applies when the factory emits a recognizable delimited grammar. Defaults to `True` |
+| `ph_factory` | `AnyPlaceholderFactory[PreservationT]` | The placeholder factory that assigns a token to each entity (required) |
+| `escape_existing_tokens` | `bool` | Neutralizes tokens the user typed in the input so they cannot masquerade as factory tokens and hijack a value at restoration. Only applies when the factory emits a recognizable delimited grammar, meaning tokens wrapped in delimiters such as `<<PERSON:1>>`. Defaults to `True` |
 
 The factory is exposed afterwards as the `factory` property.
 
@@ -54,19 +54,7 @@ The factory is exposed afterwards as the `factory` property.
 Assigns a token to each entity, renders the text against those tokens, and returns both as an `Anonymization`.
 
 ```python
-from piighost.components.anonymizer import Anonymizer
-from piighost.components.placeholder import LabelCounterPlaceholderFactory
-from piighost.models import Detection, Entity, Span
-
-factory = LabelCounterPlaceholderFactory()
-anonymizer = Anonymizer(factory)
-
-detection = Detection(span=Span(0, 7), text="Patrick", label="PERSON", confidence=0.9)
-entity = Entity(detections=(detection,))
-
-result = anonymizer.anonymize("Patrick is nice", [entity])
-# result.text == "<<PERSON:1>> is nice"
-# result.tokens == {entity: "<<PERSON:1>>"}
+--8<-- "snippets/reference_anonymizer.py:anonymize"
 ```
 
 #### `create(entities) -> Mapping[Entity, str]`
@@ -74,21 +62,19 @@ result = anonymizer.anonymize("Patrick is nice", [entity])
 Returns the token each entity maps to, without touching any text. Splitting token assignment out of rendering lets a caller assign tokens over one entity set, such as a whole conversation, then render several texts against those same tokens.
 
 ```python
-tokens = anonymizer.create([entity])
-# {entity: "<<PERSON:1>>"}
+--8<-- "snippets/reference_anonymizer.py:create"
 ```
 
 #### `render(text, entities, tokens) -> str`
 
 Returns `text` with each entity's spans replaced by its given token. Used by the thread pipeline to render one message against tokens assigned over the whole thread.
 
-With `escape_existing_tokens` on and a delimited factory, `render` neutralizes any token the user typed in the literal runs between entity spans by splicing a zero-width space into it, so it cannot be restored as a real token. The entity spans and their offsets are untouched.
+With `escape_existing_tokens` on and a delimited factory, `render` neutralizes any token the user typed in the text left as is between entity spans. It splices a zero-width space into that token, so it cannot be restored as a real token. The entity spans and their offsets are untouched.
 
-Raises `OverlappingSpansError` when two spans overlap. The overlap-resolver stage must run first, so an overlap here fails closed rather than splice a clear fragment of one detection into another.
+Raises `OverlappingSpansError` when two spans overlap. The overlap-resolver stage must run first. An overlap that reaches this point therefore fails the call rather than splice a clear fragment of one detection into another.
 
 ```python
-rendered = anonymizer.render("Patrick is nice", [entity], tokens)
-# "<<PERSON:1>> is nice"
+--8<-- "snippets/reference_anonymizer.py:render"
 ```
 
 #### `deanonymize(text, tokens) -> str`
@@ -98,17 +84,17 @@ Returns the text with every known token replaced by its entity's value, reading 
 Restoration is unambiguous only when the tokens preserve identity, since two entities sharing one token collapse to a single value.
 
 ```python
-original = anonymizer.deanonymize("<<PERSON:1>> is nice", result.tokens)
-# "Patrick is nice"
+--8<-- "snippets/reference_anonymizer.py:deanonymize"
 ```
 
 ---
 
 ## `AnyAnonymizer` (protocol)
 
-The port every anonymizer implements. Generic on what its tokens preserve, so a consumer such as the middleware can require an anonymizer whose tokens preserve identity and reject one whose tokens do not, at type-check time.
+The port every anonymizer implements. It is generic on what its tokens preserve. A consumer such as the middleware can therefore, at type-check time, require an anonymizer whose tokens preserve identity and reject one whose tokens do not.
 
 ```python
+@runtime_checkable
 class AnyAnonymizer(Protocol[PreservationT_co]):
     @property
     def factory(self) -> AnyPlaceholderFactory[PreservationT_co]: ...
@@ -130,7 +116,7 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
 
 ## `BaseAnonymizer`
 
-The template `Anonymizer` extends. It holds the shared steps: ask the factory for one token per entity through `create`, compose them into an `Anonymization` in `anonymize`, and reverse the mapping in `deanonymize`. A subclass defines `render`, the only step that varies, the rule that rewrites the text given the entities and their tokens.
+The template `Anonymizer` extends. It holds the shared steps, that is ask the factory for one token per entity through `create`, compose them into an `Anonymization` in `anonymize`, and reverse the mapping in `deanonymize`. A subclass defines `render`, the only step that varies. `render` is the rule that rewrites the text given the entities and their tokens.
 
 ```python
 class BaseAnonymizer(ABC, Generic[PreservationT]):
@@ -148,4 +134,4 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
 
 - [Pipeline reference](pipeline.md) for the pipeline that drives the anonymizer.
 - [Placeholder factories](../placeholder-factories.md) for the tokens the anonymizer emits.
-- [Extending PIIGhost](../extending.md) for writing your own anonymizer.
+- [Extending piighost](../extending.md) for writing your own anonymizer.
