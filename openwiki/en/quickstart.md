@@ -100,13 +100,14 @@ To change the code, the technical documentation says which pages to read and whi
 
 ## The domain documentation groups
 
-- **Needs**:
+- **Needs and vocabulary**:
     - [Needs by profile](needs-by-profile.md)
+    - [Glossary](glossary.md)
 - **Processes**:
-    - [Protect a message](processes/protect-a-message.md)
     - [Follow a conversation](processes/follow-a-conversation.md)
     - [Impose a deny list and an allow list](processes/impose-a-deny-list-and-an-allow-list.md)
     - [Let a tool act](processes/let-a-tool-act.md)
+    - [Protect a message](processes/protect-a-message.md)
     - [Show a streamed reply](processes/show-a-streamed-reply.md)
 - **Integrations**:
     - [Plug the protection into an agent and its tools](integrations/agents-and-tools.md)
@@ -116,10 +117,9 @@ To change the code, the technical documentation says which pages to read and whi
 - **Architecture**:
     - [Add or replace a pipeline component](architecture/ports-and-extension.md)
 - **Tests**:
-    - [Run and write tests](tests/run-and-write-tests.md)
     - [Acceptance tests](tests/acceptance-tests.md)
+    - [Run and write tests](tests/run-and-write-tests.md)
 - **Reference**:
-    - [Glossary](glossary.md)
     - [Design decisions](reference/decisions.md)
     - [Open points](reference/open-points.md)
 
