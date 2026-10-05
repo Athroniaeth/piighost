@@ -27,9 +27,9 @@ piighost validate <PATH>
 
 | Argument | Description |
 |----------|-------------|
-| `PATH` | Chemin vers une config de pipeline TOML ou JSON, ou une référence du hub comme `hub:piighost/fr-notarial` |
+| `PATH` | Chemin vers une config de pipeline TOML ou JSON, ou une référence du catalogue comme `catalog:piighost/fr-notarial` |
 
-Le code de sortie est `0` en cas de succès et `1` en cas d'erreur de configuration, qu'il s'agisse d'un fichier absent, d'une syntaxe TOML ou JSON invalide, d'une valeur qui échoue à la validation, ou d'un hub injoignable. Le message d'erreur est écrit sur stderr. La commande convient donc comme barrière de CI.
+Le code de sortie est `0` en cas de succès et `1` en cas d'erreur de configuration, qu'il s'agisse d'un fichier absent, d'une syntaxe TOML ou JSON invalide, d'une valeur qui échoue à la validation, ou d'un catalogue injoignable. Le message d'erreur est écrit sur stderr. La commande convient donc comme barrière de CI.
 
 ```bash
 $ piighost validate ./broken.toml
@@ -54,7 +54,7 @@ Pointez un éditeur vers `schema.json` pour l'autocomplétion et la validation e
 
 ## `piighost anonymize`
 
-Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut, la commande lance un `RegexDetector` sur le groupe du hub `hub:piighost/generic:fab51b33` (`DEFAULT_CATALOG` dans `piighost.cli`). Ce groupe est récupéré à la première exécution, puis relu depuis le cache sur disque. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
+Dé-identifie un texte et imprime le résultat. Le texte est un argument, ou `-` pour lire stdin. Par défaut, la commande lance un `RegexDetector` sur le groupe du catalogue `catalog:piighost/generic:fab51b33` (`DEFAULT_CATALOG` dans `piighost.cli`). Ce groupe est récupéré à la première exécution, puis relu depuis le cache sur disque. `--config` lance un pipeline configuré, et `--api` un serveur `piighost-api` distant. Contrairement à `validate` et `schema`, cette commande construit et exécute le pipeline.
 
 ```bash
 $ piighost anonymize "mail me at a@b.co"
@@ -74,12 +74,12 @@ piighost anonymize [TEXT] [--config PATH | --api URL] [--thread-id ID] [--json]
 | Option | Description |
 |--------|-------------|
 | `TEXT` | Le texte à dé-identifier, ou `-` pour lire stdin |
-| `--config PATH` | Un fichier de config de pipeline (TOML ou JSON), ou une référence du hub |
+| `--config PATH` | Un fichier de config de pipeline (TOML ou JSON), ou une référence du catalogue |
 | `--api URL` | URL de base d'un serveur `piighost-api`, utilisé via le client HTTP |
 | `--thread-id ID` | Identifiant de conversation pour l'API ou une config à mémoire (défaut `default`) |
 | `--json` | Imprime le texte dé-identifié et les détections en JSON |
 
-`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`. Les détections listées sont celles que le texte a remplacées, après la résolution des chevauchements, les overrides et l'expander. Une configuration qui ne passe pas la validation affiche le même message que `validate` et sort avec le code `1`. Quand un catalogue du hub ne peut pas être tiré, la commande imprime `Could not pull a hub catalog:` suivi de la cause et sort avec le code `1`. `--api` n'envoie aucune clé d'API. Il ne joint donc qu'un serveur démarré avec `PIIGHOST_ALLOW_ANONYMOUS`, voir [CLI du serveur](api-cli.md).
+`--config` et `--api` sont mutuellement exclusifs. Avec `--json`, la sortie est `{"anonymized_text": ..., "detections": [...]}`. Les détections listées sont celles que le texte a remplacées, après la résolution des chevauchements, les overrides et l'expander. Une configuration qui ne passe pas la validation affiche le même message que `validate` et sort avec le code `1`. Quand un groupe du catalogue ne peut pas être tiré, la commande imprime `Could not pull from the catalog:` suivi de la cause et sort avec le code `1`. `--api` n'envoie aucune clé d'API. Il ne joint donc qu'un serveur démarré avec `PIIGHOST_ALLOW_ANONYMOUS`, voir [CLI du serveur](api-cli.md).
 
 ---
 

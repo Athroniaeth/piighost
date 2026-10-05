@@ -62,22 +62,40 @@ Pin an exact version if you build on an experimental surface, and read the CHANG
 
 ### Deprecated
 
-No name is deprecated in 2.0. The names 1.x kept for back-compatibility are removed, and listed in the next section.
+No name is deprecated in 2.0. The hub names of 1.x stay as plain aliases of the catalog names, see the hub section below. The other names 1.x kept for back-compatibility are removed, and listed below.
 
 Security fixes land on the latest minor only, on the stable and the experimental surface alike. An older minor receives no fix. Staying current is therefore part of the contract.
 
 ## Upgrading to 2.0
 
-### The regex catalogs are hub groups
+### The hub becomes the catalog
 
-`piighost` ships no pattern of its own. The `piighost.components.detector.patterns` module is gone, with its four catalogs, and the same sets are groups of the [piighost hub](https://hub.piighost.dev).
+The companion site that publishes reviewed pattern groups and whole pipeline configurations was called the hub. In 2.0 it is the [piighost catalog](https://catalog.piighost.dev), a name that matches the `catalogs` key of a regex detector config. The names in the library follow.
 
 | 1.x | 2.0 |
 |---|---|
-| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `hub:piighost/generic` |
-| `US_PATTERNS`, `catalogs = ["us"]` | `hub:piighost/us` |
-| `EU_PATTERNS`, `catalogs = ["eu"]` | `hub:piighost/eu` |
-| `FR_PATTERNS`, `catalogs = ["fr"]` | `hub:piighost/fr` |
+| `hub:piighost/generic` | `catalog:piighost/generic` |
+| `PIIGHOST_HUB_URL` | `PIIGHOST_CATALOG_URL` |
+| `https://hub.piighost.dev` | `https://catalog.piighost.dev` |
+| `piighost.hub`, `pull(ref, hub=...)` | `piighost.catalog`, `pull(ref, catalog=...)` |
+| `RegexDetector.from_hub(ref, hub=...)` | `RegexDetector.from_catalog(ref, catalog=...)` |
+| `HubError` and its subclasses | `CatalogError`, `CatalogRefError`, `CatalogUrlError`, `CatalogUnreachableError`, `CatalogPayloadError` |
+| `~/.cache/piighost/hub` | `~/.cache/piighost/catalog` |
+
+Code and configs written for 1.8 and later keep running, with no warning. A `hub:` reference reads as `catalog:` wherever a reference is accepted, in `catalogs`, in `load_config`, `load_pipeline` and `load_thread_pipeline`, and on the command line. `PIIGHOST_HUB_URL` is read when `PIIGHOST_CATALOG_URL` is unset. `piighost.hub` re-exports `piighost.catalog` under its 1.x names, so `HubError` is `CatalogError`, and `RegexDetector.from_hub` calls `from_catalog`.
+
+The disk cache moves with the name. A pinned reference cached by 1.x under `~/.cache/piighost/hub` is fetched once more, then kept under `~/.cache/piighost/catalog`. The old folder can be deleted.
+
+### The regex pattern sets move to the catalog
+
+`piighost` ships no pattern of its own. The `piighost.components.detector.patterns` module is gone, with its four catalogs, and the same sets are groups of the [piighost catalog](https://catalog.piighost.dev).
+
+| 1.x | 2.0 |
+|---|---|
+| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `catalog:piighost/generic` |
+| `US_PATTERNS`, `catalogs = ["us"]` | `catalog:piighost/us` |
+| `EU_PATTERNS`, `catalogs = ["eu"]` | `catalog:piighost/eu` |
+| `FR_PATTERNS`, `catalogs = ["fr"]` | `catalog:piighost/fr` |
 
 ```python
 # 1.x
@@ -89,7 +107,7 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 --8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
-A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards. A pipeline therefore reaches the network once. The hub groups have moved on since the catalogs were copied. The group `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `hub:piighost/generic`.
+A config still naming `generic`, `us`, `eu` or `fr` is refused at load time with the reference that replaces it. A reference pinned to a commit is fetched on the first build and read from the disk cache afterwards. A pipeline therefore reaches the network once. The catalog groups have moved on since the 1.x sets were copied. The group `us` carries `US_ITIN`, `fr` carries `FR_SIREN`, and the email pattern of `generic` takes Latin letters only. `piighost anonymize` with no config runs `catalog:piighost/generic`.
 
 ### The 1.x aliases are removed
 
@@ -178,15 +196,15 @@ A conversation memory written by 1.x keys the provenance of a value by its casef
 
 ### The API server
 
-`piighost-api` requires `piighost>=2.0,<3`, and its configuration follows the 2.0 rules above, the hub references of `catalogs` included.
+`piighost-api` requires `piighost>=2.0,<3`, and its configuration follows the 2.0 rules above, the catalog references of `catalogs` included.
 
-- `--config` and `PIIGHOST_CONFIG` take a hub reference as well as a file path.
+- `--config` and `PIIGHOST_CONFIG` take a catalog reference as well as a file path.
 - A configuration without a `[memory]` section is served with the in-process memory instead of being refused. Declare a `redis` memory to share the threads between instances.
 - `/v1/anonymize`, `/v1/anonymize/corrected` and `/v1/deanonymize` require a `thread_id`, and answer `400` without one instead of using the shared `"default"` thread.
-- `/v1/labels` reads the labels of a hub group from the hub.
+- `/v1/labels` reads the labels of a catalog group from the catalog.
 - Observation goes through the standard `OTEL_*` variables. `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` serve `dataset extract` only, and no `OPIK_*` variable is read.
 - The server reads no `REDIS_URL`. The Redis address is the `url` of the `[memory]` section.
-- A deployment still setting `PIPELINE_PATH`, or passing a `module:variable` path, predates the TOML loader. Set `PIIGHOST_CONFIG` to a config file or a hub reference instead.
+- A deployment still setting `PIPELINE_PATH`, or passing a `module:variable` path, predates the TOML loader. Set `PIIGHOST_CONFIG` to a config file or a catalog reference instead.
 
 The routes and the variables are listed in [API endpoints](../reference/api-endpoints.md) and [Server CLI](../reference/api-cli.md).
 

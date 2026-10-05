@@ -1,6 +1,6 @@
 # A fuller local pipeline, still runnable with no model.
 #
-# The detector pulls the hub's generic group, pinned to a commit so it is
+# The detector pulls the catalog's generic group, pinned to a commit so it is
 # fetched on the first build and read from the cache after, and adds one inline
 # pattern;
 # several optional stages are enabled. For model-backed detectors (gliner2,
@@ -9,7 +9,7 @@
 
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic"]
+catalogs = ["catalog:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 # Keep the most confident detection when two overlap.

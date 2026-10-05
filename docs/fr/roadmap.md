@@ -21,9 +21,9 @@ La mémoire de conversation cache les détections de chaque message par conversa
 
 ~~Désormais câblé, `AsyncPlaceholderStreamDecoder` atteint les intégrations via `TextDeidentifier.deanonymize_stream`. Le middleware LangChain expose cette méthode sous `deanonymize_stream`, et le proxy Anthropic de `piighost-api` l'utilise. Une app enveloppe `deanonymize_stream` autour de sa propre boucle de streaming pour restaurer une réponse à la volée, en ne tamponnant qu'au passage d'un jeton. Pour un autre framework, toute factory construit aussi le décodeur brut sur sa grammaire avec `async_stream_decoder`.~~
 
-## ~~Hub de configurations~~
+## ~~Catalogue de configurations~~
 
-~~Désormais livré comme projet séparé, le [hub piighost](https://hub.piighost.dev) publie des groupes de motifs relus et des configurations de pipeline complètes sous un identifiant court, chacune épinglée par commit. Un détecteur regex tire un groupe via `catalogs`. `load_config`, `load_pipeline`, `load_thread_pipeline` et `piighost --config` prennent une référence comme `hub:piighost/fr-notarial` pour lancer une configuration directement.~~
+~~Désormais livré comme projet séparé, le [catalogue piighost](https://catalog.piighost.dev) publie des groupes de motifs relus et des configurations de pipeline complètes sous un identifiant court, chacune épinglée par commit. Un détecteur regex tire un groupe via `catalogs`. `load_config`, `load_pipeline`, `load_thread_pipeline` et `piighost --config` prennent une référence comme `catalog:piighost/fr-notarial` pour lancer une configuration directement.~~
 
 ## ~~Intégration aux harness d'agents~~
 

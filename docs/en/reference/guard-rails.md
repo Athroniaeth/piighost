@@ -121,7 +121,7 @@ type = "detector"
 
 [guard.detector]
 type = "regex"
-catalogs = ["hub:piighost/generic", "hub:piighost/us"]
+catalogs = ["catalog:piighost/generic", "catalog:piighost/us"]
 ```
 
 | `type` | Fields | Extra |

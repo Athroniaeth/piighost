@@ -58,16 +58,16 @@ Le [démarrage rapide](https://athroniaeth.github.io/piighost/fr/getting-started
 ## Aller plus loin
 
 - **Démarrer** : [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/), [premier pipeline](https://athroniaeth.github.io/piighost/fr/getting-started/first-pipeline/), [pipeline conversationnel](https://athroniaeth.github.io/piighost/fr/getting-started/conversation/)
-- **Configurer** : [un pipeline dans un fichier TOML](https://athroniaeth.github.io/piighost/fr/getting-started/configuration/), [les groupes de motifs du hub](https://athroniaeth.github.io/piighost/fr/reference/detectors/#catalogues-de-patterns), [toutes les clés de config](https://athroniaeth.github.io/piighost/fr/configuration/toml/)
+- **Configurer** : [un pipeline dans un fichier TOML](https://athroniaeth.github.io/piighost/fr/getting-started/configuration/), [les groupes de motifs du catalogue](https://athroniaeth.github.io/piighost/fr/reference/detectors/#groupes-du-catalogue), [toutes les clés de config](https://athroniaeth.github.io/piighost/fr/configuration/toml/)
 - **Intégrer** : [LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/), [Pydantic AI](https://athroniaeth.github.io/piighost/fr/examples/pydantic-ai/), [LlamaIndex](https://athroniaeth.github.io/piighost/fr/examples/llama-index/), [Claude Code](https://athroniaeth.github.io/piighost/fr/examples/claude-code/), [un piighost-api distant](https://athroniaeth.github.io/piighost/fr/getting-started/api-client/)
-- **Déployer** : [un serveur d'API depuis une configuration du hub](https://athroniaeth.github.io/piighost/fr/getting-started/api-server/), [un pipeline de thread en production](https://athroniaeth.github.io/piighost/fr/deployment/), [plusieurs instances](https://athroniaeth.github.io/piighost/fr/multi-instance/)
+- **Déployer** : [un serveur d'API depuis une configuration du catalogue](https://athroniaeth.github.io/piighost/fr/getting-started/api-server/), [un pipeline de thread en production](https://athroniaeth.github.io/piighost/fr/deployment/), [plusieurs instances](https://athroniaeth.github.io/piighost/fr/multi-instance/)
 - **Comprendre** : [pourquoi dé-identifier](https://athroniaeth.github.io/piighost/fr/why-anonymize/), [architecture](https://athroniaeth.github.io/piighost/fr/architecture/), [sécurité](https://athroniaeth.github.io/piighost/fr/security/), [conformité RGPD](https://athroniaeth.github.io/piighost/fr/compliance/), [limites](https://athroniaeth.github.io/piighost/fr/limitations/), [la détection mesurée](https://athroniaeth.github.io/piighost/fr/benchmark/), [comparaison](https://athroniaeth.github.io/piighost/fr/comparison/)
 - **Mettre à jour** : [versions et passage à la 2.0](https://athroniaeth.github.io/piighost/fr/community/upgrading/)
 
 ## Écosystème
 
 - **[piighost.dev](https://piighost.dev/fr/?utm_source=github&utm_medium=readme&utm_campaign=piighost)** : le site de présentation
-- **[hub piighost](https://hub.piighost.dev)** : des groupes de regex relus et des configurations de pipeline prêtes à l'emploi, tirés par référence
+- **[catalogue piighost](https://catalog.piighost.dev)** : des groupes de regex relus et des configurations de pipeline prêtes à l'emploi, tirés par référence
 - **[piighost-api](https://github.com/Athroniaeth/piighost-api)** : un serveur qui héberge un pipeline derrière HTTP, avec des proxys compatibles OpenAI et Anthropic
 - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)** : une interface de chat d'exemple avec validation humaine
 

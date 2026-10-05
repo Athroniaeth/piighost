@@ -1,13 +1,13 @@
+from piighost.catalog import pull
 from piighost.components.detector import ExactMatchDetector, RegexDetector
 from piighost.components.guard import DetectorGuardRail
 from piighost.exceptions import PIIRemainingError
-from piighost.hub import pull
 from piighost.pipeline import AnonymizationPipeline
 
 # The primary detector only knows the literal name. The guard re-runs a broader
 # email and phone regex over the short output to catch structured PII it missed.
 guard_detector = RegexDetector(
-    {**pull("hub:piighost/generic"), **pull("hub:piighost/us")}
+    {**pull("catalog:piighost/generic"), **pull("catalog:piighost/us")}
 )
 pipeline = AnonymizationPipeline(
     ExactMatchDetector({"Emma Doe": "PERSON"}),

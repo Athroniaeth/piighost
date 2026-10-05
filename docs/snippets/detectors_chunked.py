@@ -7,7 +7,7 @@ from piighost.pipeline import AnonymizationPipeline
 from piighost.components.detector import ChunkedDetector, RegexDetector
 from piighost.text import RecursiveCharacterTextSplitter
 
-regex_detector = RegexDetector.from_hub("hub:piighost/generic")
+regex_detector = RegexDetector.from_catalog("catalog:piighost/generic")
 splitter = RecursiveCharacterTextSplitter(chunk_size=40, chunk_overlap=10)
 detector = ChunkedDetector(regex_detector, splitter=splitter)
 pipeline = AnonymizationPipeline(detector)

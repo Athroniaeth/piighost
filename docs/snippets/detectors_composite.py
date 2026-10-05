@@ -11,7 +11,7 @@ from piighost.components.detector import (
 )
 
 exact_detector = ExactMatchDetector({"Patrick": "PERSON"})
-regex_detector = RegexDetector.from_hub("hub:piighost/generic")
+regex_detector = RegexDetector.from_catalog("catalog:piighost/generic")
 detector = CompositeDetector([exact_detector, regex_detector])
 pipeline = AnonymizationPipeline(detector)
 

@@ -1,10 +1,10 @@
-# --8<-- [start:hub]
+# --8<-- [start:catalog]
 import asyncio
 
 from piighost.components.detector import RegexDetector
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector.from_hub("hub:piighost/generic")
+detector = RegexDetector.from_catalog("catalog:piighost/generic")
 pipeline = AnonymizationPipeline(detector)
 
 
@@ -17,7 +17,7 @@ async def main() -> None:
 
 
 asyncio.run(main())
-# --8<-- [end:hub]
+# --8<-- [end:catalog]
 
 
 # --8<-- [start:reply]

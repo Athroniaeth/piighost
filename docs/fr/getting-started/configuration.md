@@ -7,7 +7,7 @@ icon: lucide/file-cog
 Vous allez décrire un pipeline complet dans un fichier TOML. Le fichier part de trois lignes et devient un pipeline conversationnel, qui garde un jeton stable d'un tour de conversation à l'autre. Chaque étape change une seule chose dans le fichier, puis vous vérifiez le fichier et vous le lancez pour voir ce qui a changé.
 
 !!! note "Prérequis"
-    `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle. À partir de l'étape 4, le pipeline récupère un catalogue sur le [hub piighost](https://hub.piighost.dev) à chaque exécution, ce qui demande un accès réseau. L'étape 6 ajoute l'extra `fuzzy`.
+    `piighost` installé avec l'extra `config`, `pip install "piighost[config]"`, voir [Installation](installation.md). Chaque étape tourne sans modèle. À partir de l'étape 4, le pipeline récupère un groupe sur le [catalogue piighost](https://catalog.piighost.dev) à chaque exécution, ce qui demande un accès réseau. L'étape 6 ajoute l'extra `fuzzy`.
 
 ## 1. Mettre en place la boucle de vérification
 
@@ -95,25 +95,25 @@ La sortie doit être :
 
 L'adresse a disparu, et son label avec elle. `examples/config/minimal.toml` porte ce fichier, avec le linker par défaut écrit explicitement. `examples/config/minimal.json` porte le même fichier en JSON. Le suffixe du fichier choisit le parseur. La [référence de configuration](../configuration/toml.md) liste tous les styles de jeton.
 
-## 4. Tirer un catalogue du hub
+## 4. Tirer un groupe du catalogue
 
-Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif en ligne par le groupe `generic` du hub, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Sans suffixe, la référence suit la dernière version du groupe, récupérée sur le hub à chaque construction du pipeline. Pour figer le groupe, épinglez-le sur un commit, comme `hub:piighost/generic:fab51b33`. Il est alors récupéré une seule fois, puis relu depuis le cache sur disque. Le fichier n'a plus de section `[anonymizer.placeholder]`, donc le jeton numéroté par défaut revient et distingue les quatre labels.
+Votre motif ne couvre que l'email, donc l'adresse IP du texte d'exemple est passée en clair. Remplacez le motif en ligne par le groupe `generic` du catalogue, qui porte l'email, l'URL, l'IPv4 et la carte bancaire. Sans suffixe, la référence suit la dernière version du groupe, récupérée sur le catalogue à chaque construction du pipeline. Pour figer le groupe, épinglez-le sur un commit, comme `catalog:piighost/generic:fab51b33`. Il est alors récupéré une seule fois, puis relu depuis le cache sur disque. Le fichier n'a plus de section `[anonymizer.placeholder]`, donc le jeton numéroté par défaut revient et distingue les quatre labels.
 
 ```toml
---8<-- "snippets/configuration/hub.toml"
+--8<-- "snippets/configuration/catalog.toml"
 ```
 
 ```bash
---8<-- "snippets/configuration/run_hub.sh"
+--8<-- "snippets/configuration/run_catalog.sh"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/configuration/hub.out"
+--8<-- "snippets/configuration/catalog.out"
 ```
 
-L'adresse IP est couverte, et l'adresse accentuée aussi. Un format qui vous est propre, un numéro de commande comme `CMD-2024-0042`{ .pii }, n'est dans aucun catalogue. Déclarez-le en ligne, à côté du catalogue.
+L'adresse IP est couverte, et l'adresse accentuée aussi. Un format qui vous est propre, un numéro de commande comme `CMD-2024-0042`{ .pii }, n'est dans aucun groupe. Déclarez-le en ligne, à côté du groupe.
 
 ```toml
 --8<-- "snippets/configuration/order.toml"
@@ -129,11 +129,11 @@ La sortie doit être :
 --8<-- "snippets/configuration/order.out"
 ```
 
-Le numéro de commande est devenu un jeton. Un label déclaré des deux côtés prend votre motif, parce que les catalogues fusionnent d'abord et vos motifs en ligne ensuite.
+Le numéro de commande est devenu un jeton. Un label déclaré des deux côtés prend votre motif, parce que les groupes fusionnent d'abord et vos motifs en ligne ensuite.
 
 ## 5. Faire tourner deux détecteurs à la fois
 
-Le catalogue reconnaît des formats, et un prénom n'a pas de format. Déclarez les prénoms que vous connaissez déjà dans un second détecteur, et laissez un détecteur `composite` lancer les deux et fusionner ce qu'ils renvoient.
+Le groupe `generic` reconnaît des formats, et un prénom n'a pas de format. Déclarez les prénoms que vous connaissez déjà dans un second détecteur, et laissez un détecteur `composite` lancer les deux et fusionner ce qu'ils renvoient.
 
 ```toml
 --8<-- "snippets/configuration/composite.toml"

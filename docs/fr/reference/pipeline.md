@@ -216,7 +216,7 @@ La machinerie partagée que les deux pipelines étendent. Elle tient les composa
 
 Module : `piighost.config`
 
-`load_pipeline` et `load_thread_pipeline` lisent un fichier de configuration, TOML ou JSON selon son suffixe, ou une référence du hub, et renvoient un pipeline construit. Une configuration qui déclare une mémoire décrit un pipeline de conversation. Les deux loaders imposent cette distinction, et la vérifient avant de construire quoi que ce soit.
+`load_pipeline` et `load_thread_pipeline` lisent un fichier de configuration, TOML ou JSON selon son suffixe, ou une référence du catalogue, et renvoient un pipeline construit. Une configuration qui déclare une mémoire décrit un pipeline de conversation. Les deux loaders imposent cette distinction, et la vérifient avant de construire quoi que ce soit.
 
 - `load_pipeline(path)` renvoie un `AnonymizationPipeline`. Il lève `ConfigError` quand la configuration déclare une mémoire.
 - `load_thread_pipeline(path)` renvoie un `ThreadAnonymizationPipeline`. Il lève `ConfigError` quand la configuration ne déclare pas de mémoire.
@@ -225,10 +225,10 @@ Module : `piighost.config`
 --8<-- "snippets/loaders.py"
 ```
 
-Une référence écrite `hub:namespace/nom:sélecteur` charge toute la configuration que le [hub piighost](https://hub.piighost.dev) publie sous ce nom, toutes les étapes comprises, exactement comme le ferait un fichier qui la contiendrait. Une référence épinglée sur un commit est téléchargée au premier chargement, puis lue depuis le cache disque. Une variable d'environnement préfixée `PIIGHOST_` l'emporte sur une valeur du hub comme sur celle d'un fichier.
+Une référence écrite `catalog:namespace/nom:sélecteur` charge toute la configuration que le [catalogue piighost](https://catalog.piighost.dev) publie sous ce nom, toutes les étapes comprises, exactement comme le ferait un fichier qui la contiendrait. Une référence épinglée sur un commit est téléchargée au premier chargement, puis lue depuis le cache disque. Une variable d'environnement préfixée `PIIGHOST_` l'emporte sur une valeur du catalogue comme sur celle d'un fichier. Une référence écrite `hub:namespace/nom:sélecteur`, comme en 1.x, se charge de la même façon.
 
 ```python
---8<-- "snippets/reference_hub_pipeline.py"
+--8<-- "snippets/reference_catalog_pipeline.py"
 ```
 
 Ce package a besoin de l'extra `config`. Voir la référence [Configuration TOML](../configuration/toml.md) pour le format du fichier.

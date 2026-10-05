@@ -33,25 +33,25 @@ pip install "piighost-api[gliner2,observation]"
 Construit le pipeline une fois et sert les [endpoints de l'API](api-endpoints.md) avec uvicorn, dans un seul processus.
 
 ```bash
-piighost-api serve --config hub:piighost/support-en --host 0.0.0.0 --port 8000
+piighost-api serve --config catalog:piighost/support-en --host 0.0.0.0 --port 8000
 ```
 
 | Option | Défaut | Description |
 |---|---|---|
-| `--config`, `-c` | `PIIGHOST_CONFIG` | Un fichier de config de pipeline TOML ou JSON, ou une référence du hub comme `hub:piighost/support-en` |
+| `--config`, `-c` | `PIIGHOST_CONFIG` | Un fichier de config de pipeline TOML ou JSON, ou une référence du catalogue comme `catalog:piighost/support-en` |
 | `--host` | `127.0.0.1` | Hôte d'écoute |
 | `--port` | `8000` | Port d'écoute |
 | `--log-level` | `info` | `debug`, `info`, `warning` ou `error` |
 
 - Sans `--config` ni `PIIGHOST_CONFIG`, la commande imprime `Missing --config or PIIGHOST_CONFIG.` avec une indication d'usage et sort en `1`. Un chemin de fichier qui n'existe pas sort en `1` avec `Configuration file not found:`.
-- Une référence du hub charge la configuration complète que le [hub piighost](https://hub.piighost.dev) publie sous ce nom. Une référence épinglée à un commit est récupérée au premier démarrage, puis lue dans le cache disque.
+- Une référence du catalogue charge la configuration complète que le [catalogue piighost](https://catalog.piighost.dev) publie sous ce nom. Une référence épinglée à un commit est récupérée au premier démarrage, puis lue dans le cache disque.
 - Une configuration qui ne déclare pas de section `[memory]` est servie avec la mémoire in-process, `in_memory`. Ses conversations vivent dans le processus du serveur, donc chaque instance tient les siennes. Plusieurs instances derrière un load balancer demandent une mémoire `redis` ou `sqlalchemy` partagée, voir [Déploiement multi-instance](../multi-instance.md).
-- Toute section de premier niveau se surcharge avec une variable `PIIGHOST_` qui porte un objet JSON, comme pour un fichier, voir [Surcharges d'environnement](../configuration/toml.md). `PIIGHOST_MEMORY` ajoute ainsi une mémoire partagée à une configuration du hub. Celle de l'exemple ci-dessous demande `piighost[crypto]` pour son cipher.
+- Toute section de premier niveau se surcharge avec une variable `PIIGHOST_` qui porte un objet JSON, comme pour un fichier, voir [Surcharges d'environnement](../configuration/toml.md). `PIIGHOST_MEMORY` ajoute ainsi une mémoire partagée à une configuration du catalogue. Celle de l'exemple ci-dessous demande `piighost[crypto]` pour son cipher.
 - Sans clé dans une variable `API_KEY_`, le serveur refuse de démarrer sauf si `PIIGHOST_ALLOW_ANONYMOUS` est posée.
 
 ```bash
 export PIIGHOST_MEMORY='{"type": "redis", "url": "redis://redis:6379/0", "hasher": {"type": "argon2"}, "cipher": {"type": "aesgcm"}}'
-piighost-api serve --config hub:piighost/support-en
+piighost-api serve --config catalog:piighost/support-en
 ```
 
 ---
@@ -62,7 +62,7 @@ piighost-api serve --config hub:piighost/support-en
 
 | Variable | Défaut | Effet |
 |---|---|---|
-| `PIIGHOST_CONFIG` | aucun | Fichier de config ou référence du hub, lu quand `--config` est absent |
+| `PIIGHOST_CONFIG` | aucun | Fichier de config ou référence du catalogue, lu quand `--config` est absent |
 | `API_KEY_<NAME>` | aucun | Une clé d'API acceptée par variable. La valeur est celle qu'imprime `keyshield generate` |
 | `SECRET_PEPPER` | le poivre intégré de `keyshield`, avec un avertissement | Poivre du hash Argon2 que le serveur garde de chaque clé, imprimé par `keyshield pepper` |
 | `PIIGHOST_ALLOW_ANONYMOUS` | désactivé | `1`, `true`, `yes` ou `on` laisse le serveur démarrer sans clé, chaque route est alors ouverte. S'applique aussi quand les clés échouent à se charger |
@@ -79,7 +79,7 @@ piighost-api serve --config hub:piighost/support-en
 
 </div>
 
-Le pipeline lit ses propres secrets (`PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `PIIGHOST_DATABASE_URL` et `MISTRAL_API_KEY`). `PIIGHOST_HUB_URL` nomme un hub privé. Ces variables sont listées dans la [Référence TOML](../configuration/toml.md). Les autres variables `OTEL_*`, en-têtes compris, sont lues par l'exporteur OpenTelemetry lui-même, voir [Observation](../observation.md).
+Le pipeline lit ses propres secrets (`PIIGHOST_HASH_PEPPER`, `PIIGHOST_CIPHER_KEY`, `PIIGHOST_DATABASE_URL` et `MISTRAL_API_KEY`). `PIIGHOST_CATALOG_URL` nomme un catalogue privé. Ces variables sont listées dans la [Référence TOML](../configuration/toml.md). Les autres variables `OTEL_*`, en-têtes compris, sont lues par l'exporteur OpenTelemetry lui-même, voir [Observation](../observation.md).
 
 L'image Docker en lit quatre de plus, listées dans [Déployer un pipeline en production](../deployment.md).
 

@@ -159,7 +159,7 @@ The rule governs every page you write or rewrite. Renaming page slugs (`why-anon
 
 ## Terminology: données confidentielles, not only PII
 
-`piighost` protects more than personal data. The regex catalogs of the hub also carry secrets (API keys, access tokens, private keys, connection strings), which must never reach a model either. So the umbrella word is **données confidentielles** / **confidential data**, and it covers two kinds.
+`piighost` protects more than personal data. The regex groups of the catalog also carry secrets (API keys, access tokens, private keys, connection strings), which must never reach a model either. So the umbrella word is **données confidentielles** / **confidential data**, and it covers two kinds.
 
 | Concept | FR | EN | Use it when |
 |---|---|---|---|
@@ -169,7 +169,7 @@ The rule governs every page you write or rewrite. Renaming page slugs (`why-anon
 
 - A single detected item is a **valeur** / **value**, as before ("chaque valeur est remplacée par un placeholder").
 - Define the term where it first appears on a page that needs it: « les données confidentielles, c'est-à-dire les données personnelles (PII) et les secrets comme les clés d'API ».
-- **State where secrets come from.** `piighost` ships no pattern, and the hub groups `piighost/generic`, `us`, `eu` and `fr` hold no secret pattern either. Secret patterns live in the hub groups `piighost/secrets` and `piighost/secrets-extended`, pulled with `catalogs = ["hub:piighost/secrets"]`, and `Gliner2PiiDetector` also asks its model for API keys and passwords. Never write that a regex detector finds API keys without one of those groups.
+- **State where secrets come from.** `piighost` ships no pattern, and the catalog groups `piighost/generic`, `us`, `eu` and `fr` hold no secret pattern either. Secret patterns live in the catalog groups `piighost/secrets` and `piighost/secrets-extended`, pulled with `catalogs = ["catalog:piighost/secrets"]`, and `Gliner2PiiDetector` also asks its model for API keys and passwords. Never write that a regex detector finds API keys without one of those groups.
 - **PII stays** in identifiers and markup, which are names: `PIIRemainingError`, `PIIAnonymizationMiddleware`, the `{ .pii }` tag class (it marks any real value, a secret included), the `pii` package name in a URL.
 - **Keep PII when the sentence is really about personal data.** The compliance, DPIA and "why de-identify" pages are about the law on personal data, so they keep « données personnelles » and PII. Do not turn a GDPR sentence into one about "confidential data": the GDPR does not cover an API key.
 
@@ -530,7 +530,7 @@ file per example, shared by the FR and EN pages, and the page includes it:
 - **The output a page shows** comes from the file's `.out`, included the same
   way, so it is the output the code gives.
 - **`tests/docs/test_snippets.py` runs every file** and compares its output.
-  A new file goes in its `SNIPPETS` list; one that reaches the hub or loads a
+  A new file goes in its `SNIPPETS` list; one that reaches the catalog or loads a
   model is marked `integration`.
 - **An example that calls a model provider** keeps the provider's name on
   the page. Lines above its first section, which the page does not include,

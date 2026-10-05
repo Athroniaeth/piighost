@@ -51,7 +51,7 @@ Prendre en charge ces écritures demanderait un segmenteur de mots par langue, e
 
 Le module `re` de Python ne connaît pas la segmentation en mots. Il ne compte pas non plus comme des lettres les signes combinants, par exemple les voyelles du hindi et des autres écritures indiennes. Un motif e-mail doit donc choisir les lettres qu'il accepte, et chaque choix laisse de côté certaines lettres.
 
-| Texte | Motif qui accepte les lettres Unicode, `(?u:\w)` | `EMAIL` de `hub:piighost/generic` |
+| Texte | Motif qui accepte les lettres Unicode, `(?u:\w)` | `EMAIL` de `catalog:piighost/generic` |
 |---|---|---|
 | `écrire à expéditeur@exemple.fr` | `expéditeur@exemple.fr`{ .pii } | `expéditeur@exemple.fr`{ .pii } |
 | `メールはtanaka@example.jpです` | toute la phrase | `tanaka@example.jp`{ .pii } |
@@ -60,7 +60,7 @@ Le module `re` de Python ne connaît pas la segmentation en mots. Il ne compte p
 
 Un motif qui accepte les lettres Unicode trouve entière une adresse accentuée ou grecque. Dans un texte chinois ou japonais sans espace autour de l'adresse, les idéogrammes voisins sont aussi des lettres, donc le motif les englobe. Le jeton masque plus que l'adresse, et rien ne part en clair. L'adresse en hindi lui échappe quand même, car ses voyelles sont des signes combinants.
 
-Le motif `EMAIL` de `hub:piighost/generic` n'accepte que les lettres latines, c'est-à-dire les lettres et chiffres ASCII plus la plage latine de `À` à `ɏ`. Il trouve exactement les exemples accentué et japonais. Il manque toute adresse écrite dans une autre écriture, et cette adresse part telle quelle.
+Le motif `EMAIL` de `catalog:piighost/generic` n'accepte que les lettres latines, c'est-à-dire les lettres et chiffres ASCII plus la plage latine de `À` à `ɏ`. Il trouve exactement les exemples accentué et japonais. Il manque toute adresse écrite dans une autre écriture, et cette adresse part telle quelle.
 
 **Parade** : pour un texte dans une écriture non latine, détecter les adresses avec un modèle NER, ou écrire dans votre config un motif e-mail adapté aux adresses que ce texte contient vraiment. Un motif écrit en ligne dans la config l'emporte sur le motif du groupe qui a le même label.
 

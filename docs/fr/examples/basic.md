@@ -4,7 +4,7 @@ icon: lucide/code
 
 # Dé-identifier et restaurer un texte
 
-Vous avez un texte contenant des données confidentielles et vous voulez le dé-identifier, l'envoyer à un LLM, puis restaurer les valeurs d'origine dans la réponse. Ce guide fait l'aller-retour avec le seul cœur de `piighost`, sans modèle ni dépendance optionnelle. Les motifs du détecteur viennent du [hub piighost](https://hub.piighost.dev). Ils sont récupérés à chaque construction du détecteur, ce qui demande un accès réseau.
+Vous avez un texte contenant des données confidentielles et vous voulez le dé-identifier, l'envoyer à un LLM, puis restaurer les valeurs d'origine dans la réponse. Ce guide fait l'aller-retour avec le seul cœur de `piighost`, sans modèle ni dépendance optionnelle. Les motifs du détecteur viennent du [catalogue piighost](https://catalog.piighost.dev). Ils sont récupérés à chaque construction du détecteur, ce qui demande un accès réseau.
 
 Installez le cœur.
 
@@ -25,13 +25,13 @@ Installez le cœur.
 Un pipeline enchaîne un détecteur, un linker et un anonymiseur. Seul le détecteur est obligatoire. Le linker vaut par défaut `ExactEntityLinker` et l'anonymiseur `Anonymizer(LabelCounterPlaceholderFactory())`. `anonymize` renvoie le texte dé-identifié et le jeton attribué à chaque entité. `deanonymize` rejoue cette correspondance en sens inverse.
 
 ```python
---8<-- "snippets/basic.py:hub"
+--8<-- "snippets/basic.py:catalog"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/basic.out:hub"
+--8<-- "snippets/basic.out:catalog"
 ```
 
 `result.text` porte `<<EMAIL:1>>`{ .placeholder } à la place de `alice@example.com`{ .pii }. `result.tokens` associe chaque entité à son jeton. Passez-le tel quel à `deanonymize` pour retrouver le texte d'origine.
@@ -86,6 +86,6 @@ Pour restaurer les valeurs, la factory doit préserver l'identité, c'est-à-dir
 
 ## Voir aussi
 
-- [Détecteurs prêts à l'emploi](detectors.md) pour combiner catalogues et détecteurs.
+- [Détecteurs prêts à l'emploi](detectors.md) pour combiner groupes du catalogue et détecteurs.
 - [Référence du pipeline](../reference/pipeline.md) pour les étages optionnels.
 - [Étendre piighost](../extending.md) pour écrire vos propres composants.

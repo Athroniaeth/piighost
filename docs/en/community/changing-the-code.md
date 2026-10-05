@@ -11,8 +11,8 @@ This page is for whoever changes the code of `piighost`. For each common change,
 - **Stack**: Python 3.11 or later, `uv` package manager. The core depends only on `typing-extensions`. Everything else is an extra of `pyproject.toml` (`langchain`, `redis`, `gliner2`, `config`…), and `all` gathers them.
 - **Install**: `uv sync` at the root of the repository.
 - **Test**: `uv run pytest`, then `make lint` before any merge. Details in [Run and write tests](../../../openwiki/en/tests/run-and-write-tests.md).
-- **Try**: `uv run piighost anonymize "Write to claire.dubois@example.com"`. The first run downloads the catalog `hub:piighost/generic`.
-- **Services**: none for the tests. Redis, an SQL database or `piighost-api` are used only in operation. See [Store conversations](../../../openwiki/en/operations/storage-and-encryption.md) and [Configure a pipeline](../../../openwiki/en/operations/configuration-and-hub.md).
+- **Try**: `uv run piighost anonymize "Write to claire.dubois@example.com"`. The first run downloads the catalog group `catalog:piighost/generic`.
+- **Services**: none for the tests. Redis, an SQL database or `piighost-api` are used only in operation. See [Store conversations](../../../openwiki/en/operations/storage-and-encryption.md) and [Configure a pipeline](../../../openwiki/en/operations/configuration-and-catalog.md).
 - **Examples**: standalone scripts in `examples/`, run with `uv run examples/<script>.py`.
 
 ## Find where to change
@@ -27,8 +27,8 @@ This page is for whoever changes the code of `piighost`. For each common change,
 | Change how tool calls are handled | [Let a tool act](../../../openwiki/en/processes/let-a-tool-act.md) | `integrations/langchain/middleware.py` (`awrap_tool_call`), `integrations/pydantic_ai/hooks.py`, `tests/integrations/langchain/test_middleware.py` |
 | Change the stream restoration | [Show a streamed reply](../../../openwiki/en/processes/show-a-streamed-reply.md) | `components/placeholder/streaming.py`, `tests/components/placeholder/test_streaming*.py` |
 | Add an acceptance test | [Acceptance tests](../../../openwiki/en/tests/acceptance-tests.md) | `tests/acceptance/`, an `AT-<need>-<n>` identifier in the docstring |
-| Add a configuration key | [Configure a pipeline](../../../openwiki/en/operations/configuration-and-hub.md) | `config/models/`, `config/settings.py`, `tests/config/` |
-| Change the `piighost` command | [Configure a pipeline](../../../openwiki/en/operations/configuration-and-hub.md#check-from-the-command-line) | `cli/__init__.py`, `tests/cli/test_cli.py` |
+| Add a configuration key | [Configure a pipeline](../../../openwiki/en/operations/configuration-and-catalog.md) | `config/models/`, `config/settings.py`, `tests/config/` |
+| Change the `piighost` command | [Configure a pipeline](../../../openwiki/en/operations/configuration-and-catalog.md#check-from-the-command-line) | `cli/__init__.py`, `tests/cli/test_cli.py` |
 | Add a storage or change the encryption | [Store conversations](../../../openwiki/en/operations/storage-and-encryption.md) | `conversation_memory/`, `crypto/`, `tests/conversation_memory/` |
 | Change the LangChain middleware or another integration | [Plug the protection into an agent](../../../openwiki/en/integrations/agents-and-tools.md) | `integrations/`, `integrations/_deidentify.py`, `tests/integrations/` |
 | Add a tool to the Claude Code hooks | [Plug the protection into an agent](../../../openwiki/en/integrations/agents-and-tools.md) | `integrations/claude_code/hooks.py` (`_TOOL_OUTPUT_TEXT_FIELDS`), `tests/integrations/test_claude_code_hooks.py` |

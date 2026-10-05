@@ -164,7 +164,7 @@ Module : `piighost.config`. `ConfigError` regroupe les défaillances de chargeme
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
-| `ConfigFileError` | `load_config` | le fichier est absent, illisible, ou du TOML ou JSON invalide, ou une référence du hub renvoie autre chose que du TOML |
+| `ConfigFileError` | `load_config` | le fichier est absent, illisible, ou du TOML ou JSON invalide, ou une référence du catalogue renvoie autre chose que du TOML |
 | `ConfigValidationError` | `load_config` | les données analysées échouent à la validation du schéma. L'erreur emballe alors la `ValidationError` de pydantic dans la famille de la librairie |
 | `ConfigError` | `load_pipeline`, `load_thread_pipeline`, et le `build()` d'une config de composant | le point d'entrée ne correspond pas à la section `[memory]` déclarée, une variable d'environnement de secret est absente ou malformée, ou une mémoire déclare un hasher ou un cipher mais pas les deux |
 

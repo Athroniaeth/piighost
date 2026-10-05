@@ -142,19 +142,19 @@ volumes:
   cache:
 ```
 
-Le `pipeline.toml` monté est le fichier ci-dessus, avec son `url` posée à `redis://redis:6379/0`, l'adresse du service `redis`. `API_KEY_DEFAULT` porte une clé imprimée par `keyshield generate`, et le serveur refuse de démarrer sans clé. L'image embarque le client Redis et le hacheur Argon2, et `EXTRA_PACKAGES` ajoute le cipher AES-GCM. Le volume `cache` garde les références du hub épinglées sur un commit, les poids du modèle et les paquets de `EXTRA_PACKAGES` d'un redémarrage de conteneur à l'autre.
+Le `pipeline.toml` monté est le fichier ci-dessus, avec son `url` posée à `redis://redis:6379/0`, l'adresse du service `redis`. `API_KEY_DEFAULT` porte une clé imprimée par `keyshield generate`, et le serveur refuse de démarrer sans clé. L'image embarque le client Redis et le hacheur Argon2, et `EXTRA_PACKAGES` ajoute le cipher AES-GCM. Le volume `cache` garde les références du catalogue épinglées sur un commit, les poids du modèle et les paquets de `EXTRA_PACKAGES` d'un redémarrage de conteneur à l'autre.
 
 L'image lit ces variables :
 
 | Variable | Défaut | Effet |
 |---|---|---|
-| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du hub à servir. L'image embarque une config par défaut, qui charge tous les groupes de regex du hub. Un fichier monté ou une référence du hub la remplace |
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | Le fichier de config ou la référence du catalogue à servir. L'image embarque une config par défaut, qui charge tous les groupes de regex du catalogue. Un fichier monté ou une référence du catalogue la remplace |
 | `API_HOST` | `0.0.0.0` | Hôte d'écoute |
 | `API_PORT` | `8000` | Port d'écoute |
 | `LOG_LEVEL` | `info` | Niveau de log |
 | `EXTRA_PACKAGES` | vide | Paquets installés avec `uv pip install` au démarrage du conteneur, comme `piighost[gliner2]` pour une configuration qui exécute GLiNER2 |
 
-Pour servir une configuration du hub plutôt qu'un fichier, posez `PIIGHOST_CONFIG` à sa référence et ajoutez la mémoire Redis avec une variable `PIIGHOST_MEMORY`, comme le montre [CLI du serveur](reference/api-cli.md). Chaque conteneur exécute un seul processus serveur, donc passez à l'échelle en ajoutant des conteneurs sur la même mémoire Redis. Chaque route, proxys compris, est listée dans [Endpoints de l'API](reference/api-endpoints.md).
+Pour servir une configuration du catalogue plutôt qu'un fichier, posez `PIIGHOST_CONFIG` à sa référence et ajoutez la mémoire Redis avec une variable `PIIGHOST_MEMORY`, comme le montre [CLI du serveur](reference/api-cli.md). Chaque conteneur exécute un seul processus serveur, donc passez à l'échelle en ajoutant des conteneurs sur la même mémoire Redis. Chaque route, proxys compris, est listée dans [Endpoints de l'API](reference/api-endpoints.md).
 
 ## Voir aussi
 

@@ -62,22 +62,40 @@ Une version mineure ajoute des composants, des options et des factories de place
 
 ### Déprécié
 
-Aucun nom n'est déprécié en 2.0. Les noms que la 1.x gardait par compatibilité sont supprimés, et listés dans la section suivante.
+Aucun nom n'est déprécié en 2.0. Les noms du hub de la 1.x restent de simples alias des noms du catalogue, voir la section du hub plus bas. Les autres noms que la 1.x gardait par compatibilité sont supprimés, et listés plus bas.
 
 Les correctifs de sécurité n'atterrissent que sur la dernière version mineure, aussi bien sur la surface stable que sur l'expérimentale. Une version mineure antérieure ne reçoit aucun correctif. Rester à jour fait donc partie du contrat.
 
 ## Passer à la 2.0
 
-### Les catalogues regex sont des groupes du hub
+### Le hub devient le catalogue
 
-`piighost` n'embarque plus aucun motif. Le module `piighost.components.detector.patterns` disparaît avec ses quatre catalogues, et les mêmes ensembles sont des groupes du [hub piighost](https://hub.piighost.dev).
+Le site compagnon qui publie des groupes de motifs relus et des configurations de pipeline complètes s'appelait le hub. En 2.0, c'est le [catalogue piighost](https://catalog.piighost.dev), un nom qui rejoint la clé `catalogs` d'une config de détecteur regex. Les noms de la librairie suivent.
 
 | 1.x | 2.0 |
 |---|---|
-| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `hub:piighost/generic` |
-| `US_PATTERNS`, `catalogs = ["us"]` | `hub:piighost/us` |
-| `EU_PATTERNS`, `catalogs = ["eu"]` | `hub:piighost/eu` |
-| `FR_PATTERNS`, `catalogs = ["fr"]` | `hub:piighost/fr` |
+| `hub:piighost/generic` | `catalog:piighost/generic` |
+| `PIIGHOST_HUB_URL` | `PIIGHOST_CATALOG_URL` |
+| `https://hub.piighost.dev` | `https://catalog.piighost.dev` |
+| `piighost.hub`, `pull(ref, hub=...)` | `piighost.catalog`, `pull(ref, catalog=...)` |
+| `RegexDetector.from_hub(ref, hub=...)` | `RegexDetector.from_catalog(ref, catalog=...)` |
+| `HubError` et ses sous-classes | `CatalogError`, `CatalogRefError`, `CatalogUrlError`, `CatalogUnreachableError`, `CatalogPayloadError` |
+| `~/.cache/piighost/hub` | `~/.cache/piighost/catalog` |
+
+Le code et les configs écrits pour la 1.8 et après tournent toujours, sans avertissement. Une référence `hub:` se lit comme `catalog:` partout où une référence est acceptée, dans `catalogs`, dans `load_config`, `load_pipeline` et `load_thread_pipeline`, et en ligne de commande. `PIIGHOST_HUB_URL` est lue quand `PIIGHOST_CATALOG_URL` n'est pas posée. `piighost.hub` réexporte `piighost.catalog` sous ses noms de la 1.x, donc `HubError` est `CatalogError`, et `RegexDetector.from_hub` appelle `from_catalog`.
+
+Le cache disque suit le nom. Une référence épinglée mise en cache par la 1.x sous `~/.cache/piighost/hub` est récupérée une fois de plus, puis gardée sous `~/.cache/piighost/catalog`. L'ancien dossier peut être supprimé.
+
+### Les ensembles de motifs regex passent au catalogue
+
+`piighost` n'embarque plus aucun motif. Le module `piighost.components.detector.patterns` disparaît avec ses quatre catalogues, et les mêmes ensembles sont des groupes du [catalogue piighost](https://catalog.piighost.dev).
+
+| 1.x | 2.0 |
+|---|---|
+| `GENERIC_PATTERNS`, `catalogs = ["generic"]` | `catalog:piighost/generic` |
+| `US_PATTERNS`, `catalogs = ["us"]` | `catalog:piighost/us` |
+| `EU_PATTERNS`, `catalogs = ["eu"]` | `catalog:piighost/eu` |
+| `FR_PATTERNS`, `catalogs = ["fr"]` | `catalog:piighost/fr` |
 
 ```python
 # 1.x
@@ -89,7 +107,7 @@ detector = RegexDetector({**GENERIC_PATTERNS, **FR_PATTERNS})
 --8<-- "snippets/upgrading_catalogs.py:example"
 ```
 
-Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque. Un pipeline n'atteint donc le réseau qu'une fois. Les groupes du hub ont évolué depuis que les catalogues en avaient été copiés. Le groupe `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `hub:piighost/generic`.
+Une config qui nomme encore `generic`, `us`, `eu` ou `fr` est refusée au chargement, avec la référence qui la remplace. Une référence épinglée sur un commit est téléchargée à la première construction, puis lue depuis le cache disque. Un pipeline n'atteint donc le réseau qu'une fois. Les groupes du catalogue ont évolué depuis que les ensembles de la 1.x en avaient été copiés. Le groupe `us` porte `US_ITIN`, `fr` porte `FR_SIREN`, et le motif e-mail de `generic` n'accepte que les lettres latines. `piighost anonymize` sans config lance `catalog:piighost/generic`.
 
 ### Les alias de la 1.x sont supprimés
 
@@ -178,15 +196,15 @@ Une mémoire de conversation écrite par la 1.x indexe la provenance d'une valeu
 
 ### Le serveur d'API
 
-`piighost-api` demande `piighost>=2.0,<3`, et sa configuration suit les règles de la 2.0 ci-dessus, références du hub de `catalogs` comprises.
+`piighost-api` demande `piighost>=2.0,<3`, et sa configuration suit les règles de la 2.0 ci-dessus, références du catalogue de `catalogs` comprises.
 
-- `--config` et `PIIGHOST_CONFIG` acceptent une référence du hub aussi bien qu'un chemin de fichier.
+- `--config` et `PIIGHOST_CONFIG` acceptent une référence du catalogue aussi bien qu'un chemin de fichier.
 - Une configuration sans section `[memory]` est servie avec la mémoire du processus au lieu d'être refusée. Déclarez une mémoire `redis` pour partager les conversations entre instances.
 - `/v1/anonymize`, `/v1/anonymize/corrected` et `/v1/deanonymize` exigent un `thread_id`, et répondent `400` sans lui au lieu d'utiliser la conversation partagée `"default"`.
-- `/v1/labels` lit les labels d'un groupe du hub sur le hub.
+- `/v1/labels` lit les labels d'un groupe du catalogue sur le catalogue.
 - L'observation passe par les variables standard `OTEL_*`. `LANGFUSE_PUBLIC_KEY` et `LANGFUSE_SECRET_KEY` ne servent qu'à `dataset extract`, et aucune variable `OPIK_*` n'est lue.
 - Le serveur ne lit aucun `REDIS_URL`. L'adresse Redis est l'`url` de la section `[memory]`.
-- Un déploiement qui pose encore `PIPELINE_PATH`, ou passe un chemin `module:variable`, date d'avant le chargeur TOML. Posez plutôt `PIIGHOST_CONFIG` à un fichier de config ou à une référence du hub.
+- Un déploiement qui pose encore `PIPELINE_PATH`, ou passe un chemin `module:variable`, date d'avant le chargeur TOML. Posez plutôt `PIIGHOST_CONFIG` à un fichier de config ou à une référence du catalogue.
 
 Les routes et les variables sont listées dans [Endpoints de l'API](../reference/api-endpoints.md) et [CLI du serveur](../reference/api-cli.md).
 

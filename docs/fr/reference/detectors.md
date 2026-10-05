@@ -78,28 +78,30 @@ RegexDetector(patterns: dict[str, str])
 --8<-- "snippets/reference_detectors.py:regex"
 ```
 
-### `from_hub`
+### `from_catalog`
 
 ```python
-RegexDetector.from_hub(ref: str, *, hub: str | None = None) -> RegexDetector
+RegexDetector.from_catalog(ref: str, *, catalog: str | None = None) -> RegexDetector
 ```
 
-Construit un détecteur à partir des regex que porte une référence du [hub piighost](https://hub.piighost.dev). Le hub est un registre de regex de dé-identification testées, adressées par `namespace/name` et un sélecteur optionnel, soit un tag, soit les huit caractères hexadécimaux d'un commit.
+Construit un détecteur à partir des regex que porte une référence du [catalogue piighost](https://catalog.piighost.dev). Le catalogue est un registre de regex de dé-identification testées, adressées par `namespace/name` et un sélecteur optionnel, soit un tag, soit les huit caractères hexadécimaux d'un commit.
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `ref` | `str` | Une référence, `namespace/name` avec un `:selector` optionnel et un préfixe `hub:` optionnel. Sans sélecteur, elle résout vers `latest` (requis) |
-| `hub` | `str \| None` | Origine du hub à interroger. Par défaut `PIIGHOST_HUB_URL`, puis le hub public |
+| `ref` | `str` | Une référence, `namespace/name` avec un `:selector` optionnel et un préfixe `catalog:` optionnel. Sans sélecteur, elle résout vers `latest` (requis) |
+| `catalog` | `str \| None` | Origine du catalogue à interroger. Par défaut `PIIGHOST_CATALOG_URL`, puis le catalogue public |
 
 ```python
---8<-- "snippets/reference_regex_hub.py:from_hub"
+--8<-- "snippets/reference_regex_catalog.py:from_catalog"
 ```
 
-Une référence épinglée sur un commit est immuable. Sa réponse est donc mise en cache sous `~/.cache/piighost/hub` et relue depuis le disque aux appels suivants. Une référence qui pointe vers un tag ou vers `latest` peut changer. Elle est donc récupérée à chaque fois, parce qu'une version périmée détecterait sans le dire moins que ce que l'appelant a demandé.
+Une référence épinglée sur un commit est immuable. Sa réponse est donc mise en cache sous `~/.cache/piighost/catalog` et relue depuis le disque aux appels suivants. Une référence qui pointe vers un tag ou vers `latest` peut changer. Elle est donc récupérée à chaque fois, parce qu'une version périmée détecterait sans le dire moins que ce que l'appelant a demandé.
 
-L'appel lève une sous-classe de `HubError` (`piighost.hub`) si la référence ne se parse pas, si le hub est injoignable, ou si la référence résout vers autre chose qu'un détecteur regex simple. Ce dernier cas couvre une référence qui porte un détecteur modèle. Ses regex seules détecteraient moins que ce que la référence promet, donc l'appel échoue plutôt que d'en rendre la moitié.
+L'appel lève une sous-classe de `CatalogError` (`piighost.catalog`) si la référence ne se parse pas, si le catalogue est injoignable, ou si la référence résout vers autre chose qu'un détecteur regex simple. Ce dernier cas couvre une référence qui porte un détecteur modèle. Ses regex seules détecteraient moins que ce que la référence promet, donc l'appel échoue plutôt que d'en rendre la moitié.
 
-`from_hub` n'utilise que la bibliothèque standard, donc l'installation de base n'a besoin d'aucun extra.
+`from_catalog` n'utilise que la bibliothèque standard, donc l'installation de base n'a besoin d'aucun extra.
+
+Le code écrit pour la 1.x tourne toujours. `RegexDetector.from_hub(ref, hub=...)` construit le même détecteur que `from_catalog`, un préfixe `hub:` se lit comme `catalog:`, `PIIGHOST_HUB_URL` est lue quand `PIIGHOST_CATALOG_URL` n'est pas posée, et `piighost.hub` réexporte `piighost.catalog` sous ses noms de la 1.x.
 
 
 ---
@@ -400,53 +402,53 @@ Deux labels externes mappant vers un même label interne lèvent `LabelMappingEr
 
 ---
 
-## Catalogues de patterns
+## Groupes du catalogue
 
-Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous forme de groupes sur le [hub piighost](https://hub.piighost.dev). Chaque groupe associe un label de PII à un pattern regex. Les patterns correspondent sur la forme seule, sans validation de somme de contrôle.
+Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous forme de groupes sur le [catalogue piighost](https://catalog.piighost.dev). Chaque groupe associe un label de PII à un pattern regex. Les patterns correspondent sur la forme seule, sans validation de somme de contrôle.
 
 <div class="wide-table" markdown="1">
 
 | Groupe | Référence | Labels |
 |--------|-----------|--------|
-| Générique | `hub:piighost/generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| US | `hub:piighost/us` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
-| EU | `hub:piighost/eu` | `IBAN` |
-| France | `hub:piighost/fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
-| Secrets | `hub:piighost/secrets` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
+| Générique | `catalog:piighost/generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
+| US | `catalog:piighost/us` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
+| EU | `catalog:piighost/eu` | `IBAN` |
+| France | `catalog:piighost/fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
+| Secrets | `catalog:piighost/secrets` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
 
 </div>
 
-Construisez un détecteur à partir d'un groupe avec [`from_hub`](#from_hub). `pull` (`piighost.hub`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre. Plusieurs groupes se fusionnent donc comme des dict, et pour un même label, l'entrée de droite l'emporte.
+Construisez un détecteur à partir d'un groupe avec [`from_catalog`](#from_catalog). `pull` (`piighost.catalog`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre. Plusieurs groupes se fusionnent donc comme des dict, et pour un même label, l'entrée de droite l'emporte.
 
 ```python
---8<-- "snippets/reference_regex_hub.py:merge"
+--8<-- "snippets/reference_regex_catalog.py:merge"
 ```
 
-Une référence épinglée sur un commit se termine par les huit caractères hexadécimaux du commit, après le dernier deux-points, comme `hub:piighost/generic:fab51b33`. Elle est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, même hors ligne. Une référence non épinglée, `hub:piighost/generic` ou `hub:piighost/generic:latest`, est récupérée à chaque construction.
+Une référence épinglée sur un commit se termine par les huit caractères hexadécimaux du commit, après le dernier deux-points, comme `catalog:piighost/generic:fab51b33`. Elle est récupérée à la première construction d'un détecteur, puis relue depuis le cache sur disque, même hors ligne. Une référence non épinglée, `catalog:piighost/generic` ou `catalog:piighost/generic:latest`, est récupérée à chaque construction.
 
-Le hub teste chaque pattern qu'il publie contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
+Le catalogue teste chaque pattern qu'il publie contre le backtracking catastrophique, de sorte qu'une entrée adverse ne peut pas transformer un scan en déni de service.
 
 Les labels du groupe générique ne dépendent d'aucun pays. Les autres sont préfixés (`US_`, `FR_`) pour ne pas se confondre quand les groupes sont fusionnés. Le groupe EU porte l'IBAN ISO 13616 partagé entre les États membres. Pour des numéros propres à un pays, utilisez un groupe par pays.
 
-### Tirer les catalogues depuis une config
+### Tirer les groupes depuis une config
 
-Une config de détecteur regex tire les catalogues via `catalogs`. Une entrée est une référence de hub écrite `hub:namespace/name` avec un `:selector` optionnel. Les catalogues fusionnent dans l'ordre, puis les `patterns` en ligne s'y ajoutent. Un pattern en ligne l'emporte donc sur un pattern de catalogue pour le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou un catalogue.
+Une config de détecteur regex tire les groupes du catalogue via `catalogs`. Une entrée est une référence du catalogue écrite `catalog:namespace/name` avec un `:selector` optionnel. Une référence écrite `hub:namespace/name`, comme en 1.x, est toujours acceptée. Les groupes fusionnent dans l'ordre, puis les `patterns` en ligne s'y ajoutent. Un pattern en ligne l'emporte donc sur un pattern de groupe pour le même label. Une config de détecteur regex a besoin d'au moins un pattern en ligne ou une référence du catalogue.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
+catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-Une référence de hub nomme un catalogue relu au lieu d'en porter une copie. La config reste donc courte, et les patterns restent auditables à leur source. Un catalogue est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_HUB_URL` pour interroger un registre privé.
+Une référence du catalogue nomme un groupe relu au lieu d'en porter une copie. La config reste donc courte, et les patterns restent auditables à leur source. Un groupe est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_CATALOG_URL` pour interroger un registre privé.
 
-Une entrée qui n'est pas une référence de hub échoue au chargement plutôt que sous forme d'URL invalide plus tard. Les noms `generic`, `us`, `eu` et `fr`, qui désignaient avant la 2.0 des catalogues livrés dans la librairie, sont refusés, et le message d'erreur donne la référence qui les remplace.
+Une entrée qui n'est pas une référence du catalogue échoue au chargement plutôt que sous forme d'URL invalide plus tard. Les noms `generic`, `us`, `eu` et `fr`, qui désignaient avant la 2.0 des ensembles de motifs livrés dans la librairie, sont refusés, et le message d'erreur donne la référence qui les remplace.
 
 ```text
-the built-in catalog 'generic' was removed in piighost 2.0: name the hub group instead, hub:piighost/generic
+the built-in catalog 'generic' was removed in piighost 2.0: name the catalog group instead, catalog:piighost/generic
 ```
 
 ## Espaces Unicode
@@ -459,7 +461,7 @@ Une valeur est souvent tapée avec une espace qui n'est pas l'espace ASCII. Word
 | Recherche | `ExactMatchDetector`, `LLMDetector`, `WordBoundaryExpander` | Une espace dans une valeur cherchée correspond à n'importe quelle suite d'espaces, retour à la ligne compris, donc `Paul Martin`{ .pii } est retrouvé à travers une espace insécable, deux espaces ou un retour à la ligne. |
 | Identité | `ExactEntityLinker`, overrides, mémoire de conversation, `FuzzyEntityResolver` | Deux valeurs sont la même quand elles ont les mêmes mots, quelles que soient les espaces qui les séparent et leur casse, donc elles partagent un jeton. |
 
-La règle vaut pour tous les patterns, ceux du hub compris, donc un pattern n'a pas à prévoir ces caractères. Un pattern qui cherche exprès une espace insécable n'en trouve plus, car la copie sur laquelle il s'applique porte des espaces ordinaires à la place. Les caractères de largeur nulle (U+200B, U+2060, U+FEFF) ne sont pas des espaces et restent tels quels.
+La règle vaut pour tous les patterns, ceux du catalogue compris, donc un pattern n'a pas à prévoir ces caractères. Un pattern qui cherche exprès une espace insécable n'en trouve plus, car la copie sur laquelle il s'applique porte des espaces ordinaires à la place. Les caractères de largeur nulle (U+200B, U+2060, U+FEFF) ne sont pas des espaces et restent tels quels.
 
 Les deux fonctions de cette règle, `normalize_spaces` et `value_key`, sont publiques dans `piighost.text`, pour un détecteur ou un linker personnalisé qui doit suivre la même règle.
 
@@ -490,7 +492,7 @@ La règle suppose des espaces entre les mots, elle ne trouve donc rien en chinoi
 ## Voir aussi
 
 - [Référence Pipeline](pipeline.md) pour le pipeline qui pilote le détecteur.
-- [Détecteurs prêts à l'emploi](../examples/detectors.md) pour composer les catalogues en pratique.
+- [Détecteurs prêts à l'emploi](../examples/detectors.md) pour composer les groupes du catalogue en pratique.
 - [Configuration TOML](../configuration/toml.md) pour la construction déclarative.
 - [Étendre piighost](../extending.md) pour écrire son propre détecteur.
 - [Référence des modèles de données](models.md) pour la forme complète d'une `Detection`.
