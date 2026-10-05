@@ -128,7 +128,7 @@ DEV-7 : En tant que développeur, je veux tester mon intégration sans télécha
 
 DEV-8 : En tant que développeur, je veux décider quoi faire d'un jeton que le LLM a inventé, afin qu'il n'arrive pas tel quel à l'utilisateur.
 
-- Un `<<PERSON:9>>` jamais émis est refusé, retiré ou laissé, selon la stratégie choisie.
+- Par défaut, un `<<PERSON:9>>` jamais émis est refusé. Un autre réglage le retire du texte, un troisième le laisse tel quel.
 - Voir [Suivre une conversation](processes/follow-a-conversation.md) et [Laisser un outil agir](processes/let-a-tool-act.md). Tests : [AT-DEV-8-…](tests/acceptance-tests.md#at-dev-8-1).
 
 DEV-9 : En tant que développeur, je veux restaurer une réponse streamée au fil des morceaux, afin de l'afficher sans attendre la fin.
@@ -244,19 +244,19 @@ Un LLM peut mal répondre, qu'il serve de détecteur, de garde-fou ou de modèle
 
 | Situation | Ce que fait `piighost` | Besoin |
 |---|---|---|
-| Le LLM détecteur rend une sortie illisible, un JSON cassé ou un champ manquant | Le message est refusé avec une erreur, sauf si l'échec ouvert est demandé | DPO-9 |
-| Le LLM garde-fou rend une sortie illisible | Le texte est refusé avec une erreur, sauf si l'échec ouvert est demandé | DPO-9 |
+| Le LLM détecteur rend une sortie illisible, un JSON cassé ou un champ manquant | Le message est refusé avec une erreur. Avec le réglage d'échec ouvert, il part sans cette détection | DPO-9 |
+| Le LLM garde-fou rend une sortie illisible | Le texte est refusé avec une erreur. Avec le réglage d'échec ouvert, il part sans cette vérification | DPO-9 |
 | Le LLM détecteur cite une valeur absente du texte | La valeur n'est retrouvée nulle part dans le texte et n'est pas retenue | DPO-1 |
 | Le LLM détecteur oublie une valeur | Elle part en clair, sauf si un garde-fou relit le texte | DPO-4 |
-| Le texte analysé contient une balise qui imite la zone de données du prompt | La balise est neutralisée avant l'envoi au LLM détecteur | DPO-1 |
-| Le modèle de conversation invente un jeton, `<<PERSON:10>>` alors que la conversation n'a que `<<PERSON:1>>` | Refusé par défaut, retiré ou laissé selon la stratégie | DEV-8 |
+| Le LLM détecteur reçoit le texte entre deux balises, `<text_to_analyze>` et `</text_to_analyze>`. Le texte analysé contient lui-même l'une de ces balises. Sans protection, la suite du texte serait lue comme une consigne | La balise du texte est neutralisée avant l'envoi au LLM détecteur. Le LLM lit donc tout le texte comme une donnée à analyser | DPO-1 |
+| Le modèle de conversation invente un jeton, `<<PERSON:10>>` alors que la conversation n'a que `<<PERSON:1>>` | Par défaut, la réponse est refusée avec une erreur. Un autre réglage retire le jeton du texte, un troisième le laisse tel quel | DEV-8 |
 | Le modèle de conversation change la casse ou les chiffres d'un jeton, `<<Person:1>>` ou `<<PERSON:01>>` | Il n'est pas restauré, et il est traité comme un jeton inventé | DEV-8 |
 | Le modèle de conversation abîme les délimiteurs d'un jeton, `<< PERSON:1 >>` ou `PERSON:1` | Il n'est ni restauré ni reconnu comme jeton, et l'utilisateur le lit tel quel. Aucune valeur ne fuit, et ce comportement est accepté | USER-1 |
 | Le modèle de conversation devine la vraie valeur derrière un jeton et l'écrit | La valeur est traitée comme introduite par l'assistant | DEV-11 |
 | L'utilisateur tape lui-même un jeton, `<<PERSON:2>>` | Il ne fait pas apparaître la valeur d'une autre personne | DPO-1 |
 | Le flux de réponse s'arrête au milieu d'un jeton | Le fragment est rendu tel quel, sans valeur réelle | USER-4 |
 | Le modèle de conversation coupe ou reformule un jeton dans un argument d'outil | Seul un jeton écrit en entier est restauré, l'outil reçoit le reste tel quel | DEV-4 |
-| Le serveur d'API est injoignable depuis les hooks Claude Code | Le prompt ou l'appel d'outil est bloqué, la sortie d'outil remplacée par un avis, sauf si l'échec ouvert est demandé | DPO-9 |
+| Le serveur d'API est injoignable depuis les hooks Claude Code | Le prompt ou l'appel d'outil est bloqué, et la sortie d'outil est remplacée par un avis. Avec le réglage d'échec ouvert, le texte passe en clair | DPO-9 |
 
 ---
 

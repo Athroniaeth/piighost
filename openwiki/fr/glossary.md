@@ -1,7 +1,7 @@
 ---
 type: glossary
 title: Glossaire
-description: Définitions des termes de piighost (dé-identification, jeton, détection, entité, conversation, provenance, liste à masquer et liste à laisser en clair, garde-fou, identifiants, poivre, chiffreur) avec la forme visible de chaque notion et son nom dans le code.
+description: Définitions des termes de piighost (dé-identification, jeton, détection, entité, conversation, provenance, liste à masquer et liste à laisser en clair, garde-fou, identifiants, poivre, chiffreur, outils comme Redis ou Langfuse, badges des règles) avec la forme visible de chaque notion et son nom dans le code.
 tags: [glossary, vocabulary, de-identification, placeholder, entity, thread]
 sources:
   - id: openwiki-source-aa685735384e8973ddee846d
@@ -42,6 +42,7 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 | Données confidentielles | Tout ce que `piighost` protège, c'est-à-dire les données personnelles et les secrets. | la valeur d'origine, avant protection | aucun |
 | Donnée personnelle (PII) | Valeur qui peut identifier une personne, par exemple un nom, une adresse, un téléphone ou un e-mail. PII signifie *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | étiquette `PERSON`, `EMAIL`… |
 | Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle, par exemple une clé d'API, un mot de passe ou une clé privée. | une clé d'API dans un message | groupe du catalogue `piighost/logs` |
+| NIR | Numéro d'inscription au répertoire, c'est-à-dire le numéro de sécurité sociale français, à 15 chiffres. C'est une donnée personnelle. | un numéro à 15 chiffres dans un message | aucun |
 | Dé-identification | Remplacement des données confidentielles par des jetons, en gardant de quoi les restaurer. Au sens du RGPD (règlement général sur la protection des données), c'est une pseudonymisation. | `Bonjour <<PERSON:1>>` | pipeline par défaut |
 | Anonymisation | Suppression sans retour possible. `piighost` ne l'obtient qu'avec un jeton qui ne garde rien. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restauration | Remise des vraies valeurs à la place des jetons, dans la réponse montrée à l'utilisateur. | `Bonjour Patrick` dans la réponse | `deanonymize` |
@@ -70,6 +71,7 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 | Catalogue | Service en ligne qui publie des groupes de motifs et des configurations complètes, chacun adressé par sa référence. Il s'appelait le hub jusqu'à `piighost` 1.x. | `https://catalog.piighost.dev`, variable `PIIGHOST_CATALOG_URL` | `piighost.catalog` |
 | Groupe du catalogue | Liste de motifs publiée sur le catalogue, pour un pays, un métier ou les secrets, et appelée par sa référence. | `catalog:piighost/generic` | clé `catalogs`, `RegexDetector.from_catalog` |
 | NER | *Named Entity Recognition*, reconnaissance d'entités nommées. Modèle d'IA qui classe les mots en personne, lieu, organisation. | clé `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
+| Presidio | Bibliothèque libre de Microsoft qui détecte des données personnelles. `piighost` peut s'en servir comme détecteur. `piighost` 2.0 lui a repris les noms de ses listes, `deny_list` et `allow_list`. | clé `type = "presidio"` | `PresidioDetector` |
 | Détection | Une occurrence trouvée, avec sa position, son texte, son type et sa confiance entre 0 et 1. | une ligne de `piighost anonymize --json` | `Detection` |
 | Position (span) | Intervalle de caractères `[début, fin)` d'une détection dans le texte. | `"start": 10, "end": 35` | `Span` |
 | Entité | Toutes les occurrences d'une même valeur et d'un même type. Elles partagent un seul jeton. | `Patrick` et `patrick` donnent tous deux `<<PERSON:1>>` | `Entity`, `ExactEntityLinker` |
@@ -96,6 +98,8 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 |---|---|---|---|
 | Hook | Commande qu'un programme lance à un moment fixe de son fonctionnement. Les hooks Claude Code font passer par `piighost` la demande de l'utilisateur, les appels d'outil et leurs résultats. | `python -m piighost.integrations.claude_code` dans `.claude/settings.json` | `handle_hook` |
 | Proxy | Serveur placé entre l'application et le fournisseur du modèle. Le serveur `piighost-api` en propose un compatible OpenAI et un compatible Anthropic. L'application ne change que son URL de base. | `/openai/v1`, `/anthropic/v1` | `piighost-api` |
+| Middleware | Composant qui s'insère dans la boucle d'un agent, entre l'application et le modèle, et traite chaque message au passage. Le middleware LangChain de `piighost` dé-identifie les messages avant le modèle et restaure sa réponse. | `middleware=[...]` à la création de l'agent | `PIIAnonymizationMiddleware` |
+| LangGraph | Bibliothèque qui exécute les agents LangChain. Elle garde l'historique de chaque conversation et transmet son identifiant au middleware. | `config={"configurable": {"thread_id": ...}}` | `thread_id` |
 
 ## Liste à masquer et liste à laisser en clair de la configuration
 
@@ -113,8 +117,12 @@ Avant `piighost` 2.0, la liste à masquer s'appelait `whitelist` et la liste à 
 | Empreinte | Courte suite de caractères calculée à partir d'un texte. Le même texte donne toujours la même empreinte, qui ne permet pas de retrouver le texte. La mémoire reconnaît ainsi un message déjà vu. | `piighost:<thread_id>:msg:<empreinte>` | `message_digest` |
 | Poivre (pepper) | Secret qui rend les empreintes des messages impossibles à recalculer sans lui. | variable `PIIGHOST_HASH_PEPPER` | `AnyHasher` |
 | Hacheur (hasher) | Composant qui calcule l'empreinte de chaque message avec le poivre. Il se configure toujours avec un chiffreur. | clé `[memory.hasher]` | `Sha256Hasher`, `Argon2Hasher` |
+| HMAC-SHA256, Argon2id | Les deux méthodes de calcul d'une empreinte avec le poivre. Argon2id est volontairement lent, ce qui rend plus coûteux de deviner une valeur par essais successifs. | `type = "sha256"`, `type = "argon2"` dans `[memory.hasher]` | `Sha256Hasher`, `Argon2Hasher` |
+| Redis | Base de données rapide, qui tourne sur un serveur à part. Elle peut garder la mémoire des conversations et la partager entre plusieurs instances du serveur. | `type = "redis"` dans `[memory]` | `RedisConversationMemory` |
 | Chiffreur (cipher) | Composant qui chiffre les détections stockées, avec une clé AES (*Advanced Encryption Standard*) en mode GCM. | variable `PIIGHOST_CIPHER_KEY` | `AesGcmCipher` |
 | Masqueur de traces | Fabrique de jetons appliquée aux traces techniques, pour qu'elles ne contiennent pas de données en clair. | clé `[observation_redactor]` | `observation_redactor` |
+| Trace technique (OpenTelemetry) | Journal de chaque étape d'un traitement, avec sa durée et ses données. `piighost` produit ces traces selon OpenTelemetry, un standard ouvert. Sans masqueur de traces, elles contiennent le texte en clair, et `piighost` émet un avertissement. | une trace dans l'outil d'observation | `get_tracer` |
+| Langfuse | Service d'observation des applications d'IA. Il reçoit les traces techniques, et peut servir d'outil d'annotation où une personne corrige les détections. | attributs `langfuse.*` des traces | aucun |
 
 ## Identifiants de la documentation métier
 
@@ -125,3 +133,11 @@ Les identifiants sont en anglais, les mêmes quelle que soit la langue de la pag
 | Besoin | Ce qu'un profil attend de `piighost`, avec ses critères observables. Le préfixe nomme le profil (responsable conformité, développeur, exploitant, utilisateur de l'application). | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Besoins par profil](needs-by-profile.md) |
 | Règle de gestion | Règle formulée en « Quand… alors… » dans une page de processus. *BR* signifie *business rule*, suivi du domaine. | `BR-MSG-05`, `BR-CONV-03` | parties « Règles à connaître » |
 | Test d'acceptation | Test qui vérifie un critère d'un besoin. | `AT-DPO-1-2` | [Tests d'acceptation](tests/acceptance-tests.md), `tests/acceptance/` |
+
+## Tests et badges des règles
+
+| Terme | Définition | Ce que vous voyez | Nom technique |
+|---|---|---|---|
+| Nœud pytest | Adresse d'un test précis, de la forme `fichier::Classe::test`. pytest est l'outil qui lance les tests Python de `piighost`. | `tests/test_catalog.py::TestPull::test_a_model_detector_is_refused` | `uv run pytest` |
+| CI | Intégration continue, c'est-à-dire l'exécution automatique des tests et des contrôles sur GitHub, à chaque modification proposée du code. | les coches d'une pull request | `.github/workflows/` |
+| Emplacement | Fonction ou classe du code qui applique une règle de gestion, relevée dans le tableau "Où vivent les règles". Le badge placé sous chaque règle compte ses emplacements et ses tests directs, c'est-à-dire les tests qui appellent ces fonctions. | `2 emplacements · 11 tests directs` | tableau "Où vivent les règles" |
