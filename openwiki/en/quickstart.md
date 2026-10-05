@@ -52,7 +52,7 @@ generated: { by: "claude-code", at: "2026-10-02T18:00:00.000Z" }
 | How a person keeps the same placeholder from one message to the next | [Follow a conversation and restore the reply](processes/follow-a-conversation.md) |
 | What happens when you correct a message by hand | [Follow a conversation and restore the reply](processes/follow-a-conversation.md#correct-a-detection) |
 | How to erase a conversation (right to erasure) | [Follow a conversation and restore the reply](processes/follow-a-conversation.md) |
-| Keep the company name in clear text, or always mask an internal code | [Impose a deny list and an allow list](processes/impose-a-whitelist-and-blacklist.md) |
+| Keep the company name in clear text, or always mask an internal code | [Impose a deny list and an allow list](processes/impose-a-deny-list-and-an-allow-list.md) |
 | What a tool of the agent receives, and what the model reads of its result | [Let a tool act on the real values](processes/let-a-tool-act.md) |
 | Why a placeholder appears while a reply is displayed | [Show a streamed reply](processes/show-a-streamed-reply.md) |
 | What each actor sees depending on the tool used (LangChain, Claude Code…) | [Plug the protection into an agent and its tools](integrations/agents-and-tools.md) |
@@ -105,7 +105,7 @@ To change the code, the technical documentation says which pages to read and whi
 - **Processes**:
     - [Protect a message](processes/protect-a-message.md)
     - [Follow a conversation](processes/follow-a-conversation.md)
-    - [Impose a deny list and an allow list](processes/impose-a-whitelist-and-blacklist.md)
+    - [Impose a deny list and an allow list](processes/impose-a-deny-list-and-an-allow-list.md)
     - [Let a tool act](processes/let-a-tool-act.md)
     - [Show a streamed reply](processes/show-a-streamed-reply.md)
 - **Integrations**:

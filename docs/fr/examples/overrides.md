@@ -147,4 +147,4 @@ Pour chaque clé et chaque valeur acceptée, voir la [configuration TOML](../con
 - [Référence du pipeline](../reference/pipeline.md) pour le paramètre `override` et l'ordre des étapes.
 - [Garde-fous](../reference/guard-rails.md) pour le contrôle de sortie dont la liste à laisser en clair exempte une valeur.
 - [Configuration TOML](../configuration/toml.md) pour les clés de `[override]`.
-- [Imposer une liste à masquer et une liste à laisser en clair](../../../openwiki/fr/processes/impose-a-whitelist-and-blacklist.md) pour les règles de gestion des deux listes, de `BR-LIST-01` à `BR-LIST-08`.
+- [Imposer une liste à masquer et une liste à laisser en clair](../../../openwiki/fr/processes/impose-a-deny-list-and-an-allow-list.md) pour les règles de gestion des deux listes, de `BR-LIST-01` à `BR-LIST-08`.

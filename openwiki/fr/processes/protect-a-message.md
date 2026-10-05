@@ -81,7 +81,7 @@ flowchart TD
 Dans l'exemple suivi d'un bout à l'autre, l'utilisateur écrit « Écrivez à Jean Dupont, jean.dupont@exemple.fr ».
 
 1. **Repérage.** Un ou plusieurs détecteurs cherchent les valeurs par forme (e-mail, téléphone), par modèle d'IA (noms, lieux) ou par grand modèle de langage. Ici, « Jean Dupont » est repéré comme personne et « jean.dupont@exemple.fr » comme e-mail.
-2. **Liste à masquer et liste à laisser en clair.** Les valeurs à toujours masquer ou à ne jamais masquer, écrites dans la configuration (`deny_list` et `allow_list`), sont appliquées. Voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-whitelist-and-blacklist.md).
+2. **Liste à masquer et liste à laisser en clair.** Les valeurs à toujours masquer ou à ne jamais masquer, écrites dans la configuration (`deny_list` et `allow_list`), sont appliquées. Voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-deny-list-and-an-allow-list.md).
 3. **Chevauchements.** Quand deux repérages se recouvrent, un seul passage est gardé. Ici, rien ne se recouvre.
 4. **Occurrences oubliées** (étape facultative). Chaque valeur trouvée est recherchée ailleurs dans le texte.
 5. **Regroupement.** Les occurrences d'une même valeur et d'un même type forment un seul groupe.
@@ -137,7 +137,7 @@ Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les 
 
 **Une partie d'un nom est partie en clair (« Loni M. »).** Deux repérages se chevauchaient, et le plus sûr ne couvrait qu'une partie du nom (BR-MSG-05). Demandez le réglage « Union des passages ».
 
-**Le nom de l'entreprise est remplacé par `<<PERSON:2>>`.** Le détecteur le prend pour une personne, et le modèle perd une information utile. Faites-le mettre dans la liste à laisser en clair, voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-whitelist-and-blacklist.md).
+**Le nom de l'entreprise est remplacé par `<<PERSON:2>>`.** Le détecteur le prend pour une personne, et le modèle perd une information utile. Faites-le mettre dans la liste à laisser en clair, voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-deny-list-and-an-allow-list.md).
 
 **Un numéro de carte faux a été masqué.** C'est voulu, parce qu'aucune clé de contrôle n'est vérifiée (BR-MSG-07).
 

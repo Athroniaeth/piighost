@@ -154,7 +154,7 @@ A readable conversation, with the real values. An old reply can still display pl
 
 **A reply showed the name of another person.** An old message was probably corrected by hand (BR-CONV-07), or the memory of a message expired (see Pitfalls). Check the history of the conversation.
 
-**"Lyon" is not masked although the user wrote it.** The assistant had mentioned it first (BR-CONV-04). To force the masking, see [Impose a deny list and an allow list](impose-a-whitelist-and-blacklist.md).
+**"Lyon" is not masked although the user wrote it.** The assistant had mentioned it first (BR-CONV-04). To force the masking, see [Impose a deny list and an allow list](impose-a-deny-list-and-an-allow-list.md).
 
 **The reply stops with `Deanonymized text holds tokens the pipeline never issued`.** The model wrote an unknown placeholder (BR-CONV-06). It often copied a placeholder from another conversation or from a document.
 
