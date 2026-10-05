@@ -249,9 +249,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
 
     def _payload_detections(self, detections: list[Detection]) -> list[dict[str, Any]]:
         """Serialize detections for a span payload, tokened when redacting."""
-        if self.observation_redactor is None:
+        redactor = self.observation_redactor
+        if redactor is None:
             return [detection.to_dict() for detection in detections]
-        tokens = self._redaction_tokens(detections)
+        tokens = self._redaction_tokens(detections, redactor)
         return [
             {**detection.to_dict(), "text": tokens[detection]}
             for detection in detections
@@ -281,9 +282,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         survive a splice made for another. A merged range takes the token of its
         first detection.
         """
-        if self.observation_redactor is None:
+        redactor = self.observation_redactor
+        if redactor is None:
             return text
-        tokens = self._redaction_tokens(detections)
+        tokens = self._redaction_tokens(detections, redactor)
         merged: list[tuple[int, int, str]] = []
         for detection in sorted(detections, key=lambda detection: detection.span):
             span = detection.span
@@ -297,11 +299,10 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             redacted = redacted[:start] + token + redacted[end:]
         return redacted
 
-    def _redaction_tokens(self, detections: list[Detection]) -> dict[Detection, str]:
+    def _redaction_tokens(
+        self, detections: list[Detection], redactor: AnyPlaceholderFactory
+    ) -> dict[Detection, str]:
         """Token every detection with the redactor, grouped so values share one."""
-        redactor = self.observation_redactor
-        if redactor is None:
-            return {}
         entities = self.linker.link(detections)
         tokens = redactor.create(entities)
         return {
@@ -309,6 +310,25 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             for entity in entities
             for detection in entity.detections
         }
+
+    async def _traced_guard(
+        self, text: str, rendered: str, expected: frozenset[str] = frozenset()
+    ) -> None:
+        """Run the guard stage over a rendered text inside its span.
+
+        The values the allow list clears in the source text join expected, so the
+        guard ignores them as well. The span records whether the verdict flagged
+        and the labels it saw; it stays a no-op when no guard is configured.
+
+        Raises:
+            PIIRemainingError: If the guard flags unexpected PII in the output.
+        """
+        with self._stage_span("piighost.guard", self.guard) as span:
+            cleared = await self._cleared_values(text)
+            verdict = await self._guard(rendered, expected | cleared)
+            if verdict is not None:
+                labels = sorted({d.label for d in verdict.detections})
+                span.set_output({"flagged": verdict.flagged, "labels": labels})
 
     async def _guard(
         self, text: str, expected: frozenset[str] = frozenset()
@@ -382,12 +402,7 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 span.set_attribute("tokens", len(result.tokens))
                 span.set_output(result.text)
 
-            with self._stage_span("piighost.guard", self.guard) as span:
-                cleared = await self._cleared_values(text)
-                verdict = await self._guard(result.text, cleared)
-                if verdict is not None:
-                    labels = sorted({d.label for d in verdict.detections})
-                    span.set_output({"flagged": verdict.flagged, "labels": labels})
+            await self._traced_guard(text, result.text)
 
             root.set_output(result.text)
             return result
