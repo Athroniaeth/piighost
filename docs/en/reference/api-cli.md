@@ -22,8 +22,16 @@ The server requires Python 3.12 or later and `piighost>=2.0,<3`. Its extras add 
 | `observation` | the OpenTelemetry SDK and OTLP exporter, for exporting traces |
 | `dataset` | the Langfuse SDK and `python-dotenv`, for `dataset extract` |
 
+The server is not published on PyPI. In the Docker image `ghcr.io/athroniaeth/piighost-api`, the variable `EXTRA_PACKAGES` installs packages when the container starts, such as the `gliner2` extra:
+
 ```bash
-pip install "piighost-api[gliner2,observation]"
+docker run -p 8000:8000 -e EXTRA_PACKAGES="piighost[gliner2]" ghcr.io/athroniaeth/piighost-api:latest
+```
+
+From a clone of the repository, `uv sync` installs the chosen extras:
+
+```bash
+uv sync --extra gliner2 --extra observation
 ```
 
 ---
