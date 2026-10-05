@@ -1,5 +1,6 @@
 ---
 icon: lucide/message-circle-question
+description: Short answers to the frequent questions about piighost, such as languages, detected entities, latency, tools, conversation memory, encryption and traces.
 ---
 
 # FAQ

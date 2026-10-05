@@ -5,9 +5,9 @@ icon: lucide/layers
 # Architecture
 
 `piighost` suit une architecture hexagonale, aussi appelée ports et adaptateurs.
-Le coeur ne connaît que des contrats abstraits, les **ports**. Chaque implémentation
+Le cœur ne connaît que des contrats abstraits, les **ports**. Chaque implémentation
 concrète, un détecteur GLiNER2, un backend Redis, un middleware LangChain, est un
-**adaptateur** qui satisfait un port sans que le coeur ne le connaisse. Le pipeline
+**adaptateur** qui satisfait un port sans que le cœur ne le connaisse. Le pipeline
 de dé-identification s'assemble en injectant les adaptateurs voulus derrière les ports
 qu'il attend.
 
@@ -41,16 +41,16 @@ flowchart TB
 ```
 
 *Trois anneaux et le point de composition. Les dépendances pointent toujours vers le
-coeur.*
+cœur.*
 { .figure-caption }
 
 - **Coeur.** Les modèles de données (`Detection`, `Entity`, `Span`, des dataclasses
   gelées) et les ports. Aucune dépendance externe, pas de pydantic, pas d'I/O.
-- **Application.** L'orchestration du pipeline, qui ne dépend que des ports du coeur.
+- **Application.** L'orchestration du pipeline, qui ne dépend que des ports du cœur.
   C'est là que vivent `anonymize`, `deanonymize` et `forget_thread`.
 - **Adaptateurs.** Les implémentations concrètes des ports, c'est-à-dire les détecteurs, résolveurs,
   factories, gardes-fous, backends de mémoire, observation, client HTTP, middleware.
-  Chaque adaptateur importe le coeur, jamais le contraire.
+  Chaque adaptateur importe le cœur, jamais le contraire.
 - **Config.** Le point de composition. C'est le seul endroit autorisé à connaître à la
   fois les ports et les adaptateurs concrets, pour les assembler.
 
@@ -304,7 +304,7 @@ conversation puisse être énumérée et oubliée.
 
 `PIIAnonymizationMiddleware` branche le pipeline conversationnel dans une boucle
 d'agent LangChain. Il ne contient aucune logique de dé-identification, il délègue tout
-au pipeline. C'est un adaptateur entre le monde LangChain et le coeur.
+au pipeline. C'est un adaptateur entre le monde LangChain et le cœur.
 
 ```mermaid
 sequenceDiagram
@@ -370,15 +370,15 @@ appeler `build()` sur chaque modèle.
 
 Un fichier sans section `[memory]` construit un pipeline. Un fichier qui déclare une section `[memory]` construit un pipeline de conversation. Chaque chargeur refuse le fichier destiné à l'autre. `load_pipeline` refuse un fichier avec `[memory]`, et `load_thread_pipeline` un fichier sans.
 
-Le couplage est à sens unique. La config dépend du coeur et des adaptateurs, mais le
-coeur n'importe jamais la config. Ajouter un composant, c'est écrire un adaptateur, un modèle
+Le couplage est à sens unique. La config dépend du cœur et des adaptateurs, mais le
+cœur n'importe jamais la config. Ajouter un composant, c'est écrire un adaptateur, un modèle
 de config avec `build()`, et rien d'autre. Le pipeline ne change pas.
 
 ---
 
 ## Modèles de données
 
-Tous les modèles du coeur sont des **dataclasses gelées**, immuables donc partageables
+Tous les modèles du cœur sont des **dataclasses gelées**, immuables donc partageables
 entre coroutines sans risque.
 
 | Modèle | Champs clés |

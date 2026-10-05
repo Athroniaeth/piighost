@@ -82,7 +82,7 @@ L'utilisateur a lu « Bonjour Jean Dupont, je vous écris à jean.dupont@exemple
 
 **BR-STREAM-06.** Quand un jeton complété n'a jamais été émis, alors le réglage des jetons inventés s'applique. Par défaut, il refuse le jeton, ce qui interrompt le flux. Les deux autres choix retirent le jeton ou le gardent.
 
-| Réglage | « Bonjour <<PERSON: » puis « 9>>. » donne |
+| Réglage | « Bonjour `<<PERSON:` » puis « `9>>`. » donne |
 |---|---|
 | Refuser (par défaut) | « Bonjour », puis le flux s'interrompt sur une erreur |
 | Retirer | « Bonjour . » |
