@@ -16,10 +16,13 @@ autoincrement id gives first-seen order.
 
 import importlib.util
 import json
+from collections.abc import Sequence
+from typing import Any
 
 from piighost.conversation_memory.base import (
     Forgotten,
     MessageRole,
+    _first_occurrence_roles,
     message_digest,
     require_paired_crypto,
     warn_plaintext,
@@ -27,7 +30,6 @@ from piighost.conversation_memory.base import (
 from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
-from piighost.text import value_key
 
 if importlib.util.find_spec("sqlalchemy") is None:
     raise ImportError(
@@ -40,6 +42,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     MetaData,
+    Row,
     String,
     Table,
     UniqueConstraint,
@@ -179,36 +182,29 @@ class SqlAlchemyConversationMemory:
                 return None
             return self._deserialize(row.detections)
 
-        async with self._engine.connect() as conn:
-            rows = (
-                await conn.execute(
-                    select(table.c.detections)
-                    .where(table.c.thread_id == thread_id)
-                    .order_by(table.c.id)
-                )
-            ).all()
         detections: list[Detection] = []
-        for row in rows:
+        for row in await self._rows(thread_id):
             detections.extend(self._deserialize(row.detections))
         return detections
 
     async def get_provenance(self, thread_id: str) -> dict[str, MessageRole]:
         """Return the first-occurrence role of every value in the thread."""
+        rows = await self._rows(thread_id)
+        messages = (
+            (MessageRole(row.role), self._deserialize(row.detections)) for row in rows
+        )
+        return _first_occurrence_roles(messages)
+
+    async def _rows(self, thread_id: str) -> Sequence[Row[Any]]:
+        """Read a thread's message rows, role and detections, in first-seen order."""
         table = self._table
         async with self._engine.connect() as conn:
-            rows = (
-                await conn.execute(
-                    select(table.c.role, table.c.detections)
-                    .where(table.c.thread_id == thread_id)
-                    .order_by(table.c.id)
-                )
-            ).all()
-        provenance: dict[str, MessageRole] = {}
-        for row in rows:
-            role = MessageRole(row.role)
-            for detection in self._deserialize(row.detections):
-                provenance.setdefault(value_key(detection.text), role)
-        return provenance
+            result = await conn.execute(
+                select(table.c.role, table.c.detections)
+                .where(table.c.thread_id == thread_id)
+                .order_by(table.c.id)
+            )
+            return result.all()
 
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""

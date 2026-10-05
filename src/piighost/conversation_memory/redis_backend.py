@@ -24,6 +24,7 @@ import json
 from piighost.conversation_memory.base import (
     Forgotten,
     MessageRole,
+    _first_occurrence_roles,
     message_digest,
     require_paired_crypto,
     warn_plaintext,
@@ -31,7 +32,6 @@ from piighost.conversation_memory.base import (
 from piighost.crypto.cipher.base import AnyCipher
 from piighost.crypto.hasher.base import AnyHasher
 from piighost.models import Detection
-from piighost.text import value_key
 
 if importlib.util.find_spec("redis") is None:
     raise ImportError(
@@ -178,13 +178,9 @@ class RedisConversationMemory:
 
     async def get_provenance(self, thread_id: str) -> dict[str, MessageRole]:
         """Return the first-occurrence role of every value in the thread."""
-        provenance: dict[str, MessageRole] = {}
-
-        for _, role, detections in await self._read_all(thread_id):
-            for detection in detections:
-                provenance.setdefault(value_key(detection.text), role)
-
-        return provenance
+        records = await self._read_all(thread_id)
+        messages = ((role, detections) for _, role, detections in records)
+        return _first_occurrence_roles(messages)
 
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""
