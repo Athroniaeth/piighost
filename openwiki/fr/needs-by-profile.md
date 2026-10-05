@@ -41,7 +41,7 @@ DPO-3 : En tant que DPO, je veux forcer la protection d'une valeur, ou laisser e
 
 - Une valeur de la liste à masquer de la configuration (`deny_list` dans la section `[override]`, dans l'application ou dans `piighost-api`) est masquée même si aucun détecteur ne la voit.
 - Un terme de la liste à laisser en clair (`allow_list`) de la même section reste en clair même quand un détecteur le relève.
-- Voir [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md). Tests : [AT-DPO-3-…](tests/acceptance-tests.md).
+- Voir [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-deny-list-and-an-allow-list.md). Tests : [AT-DPO-3-…](tests/acceptance-tests.md).
 
 DPO-4 : En tant que DPO, je veux refuser un texte qui contient encore une donnée, afin qu'une détection manquée ne parte pas.
 
@@ -227,13 +227,13 @@ USER-4 : En tant qu'utilisateur, je veux voir la réponse s'afficher au fil de l
 USER-5 : En tant qu'utilisateur, je veux que les termes publics restent lisibles, afin que la réponse garde son sens.
 
 - Un nom de ville mis dans la liste à laisser en clair de la configuration reste en clair, et une date de réunion n'est pas masquée par un groupe de motifs génériques.
-- Voir [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md). Tests : [AT-USER-5-…](tests/acceptance-tests.md).
+- Voir [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-deny-list-and-an-allow-list.md). Tests : [AT-USER-5-…](tests/acceptance-tests.md).
 
 USER-6 : En tant qu'utilisateur, je veux corriger une détection, ajouter un nom oublié ou rendre lisible un terme masqué à tort, afin que l'assistant reçoive le bon texte.
 
 - Après correction, le nom ajouté part en jeton et le terme retiré part en clair, dans le message corrigé.
 - La liste à masquer et la liste à laisser en clair de la configuration gardent le dernier mot, si bien qu'un terme de la liste à masquer reste masqué même si l'utilisateur le retire.
-- Voir [Suivre une conversation](processes/follow-a-conversation.md) et [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-whitelist-and-blacklist.md). Tests : [AT-USER-6-…](tests/acceptance-tests.md).
+- Voir [Suivre une conversation](processes/follow-a-conversation.md) et [Imposer une liste à masquer et une liste à laisser en clair](processes/impose-a-deny-list-and-an-allow-list.md). Tests : [AT-USER-6-…](tests/acceptance-tests.md).
 
 ---
 

@@ -36,7 +36,7 @@
       "gitHead": "f5da96476dd958457fd3bcf870f79d289b8d663a",
       "sourceFingerprint": "sha256:d6ae96082b017a6dcf8d72d27e2599da9eff974aabc549873ed4e0d5d9487376"
     },
-    "/openwiki/fr/processes/impose-a-whitelist-and-blacklist.md": {
+    "/openwiki/fr/processes/impose-a-deny-list-and-an-allow-list.md": {
       "pageVersion": "sha256:f3fb68e95ad73bf894a81d3f349e2c839bde4afdca7f4e95d5d879f5118663e9",
       "completedBy": "claude-code",
       "completedRunId": "5771c57b-9294-44f3-8a71-d36d430d3e4d",

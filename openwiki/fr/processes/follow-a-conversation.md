@@ -154,7 +154,7 @@ Une conversation lisible, avec les vraies valeurs. Une ancienne réponse peut to
 
 **Une réponse a affiché le nom d'une autre personne.** Un message ancien a probablement été corrigé à la main (BR-CONV-07), ou la mémoire d'un message a expiré (voir Pièges). Vérifiez l'historique de la conversation.
 
-**« Lyon » n'est pas masqué alors que l'utilisateur l'a écrit.** L'assistant l'avait cité avant lui (BR-CONV-04). Pour forcer le masquage, voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-whitelist-and-blacklist.md).
+**« Lyon » n'est pas masqué alors que l'utilisateur l'a écrit.** L'assistant l'avait cité avant lui (BR-CONV-04). Pour forcer le masquage, voir [Imposer une liste à masquer et une liste à laisser en clair](impose-a-deny-list-and-an-allow-list.md).
 
 **La réponse s'arrête avec `Deanonymized text holds tokens the pipeline never issued`.** Le modèle a écrit un jeton inconnu (BR-CONV-06). Il a souvent recopié un jeton d'une autre conversation ou d'un document.
 

@@ -147,4 +147,4 @@ For every key and every accepted value, see the [TOML configuration](../configur
 - [Pipeline reference](../reference/pipeline.md) for the `override` parameter and the stage order.
 - [Guard rails](../reference/guard-rails.md) for the output check the allow list exempts a value from.
 - [TOML configuration](../configuration/toml.md) for the `[override]` keys.
-- [Impose a deny list and an allow list](../../../openwiki/en/processes/impose-a-whitelist-and-blacklist.md), for the business rules of the two lists, `BR-LIST-01` to `BR-LIST-08`.
+- [Impose a deny list and an allow list](../../../openwiki/en/processes/impose-a-deny-list-and-an-allow-list.md), for the business rules of the two lists, `BR-LIST-01` to `BR-LIST-08`.
