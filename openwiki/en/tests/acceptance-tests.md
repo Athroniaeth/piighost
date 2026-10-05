@@ -126,7 +126,7 @@ Ranked by risk, starting with those that can cause a leak.
 6. AT-DEV-6-2 (partial): `piighost validate` on a misspelled key, with the key named in the message.
 7. AT-DEV-1-2 (partial): the `openai` SDK with only `base_url` changed.
 8. AT-OPS-6-2 (partial): the disk cache seen through `load_pipeline`.
-9. AT-USER-5-2 (missing): a date is not masked by a generic group. Depends on the content of the groups, to test in the catalog's repository, `piighost-hub`.
+9. AT-USER-5-2 (missing): a date is not masked by a generic group. Depends on the content of the groups, to test in the catalog's repository, `piighost-catalog`.
 10. AT-USER-1-2 (missing): displayed reply restored under Claude Code, impossible as long as no hook rewrites the reply.
 11. AT-DPO-8-1 (missing): content of the DPIA page, checkable by a documentation test.
 
