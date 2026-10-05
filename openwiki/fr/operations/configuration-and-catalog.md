@@ -96,7 +96,7 @@ Les variables non secrètes lues ailleurs sont `PIIGHOST_CATALOG_URL` (catalogue
 Le catalogue est la seule source de motifs. La bibliothèque n'en embarque aucun. Une référence s'écrit `namespace/name`, avec un sélecteur facultatif `:tag` ou `:commit`, et le préfixe `catalog:` facultatif. Une référence écrite avec le préfixe `hub:` de la 1.x marche toujours, de même que `PIIGHOST_HUB_URL` quand `PIIGHOST_CATALOG_URL` n'est pas défini.
 
 - Origine : `https://catalog.piighost.dev`, ou `PIIGHOST_CATALOG_URL`. Seuls `http` et `https` sont acceptés.
-- Délai d'attente : 10 secondes (`catalog.py:57`).
+- Délai d'attente : 10 secondes (`catalog.py:59`).
 - Cache : `$XDG_CACHE_HOME/piighost/catalog/`, sinon `~/.cache/piighost/catalog/`. Le nom du fichier est une empreinte SHA-256 de l'URL. Le cache de la 1.x, sous `piighost/hub/`, n'est pas relu, donc chaque référence épinglée est téléchargée une fois de plus.
 - Un détecteur regex ne prend que la partie `?part=detector`. Si la référence décrit un détecteur à modèle, le chargement lève `CatalogPayloadError`. Chargez alors la configuration entière avec `load_config("catalog:…")`.
 
@@ -125,7 +125,7 @@ La première commande affiche `OK: examples/config/pipeline.toml`. La seconde af
 
 - **`validate` ne prouve pas que le pipeline démarre.** Les secrets, les groupes du catalogue et les modèles ne sont lus qu'à la construction (BR-CFG-06).
 - **Construire un fichier qui nomme un groupe du catalogue appelle le réseau** au premier lancement. Un serveur sans accès sortant échoue avec `CatalogUnreachableError`, sauf si le cache est déjà rempli.
-- **Un cache non inscriptible est ignoré en silence** (`catalog.py:298-308`). Le pipeline retélécharge alors à chaque démarrage.
+- **Un cache non inscriptible est ignoré en silence** (`catalog.py:308-318`). Le pipeline retélécharge alors à chaque démarrage.
 - **`anonymize` ne capture que `ConfigError` et `CatalogError`.** Un extra manquant ou un garde-fou qui bloque (`PIIRemainingError`) remonte en trace Python complète.
 - **`--thread-id` vaut `default` par défaut.** Deux appels sans identifiant partagent la même conversation sur un pipeline de conversation.
 
@@ -139,7 +139,7 @@ La première commande affiche `OK: examples/config/pipeline.toml`. La seconde af
 | BR-CFG-04 | `config/settings.py:129-143` (`settings_customise_sources`) |
 | BR-CFG-05 | `config/settings.py:97` (`env_prefix="PIIGHOST_"`, sans délimiteur imbriqué) |
 | BR-CFG-06 | `config/models/hasher.py:40` et `config/models/cipher.py:26-40` (`build`, qui lit le secret) |
-| BR-CFG-07 | `catalog.py:161-184` (`_read`, le cache des seules références à un commit) |
+| BR-CFG-07 | `catalog.py:169-192` (`_read`, le cache des seules références à un commit) |
 | BR-CFG-08 | `config/models/detector.py:102-116` (`build`, catalogues puis motifs en ligne) |
 | BR-CFG-09 | `config/models/detector.py:54-75` (`_catalogs_are_refs`) |
 

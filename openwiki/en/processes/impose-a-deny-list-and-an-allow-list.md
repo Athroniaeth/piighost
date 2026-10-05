@@ -146,17 +146,17 @@ The technical guide shows both lists at work in [How to force a detection or kee
 | BR-LIST-01, BR-LIST-03 | `src/piighost/components/override/detector.py:16-42`, `_clear` lines 145-154 |
 | BR-LIST-02 | `detector.py:126-143` (`_force`) |
 | BR-LIST-04 | `detector.py:88-108` (`apply`), `_refuse_collisions` lines 156-166 |
-| BR-LIST-05 | `detector.py:117-124` (`forces_value`), `pipeline/thread.py:322-329` |
-| BR-LIST-06 | `pipeline/thread.py:210` (`anonymize_corrected`) |
-| BR-LIST-07 | `pipeline/base.py:225-234` (`_cleared_values`), `pipeline/base.py:313-341` (`_guard`) |
-| BR-LIST-08 | `pipeline/thread.py:271-287` (`_detect` reapplies nothing on a cached message) |
+| BR-LIST-05 | `detector.py:117-124` (`forces_value`), `pipeline/thread.py:317-324` |
+| BR-LIST-06 | `pipeline/thread.py:205` (`anonymize_corrected`) |
+| BR-LIST-07 | `pipeline/base.py:225-234` (`_cleared_values`), `pipeline/base.py:333-371` (`_guard`) |
+| BR-LIST-08 | `pipeline/thread.py:266-282` (`_detect` reapplies nothing on a cached message) |
 | Strategies and defaults | `components/override/strategy.py`, `config/models/override.py:52-58` |
 | Refusal of the 1.x names (DEC-09) | `config/models/override.py:14-32`, `_refuse_renamed_keys` and `_refuse_renamed_conflict_values` lines 60-90 |
 | Deny list and allow list in the server | `piighost-api` reads the same `[override]` section of its configuration |
 
 Related components: `AnyDetectionOverride` (port, without template), `DetectionOverride` (implementation driven by two detectors), `AllowListStrategy`, `DenyListStrategy`, `OverrideConflictStrategy`, `ConflictingOverrideError`.
 
-Position in the pipeline: right after detection, before overlaps and expansion (`pipeline/base.py:364-371`). In the conversation pipeline, before each write to memory (`pipeline/thread.py:276-286`).
+Position in the pipeline: right after detection, before overlaps and expansion (`pipeline/base.py:385-392`). In the conversation pipeline, before each write to memory (`pipeline/thread.py:271-281`).
 
 ### Configure the lists
 

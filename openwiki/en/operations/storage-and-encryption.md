@@ -71,7 +71,7 @@ Encrypting a storage relies on two components, always configured together:
 
 **BR-STO-01.** When you supply a hasher without a cipher, or a cipher without a hasher, then the build fails. In code, the error is `ValueError("Provide both a hasher and a cipher, or neither")`. In configuration, it is `ConfigError("Configure both a hasher and a cipher, or neither")`. Hashing the keys while leaving the values in clear protects nothing.
 
-**BR-STO-02.** When Redis or a SQL database is built without encryption, then a `PIIGhostSecurityWarning` is emitted. A SQLite database is the exception and does not trigger the warning (`conversation_memory/sqlalchemy_backend.py:99-100`).
+**BR-STO-02.** When Redis or a SQL database is built without encryption, then a `PIIGhostSecurityWarning` is emitted. A SQLite database is the exception and does not trigger the warning (`conversation_memory/sqlalchemy_backend.py:103-104`).
 
 **BR-STO-03.** When encryption is active, then the conversation identifier stays in clear. It serves as the Redis key prefix and as a SQL column, so that a conversation can be listed and erased. Do not put personal data in it (an e-mail address, a name).
 
@@ -149,12 +149,12 @@ The pipeline opens one span per stage (`piighost.detect`, `piighost.link`, `piig
 
 | Rule | Location |
 |---|---|
-| BR-STO-01 | `conversation_memory/base.py:59-71` (`require_paired_crypto`), `config/models/memory.py:61` (the same rejection in configuration) |
-| BR-STO-02 | `conversation_memory/base.py:43` (`warn_plaintext`), called by `conversation_memory/redis_backend.py:105` and `conversation_memory/sqlalchemy_backend.py:99-100`, which spares SQLite |
-| BR-STO-03 | `conversation_memory/redis_backend.py:107-113` (`_index_key`, keys prefixed by the conversation identifier), `conversation_memory/sqlalchemy_backend.py:92` (`thread_id` column) |
-| BR-STO-04 | `conversation_memory/memory.py:45-62` (`__init__`, bounds `DEFAULT_MAX_THREADS` and `DEFAULT_TTL` at lines 13 and 20), `_expired` lines 140-144, `_evict` lines 150-157 |
-| BR-STO-05 | `conversation_memory/redis_backend.py:148-152` (`remember`, expiration of the message and of the index) |
-| BR-STO-06 | `pipeline/thread.py:244-262` (`forget_thread`), `pipeline/thread.py:29` (`_TOKEN_MEMO_MAX = 256`) |
+| BR-STO-01 | `conversation_memory/base.py:60-72` (`require_paired_crypto`), `config/models/memory.py:61` (the same rejection in configuration) |
+| BR-STO-02 | `conversation_memory/base.py:44` (`warn_plaintext`), called by `conversation_memory/redis_backend.py:104` and `conversation_memory/sqlalchemy_backend.py:103-104`, which spares SQLite |
+| BR-STO-03 | `conversation_memory/redis_backend.py:106-112` (`_index_key`, keys prefixed by the conversation identifier), `conversation_memory/sqlalchemy_backend.py:96` (`thread_id` column) |
+| BR-STO-04 | `conversation_memory/memory.py:47-64` (`__init__`, bounds `DEFAULT_MAX_THREADS` and `DEFAULT_TTL` at lines 13 and 20), `_expired` lines 140-144, `_evict` lines 150-157 |
+| BR-STO-05 | `conversation_memory/redis_backend.py:147-151` (`remember`, expiration of the message and of the index) |
+| BR-STO-06 | `pipeline/thread.py:239-257` (`forget_thread`), `pipeline/thread.py:29` (`_TOKEN_MEMO_MAX = 256`) |
 | BR-STO-07 | `crypto/cipher/aesgcm.py:46-52` (`AesGcmCipher.__init__`) |
 | BR-STO-08 | `pipeline/base.py:190-202` (the warning of `__init__`, acknowledged by `trace_clear_text`) |
 

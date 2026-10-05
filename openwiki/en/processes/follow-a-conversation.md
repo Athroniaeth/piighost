@@ -168,19 +168,19 @@ The technical guide builds a conversation pipeline step by step in [Conversation
 
 | Rule | Location |
 |---|---|
-| BR-CONV-01, BR-CONV-07 | `src/piighost/pipeline/thread.py:289-339` (`_thread_tokens` over the union of the detections), `components/placeholder/base.py:145-156` |
-| BR-CONV-02 | `conversation_memory/memory.py` (storage per `thread_id`), `pipeline/thread.py:219-231` (`deanonymize`) |
-| BR-CONV-03 | `integrations/langchain/middleware.py:47-66` (`_thread_id`), `integrations/claude_code/hooks.py:101-105`, `piighost-api` (`app.py`, `thread_id` required on the conversation routes) |
-| BR-CONV-04 | `pipeline/thread.py:322-329`, `conversation_memory/memory.py` (`get_provenance`), `integrations/langchain/middleware.py:370` (`_message_role`) |
-| BR-CONV-05 | `pipeline/thread.py:219-231` (`deanonymize`) |
+| BR-CONV-01, BR-CONV-07 | `src/piighost/pipeline/thread.py:284-334` (`_thread_tokens` over the union of the detections), `components/placeholder/base.py:145-156` |
+| BR-CONV-02 | `conversation_memory/memory.py` (storage per `thread_id`), `pipeline/thread.py:214-226` (`deanonymize`) |
+| BR-CONV-03 | `integrations/langchain/middleware.py:47-66` (`_thread_id`), `integrations/claude_code/hooks.py:93-97`, `piighost-api` (`app.py`, `thread_id` required on the conversation routes) |
+| BR-CONV-04 | `pipeline/thread.py:317-324`, `conversation_memory/memory.py` (`get_provenance`), `integrations/langchain/middleware.py:370` (`_message_role`) |
+| BR-CONV-05 | `pipeline/thread.py:214-226` (`deanonymize`) |
 | BR-CONV-06 | `integrations/_deidentify.py:133-155` (`_handle_invented`) |
-| BR-CONV-07 | `pipeline/thread.py:190-217` (`anonymize_corrected`), per-message rendering on lines 159-178 |
-| BR-CONV-08 | `pipeline/thread.py:264-287` (`_detect`) |
-| BR-CONV-09 | `pipeline/thread.py:244-262` (`forget_thread`) |
+| BR-CONV-07 | `pipeline/thread.py:185-212` (`anonymize_corrected`), per-message rendering on lines 159-178 |
+| BR-CONV-08 | `pipeline/thread.py:259-282` (`_detect`) |
+| BR-CONV-09 | `pipeline/thread.py:239-257` (`forget_thread`) |
 | BR-CONV-10 | `conversation_memory/redis_backend.py` |
-| BR-CONV-11 | `conversation_memory/memory.py:13-25` (`DEFAULT_MAX_THREADS`, `DEFAULT_TTL`), `config/models/memory.py` (`InMemoryConfig`) |
+| BR-CONV-11 | `conversation_memory/memory.py:15-27` (`DEFAULT_MAX_THREADS`, `DEFAULT_TTL`), `config/models/memory.py` (`InMemoryConfig`) |
 
-Related components: `ThreadAnonymizationPipeline`, `AnyConversationMemory` (`remember`, `get_detections`, `get_provenance`, `forget`), `MessageRole`, `Forgotten`, `thread_token_map`, `TextDeidentifier`, `DEFAULT_THREAD_ID` (`conversation_memory/base.py:31`), `MissingThreadIdError`, `InventedPlaceholderStrategy`, `EntityCreateByAssistantStrategy`.
+Related components: `ThreadAnonymizationPipeline`, `AnyConversationMemory` (`remember`, `get_detections`, `get_provenance`, `forget`), `MessageRole`, `Forgotten`, `thread_token_map`, `TextDeidentifier`, `DEFAULT_THREAD_ID` (`conversation_memory/base.py:33`), `MissingThreadIdError`, `InventedPlaceholderStrategy`, `EntityCreateByAssistantStrategy`.
 
 Mechanics: placeholders are assigned over the union of the detections of all messages, in order of first appearance. The rendering replaces only the positions of the current message, because the detections of different messages share the same position space.
 
@@ -201,7 +201,7 @@ After the correction, `await pipeline.thread_token_map(thread_id)` must show the
 ### Pitfalls
 
 - **No integration falls back to `default`.** The LangChain middleware and the Claude Code hooks raise `MissingThreadIdError`, and the server answers 400 on its `/v1/anonymize`, `/v1/anonymize/corrected` and `/v1/deanonymize` routes. Only the `piighost anonymize` command keeps `--thread-id default`, for a standalone command. Without an `X-PIIGhost-Thread-Id` header, the `/openai/v1` and `/anthropic/v1` proxies draw an ephemeral identifier and erase its conversation at the end of the request (`piighost-api:src/piighost_api/routes/_relay.py:49-54`).
-- **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts the numbering. A correction does it (BR-CONV-07), but also the expiry of a Redis message with `ttl`, which `_read_all` drops from the union (`conversation_memory/redis_backend.py:200-228`).
+- **The numbering depends on the order of the union.** Anything that removes an old message from the union shifts the numbering. A correction does it (BR-CONV-07), but also the expiry of a Redis message with `ttl`, which `_read_all` drops from the union (`conversation_memory/redis_backend.py:196-224`).
 - **The in-process memory forgets silently.** An evicted or expired conversation (BR-CONV-11) raises nothing. Its placeholders stay as is at restoration. `max_threads=None` and `ttl=None` lift the bounds.
 - **Provenance applies to the value key** (`value_key`), so to every spelling of a value.
 - **The placeholder cache is memoized per process** (256 maps at most, `_TOKEN_MEMO_MAX`). See [Store conversations](../operations/storage-and-encryption.md) for the effect on erasure with multiple processes, and `token_memo_ttl` to bound it.

@@ -96,7 +96,7 @@ The non-secret variables read elsewhere are `PIIGHOST_CATALOG_URL` (private cata
 The catalog is the only source of patterns. The library ships none. A reference is written `namespace/name`, with an optional `:tag` or `:commit` selector, and the optional `catalog:` prefix. A reference written with the 1.x `hub:` prefix still works, and so does `PIIGHOST_HUB_URL` when `PIIGHOST_CATALOG_URL` is unset.
 
 - Origin: `https://catalog.piighost.dev`, or `PIIGHOST_CATALOG_URL`. Only `http` and `https` are accepted.
-- Timeout: 10 seconds (`catalog.py:57`).
+- Timeout: 10 seconds (`catalog.py:59`).
 - Cache: `$XDG_CACHE_HOME/piighost/catalog/`, otherwise `~/.cache/piighost/catalog/`. The file name is a SHA-256 digest of the URL. The 1.x cache, under `piighost/hub/`, is not read, so each pinned reference is downloaded once more.
 - A regex detector takes only the `?part=detector` part. If the reference describes a model detector, loading raises `CatalogPayloadError`. In that case, load the whole configuration with `load_config("catalog:…")`.
 
@@ -125,7 +125,7 @@ The first command prints `OK: examples/config/pipeline.toml`. The second prints 
 
 - **`validate` does not prove that the pipeline starts.** Secrets, catalog groups and models are read only at build time (BR-CFG-06).
 - **Building a file that names a catalog group calls the network** on the first run. A server without outbound access fails with `CatalogUnreachableError`, unless the cache is already filled.
-- **A non-writable cache is silently ignored** (`catalog.py:298-308`). The pipeline then downloads again at each start.
+- **A non-writable cache is silently ignored** (`catalog.py:308-318`). The pipeline then downloads again at each start.
 - **`anonymize` catches only `ConfigError` and `CatalogError`.** A missing extra or a guard rail that blocks (`PIIRemainingError`) surfaces as a full Python traceback.
 - **`--thread-id` is `default` by default.** Two calls without an identifier share the same conversation on a conversation pipeline.
 
@@ -139,7 +139,7 @@ The first command prints `OK: examples/config/pipeline.toml`. The second prints 
 | BR-CFG-04 | `config/settings.py:129-143` (`settings_customise_sources`) |
 | BR-CFG-05 | `config/settings.py:97` (`env_prefix="PIIGHOST_"`, without a nested delimiter) |
 | BR-CFG-06 | `config/models/hasher.py:40` and `config/models/cipher.py:26-40` (`build`, which reads the secret) |
-| BR-CFG-07 | `catalog.py:161-184` (`_read`, the cache of commit references only) |
+| BR-CFG-07 | `catalog.py:169-192` (`_read`, the cache of commit references only) |
 | BR-CFG-08 | `config/models/detector.py:102-116` (`build`, catalogs then inline patterns) |
 | BR-CFG-09 | `config/models/detector.py:54-75` (`_catalogs_are_refs`) |
 

@@ -146,17 +146,17 @@ Le guide technique montre les deux listes à l'œuvre dans [Comment forcer une d
 | BR-LIST-01, BR-LIST-03 | `src/piighost/components/override/detector.py:16-42`, `_clear` lignes 145-154 |
 | BR-LIST-02 | `detector.py:126-143` (`_force`) |
 | BR-LIST-04 | `detector.py:88-108` (`apply`), `_refuse_collisions` lignes 156-166 |
-| BR-LIST-05 | `detector.py:117-124` (`forces_value`), `pipeline/thread.py:322-329` |
-| BR-LIST-06 | `pipeline/thread.py:210` (`anonymize_corrected`) |
-| BR-LIST-07 | `pipeline/base.py:225-234` (`_cleared_values`), `pipeline/base.py:313-341` (`_guard`) |
-| BR-LIST-08 | `pipeline/thread.py:271-287` (`_detect` ne réapplique rien sur un message en cache) |
+| BR-LIST-05 | `detector.py:117-124` (`forces_value`), `pipeline/thread.py:317-324` |
+| BR-LIST-06 | `pipeline/thread.py:205` (`anonymize_corrected`) |
+| BR-LIST-07 | `pipeline/base.py:225-234` (`_cleared_values`), `pipeline/base.py:333-371` (`_guard`) |
+| BR-LIST-08 | `pipeline/thread.py:266-282` (`_detect` ne réapplique rien sur un message en cache) |
 | Stratégies et défauts | `components/override/strategy.py`, `config/models/override.py:52-58` |
 | Refus des noms de la 1.x (DEC-09) | `config/models/override.py:14-32`, `_refuse_renamed_keys` et `_refuse_renamed_conflict_values` lignes 60-90 |
 | Liste à masquer et liste à laisser en clair dans le serveur | `piighost-api` lit la même section `[override]` de sa configuration |
 
 Composants liés : `AnyDetectionOverride` (port, sans gabarit), `DetectionOverride` (implémentation pilotée par deux détecteurs), `AllowListStrategy`, `DenyListStrategy`, `OverrideConflictStrategy`, `ConflictingOverrideError`.
 
-Position dans le pipeline : juste après la détection, avant les chevauchements et l'expansion (`pipeline/base.py:364-371`). Dans le pipeline de conversation, avant chaque écriture en mémoire (`pipeline/thread.py:276-286`).
+Position dans le pipeline : juste après la détection, avant les chevauchements et l'expansion (`pipeline/base.py:385-392`). Dans le pipeline de conversation, avant chaque écriture en mémoire (`pipeline/thread.py:271-281`).
 
 ### Configurer les listes
 

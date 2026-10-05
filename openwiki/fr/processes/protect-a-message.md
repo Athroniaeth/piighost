@@ -153,17 +153,17 @@ Rien. Il écrit en clair et lit une réponse en clair. Seul le modèle voit les 
 
 | Règle | Emplacement |
 |---|---|
-| Ordre des étapes | `src/piighost/pipeline/base.py:352-393` (`AnonymizationPipeline.anonymize`), liste à masquer et liste à laisser en clair ligne 365 |
+| Ordre des étapes | `src/piighost/pipeline/base.py:372-408` (`AnonymizationPipeline.anonymize`), liste à masquer et liste à laisser en clair ligne 385 |
 | BR-MSG-01 | `components/placeholder/label_counter.py`, défaut `pipeline/base.py:172` |
-| BR-MSG-02 | `components/linker/exact.py:8-21`, `text/normalization.py:61-71` (`value_key`) |
+| BR-MSG-02 | `components/linker/exact.py:8-21`, `text/normalization.py:66-76` (`value_key`) |
 | BR-MSG-03 | `components/anonymizer/base.py:151` (`deanonymize` remplace par `entity.text`), `models/entity.py` |
-| BR-MSG-04 | `text/boundaries.py:38` (`WORD_JOIN_CHARS`) |
+| BR-MSG-04 | `text/boundaries.py:9-27` (`WORD_JOIN_CHARS`) |
 | BR-MSG-05 | `components/overlap_resolver/confidence.py:10-21`, `merge.py:7-15` (`_surest`), `overlap_resolver/base.py` (`by_confidence`, `_conflict_groups`) |
-| BR-MSG-06 | `text/normalization.py:45-58`, `components/detector/regex.py:76-90` |
+| BR-MSG-06 | `text/normalization.py:50-63`, `components/detector/regex.py:76-90` |
 | BR-MSG-07 | `components/detector/regex.py:10-30` |
 | BR-MSG-08 | `components/detector/regex.py:33-57` (`from_catalog`), `config/models/detector.py` (`catalogs`) |
 | BR-MSG-09 | `components/anonymizer/span.py:26-40`, `_neutralize` ligne 79 |
-| BR-MSG-10, BR-MSG-11 | `pipeline/base.py:313-341` (`_guard`) |
+| BR-MSG-10, BR-MSG-11 | `pipeline/base.py:333-371` (`_guard`) |
 | BR-MSG-12 | `components/expander/word_boundary.py:11-31` |
 
 Quand seul le détecteur est fourni, les valeurs par défaut sont `ExactEntityLinker`, `Anonymizer(LabelCounterPlaceholderFactory())` et `ConfidenceOverlapResolver` (`pipeline/base.py:168-182`). L'expansion, la résolution d'entités, la liste à masquer et la liste à laisser en clair (`override`) et le contrôle final (`guard`) sont désactivés.
@@ -209,7 +209,7 @@ Puis `echo "Tél. 06 12 34 56 78" | uv run piighost anonymize --config <fichier>
 - **Le caractère de neutralisation reste dans le texte restauré.** Un jeton tapé par l'utilisateur revient avec un U+200B invisible après son premier caractère. Un traitement en aval qui compare des chaînes exactes peut échouer. `Anonymizer(factory, escape_existing_tokens=False)` désactive la neutralisation, au prix de BR-MSG-09.
 - **`RegexDetector` compile sous `re.ASCII`.** `\d` ne prend que 0 à 9, et `\w` s'arrête au premier caractère accentué.
 - **Un détecteur seul peut rendre des détections qui se chevauchent.** Le port l'autorise. Ne testez pas la sortie d'un détecteur seul comme si elle était déjà passée par le résolveur de chevauchements.
-- **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste à laisser en clair ne peuvent pas en être exemptées (`pipeline/base.py:318-322`).
+- **Un garde-fou à score (modération) ne localise rien.** Les valeurs de la liste à laisser en clair ne peuvent pas en être exemptées (`pipeline/base.py:338-342`).
 - **`LLMDetector` échoue fermé.** Une sortie du modèle illisible, sans champ `entities` ou que le parseur rejette, lève `UnreadableOutputError` et le message est refusé (`components/detector/llm.py:174-181`, `_unreadable` en `:203`). `fail_open=True` la lit comme zéro détection, et le message part alors sans protection. Voir DPO-9 dans [Besoins par profil](../needs-by-profile.md#points-de-vigilance).
 
 ### Tests
