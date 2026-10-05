@@ -82,7 +82,7 @@ The user read "Hello Jean Dupont, I am writing to you at jean.dupont@exemple.fr.
 
 **BR-STREAM-06.** When a completed placeholder was never issued, then the invented placeholder setting applies. By default, it refuses the placeholder, which interrupts the stream. The two other choices drop the placeholder or keep it.
 
-| Setting | "Hello <<PERSON:" then "9>>." gives |
+| Setting | "Hello `<<PERSON:`" then "`9>>`." gives |
 |---|---|
 | Refuse (default) | "Hello", then the stream is interrupted by an error |
 | Drop | "Hello ." |

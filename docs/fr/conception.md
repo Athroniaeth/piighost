@@ -378,7 +378,7 @@ C'est le `PIIAnonymizationMiddleware`, qui intervient en trois points.
 
 Le middleware ne contient aucune logique de dé-identification. Il délègue tout au
 pipeline conversationnel. C'est un simple adaptateur entre le monde LangChain et le
-coeur. Il exige, dès le typage, une factory qui préserve l'identité. Il reconnaît aussi
+cœur. Il exige, dès le typage, une factory qui préserve l'identité. Il reconnaît aussi
 les jetons que le modèle invente (`InventedPlaceholderStrategy`). Il les reconnaît parce
 qu'après la restauration, tout jeton qui suit encore la grammaire des placeholders n'a
 pas été émis par le pipeline.
