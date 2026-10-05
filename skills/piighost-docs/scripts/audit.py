@@ -42,10 +42,7 @@ LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 NAVS = (("docs/zensical.toml", EN), ("docs/zensical.fr.toml", FR))
 
 # Pages the nav never lists: an include is pulled in by a snippet, not navigated to.
-# Pages kept out of the nav on purpose. why-anonymize.md is the case for
-# de-identification, read before either documentation: the site links it from
-# its home and from the domain quickstart, not from the technical menu.
-NAV_EXEMPT = ("includes/", "why-anonymize.md")
+NAV_EXEMPT = ("includes/",)
 
 # Lines that deliberately contrast de-identification with anonymisation. Keyed by
 # the marker they carry, so the list survives a page being re-flowed.
