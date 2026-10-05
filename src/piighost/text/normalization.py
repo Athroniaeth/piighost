@@ -9,30 +9,35 @@ holds the one definition every stage shares, so no pattern and no component has
 to list those characters itself.
 """
 
-_SPACE_CODE_POINTS = (
-    0x00A0,
-    0x1680,
-    *range(0x2000, 0x200B),
-    0x202F,
-    0x205F,
-    0x3000,
+SPACE_SEPARATORS = (
+    "\u00a0"  # no-break space
+    "\u1680"  # ogham space mark
+    "\u2000"  # en quad
+    "\u2001"  # em quad
+    "\u2002"  # en space
+    "\u2003"  # em space
+    "\u2004"  # three-per-em space
+    "\u2005"  # four-per-em space
+    "\u2006"  # six-per-em space
+    "\u2007"  # figure space
+    "\u2008"  # punctuation space
+    "\u2009"  # thin space
+    "\u200a"  # hair space
+    "\u202f"  # narrow no-break space
+    "\u205f"  # medium mathematical space
+    "\u3000"  # ideographic space
 )
-"""Code points of the Unicode space separators (category Zs) but U+0020.
+"""Every Unicode space separator other than the ASCII space, each read as one.
 
-The no-break space, the ogham space mark, the en and em quads and spaces, the
-three-, four- and six-per-em spaces, the figure, punctuation, thin and hair
-spaces (U+2000 to U+200A), the narrow no-break space, the medium mathematical
-space and the ideographic space. Written as numbers, since the characters
-themselves are invisible in source.
+The Unicode space separators (category Zs) but U+0020. Written as escapes, since
+the characters themselves are invisible in source.
 """
 
-_LINE_CODE_POINTS = (0x0085, 0x2028, 0x2029)
-"""Code points of the next-line control and the Unicode line and paragraph separators."""
-
-SPACE_SEPARATORS = "".join(map(chr, _SPACE_CODE_POINTS))
-"""Every Unicode space separator other than the ASCII space, each read as one."""
-
-LINE_SEPARATORS = "".join(map(chr, _LINE_CODE_POINTS))
+LINE_SEPARATORS = (
+    "\u0085"  # next line, a C1 control
+    "\u2028"  # line separator
+    "\u2029"  # paragraph separator
+)
 """Every Unicode line separator other than the ASCII newline, each read as one."""
 
 _TO_ASCII = str.maketrans(
