@@ -18,6 +18,7 @@ Copy `examples/.env.example` to `examples/.env` and fill it in first.
 | [`anonymize_basic.py`](anonymize_basic.py) | Anonymize a text and restore it with the base pipeline. |
 | [`thread_conversation.py`](thread_conversation.py) | Anonymize a whole conversation with the thread-aware pipeline. |
 | [`guard_rail.py`](guard_rail.py) | Catch residual PII with a deterministic guard rail. |
+| [`guard_rail_laya.py`](guard_rail_laya.py) | Ask Laya, an open decision model, whether PII is left, as a custom guard rail. |
 | [`placeholder_styles.py`](placeholder_styles.py) | Compare placeholder styles on one text. |
 
 ## LangChain
