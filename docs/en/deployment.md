@@ -142,19 +142,19 @@ volumes:
   cache:
 ```
 
-The mounted `pipeline.toml` is the file above, with its `url` set to `redis://redis:6379/0`, the address of the `redis` service. `API_KEY_DEFAULT` holds a key printed by `keyshield generate`, and the server refuses to start without one. The image carries the Redis client and the Argon2 hasher, and `EXTRA_PACKAGES` adds the AES-GCM cipher. The `cache` volume keeps the hub references pinned to a commit, the model weights and the packages of `EXTRA_PACKAGES` across container restarts.
+The mounted `pipeline.toml` is the file above, with its `url` set to `redis://redis:6379/0`, the address of the `redis` service. `API_KEY_DEFAULT` holds a key printed by `keyshield generate`, and the server refuses to start without one. The image carries the Redis client and the Argon2 hasher, and `EXTRA_PACKAGES` adds the AES-GCM cipher. The `cache` volume keeps the catalog references pinned to a commit, the model weights and the packages of `EXTRA_PACKAGES` across container restarts.
 
 The image reads these variables:
 
 | Variable | Default | Effect |
 |---|---|---|
-| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | The config file or hub reference to serve. The image ships a default config, which loads every regex group of the hub. A mounted file or a hub reference replaces it |
+| `PIIGHOST_CONFIG` | `/app/pipeline.toml` | The config file or catalog reference to serve. The image ships a default config, which loads every regex group of the catalog. A mounted file or a catalog reference replaces it |
 | `API_HOST` | `0.0.0.0` | Bind host |
 | `API_PORT` | `8000` | Bind port |
 | `LOG_LEVEL` | `info` | Log level |
 | `EXTRA_PACKAGES` | empty | Packages installed with `uv pip install` at container start, such as `piighost[gliner2]` for a configuration that runs GLiNER2 |
 
-To serve a hub configuration instead of a file, set `PIIGHOST_CONFIG` to its reference and add the Redis memory with a `PIIGHOST_MEMORY` variable, as shown in [Server CLI](reference/api-cli.md). Each container runs a single server process, so scale by adding containers on the same Redis memory. Every route, the proxies included, is listed in [API endpoints](reference/api-endpoints.md).
+To serve a catalog configuration instead of a file, set `PIIGHOST_CONFIG` to its reference and add the Redis memory with a `PIIGHOST_MEMORY` variable, as shown in [Server CLI](reference/api-cli.md). Each container runs a single server process, so scale by adding containers on the same Redis memory. Every route, the proxies included, is listed in [API endpoints](reference/api-endpoints.md).
 
 ## See also
 

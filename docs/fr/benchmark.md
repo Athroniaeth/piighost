@@ -24,7 +24,7 @@ Pour le savoir, le banc d'essai ajoute une étape à la fois, avec le même mod�
 | E | D, plus l'expander par mot entier |
 | F | E, plus le résolveur d'entités, la config complète |
 
-Chaque marche est mesurée avec deux modèles. L'un est GLiNER2 (`fastino/gliner2-multi-v1`, le modèle de la config `fr-notarial` du hub). L'autre est `onnx-community/gliner_multi_pii-v1` en ONNX, appelé via `BridgeDetector`, le moteur qui tourne dans le navigateur.
+Chaque marche est mesurée avec deux modèles. L'un est GLiNER2 (`fastino/gliner2-multi-v1`, le modèle de la config `fr-notarial` du catalogue). L'autre est `onnx-community/gliner_multi_pii-v1` en ONNX, appelé via `BridgeDetector`, le moteur qui tourne dans le navigateur.
 
 ## Les données
 
@@ -84,7 +84,7 @@ Sur les actes générés, pipeline GLiNER2 complet :
 
 ## Ce que le banc d'essai a changé
 
-Chaque passage du banc d'essai a trouvé un défaut. Ce défaut a été corrigé dans la librairie ou dans la config `fr-notarial` du hub avant le passage suivant.
+Chaque passage du banc d'essai a trouvé un défaut. Ce défaut a été corrigé dans la librairie ou dans la config `fr-notarial` du catalogue avant le passage suivant.
 
 - **`piighost` 1.9.0.** L'expander par mot entier pouvait ajouter une occurrence à l'intérieur d'une détection retenue. Le rendu levait alors `OverlappingSpansError`, sur 163 des 200 actes générés. Les téléphones français composés avec des espaces insécables n'étaient jamais reconnus. Une adresse e-mail accentuée était reconnue à partir de sa première suite ASCII. Une config de détecteur ne pouvait pas fixer `max_chars`. Un modèle construit depuis une config lisait donc un acte entier d'un coup, et manquait de mémoire au-delà de 13 000 caractères.
 - **Les dates.** Une date de naissance est un identifiant direct. Aucun des deux modèles du banc d'essai n'a été interrogé dessus, donc ce sont les règles qui la trouvent. `fr-notarial` masque toutes les dates françaises, parce qu'un motif ne distingue pas une date de naissance de la date de l'acte. Elle épargne la date d'un texte de loi numéroté ("loi n° 89-462 du 6 juillet 1989").
@@ -114,5 +114,5 @@ Ces motifs sont faits pour une config de documents. Une config de conversation n
 ## Voir aussi
 
 - [Limites](limitations.md) : ce que la détection ne peut pas promettre, quel que soit son score.
-- [Détecteurs prêts à l'emploi](examples/detectors.md) : les catalogues regex du hub et les modèles.
+- [Détecteurs prêts à l'emploi](examples/detectors.md) : les groupes regex du catalogue et les modèles.
 - [Référence TOML](configuration/toml.md) : `max_chars` et les clés des détecteurs.

@@ -1,7 +1,7 @@
-# --8<-- [start:hub]
+# --8<-- [start:catalog]
 Contact <<EMAIL:1>> from <<IPV4:1>>.
 Contact alice@example.com from 192.168.1.42.
-# --8<-- [end:hub]
+# --8<-- [end:catalog]
 # --8<-- [start:reply]
 I sent the message to alice@example.com.
 # --8<-- [end:reply]

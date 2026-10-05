@@ -1,6 +1,6 @@
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic"]
+catalogs = ["catalog:piighost/generic"]
 
 [override]
 allow_list_strategy = "value"

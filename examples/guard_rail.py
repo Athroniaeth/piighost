@@ -34,7 +34,7 @@ STRUCTURED = {
 }
 """Shapes the guard looks for, kept inline so the example needs no network.
 
-RegexDetector.from_hub("hub:piighost/generic") runs a reviewed set instead.
+RegexDetector.from_catalog("catalog:piighost/generic") runs a reviewed set instead.
 """
 
 

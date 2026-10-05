@@ -13,7 +13,7 @@ The detectors and modes `piighost` ships line up against two regulatory framewor
 
 HIPAA is the United States health-data law. Its Safe Harbor method sets two conditions. You remove 18 categories of identifiers from a record, and you hold no actual knowledge that the remainder could re-identify someone. The record is then no longer protected health information and leaves the scope of the rule. Safe Harbor is a de-identification target, not a lossless transform, because it destroys data that depends on exact dates or places.
 
-The table below maps each of the 18 identifiers onto the detectors `piighost` ships and the regex catalogs of the hub. "Custom" means no hub catalog carries a pattern for that identifier. You cover it with a `RegexDetector` pattern for your local format, or with the `LLMDetector`.
+The table below maps each of the 18 identifiers onto the detectors `piighost` ships and the regex groups of the catalog. "Custom" means no catalog group carries a pattern for that identifier. You cover it with a `RegexDetector` pattern for your local format, or with the `LLMDetector`.
 
 <div class="wide-table" markdown="1">
 
@@ -40,7 +40,7 @@ The table below maps each of the 18 identifiers onto the detectors `piighost` sh
 
 </div>
 
-The regex catalogs of the hub match a value on its shape alone, with no checksum validation. So they never drop an OCR-mangled value, but they also accept a string that has the right shape without being a real value. See [Limitations](limitations.md).
+The regex groups of the catalog match a value on its shape alone, with no checksum validation. So they never drop an OCR-mangled value, but they also accept a string that has the right shape without being a real value. See [Limitations](limitations.md).
 
 ## GDPR
 

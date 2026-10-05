@@ -96,13 +96,13 @@ SNIPPETS: list[Any] = [
     "server_connect.py",
     "server_middleware.py",
     "server_proxy_upstream.py",
-    # These reach the hub or download a model.
+    # These reach the catalog or download a model.
     pytest.param("basic.py", marks=pytest.mark.integration),
-    pytest.param("detector_hub.py", marks=pytest.mark.integration),
+    pytest.param("detector_catalog.py", marks=pytest.mark.integration),
     pytest.param("detector_gliner2.py", marks=pytest.mark.integration),
-    pytest.param("overrides_deny_list_hub.py", marks=pytest.mark.integration),
+    pytest.param("overrides_deny_list_catalog.py", marks=pytest.mark.integration),
     pytest.param("overrides_config.py", marks=pytest.mark.integration),
-    pytest.param("detectors_hub.py", marks=pytest.mark.integration),
+    pytest.param("detectors_catalog.py", marks=pytest.mark.integration),
     pytest.param("detectors_merge.py", marks=pytest.mark.integration),
     pytest.param("detectors_pick.py", marks=pytest.mark.integration),
     pytest.param("detectors_composite.py", marks=pytest.mark.integration),
@@ -110,9 +110,9 @@ SNIPPETS: list[Any] = [
     pytest.param("extending_gliner2.py", marks=pytest.mark.integration),
     pytest.param("langchain_pipeline.py", marks=pytest.mark.integration),
     pytest.param("pydantic_ai_pipeline.py", marks=pytest.mark.integration),
-    pytest.param("reference_regex_hub.py", marks=pytest.mark.integration),
+    pytest.param("reference_regex_catalog.py", marks=pytest.mark.integration),
     pytest.param("reference_guard.py", marks=pytest.mark.integration),
-    pytest.param("reference_hub_pipeline.py", marks=pytest.mark.integration),
+    pytest.param("reference_catalog_pipeline.py", marks=pytest.mark.integration),
     pytest.param("reference_composite.py", marks=pytest.mark.integration),
     pytest.param("reference_chunked.py", marks=pytest.mark.integration),
     pytest.param("reference_transformers.py", marks=pytest.mark.integration),
@@ -182,7 +182,7 @@ REQUIRES = {
     "llama_index_rag.py": "llama_index.core",
     "reference_llm_detector.py": "langchain",
     "reference_langchain.py": "langchain",
-    "reference_hub_pipeline.py": "gliner2",
+    "reference_catalog_pipeline.py": "gliner2",
     "reference_composite.py": "gliner2",
     "reference_chunked.py": "spacy",
     "reference_transformers.py": "transformers",
@@ -445,7 +445,7 @@ def test_every_example_is_listed() -> None:
     "config", sorted(path.name for path in SNIPPETS_DIR.glob("*.toml"))
 )
 def test_a_config_example_is_valid(config: str) -> None:
-    """A configuration a page shows parses, hub references included."""
+    """A configuration a page shows parses, catalog references included."""
     load_config(SNIPPETS_DIR / config)
 
 

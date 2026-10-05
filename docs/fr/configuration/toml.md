@@ -115,21 +115,21 @@ Discriminé sur `type`. Requis.
 
 ### `type = "regex"`
 
-Applique un regex par label, tiré des `patterns` en ligne, des `catalogs` du hub, ou des deux. Les catalogues fusionnent d'abord, puis les patterns en ligne. Un pattern en ligne l'emporte donc sur un pattern de catalogue de même label. Au moins un pattern en ligne ou un catalogue est requis. Au chargement, chaque pattern est validé comme un regex compilable. Il est ensuite compilé sous `re.ASCII`, donc `\d` correspond à `0-9` et `\w` s'arrête au premier caractère non ASCII. Un motif écrit avec `\w` reconnaît donc `prénom@corp.com`{ .pii } à partir de `nom`. Pour inclure toutes les lettres, limitez le drapeau Unicode à la classe, `(?u:\w)`, ou nommez une plage. Le motif `EMAIL` de `hub:piighost/generic` nomme ainsi la plage latine `À-ɏ`. Voir [Limites](../limitations.md) pour ce que chaque choix manque.
+Applique un regex par label, tiré des `patterns` en ligne, des groupes du catalogue listés dans `catalogs`, ou des deux. Les groupes fusionnent d'abord, puis les patterns en ligne. Un pattern en ligne l'emporte donc sur un pattern de catalogue de même label. Au moins un pattern en ligne ou un catalogue est requis. Au chargement, chaque pattern est validé comme un regex compilable. Il est ensuite compilé sous `re.ASCII`, donc `\d` correspond à `0-9` et `\w` s'arrête au premier caractère non ASCII. Un motif écrit avec `\w` reconnaît donc `prénom@corp.com`{ .pii } à partir de `nom`. Pour inclure toutes les lettres, limitez le drapeau Unicode à la classe, `(?u:\w)`, ou nommez une plage. Le motif `EMAIL` de `catalog:piighost/generic` nomme ainsi la plage latine `À-ɏ`. Voir [Limites](../limitations.md) pour ce que chaque choix manque.
 
 | Clé | Type | Défaut | Signification |
 |-----|------|--------|---------------|
 | `patterns` | `dict[str, str]` | `{}` | Correspondance label vers regex en ligne |
-| `catalogs` | `list[str]` | `[]` | Références de hub, `hub:namespace/name` avec un `:selector` optionnel. Toute autre entrée échoue à la validation |
+| `catalogs` | `list[str]` | `[]` | Références du catalogue, `catalog:namespace/name` avec un `:selector` optionnel. Une référence `hub:` de la 1.x est toujours acceptée. Toute autre entrée échoue à la validation |
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
+catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
-Un catalogue est récupéré depuis le hub à la construction de la config, pas à sa lecture. Une référence épinglée sur un commit est récupérée une fois, puis relue depuis le cache sur disque. `PIIGHOST_HUB_URL` désigne un registre privé. Les noms `generic`, `us`, `eu` et `fr` sont refusés. Voir [Catalogues de patterns](../reference/detectors.md#catalogues-de-patterns) pour les groupes qui les remplacent.
+Un groupe est récupéré depuis le catalogue à la construction de la config, pas à sa lecture. Une référence épinglée sur un commit est récupérée une fois, puis relue depuis le cache sur disque. `PIIGHOST_CATALOG_URL` désigne un registre privé, et `PIIGHOST_HUB_URL` de la 1.x est toujours lue quand elle n'est pas posée. Les noms `generic`, `us`, `eu` et `fr` sont refusés. Voir [Groupes du catalogue](../reference/detectors.md#groupes-du-catalogue) pour les groupes qui les remplacent.
 
 ### `type = "composite"`
 
@@ -145,7 +145,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["hub:piighost/generic"]
+catalogs = ["catalog:piighost/generic"]
 
 [[detector.detectors]]
 type = "exact"
@@ -526,12 +526,12 @@ type = "aesgcm"
 
 ## Exemple complet
 
-Les clés de `examples/config/pipeline.toml`, un pipeline sans état qui tire un catalogue, ajoute un pattern en ligne, et active plusieurs étages optionnels. Le fichier lui-même porte les mêmes clés avec un commentaire sur chaque étage.
+Les clés de `examples/config/pipeline.toml`, un pipeline sans état qui tire un groupe du catalogue, ajoute un pattern en ligne, et active plusieurs étages optionnels. Le fichier lui-même porte les mêmes clés avec un commentaire sur chaque étage.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic"]
+catalogs = ["catalog:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 [overlap_resolver]
@@ -591,4 +591,4 @@ Le même contenu en JSON, choisi par un suffixe `.json`, est équivalent. Une ta
 - [Interface en ligne de commande](../reference/cli.md) pour valider un fichier depuis le shell.
 - [Référence Détecteurs](../reference/detectors.md) pour le détecteur que chaque `type` construit.
 - [Référence de l'intégration LangChain](../reference/langchain.md) pour piloter un pipeline de conversation dans un agent.
-- [Configurer un pipeline par fichier, hub et ligne de commande](../../../openwiki/fr/operations/configuration-and-hub.md) pour les règles de configuration, de `BR-CFG-01` à `BR-CFG-09`, et leur emplacement dans le code.
+- [Configurer un pipeline par fichier, catalogue et ligne de commande](../../../openwiki/fr/operations/configuration-and-catalog.md) pour les règles de configuration, de `BR-CFG-01` à `BR-CFG-09`, et leur emplacement dans le code.

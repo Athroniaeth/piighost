@@ -102,7 +102,7 @@ The labels are collected from the `[detector]` section alone, the guard's detect
 
 | Detector `type` | Labels |
 |---|---|
-| `regex` | the keys of `patterns`, plus those of every hub group in `catalogs`, read from the hub through its disk cache |
+| `regex` | the keys of `patterns`, plus those of every catalog group in `catalogs`, read from the catalog through its disk cache |
 | `gliner2`, `spacy`, `transformers`, `llm` | `labels`, or its keys when it maps model labels to canonical ones |
 | `exact` | the labels of `values` |
 | `composite` | the union of its `detectors` |

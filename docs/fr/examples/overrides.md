@@ -12,7 +12,7 @@ Votre détecteur lit le nom de votre entreprise comme une personne et vous voule
 L'étape s'exécute juste après la détection, avant la résolution des chevauchements et la liaison. Ses deux listes l'emportent donc sur la lecture du détecteur, et aussi sur un jeu corrigé qui revient d'une relecture humaine. Voir [Architecture](../architecture.md) pour l'ordre complet des étapes.
 
 !!! note "Prérequis"
-    `piighost` seul, `pip install piighost`. Chaque exemple ci-dessous s'exécute tel quel, sans téléchargement de modèle. La section 2 et le fichier de configuration tirent le groupe générique du [hub piighost](https://hub.piighost.dev), récupéré à chaque construction du pipeline, ce qui demande un accès réseau. La dernière section lit un fichier de configuration, ce qui demande l'extra config, `pip install "piighost[config]"`.
+    `piighost` seul, `pip install piighost`. Chaque exemple ci-dessous s'exécute tel quel, sans téléchargement de modèle. La section 2 et le fichier de configuration tirent le groupe générique du [catalogue piighost](https://catalog.piighost.dev), récupéré à chaque construction du pipeline, ce qui demande un accès réseau. La dernière section lit un fichier de configuration, ce qui demande l'extra config, `pip install "piighost[config]"`.
 
 !!! note "Renommées en 2.0"
     La liste à masquer s'appelait la whitelist avant `piighost` 2.0, et la liste à laisser en clair la blacklist. Une config qui emploie encore les anciens noms est refusée au chargement, voir [Passer à la 2.0](../community/upgrading.md#les-listes-de-loverride-sont-renommees).
@@ -59,13 +59,13 @@ La sortie doit être :
 Pointez un détecteur sur le motif que le détecteur principal rate, ici un nom de code qu'une regex décrit exactement, et passez-le comme liste à masquer. Ce qu'il trouve entre dans le jeu de détections, quoi qu'ait vu le détecteur principal.
 
 ```python
---8<-- "snippets/overrides_deny_list_hub.py"
+--8<-- "snippets/overrides_deny_list_catalog.py"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/overrides_deny_list_hub.out"
+--8<-- "snippets/overrides_deny_list_catalog.out"
 ```
 
 Une détection forcée remplace aussi toute détection qu'elle chevauche, donc le label de la liste à masquer l'emporte sur la lecture principale. Servez-vous-en pour corriger un label, pas seulement pour ajouter une détection.

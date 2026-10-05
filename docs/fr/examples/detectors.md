@@ -7,31 +7,31 @@ tags:
 
 # Détecteurs prêts à l'emploi
 
-`piighost` tire du [hub piighost](https://hub.piighost.dev) des catalogues de motifs regex prêts à l'emploi pour les PII à structure fixe (email, IP, IBAN, téléphone). Ce guide montre comment les charger, les fusionner et combiner plusieurs détecteurs, avec le seul cœur de `piighost`.
+`piighost` tire du [catalogue piighost](https://catalog.piighost.dev) des groupes de motifs regex prêts à l'emploi pour les PII à structure fixe (email, IP, IBAN, téléphone). Ce guide montre comment les charger, les fusionner et combiner plusieurs détecteurs, avec le seul cœur de `piighost`.
 
-Quatre groupes du hub couvrent les formats courants. Chacun est un ensemble d'entrées `label` vers `pattern`.
+Quatre groupes du catalogue couvrent les formats courants. Chacun est un ensemble d'entrées `label` vers `pattern`.
 
-- `hub:piighost/generic`, email, URL, IPv4, carte bancaire, indépendants du pays
-- `hub:piighost/us`, téléphone, ZIP, ITIN, SSN, préfixés `US_`
-- `hub:piighost/eu`, IBAN ISO 13616 pan-européen
-- `hub:piighost/fr`, téléphone, IBAN, NIR, SIRET, SIREN, préfixés `FR_`
+- `catalog:piighost/generic`, email, URL, IPv4, carte bancaire, indépendants du pays
+- `catalog:piighost/us`, téléphone, ZIP, ITIN, SSN, préfixés `US_`
+- `catalog:piighost/eu`, IBAN ISO 13616 pan-européen
+- `catalog:piighost/fr`, téléphone, IBAN, NIR, SIRET, SIREN, préfixés `FR_`
 
-Une référence sans suffixe suit la dernière version du groupe, récupérée à chaque construction d'un détecteur. Pour figer une version, ajoutez son commit après un deux-points, comme `hub:piighost/generic:fab51b33`. Le groupe est alors récupéré une seule fois, puis relu depuis le cache sur disque, hors ligne compris. Les secrets comme les clés d'API sont dans les groupes du hub `piighost/secrets` et `piighost/secrets-extended`. Ces groupes se tirent de la même façon, par exemple avec `catalogs = ["hub:piighost/secrets"]` dans une config.
+Une référence sans suffixe suit la dernière version du groupe, récupérée à chaque construction d'un détecteur. Pour figer une version, ajoutez son commit après un deux-points, comme `catalog:piighost/generic:fab51b33`. Le groupe est alors récupéré une seule fois, puis relu depuis le cache sur disque, hors ligne compris. Les secrets comme les clés d'API sont dans les groupes du catalogue `piighost/secrets` et `piighost/secrets-extended`. Ces groupes se tirent de la même façon, par exemple avec `catalogs = ["catalog:piighost/secrets"]` dans une config.
 
 Pour le détail des labels, voir la [référence des détecteurs](../reference/detectors.md).
 
-## Utiliser un seul catalogue
+## Utiliser un seul groupe
 
-Construisez un `RegexDetector` à partir du groupe avec `from_hub`, puis montez le pipeline.
+Construisez un `RegexDetector` à partir du groupe avec `from_catalog`, puis montez le pipeline.
 
 ```python
---8<-- "snippets/detectors_hub.py"
+--8<-- "snippets/detectors_catalog.py"
 ```
 
 La sortie doit être :
 
 ```text
---8<-- "snippets/detectors_hub.out"
+--8<-- "snippets/detectors_catalog.out"
 ```
 
 ## Fusionner générique et régional
@@ -86,7 +86,7 @@ La sortie doit être :
 
 Laissez `splitter=None` pour un `RecursiveCharacterTextSplitter` par défaut, réglé pour de vrais documents. Le `chunk_size` réduit ci-dessus ne sert qu'à forcer plusieurs fragments dans un court exemple.
 
-## Charger les catalogues depuis un fichier de config
+## Charger les groupes depuis un fichier de config
 
 Si vous pilotez le pipeline par un fichier de configuration plutôt que par du code, un détecteur regex accepte une clé `catalogs`.
 
@@ -94,7 +94,7 @@ Si vous pilotez le pipeline par un fichier de configuration plutôt que par du c
 --8<-- "snippets/detectors_config.toml"
 ```
 
-Le détecteur fusionne d'abord les catalogues, puis les `patterns` en ligne. Pour un même label, un motif en ligne l'emporte donc sur celui d'un catalogue. Voir la [configuration TOML](../configuration/toml.md).
+Le détecteur fusionne d'abord les groupes, puis les `patterns` en ligne. Pour un même label, un motif en ligne l'emporte donc sur celui d'un groupe. Voir la [configuration TOML](../configuration/toml.md).
 
 ## Voir aussi
 

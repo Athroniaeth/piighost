@@ -3,7 +3,7 @@ import asyncio
 from piighost.components.detector import RegexDetector
 from piighost.pipeline import AnonymizationPipeline
 
-detector = RegexDetector.from_hub("hub:piighost/generic")
+detector = RegexDetector.from_catalog("catalog:piighost/generic")
 pipeline = AnonymizationPipeline(detector)
 
 

@@ -4,7 +4,7 @@ icon: lucide/code
 
 # De-identify and restore a text
 
-You have a text with confidential data, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency. The detector's patterns come from the [piighost hub](https://hub.piighost.dev). They are fetched every time the detector is built, which needs network access.
+You have a text with confidential data, and you want to de-identify it, send it to an LLM, then restore the original values in the reply. This guide does the round-trip with the `piighost` core alone, no model and no optional dependency. The detector's patterns come from the [piighost catalog](https://catalog.piighost.dev). They are fetched every time the detector is built, which needs network access.
 
 Install the core.
 
@@ -25,13 +25,13 @@ Install the core.
 A pipeline chains a detector, a linker, and an anonymizer. Only the detector is required. The linker defaults to `ExactEntityLinker` and the anonymizer to `Anonymizer(LabelCounterPlaceholderFactory())`. `anonymize` returns the de-identified text and the token assigned to each entity. `deanonymize` replays that mapping in reverse.
 
 ```python
---8<-- "snippets/basic.py:hub"
+--8<-- "snippets/basic.py:catalog"
 ```
 
 The output should be:
 
 ```text
---8<-- "snippets/basic.out:hub"
+--8<-- "snippets/basic.out:catalog"
 ```
 
 `result.text` carries `<<EMAIL:1>>`{ .placeholder } in place of `alice@example.com`{ .pii }. `result.tokens` maps each entity to its token. Pass it as-is to `deanonymize` to recover the original text.
@@ -86,6 +86,6 @@ To restore the values, the factory must preserve identity, that is, give each va
 
 ## See also
 
-- [Pre-built detectors](detectors.md) to combine catalogs and detectors.
+- [Pre-built detectors](detectors.md) to combine catalog groups and detectors.
 - [Pipeline reference](../reference/pipeline.md) for the optional stages.
 - [Extending piighost](../extending.md) to write your own components.

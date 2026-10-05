@@ -18,7 +18,7 @@ the output a reader sees is the one the code gives.
 
 ```bash
 uv run pytest tests/docs                  # the examples that need nothing
-uv run pytest tests/docs -m integration   # the ones that reach the hub or load a model
+uv run pytest tests/docs -m integration   # the ones that reach the catalog or load a model
 ```
 
 The configuration tutorial keeps its files in `configuration/`, which

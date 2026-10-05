@@ -71,5 +71,5 @@ uv run pytest tests/ -k "test_name"  # run a single test
 The most common places to contribute without touching the core:
 
 - **New detector**: implement the `AnyDetector` protocol. See [Extending piighost](../extending.md).
-- **New regex pack**: publish a pattern group on the [piighost hub](https://hub.piighost.dev), which a config then pulls by reference.
+- **New regex pack**: publish a pattern group on the [piighost catalog](https://catalog.piighost.dev), which a config then pulls by reference.
 - **New placeholder factory**: implement `AnyPlaceholderFactory`.

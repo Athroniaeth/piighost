@@ -78,28 +78,30 @@ RegexDetector(patterns: dict[str, str])
 --8<-- "snippets/reference_detectors.py:regex"
 ```
 
-### `from_hub`
+### `from_catalog`
 
 ```python
-RegexDetector.from_hub(ref: str, *, hub: str | None = None) -> RegexDetector
+RegexDetector.from_catalog(ref: str, *, catalog: str | None = None) -> RegexDetector
 ```
 
-Builds a detector from the regexes a [piighost hub](https://hub.piighost.dev) reference carries. The hub is a registry of tested de-identification regexes, addressed by `namespace/name` and an optional selector, either a tag or the eight hex characters of a commit.
+Builds a detector from the regexes a [piighost catalog](https://catalog.piighost.dev) reference carries. The catalog is a registry of tested de-identification regexes, addressed by `namespace/name` and an optional selector, either a tag or the eight hex characters of a commit.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `ref` | `str` | A reference, `namespace/name` with an optional `:selector` and an optional `hub:` prefix. Without a selector it resolves to `latest` (required) |
-| `hub` | `str \| None` | Origin of the hub to pull from. Defaults to `PIIGHOST_HUB_URL`, then to the public hub |
+| `ref` | `str` | A reference, `namespace/name` with an optional `:selector` and an optional `catalog:` prefix. Without a selector it resolves to `latest` (required) |
+| `catalog` | `str \| None` | Origin of the catalog to pull from. Defaults to `PIIGHOST_CATALOG_URL`, then to the public catalog |
 
 ```python
---8<-- "snippets/reference_regex_hub.py:from_hub"
+--8<-- "snippets/reference_regex_catalog.py:from_catalog"
 ```
 
-A reference pinned to a commit is immutable, so the answer is cached under `~/.cache/piighost/hub` and read from disk on every later call. A reference pointing at a tag or at `latest` can change, so it is fetched every time, because a stale answer would quietly detect less than the caller asked for.
+A reference pinned to a commit is immutable, so the answer is cached under `~/.cache/piighost/catalog` and read from disk on every later call. A reference pointing at a tag or at `latest` can change, so it is fetched every time, because a stale answer would quietly detect less than the caller asked for.
 
-The call raises a subclass of `HubError` (`piighost.hub`) when the reference does not parse, the hub cannot be reached, or the reference resolves to something other than a plain regex detector. That last case covers a reference carrying a model detector. Its regexes alone would detect less than the reference promises, so the call fails instead of returning half of it.
+The call raises a subclass of `CatalogError` (`piighost.catalog`) when the reference does not parse, the catalog cannot be reached, or the reference resolves to something other than a plain regex detector. That last case covers a reference carrying a model detector. Its regexes alone would detect less than the reference promises, so the call fails instead of returning half of it.
 
-`from_hub` uses the standard library only, so the core install needs no extra.
+`from_catalog` uses the standard library only, so the core install needs no extra.
+
+Code written for 1.x still runs. `RegexDetector.from_hub(ref, hub=...)` builds the same detector as `from_catalog`, a `hub:` prefix reads as `catalog:`, `PIIGHOST_HUB_URL` is read when `PIIGHOST_CATALOG_URL` is unset, and `piighost.hub` re-exports `piighost.catalog` under its 1.x names.
 
 
 ---
@@ -400,53 +402,53 @@ Two external labels mapping to one internal label raise `LabelMappingError`, sin
 
 ---
 
-## Pattern catalogs
+## Catalog groups
 
-Reusable regex pattern sets for `RegexDetector`, published as groups on the [piighost hub](https://hub.piighost.dev). Each group maps a PII label to a regex pattern string. Patterns match on shape alone, with no checksum validation.
+Reusable regex pattern sets for `RegexDetector`, published as groups on the [piighost catalog](https://catalog.piighost.dev). Each group maps a PII label to a regex pattern string. Patterns match on shape alone, with no checksum validation.
 
 <div class="wide-table" markdown="1">
 
 | Group | Reference | Labels |
 |-------|-----------|--------|
-| Generic | `hub:piighost/generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
-| US | `hub:piighost/us` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
-| EU | `hub:piighost/eu` | `IBAN` |
-| French | `hub:piighost/fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
-| Secrets | `hub:piighost/secrets` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
+| Generic | `catalog:piighost/generic` | `EMAIL`, `URL`, `IPV4`, `CREDIT_CARD` |
+| US | `catalog:piighost/us` | `US_PHONE`, `US_ZIP`, `US_ITIN`, `US_SSN` |
+| EU | `catalog:piighost/eu` | `IBAN` |
+| French | `catalog:piighost/fr` | `FR_PHONE`, `FR_IBAN`, `FR_NIR`, `FR_SIRET`, `FR_SIREN` |
+| Secrets | `catalog:piighost/secrets` | `OPENAI_API_KEY`, `AWS_ACCESS_KEY`, `GITHUB_TOKEN`, `STRIPE_KEY` |
 
 </div>
 
-Build a detector from one group with [`from_hub`](#from_hub). `pull` (`piighost.hub`) returns a group as a `dict[str, str]` in registry order. Several groups therefore merge like dicts, and on a shared label, the right-hand entry wins.
+Build a detector from one group with [`from_catalog`](#from_catalog). `pull` (`piighost.catalog`) returns a group as a `dict[str, str]` in registry order. Several groups therefore merge like dicts, and on a shared label, the right-hand entry wins.
 
 ```python
---8<-- "snippets/reference_regex_hub.py:merge"
+--8<-- "snippets/reference_regex_catalog.py:merge"
 ```
 
-A reference pinned to a commit ends with the commit's eight hex characters, after the last colon, as in `hub:piighost/generic:fab51b33`. It is fetched the first time a detector is built, then read from the on-disk cache, even offline. An unpinned reference, `hub:piighost/generic` or `hub:piighost/generic:latest`, is fetched at every build.
+A reference pinned to a commit ends with the commit's eight hex characters, after the last colon, as in `catalog:piighost/generic:fab51b33`. It is fetched the first time a detector is built, then read from the on-disk cache, even offline. An unpinned reference, `catalog:piighost/generic` or `catalog:piighost/generic:latest`, is fetched at every build.
 
-The hub checks every pattern it publishes against catastrophic backtracking, so an adversarial input cannot turn a scan into a denial of service.
+The catalog checks every pattern it publishes against catastrophic backtracking, so an adversarial input cannot turn a scan into a denial of service.
 
 The generic labels are country-agnostic. The others are prefixed (`US_`, `FR_`) so they do not collide when groups are merged. The EU group carries the ISO 13616 IBAN shared across member states. For country-specific numbers, use a per-country group.
 
-### Pulling catalogs from a config
+### Pulling groups from a config
 
-A regex detector config pulls catalogs via `catalogs`. An entry is a hub reference written `hub:namespace/name` with an optional `:selector`. The catalogs merge in order, then any inline `patterns` are added. An inline pattern therefore overrides a catalog pattern on the same label. A regex detector config needs at least one inline pattern or one catalog.
+A regex detector config pulls catalog groups via `catalogs`. An entry is a catalog reference written `catalog:namespace/name` with an optional `:selector`. A reference written `hub:namespace/name`, as in 1.x, is still accepted. The groups merge in order, then any inline `patterns` are added. An inline pattern therefore overrides a group pattern on the same label. A regex detector config needs at least one inline pattern or one catalog reference.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
+catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 
 [detector.patterns]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-A hub reference names a reviewed catalog instead of carrying a copy of it. The config therefore stays short, and the patterns stay auditable at their source. A catalog is fetched when the config is built, not when it is parsed. Set `PIIGHOST_HUB_URL` to pull from a private registry.
+A catalog reference names a reviewed group instead of carrying a copy of it. The config therefore stays short, and the patterns stay auditable at their source. A group is fetched when the config is built, not when it is parsed. Set `PIIGHOST_CATALOG_URL` to pull from a private registry.
 
-An entry that is not a hub reference fails at load time rather than as a bad URL later. The names `generic`, `us`, `eu` and `fr`, which named catalogs shipped inside the library before 2.0, are refused, and the error message gives the reference that replaces them.
+An entry that is not a catalog reference fails at load time rather than as a bad URL later. The names `generic`, `us`, `eu` and `fr`, which named pattern sets shipped inside the library before 2.0, are refused, and the error message gives the reference that replaces them.
 
 ```text
-the built-in catalog 'generic' was removed in piighost 2.0: name the hub group instead, hub:piighost/generic
+the built-in catalog 'generic' was removed in piighost 2.0: name the catalog group instead, catalog:piighost/generic
 ```
 
 ## Unicode spaces
@@ -459,7 +461,7 @@ A value is often typed with a space that is not the ASCII one. Word puts a no-br
 | Search | `ExactMatchDetector`, `LLMDetector`, `WordBoundaryExpander` | A space inside a searched value matches any run of whitespace, a line break included, so `Paul Martin`{ .pii } is found again across a no-break space, two spaces or a line break. |
 | Identity | `ExactEntityLinker`, overrides, conversation memory, `FuzzyEntityResolver` | Two values are the same when they have the same words, whatever the spaces between them and their case, so they share one token. |
 
-The rule holds for every pattern, those of the hub included, so a pattern needs no case for these characters. A pattern that looks for a no-break space on purpose no longer finds one, since the copy it runs on has ordinary spaces instead. Zero-width characters (U+200B, U+2060, U+FEFF) are not spaces and are left as they are.
+The rule holds for every pattern, those of the catalog included, so a pattern needs no case for these characters. A pattern that looks for a no-break space on purpose no longer finds one, since the copy it runs on has ordinary spaces instead. Zero-width characters (U+200B, U+2060, U+FEFF) are not spaces and are left as they are.
 
 The two helpers of this rule, `normalize_spaces` and `value_key`, are public in `piighost.text`, for a custom detector or linker that should follow the same rule.
 
@@ -490,7 +492,7 @@ The rule assumes spaces between words, so it finds nothing in Chinese, Japanese 
 ## See also
 
 - [Pipeline reference](pipeline.md) for the pipeline that drives the detector.
-- [Pre-built detectors](../examples/detectors.md) for composing catalogs in practice.
+- [Pre-built detectors](../examples/detectors.md) for composing catalog groups in practice.
 - [TOML configuration](../configuration/toml.md) for the declarative build.
 - [Extending piighost](../extending.md) for writing your own detector.
 - [Data models reference](models.md) for the full shape of a `Detection`.

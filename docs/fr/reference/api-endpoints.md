@@ -102,7 +102,7 @@ Les labels sont collectés dans la seule section `[detector]`, le détecteur du 
 
 | `type` du détecteur | Labels |
 |---|---|
-| `regex` | les clés de `patterns`, plus celles de chaque groupe du hub listé dans `catalogs`, lu sur le hub via son cache disque |
+| `regex` | les clés de `patterns`, plus celles de chaque groupe du catalogue listé dans `catalogs`, lu sur le catalogue via son cache disque |
 | `gliner2`, `spacy`, `transformers`, `llm` | `labels`, ou ses clés quand il associe les labels du modèle à des labels canoniques |
 | `exact` | les labels de `values` |
 | `composite` | l'union de ses `detectors` |

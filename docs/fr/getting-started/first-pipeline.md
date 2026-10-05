@@ -21,10 +21,10 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
     --8<-- "snippets/first_pipeline.fr.py:detector"
     ```
 
-    Pour les formats fixes qui ne dépendent pas d'une langue, comme l'email et l'URL, le [hub piighost](https://hub.piighost.dev) publie des catalogues tout faits. Le groupe `generic` ci-dessous ne contient aucun motif de nom ni de lieu. Il est récupéré depuis le hub à chaque construction du détecteur.
+    Pour les formats fixes qui ne dépendent pas d'une langue, comme l'email et l'URL, le [catalogue piighost](https://catalog.piighost.dev) publie des groupes tout faits. Le groupe `generic` ci-dessous ne contient aucun motif de nom ni de lieu. Il est récupéré depuis le catalogue à chaque construction du détecteur.
 
     ```python
-    --8<-- "snippets/detector_hub.py:detector"
+    --8<-- "snippets/detector_catalog.py:detector"
     ```
 
 === "GLiNER2 (NER)"
@@ -75,5 +75,5 @@ Chaque occurrence de `Patrick`{ .pii } reçoit le même `<<PERSON:1>>`{ .placeho
 
 ## Voir aussi
 
-- Pour décrire ce pipeline dans un fichier plutôt qu'en Python, voir la [référence de configuration](../configuration/toml.md). Un détecteur regex y prend ses catalogues avec `catalogs = ["hub:piighost/generic"]`.
+- Pour décrire ce pipeline dans un fichier plutôt qu'en Python, voir la [référence de configuration](../configuration/toml.md). Un détecteur regex y prend ses catalogues avec `catalogs = ["catalog:piighost/generic"]`.
 - Pour dé-identifier au fil d'une conversation avec des jetons stables entre les messages, voir le [Pipeline conversationnel](conversation.md).

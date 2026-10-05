@@ -216,7 +216,7 @@ The shared machinery both pipelines extend. It holds the stage components and th
 
 Module: `piighost.config`
 
-`load_pipeline` and `load_thread_pipeline` read a config file, TOML or JSON by its suffix, or a hub reference, and return a built pipeline. A config that declares a memory describes a thread pipeline. The two loaders enforce that distinction, and check it before building anything:
+`load_pipeline` and `load_thread_pipeline` read a config file, TOML or JSON by its suffix, or a catalog reference, and return a built pipeline. A config that declares a memory describes a thread pipeline. The two loaders enforce that distinction, and check it before building anything:
 
 - `load_pipeline(path)` returns an `AnonymizationPipeline`. It raises `ConfigError` when the config declares a memory.
 - `load_thread_pipeline(path)` returns a `ThreadAnonymizationPipeline`. It raises `ConfigError` when the config declares no memory.
@@ -225,10 +225,10 @@ Module: `piighost.config`
 --8<-- "snippets/loaders.py"
 ```
 
-A reference written `hub:namespace/name:selector` loads the whole configuration the [piighost hub](https://hub.piighost.dev) publishes under that name, every stage included, exactly as a file holding it would. A reference pinned to a commit is fetched on the first load and read from the disk cache afterwards. An environment variable prefixed `PIIGHOST_` overrides a hub value as it overrides a file one.
+A reference written `catalog:namespace/name:selector` loads the whole configuration the [piighost catalog](https://catalog.piighost.dev) publishes under that name, every stage included, exactly as a file holding it would. A reference pinned to a commit is fetched on the first load and read from the disk cache afterwards. An environment variable prefixed `PIIGHOST_` overrides a catalog value as it overrides a file one. A reference written `hub:namespace/name:selector`, as in 1.x, loads the same way.
 
 ```python
---8<-- "snippets/reference_hub_pipeline.py"
+--8<-- "snippets/reference_catalog_pipeline.py"
 ```
 
 This package needs the `config` extra. See the [TOML configuration](../configuration/toml.md) reference for the file format.

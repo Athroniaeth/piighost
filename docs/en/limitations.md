@@ -51,7 +51,7 @@ Supporting these scripts would take a word segmenter per language, and the pipel
 
 Python's `re` has no word segmentation. It also does not count combining marks as letters, for example the vowel signs of Hindi and the other Indic scripts. An email pattern therefore has to choose which letters it takes in, and each choice leaves some letters out.
 
-| Text | Pattern taking Unicode letters, `(?u:\w)` | `EMAIL` of `hub:piighost/generic` |
+| Text | Pattern taking Unicode letters, `(?u:\w)` | `EMAIL` of `catalog:piighost/generic` |
 |---|---|---|
 | `écrire à expéditeur@exemple.fr` | `expéditeur@exemple.fr`{ .pii } | `expéditeur@exemple.fr`{ .pii } |
 | `メールはtanaka@example.jpです` | the whole sentence | `tanaka@example.jp`{ .pii } |
@@ -60,7 +60,7 @@ Python's `re` has no word segmentation. It also does not count combining marks a
 
 A pattern that takes Unicode letters in finds an accented or a Greek address whole. In Chinese or Japanese text with no space around the address, the ideographs next to it are letters too, so the pattern takes them in. The token hides more than the address, and nothing is sent in clear. The Hindi address still escapes it, since its vowels are combining marks.
 
-The `EMAIL` pattern of `hub:piighost/generic` takes Latin letters only, that is the ASCII letters and digits plus the Latin range `À` to `ɏ`. It finds the accented and the Japanese examples exactly. It misses every address written in another script, and that address is sent as it is.
+The `EMAIL` pattern of `catalog:piighost/generic` takes Latin letters only, that is the ASCII letters and digits plus the Latin range `À` to `ɏ`. It finds the accented and the Japanese examples exactly. It misses every address written in another script, and that address is sent as it is.
 
 **Mitigation**: for text in non-Latin scripts, detect addresses with a NER model, or write in your config an email pattern suited to the addresses that text really holds. A pattern written inline in the config overrides the group's pattern on the same label.
 

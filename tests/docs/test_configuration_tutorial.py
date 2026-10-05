@@ -79,9 +79,9 @@ STEPS: list[tuple[Callable[[Path, str, str], None], str, str | None]] = [
     # 3. Pick the token.
     (WRITE, "redact.toml", None),
     (RUN, "run_email.sh", "redact.out"),
-    # 4. Pull a catalog from the hub.
-    (WRITE, "hub.toml", None),
-    (RUN, "run_hub.sh", "hub.out"),
+    # 4. Pull a group from the catalog.
+    (WRITE, "catalog.toml", None),
+    (RUN, "run_catalog.sh", "catalog.out"),
     (WRITE, "order.toml", None),
     (RUN, "run_order.sh", "order.out"),
     # 5. Run two detectors at once.
@@ -98,14 +98,14 @@ STEPS: list[tuple[Callable[[Path, str, str], None], str, str | None]] = [
 ]
 """The tutorial, in the page's order: (action, file, expected output)."""
 
-FIRST_HUB_STEP = STEPS.index((WRITE, "hub.toml", None))
-"""From here the steps read a hub catalog, cached once pulled."""
+FIRST_CATALOG_STEP = STEPS.index((WRITE, "catalog.toml", None))
+"""From here the steps read a catalog group, cached once pulled."""
 
 
 @pytest.mark.parametrize(
     "last",
     [
-        pytest.param(FIRST_HUB_STEP, id="offline-steps"),
+        pytest.param(FIRST_CATALOG_STEP, id="offline-steps"),
         pytest.param(len(STEPS), id="every-step", marks=pytest.mark.integration),
     ],
 )

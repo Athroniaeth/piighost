@@ -24,7 +24,7 @@ To answer it, the benchmark adds one stage at a time, with the same model on the
 | E | D, plus the word-boundary expander |
 | F | E, plus the entity resolver, the full config |
 
-Each rung is measured with two models. One is GLiNER2 (`fastino/gliner2-multi-v1`, the model of the `fr-notarial` hub config). The other is `onnx-community/gliner_multi_pii-v1` in ONNX, called through `BridgeDetector`, the engine that runs in the browser.
+Each rung is measured with two models. One is GLiNER2 (`fastino/gliner2-multi-v1`, the model of the `fr-notarial` catalog config). The other is `onnx-community/gliner_multi_pii-v1` in ONNX, called through `BridgeDetector`, the engine that runs in the browser.
 
 ## The data
 
@@ -84,7 +84,7 @@ On the generated deeds, full GLiNER2 pipeline:
 
 ## What the benchmark changed
 
-Each benchmark run found a defect. That defect was fixed in the library or in the hub's `fr-notarial` before the next run.
+Each benchmark run found a defect. That defect was fixed in the library or in the catalog's `fr-notarial` before the next run.
 
 - **`piighost` 1.9.0.** The word-boundary expander could add an occurrence inside a kept detection. The render stage then raised `OverlappingSpansError`, on 163 of the 200 generated deeds. French phones typeset with no-break spaces were never matched. An email with accented letters was matched from its first ASCII run. A detector config could not set `max_chars`. A config-built model therefore read a whole deed in one pass, and ran out of memory past 13,000 characters.
 - **Dates.** A date of birth is a direct identifier. Neither model of the benchmark was asked for one, so the rules find it. `fr-notarial` hides every French date, because a pattern cannot tell a date of birth from the date of the deed. It spares the date of a numbered legal text ("loi n° 89-462 du 6 juillet 1989").
@@ -114,5 +114,5 @@ These patterns belong to a document config. A chat config should not hide every 
 ## See also
 
 - [Limitations](limitations.md): what detection cannot promise, whatever its score.
-- [Pre-built detectors](examples/detectors.md): the regex catalogs of the hub and the models.
+- [Pre-built detectors](examples/detectors.md): the regex groups of the catalog and the models.
 - [TOML reference](configuration/toml.md): `max_chars` and the detector keys.

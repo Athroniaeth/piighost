@@ -12,7 +12,7 @@ Your detector reads your company name as a person and you want that name left al
 The stage runs right after detection, before overlap resolution and linking. Its two lists therefore trump the detector's reading, and also a corrected set coming back from a human review. See [Architecture](../architecture.md) for the full stage order.
 
 !!! note "Prerequisites"
-    `piighost` alone, `pip install piighost`. Every example below runs as is, with no model download. Section 2 and the config file pull the generic group of the [piighost hub](https://hub.piighost.dev), fetched every time the pipeline is built, which needs network access. The last section reads a config file, which needs the config extra, `pip install "piighost[config]"`.
+    `piighost` alone, `pip install piighost`. Every example below runs as is, with no model download. Section 2 and the config file pull the generic group of the [piighost catalog](https://catalog.piighost.dev), fetched every time the pipeline is built, which needs network access. The last section reads a config file, which needs the config extra, `pip install "piighost[config]"`.
 
 !!! note "Renamed in 2.0"
     The deny list was called the whitelist before `piighost` 2.0, and the allow list the blacklist. A config that still uses the old names is refused at load time, see [Upgrading to 2.0](../community/upgrading.md#the-override-lists-are-renamed).
@@ -59,13 +59,13 @@ The output should be:
 Point a detector at the pattern the primary detector misses, here a codename a regex describes exactly, and hand it over as the deny list. Its hits enter the detection set whatever the primary detector saw.
 
 ```python
---8<-- "snippets/overrides_deny_list_hub.py"
+--8<-- "snippets/overrides_deny_list_catalog.py"
 ```
 
 The output should be:
 
 ```text
---8<-- "snippets/overrides_deny_list_hub.out"
+--8<-- "snippets/overrides_deny_list_catalog.out"
 ```
 
 A forced hit also replaces every detection it overlaps, so the deny list label wins over the primary reading. Use that to correct a label, not only to add a detection.

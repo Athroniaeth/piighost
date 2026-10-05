@@ -115,21 +115,21 @@ Discriminated on `type`. Required.
 
 ### `type = "regex"`
 
-Matches confidential data by one regex per label, pulled from inline `patterns`, hub `catalogs`, or both. Catalogs merge first, then inline patterns. An inline pattern therefore overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. At load time, each pattern is validated as a compilable regex. It is then compiled under `re.ASCII`, so `\d` matches `0-9` and `\w` stops at the first non-ASCII character. A pattern written with `\w` therefore matches `prénom@corp.com`{ .pii } from `nom` onwards. To take every letter in, scope the Unicode flag to the class, `(?u:\w)`, or name a range. The `EMAIL` pattern of `hub:piighost/generic` names the Latin range `À-ɏ` this way. See [Limitations](../limitations.md) for what each choice misses.
+Matches confidential data by one regex per label, pulled from inline `patterns`, catalog groups in `catalogs`, or both. The groups merge first, then inline patterns. An inline pattern therefore overrides a catalog pattern on the same label. At least one inline pattern or one catalog is required. At load time, each pattern is validated as a compilable regex. It is then compiled under `re.ASCII`, so `\d` matches `0-9` and `\w` stops at the first non-ASCII character. A pattern written with `\w` therefore matches `prénom@corp.com`{ .pii } from `nom` onwards. To take every letter in, scope the Unicode flag to the class, `(?u:\w)`, or name a range. The `EMAIL` pattern of `catalog:piighost/generic` names the Latin range `À-ɏ` this way. See [Limitations](../limitations.md) for what each choice misses.
 
 | Key | Type | Default | Meaning |
 |-----|------|---------|---------|
 | `patterns` | `dict[str, str]` | `{}` | Inline label-to-regex mapping |
-| `catalogs` | `list[str]` | `[]` | Hub references, `hub:namespace/name` with an optional `:selector`. Any other entry fails validation |
+| `catalogs` | `list[str]` | `[]` | Catalog references, `catalog:namespace/name` with an optional `:selector`. A 1.x `hub:` reference is still accepted. Any other entry fails validation |
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic", "hub:piighost/fr"]
+catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
-A catalog is fetched from the hub when the config is built, not when it is parsed. A reference pinned to a commit is fetched once, then read from the on-disk cache. `PIIGHOST_HUB_URL` points at a private registry. The names `generic`, `us`, `eu` and `fr` are refused. See [Pattern catalogs](../reference/detectors.md#pattern-catalogs) for the groups that replace them.
+A group is fetched from the catalog when the config is built, not when it is parsed. A reference pinned to a commit is fetched once, then read from the on-disk cache. `PIIGHOST_CATALOG_URL` points at a private registry, and `PIIGHOST_HUB_URL` from 1.x is still read when it is unset. The names `generic`, `us`, `eu` and `fr` are refused. See [Catalog groups](../reference/detectors.md#catalog-groups) for the groups that replace them.
 
 ### `type = "composite"`
 
@@ -145,7 +145,7 @@ type = "composite"
 
 [[detector.detectors]]
 type = "regex"
-catalogs = ["hub:piighost/generic"]
+catalogs = ["catalog:piighost/generic"]
 
 [[detector.detectors]]
 type = "exact"
@@ -526,12 +526,12 @@ type = "aesgcm"
 
 ## Full example
 
-The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a catalog, adding one inline pattern, and enabling several optional stages. The file itself carries the same keys with a comment on each stage.
+The keys of `examples/config/pipeline.toml`, a stateless pipeline pulling a catalog group, adding one inline pattern, and enabling several optional stages. The file itself carries the same keys with a comment on each stage.
 
 ```toml
 [detector]
 type = "regex"
-catalogs = ["hub:piighost/generic"]
+catalogs = ["catalog:piighost/generic"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 
 [overlap_resolver]
@@ -591,4 +591,4 @@ The same content in JSON, chosen by a `.json` suffix, is equivalent. A table bec
 - [Command-line interface](../reference/cli.md) for validating a file from the shell.
 - [Detectors reference](../reference/detectors.md) for the detector each `type` builds.
 - [LangChain middleware reference](../reference/langchain.md) for driving a thread pipeline in an agent.
-- [Configure a pipeline by file, hub and command line](../../../openwiki/en/operations/configuration-and-hub.md), for the configuration rules `BR-CFG-01` to `BR-CFG-09` and where each lives in the code.
+- [Configure a pipeline by file, catalog and command line](../../../openwiki/en/operations/configuration-and-catalog.md), for the configuration rules `BR-CFG-01` to `BR-CFG-09` and where each lives in the code.

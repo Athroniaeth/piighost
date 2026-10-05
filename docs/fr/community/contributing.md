@@ -71,5 +71,5 @@ uv run pytest tests/ -k "test_name"  # lancer un test précis
 Les endroits les plus courants où contribuer sans toucher au cœur :
 
 - **Nouveau détecteur** : implémenter le protocole `AnyDetector`. Voir [Étendre piighost](../extending.md).
-- **Nouveau pack regex** : publier un groupe de motifs sur le [hub piighost](https://hub.piighost.dev), qu'une config tire ensuite par sa référence.
+- **Nouveau pack regex** : publier un groupe de motifs sur le [catalogue piighost](https://catalog.piighost.dev), qu'une config tire ensuite par sa référence.
 - **Nouvelle factory de placeholders** : implémenter `AnyPlaceholderFactory`.

@@ -7,7 +7,7 @@ icon: lucide/file-cog
 You will describe a whole pipeline in a TOML file. The file starts at three lines and grows into a conversational pipeline, which keeps a token stable across the turns of a conversation. Each step changes one thing in the file, then you check the file and run it to see what changed.
 
 !!! note "Prerequisites"
-    `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model. From step 4 on, the pipeline fetches a catalog from the [piighost hub](https://hub.piighost.dev) at every run, which needs network access. Step 6 adds the `fuzzy` extra.
+    `piighost` installed with the `config` extra, `pip install "piighost[config]"`, see [Installation](installation.md). Every step runs without a model. From step 4 on, the pipeline fetches a group from the [piighost catalog](https://catalog.piighost.dev) at every run, which needs network access. Step 6 adds the `fuzzy` extra.
 
 ## 1. Set up the check loop
 
@@ -95,25 +95,25 @@ The output should be:
 
 The address is gone and its label with it. `examples/config/minimal.toml` carries this file, with the default linker written out. `examples/config/minimal.json` carries the same file in JSON. The file suffix picks the parser. The [configuration reference](../configuration/toml.md) lists every token style.
 
-## 4. Pull a catalog from the hub
+## 4. Pull a group from the catalog
 
-Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the hub, which carries email, URL, IPv4 and credit card. Without a suffix, the reference follows the latest version of the group, fetched from the hub every time the pipeline is built. To freeze the group, pin it to a commit, as in `hub:piighost/generic:fab51b33`. It is then fetched once, and read from the on-disk cache afterwards. The file no longer has an `[anonymizer.placeholder]` section, so the default numbered token comes back and tells the four labels apart.
+Your pattern covers email only, so the IP address in the sample text went through in clear. Replace the inline pattern with the `generic` group of the catalog, which carries email, URL, IPv4 and credit card. Without a suffix, the reference follows the latest version of the group, fetched from the catalog every time the pipeline is built. To freeze the group, pin it to a commit, as in `catalog:piighost/generic:fab51b33`. It is then fetched once, and read from the on-disk cache afterwards. The file no longer has an `[anonymizer.placeholder]` section, so the default numbered token comes back and tells the four labels apart.
 
 ```toml
---8<-- "snippets/configuration/hub.toml"
+--8<-- "snippets/configuration/catalog.toml"
 ```
 
 ```bash
---8<-- "snippets/configuration/run_hub.sh"
+--8<-- "snippets/configuration/run_catalog.sh"
 ```
 
 The output should be:
 
 ```text
---8<-- "snippets/configuration/hub.out"
+--8<-- "snippets/configuration/catalog.out"
 ```
 
-The IP address is covered now, and the accented address with it. A format of your own, an order number such as `CMD-2024-0042`{ .pii }, is in no catalog. Declare it inline, next to the catalog.
+The IP address is covered now, and the accented address with it. A format of your own, an order number such as `CMD-2024-0042`{ .pii }, is in no group. Declare it inline, next to the group.
 
 ```toml
 --8<-- "snippets/configuration/order.toml"
@@ -129,11 +129,11 @@ The output should be:
 --8<-- "snippets/configuration/order.out"
 ```
 
-The order number is a token now. A label declared in both takes your pattern, because catalogs merge first and your inline patterns after them.
+The order number is a token now. A label declared in both takes your pattern, because the groups merge first and your inline patterns after them.
 
 ## 5. Run two detectors at once
 
-The catalog matches formats, and a first name has no format. Declare the names you already know in a second detector, and let a `composite` detector run both and merge what they return.
+The `generic` group matches formats, and a first name has no format. Declare the names you already know in a second detector, and let a `composite` detector run both and merge what they return.
 
 ```toml
 --8<-- "snippets/configuration/composite.toml"

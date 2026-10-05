@@ -164,7 +164,7 @@ Module: `piighost.config`. `ConfigError` groups the load-time and build-time fai
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
-| `ConfigFileError` | `load_config` | the file is missing, unreadable, or invalid TOML or JSON, or a hub reference answers something that is not TOML |
+| `ConfigFileError` | `load_config` | the file is missing, unreadable, or invalid TOML or JSON, or a catalog reference answers something that is not TOML |
 | `ConfigValidationError` | `load_config` | the parsed data fails schema validation. The error then wraps pydantic's `ValidationError` in the library's family |
 | `ConfigError` | `load_pipeline`, `load_thread_pipeline`, and a component config's `build()` | the entry point does not match the `[memory]` section declared, a secret environment variable is unset or malformed, or a memory declares exactly one of a hasher and a cipher |
 
