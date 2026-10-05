@@ -1,7 +1,7 @@
 ---
 type: glossary
 title: Glossary
-description: Definitions of the piighost terms (de-identification, placeholder, detection, entity, conversation, provenance, deny list and allow list, guard rail, identifiers, pepper, cipher) with the visible form of each notion and its name in the code.
+description: Definitions of the piighost terms (de-identification, placeholder, detection, entity, conversation, provenance, deny list and allow list, guard rail, identifiers, pepper, cipher, tools such as Redis or Langfuse, rule badges) with the visible form of each notion and its name in the code.
 tags: [glossary, vocabulary, de-identification, placeholder, entity, thread]
 sources:
   - id: openwiki-source-aa685735384e8973ddee846d
@@ -42,6 +42,7 @@ For the context of each term, start from [Where to start](quickstart.md).
 | Confidential data | Everything `piighost` protects, that is personal data and secrets. | the original value, before protection | none |
 | Personal data (PII) | Value that can identify a person, for example a name, an address, a phone or an e-mail. PII stands for *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | label `PERSON`, `EMAIL`… |
 | Secret | Access credential that must never reach a model, for example an API key, a password or a private key. | an API key in a message | catalog group `piighost/logs` |
+| NIR | *Numéro d'inscription au répertoire*, the French social security number, with 15 digits. It is personal data. | a 15-digit number in a message | none |
 | De-identification | Replacement of confidential data with placeholders, keeping what is needed to restore them. In the sense of the GDPR (General Data Protection Regulation), it is a pseudonymization. | `Hello <<PERSON:1>>` | default pipeline |
 | Anonymization | Removal with no way back. `piighost` achieves it only with a placeholder that keeps nothing. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restoration | Putting the real values back in place of the placeholders, in the reply shown to the user. | `Hello Patrick` in the reply | `deanonymize` |
@@ -70,6 +71,7 @@ For the context of each term, start from [Where to start](quickstart.md).
 | Catalog | Online service that publishes pattern groups and whole configurations, each addressed by its reference. It was called the hub up to `piighost` 1.x. | `https://catalog.piighost.dev`, variable `PIIGHOST_CATALOG_URL` | `piighost.catalog` |
 | Catalog group | List of patterns published on the catalog, for a country, a profession or secrets, and called by its reference. | `catalog:piighost/generic` | key `catalogs`, `RegexDetector.from_catalog` |
 | NER | *Named Entity Recognition*. AI model that classifies words as person, place, organization. | key `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
+| Presidio | Open-source library by Microsoft that detects personal data. `piighost` can use it as a detector. `piighost` 2.0 took from it the names of its lists, `deny_list` and `allow_list`. | key `type = "presidio"` | `PresidioDetector` |
 | Detection | One occurrence found, with its position, text, type and confidence between 0 and 1. | one line of `piighost anonymize --json` | `Detection` |
 | Position (span) | Character interval `[start, end)` of a detection in the text. | `"start": 10, "end": 35` | `Span` |
 | Entity | All the occurrences of the same value and the same type. They share a single placeholder. | `Patrick` and `patrick` both give `<<PERSON:1>>` | `Entity`, `ExactEntityLinker` |
@@ -96,6 +98,8 @@ For the context of each term, start from [Where to start](quickstart.md).
 |---|---|---|---|
 | Hook | Command that a program runs at a fixed point of its work. The Claude Code hooks pass the user's request, the tool calls and their results through `piighost`. | `python -m piighost.integrations.claude_code` in `.claude/settings.json` | `handle_hook` |
 | Proxy | Server placed between the application and the model provider. The `piighost-api` server offers one compatible with OpenAI and one compatible with Anthropic. The application only changes its base URL. | `/openai/v1`, `/anthropic/v1` | `piighost-api` |
+| Middleware | Component that fits into the loop of an agent, between the application and the model, and handles each message on the way. The `piighost` LangChain middleware de-identifies the messages before the model and restores its reply. | `middleware=[...]` when the agent is created | `PIIAnonymizationMiddleware` |
+| LangGraph | Library that runs the LangChain agents. It keeps the history of each conversation and passes its identifier to the middleware. | `config={"configurable": {"thread_id": ...}}` | `thread_id` |
 
 ## Deny list and allow list of the configuration
 
@@ -113,8 +117,12 @@ Before `piighost` 2.0, the deny list was called `whitelist` and the allow list `
 | Digest | Short string computed from a text. The same text always gives the same digest, which does not give the text back. The memory recognizes a message already seen this way. | `piighost:<thread_id>:msg:<digest>` | `message_digest` |
 | Pepper | Secret that makes the digests of the messages impossible to recompute without it. | variable `PIIGHOST_HASH_PEPPER` | `AnyHasher` |
 | Hasher | Component that computes the digest of each message with the pepper. It is always configured with a cipher. | key `[memory.hasher]` | `Sha256Hasher`, `Argon2Hasher` |
+| HMAC-SHA256, Argon2id | The two methods that compute a digest with the pepper. Argon2id is slow on purpose, which makes guessing a value by repeated tries more costly. | `type = "sha256"`, `type = "argon2"` in `[memory.hasher]` | `Sha256Hasher`, `Argon2Hasher` |
+| Redis | Fast database that runs on a separate server. It can keep the memory of the conversations and share it between several instances of the server. | `type = "redis"` in `[memory]` | `RedisConversationMemory` |
 | Cipher | Component that encrypts the stored detections, with an AES (*Advanced Encryption Standard*) key in GCM mode. | variable `PIIGHOST_CIPHER_KEY` | `AesGcmCipher` |
 | Trace redactor | Placeholder factory applied to the technical traces, so that they contain no data in clear text. | key `[observation_redactor]` | `observation_redactor` |
+| Technical trace (OpenTelemetry) | Log of each step of a processing, with its duration and its data. `piighost` produces these traces following OpenTelemetry, an open standard. Without a trace redactor, they hold the text in clear, and `piighost` emits a warning. | a trace in the observation tool | `get_tracer` |
+| Langfuse | Observation service for AI applications. It receives the technical traces, and can serve as an annotation tool where a person corrects the detections. | `langfuse.*` attributes of the traces | none |
 
 ## Domain documentation identifiers
 
@@ -125,3 +133,11 @@ The identifiers are in English, the same whatever the language of the page.
 | Need | What a profile expects from `piighost`, with its observable criteria. The prefix names the profile (compliance officer, developer, operator, application user). | `DPO-1`, `DEV-10`, `OPS-7`, `USER-6` | [Needs by profile](needs-by-profile.md) |
 | Business rule | Rule written as "When…, then…" in a process page. *BR* stands for *business rule*, followed by the domain. | `BR-MSG-05`, `BR-CONV-03` | "Rules to know" sections |
 | Acceptance test | Test that checks one criterion of a need. | `AT-DPO-1-2` | [Acceptance tests](tests/acceptance-tests.md), `tests/acceptance/` |
+
+## Tests and rule badges
+
+| Term | Definition | What you see | Technical name |
+|---|---|---|---|
+| pytest node | Address of one precise test, of the form `file::Class::test`. pytest is the tool that runs the `piighost` Python tests. | `tests/test_catalog.py::TestPull::test_a_model_detector_is_refused` | `uv run pytest` |
+| CI | Continuous integration, that is the automatic run of the tests and checks on GitHub, on each proposed change to the code. | the checks of a pull request | `.github/workflows/` |
+| Location | Function or class of the code that applies a business rule, taken from the "Where the rules live" table. The badge placed under each rule counts its locations and its direct tests, that is the tests that call these functions. | `2 locations · 11 direct tests` | "Where the rules live" table |

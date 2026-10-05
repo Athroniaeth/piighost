@@ -128,7 +128,7 @@ DEV-7: As a developer, I want to test my integration without downloading a model
 
 DEV-8: As a developer, I want to decide what to do with a placeholder the LLM invented, so that it does not reach the user as is.
 
-- A `<<PERSON:9>>` never issued is refused, removed or kept, depending on the chosen strategy.
+- By default, a `<<PERSON:9>>` never issued is refused. Another setting removes it from the text, a third keeps it as is.
 - See [Follow a conversation](processes/follow-a-conversation.md) and [Let a tool act](processes/let-a-tool-act.md). Tests: [AT-DEV-8-…](tests/acceptance-tests.md#at-dev-8-1).
 
 DEV-9: As a developer, I want to restore a streamed reply chunk by chunk, so that I display it without waiting for the end.
@@ -244,19 +244,19 @@ An LLM can answer badly, whether it serves as a detector, a guard rail or the co
 
 | Situation | What `piighost` does | Need |
 |---|---|---|
-| The detector LLM returns an unreadable output, broken JSON or a missing field | The message is refused with an error, unless fail open is requested | DPO-9 |
-| The guard rail LLM returns an unreadable output | The text is refused with an error, unless fail open is requested | DPO-9 |
+| The detector LLM returns an unreadable output, broken JSON or a missing field | The message is refused with an error. With the fail open setting, it leaves without this detection | DPO-9 |
+| The guard rail LLM returns an unreadable output | The text is refused with an error. With the fail open setting, it leaves without this check | DPO-9 |
 | The detector LLM cites a value absent from the text | The value is found nowhere in the text and is not kept | DPO-1 |
 | The detector LLM misses a value | It leaves in clear text, unless a guard rail rereads the text | DPO-4 |
-| The analyzed text contains a tag that imitates the data area of the prompt | The tag is neutralized before it is sent to the detector LLM | DPO-1 |
-| The conversation model invents a placeholder, `<<PERSON:10>>` while the conversation only has `<<PERSON:1>>` | Refused by default, removed or kept depending on the strategy | DEV-8 |
+| The detector LLM receives the text between two tags, `<text_to_analyze>` and `</text_to_analyze>`. The analyzed text itself contains one of these tags. Without protection, the rest of the text would be read as an instruction | The tag in the text is neutralized before it is sent to the detector LLM. The LLM therefore reads the whole text as data to analyze | DPO-1 |
+| The conversation model invents a placeholder, `<<PERSON:10>>` while the conversation only has `<<PERSON:1>>` | By default, the reply is refused with an error. Another setting removes the placeholder from the text, a third keeps it as is | DEV-8 |
 | The conversation model changes the case or the digits of a placeholder, `<<Person:1>>` or `<<PERSON:01>>` | It is not restored, and it is treated as an invented placeholder | DEV-8 |
 | The conversation model damages the delimiters of a placeholder, `<< PERSON:1 >>` or `PERSON:1` | It is neither restored nor recognized as a placeholder, and the user reads it as is. No value leaks, and this behavior is accepted | USER-1 |
 | The conversation model guesses the real value behind a placeholder and writes it | The value is treated as introduced by the assistant | DEV-11 |
 | The user types a placeholder themselves, `<<PERSON:2>>` | It does not reveal the value of another person | DPO-1 |
 | The reply stream stops in the middle of a placeholder | The fragment is returned as is, without a real value | USER-4 |
 | The conversation model cuts or rephrases a placeholder in a tool argument | Only a placeholder written in full is restored, the tool receives the rest as is | DEV-4 |
-| The API server is unreachable from the Claude Code hooks | The prompt or the tool call is blocked, the tool output replaced by a notice, unless fail open is requested | DPO-9 |
+| The API server is unreachable from the Claude Code hooks | The prompt or the tool call is blocked, and the tool output is replaced by a notice. With the fail open setting, the text goes through in clear | DPO-9 |
 
 ---
 
