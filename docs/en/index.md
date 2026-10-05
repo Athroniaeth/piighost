@@ -2,7 +2,7 @@
 icon: lucide/shield
 ---
 
-# piighost
+# Technical documentation
 
 `piighost` is a Python library that protects your confidential data (personal data or PII, secrets) in conversations with LLMs, through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
