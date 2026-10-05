@@ -144,4 +144,4 @@ In a trace of the agent, the message received by the model must contain `<<PERSO
 | `tests/integrations/test_claude_code_hooks.py` | The three events, list of fields, unknown tool let through, blocking when `piighost-api` cannot be reached, fail open |
 | `tests/integrations/client/test_client.py` | HTTP client |
 
-See also [Configure a pipeline](../operations/configuration-and-hub.md).
+See also [Configure a pipeline](../operations/configuration-and-catalog.md).

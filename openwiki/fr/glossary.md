@@ -41,7 +41,7 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 |---|---|---|---|
 | Données confidentielles | Tout ce que `piighost` protège, c'est-à-dire les données personnelles et les secrets. | la valeur d'origine, avant protection | aucun |
 | Donnée personnelle (PII) | Valeur qui peut identifier une personne, par exemple un nom, une adresse, un téléphone ou un e-mail. PII signifie *Personally Identifiable Information*. | `Patrick`, `claire.dubois@example.com` | étiquette `PERSON`, `EMAIL`… |
-| Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle, par exemple une clé d'API, un mot de passe ou une clé privée. | une clé d'API dans un message | groupe du hub `piighost/logs` |
+| Secret | Identifiant d'accès qui ne doit jamais atteindre un modèle, par exemple une clé d'API, un mot de passe ou une clé privée. | une clé d'API dans un message | groupe du catalogue `piighost/logs` |
 | Dé-identification | Remplacement des données confidentielles par des jetons, en gardant de quoi les restaurer. Au sens du RGPD (règlement général sur la protection des données), c'est une pseudonymisation. | `Bonjour <<PERSON:1>>` | pipeline par défaut |
 | Anonymisation | Suppression sans retour possible. `piighost` ne l'obtient qu'avec un jeton qui ne garde rien. | `<<REDACT>>` | `RedactPlaceholderFactory` |
 | Restauration | Remise des vraies valeurs à la place des jetons, dans la réponse montrée à l'utilisateur. | `Bonjour Patrick` dans la réponse | `deanonymize` |
@@ -67,7 +67,8 @@ Pour le contexte de chaque terme, partez de [Par où commencer](quickstart.md).
 |---|---|---|---|
 | Détecteur | Composant qui trouve les valeurs sensibles dans un texte. Par motif, par modèle d'IA ou par grand modèle de langage. | clé `[detector]` | `AnyDetector` |
 | Motif (regex) | Expression qui reconnaît une valeur à sa forme. Le motif ne vérifie pas de clé de contrôle (Luhn, IBAN). Une valeur abîmée par une reconnaissance de caractères reste donc détectée. | clé `patterns` | `RegexDetector` |
-| Catalogue | Liste de motifs publiée sur le hub et appelée par sa référence. | `hub:piighost/generic` | `catalogs`, `hub.pull` |
+| Catalogue | Service en ligne qui publie des groupes de motifs et des configurations complètes, chacun adressé par sa référence. Il s'appelait le hub jusqu'à `piighost` 1.x. | `https://catalog.piighost.dev`, variable `PIIGHOST_CATALOG_URL` | `piighost.catalog` |
+| Groupe du catalogue | Liste de motifs publiée sur le catalogue, pour un pays, un métier ou les secrets, et appelée par sa référence. | `catalog:piighost/generic` | clé `catalogs`, `RegexDetector.from_catalog` |
 | NER | *Named Entity Recognition*, reconnaissance d'entités nommées. Modèle d'IA qui classe les mots en personne, lieu, organisation. | clé `type = "gliner2"`, `"spacy"`… | `BaseNERDetector` |
 | Détection | Une occurrence trouvée, avec sa position, son texte, son type et sa confiance entre 0 et 1. | une ligne de `piighost anonymize --json` | `Detection` |
 | Position (span) | Intervalle de caractères `[début, fin)` d'une détection dans le texte. | `"start": 10, "end": 35` | `Span` |
@@ -113,7 +114,6 @@ Avant `piighost` 2.0, la liste à masquer s'appelait `whitelist` et la liste à 
 | Poivre (pepper) | Secret qui rend les empreintes des messages impossibles à recalculer sans lui. | variable `PIIGHOST_HASH_PEPPER` | `AnyHasher` |
 | Hacheur (hasher) | Composant qui calcule l'empreinte de chaque message avec le poivre. Il se configure toujours avec un chiffreur. | clé `[memory.hasher]` | `Sha256Hasher`, `Argon2Hasher` |
 | Chiffreur (cipher) | Composant qui chiffre les détections stockées, avec une clé AES (*Advanced Encryption Standard*) en mode GCM. | variable `PIIGHOST_CIPHER_KEY` | `AesGcmCipher` |
-| Hub | Registre en ligne de motifs et de configurations, adressés par référence. | `https://hub.piighost.dev`, variable `PIIGHOST_HUB_URL` | `piighost.hub` |
 | Masqueur de traces | Fabrique de jetons appliquée aux traces techniques, pour qu'elles ne contiennent pas de données en clair. | clé `[observation_redactor]` | `observation_redactor` |
 
 ## Identifiants de la documentation métier

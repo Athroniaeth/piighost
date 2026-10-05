@@ -253,15 +253,15 @@ Chaque protection se lève par un réglage explicite, pour qui préfère la disp
 
 Cette décision vit dans `components/detector/llm.py`, `components/guard/llm.py`, `integrations/claude_code/runner.py` et `conversation_memory/memory.py`. Elle répond au besoin DPO-9, et les règles BR-STO-04 et BR-CONV-11 en découlent.
 
-### DEC-20 : Configurer un pipeline par fichier et par le hub
+### DEC-20 : Configurer un pipeline par fichier et par le catalogue
 
 Une équipe doit pouvoir déployer le même pipeline sur plusieurs serveurs, sans écrire de code. Un pipeline se décrit donc dans un fichier TOML ou JSON.
 
-`piighost` ne livre lui-même aucune expression régulière. Les groupes d'expressions régulières, propres à un pays ou à un métier, viennent du hub, le catalogue partagé de `piighost`. Sans groupe du hub, aucun e-mail ni IBAN n'est reconnu par expression régulière. Le hub fournit aussi des configurations complètes.
+`piighost` ne livre lui-même aucune expression régulière. Les groupes d'expressions régulières, propres à un pays ou à un métier, viennent du catalogue, le registre partagé de `piighost`. Sans groupe du catalogue, aucun e-mail ni IBAN n'est reconnu par expression régulière. Le catalogue fournit aussi des configurations complètes.
 
 Le fichier désigne un groupe par une référence. Une référence peut viser une version figée, par son identifiant, comme `:2f602547`. Cette version ne change jamais, donc `piighost` en garde une copie locale. Une référence par nom, ou `latest` pour la dernière version, peut changer. `piighost` la télécharge donc à chaque chargement, parce qu'une copie périmée détecterait moins de valeurs sans le signaler.
 
-Cette décision vit dans `config/` et `hub.py`.
+Cette décision vit dans `config/` et `catalog.py`.
 
 ## L'architecture
 
@@ -269,7 +269,7 @@ Cette décision vit dans `config/` et `hub.py`.
 
 Chaque équipe a ses propres détecteurs, son stockage et ses contraintes. Chaque étape du pipeline est donc un port, c'est-à-dire une interface qu'on peut remplacer. On change le détecteur ou le stockage sans toucher aux autres étapes. La plupart des étapes fournissent aussi un squelette commun, qu'un nouveau composant complète. Seul le détecteur est obligatoire.
 
-Le fichier de configuration sait construire chaque composant, mais aucun composant ne dépend de ce fichier. On peut donc utiliser `piighost` dans du code, sans configuration. Le cœur de la bibliothèque ne contient aucune règle propre à une langue. Les listes de mots français ou d'un métier vont dans les groupes du hub.
+Le fichier de configuration sait construire chaque composant, mais aucun composant ne dépend de ce fichier. On peut donc utiliser `piighost` dans du code, sans configuration. Le cœur de la bibliothèque ne contient aucune règle propre à une langue. Les listes de mots français ou d'un métier vont dans les groupes du catalogue.
 
 Cette décision vit dans `components/*/base.py`. Voir [Ajouter ou remplacer un composant](../architecture/ports-and-extension.md).
 

@@ -133,4 +133,4 @@ Pour votre détecteur, le test de contrat doit rapporter la même chose que pour
 
 Aucun test n'impose le couplage à sens unique. La règle « le cœur n'importe jamais `piighost.config` » tient par revue de code. Pour la contrôler, `grep -rn "piighost.config" src/piighost --include=*.py | grep -v "^src/piighost/config\|^src/piighost/cli"` doit être vide.
 
-Pour lancer les tests, voir [Lancer et écrire les tests](../tests/run-and-write-tests.md). Pour la configuration, voir [Configurer un pipeline](../operations/configuration-and-hub.md).
+Pour lancer les tests, voir [Lancer et écrire les tests](../tests/run-and-write-tests.md). Pour la configuration, voir [Configurer un pipeline](../operations/configuration-and-catalog.md).

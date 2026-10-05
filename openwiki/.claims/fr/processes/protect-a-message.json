@@ -79,7 +79,7 @@
       "statement": "RegexDetector compiles patterns under re.ASCII, matches on a space-normalized copy of the text of the same length, emits confidence 1.0 and validates no checksum.",
       "evidence": [
         {
-          "resource": "repo://src/piighost/components/detector/regex.py#L10-L79",
+          "resource": "repo://src/piighost/components/detector/regex.py#L10-L90",
           "version": "repo-lines-v1:sha256:00fe2f112a95f126455a655f7d06a0c7fe2da2c85dbea1213472d274a4cc8daa:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZjUzMmJlNTc0Y2RkNjYxYWY1NDg2MmY1Mjc5NmU2YTQzYmFkYjAzZDRiMTllODc5YjQwMzY2N2NmODVmMzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMjZjMTI3ZjdmZTQ1MjU5OGFiMTZiOWVjOGMwMTNiZWQ5MzAwMjliOThiNWZiYjcyODNiYTdhZWNlMDQ4ZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzZjljMzNkNzdhYzY4ZTY2OTEzMTA0M2FjMjY3ZGZlYjQ2YzA0MzRkMTc5Y2NkYTk5MmI2ODA0YTc4YjQwMTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {

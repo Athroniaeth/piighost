@@ -89,7 +89,7 @@ Each rule follows from a design decision. The [Design decisions](reference/decis
 - **Go to production**:
     - DEC-18: Protect the stored memory.
     - DEC-19: Prefer protection over availability.
-    - DEC-20: Configure a pipeline from a file and from the hub.
+    - DEC-20: Configure a pipeline from a file and from the catalog.
 - **The architecture**:
     - DEC-21: Make each step a replaceable port.
     - DEC-22: Make the steps that wait asynchronous.
@@ -111,7 +111,7 @@ To change the code, the technical documentation says which pages to read and whi
 - **Integrations**:
     - [Plug the protection into an agent and its tools](integrations/agents-and-tools.md)
 - **Operations**:
-    - [Configure a pipeline by file, hub and command line](operations/configuration-and-hub.md)
+    - [Configure a pipeline by file, catalog and command line](operations/configuration-and-catalog.md)
     - [Store conversations and protect traces](operations/storage-and-encryption.md)
 - **Architecture**:
     - [Add or replace a pipeline component](architecture/ports-and-extension.md)

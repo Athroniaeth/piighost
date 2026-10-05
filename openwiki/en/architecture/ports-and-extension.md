@@ -133,4 +133,4 @@ For your detector, the contract test must report the same thing as for the other
 
 No test enforces the one-way coupling. The rule "the core never imports `piighost.config`" holds through code review. To check it, `grep -rn "piighost.config" src/piighost --include=*.py | grep -v "^src/piighost/config\|^src/piighost/cli"` must be empty.
 
-To run the tests, see [Run and write tests](../tests/run-and-write-tests.md). For the configuration, see [Configure a pipeline](../operations/configuration-and-hub.md).
+To run the tests, see [Run and write tests](../tests/run-and-write-tests.md). For the configuration, see [Configure a pipeline](../operations/configuration-and-catalog.md).

@@ -59,7 +59,7 @@
       "statement": "DetectorConfig is a discriminated union on the type key; adding a detector config requires adding it to this union.",
       "evidence": [
         {
-          "resource": "repo://src/piighost/config/models/detector.py#L172-L186",
+          "resource": "repo://src/piighost/config/models/detector.py#L173-L187",
           "version": "repo-lines-v1:sha256:0582e0176d02828f02dd3c6436e585fc7691f33e887d683fccf2fb44d08b870c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmOTRkMjU4MGIyNjcwODMxZTg0M2JlMTkyYjk1OTc5YWY2ZjIwMjFkNTAxNWZjZDIyYjk4NGUwMGQ4YzAwNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwYzgzOTEyNTNiYTI4YjAyM2FmMzEwZGIyYWIwNzhkNGUxYjdhNmZmODVjNmY1MGU4NGQyOTE4MzQ3OGVjYTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyNzk1ZWUzMWMwODI0YzAxOTQwM2YwZjJlNjdiYzE1MzZmZjZhMDZiZWQxZmY0MDkzNTdjYjdmYjc2MjNiOGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
@@ -93,7 +93,7 @@
           "version": "repo-lines-v1:sha256:22cd66ac59df3a609208e86d95cb7b601df100fc2902d7546e1dfaa6c38107c6:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzAyYTgxYzM4MzZlZGVmMmQwYmExMWQyMzUzZmI2ZGFiYzc3NzE1MGE3Y2E4M2VhMGQ5ZTlhNzAzMTNmZWFiYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc0YjA1ZDJmMDMwMDUxYmFmZDhhMmQ1ODVmNTgxMTNiOWFiMTk3MTNlYmQyMGJkY2NhODQ0Y2E3NzJjN2E0NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjQ4ZjJkNjJjMTU4NjRhOGRmMmNhOWMwZDZmZGEzY2Y3OTE4ZGM4ZDg0OWJkYzU5ZDhmY2FhYzQxMGFmZTJjNSJ9"
         },
         {
-          "resource": "repo://src/piighost/config/models/detector.py#L60-L67",
+          "resource": "repo://src/piighost/config/models/detector.py#L61-L68",
           "version": "repo-lines-v1:sha256:136826bdd9f952b28d611bb85fc59989d06ce1c337391981c6badc0ed0617122:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTBkZTI1ODcxOTYxNDkyNjA3MWM4ZmIxOWZkODY2MTUwNTU1ZjFiMDEzNTRmOGNkMTYwM2ExMDlhN2RkYWU0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU3ODA1YzNmZTdhYzYzMDc0ZjY5Y2RiMjViOWFjZDdhODY3OTJkZmU1NDA4MThhYzRmODc2NGI0OWU3ZDE0YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjk2YWNiNmJhMmRjZGU2YTY5MGYzNDdiNjQ4N2JhZGMyZjQwNjMxOTliN2FkY2U4ODIxNjQ2NGUwZGVjNzdhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGY2YmYwMjY1YzNkNGE3MjE3NDY0MTU2ZjczOTViNmEzNzk4MTc1MDQzMjgwZTU0ZjVhZmFiOTA2MTJjY2FmNiJ9"
         }
       ]

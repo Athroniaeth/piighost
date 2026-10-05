@@ -33,9 +33,9 @@ DPO-1 : En tant que DPO, je veux qu'aucune donnée personnelle ni aucun secret n
 
 DPO-2 : En tant que DPO, je veux choisir les types de données protégées, afin d'adapter la protection à mon activité.
 
-- Une configuration qui tire le groupe français du hub masque un IBAN et un numéro de sécurité sociale.
+- Une configuration qui tire le groupe français du catalogue masque un IBAN et un numéro de sécurité sociale.
 - Un motif propre à l'entreprise, un numéro de dossier par exemple, s'ajoute en une ligne.
-- Voir [Configurer un pipeline](operations/configuration-and-hub.md) et [Protéger un message](processes/protect-a-message.md). Tests : [AT-DPO-2-…](tests/acceptance-tests.md).
+- Voir [Configurer un pipeline](operations/configuration-and-catalog.md) et [Protéger un message](processes/protect-a-message.md). Tests : [AT-DPO-2-…](tests/acceptance-tests.md).
 
 DPO-3 : En tant que DPO, je veux forcer la protection d'une valeur, ou laisser en clair un terme public, sans attendre le détecteur, afin d'imposer la politique de l'entreprise.
 
@@ -119,7 +119,7 @@ DEV-5 : En tant que développeur, je veux ajouter mes propres détecteurs ou val
 DEV-6 : En tant que développeur, je veux décrire le pipeline dans un fichier et le valider en CI, afin de le faire relire sans lire de code.
 
 - La validation réussit sur une configuration correcte et échoue, en nommant la clé fautive, sur une faute de frappe.
-- Voir [Configurer un pipeline](operations/configuration-and-hub.md). Tests : [AT-DEV-6-…](tests/acceptance-tests.md).
+- Voir [Configurer un pipeline](operations/configuration-and-catalog.md). Tests : [AT-DEV-6-…](tests/acceptance-tests.md).
 
 DEV-7 : En tant que développeur, je veux tester mon intégration sans télécharger de modèle, afin d'avoir des tests rapides et reproductibles.
 
@@ -154,8 +154,8 @@ DEV-11 : En tant que développeur, je veux choisir le sort d'une valeur que l'as
 
 OPS-1 : En tant qu'exploitant, je veux déployer une API de dé-identification partagée, afin que plusieurs applications utilisent un seul pipeline et un seul modèle.
 
-- Le serveur démarre sur une configuration du hub et répond aux requêtes de dé-identification.
-- Voir le tutoriel [Déployer une API de dé-identification](../../docs/fr/getting-started/api-server.md) et [Configurer un pipeline](operations/configuration-and-hub.md). Tests : [AT-OPS-1-…](tests/acceptance-tests.md).
+- Le serveur démarre sur une configuration du catalogue et répond aux requêtes de dé-identification.
+- Voir le tutoriel [Déployer une API de dé-identification](../../docs/fr/getting-started/api-server.md) et [Configurer un pipeline](operations/configuration-and-catalog.md). Tests : [AT-OPS-1-…](tests/acceptance-tests.md).
 
 OPS-2 : En tant qu'exploitant, je veux que la mémoire survive aux redémarrages et soit partagée entre instances, afin qu'une conversation ne perde pas ses jetons.
 
@@ -179,14 +179,14 @@ OPS-5 : En tant qu'exploitant, je veux traiter un long document sans que le mod�
 - Une valeur placée au-delà de la fenêtre du modèle est détectée quand le texte est découpé.
 - Voir [Limites](../../docs/fr/limitations.md) et [Ajouter ou remplacer un composant](architecture/ports-and-extension.md). Tests : [AT-OPS-5-…](tests/acceptance-tests.md).
 
-OPS-6 : En tant qu'exploitant, je veux charger une configuration relue depuis le hub par sa référence, afin de ne pas maintenir de copie locale.
+OPS-6 : En tant qu'exploitant, je veux charger une configuration relue depuis le catalogue par sa référence, afin de ne pas maintenir de copie locale.
 
 - Une référence épinglée sur un commit est téléchargée au premier démarrage, puis lue depuis le cache.
 - Une référence sans commit, qui peut changer, est relue à chaque chargement et jamais mise en cache.
-- Le hub n'est joint qu'en HTTP ou HTTPS, et une configuration du hub qui embarque un modèle est refusée.
-- Voir [Configurer un pipeline](operations/configuration-and-hub.md). Tests : [AT-OPS-6-…](tests/acceptance-tests.md).
+- Le catalogue n'est joint qu'en HTTP ou HTTPS, et une configuration du catalogue qui embarque un modèle est refusée.
+- Voir [Configurer un pipeline](operations/configuration-and-catalog.md). Tests : [AT-OPS-6-…](tests/acceptance-tests.md).
 
-**Limite connue.** Le hub ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres. Répartir les labels entre motifs et modèle demande un format de configuration que le hub n'a pas encore.
+**Limite connue.** Le catalogue ne sert pour l'instant que des groupes de motifs. Un modèle NER reconnaît mieux certains labels que d'autres. Répartir les labels entre motifs et modèle demande un format de configuration que le catalogue n'a pas encore.
 
 OPS-7 : En tant qu'exploitant, je veux que la mémoire en processus soit bornée par défaut, afin qu'un serveur qui tourne des semaines ne garde pas toutes les valeurs qu'il a vues.
 

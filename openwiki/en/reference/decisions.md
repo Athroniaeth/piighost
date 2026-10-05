@@ -253,15 +253,15 @@ Each protection can be lifted by an explicit setting, for those who prefer avail
 
 Implemented in `components/detector/llm.py`, `components/guard/llm.py`, `integrations/claude_code/runner.py` and `conversation_memory/memory.py`. It meets need DPO-9, and rules BR-STO-04 and BR-CONV-11 follow from it.
 
-### DEC-20: Configure a pipeline from a file and from the hub
+### DEC-20: Configure a pipeline from a file and from the catalog
 
 A team must be able to deploy the same pipeline on several servers, without writing code. So a pipeline is described in a TOML or JSON file.
 
-`piighost` ships no regular expression itself. Groups of regular expressions, specific to a country or a profession, come from the hub, `piighost`'s shared catalog. Without a hub group, no email or IBAN is recognized by regular expression. The hub also provides complete configurations.
+`piighost` ships no regular expression itself. Groups of regular expressions, specific to a country or a profession, come from the catalog, `piighost`'s shared registry. Without a catalog group, no email or IBAN is recognized by regular expression. The catalog also provides complete configurations.
 
 The file names a group by a reference. A reference can point to a frozen version, by its identifier, as in `:2f602547`. This version never changes, so `piighost` keeps a local copy. A reference by name, or `latest` for the newest version, can change. So `piighost` downloads it at each load, because a stale copy would detect fewer values without saying so.
 
-Implemented in `config/` and `hub.py`.
+Implemented in `config/` and `catalog.py`.
 
 ## The architecture
 
@@ -269,7 +269,7 @@ Implemented in `config/` and `hub.py`.
 
 Each team has its own detectors, its storage and its constraints. So each step of the pipeline is a port, an interface you can replace. You change the detector or the storage without touching the other steps. Most steps also provide a shared skeleton that a new component fills in. Only the detector is required.
 
-The configuration file knows how to build each component, but no component depends on this file. So you can use `piighost` from code, without any configuration. The core of the library holds no rule specific to a language. Lists of French words or of a profession go in the hub groups.
+The configuration file knows how to build each component, but no component depends on this file. So you can use `piighost` from code, without any configuration. The core of the library holds no rule specific to a language. Lists of French words or of a profession go in the catalog groups.
 
 Implemented in `components/*/base.py`. See [Add or replace a pipeline component](../architecture/ports-and-extension.md).
 
