@@ -17,7 +17,7 @@ La réflexion se construit en trois temps. D'abord, comment un LLM en cloud fonc
     - La dé-identification ne règle pas tout, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
 
 !!! note "Dé-identification, pas anonymisation"
-    `piighost` remplace chaque PII par un placeholder (`<<PERSON:1>>`{ .placeholder }) et garde le lien entre le placeholder et la valeur d'origine, pour restaurer la vraie valeur ensuite. Au sens du RGPD, c'est de la **pseudonymisation**, pas de l'anonymisation. Cette documentation emploie partout le mot dé-identification. Le mot anonymisation est réservé à un retrait irréversible, sans restauration possible, et signalé comme tel quand il apparaît.
+    `piighost` remplace chaque donnée personnelle par un jeton, c'est-à-dire un texte de remplacement comme `<<PERSON:1>>`{ .placeholder }. Il garde le lien entre le jeton et la valeur d'origine, pour restaurer la vraie valeur ensuite. Au sens du RGPD, c'est de la **pseudonymisation**, pas de l'anonymisation. Cette documentation emploie partout le mot dé-identification. Le mot anonymisation est réservé à un retrait irréversible, sans restauration possible, et signalé comme tel quand il apparaît.
 
 ---
 
@@ -152,11 +152,11 @@ Le risque est différent des deux précédents. Il ne nécessite ni juge, ni man
 
 **Enfin, la porosité documentée entre écosystème publicitaire et surveillance.** Un rapport de l'Office of the Director of National Intelligence daté de janvier 2022 et déclassifié en juin 2023 reconnaît que les agences de renseignement américaines achètent régulièrement des données commerciales auprès de courtiers en données, notamment des données de localisation et de navigation. Ce qui est collecté pour vendre de la publicité peut donc être racheté pour surveiller, sans mandat ni notification.
 
-Dans ce contexte, la question n'est pas "est-ce que les conversations LLM seront un jour monétisées ou revendues" mais "que reste-t-il de ce risque si les données qui quittent votre périmètre ne contiennent plus de PII identifiantes ?". La dé-identification en amont retire de ces données les valeurs qui leur donnent une utilité commerciale et stratégique, avant même qu'elles n'entrent dans l'écosystème du fournisseur.
+Dans ce contexte, la question n'est pas "est-ce que les conversations LLM seront un jour monétisées ou revendues" mais "que reste-t-il de ce risque si les données qui quittent votre périmètre ne contiennent plus de données personnelles identifiantes ?". La dé-identification en amont retire de ces données les valeurs qui leur donnent une utilité commerciale et stratégique, avant même qu'elles n'entrent dans l'écosystème du fournisseur.
 
 ### Pourquoi la dé-identification casse ce graphe
 
-Une PII envoyée en clair devient un nœud dans un graphe potentiel. Elle peut être croisée avec des réseaux sociaux, des brèches antérieures, des registres publics ou des bases commerciales, pour ré-identifier, enrichir ou cibler. Un placeholder `<<PERSON:1>>`{ .placeholder } ne se croise, lui, avec aucune base. La dé-identification avant envoi retire donc la valeur que toutes les chaînes d'usage secondaire décrites plus haut exploitent. Le contexte autour du placeholder peut toutefois suffire à ré-identifier une personne, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
+Une donnée personnelle envoyée en clair devient un nœud dans un graphe potentiel. Elle peut être croisée avec des réseaux sociaux, des brèches antérieures, des registres publics ou des bases commerciales, pour ré-identifier, enrichir ou cibler. Un jeton `<<PERSON:1>>`{ .placeholder } ne se croise, lui, avec aucune base. La dé-identification avant envoi retire donc la valeur que toutes les chaînes d'usage secondaire décrites plus haut exploitent. Le contexte autour du jeton peut toutefois suffire à ré-identifier une personne, voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
 
 ---
 
@@ -184,7 +184,7 @@ Changer de juridiction en passant à un fournisseur européen (Mistral, OVHcloud
 
 Enfin, exécuter le modèle localement sur votre propre infrastructure (Ollama, vLLM, llama.cpp ou équivalent) supprime entièrement le tiers. Par construction, aucun fournisseur n'a d'accès technique au contenu. C'est la protection maximale sur le plan de la confidentialité. La contrepartie est que toute la responsabilité bascule chez vous, c'est-à-dire sécurité physique et logique, chiffrement au repos, gestion des accès, mises à jour, journalisation. Les modèles ouverts exécutables localement (Llama, Mistral, Qwen, DeepSeek, etc.) peuvent rester en retrait des meilleurs modèles propriétaires sur certaines tâches complexes, bien que l'écart se réduise rapidement.
 
-Le choix du fournisseur continue de compter pour beaucoup de choses, comme la latence, le coût, la qualité du modèle, la conformité RGPD d'ensemble, l'écosystème d'intégration. Pour le risque de fuite des PII détectées, la dé-identification réduit en revanche fortement l'enjeu de ce choix. Si seuls des placeholders comme `<<PERSON:1>>`{ .placeholder } quittent votre infrastructure, un fournisseur américain ne reçoit pas ces valeurs. Il ne devient pas pour autant équivalent à un modèle exécuté en local. Il reçoit le texte qui entoure chaque placeholder, et une valeur que le détecteur a manquée part en clair. Voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
+Le choix du fournisseur continue de compter pour beaucoup de choses, comme la latence, le coût, la qualité du modèle, la conformité RGPD d'ensemble, l'écosystème d'intégration. Pour le risque de fuite des données personnelles détectées, la dé-identification réduit en revanche fortement l'enjeu de ce choix. Si seuls des jetons comme `<<PERSON:1>>`{ .placeholder } quittent votre infrastructure, un fournisseur américain ne reçoit pas ces valeurs. Il ne devient pas pour autant équivalent à un modèle exécuté en local. Il reçoit le texte qui entoure chaque jeton, et une valeur que le détecteur a manquée part en clair. Voir [Ce que la dé-identification ne résout pas](#ce-que-la-de-identification-ne-resout-pas).
 
 ---
 
@@ -208,7 +208,7 @@ Dans ces secteurs, la dé-identification avant envoi peut rendre l'usage possibl
 - **Samsung, avril 2023** : plusieurs incidents internes où des ingénieurs collent du code source et des notes de réunion dans ChatGPT. Samsung rappelle publiquement que les données ainsi partagées sont impossibles à récupérer, puisqu'elles sont désormais sur les serveurs d'OpenAI. En mai 2023, l'entreprise interdit l'usage des LLM génératifs sur les appareils professionnels.
 - **Secteur bancaire américain, printemps 2023** : JPMorgan Chase, Bank of America, Citigroup, Goldman Sachs, Deutsche Bank et Wells Fargo bloquent ou restreignent l'usage de ChatGPT par leurs employés. Verizon, Amazon et Walmart émettent des avertissements internes.
 
-Ces décisions proviennent de directions juridiques et de RSSI qui ont fait le calcul. Le risque structurel dépasse le gain de productivité, tant qu'aucune barrière technique ne garantit que les PII ne quittent pas l'entreprise. La dé-identification ouvre précisément une troisième voie, entre l'interdiction pure et l'envoi en clair.
+Ces décisions proviennent de directions juridiques et de RSSI qui ont fait le calcul. Le risque structurel dépasse le gain de productivité, tant qu'aucune barrière technique ne garantit que les données personnelles ne quittent pas l'entreprise. La dé-identification ouvre précisément une troisième voie, entre l'interdiction pure et l'envoi en clair.
 
 ---
 
@@ -224,7 +224,7 @@ Toutes les protections mobilisées jusqu'ici reposent sur des instruments juridi
 | Régulation régionale         | RGPD                                       | Lent à produire des sanctions appliquées sur les LLM     |
 | Hébergement régional         | "Datacenters en Europe"                    | Neutralisé par le CLOUD Act si le fournisseur est américain |
 
-La protection technique fonctionne différemment. Si la donnée personnelle ne quitte jamais votre infrastructure, et que seul un placeholder (par exemple `<<PERSON:1>>`{ .placeholder }) est envoyé au LLM :
+La protection technique fonctionne différemment. Si la donnée personnelle ne quitte jamais votre infrastructure, et que seul un jeton (par exemple `<<PERSON:1>>`{ .placeholder }) est envoyé au LLM :
 
 - aucune injonction ne peut obliger un tiers à divulguer ce qu'il n'a pas,
 - aucun changement d'accord international ne vous affecte,
@@ -240,9 +240,9 @@ C'est la différence entre "on vous promet de ne pas regarder" et "on ne reçoit
 La dé-identification est une couche dans une défense en profondeur, pas une solution miracle.
 
 - Elle ne rend pas un LLM conforme à tous les régimes réglementaires. Certaines données (santé nominative, secret-défense) ne doivent pas sortir de l'infrastructure, même dé-identifiées.
-- Elle dépend de la qualité des détecteurs. Une PII non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel. Voir [Limites](limitations.md).
-- Elle ne masque pas le contexte. Le texte autour d'un placeholder peut suffire à ré-identifier une personne, par exemple "le seul cardiologue d'une commune de 300 habitants". Voir [Sécurité](security.md).
-- Le lien entre placeholder et valeur d'origine reste stocké quelque part chez vous. Ce mapping contient de la PII en clair. Il faut donc le protéger. Voir [Sécurité](security.md).
+- Elle dépend de la qualité des détecteurs. Une donnée personnelle non détectée passe en clair. C'est un enjeu d'ingénierie, pas un défaut conceptuel. Voir [Limites](limitations.md).
+- Elle ne masque pas le contexte. Le texte autour d'un jeton peut suffire à ré-identifier une personne, par exemple "le seul cardiologue d'une commune de 300 habitants". Voir [Sécurité](security.md).
+- Le lien entre jeton et valeur d'origine reste stocké quelque part chez vous. Cette correspondance contient des données personnelles en clair. Il faut donc le protéger. Voir [Sécurité](security.md).
 - Elle ne remplace pas les autres bonnes pratiques, comme le chiffrement au repos, la journalisation auditée, la gestion des accès, la formation des équipes.
 
 ---

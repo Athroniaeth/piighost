@@ -17,7 +17,7 @@ The argument builds in three steps. First, how a cloud LLM works technically and
     - De-identification does not solve everything, see [What de-identification does not solve](#what-de-identification-does-not-solve).
 
 !!! note "De-identification, not anonymization"
-    `piighost` replaces each PII with a placeholder (`<<PERSON:1>>`{ .placeholder }) and keeps the link between the placeholder and the original value, so it can restore the real value later. Under the GDPR that is **pseudonymization**, not anonymization. This documentation uses the word de-identification throughout. The word anonymization is reserved for irreversible removal, with no restoration possible, and flagged as such wherever it appears.
+    `piighost` replaces each piece of personal data with a placeholder, that is a replacement text such as `<<PERSON:1>>`{ .placeholder }. It keeps the link between the placeholder and the original value, so it can restore the real value later. Under the GDPR that is **pseudonymization**, not anonymization. This documentation uses the word de-identification throughout. The word anonymization is reserved for irreversible removal, with no restoration possible, and flagged as such wherever it appears.
 
 ---
 
@@ -152,11 +152,11 @@ The risk is different from the previous two. It requires neither a judge nor a w
 
 **Finally, the documented porosity between the advertising ecosystem and surveillance.** A report from the Office of the Director of National Intelligence dated January 2022 and declassified in June 2023 acknowledges that US intelligence agencies regularly buy commercial data from data brokers, notably location and browsing data. What is collected to sell advertising can therefore be bought back to surveil, without a warrant or notification.
 
-In this context, the question is not "will LLM conversations one day be monetized or resold" but "what is left of that risk if the data leaving your perimeter no longer contains identifying PII?". Upstream de-identification removes from these data the values that give them commercial and strategic utility, before they even enter the provider's ecosystem.
+In this context, the question is not "will LLM conversations one day be monetized or resold" but "what is left of that risk if the data leaving your perimeter no longer contains identifying personal data?". Upstream de-identification removes from these data the values that give them commercial and strategic utility, before they even enter the provider's ecosystem.
 
 ### Why de-identification breaks this graph
 
-A PII sent in cleartext becomes a node in a potential graph. It can be crossed with social networks, prior breaches, public registries or commercial databases, to re-identify, enrich or target. A `<<PERSON:1>>`{ .placeholder } placeholder, in contrast, cross-references with no database. De-identifying before sending therefore removes the value every secondary-use chain described above exploits. The context around the placeholder can still be enough to re-identify a person, see [What de-identification does not solve](#what-de-identification-does-not-solve).
+Personal data sent in cleartext becomes a node in a potential graph. It can be crossed with social networks, prior breaches, public registries or commercial databases, to re-identify, enrich or target. A `<<PERSON:1>>`{ .placeholder } placeholder, in contrast, cross-references with no database. De-identifying before sending therefore removes the value every secondary-use chain described above exploits. The context around the placeholder can still be enough to re-identify a person, see [What de-identification does not solve](#what-de-identification-does-not-solve).
 
 ---
 
@@ -184,7 +184,7 @@ Switching jurisdiction by moving to a European provider (Mistral, OVHcloud AI, S
 
 Finally, running the model locally on your own infrastructure (Ollama, vLLM, llama.cpp or equivalent) removes the third party entirely. By construction, no provider has technical access to the content. It is the maximum protection on the confidentiality front. The trade-off is that all responsibility shifts onto you, that is, physical and logical security, encryption at rest, access management, updates, logging. Open models that can be run locally (Llama, Mistral, Qwen, DeepSeek, etc.) may still lag behind the best proprietary models on some complex tasks, though the gap is closing quickly.
 
-The choice of provider still matters for many things, such as latency, cost, model quality, overall GDPR compliance, integration ecosystem. For the risk of leaking the detected PII, however, de-identification greatly reduces what is at stake in that choice. If only placeholders like `<<PERSON:1>>`{ .placeholder } leave your infrastructure, a US provider does not receive those values. That does not make it equivalent to a locally executed model. It receives the text around each placeholder, and a value the detector missed is sent in clear. See [What de-identification does not solve](#what-de-identification-does-not-solve).
+The choice of provider still matters for many things, such as latency, cost, model quality, overall GDPR compliance, integration ecosystem. For the risk of leaking the detected personal data, however, de-identification greatly reduces what is at stake in that choice. If only placeholders like `<<PERSON:1>>`{ .placeholder } leave your infrastructure, a US provider does not receive those values. That does not make it equivalent to a locally executed model. It receives the text around each placeholder, and a value the detector missed is sent in clear. See [What de-identification does not solve](#what-de-identification-does-not-solve).
 
 ---
 
@@ -208,7 +208,7 @@ In the absence of available technical protection in 2023, several large groups s
 - **Samsung, April 2023**: several internal incidents where engineers pasted source code and meeting notes into ChatGPT. Samsung publicly noted that data shared this way was impossible to retrieve, since it was now on OpenAI servers. In May 2023, the company banned the use of generative LLMs on professional devices.
 - **US banking sector, spring 2023**: JPMorgan Chase, Bank of America, Citigroup, Goldman Sachs, Deutsche Bank and Wells Fargo blocked or restricted ChatGPT use for their employees. Verizon, Amazon and Walmart issued internal warnings.
 
-These decisions come from legal departments and CISOs who made the calculation. Structural risk outweighs the productivity gain, as long as no technical barrier guarantees that PII does not leave the company. De-identification opens precisely a third path, between outright bans and cleartext sending.
+These decisions come from legal departments and CISOs who made the calculation. Structural risk outweighs the productivity gain, as long as no technical barrier guarantees that personal data does not leave the company. De-identification opens precisely a third path, between outright bans and cleartext sending.
 
 ---
 
@@ -240,9 +240,9 @@ It is the difference between "we promise not to look" and "we never receive the 
 De-identification is a layer in a defense-in-depth posture, not a silver bullet.
 
 - It does not make an LLM compliant with every regulatory regime. Some data (identifiable health data, defense-classified material) must not leave the infrastructure, even de-identified.
-- It depends on detector quality. A PII that is not detected passes through in cleartext. This is an engineering concern, not a conceptual flaw. See [Limitations](limitations.md).
+- It depends on detector quality. Personal data that is not detected passes through in cleartext. This is an engineering concern, not a conceptual flaw. See [Limitations](limitations.md).
 - It does not hide the context. The text around a placeholder can be enough to re-identify a person, for example "the only cardiologist in a village of 300 people". See [Security](security.md).
-- The link between placeholder and original value stays stored somewhere on your side. That mapping holds cleartext PII. It must therefore be protected. See [Security](security.md).
+- The link between placeholder and original value stays stored somewhere on your side. That mapping holds personal data in cleartext. It must therefore be protected. See [Security](security.md).
 - It does not replace other good practices, such as encryption at rest, audited logging, access management, team training.
 
 ---
