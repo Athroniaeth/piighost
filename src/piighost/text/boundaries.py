@@ -22,6 +22,7 @@ WORD_JOIN_CHARS = (
     "\u30a0"  # katakana double hyphen
     "\ufe63"  # small hyphen-minus
     "\uff0d"  # fullwidth hyphen-minus
+    "\U00010d6e"  # Garay hyphen, added in Unicode 16 (Python 3.14)
     "\U00010ead"  # Yezidi hyphenation mark
 )
 """Characters treated as part of a word, in addition to the word class.

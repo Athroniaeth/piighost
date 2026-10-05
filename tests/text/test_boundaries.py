@@ -46,7 +46,12 @@ class TestFindAllWordBoundary:
         assert find_all_word_boundary(f"Paris{dash}Lyon", "Paris") == [Span(0, 5)]
 
     def test_hyphens_are_the_dash_punctuation_named_hyphen(self) -> None:
-        """WORD_JOIN_CHARS is every Pd character named a hyphen, and the soft one."""
+        """WORD_JOIN_CHARS is every Pd character named a hyphen, and the soft one.
+
+        The list follows the newest Unicode a supported Python ships, so an
+        older interpreter does not know some of its characters yet: only the
+        ones this interpreter has assigned are compared.
+        """
         every_char = (chr(code) for code in range(sys.maxunicode + 1))
         named = {
             char
@@ -54,7 +59,8 @@ class TestFindAllWordBoundary:
             if unicodedata.category(char) == "Pd"
             and any(word in unicodedata.name(char) for word in ("HYPHEN", "MAQAF"))
         }
-        assert set(WORD_JOIN_CHARS) == named | {"\u00ad"}
+        known = {char for char in WORD_JOIN_CHARS if unicodedata.category(char) != "Cn"}
+        assert known == named | {"\u00ad"}
 
     @pytest.mark.parametrize(
         ("text", "fragment", "span"),
