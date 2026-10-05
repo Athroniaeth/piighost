@@ -38,4 +38,4 @@ PIIGhost handles potentially sensitive PII. Key design decisions:
 
 ### What PIIGhost does not protect
 
-De-identification has a defined scope, and several risks sit outside it: process-memory compromise, an unencrypted persistent store, re-identification from surrounding context, fallible detectors, values the assistant introduces under the default `PRESERVE` strategy, and clear-text observation traces. The full threat model, with mitigations, is documented at [Security](https://athroniaeth.github.io/piighost/security/) and [Limitations](https://athroniaeth.github.io/piighost/limitations/).
+De-identification has a defined scope, and several risks sit outside it: process-memory compromise, an unencrypted persistent store, re-identification from surrounding context, fallible detectors, values the assistant introduces under the default `PRESERVE` strategy, and clear-text observation traces. The full threat model, with mitigations, is documented at [Security](https://docs.piighost.dev/en/guide/security/) and [Limitations](https://docs.piighost.dev/en/guide/limitations/).

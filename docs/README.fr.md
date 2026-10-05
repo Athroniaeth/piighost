@@ -53,16 +53,16 @@ result = asyncio.run(pipeline.anonymize("Write to John Doe at john.doe@example.c
 print(result.text)  # Write to <<PERSON:1>> at <<EMAIL:1>>.
 ```
 
-Le [démarrage rapide](https://athroniaeth.github.io/piighost/fr/getting-started/quickstart/) continue avec un vrai détecteur et une conversation.
+Le [démarrage rapide](https://docs.piighost.dev/fr/guide/getting-started/quickstart/) continue avec un vrai détecteur et une conversation.
 
 ## Aller plus loin
 
-- **Démarrer** : [installation](https://athroniaeth.github.io/piighost/fr/getting-started/installation/), [premier pipeline](https://athroniaeth.github.io/piighost/fr/getting-started/first-pipeline/), [pipeline conversationnel](https://athroniaeth.github.io/piighost/fr/getting-started/conversation/)
-- **Configurer** : [un pipeline dans un fichier TOML](https://athroniaeth.github.io/piighost/fr/getting-started/configuration/), [les groupes de motifs du catalogue](https://athroniaeth.github.io/piighost/fr/reference/detectors/#groupes-du-catalogue), [toutes les clés de config](https://athroniaeth.github.io/piighost/fr/configuration/toml/)
-- **Intégrer** : [LangChain](https://athroniaeth.github.io/piighost/fr/examples/langchain/), [Pydantic AI](https://athroniaeth.github.io/piighost/fr/examples/pydantic-ai/), [LlamaIndex](https://athroniaeth.github.io/piighost/fr/examples/llama-index/), [Claude Code](https://athroniaeth.github.io/piighost/fr/examples/claude-code/), [un piighost-api distant](https://athroniaeth.github.io/piighost/fr/getting-started/api-client/)
-- **Déployer** : [un serveur d'API depuis une configuration du catalogue](https://athroniaeth.github.io/piighost/fr/getting-started/api-server/), [un pipeline de thread en production](https://athroniaeth.github.io/piighost/fr/deployment/), [plusieurs instances](https://athroniaeth.github.io/piighost/fr/multi-instance/)
-- **Comprendre** : [pourquoi dé-identifier](https://athroniaeth.github.io/piighost/fr/why-anonymize/), [architecture](https://athroniaeth.github.io/piighost/fr/architecture/), [sécurité](https://athroniaeth.github.io/piighost/fr/security/), [conformité RGPD](https://athroniaeth.github.io/piighost/fr/compliance/), [limites](https://athroniaeth.github.io/piighost/fr/limitations/), [la détection mesurée](https://athroniaeth.github.io/piighost/fr/benchmark/), [comparaison](https://athroniaeth.github.io/piighost/fr/comparison/)
-- **Mettre à jour** : [versions et passage à la 2.0](https://athroniaeth.github.io/piighost/fr/community/upgrading/)
+- **Démarrer** : [installation](https://docs.piighost.dev/fr/guide/getting-started/installation/), [premier pipeline](https://docs.piighost.dev/fr/guide/getting-started/first-pipeline/), [pipeline conversationnel](https://docs.piighost.dev/fr/guide/getting-started/conversation/)
+- **Configurer** : [un pipeline dans un fichier TOML](https://docs.piighost.dev/fr/guide/getting-started/configuration/), [les groupes de motifs du catalogue](https://docs.piighost.dev/fr/guide/reference/detectors/#groupes-du-catalogue), [toutes les clés de config](https://docs.piighost.dev/fr/guide/configuration/toml/)
+- **Intégrer** : [LangChain](https://docs.piighost.dev/fr/guide/examples/langchain/), [Pydantic AI](https://docs.piighost.dev/fr/guide/examples/pydantic-ai/), [LlamaIndex](https://docs.piighost.dev/fr/guide/examples/llama-index/), [Claude Code](https://docs.piighost.dev/fr/guide/examples/claude-code/), [un piighost-api distant](https://docs.piighost.dev/fr/guide/getting-started/api-client/)
+- **Déployer** : [un serveur d'API depuis une configuration du catalogue](https://docs.piighost.dev/fr/guide/getting-started/api-server/), [un pipeline de thread en production](https://docs.piighost.dev/fr/guide/deployment/), [plusieurs instances](https://docs.piighost.dev/fr/guide/multi-instance/)
+- **Comprendre** : [pourquoi dé-identifier](https://docs.piighost.dev/fr/guide/why-anonymize/), [architecture](https://docs.piighost.dev/fr/guide/architecture/), [sécurité](https://docs.piighost.dev/fr/guide/security/), [conformité RGPD](https://docs.piighost.dev/fr/guide/compliance/), [limites](https://docs.piighost.dev/fr/guide/limitations/), [la détection mesurée](https://docs.piighost.dev/fr/guide/benchmark/), [comparaison](https://docs.piighost.dev/fr/guide/comparison/)
+- **Mettre à jour** : [versions et passage à la 2.0](https://docs.piighost.dev/fr/guide/community/upgrading/)
 
 ## Écosystème
 
@@ -74,5 +74,5 @@ Le [démarrage rapide](https://athroniaeth.github.io/piighost/fr/getting-started
 ## Projet
 
 - **Communauté** : [Discord](https://discord.gg/vFg9GHQR2s) pour obtenir de l'aide, signaler un bug ou demander une fonctionnalité
-- **Contribuer** : [guide de contribution](https://athroniaeth.github.io/piighost/fr/community/contributing/) et [signaler un bug](https://athroniaeth.github.io/piighost/fr/community/bug-reports/)
+- **Contribuer** : [guide de contribution](https://docs.piighost.dev/fr/guide/community/contributing/) et [signaler un bug](https://docs.piighost.dev/fr/guide/community/bug-reports/)
 - **Licence** : [MIT](../LICENSE)
