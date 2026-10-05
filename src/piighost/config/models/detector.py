@@ -5,6 +5,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Discriminator, Field, field_validator, model_validator
 
+from piighost.catalog import CatalogRefError, parse_ref, pull
 from piighost.components.detector import (
     ChunkedDetector,
     CompositeDetector,
@@ -20,13 +21,12 @@ from piighost.config.models.detector_model import (
     SpacyDetectorConfig,
     TransformersDetectorConfig,
 )
-from piighost.hub import HubRefError, parse_ref, pull
 from piighost.text import RecursiveCharacterTextSplitter
 
 _REMOVED_CATALOGS = frozenset({"generic", "us", "eu", "fr"})
-"""The names of the catalogs piighost shipped before 2.0, now groups of the hub.
+"""The names of the catalogs piighost shipped before 2.0, now catalog groups.
 
-A config still naming one is refused with the hub reference that replaces it,
+A config still naming one is refused with the catalog reference that replaces it,
 rather than with a bare parse error.
 """
 
@@ -37,13 +37,14 @@ class RegexDetectorConfig(_ComponentConfig):
     The final pattern set merges the catalogs in order, then the inline
     patterns, so an inline pattern overrides a catalog pattern on the same label.
 
-    A catalog is a hub reference, written hub:namespace/name with an optional
-    :selector. It is fetched when the config is built, so a pipeline names a
-    reviewed catalogue instead of carrying a copy of it.
+    A catalog is a reference, written catalog:namespace/name with an optional
+    :selector, or hub:namespace/name as 1.x wrote it. It is fetched when the
+    config is built, so a pipeline names a reviewed pattern group instead of
+    carrying a copy of it.
 
     Attributes:
         patterns: Inline label to regex mappings, optional when a catalog is set.
-        catalogs: Hub references to pull, such as hub:piighost/generic.
+        catalogs: Catalog references to pull, such as catalog:piighost/generic.
     """
 
     type: Literal["regex"]
@@ -52,8 +53,8 @@ class RegexDetectorConfig(_ComponentConfig):
 
     @field_validator("catalogs")
     @classmethod
-    def _catalogs_are_hub_refs(cls, catalogs: list[str]) -> list[str]:
-        """Reject a catalog that is not a hub reference.
+    def _catalogs_are_refs(cls, catalogs: list[str]) -> list[str]:
+        """Reject a catalog that is not a catalog reference.
 
         Without this a typo parses fine and fails at build time, or worse
         reaches the network as a malformed URL.
@@ -62,14 +63,14 @@ class RegexDetectorConfig(_ComponentConfig):
             if catalog in _REMOVED_CATALOGS:
                 raise ValueError(
                     f"the built-in catalog {catalog!r} was removed in piighost "
-                    f"2.0: name the hub group instead, hub:piighost/{catalog}"
+                    f"2.0: name the catalog group instead, catalog:piighost/{catalog}"
                 )
             try:
                 parse_ref(catalog)
-            except HubRefError as exc:
+            except CatalogRefError as exc:
                 raise ValueError(
-                    f"unknown catalog {catalog!r}: expected a hub reference "
-                    f"such as hub:piighost/generic"
+                    f"unknown catalog {catalog!r}: expected a catalog reference "
+                    f"such as catalog:piighost/generic"
                 ) from exc
         return catalogs
 
@@ -101,12 +102,12 @@ class RegexDetectorConfig(_ComponentConfig):
     def build(self) -> AnyDetector:
         """Build a RegexDetector over the merged catalog and inline patterns.
 
-        A hub reference among the catalogs is fetched here, so building a
+        A catalog reference is fetched here, so building a
         config that names one reaches the network. A reference pinned to a
         commit is cached on disk after the first build.
 
         Raises:
-            HubError: If a hub catalog cannot be pulled.
+            CatalogError: If a catalog cannot be pulled.
         """
         merged: dict[str, str] = {}
         for catalog in self.catalogs:

@@ -6,7 +6,7 @@ from piighost.components.detector import AnyDetector, RegexDetector
 from piighost.models import Span
 
 IBAN = r"\b[A-Z]{2}\d{2}(?:[\s-]?[A-Z0-9]){11,30}\b"
-"""An IBAN pattern written for plain spaces, as a hub pattern is."""
+"""An IBAN pattern written for plain spaces, as a catalog pattern is."""
 
 
 class TestConformance:

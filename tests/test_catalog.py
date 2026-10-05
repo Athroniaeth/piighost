@@ -1,4 +1,4 @@
-"""Tests for the hub client: reference parsing, payloads, and the cache."""
+"""Tests for the catalog client: reference parsing, payloads, and the cache."""
 
 from collections.abc import Callable
 from pathlib import Path
@@ -6,18 +6,19 @@ from typing import Never, Self
 
 import pytest
 
-from piighost.components.detector import RegexDetector
-from piighost.hub import (
-    DEFAULT_HUB_URL,
-    HUB_URL_ENV_VAR,
-    HubPayloadError,
-    HubRefError,
-    HubUnreachableError,
-    HubUrlError,
+from piighost.catalog import (
+    CATALOG_URL_ENV_VAR,
+    DEFAULT_CATALOG_URL,
+    LEGACY_URL_ENV_VAR,
+    CatalogPayloadError,
+    CatalogRefError,
+    CatalogUnreachableError,
+    CatalogUrlError,
     parse_ref,
     pull,
     pull_config,
 )
+from piighost.components.detector import RegexDetector
 
 DETECTOR_TOML = r"""# piighost/logs:fd79aec6
 [detector]
@@ -27,7 +28,7 @@ type = 'regex'
 EMAIL = '\S+@\S+'
 IPV4 = '\d+\.\d+\.\d+\.\d+'
 """
-"""What the hub returns for a group, its rendered detector alone."""
+"""What the catalog returns for a group, its rendered detector alone."""
 
 COMPOSITE_TOML = """[detector]
 type = 'gliner2'
@@ -46,11 +47,12 @@ EMAIL = '\S+@\S+'
 [overlap_resolver]
 type = 'merge'
 """
-"""What the hub returns for a whole configuration, every stage included."""
+"""What the catalog returns for a whole configuration, every stage included."""
 
 REFS = [
     ("piighost/logs", ("piighost", "logs", "latest")),
     ("piighost/logs:fd79aec6", ("piighost", "logs", "fd79aec6")),
+    ("catalog:piighost/logs:stable", ("piighost", "logs", "stable")),
     ("hub:piighost/logs:stable", ("piighost", "logs", "stable")),
     ("  piighost/fr-extended  ", ("piighost", "fr-extended", "latest")),
 ]
@@ -64,6 +66,7 @@ BAD_REFS = [
     "piighost/logs:Stable",
     "../../etc/passwd",
     "piighost/logs:a b",
+    "catalog:hub:piighost/logs",
 ]
 """References that must be refused rather than turned into a URL."""
 
@@ -99,7 +102,7 @@ def served(monkeypatch: pytest.MonkeyPatch) -> Serve:
             asked.append(url)
             return _Answer(body)
 
-        monkeypatch.setattr("piighost.hub.urllib.request.urlopen", urlopen)
+        monkeypatch.setattr("piighost.catalog.urllib.request.urlopen", urlopen)
         return asked
 
     return serve
@@ -114,7 +117,7 @@ class TestParseRef:
     @pytest.mark.parametrize("ref", BAD_REFS)
     def test_refuses_anything_else(self, ref: str) -> None:
         """A malformed reference raises instead of reaching the network."""
-        with pytest.raises(HubRefError):
+        with pytest.raises(CatalogRefError):
             parse_ref(ref)
 
 
@@ -124,61 +127,83 @@ class TestPull:
         served(DETECTOR_TOML)
         assert list(pull("piighost/logs", cache=False)) == ["EMAIL", "IPV4"]
 
-    def test_asks_the_detector_alone_at_the_public_hub(self, served: Serve) -> None:
-        """Without configuration it pulls part=detector from the public hub."""
+    def test_asks_the_detector_alone_at_the_public_catalog(self, served: Serve) -> None:
+        """Without configuration it pulls part=detector from the public catalog."""
         asked = served(DETECTOR_TOML)
         pull("piighost/logs", cache=False)
         assert asked == [
             (
-                f"{DEFAULT_HUB_URL}/api/v1/refs/piighost/logs/latest"
+                f"{DEFAULT_CATALOG_URL}/api/v1/refs/piighost/logs/latest"
                 f"/pipeline.toml?part=detector"
             )
         ]
 
-    def test_the_environment_names_a_private_hub(
+    def test_the_environment_names_a_private_catalog(
         self, served: Serve, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """PIIGHOST_HUB_URL redirects every pull to another registry."""
-        monkeypatch.setenv(HUB_URL_ENV_VAR, "https://hub.example.com/")
+        """PIIGHOST_CATALOG_URL redirects every pull to another registry."""
+        monkeypatch.setenv(CATALOG_URL_ENV_VAR, "https://catalog.example.com/")
         asked = served(DETECTOR_TOML)
         pull("piighost/logs", cache=False)
-        assert asked[0].startswith("https://hub.example.com/api/v1/refs/")
+        assert asked[0].startswith("https://catalog.example.com/api/v1/refs/")
+
+    def test_the_1x_variable_is_still_read(
+        self, served: Serve, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """PIIGHOST_HUB_URL, set for 1.x, still names the registry."""
+        monkeypatch.delenv(CATALOG_URL_ENV_VAR, raising=False)
+        monkeypatch.setenv(LEGACY_URL_ENV_VAR, "https://legacy.example.com")
+        asked = served(DETECTOR_TOML)
+        pull("piighost/logs", cache=False)
+        assert asked[0].startswith("https://legacy.example.com/api/v1/refs/")
+
+    def test_the_new_variable_beats_the_1x_one(
+        self, served: Serve, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With both set, PIIGHOST_CATALOG_URL wins."""
+        monkeypatch.setenv(CATALOG_URL_ENV_VAR, "https://catalog.example.com")
+        monkeypatch.setenv(LEGACY_URL_ENV_VAR, "https://legacy.example.com")
+        asked = served(DETECTOR_TOML)
+        pull("piighost/logs", cache=False)
+        assert asked[0].startswith("https://catalog.example.com/")
 
     def test_an_argument_beats_the_environment(
         self, served: Serve, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """An explicit hub wins over the environment, for one call."""
-        monkeypatch.setenv(HUB_URL_ENV_VAR, "https://hub.example.com")
+        """An explicit catalog wins over the environment, for one call."""
+        monkeypatch.setenv(CATALOG_URL_ENV_VAR, "https://catalog.example.com")
         asked = served(DETECTOR_TOML)
-        pull("piighost/logs", hub="https://other.example.com", cache=False)
+        pull("piighost/logs", catalog="https://other.example.com", cache=False)
         assert asked[0].startswith("https://other.example.com/")
 
     def test_a_model_detector_is_refused(self, served: Serve) -> None:
         """Taking the regexes out of a model detector would detect less."""
         served(COMPOSITE_TOML)
-        with pytest.raises(HubPayloadError, match="gliner2"):
+        with pytest.raises(CatalogPayloadError, match="gliner2"):
             pull("piighost/ner-base", cache=False)
 
     def test_a_body_that_is_not_a_detector_is_refused(self, served: Serve) -> None:
         """A payload with no detector raises rather than yielding no pattern."""
         served("name = 'nothing'\n")
-        with pytest.raises(HubPayloadError):
+        with pytest.raises(CatalogPayloadError):
             pull("piighost/logs", cache=False)
 
-    @pytest.mark.parametrize("hub", ["file:///etc/passwd", "ftp://x", "nope"])
-    def test_a_hub_that_is_not_http_is_refused(self, hub: str) -> None:
+    @pytest.mark.parametrize("catalog", ["file:///etc/passwd", "ftp://x", "nope"])
+    def test_a_catalog_that_is_not_http_is_refused(self, catalog: str) -> None:
         """urlopen speaks file: too, so an origin is checked before it opens."""
-        with pytest.raises(HubUrlError):
-            pull("piighost/logs", hub=hub, cache=False)
+        with pytest.raises(CatalogUrlError):
+            pull("piighost/logs", catalog=catalog, cache=False)
 
-    def test_an_unreachable_hub_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """A transport failure surfaces as a hub error, not an OSError."""
+    def test_an_unreachable_catalog_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A transport failure surfaces as a catalog error, not an OSError."""
 
         def fail(url: str, timeout: float | None = None) -> Never:
             raise OSError("no route to host")
 
-        monkeypatch.setattr("piighost.hub.urllib.request.urlopen", fail)
-        with pytest.raises(HubUnreachableError):
+        monkeypatch.setattr("piighost.catalog.urllib.request.urlopen", fail)
+        with pytest.raises(CatalogUnreachableError):
             pull("piighost/logs", cache=False)
 
 
@@ -191,6 +216,16 @@ class TestCache:
         asked = served(DETECTOR_TOML)
         assert pull("piighost/logs:fd79aec6") == pull("piighost/logs:fd79aec6")
         assert len(asked) == 1
+
+    def test_the_cache_lives_under_catalog(
+        self, served: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A pinned answer is kept in piighost/catalog, not in the 1.x hub folder."""
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+        served(DETECTOR_TOML)
+        pull("piighost/logs:fd79aec6")
+        assert len(list((tmp_path / "piighost" / "catalog").iterdir())) == 1
+        assert not (tmp_path / "piighost" / "hub").exists()
 
     def test_a_moving_selector_is_never_cached(
         self, served: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -205,7 +240,7 @@ class TestCache:
     def test_the_cache_can_be_turned_off(
         self, served: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """cache=False goes to the hub even for a commit."""
+        """cache=False goes to the catalog even for a commit."""
         monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
         asked = served(DETECTOR_TOML)
         pull("piighost/logs:fd79aec6", cache=False)
@@ -213,14 +248,14 @@ class TestCache:
         assert len(asked) == 2
 
 
-class TestFromHub:
+class TestFromCatalog:
     async def test_builds_a_detector_that_detects(
         self, served: Serve, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """RegexDetector.from_hub returns a detector carrying the reference."""
+        """RegexDetector.from_catalog returns a detector carrying the reference."""
         monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
         served(DETECTOR_TOML)
-        detector = RegexDetector.from_hub("piighost/logs:fd79aec6")
+        detector = RegexDetector.from_catalog("catalog:piighost/logs:fd79aec6")
         found = await detector.detect("mail a@b.co from 10.0.0.1")
         assert {(d.label, d.text) for d in found} == {
             ("EMAIL", "a@b.co"),
@@ -235,7 +270,7 @@ class TestPullConfig:
         body = pull_config("piighost/notarial:2f602547", cache=False)
         assert body == PIPELINE_TOML
         assert asked == [
-            f"{DEFAULT_HUB_URL}/api/v1/refs/piighost/notarial/2f602547/pipeline.toml"
+            f"{DEFAULT_CATALOG_URL}/api/v1/refs/piighost/notarial/2f602547/pipeline.toml"
         ]
 
     def test_a_pinned_configuration_is_fetched_once(
@@ -257,3 +292,52 @@ class TestPullConfig:
         pull("piighost/notarial:2f602547")
         pull_config("piighost/notarial:2f602547")
         assert len(asked) == 2
+
+
+class TestHubCompatibility:
+    """Code written for 1.8 and later, against piighost.hub, keeps running."""
+
+    def test_the_hub_module_re_exports_the_catalog(self) -> None:
+        """Every 1.x name is the catalog object it was renamed to."""
+        from piighost import catalog, hub
+
+        assert hub.HubError is catalog.CatalogError
+        assert hub.HubRefError is catalog.CatalogRefError
+        assert hub.HubUrlError is catalog.CatalogUrlError
+        assert hub.HubUnreachableError is catalog.CatalogUnreachableError
+        assert hub.HubPayloadError is catalog.CatalogPayloadError
+        assert hub.parse_ref is catalog.parse_ref
+        assert hub.DEFAULT_HUB_URL == catalog.DEFAULT_CATALOG_URL
+        assert hub.HUB_URL_ENV_VAR == "PIIGHOST_HUB_URL"
+        assert hub.HUB_SCHEME == "hub:"
+
+    def test_hub_pull_passes_its_origin_on(self, served: Serve) -> None:
+        """piighost.hub.pull still takes the origin as hub=."""
+        from piighost.hub import pull as hub_pull
+
+        asked = served(DETECTOR_TOML)
+        assert list(hub_pull("hub:piighost/logs", hub="https://x.example.com")) == [
+            "EMAIL",
+            "IPV4",
+        ]
+        assert asked[0].startswith("https://x.example.com/api/v1/refs/piighost/logs/")
+
+    def test_hub_pull_config_passes_its_origin_on(self, served: Serve) -> None:
+        """piighost.hub.pull_config still takes the origin as hub=."""
+        from piighost.hub import pull_config as hub_pull_config
+
+        asked = served(PIPELINE_TOML)
+        body = hub_pull_config(
+            "piighost/notarial:2f602547", hub="https://x.example.com", cache=False
+        )
+        assert body == PIPELINE_TOML
+        assert asked[0].startswith("https://x.example.com/")
+
+    async def test_from_hub_is_from_catalog(self, served: Serve) -> None:
+        """RegexDetector.from_hub builds what from_catalog builds, hub= included."""
+        asked = served(DETECTOR_TOML)
+        detector = RegexDetector.from_hub(
+            "hub:piighost/logs", hub="https://x.example.com"
+        )
+        assert list(detector.patterns) == ["EMAIL", "IPV4"]
+        assert asked[0].startswith("https://x.example.com/")

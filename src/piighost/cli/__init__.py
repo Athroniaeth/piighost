@@ -10,7 +10,8 @@ Subcommands:
   component, exiting 0 on success and 1 on any configuration error.
 - schema prints the JSON Schema of PipelineConfig to stdout.
 - anonymize anonymizes a text from an argument or stdin, through a config file, a
-  remote piighost-api, or a default regex detector over the hub's generic group.
+  remote piighost-api, or a default regex detector over the catalog's generic
+  group.
 """
 
 import asyncio
@@ -25,8 +26,8 @@ if TYPE_CHECKING:
 
     from piighost.pipeline.base import BaseAnonymizationPipeline
 
-DEFAULT_CATALOG = "hub:piighost/generic:fab51b33"
-"""The hub group the default detector runs: email, URL, IPv4 and card number.
+DEFAULT_CATALOG = "catalog:piighost/generic:fab51b33"
+"""The catalog group the default detector runs: email, URL, IPv4 and card number.
 
 It is pinned to a commit, so the first run fetches it and every later one reads
 it from the on-disk cache, offline included.
@@ -50,18 +51,18 @@ def _build_app() -> "typer.Typer":
         path: Annotated[
             Path,
             typer.Argument(
-                help="Path to a TOML or JSON pipeline config, or a hub: reference."
+                help="Path to a TOML or JSON pipeline config, or a catalog: reference."
             ),
         ],
     ) -> None:
-        """Validate a pipeline configuration, a file or a hub reference, unbuilt."""
+        """Validate a pipeline configuration, a file or a catalog reference, unbuilt."""
+        from piighost.catalog import CatalogError
         from piighost.config import load_config
         from piighost.exceptions import ConfigError
-        from piighost.hub import HubError
 
         try:
             load_config(path)
-        except (ConfigError, HubError) as exc:
+        except (ConfigError, CatalogError) as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(code=1) from exc
         typer.echo(f"OK: {path}")
@@ -85,7 +86,7 @@ def _build_app() -> "typer.Typer":
             Path | None,
             typer.Option(
                 "--config",
-                help="Pipeline config file (TOML or JSON), or a hub: reference.",
+                help="Pipeline config file (TOML or JSON), or a catalog: reference.",
             ),
         ] = None,
         api: Annotated[
@@ -109,8 +110,8 @@ def _build_app() -> "typer.Typer":
         if config is not None and api is not None:
             typer.echo("Pass at most one of --config and --api.", err=True)
             raise typer.Exit(code=1)
+        from piighost.catalog import CatalogError
         from piighost.exceptions import ConfigError
-        from piighost.hub import HubError
 
         source = sys.stdin.read() if text is None or text == "-" else text
         try:
@@ -118,8 +119,8 @@ def _build_app() -> "typer.Typer":
         except ConfigError as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(code=1) from exc
-        except HubError as exc:
-            typer.echo(f"Could not pull a hub catalog: {exc}", err=True)
+        except CatalogError as exc:
+            typer.echo(f"Could not pull from the catalog: {exc}", err=True)
             raise typer.Exit(code=1) from exc
         typer.echo(output)
 
@@ -202,7 +203,7 @@ def _load_or_default(config: Path | None) -> "BaseAnonymizationPipeline[Any]":
     from piighost.components.detector import RegexDetector
     from piighost.pipeline import AnonymizationPipeline
 
-    detector = RegexDetector.from_hub(DEFAULT_CATALOG)
+    detector = RegexDetector.from_catalog(DEFAULT_CATALOG)
     return AnonymizationPipeline(detector)
 
 

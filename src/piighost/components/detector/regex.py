@@ -30,30 +30,41 @@ class RegexDetector:
     """
 
     @classmethod
-    def from_hub(cls, ref: str, *, hub: str | None = None) -> Self:
-        """Build a detector from the regexes a hub reference carries.
+    def from_catalog(cls, ref: str, *, catalog: str | None = None) -> Self:
+        """Build a detector from the regexes a catalog reference carries.
 
-        The registry addresses a set of tested regexes by namespace/name and an
-        optional selector, so RegexDetector.from_hub("piighost/logs:fd79aec6")
+        The catalog addresses a set of tested regexes by namespace/name and an
+        optional selector, so RegexDetector.from_catalog("piighost/logs:fd79aec6")
         is the whole of what a caller needs to run a reviewed catalogue. A
         reference pinned to a commit is immutable and cached on disk; one
         pointing at a tag or at latest is fetched every time.
 
         Args:
-            ref: A hub reference, namespace/name with an optional :selector.
-            hub: Origin of the hub to pull from. Defaults to the environment's
-                PIIGHOST_HUB_URL, then to the public hub.
+            ref: A catalog reference, namespace/name with an optional :selector.
+            catalog: Origin of the catalog to pull from. Defaults to the
+                environment's PIIGHOST_CATALOG_URL, then to PIIGHOST_HUB_URL,
+                then to the public catalog.
 
         Returns:
             A detector carrying the reference's patterns, in registry order.
 
         Raises:
-            HubError: If the reference does not parse, the hub cannot be
+            CatalogError: If the reference does not parse, the catalog cannot be
                 reached, or what it returns is not a plain regex detector.
         """
-        from piighost.hub import pull
+        from piighost.catalog import pull
 
-        return cls(pull(ref, hub=hub))
+        return cls(pull(ref, catalog=catalog))
+
+    @classmethod
+    def from_hub(cls, ref: str, *, hub: str | None = None) -> Self:
+        """The 1.x name of from_catalog, kept so code written for 1.8 and later runs.
+
+        Args:
+            ref: A catalog reference, namespace/name with an optional :selector.
+            hub: Origin of the catalog to pull from, passed on as catalog=.
+        """
+        return cls.from_catalog(ref, catalog=hub)
 
     def __init__(self, patterns: dict[str, str]) -> None:
         """Compile every configured pattern under re.ASCII, keyed by its label."""
