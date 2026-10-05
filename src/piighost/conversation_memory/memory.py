@@ -4,9 +4,12 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 
-from piighost.conversation_memory.base import Forgotten, MessageRole
+from piighost.conversation_memory.base import (
+    Forgotten,
+    MessageRole,
+    _first_occurrence_roles,
+)
 from piighost.models import Detection
-from piighost.text import value_key
 
 _Thread = dict[str, tuple[MessageRole, list[Detection]]]
 
@@ -104,16 +107,10 @@ class InMemoryConversationMemory:
 
     async def get_provenance(self, thread_id: str) -> dict[str, MessageRole]:
         """Return the first-occurrence role of every value in the thread."""
-        provenance: dict[str, MessageRole] = {}
         thread = self._live_thread(thread_id)
         if thread is None:
-            return provenance
-
-        for role, cached in thread.values():
-            for detection in cached:
-                provenance.setdefault(value_key(detection.text), role)
-
-        return provenance
+            return {}
+        return _first_occurrence_roles(thread.values())
 
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""

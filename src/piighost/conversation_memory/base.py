@@ -16,13 +16,14 @@ fuzzy entity resolver stands apart from the linker.
 
 import hashlib
 import warnings
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from piighost.exceptions import PIIGhostSecurityWarning
 from piighost.models import Detection
+from piighost.text import value_key
 
 if TYPE_CHECKING:
     from piighost.crypto.cipher.base import AnyCipher
@@ -88,6 +89,25 @@ class MessageRole(Enum):
 
     USER = "user"
     ASSISTANT = "assistant"
+
+
+def _first_occurrence_roles(
+    messages: Iterable[tuple[MessageRole, Iterable[Detection]]],
+) -> dict[str, MessageRole]:
+    """Map every value key to the role of the first message holding it.
+
+    The backends share this reading of provenance. They hand over their messages
+    in first-seen order, each as its author's role and its detections, and the
+    first role recorded for a value key wins, so a later message repeating the
+    value never overwrites it.
+    """
+    provenance: dict[str, MessageRole] = {}
+
+    for role, detections in messages:
+        for detection in detections:
+            provenance.setdefault(value_key(detection.text), role)
+
+    return provenance
 
 
 @dataclass(frozen=True, slots=True)
