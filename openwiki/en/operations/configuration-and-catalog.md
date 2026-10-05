@@ -30,7 +30,7 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 - A text file (TOML or JSON) describes the whole protection chain, that is what to look for, how to replace it, where to keep the conversation memory.
 - The file never contains a secret. Keys and passwords come from the server's environment variables.
-- Pattern lists (e-mails, card numbers, etc.) can come from an online registry, the catalog. A pinned version is downloaded once, then read locally.
+- Pattern lists (e-mails, card numbers, etc.) can come from the catalog, an online service. A pinned version is downloaded once, then read locally.
 - The `piighost validate` command checks a file without starting anything. It fits an automatic check before going to production.
 - A typo in the file is rejected, never ignored.
 
@@ -89,7 +89,7 @@ Secrets are read from the environment only. Never write them in the file.
 | Database URL | value of `url_env`, `PIIGHOST_DATABASE_URL` by default | `[memory]` of type `sqlalchemy` | `The SQLAlchemy memory needs the … environment variable holding the database URL` |
 | Mistral key | `MISTRAL_API_KEY` | `moderation` guard rail | `ConfigError` at build time |
 
-The non-secret variables read elsewhere are `PIIGHOST_CATALOG_URL` (private registry), `XDG_CACHE_HOME` (root of the catalog cache), `PIIGHOST_API_URL` and `PIIGHOST_HOOK_LOG` (Claude Code hooks, see [Plug the protection into an agent](../integrations/agents-and-tools.md)).
+The non-secret variables read elsewhere are `PIIGHOST_CATALOG_URL` (private catalog), `XDG_CACHE_HOME` (root of the catalog cache), `PIIGHOST_API_URL` and `PIIGHOST_HOOK_LOG` (Claude Code hooks, see [Plug the protection into an agent](../integrations/agents-and-tools.md)).
 
 ## Pull patterns from the catalog
 

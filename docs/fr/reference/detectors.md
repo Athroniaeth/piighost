@@ -84,7 +84,7 @@ RegexDetector(patterns: dict[str, str])
 RegexDetector.from_catalog(ref: str, *, catalog: str | None = None) -> RegexDetector
 ```
 
-Construit un détecteur à partir des regex que porte une référence du [catalogue piighost](https://catalog.piighost.dev). Le catalogue est un registre de regex de dé-identification testées, adressées par `namespace/name` et un sélecteur optionnel, soit un tag, soit les huit caractères hexadécimaux d'un commit.
+Construit un détecteur à partir des regex que porte une référence du [catalogue piighost](https://catalog.piighost.dev). Le catalogue publie des regex de dé-identification testées, adressées par `namespace/name` et un sélecteur optionnel, soit un tag, soit les huit caractères hexadécimaux d'un commit.
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
@@ -418,7 +418,7 @@ Ensembles de patterns regex réutilisables pour `RegexDetector`, publiés sous f
 
 </div>
 
-Construisez un détecteur à partir d'un groupe avec [`from_catalog`](#from_catalog). `pull` (`piighost.catalog`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du registre. Plusieurs groupes se fusionnent donc comme des dict, et pour un même label, l'entrée de droite l'emporte.
+Construisez un détecteur à partir d'un groupe avec [`from_catalog`](#from_catalog). `pull` (`piighost.catalog`) renvoie un groupe sous forme de `dict[str, str]` dans l'ordre du catalogue. Plusieurs groupes se fusionnent donc comme des dict, et pour un même label, l'entrée de droite l'emporte.
 
 ```python
 --8<-- "snippets/reference_regex_catalog.py:merge"
@@ -443,7 +443,7 @@ catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-Une référence du catalogue nomme un groupe relu au lieu d'en porter une copie. La config reste donc courte, et les patterns restent auditables à leur source. Un groupe est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_CATALOG_URL` pour interroger un registre privé.
+Une référence du catalogue nomme un groupe relu au lieu d'en porter une copie. La config reste donc courte, et les patterns restent auditables à leur source. Un groupe est récupéré à la construction de la config, pas à sa lecture. Définissez `PIIGHOST_CATALOG_URL` pour interroger un catalogue privé.
 
 Une entrée qui n'est pas une référence du catalogue échoue au chargement plutôt que sous forme d'URL invalide plus tard. Les noms `generic`, `us`, `eu` et `fr`, qui désignaient avant la 2.0 des ensembles de motifs livrés dans la librairie, sont refusés, et le message d'erreur donne la référence qui les remplace.
 

@@ -84,7 +84,7 @@ export PIIGHOST_HOOK_LOG="$HOME/piighost-hooks.jsonl"
 
 ## Quels champs sont dé-identifiés
 
-Un prompt et une entrée d'outil sont assez simples pour être dé-identifiés en entier. La sortie d'un outil, elle, est un objet structuré où seuls certains champs contiennent du texte destiné au modèle. Le hook `PostToolUse` ne dé-identifie donc pas tout l'objet, pour ne jamais abîmer un chemin, un code de sortie, ou un numéro de ligne. Il dé-identifie une liste blanche de champs texte par outil :
+Un prompt et une entrée d'outil sont assez simples pour être dé-identifiés en entier. La sortie d'un outil, elle, est un objet structuré où seuls certains champs contiennent du texte destiné au modèle. Le hook `PostToolUse` ne dé-identifie donc pas tout l'objet, pour ne jamais abîmer un chemin, un code de sortie, ou un numéro de ligne. Il dé-identifie seulement les champs texte listés pour chaque outil :
 
 | Outil | Champs dé-identifiés |
 |-------|-------------------|
@@ -97,15 +97,15 @@ Un prompt et une entrée d'outil sont assez simples pour être dé-identifiés e
 | `WebSearch` | titres des résultats |
 | `ToolSearch` | `query` |
 
-!!! warning "La liste blanche laisse passer par défaut"
+!!! warning "La liste des champs laisse passer par défaut"
 
     Un outil absent de la liste, ou une sortie dont la forme est inattendue, passe sans modification. Son texte atteint donc le modèle en clair. Le manque notable est `Grep`, que la liste ne couvre pas encore. Ses correspondances sont des lignes des fichiers parcourus. En attendant, gardez `Grep` hors de la session ou étendez la liste comme décrit plus bas.
 
 ## Découvrir la forme d'un nouvel outil
 
-Pour étendre la liste blanche à un outil qu'elle ne couvre pas encore, définissez `PIIGHOST_HOOK_LOG` comme plus haut avant de lancer Claude Code. Le journal contient chaque appel de hook. Une sortie d'outil que le hook a laissée passer y figure en entier, et vous y voyez donc les vrais noms de champs.
+Pour étendre la liste des champs à un outil qu'elle ne couvre pas encore, définissez `PIIGHOST_HOOK_LOG` comme plus haut avant de lancer Claude Code. Le journal contient chaque appel de hook. Une sortie d'outil que le hook a laissée passer y figure en entier, et vous y voyez donc les vrais noms de champs.
 
-Sollicitez l'outil, lisez le log pour trouver quels champs portent le texte, et ajoutez l'outil à la liste blanche dans l'intégration. Le log contient du texte en clair. Supprimez-le ensuite.
+Sollicitez l'outil, lisez le log pour trouver quels champs portent le texte, et ajoutez l'outil à la liste des champs dans l'intégration. Le log contient du texte en clair. Supprimez-le ensuite.
 
 ## L'utiliser par programmation
 

@@ -30,7 +30,7 @@ generated: { by: "claude-code", at: "2026-10-01T18:36:49.731Z" }
 
 - Un fichier texte (TOML ou JSON) décrit toute la chaîne de protection, c'est-à-dire ce qu'on cherche, comment on le remplace, où on garde la mémoire des conversations.
 - Le fichier ne contient jamais de secret. Les clés et mots de passe viennent des variables d'environnement du serveur.
-- Les listes de motifs (e-mails, numéros de carte, etc.) peuvent venir d'un registre en ligne, le catalogue. Une version figée est téléchargée une fois, puis lue en local.
+- Les listes de motifs (e-mails, numéros de carte, etc.) peuvent venir du catalogue, un service en ligne. Une version figée est téléchargée une fois, puis lue en local.
 - La commande `piighost validate` contrôle un fichier sans rien lancer. Elle convient à une vérification automatique avant mise en production.
 - Une faute de frappe dans le fichier est refusée, jamais ignorée.
 
@@ -89,7 +89,7 @@ Les secrets ne se lisent que dans l'environnement. Ne les écrivez jamais dans l
 | URL de la base | valeur de `url_env`, `PIIGHOST_DATABASE_URL` par défaut | `[memory]` de type `sqlalchemy` | `The SQLAlchemy memory needs the … environment variable holding the database URL` |
 | Clé Mistral | `MISTRAL_API_KEY` | garde-fou `moderation` | `ConfigError` à la construction |
 
-Les variables non secrètes lues ailleurs sont `PIIGHOST_CATALOG_URL` (registre privé), `XDG_CACHE_HOME` (racine du cache du catalogue), `PIIGHOST_API_URL` et `PIIGHOST_HOOK_LOG` (hooks Claude Code, voir [Brancher la protection sur un agent](../integrations/agents-and-tools.md)).
+Les variables non secrètes lues ailleurs sont `PIIGHOST_CATALOG_URL` (catalogue privé), `XDG_CACHE_HOME` (racine du cache du catalogue), `PIIGHOST_API_URL` et `PIIGHOST_HOOK_LOG` (hooks Claude Code, voir [Brancher la protection sur un agent](../integrations/agents-and-tools.md)).
 
 ## Tirer des motifs du catalogue
 

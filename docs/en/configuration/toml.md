@@ -129,7 +129,7 @@ catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 patterns = { EMPLOYEE_ID = 'EMP-[0-9]{4}' }
 ```
 
-A group is fetched from the catalog when the config is built, not when it is parsed. A reference pinned to a commit is fetched once, then read from the on-disk cache. `PIIGHOST_CATALOG_URL` points at a private registry, and `PIIGHOST_HUB_URL` from 1.x is still read when it is unset. The names `generic`, `us`, `eu` and `fr` are refused. See [Catalog groups](../reference/detectors.md#catalog-groups) for the groups that replace them.
+A group is fetched from the catalog when the config is built, not when it is parsed. A reference pinned to a commit is fetched once, then read from the on-disk cache. `PIIGHOST_CATALOG_URL` points at a private catalog, and `PIIGHOST_HUB_URL` from 1.x is still read when it is unset. The names `generic`, `us`, `eu` and `fr` are refused. See [Catalog groups](../reference/detectors.md#catalog-groups) for the groups that replace them.
 
 ### `type = "composite"`
 

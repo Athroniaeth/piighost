@@ -84,7 +84,7 @@ RegexDetector(patterns: dict[str, str])
 RegexDetector.from_catalog(ref: str, *, catalog: str | None = None) -> RegexDetector
 ```
 
-Builds a detector from the regexes a [piighost catalog](https://catalog.piighost.dev) reference carries. The catalog is a registry of tested de-identification regexes, addressed by `namespace/name` and an optional selector, either a tag or the eight hex characters of a commit.
+Builds a detector from the regexes a [piighost catalog](https://catalog.piighost.dev) reference carries. The catalog publishes tested de-identification regexes, addressed by `namespace/name` and an optional selector, either a tag or the eight hex characters of a commit.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -418,7 +418,7 @@ Reusable regex pattern sets for `RegexDetector`, published as groups on the [pii
 
 </div>
 
-Build a detector from one group with [`from_catalog`](#from_catalog). `pull` (`piighost.catalog`) returns a group as a `dict[str, str]` in registry order. Several groups therefore merge like dicts, and on a shared label, the right-hand entry wins.
+Build a detector from one group with [`from_catalog`](#from_catalog). `pull` (`piighost.catalog`) returns a group as a `dict[str, str]` in catalog order. Several groups therefore merge like dicts, and on a shared label, the right-hand entry wins.
 
 ```python
 --8<-- "snippets/reference_regex_catalog.py:merge"
@@ -443,7 +443,7 @@ catalogs = ["catalog:piighost/generic", "catalog:piighost/fr"]
 INTERNAL_ID = "EMP-\\d{6}"
 ```
 
-A catalog reference names a reviewed group instead of carrying a copy of it. The config therefore stays short, and the patterns stay auditable at their source. A group is fetched when the config is built, not when it is parsed. Set `PIIGHOST_CATALOG_URL` to pull from a private registry.
+A catalog reference names a reviewed group instead of carrying a copy of it. The config therefore stays short, and the patterns stay auditable at their source. A group is fetched when the config is built, not when it is parsed. Set `PIIGHOST_CATALOG_URL` to pull from a private catalog.
 
 An entry that is not a catalog reference fails at load time rather than as a bad URL later. The names `generic`, `us`, `eu` and `fr`, which named pattern sets shipped inside the library before 2.0, are refused, and the error message gives the reference that replaces them.
 
