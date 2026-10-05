@@ -177,12 +177,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 span.set_attribute("tokens", len(message_tokens))
                 span.set_output(rendered)
 
-            with self._stage_span("piighost.guard", self.guard) as span:
-                cleared = await self._cleared_values(text)
-                verdict = await self._guard(rendered, preserved | cleared)
-                if verdict is not None:
-                    labels = sorted({d.label for d in verdict.detections})
-                    span.set_output({"flagged": verdict.flagged, "labels": labels})
+            await self._traced_guard(text, rendered, preserved)
 
             root.set_output(rendered)
             return Anonymization(text=rendered, tokens=message_tokens)
