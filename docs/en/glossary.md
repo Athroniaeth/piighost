@@ -1,11 +1,15 @@
 ---
 icon: lucide/book-a
+description: Glossary of piighost terms, from pseudonymization, anonymization, redaction and masking to placeholders, detectors and the conversation memory.
 ---
 
 # Glossary
 
 Terms used across the `piighost` documentation. Each entry defines the concept by
 what it does. Class names stay in English.
+
+The differences between anonymization, pseudonymization, redaction and masking are
+explained in [Anonymization, pseudonymization, redaction, masking](anonymization-vs-pseudonymization.md).
 
 Anonymization
 :   Removing PII with no way to restore it. Irreversible by definition. A
@@ -80,6 +84,12 @@ LLM detector
     structured output. Slower and less deterministic than regex or NER, but able
     to reason about context. `LLMDetector`.
 
+Masking
+:   Hiding part of a value and leaving the rest visible, so `Patrick`{ .pii }
+    becomes `P******`{ .placeholder }. Irreversible, since a fragment leaks and
+    two values with the same first letter and length look the same.
+    `MaskPlaceholderFactory`.
+
 NER detector
 :   Named Entity Recognition. An AI model that classifies the words of a text into
     categories decided in advance, such as person, location, or organization.
@@ -123,10 +133,22 @@ Placeholder preservation tag
     tags that group them. The middleware requires `PreservesRecognizableIdentity`
     so it can restore values. It rejects a factory without this tag at type-check time.
 
+Pseudonymization
+:   Replacing personal data so that they can no longer be attributed to a person
+    without additional information kept separately, as Article 4(5) of the GDPR
+    defines it. Reversible for whoever holds that information. The default
+    `piighost` pipeline pseudonymizes, and the conversation memory holds the
+    additional information. Pseudonymized data stay personal data.
+
 Recognizer
 :   The token grammar the middleware uses to find a pipeline's placeholders in an
     LLM response, without reaching into the anonymizer. A pipeline exposes it in its
     `recognizer` attribute, which holds a `BaseDelimitedPlaceholderFactory` or `None`.
+
+Redaction
+:   Deleting a value or replacing it with a fixed marker, so `Patrick`{ .pii }
+    becomes `<<REDACT>>`{ .placeholder }. Irreversible, since nothing records what
+    was there. `RedactPlaceholderFactory`.
 
 Regex detector
 :   A detector that recognizes fixed patterns, character strings that follow a
@@ -156,3 +178,8 @@ Thread
 thread_id
 :   The string that identifies a thread. The thread pipeline and the middleware
     use it to scope memory and to route each message to the right conversation.
+
+Tokenization
+:   Replacing a value with a token while a vault keeps the link between the two.
+    A form of pseudonymization under another name. A `piighost` placeholder is a
+    token in this sense, and the conversation memory plays the part of the vault.

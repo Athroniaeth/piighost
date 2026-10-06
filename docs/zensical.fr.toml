@@ -64,6 +64,7 @@ nav = [
         { "Stratégies d'appel outil" = "tool-call-strategies.md" },
         { "Observation" = "observation.md" },
         { "Sécurité" = "security.md" },
+        { "Anonymisation, pseudonymisation, caviardage, masquage" = "anonymization-vs-pseudonymization.md" },
         { "Conformité" = "compliance.md" },
         { "Documenter une AIPD" = "dpia.md" },
         { "La détection, mesurée" = "benchmark.md" },

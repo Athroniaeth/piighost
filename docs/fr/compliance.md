@@ -51,6 +51,8 @@ Le RGPD trace une ligne entre deux traitements, souvent confondus.
 - **Pseudonymisation** : la valeur est remplacée mais une correspondance subsiste, donc c'est réversible. Pour qui détient cette correspondance, une donnée pseudonymisée reste une donnée personnelle au sens du RGPD, et ses obligations continuent de s'appliquer.
 - **Anonymisation** : modification permanente et irréversible. Une donnée vraiment anonyme sort du champ du RGPD.
 
+Le caviardage et le masquage s'ajoutent à ces deux mots. Les quatre sont comparés, avec un exemple chacun, dans [Anonymisation, pseudonymisation, caviardage, masquage](anonymization-vs-pseudonymization.md).
+
 Où tombe `piighost` dépend du mode choisi.
 
 - Par défaut, les jetons sont réversibles. La mémoire de conversation les restaure, par exemple `<<PERSON:1>>`{ .placeholder } en `Patrick`{ .pii }. Ce mode relève de la **pseudonymisation**. La correspondance existe, donc la donnée reste personnelle. La pseudonymisation n'a de sens que si cette correspondance est protégée, par le backend de mémoire et son chiffrement au repos. Voir [Sécurité](security.md).
@@ -134,6 +136,7 @@ Le Comité a ensuite adopté ses lignes directrices 02/2026 sur l'anonymisation 
 
 ## Voir aussi
 
+- [Anonymisation, pseudonymisation, caviardage, masquage](anonymization-vs-pseudonymization.md) : les quatre termes côte à côte, réversibles ou non.
 - [Sécurité](security.md) : le modèle de menaces, les backends de mémoire, et le chiffrement au repos qui protège la correspondance de restauration.
 - [Comment documenter `piighost` dans une AIPD](dpia.md) : le traitement, les flux de données, les mesures et les risques résiduels, avec un modèle à remplir.
 - [Limites](limitations.md) : la regex par forme seule et ce qu'elle ne valide pas.
