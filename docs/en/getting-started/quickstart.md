@@ -1,5 +1,7 @@
 ---
 icon: lucide/zap
+seo_title: Mask PII in Python in one minute, no model to download
+description: De-identify a sentence in under a minute with piighost. Names and emails become placeholders, with no model to download and no API key. Python 3.11+.
 ---
 
 # Quickstart

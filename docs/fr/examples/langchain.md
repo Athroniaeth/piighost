@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: Masquer les PII d'un agent LangChain avec GLiNER2
+description: Un agent LangGraph où le LLM ne voit que des placeholders, où GLiNER2 détecte les données personnelles, et où un outil reçoit le vrai nom dont il a besoin.
 tags:
   - LangChain
   - Middleware

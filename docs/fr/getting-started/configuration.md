@@ -1,5 +1,7 @@
 ---
 icon: lucide/file-cog
+seo_title: Configurer la dé-identification dans un fichier TOML
+description: Décrivez un pipeline piighost dans un fichier TOML, de trois lignes à un pipeline conversationnel. Choix du token, regex du catalogue, deux détecteurs.
 ---
 
 # Fichier de configuration

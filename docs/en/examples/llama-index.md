@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: LlamaIndex RAG that masks PII
+description: De-identify LlamaIndex nodes before embedding and wrap the query engine, so neither the embedding provider nor the LLM sees PII. Answers are restored.
 ---
 
 # LlamaIndex integration

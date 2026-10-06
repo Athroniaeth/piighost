@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield-alert
+seo_title: Pourquoi dé-identifier les données personnelles avant un LLM
+description: Pourquoi anonymiser ou dé-identifier les données personnelles avant ChatGPT, Claude ou un LLM cloud. Fuites, entraînement, réquisitions, CLOUD Act, RGPD.
 ---
 
 # Pourquoi dé-identifier ?

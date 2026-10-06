@@ -1,5 +1,7 @@
 ---
 icon: lucide/network
+seo_title: Run PII de-identification on several workers with Redis
+description: Workers behind a load balancer number the same value differently. Share the conversation memory in Redis so every worker gives it the same placeholder.
 ---
 
 # Multi-instance deployment

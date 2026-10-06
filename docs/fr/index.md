@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield
+seo_title: piighost, dé-identifier les données personnelles avant le LLM
+description: piighost remplace les données personnelles par des jetons avant le LLM, puis restaure les vraies valeurs dans la réponse et dans les appels d'outils.
 ---
 
 # Documentation technique

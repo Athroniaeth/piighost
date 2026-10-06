@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: Mask PII in a LangChain agent with GLiNER2 and tools
+description: A LangGraph agent where the LLM only sees placeholders, a GLiNER2 model detects the PII, and a tool still receives the real name it needs. Runs end to end.
 tags:
   - LangChain
   - Middleware

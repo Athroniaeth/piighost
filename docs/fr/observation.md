@@ -1,5 +1,7 @@
 ---
 icon: lucide/eye
+seo_title: Tracer la dé-identification avec OpenTelemetry
+description: piighost émet une trace OpenTelemetry à chaque dé-identification, un span par étape. Voyez où une valeur a été détectée, retirez les valeurs en clair.
 ---
 
 # Observation

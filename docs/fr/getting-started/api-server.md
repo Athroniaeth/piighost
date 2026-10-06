@@ -1,5 +1,7 @@
 ---
 icon: lucide/server
+seo_title: Lancer un serveur d'API de dé-identification avec Docker
+description: Lancez piighost-api depuis son image Docker avec une configuration du catalogue, puis dé-identifiez et restaurez un message en HTTP. Un seul pipeline.
 ---
 
 # Serveur d'API

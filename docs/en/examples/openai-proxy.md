@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: OpenAI-compatible proxy that masks PII
+description: Point an OpenAI client's base_url at piighost-api. Requests are de-identified before OpenAI or a compatible provider sees them, then replies are restored.
 ---
 
 # OpenAI-compatible proxy

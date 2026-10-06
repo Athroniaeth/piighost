@@ -1,5 +1,7 @@
 ---
 icon: lucide/wrench
+seo_title: Cacher les PII au LLM, donner les vraies valeurs aux outils
+description: Comment le middleware piighost restaure les vraies valeurs dans les arguments d'outils, dé-identifie leurs résultats et traite un placeholder inventé.
 ---
 
 # Stratégies d'appel outil

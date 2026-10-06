@@ -1,5 +1,7 @@
 ---
 icon: lucide/replace
+seo_title: Choisir le placeholder qui remplace les PII avant le LLM
+description: Une fabrique de placeholders choisit ce qui remplace une valeur, compteur, hash ou e-mail masqué. Ce qui fuit vers le LLM, ce qui reste utile à l'agent.
 ---
 
 # Fabriques de placeholders

@@ -1,5 +1,7 @@
 ---
 icon: lucide/messages-square
+seo_title: Keep the same PII placeholder across a conversation
+description: Build a conversational pipeline that gives a value the same placeholder in every message, so the LLM can follow the thread. In-RAM memory, then erase it.
 ---
 
 # Conversational pipeline

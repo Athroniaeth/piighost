@@ -1,5 +1,7 @@
 ---
 icon: lucide/server
+seo_title: Run a PII de-identification API server with Docker
+description: Run piighost-api from its Docker image with a catalog configuration, then de-identify and restore a message over HTTP. One pipeline for every process.
 ---
 
 # API server

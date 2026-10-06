@@ -1,5 +1,7 @@
 ---
 icon: lucide/triangle-alert
+seo_title: Limits of PII detection and masking with piighost
+description: Known limits of piighost. Detection is not exhaustive, a model can truncate a long text, languages vary, and placeholders can collide. Why, and what to do.
 ---
 
 # Limitations

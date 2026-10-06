@@ -1,5 +1,7 @@
 ---
 icon: lucide/download
+seo_title: Installer piighost, la dé-identification des PII en Python
+description: Installez piighost avec pip ou uv, puis les extras GLiNER2, spaCy, LangChain, Pydantic AI ou LlamaIndex pour masquer les données personnelles avant le LLM.
 ---
 
 # Installation

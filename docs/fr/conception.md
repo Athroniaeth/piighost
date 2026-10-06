@@ -1,5 +1,7 @@
 ---
 icon: lucide/blocks
+seo_title: Comment se conçoit un pipeline de dé-identification
+description: Le pipeline piighost construit étape par étape, du détecteur et du placeholder aux résolveurs, à l'anonymiseur, à la restauration et à la mémoire.
 ---
 
 # Conception du pipeline

@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: Un RAG LlamaIndex qui masque les PII
+description: Dé-identifiez les nœuds LlamaIndex avant l'embedding, et la requête avant le LLM. Aucun des deux fournisseurs ne voit les PII, et la réponse est restaurée.
 ---
 
 # Intégration LlamaIndex

@@ -1,5 +1,7 @@
 ---
 icon: lucide/clipboard-check
+seo_title: Document LLM PII masking in a GDPR DPIA
+description: What your DPO needs to describe piighost in a DPIA, in the order of GDPR Article 35(7), when your system sends conversations with personal data to an LLM.
 ---
 
 # How to document `piighost` in a DPIA

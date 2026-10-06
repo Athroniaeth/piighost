@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: LangChain PII middleware that restores values
+description: Add the piighost middleware to a LangChain agent. The LLM only sees placeholders, your tools get the real values, and the reply is restored for the user.
 ---
 
 # LangChain middleware

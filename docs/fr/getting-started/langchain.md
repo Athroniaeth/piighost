@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: Middleware LangChain qui masque les PII et les restaure
+description: Ajoutez le middleware piighost à un agent LangChain. Le LLM ne voit que des placeholders. Les outils et la réponse retrouvent les vraies valeurs.
 ---
 
 # Middleware LangChain

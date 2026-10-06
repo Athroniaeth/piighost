@@ -1,5 +1,7 @@
 ---
 icon: lucide/zap
+seo_title: Masquer des données personnelles en Python en une minute
+description: Dé-identifiez une phrase en moins d'une minute avec piighost. Noms et e-mails deviennent des placeholders, sans modèle à télécharger ni clé d'API.
 ---
 
 # Démarrage rapide

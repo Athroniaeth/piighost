@@ -1,5 +1,7 @@
 ---
 icon: lucide/scale
+seo_title: RGPD et HIPAA, la conformité du masquage des PII pour les LLM
+description: piighost face à HIPAA Safe Harbor et au RGPD. Une pseudonymisation réversible, souvent appelée anonymisation, et la limite de ce qu'elle couvre.
 ---
 
 # Conformité

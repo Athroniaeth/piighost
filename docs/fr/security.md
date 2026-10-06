@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield-check
+seo_title: Modèle de menace de la dé-identification pour les LLM
+description: Ce que piighost protège et ce qu'il ne couvre pas. La correspondance entre placeholders et vraies valeurs est en clair, c'est elle qu'il faut protéger.
 ---
 
 # Sécurité
