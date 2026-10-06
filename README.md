@@ -66,10 +66,11 @@ The [Quickstart](https://docs.piighost.dev/en/guide/getting-started/quickstart/)
 
 ## Ecosystem
 
-- **[piighost.dev](https://piighost.dev/?utm_source=github&utm_medium=readme&utm_campaign=piighost)**: the presentation site
+- **[piighost.dev](https://piighost.dev/?utm_source=github&utm_medium=readme&utm_campaign=piighost)**: the project website, with the ecosystem and its philosophy
 - **[piighost catalog](https://catalog.piighost.dev)**: reviewed regex groups and ready-made pipeline configurations, pulled by reference
 - **[piighost-api](https://github.com/Athroniaeth/piighost-api)**: a server hosting one pipeline behind HTTP, with OpenAI- and Anthropic-compatible proxies
 - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)**: an example chat interface with human-in-the-loop
+- **[caviardage](https://caviardage.piighost.dev/)**: a browser app that redacts a Word deed, with piighost running in Pyodide. Nothing of the document leaves the tab
 
 ## Project
 
