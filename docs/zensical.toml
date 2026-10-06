@@ -64,6 +64,7 @@ nav = [
     { "Tool-call strategies" = "tool-call-strategies.md" },
     { "Observation" = "observation.md" },
     { "Security" = "security.md" },
+    { "Anonymization, pseudonymization, redaction, masking" = "anonymization-vs-pseudonymization.md" },
     { "Compliance" = "compliance.md" },
     { "Documenting a DPIA" = "dpia.md" },
     { "Detection, measured" = "benchmark.md" },

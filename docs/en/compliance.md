@@ -51,6 +51,8 @@ The GDPR draws a line between two treatments, and they are often confused.
 - **Pseudonymization** replaces a value but keeps a way back, so it is reversible. For whoever holds that way back, pseudonymized data stays personal data under the GDPR, and its obligations still apply.
 - **Anonymization** is permanent and irreversible. Truly anonymous data falls outside the GDPR.
 
+Redaction and masking sit next to these two words. All four are compared, with an example each, in [Anonymization, pseudonymization, redaction, masking](anonymization-vs-pseudonymization.md).
+
 Where `piighost` sits depends on the mode you choose.
 
 - By default, tokens are reversible. The conversation memory restores them, for example `<<PERSON:1>>`{ .placeholder } back to `Patrick`{ .pii }. This mode is **pseudonymization**. The mapping exists, so the data stays personal data. The pseudonymization only means something if that mapping is protected, by the memory backend and its at-rest crypto. See [Security](security.md).
@@ -134,6 +136,7 @@ The EDPB then adopted its Guidelines 02/2026 on anonymisation on 7 July 2026, as
 
 ## See also
 
+- [Anonymization, pseudonymization, redaction, masking](anonymization-vs-pseudonymization.md): the four terms side by side, reversible or not.
 - [Security](security.md): the threat model, the memory backends, and the at-rest crypto that protects the restoration mapping.
 - [How to document `piighost` in a DPIA](dpia.md): the processing, the data flows, the measures and the residual risks, with a template to fill in.
 - [Limitations](limitations.md): the shape-only regex and what it does not validate.

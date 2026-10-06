@@ -1,5 +1,6 @@
 ---
 icon: lucide/book-a
+description: Glossaire de piighost, de la pseudonymisation, l'anonymisation, le caviardage et le masquage aux placeholders, aux détecteurs et à la mémoire.
 ---
 
 # Glossaire
@@ -7,10 +8,18 @@ icon: lucide/book-a
 Termes utilisés dans la documentation `piighost`. Chaque entrée définit le
 concept par ce qu'il fait. Les noms de classes restent en anglais.
 
+Les différences entre anonymisation, pseudonymisation, caviardage et masquage sont
+expliquées dans [Anonymisation, pseudonymisation, caviardage, masquage](anonymization-vs-pseudonymization.md).
+
 Anonymisation
 :   Suppression des PII sans aucun moyen de les restaurer. Irréversible par
     définition. Une placeholder factory de caviardage anonymise, puisqu'elle ne
     garde aucune correspondance vers la valeur.
+
+Caviardage
+:   Effacer une valeur ou la remplacer par un marqueur fixe, de sorte que
+    `Patrick`{ .pii } devienne `<<REDACT>>`{ .placeholder }. Irréversible, puisque
+    rien ne garde la trace de ce qui était là. `RedactPlaceholderFactory`.
 
 Cipher
 :   Composant qui chiffre et déchiffre des octets de façon réversible, de sorte
@@ -85,6 +94,12 @@ Linker
     `Patrick`{ .pii } en `(0, 7)` et `patrick`{ .pii } en `(34, 41)` donne une
     entité. `ExactEntityLinker`.
 
+Masquage
+:   Cacher une partie d'une valeur et laisser l'autre visible, de sorte que
+    `Patrick`{ .pii } devienne `P******`{ .placeholder }. Irréversible, puisqu'un
+    fragment fuit et que deux valeurs de même initiale et de même longueur se
+    confondent. `MaskPlaceholderFactory`.
+
 Mémoire de conversation
 :   Stockage qui accumule les entités d'une conversation au fil des messages, de sorte
     qu'une valeur vue dans un message garde son placeholder dans le suivant.
@@ -118,6 +133,14 @@ Poivre
     `PIIGHOST_HASH_PEPPER`. Le poivre est obligatoire, parce qu'une valeur à
     faible entropie hachée sans secret reste attaquable par force brute. Utilisé par
     `Sha256Hasher` et `Argon2Hasher`.
+
+Pseudonymisation
+:   Remplacer des données personnelles de sorte qu'elles ne puissent plus être
+    attribuées à une personne sans informations supplémentaires conservées
+    séparément, selon la définition de l'article 4, point 5, du RGPD. Réversible
+    pour qui détient ces informations. Le pipeline `piighost` par défaut
+    pseudonymise, et la mémoire de conversation tient les informations
+    supplémentaires. Les données pseudonymisées restent des données personnelles.
 
 Recognizer
 :   Grammaire de jetons que le middleware utilise pour retrouver les placeholders
@@ -164,3 +187,9 @@ thread_id
 :   Chaîne qui identifie une conversation. Le pipeline de conversation et le middleware s'en
     servent pour cadrer la mémoire et router chaque message vers la bonne
     conversation.
+
+Tokenisation
+:   Remplacer une valeur par un jeton pendant qu'un coffre garde le lien entre les
+    deux. C'est une forme de pseudonymisation sous un autre nom. Un placeholder de
+    `piighost` est un jeton en ce sens, et la mémoire de conversation joue le rôle
+    du coffre.
