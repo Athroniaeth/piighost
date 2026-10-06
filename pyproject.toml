@@ -1,7 +1,7 @@
 [project]
 name = "piighost"
 version = "2.0.0"
-description = "Protect confidential data, personal data (PII) and secrets, in conversations with LLMs through de-identification: values are hidden before they are sent and restored in the reply. Pluggable detectors (regex, NER, LLM), LangChain, Pydantic AI, LlamaIndex and Claude Code integrations."
+description = "piighost replaces personal data with placeholders before the LLM sees it, then restores the real values in the reply and in tool calls."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -10,24 +10,43 @@ authors = [
 ]
 keywords = [
     "pii",
+    "pii-detection",
+    "pii-redaction",
+    "pii-masking",
     "anonymization",
     "de-identification",
     "pseudonymization",
-    "nlp",
-    "ner",
+    "redaction",
+    "data-masking",
+    "data-privacy",
+    "privacy",
+    "gdpr",
+    "rgpd",
+    "hipaa",
+    "llm",
+    "llm-security",
+    "guardrails",
+    "ai",
+    "agents",
     "langchain",
     "langgraph",
+    "pydantic-ai",
+    "llamaindex",
+    "claude-code",
+    "openai",
+    "anthropic",
+    "nlp",
+    "ner",
     "gliner",
     "presidio",
     "spacy",
-    "llm",
-    "privacy",
-    "ai",
-    "agents",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Natural Language :: English",
+    "Natural Language :: French",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -36,6 +55,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Text Processing :: Linguistic",
     "Typing :: Typed",
 ]
@@ -45,7 +65,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Athroniaeth/piighost"
+Homepage = "https://piighost.dev/en"
 Documentation = "https://docs.piighost.dev/en/guide/"
 Repository = "https://github.com/Athroniaeth/piighost"
 Issues = "https://github.com/Athroniaeth/piighost/issues"
