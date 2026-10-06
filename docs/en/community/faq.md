@@ -1,57 +1,99 @@
 ---
 icon: lucide/message-circle-question
-description: Short answers to the frequent questions about piighost, such as languages, detected entities, latency, tools, conversation memory, encryption and traces.
+description: FAQ on piighost. Hide personal data from the OpenAI API, compare with Presidio, pseudonymize or anonymize data for ChatGPT, and what the GDPR asks.
 ---
 
 # FAQ
 
-??? question "Is it really necessary to de-identify confidential data before calling an LLM?"
-    Yes, and this holds regardless of `piighost`. The stakes (exfiltration to providers, legal requisition, training on conversations, GDPR compliance, data leaks) are covered in [Why de-identify?](../why-anonymize.md). The page is library-agnostic. It explains why the problem exists before justifying a solution like `piighost`.
+## Is it really necessary to de-identify confidential data before calling an LLM?
 
-??? question "Which languages are supported?"
-    It depends entirely on the detector you plug in. The pipeline itself is language-agnostic. With a `gliner2` detector and a multilingual GLiNER2 model, you get about 100 languages out of the box. With a `spacy` detector, whatever spaCy supports. With a `regex` detector, language is irrelevant. See [Extending piighost](../extending.md) for the detector catalogue.
+Yes, and this holds regardless of `piighost`. The stakes (exfiltration to providers, legal requisition, training on conversations, GDPR compliance, data leaks) are covered in [Why de-identify?](../why-anonymize.md). The page is library-agnostic. It explains why the problem exists before justifying a solution like `piighost`.
 
-??? question "Which entities are detected out of the box?"
-    None. `piighost` does not ship its own NER model, this is a deliberate design choice. You bring the detector. Use an `exact` detector for fixed dictionaries, a `regex` detector with a group pulled from the catalog (`catalog:piighost/generic`, `catalog:piighost/us`, `catalog:piighost/eu`, `catalog:piighost/fr`) or your own patterns, a `gliner2` detector for open NER (`PERSON`, `LOCATION`, `ORGANIZATION`, `EMAIL`, any label you ask for), or compose them with a `composite` detector.
+## How do I hide personal data from the OpenAI API?
 
-??? question "Does the regex detector validate checksums (Luhn, IBAN, NIR)?"
-    No, by design. A checksum validator rejects a value whose digits do not compute. That is exactly what OCR noise or a typo produces. Rejecting such a value would leak the PII the validator was meant to catch. The `regex` detector matches on shape alone and errs toward over-detection, which is the safe direction for de-identification. If you need to narrow a match, add a stricter pattern rather than a validator.
+Place `piighost` between your code and the API. Each value is replaced by a placeholder such as `<<PERSON:1>>`{ .placeholder } before the request leaves, and restored in the reply.
 
-??? question "How do I configure a pipeline?"
-    Write a TOML or JSON file describing each stage, then load it. `load_pipeline` builds a stateless pipeline. `load_thread_pipeline` builds a thread pipeline with a conversation memory. The file suffix picks the parser. Every section and component `type` is in the [configuration reference](../configuration/toml.md). The `config` extra is required (`pip install "piighost[config]"`).
+- If your code calls the model through LangChain, Pydantic AI or LlamaIndex, add the matching integration. See [LangChain middleware](../getting-started/langchain.md), [Pydantic AI integration](../examples/pydantic-ai.md) and [LlamaIndex integration](../examples/llama-index.md).
+- If your code calls the OpenAI SDK directly, point its `base_url` at the OpenAI-compatible proxy of `piighost-api`. See [OpenAI-compatible proxy](../examples/openai-proxy.md).
 
-??? question "What latency does the pipeline add?"
-    The pipeline itself is on the millisecond scale (regex and lookups). The real cost comes from the detector. GLiNER2 on CPU for a 200-token message is typically 50 to 200 ms. An LLM used as a detector, several hundred milliseconds. Resending a message inside a thread skips detection, because a thread pipeline caches each message's detections. Measuring on your actual workload remains recommended before sizing production.
+## How is `piighost` different from Presidio?
 
-??? question "Does `piighost` work 100% offline?"
-    Yes. With a local detector (`gliner2`, `spacy`, `regex`, `exact`), no data leaves your process. A catalog group pinned to a commit is fetched on the first build, then read from the on-disk cache, and the fetch sends no text to the catalog. The middleware only forwards already de-identified text to the LLM. Keeping a hosted LLM under GDPR constraints without exfiltrating raw PII is the main reason teams adopt `piighost`. See [Why de-identify?](../why-anonymize.md) for the legal context.
+Presidio detects personal data in a text and replaces it with an operator, such as a mask or an encrypted token. `piighost` handles what comes after detection in an LLM conversation. It keeps the same placeholder over the conversation, gives tools the real values, and restores the reply, streaming included. The two combine, since `piighost` can use Presidio as its detector. See [How piighost compares](../comparison.md#piighost-vs-presidio), and [Migrate from PresidioReversibleAnonymizer](../examples/migrate-from-presidio-reversible-anonymizer.md) if you used the LangChain wrapper.
 
-??? question "Do my placeholders have to look like `<<PERSON:1>>`?"
-    No. The format is driven by the placeholder factory chosen in `[anonymizer.placeholder]`. `label_counter` produces `<<PERSON:1>>`{ .placeholder }, `label_hash` produces `<<PERSON:a1b2c3d4>>`{ .placeholder }, `label` produces `<<PERSON>>`{ .placeholder } without a counter, `mask` produces `P***`{ .placeholder }, and you can write your own factory. See [Placeholder factories](../placeholder-factories.md).
+## Does `piighost` work with OpenAI, Anthropic, Mistral or a local model?
 
-??? question "Can I get realistic fake values instead of tokens?"
-    No, and it is not planned. A Faker factory, which would emit a plausible name in place of `Patrick`{ .pii }, is ruled out on purpose in the [roadmap](../roadmap.md). Two people could draw the same fake name, and a fake could coincide with a real value, so restoration would no longer be reliable. Today the factories emit synthetic tokens or masks, never a value that looks real.
+Yes. The pipeline rewrites the text before and after the model call, and calls no model itself unless you pick an LLM as detector or guard rail. Any model your framework supports works, a hosted API as well as a model on your own hardware. The `piighost-api` server also ships an OpenAI-compatible proxy and an Anthropic-compatible proxy. The OpenAI-compatible one forwards to any OpenAI-compatible provider, a self-hosted vLLM server included. See [OpenAI-compatible proxy](../examples/openai-proxy.md) and [Anthropic-compatible proxy](../examples/anthropic-proxy.md).
 
-??? question "Does the LLM see raw confidential data when it calls a tool?"
-    It depends on the tool-call strategy. With the default (`FULL`), no. The middleware restores arguments right before the tool executes, then de-identifies the tool response again before it flows back to the LLM. The tool sees real values, the LLM only sees placeholders. The `INPUT`, `OUTPUT` and `PASSTHROUGH` modes change this behaviour, see the next question and [Tool-call strategies](../tool-call-strategies.md). Full diagram in [Architecture](../architecture.md).
+## Is pseudonymization enough for the GDPR?
 
-??? question "How do I control what a tool sees: placeholder or real value?"
-    The tool-call strategy of `PIIAnonymizationMiddleware` exposes four modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). The right choice depends on whether the tool may emit new confidential data and how strict the privacy boundary needs to be. See [Tool-call strategies](../tool-call-strategies.md) for the trade-offs and the decision tree. The middleware also needs an identity-preserving, recognizable placeholder factory, see [Placeholder factories](../placeholder-factories.md) for this constraint.
+No. Pseudonymized data stay personal data for whoever holds the mapping, as recital 26 of the GDPR states. The regulation therefore still applies to the whole processing, that is the legal basis, the information of data subjects, the security of the mapping, and a DPIA when the risk is high. Pseudonymization is one of the measures the GDPR names, in Articles 25 and 32, because it lowers the risk. See [Anonymization, pseudonymization, redaction, masking](../anonymization-vs-pseudonymization.md), [Compliance](../compliance.md) and [How to document `piighost` in a DPIA](../dpia.md).
 
-??? question "What happens if the LLM hallucinates confidential data that was not in the input?"
-    It is **not** de-identified by `piighost`. Entity linking works on detections coming from the input, not on invented values. A guard for residual confidential data can re-check the output and refuse it, see the guard section of the [configuration reference](../configuration/toml.md) and [Limitations](../limitations.md).
+## How do I anonymize data before sending it to ChatGPT?
 
-??? question "Is the conversation memory shared across threads?"
-    No. The memory is scoped by `thread_id`. Two parallel conversations never see each other's tokens. This separation prevents cross-user leaks. The `thread_id` is extracted automatically from the LangGraph config.
+What `piighost` does is pseudonymization, not anonymization. Each value becomes a placeholder such as `<<PERSON:1>>`{ .placeholder } before the text reaches the model, and a mapping kept on your side restores `Patrick`{ .pii } in the reply. Anonymization would delete the value for good, and the reply could no longer name the person. See [Anonymization, pseudonymization, redaction, masking](../anonymization-vs-pseudonymization.md) for the difference.
 
-??? question "How do I run more than one worker behind a load balancer?"
-    Use the Redis conversation memory, shared by every worker. The in-RAM memory is process-local, so two workers would number the same value differently mid-conversation. See [Multi-instance deployment](../multi-instance.md) for the trap and the fix, and [Deployment](../deployment.md) for the full setup.
+`piighost` works on calls to the model's API, through an integration or the OpenAI-compatible proxy, as described in [How do I hide personal data from the OpenAI API?](#how-do-i-hide-personal-data-from-the-openai-api). It does not plug into the ChatGPT web app.
 
-??? question "Can I use `piighost` without LangChain?"
-    Yes. The stateless and thread pipelines are usable standalone, without the middleware. See [Basic usage](../examples/basic.md).
+## Which languages are supported?
 
-??? question "Does `piighost` encrypt stored data?"
-    The Redis conversation memory does. It encrypts every stored value with AES-GCM and hashes every key, reading its pepper and cipher key from the environment. The in-RAM memory encrypts nothing and is for development only. See [Security](../security.md) for the at-rest threat model.
+It depends entirely on the detector you plug in. The pipeline itself is language-agnostic. With a `gliner2` detector and a multilingual GLiNER2 model, you get about 100 languages out of the box. With a `spacy` detector, whatever spaCy supports. With a `regex` detector, language is irrelevant. See [Extending piighost](../extending.md) for the detector catalogue.
 
-??? question "How do I trace what the pipeline does?"
-    Through OpenTelemetry. The pipeline emits a span per stage to whatever OTel `TracerProvider` your application configured. It does no backend correlation itself, because that correlation belongs to the deployment's OTel configuration. See [Observation](../observation.md). The `observation` extra is required.
+## Which entities are detected out of the box?
+
+None. `piighost` does not ship its own NER model, this is a deliberate design choice. You bring the detector. Use an `exact` detector for fixed dictionaries, a `regex` detector with a group pulled from the catalog (`catalog:piighost/generic`, `catalog:piighost/us`, `catalog:piighost/eu`, `catalog:piighost/fr`) or your own patterns, a `gliner2` detector for open NER (`PERSON`, `LOCATION`, `ORGANIZATION`, `EMAIL`, any label you ask for), or compose them with a `composite` detector.
+
+## Does the regex detector validate checksums (Luhn, IBAN, NIR)?
+
+No, by design. A checksum validator rejects a value whose digits do not compute. That is exactly what OCR noise or a typo produces. Rejecting such a value would leak the PII the validator was meant to catch. The `regex` detector matches on shape alone and errs toward over-detection, which is the safe direction for de-identification. If you need to narrow a match, add a stricter pattern rather than a validator.
+
+## How do I configure a pipeline?
+
+Write a TOML or JSON file describing each stage, then load it. `load_pipeline` builds a stateless pipeline. `load_thread_pipeline` builds a thread pipeline with a conversation memory. The file suffix picks the parser. Every section and component `type` is in the [configuration reference](../configuration/toml.md). The `config` extra is required (`pip install "piighost[config]"`).
+
+## What latency does the pipeline add?
+
+The pipeline itself is on the millisecond scale (regex and lookups). The real cost comes from the detector. GLiNER2 on CPU for a 200-token message is typically 50 to 200 ms. An LLM used as a detector, several hundred milliseconds. Resending a message inside a thread skips detection, because a thread pipeline caches each message's detections. Measuring on your actual workload remains recommended before sizing production.
+
+## Does `piighost` work 100% offline?
+
+Yes. With a local detector (`gliner2`, `spacy`, `regex`, `exact`), no data leaves your process. A catalog group pinned to a commit is fetched on the first build, then read from the on-disk cache, and the fetch sends no text to the catalog. The middleware only forwards already de-identified text to the LLM. Keeping a hosted LLM under GDPR constraints without exfiltrating raw PII is the main reason teams adopt `piighost`. See [Why de-identify?](../why-anonymize.md) for the legal context.
+
+## Do my placeholders have to look like `<<PERSON:1>>`?
+
+No. The format is driven by the placeholder factory chosen in `[anonymizer.placeholder]`. `label_counter` produces `<<PERSON:1>>`{ .placeholder }, `label_hash` produces `<<PERSON:a1b2c3d4>>`{ .placeholder }, `label` produces `<<PERSON>>`{ .placeholder } without a counter, `mask` produces `P***`{ .placeholder }, and you can write your own factory. See [Placeholder factories](../placeholder-factories.md).
+
+## Can I get realistic fake values instead of tokens?
+
+No, and it is not planned. A Faker factory, which would emit a plausible name in place of `Patrick`{ .pii }, is ruled out on purpose in the [roadmap](../roadmap.md). Two people could draw the same fake name, and a fake could coincide with a real value, so restoration would no longer be reliable. Today the factories emit synthetic tokens or masks, never a value that looks real.
+
+## Does the LLM see raw confidential data when it calls a tool?
+
+It depends on the tool-call strategy. With the default (`FULL`), no. The middleware restores arguments right before the tool executes, then de-identifies the tool response again before it flows back to the LLM. The tool sees real values, the LLM only sees placeholders. The `INPUT`, `OUTPUT` and `PASSTHROUGH` modes change this behaviour, see the next question and [Tool-call strategies](../tool-call-strategies.md). Full diagram in [Architecture](../architecture.md).
+
+## How do I control what a tool sees: placeholder or real value?
+
+The tool-call strategy of `PIIAnonymizationMiddleware` exposes four modes (`INPUT`, `OUTPUT`, `FULL`, `PASSTHROUGH`). The right choice depends on whether the tool may emit new confidential data and how strict the privacy boundary needs to be. See [Tool-call strategies](../tool-call-strategies.md) for the trade-offs and the decision tree. The middleware also needs an identity-preserving, recognizable placeholder factory, see [Placeholder factories](../placeholder-factories.md) for this constraint.
+
+## What happens if the LLM hallucinates confidential data that was not in the input?
+
+It is **not** de-identified by `piighost`. Entity linking works on detections coming from the input, not on invented values. A guard for residual confidential data can re-check the output and refuse it, see the guard section of the [configuration reference](../configuration/toml.md) and [Limitations](../limitations.md).
+
+## Is the conversation memory shared across threads?
+
+No. The memory is scoped by `thread_id`. Two parallel conversations never see each other's tokens. This separation prevents cross-user leaks. The `thread_id` is extracted automatically from the LangGraph config.
+
+## How do I run more than one worker behind a load balancer?
+
+Use the Redis conversation memory, shared by every worker. The in-RAM memory is process-local, so two workers would number the same value differently mid-conversation. See [Multi-instance deployment](../multi-instance.md) for the trap and the fix, and [Deployment](../deployment.md) for the full setup.
+
+## Can I use `piighost` without LangChain?
+
+Yes. The stateless and thread pipelines are usable standalone, without the middleware. See [Basic usage](../examples/basic.md).
+
+## Does `piighost` encrypt stored data?
+
+The Redis conversation memory does. It encrypts every stored value with AES-GCM and hashes every key, reading its pepper and cipher key from the environment. The in-RAM memory encrypts nothing and is for development only. See [Security](../security.md) for the at-rest threat model.
+
+## How do I trace what the pipeline does?
+
+Through OpenTelemetry. The pipeline emits a span per stage to whatever OTel `TracerProvider` your application configured. It does no backend correlation itself, because that correlation belongs to the deployment's OTel configuration. See [Observation](../observation.md). The `observation` extra is required.

@@ -56,6 +56,8 @@ CONTRAST = re.compile(
     r"|(word|mot|terme)\s+anonymi[sz]ation"
     r"|\*\*anonymi[sz]ation\*\*"
     r"|^anonymi[sz]ation\b"                      # the glossary entry itself
+    r"|^\|\s*anonymi[sz]ation\s*\|"              # a table row defining the term
+    r"|^#{2,6}\s.*\?\s*$"                        # a FAQ question, in the reader's words
     r"|k-anonymity"
     r"|(dataset\s+anonymi[sz]ers|anonymi[sz]eurs\s+de\s+dataset)"
     r"|redact|caviardage",                       # redaction genuinely anonymises
