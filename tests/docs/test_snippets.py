@@ -120,6 +120,10 @@ SNIPPETS: list[Any] = [
     pytest.param("reference_gliner2_guard.py", marks=pytest.mark.integration),
     pytest.param("reference_gliner2_pipeline.py", marks=pytest.mark.integration),
     pytest.param("upgrading_catalogs.py", marks=pytest.mark.integration),
+    # These load Presidio's default spaCy model, and the first one the archived
+    # langchain-experimental package, which no extra of piighost installs.
+    pytest.param("migrate_presidio_before.py", marks=pytest.mark.integration),
+    pytest.param("migrate_presidio_after.py", marks=pytest.mark.integration),
     pytest.param("redis_run.py", marks=pytest.mark.integration),
     pytest.param("redis_load.py", marks=pytest.mark.integration),
     pytest.param("redis_two_workers.py", marks=pytest.mark.integration),
@@ -196,6 +200,8 @@ REQUIRES = {
     "server_connect.py": "httpx",
     "server_middleware.py": "langchain",
     "server_proxy_upstream.py": "openai",
+    "migrate_presidio_before.py": "langchain_experimental",
+    "migrate_presidio_after.py": "en_core_web_lg",
     "server_client.en.py": "httpx",
     "server_client.fr.py": "httpx",
     "server_forget.py": "httpx",
