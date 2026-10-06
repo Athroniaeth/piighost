@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield-check
+seo_title: Threat model of PII de-identification for LLMs
+description: What piighost protects against and what it does not. The mapping from placeholders to real values holds personal data in clear, so it must be protected.
 ---
 
 # Security

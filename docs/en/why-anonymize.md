@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield-alert
+seo_title: Why de-identify personal data before an LLM sees it
+description: Why anonymize or de-identify personal data before ChatGPT, Claude or a cloud LLM sees it. Incidents, training, judicial orders, the CLOUD Act, the GDPR.
 ---
 
 # Why de-identify?

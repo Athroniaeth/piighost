@@ -1,5 +1,7 @@
 ---
 icon: lucide/scan-search
+seo_title: Detect PII with regex, emails, phones, IBAN, SSN
+description: Load ready-made regex groups from the piighost catalog for emails, phones, IBAN, SSN or SIRET, merge them, and combine detectors to mask PII in Python.
 tags:
   - Detector
   - Regex

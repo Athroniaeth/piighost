@@ -1,5 +1,7 @@
 ---
 icon: lucide/replace
+seo_title: Choose the placeholder that replaces PII before the LLM
+description: Placeholder factories decide what replaces a value, a counter token, a hash or a masked email. See what leaks to the LLM and what the agent can still use.
 ---
 
 # Placeholder factories

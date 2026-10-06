@@ -1,5 +1,7 @@
 ---
 icon: lucide/wrench
+seo_title: Keep PII out of the LLM while tools get real values
+description: How the piighost middleware restores real values in tool arguments, de-identifies tool results, and handles placeholders the LLM invents. Three strategies.
 ---
 
 # Tool-call strategies

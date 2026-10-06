@@ -1,5 +1,7 @@
 ---
 icon: lucide/play
+seo_title: Build a PII de-identification pipeline step by step
+description: Build a piighost pipeline one component at a time, a detector, a linker and an anonymizer, then mask names and emails in a sentence with regex or GLiNER2.
 ---
 
 # First pipeline

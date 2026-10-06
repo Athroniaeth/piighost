@@ -1,5 +1,7 @@
 ---
 icon: lucide/link
+seo_title: Anthropic-compatible proxy that masks PII for Claude
+description: Point Claude Code or any Messages API client at piighost-api. Messages and tool contents are de-identified before Anthropic, and the reply is restored.
 ---
 
 # Anthropic-compatible proxy

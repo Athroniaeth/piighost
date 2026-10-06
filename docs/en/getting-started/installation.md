@@ -1,5 +1,7 @@
 ---
 icon: lucide/download
+seo_title: Install piighost, PII de-identification for Python
+description: Install piighost with pip or uv, then add the extras for GLiNER2, spaCy, LangChain, Pydantic AI or LlamaIndex to mask PII before an LLM sees it.
 ---
 
 # Installation

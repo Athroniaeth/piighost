@@ -1,5 +1,7 @@
 ---
 icon: lucide/network
+seo_title: Dé-identifier sur plusieurs workers avec une mémoire Redis
+description: Plusieurs workers numérotent une même valeur différemment. Partagez la mémoire de conversation dans Redis pour que chacun donne le même placeholder.
 ---
 
 # Déploiement multi-instance

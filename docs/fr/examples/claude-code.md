@@ -1,5 +1,7 @@
 ---
 icon: lucide/terminal
+seo_title: Masquer les PII dans Claude Code avec des hooks
+description: Branchez piighost sur les hooks de Claude Code. Le modèle ne voit que des placeholders, et les outils reçoivent les vraies valeurs dont ils ont besoin.
 ---
 
 # Hooks Claude Code

@@ -1,5 +1,7 @@
 ---
 icon: lucide/messages-square
+seo_title: Garder le même placeholder sur toute une conversation
+description: Un pipeline conversationnel qui donne à une valeur le même placeholder dans chaque message, pour que le LLM suive le fil. Mémoire en RAM, puis effacement.
 ---
 
 # Pipeline conversationnel

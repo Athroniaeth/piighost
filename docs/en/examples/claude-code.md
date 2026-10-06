@@ -1,5 +1,7 @@
 ---
 icon: lucide/terminal
+seo_title: Mask PII in Claude Code with hooks
+description: Plug piighost into Claude Code hooks. The model only sees placeholders, real values are restored where tools need them, and your agent code is unchanged.
 ---
 
 # Claude Code hooks

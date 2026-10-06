@@ -1,5 +1,7 @@
 ---
 icon: lucide/play
+seo_title: Construire un pipeline de dé-identification étape par étape
+description: Assemblez un pipeline piighost pièce par pièce, détecteur, linker, anonymiseur, puis masquez les noms et e-mails d'une phrase par regex ou avec GLiNER2.
 ---
 
 # Premier pipeline

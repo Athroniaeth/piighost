@@ -1,5 +1,7 @@
 ---
 icon: lucide/cloud
+seo_title: Call a remote PII de-identification server from Python
+description: Use PIIGhostClient as a remote thread pipeline. De-identify and restore over HTTP, plug it into the LangChain middleware, run the NER model off your host.
 ---
 
 # Remote client

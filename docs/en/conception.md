@@ -1,5 +1,7 @@
 ---
 icon: lucide/blocks
+seo_title: How a PII de-identification pipeline is designed
+description: The piighost pipeline built step by step, from the detector and the placeholder to the resolvers, the anonymizer, restoration and the conversation memory.
 ---
 
 # Pipeline design

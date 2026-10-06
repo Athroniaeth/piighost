@@ -1,5 +1,7 @@
 ---
 icon: lucide/cloud
+seo_title: Appeler un serveur de dé-identification distant en Python
+description: PIIGhostClient sert de pipeline de thread distant. Dé-identifiez et restaurez en HTTP, branchez-le dans le middleware LangChain, sortez le NER de l'hôte.
 ---
 
 # Client distant

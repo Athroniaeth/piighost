@@ -1,5 +1,7 @@
 ---
 icon: lucide/gauge
+seo_title: Benchmark de détection des PII, un NER seul face à piighost
+description: Combien d'identifiants directs un pipeline piighost cache face à un modèle NER seul. GLiNER2 passe de 36 à 95 % sur des actes français générés.
 ---
 
 # La détection, mesurée

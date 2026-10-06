@@ -1,5 +1,7 @@
 ---
 icon: lucide/layers
+seo_title: Architecture de piighost, ports et adaptateurs
+description: L'architecture hexagonale de piighost. Ports et templates, étapes du pipeline, composant de placeholder, mémoire de conversation chiffrée, configuration.
 ---
 
 # Architecture

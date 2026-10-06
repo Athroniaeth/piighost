@@ -1,5 +1,7 @@
 ---
 icon: lucide/clipboard-check
+seo_title: Documenter le masquage des PII d'un LLM dans une AIPD
+description: Ce dont votre DPO a besoin pour décrire piighost dans une AIPD, dans l'ordre de l'article 35(7) du RGPD, quand vous envoyez des conversations à un LLM.
 ---
 
 # Comment documenter `piighost` dans une AIPD

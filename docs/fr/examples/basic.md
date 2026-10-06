@@ -1,5 +1,7 @@
 ---
 icon: lucide/code
+seo_title: Restaurer les données personnelles dans la réponse du LLM
+description: Dé-identifiez un texte, envoyez-le à un LLM, puis restaurez les vraies valeurs de la réponse. L'aller-retour en Python avec piighost seul, sans modèle.
 ---
 
 # Dé-identifier et restaurer un texte

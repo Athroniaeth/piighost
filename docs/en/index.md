@@ -1,5 +1,7 @@
 ---
 icon: lucide/shield
+seo_title: piighost docs, PII de-identification for LLMs in Python
+description: piighost replaces personal data with placeholders before the LLM sees it, then restores the real values in the reply and in tool calls.
 ---
 
 # Technical documentation

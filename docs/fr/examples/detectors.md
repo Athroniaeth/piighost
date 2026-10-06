@@ -1,5 +1,7 @@
 ---
 icon: lucide/scan-search
+seo_title: Détecter les PII par regex, e-mail, téléphone, IBAN, NIR
+description: Des groupes de regex du catalogue piighost pour les e-mails, téléphones, IBAN, NIR et SIRET. Chargez-les, fusionnez-les, combinez des détecteurs en Python.
 tags:
   - Détecteur
   - Regex

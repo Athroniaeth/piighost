@@ -1,5 +1,7 @@
 ---
 icon: lucide/bot
+seo_title: Pydantic AI, masquer les PII avant le modèle
+description: Ajoutez pii_hooks à un agent Pydantic AI. Le modèle ne voit que des placeholders, stables d'un tour à l'autre, et les outils reçoivent les vraies valeurs.
 tags:
   - Pydantic AI
 ---

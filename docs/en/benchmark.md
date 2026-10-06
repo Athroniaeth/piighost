@@ -1,5 +1,7 @@
 ---
 icon: lucide/gauge
+seo_title: PII detection benchmark, a NER model alone versus piighost
+description: How many direct identifiers a piighost pipeline hides versus a NER model alone. GLiNER2 rises from 36 to 95 % on generated French deeds. Five data sets.
 ---
 
 # Detection, measured

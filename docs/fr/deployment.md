@@ -1,5 +1,7 @@
 ---
 icon: lucide/container
+seo_title: Déployer la dé-identification en production avec Redis
+description: Un pipeline de thread piighost en production. Mémoire Redis qui survit aux redémarrages, valeurs chiffrées, secrets lus dans l'environnement.
 ---
 
 # Déploiement

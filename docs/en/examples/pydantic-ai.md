@@ -1,5 +1,7 @@
 ---
 icon: lucide/bot
+seo_title: Mask PII before the model in a Pydantic AI agent
+description: Add the pii_hooks capability to a Pydantic AI agent. The model only sees placeholders, tools get the real values, and a value keeps one token per thread.
 tags:
   - Pydantic AI
 ---

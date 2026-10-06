@@ -1,5 +1,7 @@
 ---
 icon: lucide/container
+seo_title: Deploy PII de-identification in production with Redis
+description: A production piighost thread pipeline. Redis conversation memory that survives restarts and workers, encrypted values, secrets read from the environment.
 ---
 
 # Deployment

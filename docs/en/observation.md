@@ -1,5 +1,7 @@
 ---
 icon: lucide/eye
+seo_title: Trace PII de-identification with OpenTelemetry
+description: piighost emits an OpenTelemetry trace for each de-identification, one span per stage. See where a value was detected, and scrub clear values from traces.
 ---
 
 # Observation

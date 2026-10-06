@@ -1,5 +1,7 @@
 ---
 icon: lucide/scale
+seo_title: GDPR and HIPAA compliance for PII masking with LLMs
+description: How piighost lines up with HIPAA Safe Harbor and the GDPR. A reversible pseudonymization, often called anonymization, and where its coverage stops.
 ---
 
 # Compliance

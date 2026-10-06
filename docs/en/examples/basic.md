@@ -1,5 +1,7 @@
 ---
 icon: lucide/code
+seo_title: Restore PII in the LLM response
+description: De-identify a text, send it to an LLM, then restore the real values in the reply. The full round trip in Python with the piighost core alone, no model.
 ---
 
 # De-identify and restore a text

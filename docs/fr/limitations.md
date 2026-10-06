@@ -1,5 +1,7 @@
 ---
 icon: lucide/triangle-alert
+seo_title: Les limites de la détection et du masquage des PII
+description: Les limites connues de piighost. Détection non exhaustive, texte long tronqué par le modèle, langues inégales, placeholders qui se confondent.
 ---
 
 # Limites
