@@ -1,16 +1,16 @@
-# PIIGhost
+# piighost
 
-English | [Français](docs/README.fr.md)
+English | [Français](https://github.com/Athroniaeth/piighost/blob/master/docs/README.fr.md)
 
 [![CI](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml/badge.svg)](https://github.com/Athroniaeth/piighost/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Athroniaeth/piighost/branch/master/graph/badge.svg)](https://codecov.io/gh/Athroniaeth/piighost)
 [![PyPI version](https://img.shields.io/pypi/v/piighost.svg)](https://pypi.org/project/piighost/)
 [![Python versions](https://img.shields.io/pypi/pyversions/piighost.svg)](https://pypi.org/project/piighost/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Athroniaeth/piighost/blob/master/LICENSE)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/vFg9GHQR2s)
 
-`piighost` is a Python library that protects your confidential data, personal data (PII) and secrets, in conversations with LLMs through de-identification. Sensitive values are hidden before they are sent, then restored in the response. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
+`piighost` replaces personal data with placeholders before the LLM sees it, then restores the real values in the reply and in tool calls. This Python library de-identifies confidential data, meaning personal data (PII) and secrets, through a reversible pseudonymization often called anonymization. LangChain, Pydantic AI, LlamaIndex and Claude Code integrations are provided, together with an OpenAI and Anthropic API connector.
 
 This de-identification spots confidential data with pluggable detectors (regex, NER, LLM) and replaces each value with a placeholder, the token that takes its place. For example:
 
@@ -24,7 +24,7 @@ The LLM therefore only receives de-identified text. When it returns placeholders
 The same mechanism protects agents that call tools. With the LangChain middleware, a tool that needs the real email address receives it in clear, while the LLM that supplies it only writes `<<EMAIL:1>>`.
 
 <p align="center">
-  <img alt="A user chats with an agent, confidential values are replaced by placeholders before reaching the LLM and restored afterwards for the user and for tool calls." src="docs/assets/deid-chat-dark.gif" width="760">
+  <img alt="A user chats with an agent, confidential values are replaced by placeholders before reaching the LLM and restored afterwards for the user and for tool calls." src="https://raw.githubusercontent.com/Athroniaeth/piighost/master/docs/assets/deid-chat-dark.gif" width="760">
 </p>
 
 *The LLM only sees placeholders. The tool receives the real address, the user gets a clear-text reply, and your agent code stays the same.*
@@ -66,7 +66,7 @@ The [Quickstart](https://docs.piighost.dev/en/guide/getting-started/quickstart/)
 
 ## Ecosystem
 
-- **[piighost.dev](https://piighost.dev/?utm_source=github&utm_medium=readme&utm_campaign=piighost)**: the project website, with the ecosystem and its philosophy
+- **[piighost.dev](https://piighost.dev/en)**: the project website, with the ecosystem and its philosophy
 - **[piighost catalog](https://catalog.piighost.dev)**: reviewed regex groups and ready-made pipeline configurations, pulled by reference
 - **[piighost-api](https://github.com/Athroniaeth/piighost-api)**: a server hosting one pipeline behind HTTP, with OpenAI- and Anthropic-compatible proxies
 - **[piighost-chat](https://github.com/Athroniaeth/piighost-chat)**: an example chat interface with human-in-the-loop
@@ -76,4 +76,6 @@ The [Quickstart](https://docs.piighost.dev/en/guide/getting-started/quickstart/)
 
 - **Community**: [Discord](https://discord.gg/vFg9GHQR2s) to get help, report bugs and request features
 - **Contributing**: [contribution guide](https://docs.piighost.dev/en/guide/community/contributing/) and [bug reports](https://docs.piighost.dev/en/guide/community/bug-reports/)
-- **License**: [MIT](LICENSE)
+- **License**: [MIT](https://github.com/Athroniaeth/piighost/blob/master/LICENSE)
+
+If `piighost` is useful to you, a [star on GitHub](https://github.com/Athroniaeth/piighost) helps other developers find it.
