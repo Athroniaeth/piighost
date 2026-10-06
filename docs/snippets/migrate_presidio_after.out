@@ -1,0 +1,4 @@
+# --8<-- [start:after]
+<<PERSON:1>> wrote from <<EMAIL:1>>.
+Thank you Patrick Martin, I will write to patrick@example.com.
+# --8<-- [end:after]

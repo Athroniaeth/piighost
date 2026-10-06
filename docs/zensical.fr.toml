@@ -26,6 +26,7 @@ nav = [
     { "Recettes" = [
         { "Dé-identifier et restaurer un texte" = "examples/basic.md" },
         { "Intégration LangChain" = "examples/langchain.md" },
+        { "Migrer depuis PresidioReversibleAnonymizer" = "examples/migrate-from-presidio-reversible-anonymizer.md" },
         { "Intégration Pydantic AI" = "examples/pydantic-ai.md" },
         { "Intégration LlamaIndex" = "examples/llama-index.md" },
         { "Hooks Claude Code" = "examples/claude-code.md" },
