@@ -93,7 +93,7 @@ Each rule, then the span detector alone at the threshold that catches at least a
 | Laya (English), two-option choice | 0.51 | 0.52 | 0.51 | 86/100 (86 %) | 82/100 (82 %) | 678 ms |
 | Gliner2GuardRail | 0.61 | 0.62 | 0.60 | 11/100 (11 %) | 3/100 (3 %) | 330 ms |
 | GLiNER2 spans, raw | 0.84 | 0.87 | 0.82 | 100/100 (100 %) | 100/100 (100 %) | 402 ms |
-| GLiNER2 spans, placeholders ignored | 0.94 | 0.97 | 0.92 | 97/100 (97 %) | 49/100 (49 %) | 356 ms |
+| GLiNER2 spans, placeholders ignored | 0.94 | 0.97 | 0.92 | 97/100 (97 %) | 49/100 (49 %) | 430 ms |
 
 ## Laya (English)
 
@@ -218,10 +218,10 @@ At 0.5, 96 of the 100 leaks caught had a detection on the leaked value itself. C
 
 | Threshold | Caught | 95 % CI | False alarms | 95 % CI | Caught FR | Alarms FR | Caught EN | Alarms EN |
 |---|---|---|---|---|---|---|---|---|
-| 0.1 | 99/100 (99 %) | 0.95 to 1.00 | 82/100 (82 %) | 0.73 to 0.88 | 49/50 | 41/50 | 50/50 | 41/50 |
+| 0.1 | 99/100 (99 %) | 0.95 to 1.00 | 79/100 (79 %) | 0.70 to 0.86 | 49/50 | 39/50 | 50/50 | 40/50 |
 | 0.2 | 99/100 (99 %) | 0.95 to 1.00 | 76/100 (76 %) | 0.67 to 0.83 | 49/50 | 38/50 | 50/50 | 38/50 |
-| 0.3 | 99/100 (99 %) | 0.95 to 1.00 | 66/100 (66 %) | 0.56 to 0.75 | 49/50 | 28/50 | 50/50 | 38/50 |
-| 0.4 | 98/100 (98 %) | 0.93 to 0.99 | 57/100 (57 %) | 0.47 to 0.66 | 49/50 | 19/50 | 49/50 | 38/50 |
+| 0.3 | 99/100 (99 %) | 0.95 to 1.00 | 63/100 (63 %) | 0.53 to 0.72 | 49/50 | 25/50 | 50/50 | 38/50 |
+| 0.4 | 98/100 (98 %) | 0.93 to 0.99 | 54/100 (54 %) | 0.44 to 0.63 | 49/50 | 16/50 | 49/50 | 38/50 |
 | 0.5 | 97/100 (97 %) | 0.92 to 0.99 | 49/100 (49 %) | 0.39 to 0.59 | 48/50 | 11/50 | 49/50 | 38/50 |
 | 0.6 | 96/100 (96 %) | 0.90 to 0.98 | 35/100 (35 %) | 0.26 to 0.45 | 48/50 | 5/50 | 48/50 | 30/50 |
 | 0.7 | 93/100 (93 %) | 0.86 to 0.97 | 27/100 (27 %) | 0.19 to 0.36 | 46/50 | 4/50 | 47/50 | 23/50 |
@@ -230,8 +230,8 @@ At 0.5, 96 of the 100 leaks caught had a detection on the leaked value itself. C
 
 Caught at 0.5 by leak type: name 12/12, variant 10/10, partial 9/10, email 12/12, phone 12/12, iban 12/12, address 12/12, id 9/10, split 9/10.
 False alarms at 0.5 by placeholder count: 4 to 6 14/22, 7 to 8 32/66, 11 to 15 3/12.
-Latency per text: median 356 ms, p90 440 ms, max 583 ms.
-Calibration: ECE 0.195, Brier 0.160. Bins (score range, n, mean score, share leaking): 0.0-0.1 n=19 0.00/0.05; 0.1-0.2 n=6 0.14/0.00; 0.2-0.3 n=10 0.25/0.00; 0.3-0.4 n=10 0.35/0.10; 0.4-0.5 n=9 0.42/0.11; 0.5-0.6 n=15 0.55/0.07; 0.6-0.7 n=11 0.66/0.27; 0.7-0.8 n=16 0.75/0.25; 0.8-0.9 n=18 0.84/0.33; 0.9-1.0 n=86 0.98/0.97.
+Latency per text: median 430 ms, p90 588 ms, max 751 ms.
+Calibration: ECE 0.192, Brier 0.158. Bins (score range, n, mean score, share leaking): 0.0-0.1 n=22 0.00/0.05; 0.1-0.2 n=3 0.15/0.00; 0.2-0.3 n=13 0.26/0.00; 0.3-0.4 n=10 0.35/0.10; 0.4-0.5 n=6 0.42/0.17; 0.5-0.6 n=15 0.55/0.07; 0.6-0.7 n=11 0.66/0.27; 0.7-0.8 n=16 0.75/0.25; 0.8-0.9 n=18 0.84/0.33; 0.9-1.0 n=86 0.98/0.97.
 At 0.5, 96 of the 97 leaks caught had a detection on the leaked value itself. Clean texts flagged: 22 with a detection touching a placeholder, 27 on other text.
 
 ## Combinations
@@ -254,7 +254,7 @@ At 0.5, 96 of the 97 leaks caught had a detection on the leaked value itself. Cl
 | Laya (English), two-option choice | 100 | 50.5 | +0.001 | 86 | 3 |
 | Gliner2GuardRail | 100 | 72.0 | +0.041 | 4 | 9 |
 | GLiNER2 spans, raw | 100 | 87.0 | +0.068 | 100 | 0 |
-| GLiNER2 spans, placeholders ignored | 100 | 97.5 | +0.452 | 51 | 46 |
+| GLiNER2 spans, placeholders ignored | 100 | 97.5 | +0.460 | 51 | 46 |
 
 Laya (English), leak scored higher than its twin, by type: name 8.0/12 (gap +0.03), variant 7.0/10 (gap +0.00), partial 5.0/10 (gap +0.00), email 6.0/12 (gap +0.01), phone 7.0/12 (gap -0.01), iban 7.0/12 (gap +0.01), address 6.0/12 (gap +0.00), id 5.0/10 (gap +0.00), split 3.0/10 (gap -0.00).
 
@@ -268,7 +268,7 @@ Gliner2GuardRail, leak scored higher than its twin, by type: name 11.0/12 (gap +
 
 GLiNER2 spans, raw, leak scored higher than its twin, by type: name 12.0/12 (gap +0.06), variant 7.0/10 (gap +0.04), partial 6.0/10 (gap +0.02), email 12.0/12 (gap +0.12), phone 12.0/12 (gap +0.12), iban 12.0/12 (gap +0.08), address 8.0/12 (gap +0.05), id 10.0/10 (gap +0.03), split 8.0/10 (gap +0.07).
 
-GLiNER2 spans, placeholders ignored, leak scored higher than its twin, by type: name 12.0/12 (gap +0.46), variant 10.0/10 (gap +0.56), partial 10.0/10 (gap +0.37), email 12.0/12 (gap +0.59), phone 12.0/12 (gap +0.39), iban 12.0/12 (gap +0.49), address 12.0/12 (gap +0.46), id 10.0/10 (gap +0.37), split 7.5/10 (gap +0.35).
+GLiNER2 spans, placeholders ignored, leak scored higher than its twin, by type: name 12.0/12 (gap +0.46), variant 10.0/10 (gap +0.60), partial 10.0/10 (gap +0.37), email 12.0/12 (gap +0.60), phone 12.0/12 (gap +0.41), iban 12.0/12 (gap +0.49), address 12.0/12 (gap +0.46), id 10.0/10 (gap +0.37), split 7.5/10 (gap +0.36).
 
 ## The documents before de-identification, every value in clear
 
@@ -278,9 +278,9 @@ GLiNER2 spans, placeholders ignored, leak scored higher than its twin, by type: 
 | Gliner2GuardRail | 100 | 23 | 0.23 |
 | GLiNER2 spans, raw | 100 | 100 | 1.00 |
 | laya-multilingual | 100 | 47 | 0.42 |
-| GLiNER2 spans, placeholders ignored | 100 | 100 | 1.00 |
 | Laya, placeholder hint | 100 | 27 | 0.35 |
 | Laya (English), two-option choice | 100 | 50 | 0.53 |
+| GLiNER2 spans, placeholders ignored | 100 | 100 | 1.00 |
 
 ## Run
 
@@ -310,7 +310,7 @@ GLiNER2 spans, placeholders ignored, leak scored higher than its twin, by type: 
     "warnings": []
   },
   "gliner2-spans-ph": {
-    "load_and_warmup_s": 9.15516368765384,
+    "load_and_warmup_s": 10.335399337112904,
     "warnings": []
   },
   "laya-en-hint": {
