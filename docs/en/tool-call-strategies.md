@@ -161,7 +161,7 @@ Both channels restore through string replacement, over a text the pipeline never
 
 Two guarantees follow, carried by the `PreservesRecognizableIdentity` tag that `PIIAnonymizationMiddleware` requires. Uniqueness is required, otherwise two entities sharing a token make restoration ambiguous. Findability is required, otherwise the token has no fixed grammar and blends into the prose. Without findability, an invented token cannot be spotted either.
 
-The type checker enforces the constraint through the generic bound. Constructing the middleware re-checks part of it at runtime. The middleware then asks the pipeline for a recognizer and raises `UnrecognizableFactoryError` if there is none, for example with a mask. See [Placeholder factories](placeholder-factories.md) for the tag detail and the full hierarchy.
+The type checker enforces the constraint through the generic bound. Constructing the middleware re-checks it at runtime. The middleware asks the pipeline for a recognizer and raises `UnrecognizableFactoryError` if there is none, for example with a mask. It raises `IrreversibleFactoryError` if the recognizer's tokens can be shared by several values, for example with `redact`. See [Placeholder factories](placeholder-factories.md) for the tag detail and the full hierarchy.
 
 ---
 

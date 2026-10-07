@@ -340,7 +340,8 @@ sequenceDiagram
 
 Le type du middleware exige une factory qui préserve l'identité. À l'exécution, il
 refuse aussi un pipeline dont les jetons n'ont pas de grammaire délimitée, comme un
-masque (`UnrecognizableFactoryError`). Cette grammaire lui permet de
+masque (`UnrecognizableFactoryError`), et une factory dont plusieurs valeurs peuvent
+partager un jeton, comme `redact` (`IrreversibleFactoryError`). Cette grammaire lui permet de
 reconnaître les jetons que le modèle **invente** (`InventedPlaceholderStrategy`).
 Après la restauration, tout jeton qui suit encore la grammaire des placeholders n'a
 pas été émis par le pipeline. Le détail des stratégies d'outil est dans

@@ -43,6 +43,7 @@ The `PIIGhostError` tree, each grouping class above the errors it covers.
         - `PIIRemainingError`
     - `MiddlewareError`
         - `UnrecognizableFactoryError`
+        - `IrreversibleFactoryError`
         - `InventedPlaceholderError`
         - `MissingThreadIdError`
     - `HasherError`
@@ -55,7 +56,7 @@ The `PIIGhostError` tree, each grouping class above the errors it covers.
         - `ConfigFileError`
         - `ConfigValidationError`
 
-Of the thirty-five error classes, twenty-two are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, because it is a grouping class that is also raised on its own.
+Of the thirty-six error classes, twenty-three are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, because it is a grouping class that is also raised on its own.
 
 ## Data models
 
@@ -127,15 +128,16 @@ A guard raises nothing itself. It returns a verdict, and the pipeline turns a fl
 
 ## Integrations
 
-Module: `piighost.integrations`. `MiddlewareError` groups the failures of the integration layer. The first two below come from the shared `TextDeidentifier`, which backs the LangChain middleware, the LlamaIndex query engine, and the Pydantic AI hooks alike. The third belongs to the LangChain middleware alone.
+Module: `piighost.integrations`. `MiddlewareError` groups the failures of the integration layer. The first three below come from the shared `TextDeidentifier`, which backs the LangChain middleware, the LlamaIndex query engine, and the Pydantic AI hooks alike. The fourth belongs to the LangChain middleware alone.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
 | `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | the pipeline exposes no token recognizer, because its placeholder factory has no re-findable grammar |
+| `IrreversibleFactoryError` | `TextDeidentifier.__init__` | several values can share one token of the placeholder factory, such as `<<REDACT>>`, so a restored token would not map to one value |
 | `InventedPlaceholderError` | `TextDeidentifier.deanonymize` and `deanonymize_stream` | restored text still holds a token the pipeline never issued, under the `RAISE` invented-placeholder strategy |
 | `MissingThreadIdError` | the LangChain middleware and the Claude Code hooks, on each turn | the LangGraph config carries no `thread_id`, or the hook event no `session_id` |
 
-The three are covered in [LangChain integration](langchain.md), with the strategies that decide whether the second is raised at all.
+The four are covered in [LangChain integration](langchain.md), with the strategies that decide whether the third is raised at all.
 
 ## Crypto
 

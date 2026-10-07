@@ -12,14 +12,27 @@ the integration boundary, not inside the pipeline.
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any, Generic
 
-from piighost.components.placeholder.tags import IdentityT
+from piighost.components.placeholder.tags import (
+    IdentityT,
+    PreservesRecognizableIdentity,
+)
 from piighost.conversation_memory import MessageRole
-from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
+from piighost.exceptions import (
+    InventedPlaceholderError,
+    IrreversibleFactoryError,
+    UnrecognizableFactoryError,
+)
 from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
+from piighost.models import Detection, Entity, Span
 from piighost.pipeline import AnyThreadPipeline
 
 StringOp = Callable[[str], Awaitable[str]]
 """An async rewrite of one string, anonymizing or restoring it."""
+
+_PROBE = Entity(
+    detections=(Detection(span=Span(0, 5), text="probe", label="PII", confidence=1.0),)
+)
+"""A synthetic entity the recognizer is asked to name, to read the tag of its token."""
 
 
 async def map_strings(value: Any, op: StringOp) -> Any:
@@ -44,7 +57,8 @@ class TextDeidentifier(Generic[IdentityT]):
     delegates detection, token assignment, and replacement to the pipeline, and
     owns only the invented-placeholder policy applied on restore. The pipeline
     must expose a recognizer, so a token the model invented can be found again and
-    refused, checked once here at construction.
+    refused, and its tokens must identify each entity, so a restored token maps to
+    one value. Both are checked once here at construction.
 
     Attributes:
         invented_strategy: How a token the pipeline never issued is handled on
@@ -56,13 +70,30 @@ class TextDeidentifier(Generic[IdentityT]):
         pipeline: AnyThreadPipeline[IdentityT],
         invented_strategy: InventedPlaceholderStrategy = InventedPlaceholderStrategy.RAISE,
     ) -> None:
-        """Store the pipeline and strategy, requiring a recognizable token grammar."""
+        """Store the pipeline and strategy, requiring reversible delimited tokens.
+
+        The IdentityT bound already enforces this for a typed caller. A pipeline
+        built from a config file reaches here untyped, so the recognizer is asked
+        for one token and the tag of that token is checked at runtime.
+        """
         recognizer = pipeline.recognizer
         if recognizer is None:
             raise UnrecognizableFactoryError(
                 "PII de-identification needs a pipeline exposing a delimited token "
                 "recognizer, whose tokens can be found again to detect invented "
                 "ones; got a pipeline with no recognizable grammar."
+            )
+        # Every built-in delimited factory also creates tokens. A recognizer that
+        # only finds them, without create, has no tag to read and is let through.
+        create = getattr(recognizer, "create", None)
+        token = create([_PROBE])[_PROBE] if callable(create) else None
+        if token is not None and not isinstance(token, PreservesRecognizableIdentity):
+            raise IrreversibleFactoryError(
+                f"PII de-identification needs tokens that identify each entity, "
+                f"but {type(recognizer).__name__} can give several values the same "
+                f"token, such as {token}. Restoring would put one value in place of "
+                "every token that shares it. Use LabelCounterPlaceholderFactory or "
+                "LabelHashPlaceholderFactory."
             )
         self._pipeline = pipeline
         self._recognizer = recognizer

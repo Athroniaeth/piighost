@@ -6,12 +6,20 @@ from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
+    AnyPlaceholderFactory,
     LabelCounterPlaceholderFactory,
+    LabelHashPlaceholderFactory,
+    LabelPlaceholderFactory,
     MaskPlaceholderFactory,
     PreservesLabeledIdentityOpaque,
+    RedactPlaceholderFactory,
 )
 from piighost.conversation_memory import InMemoryConversationMemory
-from piighost.exceptions import InventedPlaceholderError, UnrecognizableFactoryError
+from piighost.exceptions import (
+    InventedPlaceholderError,
+    IrreversibleFactoryError,
+    UnrecognizableFactoryError,
+)
 from piighost.integrations._deidentify import TextDeidentifier
 from piighost.integrations.langchain.strategy import InventedPlaceholderStrategy
 from piighost.pipeline import ThreadAnonymizationPipeline
@@ -80,3 +88,39 @@ class TestConstruction:
             # The mask factory has no recognizable grammar, so its tag violates
             # the IdentityT bound on purpose; the point is the runtime refusal.
             TextDeidentifier(pipeline)  # pyrefly: ignore[bad-specialization]
+
+    @pytest.mark.parametrize(
+        "factory", [RedactPlaceholderFactory(), LabelPlaceholderFactory()]
+    )
+    def test_a_factory_that_shares_tokens_is_refused(
+        self, factory: AnyPlaceholderFactory
+    ) -> None:
+        """A delimited factory whose tokens can be shared is refused at runtime.
+
+        Its grammar is recognizable, so only the identity check catches it. A
+        pipeline built from a config file is untyped, so the type bound alone
+        would let a redact factory restore one value into every <<REDACT>>.
+        """
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(factory),
+            InMemoryConversationMemory(),
+        )
+        with pytest.raises(IrreversibleFactoryError):
+            TextDeidentifier(pipeline)  # pyrefly: ignore[bad-specialization]
+
+    @pytest.mark.parametrize(
+        "factory", [LabelCounterPlaceholderFactory(), LabelHashPlaceholderFactory()]
+    )
+    def test_a_reversible_factory_is_accepted(
+        self, factory: AnyPlaceholderFactory
+    ) -> None:
+        """Counter and hash tokens identify each entity, so they pass."""
+        pipeline = ThreadAnonymizationPipeline(
+            ExactMatchDetector({"Emma": "PERSON"}),
+            ExactEntityLinker(),
+            Anonymizer(factory),
+            InMemoryConversationMemory(),
+        )
+        TextDeidentifier(pipeline)  # pyrefly: ignore[bad-specialization]
