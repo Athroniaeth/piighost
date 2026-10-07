@@ -209,9 +209,9 @@ class PIIRemainingError(GuardError):
 class MiddlewareError(PIIGhostError):
     """Base class for errors raised at an integration's text boundary.
 
-    The name predates the Pydantic AI and LlamaIndex integrations. Two of the
-    subclasses, UnrecognizableFactoryError and InventedPlaceholderError, are
-    raised by the TextDeidentifier those integrations share with the LangChain
+    The name predates the Pydantic AI and LlamaIndex integrations. Three of the
+    subclasses, UnrecognizableFactoryError, IrreversibleFactoryError and
+    InventedPlaceholderError, are raised by the TextDeidentifier those integrations share with the LangChain
     middleware, so they reach any caller that de-identifies text through an
     integration. MissingThreadIdError is raised by the LangChain middleware and
     the Claude Code hooks.
@@ -254,6 +254,16 @@ class UnrecognizableFactoryError(MiddlewareError):
     The middleware needs a delimited placeholder factory, whose tokens it can find
     again to detect ones the model invented. A factory without that grammar, such
     as a mask, cannot support it.
+    """
+
+
+class IrreversibleFactoryError(MiddlewareError):
+    """Raised when the middleware is built on a factory whose tokens can be shared.
+
+    Restoring maps each token back to one value, so two values must never share a
+    token. A redact factory gives every value <<REDACT>>, and a label factory
+    gives every person <<PERSON>>. Restoring through them would put one value, a
+    secret included, in place of every token that shares it.
     """
 
 
