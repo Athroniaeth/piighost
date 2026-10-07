@@ -43,7 +43,7 @@ The terms are defined in the [glossary](../glossary.md). The conversation mechan
 
 | Actor | LangChain, Pydantic AI | LlamaIndex | Claude Code |
 |---|---|---|---|
-| The model | placeholders | placeholders (question and indexed documents) | placeholders (request and results of the listed tools) |
+| The model | placeholders | placeholders (question and indexed documents) | placeholders in the results of the listed tools, the request in clear |
 | The tools | the real values (default setting) | not applicable | the real values |
 | The end user | the reply with the real values | the reply with the real values | the reply with placeholders |
 | The indexing service | not applicable | placeholders | not applicable |
@@ -83,7 +83,9 @@ Four settings decide what the tool receives and what the model reads. The choice
 
 **A tool received `<<EMAIL:1>>` instead of the address.** The tool setting is "Output only" or "None". Switch it to "Full" if the tool must act on the real address. See [Let a tool act](../processes/let-a-tool-act.md).
 
-**The result of a Grep search went out in clear in Claude Code.** Grep is not in the list of handled tools (BR-AGT-06). Remove Grep from the session, or have the tool added to the list.
+**The result of an MCP tool went out in clear in Claude Code.** MCP tools are not in the list of handled tools (BR-AGT-06). Deny the tool in the Claude Code permissions, have it added to the list, or use the Anthropic-compatible proxy of `piighost-api`.
+
+**The request typed in Claude Code went out in clear.** Claude Code lets no hook replace the request, nor a file mentioned with `@`. Only the Anthropic-compatible proxy of `piighost-api` masks them.
 
 ## For developers
 
@@ -95,8 +97,8 @@ Four settings decide what the tool receives and what the model reads. The choice
 | BR-AGT-02 | `src/piighost/integrations/_deidentify.py:133-155`, default `RAISE` line 57 |
 | BR-AGT-03 | `src/piighost/integrations/langchain/middleware.py:370` (`_message_role`), `pipeline/thread.py:317-324` |
 | BR-AGT-04 | `middleware.py:220-272` (LangChain), `pydantic_ai/hooks.py:138-154` (Pydantic AI) |
-| BR-AGT-05 | `src/piighost/integrations/claude_code/hooks.py:93-97` |
-| BR-AGT-06 | `src/piighost/integrations/claude_code/hooks.py:20-36` |
+| BR-AGT-05 | `src/piighost/integrations/claude_code/hooks.py:150-155` |
+| BR-AGT-06 | `src/piighost/integrations/claude_code/hooks.py:26-46` |
 | BR-AGT-07 | `middleware.py:206-218`, `_deidentify.py:83-107` |
 
 Related components:
