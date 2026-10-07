@@ -34,10 +34,12 @@ class AnyGuardRail(Protocol):
 
     After the pipeline anonymizes a text, a guard rail scans the output alone and
     returns a GuardVerdict saying whether PII seems to remain. It judges the
-    anonymized text only: the placeholders it carries are clearly synthetic, so a
-    check meant for real PII does not mistake them for it. Deciding what to do
-    with a flagged verdict, such as raising PIIRemainingError, is the caller's
-    job, not the guard's.
+    anonymized text only, placeholders included, and a model can mistake a
+    placeholder such as <<PERSON:1>> for a real value. A guard should therefore
+    not flag on the placeholders alone: DetectorGuardRail drops the detections
+    that hold nothing else, while a guard scoring the whole text cannot tell
+    where its score comes from. Deciding what to do with a flagged verdict, such
+    as raising PIIRemainingError, is the caller's job, not the guard's.
 
     There is no Base template: guards differ by their whole checking mechanism,
     re-running a local detector versus calling an external moderation or LLM

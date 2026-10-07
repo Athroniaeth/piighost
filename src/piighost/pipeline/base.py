@@ -12,6 +12,7 @@ from piighost.components.detector.base import AnyDetector
 from piighost.components.entity_resolver.base import AnyEntityResolver
 from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail, GuardVerdict
+from piighost.components.guard.detector import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.components.overlap_resolver import ConfidenceOverlapResolver
@@ -129,7 +130,9 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
             spans.
         expander: The expander for missed occurrences, or None.
         entity_resolver: The resolver for entity conflicts, or None.
-        guard: The guard re-checking the output, or None.
+        guard: The guard re-checking the output, or None. A DetectorGuardRail
+            built without a recognizer is replaced by a copy finding placeholders
+            with the pipeline's own grammar.
         override: The server override imposed on every detection set, or None.
     """
 
@@ -182,7 +185,7 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
         self.overlap_resolver = overlap_resolver or default_overlap_resolver
         self.expander = expander
         self.entity_resolver = entity_resolver
-        self.guard = guard
+        self.guard = _with_pipeline_grammar(guard, self.recognizer)
         self.observation_redactor = observation_redactor
         self.override = override
         self._tracer = get_tracer()
@@ -201,6 +204,19 @@ class BaseAnonymizationPipeline(Generic[PreservationT]):
                 PIIGhostSecurityWarning,
                 stacklevel=2,
             )
+
+    @property
+    def recognizer(self) -> BaseDelimitedPlaceholderFactory | None:
+        """The grammar of the tokens this pipeline emits, or None if none.
+
+        A delimited factory is its own recognizer, since its tokens carry a
+        grammar that can be found again; a factory without one, such as a mask,
+        has no recognizer.
+        """
+        factory = self.anonymizer.factory
+        if isinstance(factory, BaseDelimitedPlaceholderFactory):
+            return factory
+        return None
 
     def _expand(self, text: str, detections: list[Detection]) -> list[Detection]:
         """Add missed occurrences, or pass the detections through when disabled."""
@@ -410,6 +426,23 @@ class AnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str:
         """Return the text with every known token replaced by its entity value."""
         return self.anonymizer.deanonymize(text, tokens)
+
+
+def _with_pipeline_grammar(
+    guard: AnyGuardRail | None, recognizer: BaseDelimitedPlaceholderFactory | None
+) -> AnyGuardRail | None:
+    """Hand the pipeline's token grammar to a detector guard built without one.
+
+    A DetectorGuardRail drops the detections that hold only placeholders, so it
+    must find the placeholders the pipeline emits, whatever their delimiters. A
+    guard given its own recognizer, any other guard, or a pipeline whose tokens
+    have no grammar, is returned as it is.
+    """
+    if not isinstance(guard, DetectorGuardRail) or recognizer is None:
+        return guard
+    if guard.recognizer is not None:
+        return guard
+    return guard.with_recognizer(recognizer)
 
 
 def _pii_remaining(verdict: GuardVerdict) -> PIIRemainingError:

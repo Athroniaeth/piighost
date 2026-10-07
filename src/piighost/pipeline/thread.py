@@ -12,10 +12,7 @@ from piighost.components.guard.base import AnyGuardRail
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
 from piighost.components.override.base import AnyDetectionOverride
-from piighost.components.placeholder.base import (
-    AnyPlaceholderFactory,
-    BaseDelimitedPlaceholderFactory,
-)
+from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.conversation_memory.base import (
     AnyConversationMemory,
     Forgotten,
@@ -109,19 +106,6 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         # Bumped by every erasure, read across the awaits of a derivation, so a
         # derivation that straddles an erasure declines to memoize its result.
         self._forget_epoch = 0
-
-    @property
-    def recognizer(self) -> BaseDelimitedPlaceholderFactory | None:
-        """The grammar of the tokens this pipeline emits, or None if none.
-
-        A delimited factory is its own recognizer, since its tokens carry a
-        grammar that can be found again; a factory without one, such as a mask,
-        has no recognizer.
-        """
-        factory = self.anonymizer.factory
-        if isinstance(factory, BaseDelimitedPlaceholderFactory):
-            return factory
-        return None
 
     async def anonymize(
         self,
