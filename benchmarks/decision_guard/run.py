@@ -23,10 +23,11 @@ same 200 texts:
 - gliner2-guard: Gliner2GuardRail, the GLiNER2 safety classifier (whether).
 - gliner2-spans: DetectorGuardRail over Gliner2PiiDetector, a span detector
   re-run on the output (where), asked for the six kinds of value the Laya
-  question names.
-- gliner2-spans-ph: the same detector, with every detection that is only a
-  placeholder (fewer than two letters or digits once the placeholders are
-  taken out) dropped. Only a guard that knows where it fired can do this.
+  question names, every detection kept (ignore_placeholders=False).
+- gliner2-spans-ph: the same detector behind DetectorGuardRail as it ships,
+  which drops every detection that is only a placeholder (fewer than two
+  letters or digits once the placeholders are set aside). Only a guard that
+  knows where it fired can do this.
 
 Each call goes through the guard's async check(), one text at a time, after a
 warm-up call, and its wall time is recorded. Scores are written to
@@ -48,7 +49,6 @@ uv run benchmarks/decision_guard/run.py --sources  # the documents before de-ide
 import asyncio
 import json
 import platform
-import re
 import sys
 import time
 import warnings
@@ -60,7 +60,6 @@ sys.path.insert(0, str(HERE.parent.parent / "examples"))
 
 from guard_rail_laya import QUESTION, LayaGuardRail
 
-from piighost.components.detector import AnyDetector
 from piighost.components.detector.ner.gliner2 import Gliner2PiiDetector
 from piighost.components.guard import AnyGuardRail, DetectorGuardRail, GuardVerdict
 from piighost.components.guard.gliner2 import Gliner2GuardRail
@@ -93,32 +92,6 @@ SPAN_LABELS = {
 
 SPAN_FLOOR = 0.1
 """The span detector keeps detections down to this confidence, for the sweep."""
-
-
-PLACEHOLDER = re.compile(r"<<[A-Z_]+:\d+>>")
-
-
-class PlaceholderAwareGuardRail:
-    """Re-run a detector, ignoring what it finds on the placeholders themselves.
-
-    A span detector tags <<PERSON:1>> as a person. Because each detection
-    says where it is, the guard can drop the ones that hold nothing but
-    placeholders and punctuation, and flag on the rest.
-    """
-
-    def __init__(self, detector: AnyDetector) -> None:
-        """Store the detector the guard re-runs on each text."""
-        self.detector = detector
-
-    async def check(self, text: str) -> GuardVerdict:
-        """Flag the text when the detector finds something beyond the placeholders."""
-        found = await self.detector.detect(text)
-        residual = tuple(
-            d
-            for d in found
-            if len(re.sub(r"[\W_]", "", PLACEHOLDER.sub("", d.text))) >= 2
-        )
-        return GuardVerdict(flagged=bool(residual), detections=residual)
 
 
 class MultilingualLayaGuardRail(LayaGuardRail):
@@ -277,10 +250,11 @@ def build(name: str) -> AnyGuardRail:
         return RecordingGliner2GuardRail()
     if name == "gliner2-spans":
         return DetectorGuardRail(
-            Gliner2PiiDetector(labels=SPAN_LABELS, threshold=SPAN_FLOOR)
+            Gliner2PiiDetector(labels=SPAN_LABELS, threshold=SPAN_FLOOR),
+            ignore_placeholders=False,
         )
     if name == "gliner2-spans-ph":
-        return PlaceholderAwareGuardRail(
+        return DetectorGuardRail(
             Gliner2PiiDetector(labels=SPAN_LABELS, threshold=SPAN_FLOOR)
         )
     raise SystemExit(f"unknown guard {name}")
