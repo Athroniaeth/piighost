@@ -43,7 +43,7 @@ Les termes sont définis dans le [glossaire](../glossary.md). Le mécanisme de l
 
 | Acteur | LangChain, Pydantic AI | LlamaIndex | Claude Code |
 |---|---|---|---|
-| Le modèle | des jetons | des jetons (question et documents indexés) | des jetons (demande et résultats d'outils listés) |
+| Le modèle | des jetons | des jetons (question et documents indexés) | des jetons dans les résultats des outils listés, la demande en clair |
 | Les outils | les vraies valeurs (réglage par défaut) | sans objet | les vraies valeurs |
 | L'utilisateur final | la réponse avec les vraies valeurs | la réponse avec les vraies valeurs | la réponse avec des jetons |
 | Le service d'indexation | sans objet | des jetons | sans objet |
@@ -83,7 +83,9 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 **Un outil a reçu `<<EMAIL:1>>` au lieu de l'adresse.** Le réglage d'outil est « Sortie seule » ou « Aucun ». Passez-le à « Complet » si l'outil doit agir sur la vraie adresse. Voir [Laisser un outil agir](../processes/let-a-tool-act.md).
 
-**Le résultat d'une recherche Grep est parti en clair dans Claude Code.** Grep n'est pas dans la liste des outils traités (BR-AGT-06). Retirez Grep de la session, ou faites ajouter l'outil à la liste.
+**Le résultat d'un outil MCP est parti en clair dans Claude Code.** Les outils MCP ne sont pas dans la liste des outils traités (BR-AGT-06). Refusez l'outil dans les permissions de Claude Code, faites-le ajouter à la liste, ou utilisez le proxy compatible Anthropic de `piighost-api`.
+
+**La demande saisie dans Claude Code est partie en clair.** Claude Code ne laisse aucun hook remplacer la demande, ni un fichier mentionné avec `@`. Seul le proxy compatible Anthropic de `piighost-api` les masque.
 
 ## Pour les développeurs
 
@@ -95,8 +97,8 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 | BR-AGT-02 | `src/piighost/integrations/_deidentify.py:133-155`, défaut `RAISE` ligne 57 |
 | BR-AGT-03 | `src/piighost/integrations/langchain/middleware.py:370` (`_message_role`), `pipeline/thread.py:317-324` |
 | BR-AGT-04 | `middleware.py:220-272` (LangChain), `pydantic_ai/hooks.py:138-154` (Pydantic AI) |
-| BR-AGT-05 | `src/piighost/integrations/claude_code/hooks.py:93-97` |
-| BR-AGT-06 | `src/piighost/integrations/claude_code/hooks.py:20-36` |
+| BR-AGT-05 | `src/piighost/integrations/claude_code/hooks.py:150-155` |
+| BR-AGT-06 | `src/piighost/integrations/claude_code/hooks.py:26-46` |
 | BR-AGT-07 | `middleware.py:206-218`, `_deidentify.py:83-107` |
 
 Composants liés :

@@ -47,7 +47,7 @@ A minor release adds components, options and placeholder factories on top of the
 
 | Surface | Why it can still move |
 |---|---|
-| `piighost.integrations.claude_code` | A spike. No Claude Code hook can rewrite the assistant's displayed reply, and that gap is unresolved. De-identification also runs one call per text leaf rather than batched. |
+| `piighost.integrations.claude_code` | A spike. No Claude Code hook can replace the prompt or rewrite the assistant's displayed reply, and those gaps are unresolved. De-identification also runs one call per text leaf rather than batched. |
 | `piighost.integrations.llama_index` | Recent, two components, and the shape of the query-engine wrapper has not yet been settled against real corpora. |
 | `LLMDetector`, `LLMGuardRail` | The prompt and the structured-output schema can be reshaped when a provider changes, because they depend on what that provider accepts. |
 | `ModerationGuardRail` | Bound to a third-party Mistral moderation API whose categories and thresholds are outside this project. |
