@@ -727,9 +727,11 @@ TWIN_LABEL = {
 def twin(row: dict) -> dict:
     """The same leaking text with its leak replaced by a placeholder.
 
-    The pair differs only by the leak, so a guard that reads the leak scores
-    the leaking text above its twin. A guard that reacts to the template, the
-    genre or the placeholders scores them alike.
+    In the pair, the leaked value becomes one more placeholder, as it would
+    had the pipeline caught it, and nothing else changes. A guard that reads
+    the leak scores the leaking text above its twin. A guard that reacts to
+    the template or the genre scores them alike, and one that reacts to
+    placeholders may score the twin higher.
     """
     text, leaked = row["text"], row["leaked_value"]
     if row["leak_subtype"] == "iban_tail":

@@ -1,5 +1,82 @@
 # Decision-guard benchmark, results
 
+## Held out by template
+
+The threshold is chosen on 27 templates, the most leaks caught with at most 5% false alarms there, and applied to the template left out. It sits halfway in the gap the training scores leave open, the last column gives the counts at the low and the high end of that gap. The counts are summed over the 28 templates. Intervals come from a cluster bootstrap over the templates (2,000 resamples, the held-out flags fixed).
+
+| Guard | AUROC (cluster 95 % CI) | Caught, held out | 95 % CI | False alarms, held out | 95 % CI | Thresholds chosen (min, median, max) | Threshold low / high in the gap, caught and false alarms |
+|---|---|---|---|---|---|---|---|
+| Laya (English) | 0.50 (0.44 to 0.56) | 4/100 (4 %) | 0.00 to 0.11 | 7/100 (7 %) | 0.00 to 0.18 | 0.929, 0.936, 0.936 | 4/7 and 4/7 |
+| Laya, placeholder hint | 0.52 (0.44 to 0.60) | 3/100 (3 %) | 0.00 to 0.09 | 3/100 (3 %) | 0.00 to 0.09 | 0.899, 0.901, 0.903 | 4/7 and 3/3 |
+| laya-multilingual | 0.50 (0.44 to 0.56) | 0/100 (0 %) | 0.00 to 0.00 | 0/100 (0 %) | 0.00 to 0.00 | 1.000, 1.000, 1.000 | 0/0 and 0/0 |
+| Gliner2GuardRail | 0.61 (0.56 to 0.66) | 14/100 (14 %) | 0.03 to 0.26 | 6/100 (6 %) | 0.00 to 0.15 | 0.376, 0.473, 0.507 | 15/6 and 14/6 |
+| GLiNER2 spans, raw | 0.84 (0.78 to 0.90) | 60/100 (60 %) | 0.49 to 0.71 | 7/100 (7 %) | 0.00 to 0.18 | 0.972, 0.974, 0.975 | 60/7 and 59/5 |
+| GLiNER2 spans, placeholders ignored | 0.94 (0.90 to 0.98) | 83/100 (83 %) | 0.73 to 0.92 | 7/100 (7 %) | 0.00 to 0.18 | 0.865, 0.895, 0.897 | 83/7 and 82/7 |
+
+Fixed thresholds, with cluster bootstrap intervals (in sample, the thresholds were not chosen on other data):
+
+| Guard | Caught at 0.5 | False alarms at 0.5 | Caught at 0.9 | False alarms at 0.9 |
+|---|---|---|---|---|
+| Laya (English) | 69/100 (0.52 to 0.84) | 60/100 (0.42 to 0.76) | 6/100 (0.00 to 0.15) | 11/100 (0.00 to 0.23) |
+| Laya, placeholder hint | 81/100 (0.68 to 0.93) | 81/100 (0.65 to 0.94) | 4/100 (0.00 to 0.10) | 7/100 (0.00 to 0.18) |
+| laya-multilingual | 81/100 (0.66 to 0.93) | 81/100 (0.67 to 0.94) | 68/100 (0.50 to 0.84) | 73/100 (0.56 to 0.88) |
+| Gliner2GuardRail | 11/100 (0.03 to 0.20) | 3/100 (0.00 to 0.09) | 1/100 (0.00 to 0.03) | 0/100 (0.00 to 0.00) |
+| GLiNER2 spans, raw | 100/100 (1.00 to 1.00) | 100/100 (1.00 to 1.00) | 89/100 (0.79 to 0.96) | 50/100 (0.32 to 0.67) |
+| GLiNER2 spans, placeholders ignored | 97/100 (0.93 to 1.00) | 49/100 (0.32 to 0.67) | 83/100 (0.73 to 0.92) | 3/100 (0.00 to 0.09) |
+
+The same rule across languages, the threshold chosen on one language and applied to the other:
+
+| Guard | Chosen on | Applied to | Threshold (mid) | Caught | False alarms | Low end: threshold, caught, false alarms | High end: threshold, caught, false alarms |
+|---|---|---|---|---|---|---|---|
+| Laya (English) | FR | EN | 0.929 | 4/50 | 7/50 | 0.928, 4, 7 | 0.931, 4, 7 |
+| Laya (English) | EN | FR | 0.955 | 0/50 | 0/50 | 0.955, 0, 0 | inf, 0, 0 |
+| Laya, placeholder hint | FR | EN | 0.914 | 0/50 | 0/50 | 0.911, 0, 0 | 0.918, 0, 0 |
+| Laya, placeholder hint | EN | FR | 0.901 | 3/50 | 3/50 | 0.901, 3, 3 | 0.901, 3, 3 |
+| laya-multilingual | FR | EN | 1.000 | 0/50 | 0/50 | 1.000, 0, 0 | inf, 0, 0 |
+| laya-multilingual | EN | FR | 1.000 | 0/50 | 0/50 | 1.000, 0, 0 | inf, 0, 0 |
+| Gliner2GuardRail | FR | EN | 0.473 | 7/50 | 3/50 | 0.473, 7, 3 | 0.474, 7, 3 |
+| Gliner2GuardRail | EN | FR | 0.740 | 4/50 | 0/50 | 0.719, 4, 0 | 0.761, 4, 0 |
+| GLiNER2 spans, raw | FR | EN | 0.972 | 30/50 | 3/50 | 0.972, 30, 3 | 0.973, 30, 3 |
+| GLiNER2 spans, raw | EN | FR | 0.978 | 29/50 | 1/50 | 0.978, 29, 1 | 0.978, 29, 1 |
+| GLiNER2 spans, placeholders ignored | FR | EN | 0.862 | 43/50 | 9/50 | 0.813, 44, 11 | 0.910, 39, 3 |
+| GLiNER2 spans, placeholders ignored | EN | FR | 0.978 | 27/50 | 0/50 | 0.978, 27, 0 | 0.978, 27, 0 |
+
+## Paired tests
+
+Exact two-sided sign test, ties dropped. Wilcoxon signed-rank (normal approximation) as a check. The template-level sign test compares the mean gap of each of the 28 templates, so it does not assume that texts of one template are independent.
+
+| Guard | Pair | Pairs | First higher / tie / second higher | Sign test p | Wilcoxon p | Templates, first higher / second higher | Template sign test p |
+|---|---|---|---|---|---|---|---|
+| Laya (English) | leak vs clean twin | 100 | 54 / 0 / 46 | 0.48 | 0.3 | 17 / 11 | 0.34 |
+| Laya (English) | de-identified clean vs original | 100 | 85 / 0 / 15 | 4.8e-13 | 1.6e-13 | 24 / 4 | 0.00018 |
+| Laya, placeholder hint | leak vs clean twin | 100 | 40 / 0 / 60 | 0.057 | 0.085 | 10 / 18 | 0.18 |
+| Laya, placeholder hint | de-identified clean vs original | 100 | 100 / 0 / 0 | 1.6e-30 | 3.9e-18 | 28 / 0 | 7.5e-09 |
+| laya-multilingual | leak vs clean twin | 100 | 39 / 19 / 42 | 0.82 | 0.4 | 7 / 17 | 0.064 |
+| laya-multilingual | de-identified clean vs original | 100 | 94 / 1 / 5 | 2.4e-22 | 1.5e-17 | 28 / 0 | 7.5e-09 |
+| Gliner2GuardRail | leak vs clean twin | 100 | 72 / 0 / 28 | 1.3e-05 | 0.00095 | 23 / 5 | 0.00091 |
+| Gliner2GuardRail | de-identified clean vs original | 100 | 22 / 0 / 78 | 1.6e-08 | 1.5e-08 | 5 / 23 | 0.00091 |
+| GLiNER2 spans, raw | leak vs clean twin | 100 | 87 / 0 / 13 | 1.3e-14 | 9.7e-15 | 28 / 0 | 7.5e-09 |
+| GLiNER2 spans, raw | de-identified clean vs original | 100 | 0 / 0 / 100 | 1.6e-30 | 3.9e-18 | 0 / 28 | 7.5e-09 |
+| GLiNER2 spans, placeholders ignored | leak vs clean twin | 100 | 97 / 1 / 2 | 1.6e-26 | 7.3e-18 | 28 / 0 | 7.5e-09 |
+| GLiNER2 spans, placeholders ignored | de-identified clean vs original | 100 | 0 / 0 / 100 | 1.6e-30 | 3.9e-18 | 0 / 28 | 7.5e-09 |
+
+## Adding Laya to the span detector, or lowering its threshold
+
+Each rule, then the span detector alone at the threshold that catches at least as many leaks with the fewest false alarms (in sample).
+
+| Rule | Caught | False alarms | Spans alone, threshold | Caught | False alarms |
+|---|---|---|---|---|---|
+| spans >= 0.9 OR Laya >= 0.5 | 95/100 | 60/100 | 0.645 | 95/100 | 32/100 |
+| spans >= 0.9 OR Laya >= 0.6 | 94/100 | 57/100 | 0.697 | 94/100 | 28/100 |
+| spans >= 0.9 OR Laya >= 0.7 | 92/100 | 45/100 | 0.762 | 92/100 | 20/100 |
+| spans >= 0.9 OR Laya >= 0.8 | 89/100 | 32/100 | 0.807 | 89/100 | 14/100 |
+| spans >= 0.9 OR Laya >= 0.9 | 83/100 | 14/100 | 0.902 | 83/100 | 3/100 |
+| spans >= 0.5 AND Laya >= 0.5 | 66/100 | 29/100 | 0.948 | 66/100 | 3/100 |
+| spans >= 0.6 AND Laya >= 0.6 | 58/100 | 20/100 | 0.962 | 58/100 | 3/100 |
+| spans >= 0.7 AND Laya >= 0.7 | 43/100 | 11/100 | 0.987 | 43/100 | 0/100 |
+| spans >= 0.8 AND Laya >= 0.8 | 19/100 | 0/100 | 0.998 | 19/100 | 0/100 |
+| spans >= 0.9 AND Laya >= 0.9 | 6/100 | 0/100 | 1.000 | 6/100 | 0/100 |
+
 ## At a glance
 
 | Guard | AUROC | AUROC FR | AUROC EN | Caught at 0.5 | False alarms at 0.5 | Median latency |
