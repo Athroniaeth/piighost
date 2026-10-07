@@ -47,7 +47,7 @@ Une version mineure ajoute des composants, des options et des factories de place
 
 | Surface | Pourquoi ça peut encore bouger |
 |---|---|
-| `piighost.integrations.claude_code` | Un prototype. Aucun hook Claude Code ne peut réécrire la réponse affichée par l'assistant, et ce manque n'est pas résolu. La dé-identification fait aussi un appel par feuille de texte au lieu de les grouper. |
+| `piighost.integrations.claude_code` | Un prototype. Aucun hook Claude Code ne peut remplacer le prompt ni réécrire la réponse affichée par l'assistant, et ces manques ne sont pas résolus. La dé-identification fait aussi un appel par feuille de texte au lieu de les grouper. |
 | `piighost.integrations.llama_index` | Récente, deux composants, et la forme de l'enveloppe du moteur de requête n'a pas encore été éprouvée sur de vrais corpus. |
 | `LLMDetector`, `LLMGuardRail` | Le prompt et le schéma de sortie structurée peuvent être remaniés quand un fournisseur change, parce qu'ils dépendent de ce que ce fournisseur accepte. |
 | `ModerationGuardRail` | Lié à une API de modération Mistral tierce dont les catégories et les seuils échappent à ce projet. |

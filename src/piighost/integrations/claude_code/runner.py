@@ -5,9 +5,15 @@ PIIGhostClient keyed by the session id, and writes the mutation as JSON on stdou
 Wire it into a Claude Code settings.json, see settings.template.json. The server
 base URL comes from PIIGHOST_API_URL, defaulting to a local piighost-api.
 
-A hook that cannot de-identify fails closed: the prompt or the tool call is
-blocked and a tool output is withheld, so an unreachable server never lets text
-through in clear. PIIGHOST_HOOK_FAIL_OPEN=1 lets the text through instead.
+A hook that cannot de-identify fails closed. The prompt or the tool call is
+blocked, and a tool output has its text replaced by a notice in the tool's own
+shape, the only replacement Claude Code accepts for a built-in tool. The hooks
+never call the server for a tool they do not list, so its output passes through,
+server up or down. Should such an output still fail, for want of a session id, a
+built-in tool's output has no replacement Claude Code would accept, so the hook
+exits with the blocking code and Claude reads the reason next to the output,
+which still goes through in clear. PIIGHOST_HOOK_FAIL_OPEN=1 lets the text
+through instead.
 """
 
 import asyncio
@@ -16,7 +22,11 @@ import os
 import sys
 from typing import Any
 
-from piighost.integrations.claude_code.hooks import _output, handle_hook
+from piighost.integrations.claude_code.hooks import (
+    _output,
+    handle_hook,
+    withhold_tool_output,
+)
 from piighost.integrations.client import PIIGhostClient
 
 _DEFAULT_API_URL = "http://localhost:8000"
@@ -29,7 +39,8 @@ _BLOCKING_EXIT_CODE = 2
 
 Any other non-zero code is a non-blocking error after which the text goes on.
 A tool output cannot be blocked this way, since the tool already ran, so it is
-replaced instead.
+replaced instead. On a PostToolUse event this code only shows stderr to Claude
+next to the original output.
 """
 
 
@@ -68,9 +79,11 @@ def _log(event: dict[str, Any], output: dict[str, Any] | None) -> None:
 def _fail(event: dict[str, Any], error: Exception) -> dict[str, Any] | None:
     """Fail closed on a hook that could not de-identify, or open if asked to.
 
-    A tool output is replaced by a notice. A prompt or a tool call is blocked by
-    exiting with the blocking code, the reason on stderr. Only the error is named,
-    never the text.
+    A tool output has its text replaced by a notice, in the tool's own shape. A
+    prompt or a tool call is blocked by exiting with the blocking code, the reason
+    on stderr. A tool output with no replacement Claude Code would accept exits
+    with that code too, which only warns Claude, since the output goes on. Only
+    the error is named, never the text.
     """
     name = event.get("hook_event_name")
     reason = f"piighost could not de-identify this {name} event ({type(error).__name__}: {error})"
@@ -80,9 +93,16 @@ def _fail(event: dict[str, Any], error: Exception) -> dict[str, Any] | None:
         )
         return None
     if name == "PostToolUse":
-        return _output(
-            name, {"updatedToolOutput": f"[{reason}, so the tool output is withheld.]"}
+        notice = f"[{reason}, so the tool output is withheld.]"
+        withheld = asyncio.run(withhold_tool_output(event, notice))
+        if withheld is not None:
+            return _output(name, {"updatedToolOutput": withheld})
+        print(
+            f"{reason}. Claude Code accepts no replacement for this tool's output, "
+            "so it was not withheld. Do not repeat its values.",
+            file=sys.stderr,
         )
+        sys.exit(_BLOCKING_EXIT_CODE)
     print(f"{reason}, so it is blocked.", file=sys.stderr)
     sys.exit(_BLOCKING_EXIT_CODE)
 
