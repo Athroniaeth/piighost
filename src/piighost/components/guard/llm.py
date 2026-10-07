@@ -55,6 +55,9 @@ class LLMGuardRail(DetectorGuardRail):
     prompt is given, the default prompt's placeholder examples follow prefix and
     suffix, so they match the delimiters the pipeline emits.
 
+    Like any DetectorGuardRail, it then drops the detections that hold only
+    placeholders, a safety net for a model that flags one despite the prompt.
+
     An output the model returns but the guard cannot read raises
     UnreadableOutputError rather than report the text clean, unless fail_open is
     set, as for LLMDetector.

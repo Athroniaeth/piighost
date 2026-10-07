@@ -37,6 +37,23 @@ class TestGuardConfig:
         assert isinstance(guard, DetectorGuardRail)
         assert isinstance(guard.detector, RegexDetector)
 
+    @pytest.mark.parametrize("ignore", [True, False])
+    def test_detector_guard_forwards_the_placeholder_switch(self, ignore: bool) -> None:
+        """ignore_placeholders reaches the built guard, on by default."""
+        config = DetectorGuardRailConfig(
+            type="detector",
+            detector=_REGEX,
+            ignore_placeholders=ignore,
+        )
+        guard = config.build()
+        assert isinstance(guard, DetectorGuardRail)
+        assert guard.ignore_placeholders is ignore
+
+    def test_detector_guard_ignores_placeholders_by_default(self) -> None:
+        """A detector guard config with no switch drops placeholder detections."""
+        config = DetectorGuardRailConfig(type="detector", detector=_REGEX)
+        assert config.ignore_placeholders is True
+
     def test_moderation_guard_builds_with_env_credentials(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

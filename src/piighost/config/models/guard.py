@@ -33,17 +33,30 @@ _DEFAULT_GLINER2_THRESHOLD = 0.5
 
 
 class DetectorGuardRailConfig(_ComponentConfig):
-    """Config for the detector guard, re-running a detector on the output."""
+    """Config for the detector guard, re-running a detector on the output.
+
+    The guard finds placeholders with the grammar of the pipeline it joins, so
+    the config names no delimiters.
+
+    Attributes:
+        detector: The detector re-run on the anonymized output.
+        ignore_placeholders: Whether detections holding only placeholders are
+            dropped before deciding.
+    """
 
     type: Literal["detector"]
     detector: DetectorConfig
+    ignore_placeholders: bool = True
 
     def build(self) -> AnyGuardRail:
         """Build a DetectorGuardRail over the built detector."""
         from piighost.components.guard.detector import DetectorGuardRail
 
         detector = self.detector.build()
-        return DetectorGuardRail(detector)
+        return DetectorGuardRail(
+            detector,
+            ignore_placeholders=self.ignore_placeholders,
+        )
 
 
 class LLMGuardRailConfig(_ComponentConfig):
