@@ -162,7 +162,7 @@ A guard rail re-checks the de-identified output for residual confidential data. 
 --8<-- "snippets/ports.py:guard"
 ```
 
-`check` sees only the de-identified text. The placeholders in that text are clearly synthetic. A check that looks for real values therefore does not mistake them for real values.
+`check` sees only the de-identified text, placeholders included. A model can read `<<PERSON:1>>`{ .placeholder } as a person, so a guard should not flag on the placeholders alone. `DetectorGuardRail` drops the detections that hold nothing else.
 
 ???+ example "Flag a residual @ sign"
 
@@ -182,7 +182,7 @@ The built-in `DetectorGuardRail` re-runs a detector and reports the residual det
 
 A decision model does not generate text. It answers a question whose possible answers are fixed in advance, here yes or no. A guard rail does the same on the de-identified text. [`examples/guard_rail_laya.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_laya.py) puts [Laya](https://huggingface.co/convaiinnovations/laya), an Apache 2.0 counterpart of Jev, behind the port in a dozen lines, running locally. It asks whether personal data is left and flags the text above a probability.
 
-On 24 de-identified texts, half of them leaking, it caught 11 leaks out of 12 and flagged 5 clean texts out of 12 at a 0.5 threshold. `Gliner2GuardRail` caught 4 leaks, with no false alarm. Placeholders raise its score, so it mostly flags a text dense in tokens by mistake. Its English checkpoint reads French well enough, `laya-multilingual` does not.
+The [decision guard benchmark](https://github.com/Athroniaeth/piighost/tree/master/benchmarks/decision_guard) measured this guard on 200 de-identified texts, half of them leaking one value. Laya does not separate the leaking texts from the clean ones. Its AUROC is 0.50, the chance level. AUROC is the probability that a leaking text scores above a clean one. At a 0.5 threshold, Laya catches 69 leaks out of 100 and flags 60 clean texts out of 100. Placeholders raise its score more than real personal data does. A detector that says where each value is, and ignores what it finds on placeholders, does far better. With its threshold chosen away from the texts it is tested on, it catches 83 leaks out of 100 for 7 false alarms, see [`DetectorGuardRail`](reference/guard-rails.md). The example therefore shows how to plug a decision model into the port, not a guard to deploy.
 
 ## Full composition
 

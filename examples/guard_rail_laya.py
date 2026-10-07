@@ -9,19 +9,21 @@
 
 Laya (Convai Innovations, Apache 2.0) is an open counterpart of Jev: instead
 of generating text, it answers a typed question, here a yes or no, with a
-calibrated probability, in one forward pass. That is exactly what a guard rail
-needs, a verdict on the de-identified text before it leaves, and nothing leaves
-the machine to get it.
+calibrated probability, in one forward pass. A guard rail asks the same kind
+of question of the de-identified text before it leaves, and nothing leaves the
+machine to get the answer.
 
 piighost's guard stage is a port, AnyGuardRail, with a single method. Laya
 plugs into it in a dozen lines, below, without any change to the library.
 
-Laya does not say where the value is, so it cannot replace a detector: it is
-the second opinion that refuses an output the detectors let through. On a set
-of 24 de-identified texts, half of them leaking, it caught 11 leaks out of 12
-and flagged 5 clean texts out of 12 at the default threshold. Its English
-checkpoint read French well enough; laya-multilingual answered yes to almost
-everything.
+This shows how a decision model plugs into the port, not a guard to deploy.
+On 200 de-identified texts, half of them leaking, Laya does not separate the
+leaking texts from the clean ones. Its AUROC is 0.50, chance level, and at the
+default threshold it catches 69 leaks out of 100 and flags 60 clean texts out
+of 100. The placeholders raise its score more than real personal data does. A
+span detector that ignores what it finds on placeholders, DetectorGuardRail
+over Gliner2PiiDetector, does far better. The figures are in
+https://github.com/Athroniaeth/piighost/tree/master/benchmarks/decision_guard
 
 The checkpoint downloads on first use. On CPU, a check takes 0.2 to 0.7 s.
 Run with:

@@ -15,8 +15,9 @@ guard, a complementary regex detector, catches structured PII such as an email
 or a phone by shape, which the narrow primary detector never looked for.
 
 When the guard flags residual PII, the pipeline raises PIIRemainingError naming
-the leaked labels. The placeholders the pipeline emitted are not PII-shaped, so
-the guard leaves them alone. Run with:
+the leaked labels. A regex for real PII shapes does not match the placeholders
+the pipeline emitted, and the guard drops any detection holding only
+placeholders anyway. Run with:
 uv run examples/guard_rail.py
 """
 

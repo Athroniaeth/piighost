@@ -357,9 +357,9 @@ Même avec tout ce qui précède, une valeur peut passer entre les mailles, par 
 que le NER a raté. Le garde-fou (`AnyGuardRail`) re-analyse le texte dé-identifié et lève
 `PIIRemainingError` s'il y trouve encore une valeur en clair.
 
-Le garde-fou n'examine que la sortie dé-identifiée. Un contrôle prévu pour de vraies
-valeurs ne prend pas les placeholders de cette sortie pour de vraies valeurs, parce
-qu'ils sont clairement synthétiques. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
+Le garde-fou n'examine que la sortie dé-identifiée, placeholders compris. Un modèle peut
+lire `<<PERSON:1>>` comme une personne, donc `DetectorGuardRail` écarte les détections qui
+ne contiennent que des placeholders. Le garde-fou est optionnel mais c'est la dernière barrière avant la sortie.
 `DetectorGuardRail` rejoue un détecteur, `Gliner2GuardRail` classe la sortie avec un
 modèle GLiNER2 local, `LLMGuardRail` interroge un LLM et `ModerationGuardRail` l'API de
 modération de Mistral.
