@@ -76,8 +76,10 @@ piighost-api serve --config catalog:piighost/support-en
 | `PIIGHOST_ALLOW_ANONYMOUS` | désactivé | `1`, `true`, `yes` ou `on` laisse le serveur démarrer sans clé, chaque route est alors ouverte. S'applique aussi quand les clés échouent à se charger |
 | `PIIGHOST_MAX_BODY_BYTES` | `1000000` | Plus grand corps de requête accepté, au-delà `413` |
 | `PIIGHOST_RATE_LIMIT` | désactivé | `<unit>:<count>` par client, `unit` parmi `second`, `minute`, `hour`, `day`, comme `minute:300`. Une valeur mal formée arrête le serveur au démarrage |
+| `PIIGHOST_ONE_WAY` | désactivé | `1`, `true`, `yes` ou `on` accepte une factory de placeholders qui ne se restaure pas, comme `redact`. Les routes de restauration ne sont alors pas servies, les deux proxys, `/v1/deanonymize` et `/v1/threads/{id}/tokens`. Sans elle, une telle factory arrête le serveur au démarrage |
 | `PIIGHOST_OPENAI_UPSTREAM` | `https://api.openai.com/v1` | Upstream de `/openai/v1` quand une requête n'en nomme aucun |
 | `PIIGHOST_ANTHROPIC_UPSTREAM` | `https://api.anthropic.com/v1` | Upstream de `/anthropic/v1` quand une requête n'en nomme aucun |
+| `PIIGHOST_OPENAI_ANONYMIZE_SYSTEM` | `false` | `1`, `true`, `yes` ou `on` dé-identifie aussi les messages `system` et `developer` |
 | `PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM` | `false` | `1`, `true`, `yes` ou `on` dé-identifie aussi le prompt système |
 | `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` | vide, pas de note | `default` ajoute la note intégrée sur les placeholders. Tout autre texte sert lui-même de note |
 | `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT` | `system` | `user` place la note dans le premier message utilisateur, toute autre valeur dans le prompt système |

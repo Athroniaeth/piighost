@@ -56,6 +56,18 @@ Each request runs in a fresh thread, forgotten as soon as the reply is restored.
 
 A pinned thread stays in the server memory until `DELETE /v1/threads/user-42` erases it.
 
+## Call the proxy from your backend only
+
+The proxy trusts its caller. It checks no server key, so it serves anyone who reaches `/openai/v1`. The caller picks the provider with `X-PIIGhost-Upstream`, and the server sends the request to whatever URL that header names. The caller also picks the thread with `X-PIIGhost-Thread-Id`, and the reply comes back restored with the values of that thread.
+
+The proxy is therefore meant to be called by your backend, never by your end users or from the Internet.
+
+- Your backend authenticates its users.
+- Your backend maps each account to its thread ids, such as `user-42` for account 42, and sets `X-PIIGhost-Thread-Id` itself. A user never sends a thread id, so one user can never name the thread of another.
+- The server listens only where your backend reaches it. `piighost-api serve` listens on `127.0.0.1` by default. In Docker, publish the port on a private network only.
+
+The `API_KEY_` keys still protect the other routes of the server, `/v1/deanonymize` and the thread routes among them.
+
 ## Stream the reply
 
 `stream=True` works unchanged. The proxy restores each placeholder as the chunks arrive, even when the provider splits `<<PERSON:1>>`{ .placeholder } across two chunks.
@@ -64,7 +76,24 @@ A pinned thread stays in the server memory until `DELETE /v1/threads/user-42` er
 --8<-- "snippets/server_proxy.py:stream"
 ```
 
+## Keep the system prompt in clear
+
+The `system` and `developer` messages are your own prompt, so the proxy relays them as written and de-identifies the other messages. "You are the support assistant of an online shop" reaches the provider as that sentence, not as "You are the `<<PERSON:1>>`{ .placeholder } of an `<<ORGANIZATION:1>>`{ .placeholder }".
+
+If your system prompt holds values to hide, de-identify it too:
+
+```bash
+export PIIGHOST_OPENAI_ANONYMIZE_SYSTEM=true
+```
+
+## Use a placeholder that can be restored
+
+The proxy restores each placeholder to one value, so each value needs a placeholder of its own. The default factory `label_counter` gives `<<PERSON:1>>`{ .placeholder } and `<<PERSON:2>>`{ .placeholder }, and `label_hash` works too. The `redact` factory gives every value the same `<<REDACT>>`{ .placeholder }. A restored reply would then carry one value, a database URL and its password for example, in place of every `<<REDACT>>`{ .placeholder }, in the text and in the tool arguments.
+
+The server therefore refuses to start when the `[anonymizer.placeholder]` type of its configuration is `redact`, `label` or `mask`, and its error names the factory. If you only need one-way redaction, `PIIGHOST_ONE_WAY=true` starts it without the proxies, `/v1/deanonymize` and `/v1/threads/{id}/tokens`. [Placeholder factories](../placeholder-factories.md) compares the factories.
+
 !!! warning "Limits"
+    - By default, the `system` and `developer` messages stay in clear. A value written in them therefore reaches the provider in clear.
     - A streamed reply restores `delta.content` only. Tool-call arguments streamed in `delta.tool_calls` keep their placeholders, while a reply that is not streamed restores them.
     - A streamed request is answered with a success status before the provider answers, so a provider error reaches the client inside the stream body rather than as a status.
     - Images and audio are relayed untouched, with no de-identification.
