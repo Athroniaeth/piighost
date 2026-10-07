@@ -213,6 +213,7 @@ Only `Authorization`, `Content-Type`, `x-api-key`, `anthropic-version` and `anth
 
 - A successful JSON reply is restored. Any other reply is relayed as is, with the upstream status. The upstream's response headers are not relayed.
 - Query parameters reach the upstream on the routes relayed as is only.
+- The `system` and `developer` messages are relayed in clear, unless `PIIGHOST_OPENAI_ANONYMIZE_SYSTEM` is set.
 - A streamed `chat/completions` request is answered `201` before the upstream answers, so an upstream error arrives inside the stream body.
 - The upstream timeout is 60 seconds.
 

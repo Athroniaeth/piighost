@@ -213,6 +213,7 @@ Seuls `Authorization`, `Content-Type`, `x-api-key`, `anthropic-version` et `anth
 
 - Une réponse JSON réussie est restaurée. Toute autre réponse est relayée telle quelle, avec le statut de l'upstream. Les en-têtes de réponse de l'upstream ne sont pas relayés.
 - Les paramètres de requête n'atteignent l'upstream que sur les routes relayées telles quelles.
+- Les messages `system` et `developer` sont relayés en clair, sauf si `PIIGHOST_OPENAI_ANONYMIZE_SYSTEM` est posée.
 - Une requête `chat/completions` streamée reçoit `201` avant que l'upstream ne réponde, donc une erreur de l'upstream arrive dans le corps du stream.
 - Le délai d'attente de l'upstream est de 60 secondes.
 
