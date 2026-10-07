@@ -1,0 +1,35 @@
+{
+  "laya-en": {
+    "load_and_warmup_s": 5.081877302378416,
+    "warnings": [
+      "laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated."
+    ]
+  },
+  "machine": {
+    "python": "3.13.15",
+    "platform": "Linux-6.14.0-37-generic-x86_64-with-glibc2.41",
+    "processor": "x86_64"
+  },
+  "gliner2-guard": {
+    "load_and_warmup_s": 9.260362468659878,
+    "warnings": []
+  },
+  "gliner2-spans": {
+    "load_and_warmup_s": 10.029534913599491,
+    "warnings": []
+  },
+  "laya-multi": {
+    "load_and_warmup_s": 9.2636534338817,
+    "warnings": []
+  },
+  "gliner2-spans-ph": {
+    "load_and_warmup_s": 9.15516368765384,
+    "warnings": []
+  },
+  "laya-en-hint": {
+    "load_and_warmup_s": 1.8806332033127546,
+    "warnings": [
+      "laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated."
+    ]
+  }
+}
