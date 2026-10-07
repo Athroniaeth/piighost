@@ -56,6 +56,18 @@ Chaque requête s'exécute dans une conversation neuve, oubliée dès que la ré
 
 Une conversation fixée reste dans la mémoire du serveur jusqu'à ce que `DELETE /v1/threads/user-42` l'efface.
 
+## N'appeler le proxy que depuis votre backend
+
+Le proxy fait confiance à son appelant. Il ne vérifie aucune clé de serveur, donc il sert quiconque atteint `/openai/v1`. L'appelant choisit le fournisseur avec `X-PIIGhost-Upstream`, et le serveur envoie la requête à l'URL que nomme cet en-tête, quelle qu'elle soit. L'appelant choisit aussi la conversation avec `X-PIIGhost-Thread-Id`, et la réponse revient restaurée avec les valeurs de cette conversation.
+
+Le proxy est donc fait pour être appelé par votre backend, jamais par vos utilisateurs finaux ni depuis Internet.
+
+- Votre backend authentifie ses utilisateurs.
+- Votre backend associe chaque compte à ses identifiants de conversation, comme `user-42` pour le compte 42, et pose lui-même `X-PIIGhost-Thread-Id`. Un utilisateur n'envoie jamais d'identifiant de conversation, donc il ne peut jamais nommer la conversation d'un autre.
+- Le serveur n'écoute que là où votre backend l'atteint. `piighost-api serve` écoute sur `127.0.0.1` par défaut. Avec Docker, publiez le port sur un réseau privé seulement.
+
+Les clés `API_KEY_` protègent toujours les autres routes du serveur, dont `/v1/deanonymize` et les routes de conversation.
+
 ## Streamer la réponse
 
 `stream=True` fonctionne sans changement. Le proxy restaure chaque placeholder à l'arrivée des fragments, même quand le fournisseur coupe `<<PERSON:1>>`{ .placeholder } sur deux fragments.
@@ -64,7 +76,24 @@ Une conversation fixée reste dans la mémoire du serveur jusqu'à ce que `DELET
 --8<-- "snippets/server_proxy.py:stream"
 ```
 
+## Garder le prompt système en clair
+
+Les messages `system` et `developer` sont votre propre prompt, donc le proxy les relaie tels quels et dé-identifie les autres messages. "You are the support assistant of an online shop" atteint le fournisseur sous cette forme, et non comme "You are the `<<PERSON:1>>`{ .placeholder } of an `<<ORGANIZATION:1>>`{ .placeholder }".
+
+Si votre prompt système contient des valeurs à cacher, dé-identifiez-le aussi :
+
+```bash
+export PIIGHOST_OPENAI_ANONYMIZE_SYSTEM=true
+```
+
+## Choisir un placeholder qui se restaure
+
+Le proxy restaure chaque placeholder en une seule valeur, donc chaque valeur a besoin de son propre placeholder. La factory par défaut `label_counter` donne `<<PERSON:1>>`{ .placeholder } et `<<PERSON:2>>`{ .placeholder }, et `label_hash` convient aussi. La factory `redact` donne à chaque valeur le même `<<REDACT>>`{ .placeholder }. Une réponse restaurée porterait alors une seule valeur, par exemple une URL de base de données et son mot de passe, à la place de chaque `<<REDACT>>`{ .placeholder }, dans le texte comme dans les arguments d'outil.
+
+Le serveur refuse donc de démarrer quand le type `[anonymizer.placeholder]` de sa configuration vaut `redact`, `label` ou `mask`, et son erreur nomme la factory. Si vous n'avez besoin que d'un caviardage à sens unique, `PIIGHOST_ONE_WAY=true` le démarre sans les proxies, `/v1/deanonymize` et `/v1/threads/{id}/tokens`. [Fabriques de placeholders](../placeholder-factories.md) compare les factories.
+
 !!! warning "Limites"
+    - Par défaut, les messages `system` et `developer` restent en clair. Une valeur écrite dedans atteint donc le fournisseur en clair.
     - Une réponse streamée ne restaure que `delta.content`. Les arguments d'appel d'outil streamés dans `delta.tool_calls` gardent leurs placeholders, alors qu'une réponse non streamée les restaure.
     - Une requête streamée reçoit un statut de succès avant que le fournisseur ne réponde, donc une erreur du fournisseur arrive au client dans le corps du stream plutôt que comme statut.
     - Les images et l'audio sont relayés intacts, sans dé-identification.

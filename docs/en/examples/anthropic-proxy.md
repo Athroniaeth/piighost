@@ -49,6 +49,18 @@ export PIIGHOST_ANTHROPIC_UPSTREAM="https://gateway.internal/v1"
 
 If you want it for one request only, name the gateway's base URL in the `X-PIIGhost-Upstream` header. Each request runs in a fresh thread, forgotten once the reply is restored. This suits Claude Code, because it resends the whole history every turn. Pin a thread with `X-PIIGhost-Thread-Id` only if you manage its lifetime yourself.
 
+## Call the proxy from your backend only
+
+The proxy trusts its caller. It checks no server key, so it serves anyone who reaches `/anthropic/v1`. The caller picks the upstream with `X-PIIGhost-Upstream`, and the server sends the request to whatever URL that header names. The caller also picks the thread with `X-PIIGhost-Thread-Id`, and the reply comes back restored with the values of that thread.
+
+The proxy is therefore meant to be called by your backend, never by your end users or from the Internet. For Claude Code on your own machine, that caller is you, so keep the server on `127.0.0.1`, where `piighost-api serve` listens by default.
+
+- Your backend authenticates its users.
+- Your backend maps each account to its thread ids and sets `X-PIIGhost-Thread-Id` itself. A user never sends a thread id, so one user can never name the thread of another.
+- The server listens only where your backend reaches it. In Docker, publish the port on a private network only.
+
+The `API_KEY_` keys still protect the other routes of the server, `/v1/deanonymize` and the thread routes among them.
+
 ## Guide the model with a note
 
 A short note explains the placeholders to the model and asks it to reuse `<<PERSON:1>>`{ .placeholder } verbatim, never guessing the spelling of a hidden value. It is off by default. To prepend the built-in note to the first user message, set:
@@ -60,15 +72,21 @@ export PIIGHOST_ANTHROPIC_NOTE_PLACEMENT=user
 
 `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` also takes your own text instead of `default`. Without `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT=user`, the note is prepended to the system prompt instead.
 
-## De-identify the system prompt too
+## Keep the system prompt in clear
 
-The system prompt is relayed untouched by default, and only the messages and the tool contents are de-identified. Some accounts, subscription or enterprise ones among them, validate the client from its system prompt and reject a request whose system prompt was modified. The same check rejects a note placed in the system prompt, which is why the note above goes to the first user message.
+The system prompt is your own text, so the proxy relays the `system` field untouched by default and de-identifies only the messages and the tool contents. Some accounts, subscription or enterprise ones among them, also validate the client from its system prompt and reject a request whose system prompt was modified. The same check rejects a note placed in the system prompt, which is why the note above goes to the first user message.
 
 If your account tolerates a modified system prompt, de-identify it as well:
 
 ```bash
 export PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM=true
 ```
+
+## Use a placeholder that can be restored
+
+The proxy restores each placeholder to one value, so each value needs a placeholder of its own. The default factory `label_counter` gives `<<PERSON:1>>`{ .placeholder } and `<<PERSON:2>>`{ .placeholder }, and `label_hash` works too. The `redact` factory gives every value the same `<<REDACT>>`{ .placeholder }. A restored reply would then carry one value, a database URL and its password for example, in place of every `<<REDACT>>`{ .placeholder }, in the text and in the `tool_use` inputs.
+
+The server therefore refuses to start when the `[anonymizer.placeholder]` type of its configuration is `redact`, `label` or `mask`, and its error names the factory. If you only need one-way redaction, `PIIGHOST_ONE_WAY=true` starts it without the proxies, `/v1/deanonymize` and `/v1/threads/{id}/tokens`. [Placeholder factories](../placeholder-factories.md) compares the factories.
 
 !!! warning "Limits"
     - By default, the system prompt stays untouched. A value written in it therefore reaches the model in clear.
