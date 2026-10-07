@@ -6259,5 +6259,903 @@
    "flagged_at_0.5": 27,
    "mean_score": 0.35106299999999996
   }
- }
+ },
+ "robustness": {
+  "laya-en": {
+   "held_out": {
+    "rule": "most leaks caught with at most 5% false alarms on the training templates",
+    "position": "mid",
+    "caught": 4,
+    "leaks": 100,
+    "false_alarms": 7,
+    "clean": 100,
+    "threshold_min": 0.9294,
+    "threshold_median": 0.93575,
+    "threshold_max": 0.93575
+   },
+   "held_out_by_position": {
+    "low": {
+     "caught": 4,
+     "false_alarms": 7
+    },
+    "mid": {
+     "caught": 4,
+     "false_alarms": 7
+    },
+    "high": {
+     "caught": 4,
+     "false_alarms": 7
+    }
+   },
+   "across_languages": [
+    {
+     "chosen_on": "fr",
+     "applied_to": "en",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.9280000000000002,
+      "caught": 4,
+      "false_alarms": 7
+     },
+     "mid": {
+      "threshold": 0.9294,
+      "caught": 4,
+      "false_alarms": 7
+     },
+     "high": {
+      "threshold": 0.9308,
+      "caught": 4,
+      "false_alarms": 7
+     }
+    },
+    {
+     "chosen_on": "en",
+     "applied_to": "fr",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.9547000000000001,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "mid": {
+      "threshold": 0.9547000000000001,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "high": {
+      "threshold": Infinity,
+      "caught": 0,
+      "false_alarms": 0
+     }
+    }
+   ],
+   "cluster_ci": {
+    "auroc": [
+     0.4405332493463729,
+     0.5632105755183232
+    ],
+    "caught_0.5": [
+     0.5220307443365696,
+     0.8392941374663072
+    ],
+    "alarms_0.5": [
+     0.4215557275541796,
+     0.7623762376237624
+    ],
+    "caught_0.9": [
+     0.0,
+     0.1481678486997635
+    ],
+    "alarms_0.9": [
+     0.0,
+     0.23159755449229122
+    ],
+    "held_out_caught": [
+     0.0,
+     0.10755610098176702
+    ],
+    "held_out_alarms": [
+     0.0,
+     0.18002127659574454
+    ]
+   }
+  },
+  "laya-en-hint": {
+   "held_out": {
+    "rule": "most leaks caught with at most 5% false alarms on the training templates",
+    "position": "mid",
+    "caught": 3,
+    "leaks": 100,
+    "false_alarms": 3,
+    "clean": 100,
+    "threshold_min": 0.8992,
+    "threshold_median": 0.9012,
+    "threshold_max": 0.9030499999999999
+   },
+   "held_out_by_position": {
+    "low": {
+     "caught": 4,
+     "false_alarms": 7
+    },
+    "mid": {
+     "caught": 3,
+     "false_alarms": 3
+    },
+    "high": {
+     "caught": 3,
+     "false_alarms": 3
+    }
+   },
+   "across_languages": [
+    {
+     "chosen_on": "fr",
+     "applied_to": "en",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.9106000000000001,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "mid": {
+      "threshold": 0.9140999999999999,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "high": {
+      "threshold": 0.9176,
+      "caught": 0,
+      "false_alarms": 0
+     }
+    },
+    {
+     "chosen_on": "en",
+     "applied_to": "fr",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.9009000000000001,
+      "caught": 3,
+      "false_alarms": 3
+     },
+     "mid": {
+      "threshold": 0.9012,
+      "caught": 3,
+      "false_alarms": 3
+     },
+     "high": {
+      "threshold": 0.9015,
+      "caught": 3,
+      "false_alarms": 3
+     }
+    }
+   ],
+   "cluster_ci": {
+    "auroc": [
+     0.4381803906166329,
+     0.6000884433962262
+    ],
+    "caught_0.5": [
+     0.6767602495543672,
+     0.9266362432611367
+    ],
+    "alarms_0.5": [
+     0.6534653465346535,
+     0.9405940594059405
+    ],
+    "caught_0.9": [
+     0.0,
+     0.10390286796536793
+    ],
+    "alarms_0.9": [
+     0.0,
+     0.176485906862745
+    ],
+    "held_out_caught": [
+     0.0,
+     0.08537456445993027
+    ],
+    "held_out_alarms": [
+     0.0,
+     0.09375
+    ]
+   }
+  },
+  "laya-multi": {
+   "held_out": {
+    "rule": "most leaks caught with at most 5% false alarms on the training templates",
+    "position": "mid",
+    "caught": 0,
+    "leaks": 100,
+    "false_alarms": 0,
+    "clean": 100,
+    "threshold_min": 1.0000000000000002,
+    "threshold_median": 1.0000000000000002,
+    "threshold_max": 1.0000000000000002
+   },
+   "held_out_by_position": {
+    "low": {
+     "caught": 0,
+     "false_alarms": 0
+    },
+    "mid": {
+     "caught": 0,
+     "false_alarms": 0
+    },
+    "high": {
+     "caught": 0,
+     "false_alarms": 0
+    }
+   },
+   "across_languages": [
+    {
+     "chosen_on": "fr",
+     "applied_to": "en",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 1.0000000000000002,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "mid": {
+      "threshold": 1.0000000000000002,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "high": {
+      "threshold": Infinity,
+      "caught": 0,
+      "false_alarms": 0
+     }
+    },
+    {
+     "chosen_on": "en",
+     "applied_to": "fr",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 1.0000000000000002,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "mid": {
+      "threshold": 1.0000000000000002,
+      "caught": 0,
+      "false_alarms": 0
+     },
+     "high": {
+      "threshold": Infinity,
+      "caught": 0,
+      "false_alarms": 0
+     }
+    }
+   ],
+   "cluster_ci": {
+    "auroc": [
+     0.44250013821963496,
+     0.5564302699920093
+    ],
+    "caught_0.5": [
+     0.6592923280423281,
+     0.9285714285714286
+    ],
+    "alarms_0.5": [
+     0.6665816326530611,
+     0.941747572815534
+    ],
+    "caught_0.9": [
+     0.5,
+     0.839632075471698
+    ],
+    "alarms_0.9": [
+     0.5599473684210526,
+     0.8811881188118812
+    ],
+    "held_out_caught": [
+     0.0,
+     0.0
+    ],
+    "held_out_alarms": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "gliner2-guard": {
+   "held_out": {
+    "rule": "most leaks caught with at most 5% false alarms on the training templates",
+    "position": "mid",
+    "caught": 14,
+    "leaks": 100,
+    "false_alarms": 6,
+    "clean": 100,
+    "threshold_min": 0.37584927678108215,
+    "threshold_median": 0.47329238057136536,
+    "threshold_max": 0.5067481100559235
+   },
+   "held_out_by_position": {
+    "low": {
+     "caught": 15,
+     "false_alarms": 6
+    },
+    "mid": {
+     "caught": 14,
+     "false_alarms": 6
+    },
+    "high": {
+     "caught": 14,
+     "false_alarms": 6
+    }
+   },
+   "across_languages": [
+    {
+     "chosen_on": "fr",
+     "applied_to": "en",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.47273623943328863,
+      "caught": 7,
+      "false_alarms": 3
+     },
+     "mid": {
+      "threshold": 0.47329238057136536,
+      "caught": 7,
+      "false_alarms": 3
+     },
+     "high": {
+      "threshold": 0.47384852170944214,
+      "caught": 7,
+      "false_alarms": 3
+     }
+    },
+    {
+     "chosen_on": "en",
+     "applied_to": "fr",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.7194916009902955,
+      "caught": 4,
+      "false_alarms": 0
+     },
+     "mid": {
+      "threshold": 0.7400783002376556,
+      "caught": 4,
+      "false_alarms": 0
+     },
+     "high": {
+      "threshold": 0.7606649994850159,
+      "caught": 4,
+      "false_alarms": 0
+     }
+    }
+   ],
+   "cluster_ci": {
+    "auroc": [
+     0.5561178662105425,
+     0.6648476977506633
+    ],
+    "caught_0.5": [
+     0.029681549885757805,
+     0.20339358032098395
+    ],
+    "alarms_0.5": [
+     0.0,
+     0.09375
+    ],
+    "caught_0.9": [
+     0.0,
+     0.029411764705882353
+    ],
+    "alarms_0.9": [
+     0.0,
+     0.0
+    ],
+    "held_out_caught": [
+     0.03487369687249398,
+     0.2589457417582417
+    ],
+    "held_out_alarms": [
+     0.0,
+     0.15151515151515152
+    ]
+   }
+  },
+  "gliner2-spans": {
+   "held_out": {
+    "rule": "most leaks caught with at most 5% false alarms on the training templates",
+    "position": "mid",
+    "caught": 60,
+    "leaks": 100,
+    "false_alarms": 7,
+    "clean": 100,
+    "threshold_min": 0.9715280830860138,
+    "threshold_median": 0.9740922451019287,
+    "threshold_max": 0.9747054874897003
+   },
+   "held_out_by_position": {
+    "low": {
+     "caught": 60,
+     "false_alarms": 7
+    },
+    "mid": {
+     "caught": 60,
+     "false_alarms": 7
+    },
+    "high": {
+     "caught": 59,
+     "false_alarms": 5
+    }
+   },
+   "across_languages": [
+    {
+     "chosen_on": "fr",
+     "applied_to": "en",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.9723303318023683,
+      "caught": 30,
+      "false_alarms": 3
+     },
+     "mid": {
+      "threshold": 0.9724233448505402,
+      "caught": 30,
+      "false_alarms": 3
+     },
+     "high": {
+      "threshold": 0.9725163578987122,
+      "caught": 30,
+      "false_alarms": 3
+     }
+    },
+    {
+     "chosen_on": "en",
+     "applied_to": "fr",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.97773414850235,
+      "caught": 29,
+      "false_alarms": 1
+     },
+     "mid": {
+      "threshold": 0.9777555763721466,
+      "caught": 29,
+      "false_alarms": 1
+     },
+     "high": {
+      "threshold": 0.9777770042419434,
+      "caught": 29,
+      "false_alarms": 1
+     }
+    }
+   ],
+   "cluster_ci": {
+    "auroc": [
+     0.7810402711430172,
+     0.8989588128682581
+    ],
+    "caught_0.5": [
+     1.0,
+     1.0
+    ],
+    "alarms_0.5": [
+     1.0,
+     1.0
+    ],
+    "caught_0.9": [
+     0.7930929352396973,
+     0.9626254759432329
+    ],
+    "alarms_0.9": [
+     0.3172957920792079,
+     0.6730769230769231
+    ],
+    "held_out_caught": [
+     0.48717391304347823,
+     0.7102865223807181
+    ],
+    "held_out_alarms": [
+     0.0,
+     0.18181818181818182
+    ]
+   }
+  },
+  "gliner2-spans-ph": {
+   "held_out": {
+    "rule": "most leaks caught with at most 5% false alarms on the training templates",
+    "position": "mid",
+    "caught": 83,
+    "leaks": 100,
+    "false_alarms": 7,
+    "clean": 100,
+    "threshold_min": 0.8652874529361725,
+    "threshold_median": 0.8946340978145599,
+    "threshold_max": 0.8966547250747681
+   },
+   "held_out_by_position": {
+    "low": {
+     "caught": 83,
+     "false_alarms": 7
+    },
+    "mid": {
+     "caught": 83,
+     "false_alarms": 7
+    },
+    "high": {
+     "caught": 82,
+     "false_alarms": 7
+    }
+   },
+   "across_languages": [
+    {
+     "chosen_on": "fr",
+     "applied_to": "en",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.8127766251564027,
+      "caught": 44,
+      "false_alarms": 11
+     },
+     "mid": {
+      "threshold": 0.8615068197250366,
+      "caught": 43,
+      "false_alarms": 9
+     },
+     "high": {
+      "threshold": 0.9102370142936707,
+      "caught": 39,
+      "false_alarms": 3
+     }
+    },
+    {
+     "chosen_on": "en",
+     "applied_to": "fr",
+     "leaks": 50,
+     "clean": 50,
+     "low": {
+      "threshold": 0.97773414850235,
+      "caught": 27,
+      "false_alarms": 0
+     },
+     "mid": {
+      "threshold": 0.9777555763721466,
+      "caught": 27,
+      "false_alarms": 0
+     },
+     "high": {
+      "threshold": 0.9777770042419434,
+      "caught": 27,
+      "false_alarms": 0
+     }
+    }
+   ],
+   "cluster_ci": {
+    "auroc": [
+     0.9015508500565427,
+     0.9776096788860862
+    ],
+    "caught_0.5": [
+     0.9326923076923077,
+     1.0
+    ],
+    "alarms_0.5": [
+     0.31676803394625175,
+     0.6732673267326733
+    ],
+    "caught_0.9": [
+     0.7311827956989247,
+     0.9175257731958762
+    ],
+    "alarms_0.9": [
+     0.0,
+     0.09375
+    ],
+    "held_out_caught": [
+     0.7311827956989247,
+     0.9175257731958762
+    ],
+    "held_out_alarms": [
+     0.0,
+     0.18181818181818182
+    ]
+   }
+  }
+ },
+ "paired_tests": {
+  "laya-en": {
+   "leak_vs_twin": {
+    "n": 100,
+    "a_higher": 54,
+    "ties": 0,
+    "b_higher": 46,
+    "sign_p": 0.4841184136072915,
+    "wilcoxon_p": 0.29989634170967083,
+    "templates": 28,
+    "templates_a_higher": 17,
+    "templates_b_higher": 11,
+    "template_sign_p": 0.34492845088243484
+   },
+   "deidentified_vs_original": {
+    "n": 100,
+    "a_higher": 85,
+    "ties": 0,
+    "b_higher": 15,
+    "sign_p": 4.825421503937196e-13,
+    "wilcoxon_p": 1.5990843776221742e-13,
+    "templates": 28,
+    "templates_a_higher": 24,
+    "templates_b_higher": 4,
+    "template_sign_p": 0.00017999112606048584
+   }
+  },
+  "laya-en-hint": {
+   "leak_vs_twin": {
+    "n": 100,
+    "a_higher": 40,
+    "ties": 0,
+    "b_higher": 60,
+    "sign_p": 0.05688793364098079,
+    "wilcoxon_p": 0.08527162164349286,
+    "templates": 28,
+    "templates_a_higher": 10,
+    "templates_b_higher": 18,
+    "template_sign_p": 0.1849333420395851
+   },
+   "deidentified_vs_original": {
+    "n": 100,
+    "a_higher": 100,
+    "ties": 0,
+    "b_higher": 0,
+    "sign_p": 1.5777218104420236e-30,
+    "wilcoxon_p": 3.896559845095956e-18,
+    "templates": 28,
+    "templates_a_higher": 28,
+    "templates_b_higher": 0,
+    "template_sign_p": 7.450580596923828e-09
+   }
+  },
+  "laya-multi": {
+   "leak_vs_twin": {
+    "n": 100,
+    "a_higher": 39,
+    "ties": 19,
+    "b_higher": 42,
+    "sign_p": 0.8243132151052077,
+    "wilcoxon_p": 0.39802485025155127,
+    "templates": 28,
+    "templates_a_higher": 7,
+    "templates_b_higher": 17,
+    "template_sign_p": 0.06391465663909912
+   },
+   "deidentified_vs_original": {
+    "n": 100,
+    "a_higher": 94,
+    "ties": 1,
+    "b_higher": 5,
+    "sign_p": 2.3807607549403916e-22,
+    "wilcoxon_p": 1.5269802764211853e-17,
+    "templates": 28,
+    "templates_a_higher": 28,
+    "templates_b_higher": 0,
+    "template_sign_p": 7.450580596923828e-09
+   }
+  },
+  "gliner2-guard": {
+   "leak_vs_twin": {
+    "n": 100,
+    "a_higher": 72,
+    "ties": 0,
+    "b_higher": 28,
+    "sign_p": 1.2579150016678854e-05,
+    "wilcoxon_p": 0.000952376041182125,
+    "templates": 28,
+    "templates_a_higher": 23,
+    "templates_b_higher": 5,
+    "template_sign_p": 0.0009122341871261597
+   },
+   "deidentified_vs_original": {
+    "n": 100,
+    "a_higher": 22,
+    "ties": 0,
+    "b_higher": 78,
+    "sign_p": 1.590532847378614e-08,
+    "wilcoxon_p": 1.4586346341259132e-08,
+    "templates": 28,
+    "templates_a_higher": 5,
+    "templates_b_higher": 23,
+    "template_sign_p": 0.0009122341871261597
+   }
+  },
+  "gliner2-spans": {
+   "leak_vs_twin": {
+    "n": 100,
+    "a_higher": 87,
+    "ties": 0,
+    "b_higher": 13,
+    "sign_p": 1.3129815522035853e-14,
+    "wilcoxon_p": 9.701591089505307e-15,
+    "templates": 28,
+    "templates_a_higher": 28,
+    "templates_b_higher": 0,
+    "template_sign_p": 7.450580596923828e-09
+   },
+   "deidentified_vs_original": {
+    "n": 100,
+    "a_higher": 0,
+    "ties": 0,
+    "b_higher": 100,
+    "sign_p": 1.5777218104420236e-30,
+    "wilcoxon_p": 3.8963400376479795e-18,
+    "templates": 28,
+    "templates_a_higher": 0,
+    "templates_b_higher": 28,
+    "template_sign_p": 7.450580596923828e-09
+   }
+  },
+  "gliner2-spans-ph": {
+   "leak_vs_twin": {
+    "n": 100,
+    "a_higher": 97,
+    "ties": 1,
+    "b_higher": 2,
+    "sign_p": 1.5622601366996918e-26,
+    "wilcoxon_p": 7.271412365071686e-18,
+    "templates": 28,
+    "templates_a_higher": 28,
+    "templates_b_higher": 0,
+    "template_sign_p": 7.450580596923828e-09
+   },
+   "deidentified_vs_original": {
+    "n": 100,
+    "a_higher": 0,
+    "ties": 0,
+    "b_higher": 100,
+    "sign_p": 1.5777218104420236e-30,
+    "wilcoxon_p": 3.8963400376479795e-18,
+    "templates": 28,
+    "templates_a_higher": 0,
+    "templates_b_higher": 28,
+    "template_sign_p": 7.450580596923828e-09
+   }
+  }
+ },
+ "combination_sweep": [
+  {
+   "rule": "spans >= 0.9 OR Laya >= 0.5",
+   "op": "or",
+   "spans_threshold": 0.9,
+   "laya_threshold": 0.5,
+   "caught": 95,
+   "false_alarms": 60,
+   "spans_alone": {
+    "threshold": 0.6450822353363037,
+    "caught": 95,
+    "false_alarms": 32
+   }
+  },
+  {
+   "rule": "spans >= 0.9 OR Laya >= 0.6",
+   "op": "or",
+   "spans_threshold": 0.9,
+   "laya_threshold": 0.6,
+   "caught": 94,
+   "false_alarms": 57,
+   "spans_alone": {
+    "threshold": 0.6966090798377991,
+    "caught": 94,
+    "false_alarms": 28
+   }
+  },
+  {
+   "rule": "spans >= 0.9 OR Laya >= 0.7",
+   "op": "or",
+   "spans_threshold": 0.9,
+   "laya_threshold": 0.7,
+   "caught": 92,
+   "false_alarms": 45,
+   "spans_alone": {
+    "threshold": 0.7622750401496887,
+    "caught": 92,
+    "false_alarms": 20
+   }
+  },
+  {
+   "rule": "spans >= 0.9 OR Laya >= 0.8",
+   "op": "or",
+   "spans_threshold": 0.9,
+   "laya_threshold": 0.8,
+   "caught": 89,
+   "false_alarms": 32,
+   "spans_alone": {
+    "threshold": 0.8065060377120972,
+    "caught": 89,
+    "false_alarms": 14
+   }
+  },
+  {
+   "rule": "spans >= 0.9 OR Laya >= 0.9",
+   "op": "or",
+   "spans_threshold": 0.9,
+   "laya_threshold": 0.9,
+   "caught": 83,
+   "false_alarms": 14,
+   "spans_alone": {
+    "threshold": 0.9015557169914246,
+    "caught": 83,
+    "false_alarms": 3
+   }
+  },
+  {
+   "rule": "spans >= 0.5 AND Laya >= 0.5",
+   "op": "and",
+   "spans_threshold": 0.5,
+   "laya_threshold": 0.5,
+   "caught": 66,
+   "false_alarms": 29,
+   "spans_alone": {
+    "threshold": 0.9478698372840881,
+    "caught": 66,
+    "false_alarms": 3
+   }
+  },
+  {
+   "rule": "spans >= 0.6 AND Laya >= 0.6",
+   "op": "and",
+   "spans_threshold": 0.6,
+   "laya_threshold": 0.6,
+   "caught": 58,
+   "false_alarms": 20,
+   "spans_alone": {
+    "threshold": 0.9616329669952393,
+    "caught": 58,
+    "false_alarms": 3
+   }
+  },
+  {
+   "rule": "spans >= 0.7 AND Laya >= 0.7",
+   "op": "and",
+   "spans_threshold": 0.7,
+   "laya_threshold": 0.7,
+   "caught": 43,
+   "false_alarms": 11,
+   "spans_alone": {
+    "threshold": 0.9867337942123413,
+    "caught": 43,
+    "false_alarms": 0
+   }
+  },
+  {
+   "rule": "spans >= 0.8 AND Laya >= 0.8",
+   "op": "and",
+   "spans_threshold": 0.8,
+   "laya_threshold": 0.8,
+   "caught": 19,
+   "false_alarms": 0,
+   "spans_alone": {
+    "threshold": 0.9982163310050964,
+    "caught": 19,
+    "false_alarms": 0
+   }
+  },
+  {
+   "rule": "spans >= 0.9 AND Laya >= 0.9",
+   "op": "and",
+   "spans_threshold": 0.9,
+   "laya_threshold": 0.9,
+   "caught": 6,
+   "false_alarms": 0,
+   "spans_alone": {
+    "threshold": 0.9997220635414124,
+    "caught": 6,
+    "false_alarms": 0
+   }
+  }
+ ]
 }
