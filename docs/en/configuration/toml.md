@@ -329,6 +329,11 @@ Optional. Discriminated on `type`. Re-checks the de-identified output for residu
 
 Re-runs a detector on the output. Carries a nested `[guard.detector]` config.
 
+| Key | Type | Default | Meaning |
+|-----|------|---------|---------|
+| `detector` | table | | The detector re-run on the output (required) |
+| `ignore_placeholders` | `bool` | `true` | Drop the detections that hold only placeholders |
+
 ```toml
 [guard]
 type = "detector"

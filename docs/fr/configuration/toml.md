@@ -329,6 +329,11 @@ Optionnel. Discriminé sur `type`. Revérifie la sortie dé-identifiée pour des
 
 Réexécute un détecteur sur la sortie. Porte une config imbriquée `[guard.detector]`.
 
+| Clé | Type | Défaut | Signification |
+|-----|------|--------|---------------|
+| `detector` | table | | Le détecteur réexécuté sur la sortie (requis) |
+| `ignore_placeholders` | `bool` | `true` | Écarter les détections qui ne contiennent que des placeholders |
+
 ```toml
 [guard]
 type = "detector"

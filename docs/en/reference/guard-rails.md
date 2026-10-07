@@ -35,10 +35,24 @@ The runnable version is [`examples/guard_rail.py`](https://github.com/Athroniaet
 Re-runs a detector on the de-identified output and flags whatever it still finds, carrying the residual detections on the verdict.
 
 ```python
-DetectorGuardRail(detector: AnyDetector)
+DetectorGuardRail(
+    detector: AnyDetector,
+    recognizer: BaseDelimitedPlaceholderFactory | None = None,
+    ignore_placeholders: bool = True,
+)
 ```
 
-This guard only adds value with a detector different from the pipeline's. Re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. The synthetic placeholders are not shaped like real values, so a detector meant for real values leaves them alone. `DetectorGuardRail` needs no optional extra.
+This guard only adds value with a detector different from the pipeline's. Re-running the same one finds nothing, since the pipeline already de-identified everything it detects. A stronger or complementary detector, run as a cheap second pass over the short de-identified output, catches what the primary detector missed. `DetectorGuardRail` needs no optional extra.
+
+### Placeholders are ignored
+
+A model-based detector often tags the placeholders themselves. GLiNER2 reads `<<PERSON:1>>`{ .placeholder } as a person in 169 of 200 de-identified texts, so a guard that flags on every detection refuses every text. `DetectorGuardRail` therefore drops each detection that holds only placeholders, that is, fewer than two letters or digits once its placeholders are set aside.
+
+- `<<PERSON:1>>, <<PERSON:2>>` is dropped, nothing is left but a comma
+- `<<PERSON:1>> Dubois` flags, `Dubois`{ .pii } is left
+- `Mme Dubois`{ .pii } next to `<<PERSON:2>>`{ .placeholder } flags, the detection holds no placeholder
+
+The verdict carries only the detections that flag. The guard finds placeholders with the grammar of the pipeline it runs in, custom delimiters included. Used alone, it reads the default `<<PERSON>>`, `<<PERSON:1>>` and `<<PERSON:a1b2c3d4>>` forms, or the grammar of the factory passed as `recognizer`. Pass `ignore_placeholders=False` to flag on every detection.
 
 ### A local model as the guard
 
@@ -49,6 +63,25 @@ The complementary detector is often a model, because the shapes a regex is good 
 ```
 
 This guard localizes what leaked. That is what a detector-backed guard gives you over a classifier. For a text-level verdict from the same checkpoint, without spans and in one forward pass, see [`Gliner2GuardRail`](#gliner2guardrail).
+
+### What it catches
+
+The [decision guard benchmark](https://github.com/Athroniaeth/piighost/tree/master/benchmarks/decision_guard) runs this guard, with the detector above, on 200 de-identified texts. Half are French, half English, and half of them leak one value.
+
+| Threshold | Leaks caught | False alarms |
+|---|---|---|
+| 0.5 | 97/100 | 49/100 |
+| 0.9 | 83/100 | 3/100 |
+| Chosen on the other templates | 83/100 | 7/100 |
+
+The 0.9 threshold was chosen on the benchmark data, so its 3 false alarms are optimistic. The last row is the honest figure. For each of the 28 templates, the threshold that catches the most leaks with at most 5 % false alarms on the other 27 is tested on the one left out. Without the placeholder filter, the same detector flags all 200 texts at 0.5.
+
+Two kinds of false alarm remain:
+
+- a role word read as a person, such as "Customer", "[User]" or "Tenant"
+- a civility next to a placeholder, such as `Mr <<PERSON:3>>`
+
+Choose the threshold on your own documents. A threshold chosen on the French texts does not carry over exactly to the English ones.
 
 ## `LLMGuardRail`
 
@@ -126,7 +159,7 @@ catalogs = ["catalog:piighost/generic", "catalog:piighost/us"]
 
 | `type` | Fields | Extra |
 |--------|--------|-------|
-| `detector` | `[guard.detector]` (a detector config) | | 
+| `detector` | `[guard.detector]` (a detector config), `ignore_placeholders` (default `true`) | | 
 | `gliner2` | `model` (default `fastino/GLiNER2-Guardrails-PII-Multi`), `task`, `labels`, `threshold` | `gliner2` |
 | `llm` | `model`, `labels`, `prompt` (optional), `provider` (optional) | `llm` |
 | `moderation` | `model` (default `mistral-moderation-latest`), `threshold` (default `0.5`) | `mistral` |

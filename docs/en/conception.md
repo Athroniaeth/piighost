@@ -341,10 +341,10 @@ Even with everything above, a value can slip through the net, for example a name
 missed. The guard rail (`AnyGuardRail`) re-analyzes the de-identified text and raises
 `PIIRemainingError` if it still finds a value in clear.
 
-The guard rail examines only the de-identified output. A check meant for real values does
-not mistake the placeholders in that output for real values, because they are clearly
-synthetic. The guard
-rail is optional but it is the last barrier before the output. `DetectorGuardRail`
+The guard rail examines only the de-identified output, placeholders included. A model can
+read `<<PERSON:1>>` as a person, so `DetectorGuardRail` drops the detections that hold only
+placeholders. The guard rail is optional but it is the last barrier before the output.
+`DetectorGuardRail`
 replays a detector, `Gliner2GuardRail` classifies the output with a local GLiNER2 model,
 `LLMGuardRail` queries an LLM and `ModerationGuardRail` the Mistral moderation API.
 

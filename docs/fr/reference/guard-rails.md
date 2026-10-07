@@ -35,10 +35,24 @@ La version exécutable est [`examples/guard_rail.py`](https://github.com/Athroni
 Réexécute un détecteur sur la sortie dé-identifiée et signale tout ce qu'il y trouve encore, en portant les détections résiduelles sur le verdict.
 
 ```python
-DetectorGuardRail(detector: AnyDetector)
+DetectorGuardRail(
+    detector: AnyDetector,
+    recognizer: BaseDelimitedPlaceholderFactory | None = None,
+    ignore_placeholders: bool = True,
+)
 ```
 
-Ce garde-fou n'a de valeur qu'avec un détecteur différent de celui du pipeline. Réexécuter le même ne trouve rien, puisque le pipeline a déjà dé-identifié tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie dé-identifiée, rattrape ce que le détecteur primaire a manqué. Les placeholders synthétiques n'ont pas la forme de vraies valeurs, donc un détecteur conçu pour de vraies valeurs les laisse tranquilles. `DetectorGuardRail` ne requiert aucun extra.
+Ce garde-fou n'a de valeur qu'avec un détecteur différent de celui du pipeline. Réexécuter le même ne trouve rien, puisque le pipeline a déjà dé-identifié tout ce qu'il détecte. Un détecteur plus puissant ou complémentaire, exécuté en seconde passe peu coûteuse sur la courte sortie dé-identifiée, rattrape ce que le détecteur primaire a manqué. `DetectorGuardRail` ne requiert aucun extra.
+
+### Les placeholders sont ignorés
+
+Un détecteur à base de modèle étiquette souvent les placeholders eux-mêmes. GLiNER2 lit `<<PERSON:1>>`{ .placeholder } comme une personne dans 169 textes dé-identifiés sur 200, donc un garde-fou qui signale chaque détection refuse tous les textes. `DetectorGuardRail` écarte donc chaque détection qui ne contient que des placeholders, c'est-à-dire qui garde moins de deux lettres ou chiffres une fois ses placeholders mis de côté.
+
+- `<<PERSON:1>>, <<PERSON:2>>` est écartée, il ne reste qu'une virgule
+- `<<PERSON:1>> Dubois` signale, il reste `Dubois`{ .pii }
+- `Mme Dubois`{ .pii } à côté de `<<PERSON:2>>`{ .placeholder } signale, la détection ne contient aucun placeholder
+
+Le verdict ne porte que les détections qui signalent. Le garde-fou retrouve les placeholders avec la grammaire du pipeline où il tourne, délimiteurs personnalisés compris. Seul, il lit les formes par défaut `<<PERSON>>`, `<<PERSON:1>>` et `<<PERSON:a1b2c3d4>>`, ou la grammaire de la factory passée en `recognizer`. Passez `ignore_placeholders=False` pour signaler chaque détection.
 
 ### Un modèle local comme garde
 
@@ -49,6 +63,25 @@ Le détecteur complémentaire est souvent un modèle, parce que les formes qu'un
 ```
 
 Ce garde localise ce qui a fuité. C'est ce qu'un garde adossé à un détecteur apporte de plus qu'un classifieur. Pour un verdict au niveau du texte issu du même checkpoint, sans spans et en une seule passe, voir [`Gliner2GuardRail`](#gliner2guardrail).
+
+### Ce qu'il rattrape
+
+Le [benchmark des garde-fous de décision](https://github.com/Athroniaeth/piighost/tree/master/benchmarks/decision_guard) fait tourner ce garde-fou, avec le détecteur ci-dessus, sur 200 textes dé-identifiés. La moitié est en français, l'autre en anglais, et la moitié laisse fuir une valeur.
+
+| Seuil | Fuites rattrapées | Fausses alertes |
+|---|---|---|
+| 0,5 | 97/100 | 49/100 |
+| 0,9 | 83/100 | 3/100 |
+| Choisi sur les autres gabarits | 83/100 | 7/100 |
+
+Le seuil de 0,9 a été choisi sur les données du benchmark, donc ses 3 fausses alertes sont optimistes. La dernière ligne est le chiffre honnête. Pour chacun des 28 gabarits de texte, le seuil qui rattrape le plus de fuites avec au plus 5 % de fausses alertes sur les 27 autres est testé sur celui mis de côté. Sans le filtre des placeholders, le même détecteur signale les 200 textes au seuil de 0,5.
+
+Deux sortes de fausses alertes restent :
+
+- un mot de rôle lu comme une personne, comme "Customer", "[User]" ou "Tenant"
+- une civilité à côté d'un placeholder, comme `Mr <<PERSON:3>>`
+
+Choisissez le seuil sur vos propres documents. Un seuil choisi sur les textes français ne se transpose pas tel quel aux textes anglais.
 
 ## `LLMGuardRail`
 
@@ -126,7 +159,7 @@ catalogs = ["catalog:piighost/generic", "catalog:piighost/us"]
 
 | `type` | Champs | Extra |
 |--------|--------|-------|
-| `detector` | `[guard.detector]` (une config de détecteur) | | 
+| `detector` | `[guard.detector]` (une config de détecteur), `ignore_placeholders` (défaut `true`) | | 
 | `gliner2` | `model` (défaut `fastino/GLiNER2-Guardrails-PII-Multi`), `task`, `labels`, `threshold` | `gliner2` |
 | `llm` | `model`, `labels`, `prompt` (optionnel), `provider` (optionnel) | `llm` |
 | `moderation` | `model` (défaut `mistral-moderation-latest`), `threshold` (défaut `0.5`) | `mistral` |

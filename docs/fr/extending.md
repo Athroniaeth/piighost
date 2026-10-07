@@ -162,7 +162,7 @@ Un garde-fou re-contrôle la sortie dé-identifiée à la recherche de données 
 --8<-- "snippets/ports.py:guard"
 ```
 
-`check` ne voit que le texte dé-identifié. Les placeholders de ce texte sont clairement synthétiques. Un contrôle qui cherche les vraies valeurs ne les prend donc pas pour de vraies valeurs.
+`check` ne voit que le texte dé-identifié, placeholders compris. Un modèle peut lire `<<PERSON:1>>`{ .placeholder } comme une personne, donc un garde-fou ne doit pas signaler les placeholders seuls. `DetectorGuardRail` écarte les détections qui ne contiennent rien d'autre.
 
 ???+ example "Signaler un @ résiduel"
 
@@ -182,7 +182,7 @@ Le `DetectorGuardRail` intégré relance un détecteur et rapporte les détectio
 
 Un modèle de décision ne génère pas de texte. Il répond à une question dont les réponses possibles sont fixées à l'avance, ici oui ou non. Un garde-fou fait la même chose sur le texte dé-identifié. [`examples/guard_rail_laya.py`](https://github.com/Athroniaeth/piighost/blob/master/examples/guard_rail_laya.py) place [Laya](https://huggingface.co/convaiinnovations/laya), un équivalent de Jev sous licence Apache 2.0, derrière le port en une douzaine de lignes, en local. Il demande s'il reste une donnée personnelle et signale le texte au-delà d'une probabilité.
 
-Sur 24 textes dé-identifiés, dont la moitié laisse fuir une valeur, il a rattrapé 11 fuites sur 12 et signalé 5 textes propres sur 12 au seuil de 0,5. `Gliner2GuardRail` rattrapait 4 fuites, sans aucune fausse alerte. Les placeholders font monter son score, donc il signale à tort surtout un texte chargé en jetons. Son modèle anglais lit assez bien le français, `laya-multilingual` non.
+Le [benchmark des garde-fous de décision](https://github.com/Athroniaeth/piighost/tree/master/benchmarks/decision_guard) a mesuré ce garde-fou sur 200 textes dé-identifiés, dont la moitié laisse fuir une valeur. Laya ne sépare pas les textes qui fuient des textes propres. Son AUROC vaut 0,50, le niveau du hasard. L'AUROC est la probabilité qu'un texte qui fuit obtienne un score plus haut qu'un texte propre. Au seuil de 0,5, Laya rattrape 69 fuites sur 100 et signale 60 textes propres sur 100. Les placeholders font monter son score davantage que de vraies données personnelles. Un détecteur qui dit où se trouve chaque valeur, et qui ignore ce qu'il trouve sur les placeholders, fait bien mieux. Avec un seuil choisi hors des textes sur lesquels il est testé, il rattrape 83 fuites sur 100 pour 7 fausses alertes, voir [`DetectorGuardRail`](reference/guard-rails.md). L'exemple montre donc comment brancher un modèle de décision sur le port, pas un garde-fou à déployer.
 
 ## Composition complète
 
