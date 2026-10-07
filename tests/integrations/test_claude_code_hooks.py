@@ -22,20 +22,21 @@ def _pipeline() -> ThreadAnonymizationPipeline:
     return ThreadAnonymizationPipeline(detector)
 
 
-async def test_user_prompt_submit_anonymizes_prompt() -> None:
-    """The submitted prompt is anonymized into updatedPrompt; the model sees a token."""
+async def test_user_prompt_submit_records_the_prompt_without_a_mutation() -> None:
+    """The prompt is anonymized into the thread, but no ignored rewrite is emitted.
+
+    Regression: the hook returned updatedPrompt, a field Claude Code ignores, so
+    the prompt reached the model in clear while the output claimed otherwise.
+    """
     pipeline = _pipeline()
     event = {
         "hook_event_name": "UserPromptSubmit",
         "session_id": "s1",
         "prompt": "I am Patrick",
     }
-    output = await handle_hook(event, pipeline)
-    assert output is not None
-    specific = output["hookSpecificOutput"]
-    assert specific["hookEventName"] == "UserPromptSubmit"
-    assert "Patrick" not in specific["updatedPrompt"]
-    assert "<<PERSON:1>>" in specific["updatedPrompt"]
+    assert await handle_hook(event, pipeline) is None
+    # The value is recorded in the session thread, so its token is known.
+    assert await pipeline.deanonymize("<<PERSON:1>>", "s1") == "Patrick"
 
 
 async def test_post_tool_use_anonymizes_string_output() -> None:
@@ -99,7 +100,7 @@ async def test_an_event_without_a_session_id_is_refused() -> None:
 async def test_missing_field_is_a_no_op() -> None:
     """A malformed event missing its payload field returns no mutation, not an error."""
     pipeline = _pipeline()
-    event = {"hook_event_name": "UserPromptSubmit", "session_id": "s1"}
+    event = {"hook_event_name": "PreToolUse", "session_id": "s1"}
     assert await handle_hook(event, pipeline) is None
 
 
@@ -150,6 +151,55 @@ async def test_post_tool_use_edit_anonymizes_text_leaves_metadata() -> None:
     assert updated["structuredPatch"][0]["lines"][0] == '-name = "<<PERSON:1>>"'
     assert updated["filePath"] == "/repo/Patrick.py"
     assert updated["structuredPatch"][0]["oldStart"] == 1
+
+
+GREP_CONTENT_RESPONSE = {
+    "mode": "content",
+    "numFiles": 0,
+    "filenames": [],
+    "content": "customers.csv:2:1,Patrick,pro",
+    "numLines": 1,
+}
+"""A Grep result in content mode, shaped as Claude Code 2.1.280 returns it."""
+
+GREP_FILES_RESPONSE = {
+    "mode": "files_with_matches",
+    "filenames": ["/home/Patrick/customers.csv"],
+    "numFiles": 1,
+}
+"""A Grep result in files_with_matches mode, which holds only file paths."""
+
+
+async def test_post_tool_use_anonymizes_grep_matching_lines() -> None:
+    """A Grep result in content mode has its matching lines anonymized."""
+    pipeline = _pipeline()
+    event = {
+        "hook_event_name": "PostToolUse",
+        "session_id": "s1",
+        "tool_name": "Grep",
+        "tool_response": GREP_CONTENT_RESPONSE,
+    }
+    output = await handle_hook(event, pipeline)
+    assert output is not None
+    updated = output["hookSpecificOutput"]["updatedToolOutput"]
+    assert updated == {
+        **GREP_CONTENT_RESPONSE,
+        "content": "customers.csv:2:1,<<PERSON:1>>,pro",
+    }
+
+
+async def test_post_tool_use_leaves_grep_file_names_untouched() -> None:
+    """A Grep result in files_with_matches mode keeps its paths verbatim."""
+    pipeline = _pipeline()
+    event = {
+        "hook_event_name": "PostToolUse",
+        "session_id": "s1",
+        "tool_name": "Grep",
+        "tool_response": GREP_FILES_RESPONSE,
+    }
+    output = await handle_hook(event, pipeline)
+    assert output is not None
+    assert output["hookSpecificOutput"]["updatedToolOutput"] == GREP_FILES_RESPONSE
 
 
 def test_debug_record_is_compact() -> None:
@@ -218,6 +268,69 @@ TOOL_OUTPUT_EVENT = {
 }
 """A tool output, which cannot be blocked since the tool already ran."""
 
+NOTICE = (
+    "[piighost could not de-identify this PostToolUse event (ConnectError: All "
+    "connection attempts failed), so the tool output is withheld.]"
+)
+"""The notice that replaces a tool output's text when the server is down."""
+
+NO_SESSION_NOTICE = (
+    "[piighost could not de-identify this PostToolUse event (MissingThreadIdError: "
+    "The hook event carries no session_id, the thread its values belong to.), so "
+    "the tool output is withheld.]"
+)
+"""The notice that replaces a tool output's text when its event has no session id."""
+
+READ_RESPONSE = {
+    "type": "text",
+    "file": {
+        "filePath": "/repo/.env",
+        "content": "PATRICK_KEY=sk_test_FAKE",
+        "numLines": 1,
+        "startLine": 1,
+        "totalLines": 1,
+    },
+}
+"""A Read result, shaped as Claude Code 2.1.280 returns it."""
+
+
+def _tool_output(
+    tool_name: str, tool_response: object, session_id: str | None = "s1"
+) -> dict[str, object]:
+    """A PostToolUse event for one tool output, without a session id if None."""
+    event: dict[str, object] = {
+        "hook_event_name": "PostToolUse",
+        "tool_name": tool_name,
+        "tool_response": tool_response,
+    }
+    if session_id is not None:
+        event["session_id"] = session_id
+    return event
+
+
+WITHHELD_OUTPUTS: dict[str, tuple[dict[str, object], object]] = {
+    "a plain string": (_tool_output("Bash", "Patrick ran the build"), NOTICE),
+    "a Read result": (
+        _tool_output("Read", READ_RESPONSE),
+        {**READ_RESPONSE, "file": {**READ_RESPONSE["file"], "content": NOTICE}},
+    ),
+    "a Grep result": (
+        _tool_output("Grep", GREP_CONTENT_RESPONSE),
+        {**GREP_CONTENT_RESPONSE, "content": NOTICE},
+    ),
+    "an MCP tool result without a session id": (
+        _tool_output("mcp__crm__lookup", [{"text": "Patrick"}], session_id=None),
+        NO_SESSION_NOTICE,
+    ),
+}
+"""Per case, a tool output event and the replacement the runner emits for it.
+
+A built-in tool keeps its shape, since Claude Code ignores any other replacement
+for it. An MCP tool's output is not validated, so the notice replaces it whole.
+The hook only calls the server for a tool it knows, so an MCP output reaches the
+failure path through a missing session id.
+"""
+
 
 def _run(event: Mapping[str, object], monkeypatch: pytest.MonkeyPatch) -> None:
     """Feed one event to the runner on stdin, against an unreachable server."""
@@ -248,14 +361,51 @@ def test_the_runner_blocks_what_it_cannot_de_identify(
     assert "Patrick" not in captured.err
 
 
-def test_the_runner_withholds_a_tool_output_it_cannot_de_identify(
+@pytest.mark.parametrize(
+    ("event", "withheld"), WITHHELD_OUTPUTS.values(), ids=WITHHELD_OUTPUTS.keys()
+)
+def test_the_runner_withholds_a_tool_output_in_its_own_shape(
+    event: dict[str, object],
+    withheld: object,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A tool output the runner cannot de-identify has its text replaced by a notice.
+
+    Regression: the notice replaced a built-in tool's structured output as a plain
+    string, which Claude Code ignored, so a .env reached the model in clear.
+    """
+    _run(event, monkeypatch)
+    replaced = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert replaced["updatedToolOutput"] == withheld
+
+
+def test_the_runner_warns_on_an_output_it_cannot_withhold(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A tool output that could not be de-identified is replaced by a notice."""
-    _run(TOOL_OUTPUT_EVENT, monkeypatch)
-    replaced = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
-    assert "withheld" in replaced["updatedToolOutput"]
-    assert "Patrick" not in replaced["updatedToolOutput"]
+    """An unlisted built-in tool's output cannot be replaced, so the runner warns.
+
+    It exits with the blocking code, which shows the reason to Claude, and emits
+    no replacement Claude Code would reject.
+    """
+    event = _tool_output("NotebookRead", {"cells": ["Patrick"]}, session_id=None)
+    with pytest.raises(SystemExit) as caught:
+        _run(event, monkeypatch)
+    captured = capsys.readouterr()
+    assert caught.value.code == 2
+    assert captured.out == ""
+    assert "was not withheld" in captured.err
+    assert "Patrick" not in captured.err
+
+
+def test_an_unlisted_tool_output_passes_through_without_the_server(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The hook never calls the server for an unlisted tool, so it passes, even down."""
+    _run(_tool_output("mcp__crm__lookup", [{"text": "Patrick"}]), monkeypatch)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
 
 
 @pytest.mark.parametrize(
