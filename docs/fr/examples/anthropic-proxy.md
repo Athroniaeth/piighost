@@ -49,6 +49,18 @@ export PIIGHOST_ANTHROPIC_UPSTREAM="https://gateway.internal/v1"
 
 Si vous la voulez pour une seule requête, nommez l'URL de base de la passerelle dans l'en-tête `X-PIIGhost-Upstream`. Chaque requête s'exécute dans une conversation neuve, oubliée une fois la réponse restaurée. Ce fonctionnement convient à Claude Code, parce qu'il renvoie tout l'historique à chaque tour. Fixez une conversation avec `X-PIIGhost-Thread-Id` seulement si vous gérez vous-même sa durée de vie.
 
+## N'appeler le proxy que depuis votre backend
+
+Le proxy fait confiance à son appelant. Il ne vérifie aucune clé de serveur, donc il sert quiconque atteint `/anthropic/v1`. L'appelant choisit le fournisseur avec `X-PIIGhost-Upstream`, et le serveur envoie la requête à l'URL que nomme cet en-tête, quelle qu'elle soit. L'appelant choisit aussi la conversation avec `X-PIIGhost-Thread-Id`, et la réponse revient restaurée avec les valeurs de cette conversation.
+
+Le proxy est donc fait pour être appelé par votre backend, jamais par vos utilisateurs finaux ni depuis Internet. Pour Claude Code sur votre propre machine, cet appelant, c'est vous. Gardez donc le serveur sur `127.0.0.1`, où `piighost-api serve` écoute par défaut.
+
+- Votre backend authentifie ses utilisateurs.
+- Votre backend associe chaque compte à ses identifiants de conversation et pose lui-même `X-PIIGhost-Thread-Id`. Un utilisateur n'envoie jamais d'identifiant de conversation, donc il ne peut jamais nommer la conversation d'un autre.
+- Le serveur n'écoute que là où votre backend l'atteint. Avec Docker, publiez le port sur un réseau privé seulement.
+
+Les clés `API_KEY_` protègent toujours les autres routes du serveur, dont `/v1/deanonymize` et les routes de conversation.
+
 ## Guider le modèle avec une note
 
 Une courte note explique les placeholders au modèle et lui demande de réutiliser `<<PERSON:1>>`{ .placeholder } tel quel, sans jamais deviner l'orthographe d'une valeur cachée. Elle est désactivée par défaut. Pour placer la note intégrée en tête du premier message utilisateur, posez :
@@ -60,15 +72,21 @@ export PIIGHOST_ANTHROPIC_NOTE_PLACEMENT=user
 
 `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` accepte aussi votre propre texte à la place de `default`. Sans `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT=user`, la note est placée en tête du prompt système.
 
-## Dé-identifier aussi le prompt système
+## Garder le prompt système en clair
 
-Le prompt système est relayé intact par défaut, et seuls les messages et le contenu des outils sont dé-identifiés. Certains comptes, dont des comptes par abonnement ou entreprise, valident le client à partir de son prompt système et rejettent une requête dont le prompt système a été modifié. Le même contrôle rejette une note placée dans le prompt système. C'est pourquoi la note ci-dessus va dans le premier message utilisateur.
+Le prompt système est votre propre texte, donc le proxy relaie le champ `system` intact par défaut et ne dé-identifie que les messages et le contenu des outils. Certains comptes, dont des comptes par abonnement ou entreprise, valident aussi le client à partir de son prompt système et rejettent une requête dont le prompt système a été modifié. Le même contrôle rejette une note placée dans le prompt système. C'est pourquoi la note ci-dessus va dans le premier message utilisateur.
 
 Si votre compte tolère un prompt système modifié, dé-identifiez-le aussi :
 
 ```bash
 export PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM=true
 ```
+
+## Choisir un placeholder qui se restaure
+
+Le proxy restaure chaque placeholder en une seule valeur, donc chaque valeur a besoin de son propre placeholder. La factory par défaut `label_counter` donne `<<PERSON:1>>`{ .placeholder } et `<<PERSON:2>>`{ .placeholder }, et `label_hash` convient aussi. La factory `redact` donne à chaque valeur le même `<<REDACT>>`{ .placeholder }. Une réponse restaurée porterait alors une seule valeur, par exemple une URL de base de données et son mot de passe, à la place de chaque `<<REDACT>>`{ .placeholder }, dans le texte comme dans les entrées `tool_use`.
+
+Le serveur refuse donc de démarrer quand le type `[anonymizer.placeholder]` de sa configuration vaut `redact`, `label` ou `mask`, et son erreur nomme la factory. Si vous n'avez besoin que d'un caviardage à sens unique, `PIIGHOST_ONE_WAY=true` le démarre sans les proxies, `/v1/deanonymize` et `/v1/threads/{id}/tokens`. [Fabriques de placeholders](../placeholder-factories.md) compare les factories.
 
 !!! warning "Limites"
     - Par défaut, le prompt système reste intact. Une valeur écrite dedans atteint donc le modèle en clair.
