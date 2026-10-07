@@ -105,7 +105,7 @@ On the sentence "`Patrick`{ .pii } and `Marie`{ .pii } live in `Paris`{ .pii }",
 - With `LabelPlaceholderFactory`, both people become the same `<<PERSON>>`{ .placeholder }. The type is there, the identity is not, so nothing says which of the two tokens was `Patrick`{ .pii }.
 - With `LabelCounterPlaceholderFactory`, `Patrick`{ .pii } becomes `<<PERSON:1>>`{ .placeholder } and `Marie`{ .pii } becomes `<<PERSON:2>>`{ .placeholder }. Each token maps to a single value, so restoration is unambiguous.
 
-The `PIIAnonymizationMiddleware` enforces this constraint at the type level. It requires a `PreservesRecognizableIdentity` factory, that is a token unique per entity and findable in text. At construction, it also refuses a factory with no delimited grammar, such as a mask (`UnrecognizableFactoryError`). The model's reply and the tool arguments need unique tokens to stay reversible, because their restoration relies on string replacement.
+The `PIIAnonymizationMiddleware` enforces this constraint at the type level. It requires a `PreservesRecognizableIdentity` factory, that is a token unique per entity and findable in text. At construction, it also refuses a factory with no delimited grammar, such as a mask (`UnrecognizableFactoryError`), and a factory whose tokens several values can share, such as `redact` (`IrreversibleFactoryError`). The model's reply and the tool arguments need unique tokens to stay reversible, because their restoration relies on string replacement.
 
 **Mitigation**: keep `LabelCounterPlaceholderFactory` or `LabelHashPlaceholderFactory` with the middleware. See [Tool-call strategies](tool-call-strategies.md) for the `FULL`, `INPUT`, `OUTPUT`, and `PASSTHROUGH` modes.
 

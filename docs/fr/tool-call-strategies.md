@@ -161,7 +161,7 @@ Les deux canaux restaurent par remplacement de chaîne, sur un texte que le pipe
 
 Deux garanties en découlent, portées par le tag `PreservesRecognizableIdentity` que `PIIAnonymizationMiddleware` exige. L'unicité est requise, sinon deux entités qui partagent un jeton rendent la restauration ambiguë. La retrouvabilité est requise, sinon le jeton n'a pas de grammaire fixe et se confond avec la prose. Sans retrouvabilité, on ne peut pas non plus repérer un jeton inventé.
 
-Le vérificateur de types contrôle la contrainte par la borne du générique. La construction du middleware en revérifie une partie à l'exécution. Le middleware demande alors au pipeline un recognizer et lève `UnrecognizableFactoryError` s'il n'y en a pas, par exemple avec un masque. Voir [Fabriques de placeholders](placeholder-factories.md) pour le détail des tags et la hiérarchie complète.
+Le vérificateur de types contrôle la contrainte par la borne du générique. La construction du middleware la revérifie à l'exécution. Le middleware demande au pipeline un recognizer et lève `UnrecognizableFactoryError` s'il n'y en a pas, par exemple avec un masque. Il lève `IrreversibleFactoryError` si plusieurs valeurs peuvent partager un jeton du recognizer, par exemple avec `redact`. Voir [Fabriques de placeholders](placeholder-factories.md) pour le détail des tags et la hiérarchie complète.
 
 ---
 

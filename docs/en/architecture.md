@@ -329,7 +329,8 @@ sequenceDiagram
 
 The middleware requires a factory that preserves identity, at type-check time. At
 runtime, it also refuses a pipeline whose tokens have no delimited grammar, such as a
-mask (`UnrecognizableFactoryError`). That grammar lets it
+mask (`UnrecognizableFactoryError`), and a factory whose tokens several values can
+share, such as `redact` (`IrreversibleFactoryError`). That grammar lets it
 recognize the tokens the model **invents** (`InventedPlaceholderStrategy`). After
 restoration, any token still following the placeholder grammar was not emitted by the
 pipeline. The detail of the tool strategies is in

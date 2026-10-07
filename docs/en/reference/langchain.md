@@ -53,7 +53,7 @@ PIIAnonymizationMiddleware(
 | `invented_strategy` | `InventedPlaceholderStrategy` | How a token the pipeline never issued is treated after restoration |
 | `assistant_strategy` | `EntityCreateByAssistantStrategy` | How values the assistant introduces are treated |
 
-The pipeline must expose a delimited token recognizer through `pipeline.recognizer`, so a token the model invented can be found again. A pipeline whose placeholder factory is not delimited (a mask, for example) has no recognizer, and the constructor raises `UnrecognizableFactoryError`. The `IdentityT` type bound enforces the same at type-check time for typed callers.
+The pipeline must expose a delimited token recognizer through `pipeline.recognizer`, so a token the model invented can be found again. A pipeline whose placeholder factory is not delimited (a mask, for example) has no recognizer, and the constructor raises `UnrecognizableFactoryError`. Its tokens must also identify each entity. A factory that gives several values the same token, such as `redact` or `LabelPlaceholderFactory`, makes the constructor raise `IrreversibleFactoryError`. The `IdentityT` type bound enforces both at type-check time for typed callers.
 
 Every agent call carries a thread id in its LangGraph config. A call without one raises `MissingThreadIdError`. The middleware does not route that call into a shared thread, because placeholder state would then leak across conversations. If your conversations need no separation, name the `"default"` thread (`DEFAULT_THREAD_ID`) yourself.
 

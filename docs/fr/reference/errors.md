@@ -43,6 +43,7 @@ L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'
         - `PIIRemainingError`
     - `MiddlewareError`
         - `UnrecognizableFactoryError`
+        - `IrreversibleFactoryError`
         - `InventedPlaceholderError`
         - `MissingThreadIdError`
     - `HasherError`
@@ -55,7 +56,7 @@ L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'
         - `ConfigFileError`
         - `ConfigValidationError`
 
-Sur les trente-cinq classes d'erreur, vingt-deux sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, parce que c'est une classe de regroupement qui est aussi levée pour elle-même.
+Sur les trente-six classes d'erreur, vingt-trois sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, parce que c'est une classe de regroupement qui est aussi levée pour elle-même.
 
 ## Modèles de données
 
@@ -127,15 +128,16 @@ Un garde-fou ne lève rien lui-même. Il renvoie un verdict, et le pipeline tran
 
 ## Intégrations
 
-Module : `piighost.integrations`. `MiddlewareError` regroupe les défaillances de la couche d'intégration. Les deux premières ci-dessous viennent du `TextDeidentifier` partagé, qui porte aussi bien le middleware LangChain que le query engine LlamaIndex et les hooks Pydantic AI. La troisième appartient au seul middleware LangChain.
+Module : `piighost.integrations`. `MiddlewareError` regroupe les défaillances de la couche d'intégration. Les trois premières ci-dessous viennent du `TextDeidentifier` partagé, qui porte aussi bien le middleware LangChain que le query engine LlamaIndex et les hooks Pydantic AI. La quatrième appartient au seul middleware LangChain.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
 | `UnrecognizableFactoryError` | `TextDeidentifier.__init__` | le pipeline n'expose aucun recognizer de jeton, parce que sa placeholder factory n'a pas de grammaire retrouvable |
+| `IrreversibleFactoryError` | `TextDeidentifier.__init__` | plusieurs valeurs peuvent partager un jeton de la placeholder factory, comme `<<REDACT>>`, donc un jeton restauré ne correspondrait pas à une seule valeur |
 | `InventedPlaceholderError` | `TextDeidentifier.deanonymize` et `deanonymize_stream` | le texte restauré porte encore un jeton que le pipeline n'a jamais émis, sous la stratégie `RAISE` de placeholder inventé |
 | `MissingThreadIdError` | le middleware LangChain et les hooks Claude Code, à chaque tour | la config LangGraph ne porte pas de `thread_id`, ou l'événement du hook pas de `session_id` |
 
-Les trois sont traitées dans [Intégration LangChain](langchain.md), avec les stratégies qui décident si la deuxième est levée du tout.
+Les quatre sont traitées dans [Intégration LangChain](langchain.md), avec les stratégies qui décident si la troisième est levée du tout.
 
 ## Crypto
 
