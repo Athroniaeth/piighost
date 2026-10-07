@@ -76,8 +76,10 @@ piighost-api serve --config catalog:piighost/support-en
 | `PIIGHOST_ALLOW_ANONYMOUS` | off | `1`, `true`, `yes` or `on` lets the server start with no key, every route then open. Also applies when the keys fail to load |
 | `PIIGHOST_MAX_BODY_BYTES` | `1000000` | Largest request body accepted, beyond it `413` |
 | `PIIGHOST_RATE_LIMIT` | off | `<unit>:<count>` per client, `unit` one of `second`, `minute`, `hour`, `day`, such as `minute:300`. A malformed value stops the server at start |
+| `PIIGHOST_ONE_WAY` | off | `1`, `true`, `yes` or `on` serves a placeholder factory that cannot be reversed, such as `redact`. The restoring routes are then not served, both proxies, `/v1/deanonymize` and `/v1/threads/{id}/tokens`. Without it, such a factory stops the server at start |
 | `PIIGHOST_OPENAI_UPSTREAM` | `https://api.openai.com/v1` | Upstream of `/openai/v1` when a request names none |
 | `PIIGHOST_ANTHROPIC_UPSTREAM` | `https://api.anthropic.com/v1` | Upstream of `/anthropic/v1` when a request names none |
+| `PIIGHOST_OPENAI_ANONYMIZE_SYSTEM` | `false` | `1`, `true`, `yes` or `on` de-identifies the `system` and `developer` messages too |
 | `PIIGHOST_ANTHROPIC_ANONYMIZE_SYSTEM` | `false` | `1`, `true`, `yes` or `on` de-identifies the system prompt too |
 | `PIIGHOST_ANTHROPIC_PLACEHOLDER_NOTE` | empty, no note | `default` adds the built-in note on placeholders. Any other text is used as the note itself |
 | `PIIGHOST_ANTHROPIC_NOTE_PLACEMENT` | `system` | `user` puts the note in the first user message, any other value in the system prompt |
