@@ -9,6 +9,7 @@ The threshold is chosen on 27 templates, the most leaks caught with at most 5% f
 | Laya (English) | 0.50 (0.44 to 0.56) | 4/100 (4 %) | 0.00 to 0.11 | 7/100 (7 %) | 0.00 to 0.18 | 0.929, 0.936, 0.936 | 4/7 and 4/7 |
 | Laya, placeholder hint | 0.52 (0.44 to 0.60) | 3/100 (3 %) | 0.00 to 0.09 | 3/100 (3 %) | 0.00 to 0.09 | 0.899, 0.901, 0.903 | 4/7 and 3/3 |
 | laya-multilingual | 0.50 (0.44 to 0.56) | 0/100 (0 %) | 0.00 to 0.00 | 0/100 (0 %) | 0.00 to 0.00 | 1.000, 1.000, 1.000 | 0/0 and 0/0 |
+| Laya (English), two-option choice | 0.51 (0.45 to 0.58) | 5/100 (5 %) | 0.00 to 0.14 | 7/100 (7 %) | 0.00 to 0.18 | 0.934, 0.959, 0.959 | 5/7 and 5/7 |
 | Gliner2GuardRail | 0.61 (0.56 to 0.66) | 14/100 (14 %) | 0.03 to 0.26 | 6/100 (6 %) | 0.00 to 0.15 | 0.376, 0.473, 0.507 | 15/6 and 14/6 |
 | GLiNER2 spans, raw | 0.84 (0.78 to 0.90) | 60/100 (60 %) | 0.49 to 0.71 | 7/100 (7 %) | 0.00 to 0.18 | 0.972, 0.974, 0.975 | 60/7 and 59/5 |
 | GLiNER2 spans, placeholders ignored | 0.94 (0.90 to 0.98) | 83/100 (83 %) | 0.73 to 0.92 | 7/100 (7 %) | 0.00 to 0.18 | 0.865, 0.895, 0.897 | 83/7 and 82/7 |
@@ -20,6 +21,7 @@ Fixed thresholds, with cluster bootstrap intervals (in sample, the thresholds we
 | Laya (English) | 69/100 (0.52 to 0.84) | 60/100 (0.42 to 0.76) | 6/100 (0.00 to 0.15) | 11/100 (0.00 to 0.23) |
 | Laya, placeholder hint | 81/100 (0.68 to 0.93) | 81/100 (0.65 to 0.94) | 4/100 (0.00 to 0.10) | 7/100 (0.00 to 0.18) |
 | laya-multilingual | 81/100 (0.66 to 0.93) | 81/100 (0.67 to 0.94) | 68/100 (0.50 to 0.84) | 73/100 (0.56 to 0.88) |
+| Laya (English), two-option choice | 86/100 (0.74 to 0.96) | 82/100 (0.67 to 0.94) | 24/100 (0.11 to 0.39) | 25/100 (0.10 to 0.42) |
 | Gliner2GuardRail | 11/100 (0.03 to 0.20) | 3/100 (0.00 to 0.09) | 1/100 (0.00 to 0.03) | 0/100 (0.00 to 0.00) |
 | GLiNER2 spans, raw | 100/100 (1.00 to 1.00) | 100/100 (1.00 to 1.00) | 89/100 (0.79 to 0.96) | 50/100 (0.32 to 0.67) |
 | GLiNER2 spans, placeholders ignored | 97/100 (0.93 to 1.00) | 49/100 (0.32 to 0.67) | 83/100 (0.73 to 0.92) | 3/100 (0.00 to 0.09) |
@@ -34,6 +36,8 @@ The same rule across languages, the threshold chosen on one language and applied
 | Laya, placeholder hint | EN | FR | 0.901 | 3/50 | 3/50 | 0.901, 3, 3 | 0.901, 3, 3 |
 | laya-multilingual | FR | EN | 1.000 | 0/50 | 0/50 | 1.000, 0, 0 | inf, 0, 0 |
 | laya-multilingual | EN | FR | 1.000 | 0/50 | 0/50 | 1.000, 0, 0 | inf, 0, 0 |
+| Laya (English), two-option choice | FR | EN | 0.937 | 8/50 | 7/50 | 0.934, 8, 8 | 0.941, 6, 7 |
+| Laya (English), two-option choice | EN | FR | 0.982 | 0/50 | 0/50 | 0.982, 0, 0 | 0.983, 0, 0 |
 | Gliner2GuardRail | FR | EN | 0.473 | 7/50 | 3/50 | 0.473, 7, 3 | 0.474, 7, 3 |
 | Gliner2GuardRail | EN | FR | 0.740 | 4/50 | 0/50 | 0.719, 4, 0 | 0.761, 4, 0 |
 | GLiNER2 spans, raw | FR | EN | 0.972 | 30/50 | 3/50 | 0.972, 30, 3 | 0.973, 30, 3 |
@@ -53,6 +57,8 @@ Exact two-sided sign test, ties dropped. Wilcoxon signed-rank (normal approximat
 | Laya, placeholder hint | de-identified clean vs original | 100 | 100 / 0 / 0 | 1.6e-30 | 3.9e-18 | 28 / 0 | 7.5e-09 |
 | laya-multilingual | leak vs clean twin | 100 | 39 / 19 / 42 | 0.82 | 0.4 | 7 / 17 | 0.064 |
 | laya-multilingual | de-identified clean vs original | 100 | 94 / 1 / 5 | 2.4e-22 | 1.5e-17 | 28 / 0 | 7.5e-09 |
+| Laya (English), two-option choice | leak vs clean twin | 100 | 50 / 1 / 49 | 1 | 0.86 | 16 / 12 | 0.57 |
+| Laya (English), two-option choice | de-identified clean vs original | 100 | 87 / 0 / 13 | 1.3e-14 | 1.5e-14 | 25 / 3 | 2.7e-05 |
 | Gliner2GuardRail | leak vs clean twin | 100 | 72 / 0 / 28 | 1.3e-05 | 0.00095 | 23 / 5 | 0.00091 |
 | Gliner2GuardRail | de-identified clean vs original | 100 | 22 / 0 / 78 | 1.6e-08 | 1.5e-08 | 5 / 23 | 0.00091 |
 | GLiNER2 spans, raw | leak vs clean twin | 100 | 87 / 0 / 13 | 1.3e-14 | 9.7e-15 | 28 / 0 | 7.5e-09 |
@@ -84,6 +90,7 @@ Each rule, then the span detector alone at the threshold that catches at least a
 | Laya (English) | 0.50 | 0.52 | 0.47 | 69/100 (69 %) | 60/100 (60 %) | 708 ms |
 | Laya, placeholder hint | 0.52 | 0.52 | 0.51 | 81/100 (81 %) | 81/100 (81 %) | 744 ms |
 | laya-multilingual | 0.50 | 0.50 | 0.49 | 81/100 (81 %) | 81/100 (81 %) | 390 ms |
+| Laya (English), two-option choice | 0.51 | 0.52 | 0.51 | 86/100 (86 %) | 82/100 (82 %) | 678 ms |
 | Gliner2GuardRail | 0.61 | 0.62 | 0.60 | 11/100 (11 %) | 3/100 (3 %) | 330 ms |
 | GLiNER2 spans, raw | 0.84 | 0.87 | 0.82 | 100/100 (100 %) | 100/100 (100 %) | 402 ms |
 | GLiNER2 spans, placeholders ignored | 0.94 | 0.97 | 0.92 | 97/100 (97 %) | 49/100 (49 %) | 356 ms |
@@ -146,6 +153,26 @@ Caught at 0.5 by leak type: name 10/12, variant 5/10, partial 8/10, email 8/12, 
 False alarms at 0.5 by placeholder count: 4 to 6 18/22, 7 to 8 63/66, 11 to 15 0/12.
 Latency per text: median 390 ms, p90 633 ms, max 2519 ms.
 Calibration: ECE 0.466, Brier 0.468. Bins (score range, n, mean score, share leaking): 0.0-0.1 n=17 0.03/0.71; 0.1-0.2 n=2 0.12/0.00; 0.2-0.3 n=5 0.25/0.60; 0.3-0.4 n=5 0.34/0.40; 0.4-0.5 n=9 0.46/0.22; 0.5-0.6 n=4 0.54/1.00; 0.6-0.7 n=6 0.66/0.33; 0.7-0.8 n=2 0.75/0.50; 0.8-0.9 n=9 0.87/0.67; 0.9-1.0 n=141 0.99/0.48.
+Texts truncated by Laya's window: 0.
+
+## Laya (English), two-option choice
+
+| Threshold | Caught | 95 % CI | False alarms | 95 % CI | Caught FR | Alarms FR | Caught EN | Alarms EN |
+|---|---|---|---|---|---|---|---|---|
+| 0.1 | 96/100 (96 %) | 0.90 to 0.98 | 99/100 (99 %) | 0.95 to 1.00 | 50/50 | 50/50 | 46/50 | 49/50 |
+| 0.2 | 96/100 (96 %) | 0.90 to 0.98 | 97/100 (97 %) | 0.92 to 0.99 | 50/50 | 50/50 | 46/50 | 47/50 |
+| 0.3 | 96/100 (96 %) | 0.90 to 0.98 | 97/100 (97 %) | 0.92 to 0.99 | 50/50 | 50/50 | 46/50 | 47/50 |
+| 0.4 | 95/100 (95 %) | 0.89 to 0.98 | 95/100 (95 %) | 0.89 to 0.98 | 50/50 | 48/50 | 45/50 | 47/50 |
+| 0.5 | 86/100 (86 %) | 0.78 to 0.91 | 82/100 (82 %) | 0.73 to 0.88 | 44/50 | 40/50 | 42/50 | 42/50 |
+| 0.6 | 81/100 (81 %) | 0.72 to 0.87 | 75/100 (75 %) | 0.66 to 0.82 | 40/50 | 35/50 | 41/50 | 40/50 |
+| 0.7 | 70/100 (70 %) | 0.60 to 0.78 | 67/100 (67 %) | 0.57 to 0.75 | 33/50 | 31/50 | 37/50 | 36/50 |
+| 0.8 | 52/100 (52 %) | 0.42 to 0.62 | 49/100 (49 %) | 0.39 to 0.59 | 21/50 | 18/50 | 31/50 | 31/50 |
+| 0.9 | 24/100 (24 %) | 0.17 to 0.33 | 25/100 (25 %) | 0.18 to 0.34 | 10/50 | 10/50 | 14/50 | 15/50 |
+
+Caught at 0.5 by leak type: name 10/12, variant 6/10, partial 9/10, email 11/12, phone 11/12, iban 11/12, address 12/12, id 7/10, split 9/10.
+False alarms at 0.5 by placeholder count: 4 to 6 12/22, 7 to 8 63/66, 11 to 15 7/12.
+Latency per text: median 678 ms, p90 864 ms, max 1870 ms.
+Calibration: ECE 0.278, Brier 0.346. Bins (score range, n, mean score, share leaking): 0.0-0.1 n=5 0.08/0.80; 0.1-0.2 n=2 0.10/0.00; 0.3-0.4 n=3 0.37/0.33; 0.4-0.5 n=22 0.46/0.41; 0.5-0.6 n=12 0.55/0.42; 0.6-0.7 n=19 0.65/0.58; 0.7-0.8 n=36 0.76/0.50; 0.8-0.9 n=52 0.85/0.54; 0.9-1.0 n=49 0.93/0.49.
 Texts truncated by Laya's window: 0.
 
 ## Gliner2GuardRail
@@ -224,6 +251,7 @@ At 0.5, 96 of the 97 leaks caught had a detection on the leaked value itself. Cl
 | Laya (English) | 100 | 54.0 | +0.007 | 65 | 7 |
 | Laya, placeholder hint | 100 | 40.0 | -0.005 | 85 | 2 |
 | laya-multilingual | 100 | 48.5 | -0.028 | 81 | 5 |
+| Laya (English), two-option choice | 100 | 50.5 | +0.001 | 86 | 3 |
 | Gliner2GuardRail | 100 | 72.0 | +0.041 | 4 | 9 |
 | GLiNER2 spans, raw | 100 | 87.0 | +0.068 | 100 | 0 |
 | GLiNER2 spans, placeholders ignored | 100 | 97.5 | +0.452 | 51 | 46 |
@@ -233,6 +261,8 @@ Laya (English), leak scored higher than its twin, by type: name 8.0/12 (gap +0.0
 Laya, placeholder hint, leak scored higher than its twin, by type: name 4.0/12 (gap +0.02), variant 6.0/10 (gap +0.01), partial 3.0/10 (gap -0.00), email 5.0/12 (gap +0.01), phone 7.0/12 (gap +0.00), iban 4.0/12 (gap -0.04), address 5.0/12 (gap +0.00), id 3.0/10 (gap -0.02), split 3.0/10 (gap -0.02).
 
 laya-multilingual, leak scored higher than its twin, by type: name 2.5/12 (gap -0.03), variant 3.5/10 (gap -0.01), partial 4.5/10 (gap +0.02), email 6.5/12 (gap -0.13), phone 6.0/12 (gap +0.01), iban 7.5/12 (gap +0.01), address 5.5/12 (gap -0.01), id 8.5/10 (gap +0.04), split 4.0/10 (gap -0.15).
+
+Laya (English), two-option choice, leak scored higher than its twin, by type: name 6.0/12 (gap +0.02), variant 6.0/10 (gap +0.02), partial 7.0/10 (gap +0.02), email 4.0/12 (gap -0.03), phone 6.0/12 (gap -0.01), iban 6.0/12 (gap -0.01), address 6.5/12 (gap +0.02), id 3.0/10 (gap -0.00), split 6.0/10 (gap -0.02).
 
 Gliner2GuardRail, leak scored higher than its twin, by type: name 11.0/12 (gap +0.23), variant 10.0/10 (gap +0.02), partial 9.0/10 (gap +0.01), email 10.0/12 (gap +0.07), phone 4.0/12 (gap -0.00), iban 2.0/12 (gap -0.08), address 12.0/12 (gap +0.12), id 7.0/10 (gap -0.03), split 7.0/10 (gap +0.00).
 
@@ -250,6 +280,7 @@ GLiNER2 spans, placeholders ignored, leak scored higher than its twin, by type: 
 | laya-multilingual | 100 | 47 | 0.42 |
 | GLiNER2 spans, placeholders ignored | 100 | 100 | 1.00 |
 | Laya, placeholder hint | 100 | 27 | 0.35 |
+| Laya (English), two-option choice | 100 | 50 | 0.53 |
 
 ## Run
 
@@ -284,6 +315,12 @@ GLiNER2 spans, placeholders ignored, leak scored higher than its twin, by type: 
   },
   "laya-en-hint": {
     "load_and_warmup_s": 1.8806332033127546,
+    "warnings": [
+      "laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated."
+    ]
+  },
+  "laya-en-choice": {
+    "load_and_warmup_s": 1.9597455961629748,
     "warnings": [
       "laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated."
     ]

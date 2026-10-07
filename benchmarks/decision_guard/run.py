@@ -7,7 +7,7 @@
 # ///
 """Run every guard rail on every de-identified text and record its score.
 
-Four guards, each behind piighost's AnyGuardRail port, each asked about the
+Seven guards, each behind piighost's AnyGuardRail port, each asked about the
 same 200 texts:
 
 - laya-en: LayaGuardRail from examples/guard_rail_laya.py, unchanged, the
@@ -16,6 +16,10 @@ same 200 texts:
 - laya-en-hint: the same guard and checkpoint, with one sentence added to the
   question saying that tokens such as <<PERSON:1>> are placeholders, not
   personal data, the hint LLMGuardRail's prompt carries.
+- laya-en-choice: the same question and checkpoint, asked as a two-option
+  choice (neutral keys A and B, yes/no wording in their descriptions), the
+  form Laya's model card recommends when noul answers look stuck. The score
+  is the probability of A, the yes.
 - gliner2-guard: Gliner2GuardRail, the GLiNER2 safety classifier (whether).
 - gliner2-spans: DetectorGuardRail over Gliner2PiiDetector, a span detector
   re-run on the output (where), asked for the six kinds of value the Laya
@@ -151,6 +155,40 @@ class HintedLayaGuardRail(LayaGuardRail):
         return GuardVerdict(flagged=score >= self.threshold, score=score)
 
 
+CHOICE_CRITERIA = {
+    "A": "yes, the text contains personal data in clear",
+    "B": "no, the text contains no personal data in clear",
+}
+"""The two options of the choice question, neutral keys and yes/no wording."""
+
+
+class ChoiceLayaGuardRail(LayaGuardRail):
+    """The example's question and checkpoint, asked as a two-option choice.
+
+    Laya's model card warns that a noul answer can follow its option labels
+    instead of the text, most strongly on the English checkpoint, and
+    recommends this form instead: a choice between two neutral keys, the
+    yes/no wording in their descriptions. The score is the probability of A,
+    the yes.
+    """
+
+    async def check(self, text: str) -> GuardVerdict:
+        """Ask the question as a two-option choice and return P(yes) as the score."""
+        question = {
+            "pii": {
+                "type": "choice",
+                "instructions": QUESTION,
+                "criteria": CHOICE_CRITERIA,
+            }
+        }
+        result = await asyncio.to_thread(
+            self.router.predict, text, question, model="english"
+        )
+        self.last = result
+        score = result["answers"]["pii"]["probabilities"]["A"]
+        return GuardVerdict(flagged=score >= self.threshold, score=score)
+
+
 class RecordingLayaGuardRail(LayaGuardRail):
     """The example's guard, keeping Laya's last raw answer for the usage block."""
 
@@ -233,6 +271,8 @@ def build(name: str) -> AnyGuardRail:
         return HintedLayaGuardRail()
     if name == "laya-multi":
         return MultilingualLayaGuardRail()
+    if name == "laya-en-choice":
+        return ChoiceLayaGuardRail()
     if name == "gliner2-guard":
         return RecordingGliner2GuardRail()
     if name == "gliner2-spans":
@@ -250,6 +290,7 @@ GUARDS = (
     "laya-en",
     "laya-en-hint",
     "laya-multi",
+    "laya-en-choice",
     "gliner2-guard",
     "gliner2-spans",
     "gliner2-spans-ph",

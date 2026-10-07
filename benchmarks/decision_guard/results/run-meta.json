@@ -31,5 +31,11 @@
     "warnings": [
       "laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated."
     ]
+  },
+  "laya-en-choice": {
+    "load_and_warmup_s": 1.9597455961629748,
+    "warnings": [
+      "laya: this checkpoint ships invalid temperatures or values outside [0.5, 5]; using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected entries as uncalibrated."
+    ]
   }
 }
