@@ -21,7 +21,7 @@ Last checked: 6 October 2026.
 | [`PresidioReversibleAnonymizer`](#piighost-vs-presidioreversibleanonymizer) | ✅ | ❌ | ⚠️ one mapping per anonymizer object | ❌ | LangChain chains | MIT | archived, 22 May 2026 |
 | [LangChain `PIIMiddleware` (Python)](#piighost-vs-langchain-pii-middleware) | ❌ | ❌ | ⚠️ with the `hash` strategy | ❌ masks the stream | LangChain agents | MIT | active |
 | [LangChain `piiRedactionMiddleware` (JS)](#piighost-vs-langchain-pii-middleware) | ✅ after the model call | ✅ | ❌ a new marker per occurrence | ❌ | LangChain.js agents | MIT | deprecated |
-| [LLM Guard](#piighost-vs-llm-guard) | ✅ | not documented | ⚠️ while the same vault is reused | not documented | library, API server | MIT | archived, 8 July 2026 |
+| [LLM Guard](#piighost-vs-llm-guard) | ✅ | not documented | ⚠️ while the same vault is reused | not documented | library, API server | MIT | archived, 9 July 2026 |
 | [AWS Comprehend, Azure AI Language](#piighost-vs-aws-comprehend-and-azure-ai-language) | ❌ | ❌ | ❌ | ❌ | cloud API | paid | active |
 | [Google DLP](#piighost-vs-google-dlp) | ⚠️ through an API call | ❌ | ✅ always the same token for a value | ❌ | cloud API | paid | active |
 | [PrivAiTe](#piighost-vs-privaite) | ✅ | ✅ | ⚠️ per request | ✅ | OpenAI-compatible proxy, Claude Code and Codex gateway, Open WebUI, LiteLLM | BSD-3-Clause | active |
@@ -83,7 +83,7 @@ The JavaScript [`piiRedactionMiddleware`](https://reference.langchain.com/javasc
 
 ## `piighost` vs LLM Guard
 
-[LLM Guard](https://github.com/protectai/llm-guard) was archived on 8 July 2026 and is no longer maintained. `piighost` covers only its [Anonymize](https://protectai.github.io/llm-guard/input_scanners/anonymize/) and [Deanonymize](https://protectai.github.io/llm-guard/output_scanners/deanonymize/) scanners, which replace values and restore them from a [vault](https://github.com/protectai/llm-guard/blob/main/llm_guard/input_scanners/anonymize.py). `piighost` has no equivalent of the other scanners, such as prompt injection, toxicity or banned topics.
+[LLM Guard](https://github.com/protectai/llm-guard) was archived on 9 July 2026 and is no longer maintained. `piighost` covers only its [Anonymize](https://protectai.github.io/llm-guard/input_scanners/anonymize/) and [Deanonymize](https://protectai.github.io/llm-guard/output_scanners/deanonymize/) scanners, which replace values and restore them from a [vault](https://github.com/protectai/llm-guard/blob/main/llm_guard/input_scanners/anonymize.py). `piighost` has no equivalent of the other scanners, such as prompt injection, toxicity or banned topics.
 
 ## `piighost` vs AWS Comprehend and Azure AI Language
 
