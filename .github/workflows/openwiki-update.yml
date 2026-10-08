@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   update:
@@ -41,7 +40,7 @@ jobs:
           # the secret LITELLM_API_KEY, and the model the LiteLLM model name.
           OPENAI_BASE_URL: ${{ vars.LITELLM_URL }}
           OPENAI_API_KEY: ${{ secrets.LITELLM_API_KEY }}
-          OPENWIKI_MODEL_ID: "openai/gpt-5.6-terra"
+          OPENWIKI_MODEL_ID: "openai/gpt-6.1-sol"
           # Required for the LangSmith connector's code-mode pull to authenticate.
           # For extra workspaces, add OPENWIKI_LANGSMITH_API_KEY_2, _3, ... as repo
           # secrets and env entries here.
@@ -58,34 +57,31 @@ jobs:
       - name: List OpenWiki update paths
         id: paths
         if: ${{ !cancelled() }}
-        # CLAUDE.md is listed only when present: git add fails on a missing path
-        # and then stages nothing.
+        # A path is listed only when present, because git add fails on a
+        # missing path and then stages nothing.
         run: |
-          paths=openwiki,AGENTS.md,.github/workflows/openwiki-update.yml
-          if [ -e CLAUDE.md ]; then paths="$paths,CLAUDE.md"; fi
+          paths=openwiki,.github/workflows/openwiki-update.yml
+          for f in AGENTS.md CLAUDE.md; do
+            if [ -e "$f" ]; then paths="$paths,$f"; fi
+          done
           echo "list=$paths" >> "$GITHUB_OUTPUT"
 
-      - name: Create OpenWiki update pull request
-        id: create-pr
+      - name: Push the OpenWiki update branch
         if: ${{ !cancelled() }}
-        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
-        with:
-          add-paths: ${{ steps.paths.outputs.list }}
-          branch: openwiki/update
-          commit-message: "docs: update OpenWiki"
-          title: "docs: update OpenWiki"
-          body: |
-            Automated OpenWiki documentation update.
-
-            OpenWiki result: ${{ steps.openwiki.outcome }}
-
-            When the result is `failure`, this PR intentionally preserves only the
-            pages completed before the failure. Merge it to make that progress the
-            baseline for the next scheduled run.
-
-      - name: Annotate OpenWiki update pull request
-        if: ${{ !cancelled() && steps.create-pr.outputs.pull-request-url != '' }}
-        run: echo "::notice title=OpenWiki update pull request::${{ steps.create-pr.outputs.pull-request-url }}"
+        # No pull request: the maintainer reviews openwiki/update and merges it
+        # locally. Each run starts from master and replaces the branch.
+        run: |
+          IFS=, read -ra paths <<< "${{ steps.paths.outputs.list }}"
+          git add -- "${paths[@]}"
+          if git diff --cached --quiet; then
+            echo "No wiki change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: update OpenWiki" -m "OpenWiki result: ${{ steps.openwiki.outcome }}"
+          git push --force origin HEAD:refs/heads/openwiki/update
+          echo "::notice title=OpenWiki update::Branch openwiki/update is ready, review it and merge it locally."
 
       - name: Propagate OpenWiki failure
         if: ${{ steps.openwiki.outcome == 'failure' }}
