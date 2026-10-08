@@ -58,7 +58,7 @@ docker run --name piighost-api -p 8000:8000 \
   ghcr.io/athroniaeth/piighost-api:latest
 ```
 
-`-e API_KEY_DEV -e SECRET_PEPPER` passe au conteneur les deux variables exportées à l'étape 2. `EXTRA_PACKAGES` installe l'extra `gliner2`, le moteur du modèle dont la configuration a besoin, au démarrage du conteneur. Les deux volumes gardent les paquets téléchargés et le modèle GLiNER2 d'un démarrage à l'autre. Le premier démarrage les télécharge, les suivants les reprennent des volumes.
+`-e API_KEY_DEV -e SECRET_PEPPER` passe au conteneur les deux variables exportées à l'étape 2. `EXTRA_PACKAGES` installe l'extra `gliner2`, le moteur du modèle dont la configuration a besoin, au démarrage du conteneur. Sans carte NVIDIA visible, il prend la version de PyTorch pour processeur, environ 1 Go. Les deux volumes gardent les paquets téléchargés et le modèle GLiNER2 d'un démarrage à l'autre. Le premier démarrage les télécharge, les suivants les reprennent des volumes.
 
 Le serveur récupère la configuration sur le catalogue à chaque démarrage, parce que la référence n'est pas épinglée sur un commit. Le journal affiche `API keys loaded, auth enabled`, puis `Pipeline ready: piighost/support-en:<commit> (detector: composite)`, et uvicorn écoute sur `http://0.0.0.0:8000`, joignable depuis la machine sur `http://127.0.0.1:8000`.
 

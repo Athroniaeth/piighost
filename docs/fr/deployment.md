@@ -155,6 +155,7 @@ L'image lit ces variables :
 | `API_PORT` | `8000` | Port d'écoute |
 | `LOG_LEVEL` | `info` | Niveau de log |
 | `EXTRA_PACKAGES` | vide | Paquets installés avec `uv pip install` au démarrage du conteneur, comme `piighost[gliner2]` pour une configuration qui exécute GLiNER2 |
+| `UV_TORCH_BACKEND` | `auto` | Version de PyTorch qu'installe `EXTRA_PACKAGES`. `auto` prend la version pour processeur quand aucune carte NVIDIA n'est visible. `cu130`, par exemple, force une version CUDA |
 
 Pour servir une configuration du catalogue plutôt qu'un fichier, posez `PIIGHOST_CONFIG` à sa référence et ajoutez la mémoire Redis avec une variable `PIIGHOST_MEMORY`, comme le montre [CLI du serveur](reference/api-cli.md). Chaque conteneur exécute un seul processus serveur, donc passez à l'échelle en ajoutant des conteneurs sur la même mémoire Redis. Chaque route, proxys compris, est listée dans [Endpoints de l'API](reference/api-endpoints.md).
 
