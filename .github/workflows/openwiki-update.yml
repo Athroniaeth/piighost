@@ -48,7 +48,8 @@ jobs:
           # Optional: also trace this workflow's own OpenWiki run to LangSmith.
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
           LANGCHAIN_PROJECT: openwiki
-          LANGCHAIN_TRACING_V2: "true"
+          # Tracing only when the key exists, otherwise every run logs 403s.
+          LANGCHAIN_TRACING_V2: ${{ secrets.LANGSMITH_API_KEY != '' && 'true' || 'false' }}
 
       - name: Remove transient OpenWiki run state
         if: ${{ !cancelled() }}
@@ -57,12 +58,12 @@ jobs:
       - name: List OpenWiki update paths
         id: paths
         if: ${{ !cancelled() }}
-        # A path is listed only when present, because git add fails on a
-        # missing path and then stages nothing.
+        # A path is listed only when present and not ignored, because git add
+        # fails on such a path and then stages nothing. AGENTS.md is ignored.
         run: |
           paths=openwiki,.github/workflows/openwiki-update.yml
           for f in AGENTS.md CLAUDE.md; do
-            if [ -e "$f" ]; then paths="$paths,$f"; fi
+            if [ -e "$f" ] && ! git check-ignore -q "$f"; then paths="$paths,$f"; fi
           done
           echo "list=$paths" >> "$GITHUB_OUTPUT"
 
