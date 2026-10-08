@@ -64,7 +64,7 @@ Four settings decide what the tool receives and what the model reads. The choice
 
 **BR-AGT-05.** When a Claude Code event has no session identifier, then it is refused with `The hook event carries no session_id, the thread its values belong to.` No shared conversation is used.
 
-**BR-AGT-06.** When a Claude Code tool is not in the list of handled tools, then its result passes in clear. The handled tools are Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, in particular, is not among them.
+**BR-AGT-06.** When a Claude Code tool is not in the list of handled tools, then its result passes in clear. The handled tools are Bash, Read, Write, Edit, Agent, Grep, WebFetch, WebSearch, ToolSearch. MCP tools, in particular, are not among them.
 
 **BR-AGT-07.** When the model's reply is streamed as it is produced, then the display shows placeholders until the end of the message, unless the application plugs in the provided stream decoder. See [Show a streamed reply](../processes/show-a-streamed-reply.md).
 
