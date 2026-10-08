@@ -1,5 +1,17 @@
 # Consignes de rédaction du wiki
 
+## Update runs: change as little as possible (read first)
+
+These rules override everything below during `openwiki --update`.
+
+1. **Edit, do not rewrite.** The pages were written and reviewed by hand. Change only the sentences that the code changed since the last documented commit makes false or incomplete. Keep every other sentence word for word. Do not rephrase, restyle, reorder or reformat text that is still true. A page whose subject did not change in the code stays byte for byte identical.
+2. **Each folder keeps its language.** Every page under `openwiki/en/` is written in English. Every page under `openwiki/fr/` is written in French. Never write a French sentence in `en/` or an English sentence in `fr/`. A change made in one language is made in the other, with the same meaning, in the same update.
+3. **Decisions are not yours to change.** Never edit the text of a business rule (`BR-`), a design decision (`DEC-`), a need (`DPO-`, `DEV-`, `OPS-`, `USER-`) or an acceptance test (`AT-`). Never add, delete, merge or renumber one. You may update only their code locations (`file:line`) and the list of tests. When the code contradicts one, leave the text as it is and report the gap in the final output of the run.
+4. **No new files outside the two language folders.** Do not create `openwiki/index.md`, a folder with a French name, or any page that does not exist in both `en/` and `fr/`. Add a page only for a process the code added, and add it in both languages.
+5. **Style of a changed sentence.** No semicolon. No em dash. A colon only ends a line that announces a list, a table or a block, or follows the label of a list item, never in the middle of a sentence. Use the vocabulary already on the page.
+6. **There is no pull request.** The branch is reviewed by hand. Report every gap, doubt or unverifiable point in the final output of the run, never in a page.
+
+
 ## Public visé
 
 Le wiki s'adresse à deux publics, dans cet ordre de priorité :
@@ -260,8 +272,8 @@ laisse son numéro libre.
   texte et sans police de code dans les titres. Jamais « PIIGhost ».
 - Exemples : le plus petit exemple réaliste, avec des données fictives
   crédibles, en français dans les pages françaises (« Bonjour Claire »).
-- Typographie française dans la prose : espace avant `;`, `:`, `!`, `?`,
-  guillemets « ».
+- Typographie française dans la prose : espace avant `:`, `!`, `?`,
+  guillemets « ». Pas de point-virgule.
 - Un diagramme Mermaid par processus, de 10 boîtes au plus, avec des
   libellés métier. Dans les libellés : pas de `<br/>`, pas de `;`, pas de
   chevron `<` ou `>` (donc pas de chemin de navigation avec chevrons), et

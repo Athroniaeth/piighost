@@ -1,9 +1,9 @@
 name: OpenWiki Update
 
 on:
+  # Run by hand only. Each run is reviewed before it is merged, so a daily
+  # schedule only piled up rewrites nobody had asked for.
   workflow_dispatch:
-  schedule:
-    - cron: "0 8 * * *"
 
 permissions:
   contents: write
