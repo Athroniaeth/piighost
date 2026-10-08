@@ -64,7 +64,7 @@ Quatre réglages décident de ce que reçoit l'outil et de ce que lit le modèle
 
 **BR-AGT-05.** Quand un événement de Claude Code n'a pas d'identifiant de session, alors il est refusé avec `The hook event carries no session_id, the thread its values belong to.` Aucune conversation commune n'est utilisée.
 
-**BR-AGT-06.** Quand un outil de Claude Code n'est pas dans la liste des outils traités, alors son résultat passe en clair. Les outils traités sont Bash, Read, Write, Edit, Agent, WebFetch, WebSearch, ToolSearch. Grep, notamment, n'y est pas.
+**BR-AGT-06.** Quand un outil de Claude Code n'est pas dans la liste des outils traités, alors son résultat passe en clair. Les outils traités sont Bash, Read, Write, Edit, Agent, Grep, WebFetch, WebSearch, ToolSearch. Les outils MCP, notamment, n'y sont pas.
 
 **BR-AGT-07.** Quand la réponse du modèle est diffusée au fil de l'eau, alors l'affichage montre des jetons jusqu'à la fin du message, sauf si l'application branche le décodeur de flux prévu. Voir [Afficher une réponse au fil de l'eau](../processes/show-a-streamed-reply.md).
 
