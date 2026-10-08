@@ -155,6 +155,7 @@ The image reads these variables:
 | `API_PORT` | `8000` | Bind port |
 | `LOG_LEVEL` | `info` | Log level |
 | `EXTRA_PACKAGES` | empty | Packages installed with `uv pip install` at container start, such as `piighost[gliner2]` for a configuration that runs GLiNER2 |
+| `UV_TORCH_BACKEND` | `auto` | PyTorch build that `EXTRA_PACKAGES` installs. `auto` takes the CPU build when no NVIDIA GPU is visible. `cu130`, for instance, forces a CUDA build |
 
 To serve a catalog configuration instead of a file, set `PIIGHOST_CONFIG` to its reference and add the Redis memory with a `PIIGHOST_MEMORY` variable, as shown in [Server CLI](reference/api-cli.md). Each container runs a single server process, so scale by adding containers on the same Redis memory. Every route, the proxies included, is listed in [API endpoints](reference/api-endpoints.md).
 
