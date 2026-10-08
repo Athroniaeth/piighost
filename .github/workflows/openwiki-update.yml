@@ -36,8 +36,12 @@ jobs:
         run: openwiki code --update --print
         env:
           OPENWIKI_PROVIDER: openai
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENWIKI_MODEL_ID: "gpt-5.6-terra"
+          # Calls go through the LiteLLM gateway, which routes the model and
+          # counts the spend. Its URL is the repo variable LITELLM_URL, the key
+          # the secret LITELLM_API_KEY, and the model the LiteLLM model name.
+          OPENAI_BASE_URL: ${{ vars.LITELLM_URL }}
+          OPENAI_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+          OPENWIKI_MODEL_ID: "openai/gpt-5.6-terra"
           # Required for the LangSmith connector's code-mode pull to authenticate.
           # For extra workspaces, add OPENWIKI_LANGSMITH_API_KEY_2, _3, ... as repo
           # secrets and env entries here.
