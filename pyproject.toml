@@ -1,6 +1,6 @@
 [project]
 name = "piighost"
-version = "2.0.1"
+version = "2.1.0"
 description = "piighost replaces personal data with placeholders before the LLM sees it, then restores the real values in the reply and in tool calls."
 readme = "README.md"
 license = "MIT"

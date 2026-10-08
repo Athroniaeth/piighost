@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.0 (2026-10-08)
+
+### Feat
+
+- **benchmarks**: gliner2-spans-ph runs the library's DetectorGuardRail
+- **guard**: DetectorGuardRail ignores detections that hold only placeholders
+- **benchmarks**: Laya asked as a two-option choice, as its model card recommends
+- **benchmarks**: held-out thresholds, template-level intervals and paired tests
+- **benchmarks**: decision models as a guard rail after de-identification
+
+### Fix
+
+- **integrations**: refuse at runtime a placeholder factory whose tokens several values can share
+- **claude-code**: withhold a tool output in its own shape, cover Grep, drop the ignored updatedPrompt
+
 ## 2.0.1 (2026-10-06)
 
 Metadata and README only, the code is the same as 2.0.0.
