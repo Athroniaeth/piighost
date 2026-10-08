@@ -73,7 +73,7 @@ No code change is needed. Four behaviours change.
 - **`DetectorGuardRail` ignores the placeholders.** A detection that holds only placeholders, such as GLiNER2 tagging `<<PERSON:1>>`{ .placeholder } as a person, no longer flags the text. Pass `ignore_placeholders=False`, or `ignore_placeholders = false` in a config, to flag them as 2.0 did. Inside a pipeline, the guard is a copy bound to the pipeline's placeholder grammar, so `pipeline.guard is guard` is false.
 - **Integrations refuse a factory whose tokens can be shared.** `TextDeidentifier`, behind the LangChain middleware, the Pydantic AI capability and the LlamaIndex query engine, raises `IrreversibleFactoryError` at construction for `RedactPlaceholderFactory` or `LabelPlaceholderFactory`. Restoring through them put one value in place of every token that shared it.
 - **Claude Code hooks.** The prompt hook no longer emits `updatedPrompt`, which Claude Code ignored. It still blocks the prompt when the server is down. A tool output withheld on failure now keeps the tool's own shape, so Claude Code shows the notice instead of the original output. `Grep` results are de-identified.
-- **`piighost-api` proxies.** The server refuses to start with a factory whose tokens can be shared, unless `PIIGHOST_ONE_WAY=true`. The OpenAI proxy leaves the `system` and `developer` messages in clear, unless `PIIGHOST_OPENAI_ANONYMIZE_SYSTEM=true`.
+- **`piighost-api` 2.0.1 proxies.** The server refuses to start with a factory whose tokens can be shared, unless `PIIGHOST_ONE_WAY=true`. The OpenAI proxy leaves the `system` and `developer` messages in clear, unless `PIIGHOST_OPENAI_ANONYMIZE_SYSTEM=true`.
 
 ## Upgrading to 2.0
 
