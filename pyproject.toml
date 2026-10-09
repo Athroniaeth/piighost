@@ -88,7 +88,7 @@ gliner2 = [
     # `transformers` extra included. So torch, transformers and peft are named
     # here; transformers already brings numpy and safetensors.
     "gliner2>=2",
-    "torch>=2.1,<3",
+    "torch>=2.0",
     "transformers>=5",
     "peft>=0.10,<1",
 ]
