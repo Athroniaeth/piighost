@@ -54,7 +54,7 @@ La sortie doit être :
 
 ## Regrouper les occurrences répétées
 
-Une même valeur citée plusieurs fois reçoit un seul jeton, donc le LLM garde le fil. `ExactEntityLinker` regroupe les occurrences par valeur et par label.
+Une même valeur citée plusieurs fois reçoit un seul jeton, donc le LLM garde le fil. `ExactEntityLinker` regroupe les occurrences par valeur, quel que soit leur label.
 
 ```python
 --8<-- "snippets/basic_exact.fr.py:exact"

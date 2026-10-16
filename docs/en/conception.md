@@ -105,8 +105,11 @@ all the detections referring to the same value.
 
 Hence a new step, going from detections to entities. That is the linker
 (`AnyEntityLinker`). `ExactEntityLinker` groups the detections by canonical key
-`(value_key(text), label)`, that is the value whatever its case and spaces, and the
-label. It creates one entity per key, whose value is the first spelling seen.
+`value_key(text)`, that is the value whatever its case and spaces. It creates one entity
+per key, whose value is the first spelling seen and whose label is the first label seen.
+The label does not split a value. A member list can label `yanis_42`{ .pii } `USERNAME`
+and a NER label it `PERSON`, and the value still gets one entity. Two entities would read
+as two people to the model.
 
 ```mermaid
 flowchart LR
@@ -272,6 +275,10 @@ Message 2: "Marie calls Patrick back"  →  <<PERSON:2>> calls <<PERSON:1>> back
 - **First-appearance order.** The counter of an entity is assigned to its first
   appearance in the conversation and never moves again. Without this rule, a new entity
   placed early in its message would steal the counter of an older entity.
+- **One label per value.** A value keeps the label of its first detection in the thread.
+  A later detection under another label joins the same entity, even a surer one. A
+  changed label would renumber the tokens the model already received, and an old
+  `<<PERSON:1>>`{ .placeholder } would restore to someone else.
 - **Isolation by `thread_id`.** The `thread_id` is mandatory, and there is no shared default
   thread. That way, two callers do not fall into the same thread and leak each other's confidential data.
   `forget_thread` can erase everything from a thread, for the right to erasure.
@@ -282,6 +289,37 @@ The detections of an entity come from different messages, whose positions have n
 frame. So you cannot replace by positions at the scale of the thread. Tokens are assigned
 over the whole thread. Rendering, however, only replaces the current message's spans, the
 only ones whose offsets are valid in that message.
+
+### When a human corrects a message
+
+A human, or the application on their behalf, corrects a message with
+`anonymize_corrected`. The correction adds a value the detectors missed or drops a false
+positive. The corrected set replaces the message's detections in memory, so it is the
+whole truth for that message.
+
+A correction often overlaps an automatic detection. The NER finds `nora`{ .pii } inside
+the handle `nora.bzh`{ .pii }, and the human marks the whole handle. Two rules settle it.
+
+- **The whole area is hidden.** Overlapping detections merge into the span they cover
+  together, so no character a detector or the human flagged stays in clear.
+- **The human is always right.** The human's detection names the merged span, whatever
+  the detectors' confidence. A detection the message's cached automatic set does not hold
+  is the human's.
+
+| Text | Detector | Human | Result |
+|---|---|---|---|
+| `Il y a nora.bzh dedans` | `nora`{ .pii } `PERSON` 0.94 | `nora.bzh`{ .pii } `USERNAME` 1.0 | `Il y a <<USERNAME:1>> dedans` |
+| `Loni M. Wirth arrive` | `Loni M.`{ .pii } `PERSON` 0.7 | `M. Wirth`{ .pii } `PERSON` 1.0 | `<<PERSON:1>> arrive` |
+| `Écris à nora.bzh@mail.fr` | `nora.bzh@mail.fr`{ .pii } `EMAIL_ADDRESS` 1.0 | `nora.bzh`{ .pii } `USERNAME` 1.0 | `Écris à <<USERNAME:1>>` |
+
+Hiding only `M. Wirth`{ .pii } would send `Loni`{ .pii } in clear. The set holds the
+detector's `Loni M.`{ .pii }, so it states that `Loni`{ .pii } is confidential. A human who
+judges otherwise removes that detection from the set, and only `M. Wirth`{ .pii } is
+hidden.
+
+The human being always right is one strategy among several, see
+[Roadmap](roadmap.md#human-feedback-strategy). A correction also stays local to its
+message for now, see [Propagating a correction across the thread](roadmap.md#propagating-a-correction-across-the-thread).
 
 ---
 

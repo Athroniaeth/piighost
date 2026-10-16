@@ -130,7 +130,7 @@ The `thread_id` is required. There is no shared default, so two callers cannot f
 
 Re-de-identifies a user message with a human-corrected detection set. The corrected set replaces this message's detections in memory, then the message is de-identified with tokens consistent across the thread. Detection does not run again. This method applies only to a user's own messages, so the correction is recorded as a user message.
 
-The corrected set is stored as given, without overlap resolution or occurrence expansion, since the human is authoritative over that set. A configured `override` still applies, so the server's lists trump the correction.
+The corrected set is the whole truth for the message. A detection it leaves out stays in clear, and no occurrence expansion runs on it. Its overlapping detections merge into the span they cover together, so no flagged character stays in clear. The human is always right, so the human's detection names the merged span whatever the detectors' confidence. A detection absent from the message's cached automatic set is the human's. On a message never de-identified before, the whole set counts as the human's, and the surest detection names each merged span. A configured `override` still applies first, so the server's lists trump the correction. See [When a human corrects a message](../conception.md#when-a-human-corrects-a-message).
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"

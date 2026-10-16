@@ -59,10 +59,6 @@ class EmptyEntityError(EntityError):
     """Raised when an Entity is built with no detections."""
 
 
-class MixedLabelError(EntityError):
-    """Raised when an Entity's detections do not all share the same label."""
-
-
 class DetectorError(PIIGhostError):
     """Base class for errors raised while constructing a detector.
 

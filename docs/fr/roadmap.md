@@ -33,6 +33,20 @@ La mémoire de conversation cache les détections de chaque message par conversa
 
 Une application web de dé-identification de documents qui tourne entièrement dans le navigateur répond aux contraintes de confidentialité et de consentement remontées de façon répétée autour des données clients. Un professionnel réglementé y dé-identifie un fichier client sans qu'aucune donnée ne quitte la machine. Le moteur existe déjà. Le site du projet fait tourner le vrai `piighost` dans le navigateur via Pyodide, avec une détection GLiNER elle aussi dans le navigateur. La bibliothèque elle-même n'a donc rien à réimplémenter. Il reste à construire l'application autour. Elle comprend le parsing de documents côté client (PDF, DOCX) et l'OCR, une étape de revue où l'utilisateur valide ou complète la dé-identification, et une étape de partage. C'est une application distincte bâtie sur la bibliothèque, pas une fonctionnalité de la bibliothèque.
 
+## Stratégie de retour humain
+
+Une correction humaine l'emporte toujours aujourd'hui. Sa détection nomme le span qu'elle chevauche, quelle que soit la confiance des détecteurs, voir [Quand un humain corrige un message](conception.md#quand-un-humain-corrige-un-message). D'autres stratégies pourraient devenir un réglage.
+
+- **Juste sous une règle.** L'humain compte un peu sous 1.0, donc il bat tout modèle, mais une regex à 1.0 nomme le span à égalité.
+- **Seuil.** L'humain ne l'emporte que sur une détection sous une confiance donnée.
+- **Ignorer.** Les corrections sont écartées, par exemple pour mesurer un détecteur sans l'influence de l'humain.
+
+Chacune doit distinguer les détections de l'humain des détections automatiques. La comparaison avec l'ensemble automatique du message en mémoire le fait déjà.
+
+## Propager une correction dans la conversation
+
+Une correction ne couvre que le message qu'elle corrige. Une valeur ajoutée par l'humain dans un message reste en clair dans les autres messages de la conversation, avant comme après, car chaque message ne lit que ses propres détections. Les couvrir pourrait se faire vers l'avant seulement, en cherchant dans chaque nouveau message les valeurs que la conversation connaît déjà. On pourrait aussi réécrire l'historique, avec un coût. Un message réécrit change le préfixe rejoué au modèle, ce qui invalide le cache de prompt du fournisseur à partir de ce message, et la valeur est de toute façon déjà partie une fois en clair.
+
 ## Hors périmètre
 
 Certaines capacités ont été envisagées puis écartées volontairement. Le raisonnement est consigné ici pour que la frontière soit explicite. Chacune pourrait être réexaminée si un besoin futur répond à la réserve qui l'a fait écarter.

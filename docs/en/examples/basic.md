@@ -54,7 +54,7 @@ The output should be:
 
 ## Group repeated occurrences
 
-A value cited several times gets a single token, so the LLM keeps the thread. `ExactEntityLinker` groups occurrences by value and label.
+A value cited several times gets a single token, so the LLM keeps the thread. `ExactEntityLinker` groups occurrences by value, whatever their label.
 
 ```python
 --8<-- "snippets/basic_exact.en.py:exact"

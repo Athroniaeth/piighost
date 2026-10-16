@@ -33,6 +33,20 @@ The conversation memory caches each message's detections per thread, so resendin
 
 A document-de-identification web app that runs entirely in the browser answers the confidentiality and consent constraints raised repeatedly around client data. With it, a regulated professional can de-identify a client file without any data leaving the machine. The engine already exists. The project website runs the real `piighost` in the browser through Pyodide, with GLiNER detection in the browser too. The library itself therefore needs no reimplementation. What remains to build is the application around it. It includes client-side document parsing (PDF, DOCX) and OCR, a review step where the user validates or completes the de-identification, and a share step. This is a separate application built on the library, not a library feature.
 
+## Human feedback strategy
+
+A human correction always wins today. Its detection names the span it overlaps, whatever the detectors' confidence, see [When a human corrects a message](conception.md#when-a-human-corrects-a-message). Other strategies could become a setting.
+
+- **Just below a rule.** The human counts as slightly under 1.0, so it beats any model, but a regex at 1.0 names the span on a tie.
+- **Threshold.** The human wins only over a detection below a given confidence.
+- **Ignore.** Corrections are left out, for instance to measure a detector without the human's influence.
+
+Each one needs to tell the human's detections apart from the automatic ones. The comparison with the message's cached automatic set already does that.
+
+## Propagating a correction across the thread
+
+A correction only covers the message it corrects. A value the human adds in one message stays in clear in the thread's other messages, earlier or later, because each message reads only its own detections. Covering them could go forward only, searching each new message for the values the thread already knows. It could also rewrite the history, at a cost. A rewritten message changes the prefix replayed to the model, which invalidates the provider's prompt cache from that message on, and the value was already sent in clear once.
+
 ## Non-goals
 
 Some capabilities were considered and left out on purpose. The reasoning is recorded here so the boundary is explicit. Any of them could be revisited if a future need answers the reason it was left out.

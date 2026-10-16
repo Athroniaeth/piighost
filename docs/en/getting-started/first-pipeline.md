@@ -41,7 +41,7 @@ The detector reads the text and returns detections, one per value found. The res
 
 ## 2. Group detections into entities
 
-One first name can appear several times. The linker groups the detections of the same value and the same label into a single entity, so every occurrence later receives the same token.
+One first name can appear several times. The linker groups the detections of the same value into a single entity, whatever their label, so every occurrence later receives the same token.
 
 ```python
 --8<-- "snippets/first_pipeline.en.py:linker"

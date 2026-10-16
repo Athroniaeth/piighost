@@ -29,7 +29,20 @@ class MergeOverlapResolver(BaseOverlapResolver):
 
     The members of a group overlap one another in a chain, so their union is one
     contiguous range, and its text is rebuilt from theirs.
+
+    Some detections can be preferred, so they name the union before any other,
+    whatever their confidence. A human correction is preferred this way: the
+    human names the span over any detector, while the union still hides every
+    character a detector flagged. Among preferred members, and when none is
+    present, the surest rule above applies.
+
+    Attributes:
+        preferred: The detections that name a union they belong to first.
     """
+
+    def __init__(self, preferred: frozenset[Detection] = frozenset()) -> None:
+        """Store the detections that name their union first, none by default."""
+        self.preferred = preferred
 
     def _reduce(self, conflicting: list[Detection]) -> list[Detection]:
         """Merge the group into one detection spanning all of it."""
@@ -41,13 +54,17 @@ class MergeOverlapResolver(BaseOverlapResolver):
         for detection in conflicting:
             offset = detection.span.start - start
             characters[offset : offset + len(detection.text)] = detection.text
-        surest = min(conflicting, key=_surest)
+        namer = min(conflicting, key=self._naming_order)
         span = Span(start, end)
         text = "".join(characters)
         merged = Detection(
             span=span,
             text=text,
-            label=surest.label,
-            confidence=surest.confidence,
+            label=namer.label,
+            confidence=namer.confidence,
         )
         return [merged]
+
+    def _naming_order(self, detection: Detection) -> tuple[bool, float, int, Span]:
+        """Sort key ordering preferred detections first, then the surest."""
+        return detection not in self.preferred, *_surest(detection)

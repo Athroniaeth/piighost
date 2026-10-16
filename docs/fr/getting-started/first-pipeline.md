@@ -41,7 +41,7 @@ Le détecteur lit le texte et renvoie des détections, une par valeur trouvée. 
 
 ## 2. Regrouper les détections en entités
 
-Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détections d'une même valeur et d'un même label en une seule entité, pour que chaque occurrence reçoive plus tard le même jeton.
+Un même prénom peut apparaître plusieurs fois. Le linker regroupe les détections d'une même valeur en une seule entité, quel que soit leur label, pour que chaque occurrence reçoive plus tard le même jeton.
 
 ```python
 --8<-- "snippets/first_pipeline.fr.py:linker"

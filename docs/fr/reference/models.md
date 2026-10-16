@@ -141,13 +141,13 @@ Les détections identifiées comme une même valeur, regroupées par l'étage de
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| `detections` | `tuple[Detection, ...]` | Les occurrences que l'entité regroupe, au moins une, toutes de même label |
+| `detections` | `tuple[Detection, ...]` | Les occurrences que l'entité regroupe, au moins une, dans l'ordre de première apparition. Leurs labels peuvent différer, car deux détecteurs peuvent nommer une même valeur autrement |
 
 ### Propriétés
 
 #### `label` (propriété)
 
-Le label partagé par les détections regroupées.
+Le label de la première détection. Une détection ultérieure sous un autre label rejoint l'entité sans la renommer.
 
 #### `text` (propriété)
 
@@ -168,9 +168,8 @@ Le label, le texte canonique et les spans sont dérivés des détections au lieu
 | Exception | Condition |
 |-----------|-----------|
 | `EmptyEntityError` | Aucune détection n'est donnée |
-| `MixedLabelError` | Les détections ne partagent pas toutes un même label |
 
-Les deux dérivent de `EntityError`.
+Elle dérive de `EntityError`.
 
 ---
 

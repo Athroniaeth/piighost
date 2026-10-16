@@ -141,13 +141,13 @@ The detections identified as the same value, grouped by the link stage. The grou
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `detections` | `tuple[Detection, ...]` | The occurrences the entity groups, at least one, all sharing a label |
+| `detections` | `tuple[Detection, ...]` | The occurrences the entity groups, at least one, in first-occurrence order. Their labels may differ, since two detectors can name one value differently |
 
 ### Properties
 
 #### `label` (property)
 
-The shared label of the grouped detections.
+The label of the first detection. A later detection under another label joins the entity without renaming it.
 
 #### `text` (property)
 
@@ -168,9 +168,8 @@ The label, the canonical text and the spans are derived from the detections rath
 | Exception | Condition |
 |-----------|-----------|
 | `EmptyEntityError` | No detection is given |
-| `MixedLabelError` | The detections do not all share one label |
 
-Both derive from `EntityError`.
+It derives from `EntityError`.
 
 ---
 

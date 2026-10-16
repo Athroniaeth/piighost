@@ -26,7 +26,6 @@ The `PIIGhostError` tree, each grouping class above the errors it covers.
         - `ConfidenceError`
     - `EntityError`
         - `EmptyEntityError`
-        - `MixedLabelError`
     - `DetectorError`
         - `LabelMappingError`
         - `TextTooLongError`
@@ -68,7 +67,6 @@ Module: `piighost.models`. `SpanError`, `DetectionError`, and `EntityError` grou
 | `SpanOrderingError` | `Span.__post_init__` | `end` is not strictly greater than `start`, which describes an empty or a reversed range |
 | `ConfidenceError` | `Detection.__post_init__` | `confidence` falls outside the closed range 0 to 1 |
 | `EmptyEntityError` | `Entity.__post_init__` | the entity groups no detection |
-| `MixedLabelError` | `Entity.__post_init__` | the grouped detections do not all share one label |
 
 The invariants these errors enforce are in [Data models](models.md), and the ports that exchange the models in [Extending piighost](../extending.md).
 

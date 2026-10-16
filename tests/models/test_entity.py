@@ -4,7 +4,7 @@ import dataclasses
 
 import pytest
 
-from piighost.exceptions import EmptyEntityError, MixedLabelError
+from piighost.exceptions import EmptyEntityError
 from piighost.models import Detection, Entity, Span
 
 
@@ -47,9 +47,16 @@ class TestConstruction:
 
 class TestDerivedProperties:
     def test_label_comes_from_detections(self) -> None:
-        """The entity label is the shared label of its detections."""
+        """The entity label is the label of its detections."""
         entity = Entity(detections=(_detection(0, 4, label="EMAIL"),))
         assert entity.label == "EMAIL"
+
+    def test_mixed_labels_take_the_first_label(self) -> None:
+        """Detections under different labels form one entity named by the first."""
+        username = _detection(0, 4, label="USERNAME")
+        person = _detection(5, 9, label="PERSON")
+        entity = Entity(detections=(username, person))
+        assert entity.label == "USERNAME"
 
     def test_text_is_the_first_occurrence(self) -> None:
         """The canonical text is the first detection's text."""
@@ -71,10 +78,3 @@ class TestValidation:
         """An entity with no detections raises EmptyEntityError."""
         with pytest.raises(EmptyEntityError):
             Entity(detections=())
-
-    def test_mixed_labels_raise(self) -> None:
-        """Detections with differing labels raise MixedLabelError."""
-        person = _detection(0, 4, label="PERSON")
-        email = _detection(5, 9, label="EMAIL")
-        with pytest.raises(MixedLabelError):
-            Entity(detections=(person, email))

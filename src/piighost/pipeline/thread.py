@@ -11,6 +11,7 @@ from piighost.components.expander.base import AnyDetectionExpander
 from piighost.components.guard.base import AnyGuardRail
 from piighost.components.linker.base import AnyEntityLinker
 from piighost.components.overlap_resolver.base import AnyOverlapResolver
+from piighost.components.overlap_resolver.merge import MergeOverlapResolver
 from piighost.components.override.base import AnyDetectionOverride
 from piighost.components.placeholder.base import AnyPlaceholderFactory
 from piighost.conversation_memory.base import (
@@ -178,15 +179,28 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         message is re-anonymized with tokens consistent across the thread.
         Detection does not run again, since the correction is read from the
         cache. Only a user's own messages are corrected this way, so the
-        correction is recorded as a user message. The corrected set is stored as
-        given, without overlap resolution or occurrence expansion, since the
-        human is authoritative over it. In observation traces the detect span of
-        this call reports cache_hit true, since the corrected detections are read
-        back from memory rather than re-detected. Server-side overrides are the
-        one exception: the corrected set passes through the configured override
-        before it is stored, so the server's lists trump the correction.
+        correction is recorded as a user message. In observation traces the
+        detect span of this call reports cache_hit true, since the corrected
+        detections are read back from memory rather than re-detected.
+
+        The corrected set is the whole truth for the message, so a detection it
+        leaves out stays in clear, and no occurrence expansion runs on it. Its
+        overlapping detections are merged into the span they cover together, so
+        no character any of them flagged is left in clear. The human is always
+        right: a detection absent from the message's cached automatic set is
+        the human's, and it names the merged span over any automatic one,
+        whatever their confidences. A message never anonymized before has no
+        cached set, so its whole corrected set counts as the human's.
+
+        Server-side overrides are the one exception to the human's authority:
+        the corrected set passes through the configured override before it is
+        merged and stored, so the server's lists trump the correction.
         """
-        corrected = await self._override(text, detections)
+        automatic = await self.memory.get_detections(thread_id, text) or []
+        human = frozenset(detections).difference(automatic)
+        overridden = await self._override(text, detections)
+        resolver = MergeOverlapResolver(preferred=human)
+        corrected = resolver.resolve(overridden)
         await self.memory.remember(
             thread_id=thread_id,
             message=text,

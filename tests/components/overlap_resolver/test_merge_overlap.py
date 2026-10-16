@@ -103,3 +103,13 @@ class TestResolve:
         kept = MergeOverlapResolver().resolve(detections)
         for before, after in pairwise(kept):
             assert before.span.end <= after.span.start
+
+
+class TestPreferred:
+    def test_a_preferred_member_names_the_union_over_a_surer_one(self) -> None:
+        """A preferred detection names its union, even below a surer member."""
+        rule = _detection("Loni M. Wirth", "PERSON", 1.0)
+        human = _detection("Wirth", "FR_CIVIL_NAME", 0.5)
+        resolver = MergeOverlapResolver(preferred=frozenset({human}))
+        [merged] = resolver.resolve([rule, human])
+        assert (merged.span, merged.label) == (rule.span, "FR_CIVIL_NAME")

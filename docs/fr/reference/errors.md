@@ -26,7 +26,6 @@ L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'
         - `ConfidenceError`
     - `EntityError`
         - `EmptyEntityError`
-        - `MixedLabelError`
     - `DetectorError`
         - `LabelMappingError`
         - `TextTooLongError`
@@ -68,7 +67,6 @@ Module : `piighost.models`. `SpanError`, `DetectionError` et `EntityError` regro
 | `SpanOrderingError` | `Span.__post_init__` | `end` n'est pas strictement supérieur à `start`, ce qui décrit un intervalle vide ou inversé |
 | `ConfidenceError` | `Detection.__post_init__` | `confidence` tombe hors de l'intervalle fermé 0 à 1 |
 | `EmptyEntityError` | `Entity.__post_init__` | l'entité ne regroupe aucune détection |
-| `MixedLabelError` | `Entity.__post_init__` | les détections regroupées ne partagent pas toutes le même label |
 
 Les invariants que ces erreurs font respecter sont dans [Référence des modèles de données](models.md), et les ports qui échangent les modèles dans [Étendre piighost](../extending.md).
 

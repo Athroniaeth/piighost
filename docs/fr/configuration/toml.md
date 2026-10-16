@@ -228,7 +228,7 @@ Optionnel. Par défaut `ExactEntityLinker`. Un seul linker existe, donc `type` l
 
 | `type` | Signification |
 |--------|---------------|
-| `exact` | Regroupe les détections par valeur, les mêmes mots quelles que soient leurs espaces et leur casse |
+| `exact` | Regroupe les détections par valeur, les mêmes mots quelles que soient leurs espaces et leur casse, quel que soit leur label. L'entité prend le label de sa première détection |
 
 ```toml
 [linker]

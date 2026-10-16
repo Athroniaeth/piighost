@@ -130,7 +130,7 @@ Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants
 
 Redé-identifie un message utilisateur avec un ensemble de détections corrigé par un humain. L'ensemble corrigé remplace les détections de ce message dans la mémoire, puis le message est dé-identifié avec des jetons cohérents sur la conversation. La détection ne relance pas. Cette méthode ne concerne que les propres messages d'un utilisateur. La correction est donc enregistrée comme un message utilisateur.
 
-L'ensemble corrigé est stocké tel quel, sans résolution de chevauchement ni recherche d'occurrences, car l'humain fait autorité sur cet ensemble. Un `override` configuré s'applique encore, donc les listes du serveur priment sur la correction.
+L'ensemble corrigé est toute la vérité du message. Une détection qu'il omet reste en clair, et aucune recherche d'occurrences ne tourne dessus. Ses détections qui se chevauchent fusionnent en un span qui couvre leur union, donc aucun caractère signalé ne reste en clair. L'humain a toujours raison, donc sa détection nomme le span fusionné quelle que soit la confiance des détecteurs. Une détection absente de l'ensemble automatique du message en mémoire est celle de l'humain. Sur un message jamais dé-identifié auparavant, tout l'ensemble compte comme celui de l'humain, et la détection la plus sûre nomme chaque span fusionné. Un `override` configuré s'applique d'abord, donc les listes du serveur priment sur la correction. Voir [Quand un humain corrige un message](../conception.md#quand-un-humain-corrige-un-message).
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"

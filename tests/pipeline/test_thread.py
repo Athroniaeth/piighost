@@ -13,7 +13,7 @@ from piighost.components.placeholder import (
     PreservesLabeledIdentityOpaque,
 )
 from piighost.conversation_memory import InMemoryConversationMemory, MessageRole
-from piighost.models import Detection, Entity
+from piighost.models import Detection, Entity, Span
 from piighost.pipeline import ThreadAnonymizationPipeline
 
 
@@ -141,6 +141,42 @@ class TestThreadConsistency:
         in_b = await pipeline.anonymize("Emma", "b")
         assert in_a.text == "<<PERSON:1>>"
         assert in_b.text == "<<PERSON:1>>"
+
+
+class TestOneLabelPerValue:
+    async def test_a_value_keeps_its_first_label_across_detectors(self) -> None:
+        """A value a second detector labels differently keeps its first token."""
+        pipeline = _pipeline(ExactMatchDetector({"yanis_42": "PERSON"}))
+        span = Span(7, 15)
+        known = Detection(
+            span=span,
+            text="yanis_42",
+            label="USERNAME",
+            confidence=1.0,
+        )
+        first = await pipeline.anonymize_corrected("Salut @yanis_42", "t1", [known])
+        second = await pipeline.anonymize("Oui, avec yanis_42", "t1")
+        assert first.text == "Salut @<<USERNAME:1>>"
+        assert second.text == "Oui, avec <<USERNAME:1>>"
+
+    async def test_a_later_surer_label_renames_no_token(self) -> None:
+        """A surer label seen later neither renames nor renumbers issued tokens."""
+        detector = ExactMatchDetector({"yanis_42": "PERSON", "nora": "PERSON"})
+        pipeline = _pipeline(detector)
+        await pipeline.anonymize("yanis_42 arrive", "t1")
+        await pipeline.anonymize("nora aussi", "t1")
+        later = "Membre yanis_42"
+        span = Span(7, 15)
+        member = Detection(
+            span=span,
+            text="yanis_42",
+            label="USERNAME",
+            confidence=1.0,
+        )
+        result = await pipeline.anonymize_corrected(later, "t1", [member])
+        token_map = await pipeline.thread_token_map("t1")
+        assert result.text == "Membre <<PERSON:1>>"
+        assert token_map == {"<<PERSON:1>>": "yanis_42", "<<PERSON:2>>": "nora"}
 
 
 class TestCache:

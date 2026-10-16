@@ -106,9 +106,11 @@ qui regroupe toutes les détections désignant la même valeur.
 
 D'où une nouvelle étape, passer des détections aux entités. C'est le linker
 (`AnyEntityLinker`). `ExactEntityLinker` groupe les détections par clé canonique
-`(value_key(texte), label)`, c'est-à-dire la valeur sans tenir compte de la casse ni des
-espaces, et le label. Il crée une entité par clé, dont la valeur est la première
-graphie rencontrée.
+`value_key(texte)`, c'est-à-dire la valeur sans tenir compte de la casse ni des espaces.
+Il crée une entité par clé, dont la valeur est la première graphie rencontrée et le label
+le premier label rencontré. Le label ne sépare pas une valeur. Une liste de membres peut
+marquer `yanis_42`{ .pii } `USERNAME` et un NER le marquer `PERSON`, la valeur garde une
+seule entité. Deux entités se liraient comme deux personnes pour le modèle.
 
 ```mermaid
 flowchart LR
@@ -284,6 +286,11 @@ Message 2 : "Marie rappelle Patrick"  →  <<PERSON:2>> rappelle <<PERSON:1>>
 - **Ordre de première apparition.** Le compteur d'une entité est attribué à sa première
   apparition dans la conversation et ne bouge plus. Sans cette règle, une nouvelle
   entité placée tôt dans son message volerait le compteur d'une entité plus ancienne.
+- **Un label par valeur.** Une valeur garde le label de sa première détection dans la
+  conversation. Une détection ultérieure sous un autre label rejoint la même entité, même
+  plus sûre. Si le label changeait, les numéros des jetons que le modèle a déjà reçus se
+  décaleraient, et un ancien `<<PERSON:1>>`{ .placeholder } serait restauré vers quelqu'un
+  d'autre.
 - **Isolation par `thread_id`.** Le `thread_id` est obligatoire, et il n'y a pas de conversation
   partagée par défaut. Ainsi, deux appelants ne tombent pas dans la même conversation et ne
   fuitent pas leurs données confidentielles. `forget_thread` peut tout effacer d'une conversation, pour le droit à
@@ -295,6 +302,40 @@ Les détections d'une entité viennent de messages différents, dont les positio
 pas de référentiel commun. On ne peut donc pas remplacer par positions à l'échelle de la
 conversation. Les jetons sont attribués sur toute la conversation. Le rendu, lui, ne remplace que les
 spans du message courant, les seuls dont les offsets valent dans ce message.
+
+### Quand un humain corrige un message
+
+Un humain, ou l'application en son nom, corrige un message avec `anonymize_corrected`. La
+correction ajoute une valeur que les détecteurs ont ratée, ou retire un faux positif.
+L'ensemble corrigé remplace les détections du message en mémoire, il est donc toute la
+vérité pour ce message.
+
+Une correction recouvre souvent une détection automatique. Le NER trouve `nora`{ .pii }
+dans le pseudo `nora.bzh`{ .pii }, et l'humain marque le pseudo entier. Deux règles
+tranchent.
+
+- **Toute la zone est cachée.** Les détections qui se chevauchent fusionnent en un span
+  qui couvre leur union, donc aucun caractère signalé par un détecteur ou par l'humain ne
+  reste en clair.
+- **L'humain a toujours raison.** La détection de l'humain nomme le span fusionné, quelle
+  que soit la confiance des détecteurs. Une détection absente de l'ensemble automatique
+  du message en mémoire est celle de l'humain.
+
+| Texte | Détecteur | Humain | Résultat |
+|---|---|---|---|
+| `Il y a nora.bzh dedans` | `nora`{ .pii } `PERSON` 0.94 | `nora.bzh`{ .pii } `USERNAME` 1.0 | `Il y a <<USERNAME:1>> dedans` |
+| `Loni M. Wirth arrive` | `Loni M.`{ .pii } `PERSON` 0.7 | `M. Wirth`{ .pii } `PERSON` 1.0 | `<<PERSON:1>> arrive` |
+| `Écris à nora.bzh@mail.fr` | `nora.bzh@mail.fr`{ .pii } `EMAIL_ADDRESS` 1.0 | `nora.bzh`{ .pii } `USERNAME` 1.0 | `Écris à <<USERNAME:1>>` |
+
+Cacher seulement `M. Wirth`{ .pii } enverrait `Loni`{ .pii } en clair. L'ensemble contient
+le `Loni M.`{ .pii } du détecteur, il affirme donc que `Loni`{ .pii } est confidentiel. Un
+humain qui en juge autrement retire cette détection de l'ensemble, et seul
+`M. Wirth`{ .pii } est caché.
+
+"L'humain a toujours raison" est une stratégie parmi d'autres, voir la
+[feuille de route](roadmap.md#strategie-de-retour-humain). Une correction reste aussi
+locale à son message pour l'instant, voir
+[Propager une correction dans la conversation](roadmap.md#propager-une-correction-dans-la-conversation).
 
 ---
 

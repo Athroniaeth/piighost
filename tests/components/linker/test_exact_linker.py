@@ -44,12 +44,13 @@ class TestLink:
         entities = ExactEntityLinker().link([first, second])
         assert entities[0].text == "Emma"
 
-    def test_separates_by_label(self) -> None:
-        """Same text under different labels stays in separate entities."""
-        person = _detection(0, 4, "Lyon", label="PERSON")
-        location = _detection(9, 13, "Lyon", label="LOCATION")
-        entities = ExactEntityLinker().link([person, location])
-        assert len(entities) == 2
+    def test_groups_one_value_across_labels(self) -> None:
+        """One value under two labels is one entity, named by the first label."""
+        username = _detection(0, 8, "yanis_42", label="USERNAME")
+        person = _detection(20, 28, "yanis_42", label="PERSON")
+        entities = ExactEntityLinker().link([username, person])
+        assert len(entities) == 1
+        assert entities[0].label == "USERNAME"
 
     def test_separates_distinct_values(self) -> None:
         """Different values become different entities."""

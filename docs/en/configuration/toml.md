@@ -228,7 +228,7 @@ Optional. Defaults to `ExactEntityLinker`. One linker exists, so `type` names it
 
 | `type` | Meaning |
 |--------|---------|
-| `exact` | Groups detections by value, the same words whatever their spaces and case |
+| `exact` | Groups detections by value, the same words whatever their spaces and case, whatever their label. The entity takes the label of its first detection |
 
 ```toml
 [linker]
