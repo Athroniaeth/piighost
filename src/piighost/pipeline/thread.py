@@ -32,6 +32,20 @@ _MemoKey = tuple[object, ...]
 """What a memoized thread-token map is keyed on: the thread and the state it derives from."""
 
 
+def _spellings(tokens: Mapping[Entity, str]) -> list[tuple[str, Detection]]:
+    """Return one detection per distinct spelling of each tokenized entity, with its label.
+
+    An entity can group several spellings, a casing the linker folded or a near
+    spelling a resolver merged. Searching each keeps a later message from
+    sending one in clear because only the first spelling was looked for.
+    """
+    return [
+        (entity.label, detection)
+        for entity in tokens
+        for detection in {d.text: d for d in entity.detections}.values()
+    ]
+
+
 class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
     """Anonymize each message of a thread with tokens stable across the thread.
 
@@ -325,21 +339,25 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         A known value merges with a detection it overlaps, so no character either
         flagged stays in clear, and it names the union: a value keeps the label,
         hence the token, the model already holds. Only values that hold a token
-        are placed, so a value the assistant introduced stays in clear.
+        are placed, so a value the assistant introduced stays in clear. Every
+        spelling the thread grouped under a token is searched, such as a casing
+        or a near spelling a resolver merged.
         """
         if self.expander is None:
             return detections
 
-        known = [
+        tokens = await self._thread_tokens(thread_id)
+        found = (
             Detection(
                 span=span,
                 text=span.extract(text),
-                label=entity.label,
+                label=label,
                 confidence=1.0,
             )
-            for entity in await self._thread_tokens(thread_id)
-            for span in self.expander.find(text, entity.detections[0])
-        ]
+            for label, spelling in _spellings(tokens)
+            for span in self.expander.find(text, spelling)
+        )
+        known = list(dict.fromkeys(found))
         if not known:
             return detections
 

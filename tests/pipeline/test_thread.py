@@ -254,6 +254,24 @@ def _expanding_pipeline(
     )
 
 
+class _ArrivalNer:
+    """A NER stand-in that finds Emma, in any casing, only in a text about arriving."""
+
+    async def detect(self, text: str) -> list[Detection]:
+        """Return the first Emma of the text, whatever its casing, if it arrives."""
+        start = text.casefold().find("emma")
+        if start == -1 or "arrive" not in text:
+            return []
+        span = Span(start, start + 4)
+        detection = Detection(
+            span=span,
+            text=text[start : start + 4],
+            label="PERSON",
+            confidence=0.9,
+        )
+        return [detection]
+
+
 async def _mark_paris_as_town(
     pipeline: ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque],
 ) -> None:
@@ -293,6 +311,20 @@ class TestKnownValues:
         await pipeline.anonymize("Bonjour Paris", "t1")
         later = await pipeline.anonymize("Paris : j'y habite", "t1")
         assert later.text == "<<PERSON:1>> : j'y habite"
+
+    async def test_every_spelling_of_a_known_value_is_searched(self) -> None:
+        """A casing seen later under the same token is masked where the detector misses it."""
+        pipeline = ThreadAnonymizationPipeline(
+            _ArrivalNer(),
+            ExactEntityLinker(),
+            Anonymizer(LabelCounterPlaceholderFactory()),
+            InMemoryConversationMemory(),
+            expander=WordBoundaryExpander(case_sensitive=True),
+        )
+        await pipeline.anonymize("Emma arrive", "t1")
+        await pipeline.anonymize("EMMA arrive", "t1")
+        later = await pipeline.anonymize("EMMA ?", "t1")
+        assert later.text == "<<PERSON:1>> ?"
 
 
 class TestCache:
