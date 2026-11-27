@@ -76,6 +76,16 @@ class LabelMappingError(DetectorError):
     """
 
 
+class ThresholdLabelsError(DetectorError):
+    """Raised when a per-label threshold does not match the detector's labels.
+
+    A mapping that names a label the detector never emits holds a typo, and one
+    that leaves a label out without the __default key would leave that label
+    with no threshold. Both are refused at construction rather than read as a
+    silent zero.
+    """
+
+
 class TextTooLongError(DetectorError):
     """Raised when a text exceeds a NER detector's max_chars with chunking off.
 

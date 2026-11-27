@@ -7,6 +7,7 @@ ImportError pointing at the extra.
 """
 
 import importlib.util
+from collections.abc import Mapping
 
 from piighost.components.detector.ner.base import BaseNERDetector
 from piighost.models import Detection, Span
@@ -38,7 +39,7 @@ class TransformersDetector(BaseNERDetector):
         self,
         pipeline: TokenClassificationPipeline | str,
         labels: list[str] | dict[str, str] | None = None,
-        threshold: float = 0.0,
+        threshold: float | Mapping[str, float] = 0.0,
         max_concurrency: int | None = None,
         aggregation_strategy: str = "simple",
         max_chars: int | None = None,

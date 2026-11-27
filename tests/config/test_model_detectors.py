@@ -90,6 +90,25 @@ class TestModelDetectorParsing:
         assert config.model == "dslim/bert-base-NER"
         assert config.threshold == 0.9
 
+    def test_a_threshold_per_label_parses(self) -> None:
+        """A NER config takes one threshold per label, __default included."""
+        config = TransformersDetectorConfig.model_validate(
+            {
+                "type": "transformers",
+                "model": "dslim/bert-base-NER",
+                "threshold": {"__default": 0.6, "LOC": 0.9},
+            }
+        )
+        assert config.threshold == {"__default": 0.6, "LOC": 0.9}
+
+    def test_a_threshold_per_label_stays_within_bounds(self) -> None:
+        """Each threshold of a mapping is a confidence between 0 and 1."""
+        with pytest.raises(ValueError, match="threshold"):
+            TransformersDetectorConfig.model_validate(
+                # pyrefly: ignore[bad-argument-type]
+                {"type": "transformers", "model": "m", "threshold": {"LOC": 1.5}}
+            )
+
     def test_transformers_aggregation_strategy_defaults_to_simple(self) -> None:
         """The aggregation strategy defaults to simple and is overridable."""
         default = TransformersDetectorConfig(type="transformers", model="m")

@@ -216,7 +216,7 @@ Un modèle GLiNER2 zero-shot. A besoin de l'extra `gliner2`. `labels` est requis
 Gliner2Detector(
     model: GLiNER2 | str,
     labels: list[str] | dict[str, str],
-    threshold: float = 0.5,
+    threshold: float | Mapping[str, float] = 0.5,
     max_concurrency: int | None = None,
     max_chars: int | None = None,
     auto_chunk: bool = True,
@@ -227,7 +227,7 @@ Gliner2Detector(
 |-----------|------|-------------|
 | `model` | `GLiNER2 \| str` | Un modèle chargé, ou un nom chargé avec `from_pretrained` (requis) |
 | `labels` | `list[str] \| dict[str, str]` | Les labels à interroger, liste ou map `{emitted: internal}` (requis) |
-| `threshold` | `float` | La confiance à partir de laquelle une entité est conservée |
+| `threshold` | `float \| Mapping[str, float]` | La confiance à partir de laquelle une entité est conservée, ou une par label (voir plus bas) |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
 | `max_chars` | `int \| None` | Limite en caractères vue par une seule inférence, ou `None` pour aucune limite |
 | `auto_chunk` | `bool` | Si un texte plus long que `max_chars` est découpé et reprojeté, sinon lève `TextTooLongError` |
@@ -240,7 +240,7 @@ Un `Gliner2Detector` prêt à l'emploi sur le modèle GLiNER2 de fastino affiné
 Gliner2PiiDetector(
     model: GLiNER2 | str | None = None,
     labels: list[str] | dict[str, str] | None = None,
-    threshold: float = 0.5,
+    threshold: float | Mapping[str, float] = 0.5,
     max_concurrency: int | None = None,
     max_chars: int | None = None,
     auto_chunk: bool = True,
@@ -251,7 +251,7 @@ Gliner2PiiDetector(
 |-----------|------|-------------|
 | `model` | `GLiNER2 \| str \| None` | Un modèle chargé ou un nom, ou `None` pour le modèle PII préréglé |
 | `labels` | `list[str] \| dict[str, str] \| None` | Les labels à interroger, ou `None` pour la map de labels PII préréglée |
-| `threshold` | `float` | La confiance à partir de laquelle une entité est conservée |
+| `threshold` | `float \| Mapping[str, float]` | La confiance à partir de laquelle une entité est conservée, ou une par label (voir plus bas) |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
 | `max_chars` | `int \| None` | Limite en caractères vue par une seule inférence, ou `None` pour aucune limite |
 | `auto_chunk` | `bool` | Si un texte plus long que `max_chars` est découpé et reprojeté, sinon lève `TextTooLongError` |
@@ -282,7 +282,7 @@ Un pipeline de classification de tokens Hugging Face. A besoin de l'extra `trans
 TransformersDetector(
     pipeline: TokenClassificationPipeline | str,
     labels: list[str] | dict[str, str] | None = None,
-    threshold: float = 0.0,
+    threshold: float | Mapping[str, float] = 0.0,
     max_concurrency: int | None = None,
     aggregation_strategy: str = "simple",
     max_chars: int | None = None,
@@ -294,7 +294,7 @@ TransformersDetector(
 |-----------|------|-------------|
 | `pipeline` | `TokenClassificationPipeline \| str` | Un pipeline construit, ou un nom de modèle chargé comme pipeline `ner` (requis) |
 | `labels` | `list[str] \| dict[str, str] \| None` | Les labels à mapper et filtrer, ou `None` pour garder chaque label natif |
-| `threshold` | `float` | Le score sous lequel une entité détectée est rejetée |
+| `threshold` | `float \| Mapping[str, float]` | Le score sous lequel une entité détectée est rejetée, ou un par label (voir plus bas) |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
 | `aggregation_strategy` | `str` | Comment les sous-tokens sont regroupés en entités entières, appliqué seulement à la construction depuis un nom de modèle. Un pipeline injecté garde la sienne. `"simple"` par défaut |
 | `max_chars` | `int \| None` | Limite en caractères vue par une seule inférence, ou `None` pour aucune limite |
@@ -309,7 +309,7 @@ PresidioDetector(
     analyzer: AnalyzerEngine,
     labels: list[str] | dict[str, str] | None = None,
     language: str = "en",
-    threshold: float = 0.0,
+    threshold: float | Mapping[str, float] = 0.0,
     max_concurrency: int | None = None,
 )
 ```
@@ -319,7 +319,7 @@ PresidioDetector(
 | `analyzer` | `AnalyzerEngine` | Un analyzer Presidio construit (requis) |
 | `labels` | `list[str] \| dict[str, str] \| None` | Les labels à mapper et filtrer, ou `None` pour garder chaque type natif |
 | `language` | `str` | Le code de langue passé à `analyze` |
-| `threshold` | `float` | Le score sous lequel une entité est écartée |
+| `threshold` | `float \| Mapping[str, float]` | Le score sous lequel une entité est écartée, ou un par label (voir plus bas) |
 | `max_concurrency` | `int \| None` | Plafond d'inférences concurrentes, ou `None` pour sans limite |
 
 Depuis une config, le type de détecteur `presidio` construit l'`AnalyzerEngine` anglais par défaut de Presidio. Pour une autre langue ou des recognizers custom, construisez le moteur vous-même et utilisez `PresidioDetector` directement.
@@ -336,7 +336,7 @@ BridgeDetector(
     labels: list[str] | dict[str, str],
     *,
     offset_unit: OffsetUnit,
-    threshold: float = 0.5,
+    threshold: float | Mapping[str, float] = 0.5,
     max_chars: int | None = None,
     auto_chunk: bool = True,
 )
@@ -347,11 +347,11 @@ BridgeDetector(
 | `runner` | `AnySpanRunner` | L'appelable attendu pour chaque texte, qui porte le modèle (obligatoire) |
 | `labels` | `list[str] \| dict[str, str]` | Les labels à mapper et filtrer (obligatoire) |
 | `offset_unit` | `OffsetUnit` | Ce que l'exécuteur compte dans ses décalages, `CODE_POINT` ou `UTF16` (obligatoire) |
-| `threshold` | `float` | La confiance à partir de laquelle un span est retenu, transmise à l'exécuteur puis appliquée à nouveau sur sa réponse |
+| `threshold` | `float \| Mapping[str, float]` | La confiance à partir de laquelle un span est retenu, ou une par label (voir plus bas). La plus basse est transmise à l'exécuteur, chacune est appliquée à nouveau sur sa réponse |
 | `max_chars` | `int \| None` | Borne au-delà de laquelle le texte est découpé, ou `None` pour aucune borne |
 | `auto_chunk` | `bool` | Si un texte au-delà de `max_chars` est découpé plutôt que refusé |
 
-L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes et le seuil, et rend une séquence de mappings portant `start`, `end`, `label` et `score`. Les décalages sont des positions dans le texte transmis, en intervalle semi-ouvert, comptées dans l'unité que nomme `offset_unit`.
+L'exécuteur est un appelable asynchrone qui prend le texte, les labels internes et le seuil le plus bas, et rend une séquence de mappings portant `start`, `end`, `label` et `score`. Les décalages sont des positions dans le texte transmis, en intervalle semi-ouvert, comptées dans l'unité que nomme `offset_unit`.
 
 | `OffsetUnit` | Compte | Exécuteur |
 |---|---|---|
@@ -383,8 +383,25 @@ Ce détecteur n'a pas de modèle de configuration. Son exécuteur est un appelab
 `BaseNERDetector` applique une même passe à ce que rend n'importe quel modèle, si bien que tous les adaptateurs se comportent pareil, quel que soit leur backend.
 
 - Le texte d'une détection est la tranche de la source que couvre son span, jamais la chaîne que le modèle a rendue. La fusion des chevauchements, le regroupement et la restauration supposent tous que le texte correspond aux caractères qu'il remplace.
-- Une détection notée sous `threshold` est écartée, même quand le modèle a reçu le seuil et laissé passer une détection plus faible.
+- Une détection notée sous le seuil de son label est écartée, même quand le modèle a reçu un seuil et laissé passer une détection plus faible.
 - Les labels sont mappés et filtrés, comme le décrit la section suivante.
+
+### Un seuil par label
+
+Un seul seuil ne convient pas toujours à tous les labels. Un modèle peut noter de vrais prénoms entre 0.6 et 0.8, et prendre des noms de modèles comme `bge-reranker-v2-m3` pour des adresses postales aux mêmes scores. `threshold` prend alors une map de label externe vers seuil, dans le code comme dans un fichier de configuration. La clé `__default` couvre les labels que la map ne nomme pas.
+
+```toml
+[detector]
+type = "gliner2"
+model = "fastino/gliner2-multi-v1"
+labels = { PERSON = "person", ADDRESS = "postal address" }
+threshold = { __default = 0.6, ADDRESS = 0.9 }
+```
+
+- Une map qui nomme un label que le détecteur n'émet pas lève `ThresholdLabelsError`, car la clé contient une faute de frappe.
+- Une map sans `__default` doit nommer chaque label, sinon elle lève `ThresholdLabelsError`.
+- Un modèle qui filtre sur un seul nombre reçoit le seuil le plus bas de la map, et la base filtre chaque label selon le sien.
+- Les seuils s'appliquent avant la résolution des chevauchements. Une détection faible est écartée avant de pouvoir fusionner avec une vraie détection qu'elle chevauche.
 
 ### Correspondance des labels
 

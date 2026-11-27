@@ -6,6 +6,7 @@ it without the dependency raises an ImportError pointing at the extra.
 """
 
 import importlib.util
+from collections.abc import Mapping
 from typing import ClassVar
 
 from piighost.components.detector.ner.base import BaseNERDetector
@@ -35,7 +36,7 @@ class Gliner2Detector(BaseNERDetector):
         self,
         model: GLiNER2 | str,
         labels: list[str] | dict[str, str],
-        threshold: float = 0.5,
+        threshold: float | Mapping[str, float] = 0.5,
         max_concurrency: int | None = None,
         max_chars: int | None = None,
         auto_chunk: bool = True,
@@ -56,7 +57,7 @@ class Gliner2Detector(BaseNERDetector):
             self.model.extract_entities,
             text,
             self.internal_labels,
-            threshold=self.threshold,
+            threshold=self.model_threshold,
             include_spans=True,
             include_confidence=True,
         )
@@ -113,7 +114,7 @@ class Gliner2PiiDetector(Gliner2Detector):
         self,
         model: GLiNER2 | str | None = None,
         labels: list[str] | dict[str, str] | None = None,
-        threshold: float = 0.5,
+        threshold: float | Mapping[str, float] = 0.5,
         max_concurrency: int | None = None,
         max_chars: int | None = None,
         auto_chunk: bool = True,

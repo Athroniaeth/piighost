@@ -32,6 +32,7 @@ from piighost.exceptions import (
     TextError,
     TextTooLongError,
     ThreadError,
+    ThresholdLabelsError,
 )
 
 # Each error mapped to its expected direct parent. The chain
@@ -59,6 +60,7 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     TextTooLongError: DetectorError,
     BridgePayloadError: DetectorError,
     BridgeSpanRangeError: DetectorError,
+    ThresholdLabelsError: DetectorError,
     ThreadError: PIIGhostError,
     StaleCorrectionError: ThreadError,
 }

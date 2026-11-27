@@ -10,17 +10,29 @@ guarantees, whatever its model returns.
 
 import asyncio
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from typing import Any
 
 from piighost._runtime import EMSCRIPTEN
-from piighost.exceptions import LabelMappingError, TextTooLongError
+from piighost.exceptions import (
+    LabelMappingError,
+    TextTooLongError,
+    ThresholdLabelsError,
+)
 from piighost.models import Detection
 from piighost.text import AnySplitter, RecursiveCharacterTextSplitter
 
 _DEFAULT_CHUNK_OVERLAP = 100
 """Default chunk overlap, in characters, capped below the chunk size."""
+
+DEFAULT_THRESHOLD_KEY = "__default"
+"""Key of a per-label threshold mapping that covers every label it does not name.
+
+The double underscore keeps it apart from any label a detector emits, so a
+mapping such as {"__default": 0.5, "ADDRESS": 0.9} reads 0.9 for ADDRESS and
+0.5 for every other label.
+"""
 
 
 class BaseNERDetector(ABC):
@@ -37,15 +49,18 @@ class BaseNERDetector(ABC):
     external label and dropping the rest.
 
     Attributes:
-        threshold: The confidence at or above which a detection is kept. An
-            adapter may also hand it to its model, to filter earlier, but the
-            base applies it either way, so no model can let a weaker one through.
+        threshold: The confidence at or above which a detection is kept, one
+            number for every label, or a mapping of external label to threshold
+            whose DEFAULT_THRESHOLD_KEY covers the labels it does not name. An
+            adapter may also hand model_threshold to its model, to filter
+            earlier, but the base applies the threshold either way, so no model
+            can let a weaker detection through.
     """
 
     def __init__(
         self,
         labels: list[str] | dict[str, str] | None,
-        threshold: float = 0.0,
+        threshold: float | Mapping[str, float] = 0.0,
         max_concurrency: int | None = None,
         max_chars: int | None = None,
         auto_chunk: bool = True,
@@ -59,9 +74,15 @@ class BaseNERDetector(ABC):
         text is split into overlapping chunks scanned separately and remapped;
         otherwise a TextTooLongError is raised. splitter overrides the default
         RecursiveCharacterTextSplitter sized to max_chars.
+
+        Raises:
+            ThresholdLabelsError: If a per-label threshold names a label the
+                detector does not emit, or leaves a label without a threshold
+                and has no DEFAULT_THRESHOLD_KEY.
         """
         self._label_map = self._normalize(labels)
         self._reverse_map = self._build_reverse(self._label_map)
+        self._check_threshold(threshold, self.external_labels)
         self.threshold = threshold
         self._infer_semaphore = (
             asyncio.Semaphore(max_concurrency) if max_concurrency else None
@@ -89,12 +110,54 @@ class BaseNERDetector(ABC):
         detections: list[Detection] = []
         for detection in await self._gather_raw(text):
             label = self._resolve_label(detection.label)
-            if label is None or detection.confidence < self.threshold:
+            if label is None or detection.confidence < self._threshold_for(label):
                 continue
             if label != detection.label:
                 detection = replace(detection, label=label)
             detections.append(detection)
         return detections
+
+    @property
+    def model_threshold(self) -> float:
+        """The one threshold an adapter hands its model: the lowest one set.
+
+        A model that filters on a single number then keeps every detection some
+        label could accept, and the base filters each label against its own.
+        """
+        if isinstance(self.threshold, Mapping):
+            return min(self.threshold.values())
+        return self.threshold
+
+    def _threshold_for(self, label: str) -> float:
+        """Return the threshold a detection of this external label must reach."""
+        if not isinstance(self.threshold, Mapping):
+            return self.threshold
+        if label in self.threshold:
+            return self.threshold[label]
+        return self.threshold[DEFAULT_THRESHOLD_KEY]
+
+    @staticmethod
+    def _check_threshold(
+        threshold: float | Mapping[str, float], labels: list[str]
+    ) -> None:
+        """Refuse a per-label threshold that misnames or leaves out a label."""
+        if not isinstance(threshold, Mapping):
+            return
+        named = set(threshold) - {DEFAULT_THRESHOLD_KEY}
+        unknown = sorted(named - set(labels)) if labels else []
+        if unknown:
+            raise ThresholdLabelsError(
+                f"Threshold for labels the detector does not emit: {unknown}. "
+                f"Its labels are {sorted(labels)}."
+            )
+        if DEFAULT_THRESHOLD_KEY in threshold:
+            return
+        missing = sorted(set(labels) - named)
+        if missing or not labels:
+            raise ThresholdLabelsError(
+                f"No threshold for labels {missing or 'not declared'}: name every "
+                f"label, or add {DEFAULT_THRESHOLD_KEY!r} to cover the others."
+            )
 
     async def _gather_raw(self, text: str) -> list[Detection]:
         """Return raw detections, scanning whole or chunking an over-long text.

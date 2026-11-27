@@ -77,15 +77,16 @@ class BridgeDetector(BaseNERDetector):
         labels: list[str] | dict[str, str],
         *,
         offset_unit: OffsetUnit,
-        threshold: float = 0.5,
+        threshold: float | Mapping[str, float] = 0.5,
         max_chars: int | None = None,
         auto_chunk: bool = True,
     ) -> None:
         """Store the runner and its offset unit, then set up the base.
 
-        threshold is passed to the runner, so it can filter before crossing the
-        boundary, and applied again by the base, so a runner that ignores it
-        lets nothing weaker through.
+        model_threshold, the lowest threshold set, is passed to the runner, so it
+        can filter before crossing the boundary, and the base applies each
+        label's own threshold again, so a runner that ignores it lets nothing
+        weaker through.
         """
         super().__init__(
             labels, threshold=threshold, max_chars=max_chars, auto_chunk=auto_chunk
@@ -102,7 +103,7 @@ class BridgeDetector(BaseNERDetector):
             BridgeSpanRangeError: If a span falls outside the text, or inside a
                 character.
         """
-        spans = await self.runner(text, self.internal_labels, self.threshold)
+        spans = await self.runner(text, self.internal_labels, self.model_threshold)
         # A Pyodide JsProxy converts to Python on demand; a plain sequence does
         # not need it. Duck-typing it keeps pyodide out of the core's imports.
         converter = getattr(spans, "to_py", None)

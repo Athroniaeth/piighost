@@ -216,7 +216,7 @@ A zero-shot GLiNER2 model. Needs the `gliner2` extra. `labels` is required, beca
 Gliner2Detector(
     model: GLiNER2 | str,
     labels: list[str] | dict[str, str],
-    threshold: float = 0.5,
+    threshold: float | Mapping[str, float] = 0.5,
     max_concurrency: int | None = None,
     max_chars: int | None = None,
     auto_chunk: bool = True,
@@ -227,7 +227,7 @@ Gliner2Detector(
 |-----------|------|-------------|
 | `model` | `GLiNER2 \| str` | A loaded model, or a name loaded with `from_pretrained` (required) |
 | `labels` | `list[str] \| dict[str, str]` | The labels to query, list or `{emitted: internal}` map (required) |
-| `threshold` | `float` | The confidence at or above which an entity is kept |
+| `threshold` | `float \| Mapping[str, float]` | The confidence at or above which an entity is kept, or one per label (see below) |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
 | `max_chars` | `int \| None` | Character bound a single inference sees, or `None` for no bound |
 | `auto_chunk` | `bool` | Whether a text longer than `max_chars` is chunked and remapped, else raises `TextTooLongError` |
@@ -240,7 +240,7 @@ A ready-to-use `Gliner2Detector` over fastino's GLiNER2 model fine-tuned for PII
 Gliner2PiiDetector(
     model: GLiNER2 | str | None = None,
     labels: list[str] | dict[str, str] | None = None,
-    threshold: float = 0.5,
+    threshold: float | Mapping[str, float] = 0.5,
     max_concurrency: int | None = None,
     max_chars: int | None = None,
     auto_chunk: bool = True,
@@ -251,7 +251,7 @@ Gliner2PiiDetector(
 |-----------|------|-------------|
 | `model` | `GLiNER2 \| str \| None` | A loaded model or a name, or `None` for the preset PII model |
 | `labels` | `list[str] \| dict[str, str] \| None` | The labels to query, or `None` for the preset PII label map |
-| `threshold` | `float` | The confidence at or above which an entity is kept |
+| `threshold` | `float \| Mapping[str, float]` | The confidence at or above which an entity is kept, or one per label (see below) |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
 | `max_chars` | `int \| None` | Character bound a single inference sees, or `None` for no bound |
 | `auto_chunk` | `bool` | Whether a text longer than `max_chars` is chunked and remapped, else raises `TextTooLongError` |
@@ -282,7 +282,7 @@ A Hugging Face token-classification pipeline. Needs the `transformers` extra. `l
 TransformersDetector(
     pipeline: TokenClassificationPipeline | str,
     labels: list[str] | dict[str, str] | None = None,
-    threshold: float = 0.0,
+    threshold: float | Mapping[str, float] = 0.0,
     max_concurrency: int | None = None,
     aggregation_strategy: str = "simple",
     max_chars: int | None = None,
@@ -294,7 +294,7 @@ TransformersDetector(
 |-----------|------|-------------|
 | `pipeline` | `TokenClassificationPipeline \| str` | A built pipeline, or a model name loaded as an `ner` pipeline (required) |
 | `labels` | `list[str] \| dict[str, str] \| None` | The labels to map and filter, or `None` to keep every native label |
-| `threshold` | `float` | The score below which a detected entity is dropped |
+| `threshold` | `float \| Mapping[str, float]` | The score below which a detected entity is dropped, or one per label (see below) |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
 | `aggregation_strategy` | `str` | How sub-word tokens are grouped into whole entities, applied only when building from a model name. An injected pipeline keeps its own. Defaults to `"simple"` |
 | `max_chars` | `int \| None` | Character bound a single inference sees, or `None` for no bound |
@@ -309,7 +309,7 @@ PresidioDetector(
     analyzer: AnalyzerEngine,
     labels: list[str] | dict[str, str] | None = None,
     language: str = "en",
-    threshold: float = 0.0,
+    threshold: float | Mapping[str, float] = 0.0,
     max_concurrency: int | None = None,
 )
 ```
@@ -319,7 +319,7 @@ PresidioDetector(
 | `analyzer` | `AnalyzerEngine` | A constructed Presidio analyzer (required) |
 | `labels` | `list[str] \| dict[str, str] \| None` | The labels to map and filter, or `None` to keep every native type |
 | `language` | `str` | The language code passed to `analyze` |
-| `threshold` | `float` | The score below which a finding is dropped |
+| `threshold` | `float \| Mapping[str, float]` | The score below which a finding is dropped, or one per label (see below) |
 | `max_concurrency` | `int \| None` | Cap on concurrent inferences, or `None` for unbounded |
 
 From a config, the `presidio` detector type builds Presidio's default English `AnalyzerEngine`. For another language or custom recognizers, construct the engine yourself and use `PresidioDetector` directly.
@@ -336,7 +336,7 @@ BridgeDetector(
     labels: list[str] | dict[str, str],
     *,
     offset_unit: OffsetUnit,
-    threshold: float = 0.5,
+    threshold: float | Mapping[str, float] = 0.5,
     max_chars: int | None = None,
     auto_chunk: bool = True,
 )
@@ -347,11 +347,11 @@ BridgeDetector(
 | `runner` | `AnySpanRunner` | The callable awaited for each text, holding the model (required) |
 | `labels` | `list[str] \| dict[str, str]` | The labels to map and filter (required) |
 | `offset_unit` | `OffsetUnit` | What the runner counts in its offsets, `CODE_POINT` or `UTF16` (required) |
-| `threshold` | `float` | The confidence at or above which a span is kept, passed to the runner and applied again on its answer |
+| `threshold` | `float \| Mapping[str, float]` | The confidence at or above which a span is kept, or one per label (see below). The lowest one is passed to the runner, each is applied again on its answer |
 | `max_chars` | `int \| None` | Bound above which the text is chunked, or `None` for no bound |
 | `auto_chunk` | `bool` | Whether a text over `max_chars` is chunked rather than refused |
 
-The runner is an async callable taking the text, the internal labels and the threshold, and returning a sequence of mappings carrying `start`, `end`, `label` and `score`. Offsets are half-open positions into the text passed in, counted in the unit `offset_unit` names.
+The runner is an async callable taking the text, the internal labels and the lowest threshold, and returning a sequence of mappings carrying `start`, `end`, `label` and `score`. Offsets are half-open positions into the text passed in, counted in the unit `offset_unit` names.
 
 | `OffsetUnit` | Counts | Runner |
 |---|---|---|
@@ -383,8 +383,25 @@ There is no configuration model for this detector. Its runner is a callable. A T
 `BaseNERDetector` applies one pass to whatever a model returns, so every adapter behaves alike, whatever its backend.
 
 - The text of a detection is its span's slice of the source, never the string the model returned. Merging overlaps, linking and restoring all rely on the text matching the characters it replaces.
-- A detection scored below `threshold` is dropped, even when the model was handed the threshold and let a weaker one through.
+- A detection scored below the threshold of its label is dropped, even when the model was handed a threshold and let a weaker one through.
 - Labels are mapped and filtered, as the next section describes.
+
+### Thresholds per label
+
+One threshold does not always fit every label. A model can score real first names between 0.6 and 0.8 and mistake model names such as `bge-reranker-v2-m3` for postal addresses at the same scores. `threshold` then takes a mapping of external label to threshold, in code as in a configuration file. The key `__default` covers the labels the mapping does not name.
+
+```toml
+[detector]
+type = "gliner2"
+model = "fastino/gliner2-multi-v1"
+labels = { PERSON = "person", ADDRESS = "postal address" }
+threshold = { __default = 0.6, ADDRESS = 0.9 }
+```
+
+- A mapping that names a label the detector does not emit raises `ThresholdLabelsError`, since the key holds a typo.
+- A mapping without `__default` must name every label, else it raises `ThresholdLabelsError`.
+- A model that filters on one number receives the lowest threshold of the mapping, and the base filters each label against its own.
+- The thresholds apply before overlap resolution. A weak detection is dropped before it can merge with a real one it overlaps.
 
 ### Label mapping
 

@@ -6,12 +6,23 @@ the extra to install. The port AnyDetector is imported at module top only for
 the build() return annotation.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
 from piighost.components.detector.base import AnyDetector
 from piighost.config.models.common import _ComponentConfig
+
+Confidence = Annotated[float, Field(ge=0.0, le=1.0)]
+"""A confidence score, from 0 to 1."""
+
+Threshold = Confidence | dict[str, Confidence]
+"""One threshold for every label, or one per external label.
+
+A mapping covers the labels it does not name with its __default key, as in
+threshold = { __default = 0.5, ADDRESS = 0.9 }. The detector refuses a mapping
+that names a label it does not emit, or leaves one out without __default.
+"""
 
 
 class Gliner2DetectorConfig(_ComponentConfig):
@@ -20,7 +31,7 @@ class Gliner2DetectorConfig(_ComponentConfig):
     type: Literal["gliner2"]
     model: str
     labels: list[str] | dict[str, str]
-    threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    threshold: Threshold = 0.5
     max_concurrency: int | None = Field(default=None, ge=1)
     max_chars: int | None = Field(default=None, ge=1)
 
@@ -62,7 +73,7 @@ class TransformersDetectorConfig(_ComponentConfig):
     type: Literal["transformers"]
     model: str
     labels: list[str] | dict[str, str] | None = None
-    threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    threshold: Threshold = 0.0
     max_concurrency: int | None = Field(default=None, ge=1)
     max_chars: int | None = Field(default=None, ge=1)
     aggregation_strategy: str = "simple"
@@ -99,7 +110,7 @@ class PresidioDetectorConfig(_ComponentConfig):
     type: Literal["presidio"]
     labels: list[str] | dict[str, str] | None = None
     language: str = "en"
-    threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    threshold: Threshold = 0.0
 
     def build(self) -> AnyDetector:
         """Build a PresidioDetector over Presidio's default AnalyzerEngine."""

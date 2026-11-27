@@ -7,6 +7,7 @@ the extra.
 """
 
 import importlib.util
+from collections.abc import Mapping
 
 from piighost.components.detector.ner.base import BaseNERDetector
 from piighost.models import Detection, Span
@@ -40,7 +41,7 @@ class PresidioDetector(BaseNERDetector):
         analyzer: AnalyzerEngine,
         labels: list[str] | dict[str, str] | None = None,
         language: str = "en",
-        threshold: float = 0.0,
+        threshold: float | Mapping[str, float] = 0.0,
         max_concurrency: int | None = None,
     ) -> None:
         """Store the analyzer, then set the labels, language, and threshold."""
@@ -55,7 +56,7 @@ class PresidioDetector(BaseNERDetector):
             text,
             language=self.language,
             entities=self.internal_labels or None,
-            score_threshold=self.threshold,
+            score_threshold=self.model_threshold,
         )
         detections: list[Detection] = []
         for result in results:

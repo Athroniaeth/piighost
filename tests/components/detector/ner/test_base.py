@@ -4,11 +4,17 @@ A fake subclass supplies canned raw detections so the shared label-mapping and
 filtering logic is exercised without loading any model.
 """
 
+from collections.abc import Mapping
+
 import pytest
 
 from piighost.components.detector import AnyDetector
 from piighost.components.detector.ner import BaseNERDetector
-from piighost.exceptions import LabelMappingError, TextTooLongError
+from piighost.exceptions import (
+    LabelMappingError,
+    TextTooLongError,
+    ThresholdLabelsError,
+)
 from piighost.models import Detection, Span
 from piighost.text import find_all_word_boundary
 
@@ -21,7 +27,7 @@ class _FakeNERDetector(BaseNERDetector):
         raw: list[Detection],
         labels: list[str] | dict[str, str] | None = None,
         max_concurrency: int | None = None,
-        threshold: float = 0.0,
+        threshold: float | Mapping[str, float] = 0.0,
     ) -> None:
         super().__init__(labels, threshold=threshold, max_concurrency=max_concurrency)
         self._raw = raw
@@ -114,6 +120,78 @@ class TestSharedPass:
         detector = _FakeNERDetector(raw, threshold=0.5)
         confidences = [d.confidence for d in await detector.detect("Emma")]
         assert confidences == [0.9]
+
+
+_TECH_TEXT = "Le reranker bge-reranker-v2-m3 vient de chez Camille, 12 rue des Lilas."
+"""A message where a model takes a model name for a postal address."""
+
+_TECH_LABELS = {"PERSON": "person", "ADDRESS": "postal address"}
+"""External labels mapped to the native ones of a GLiNER2 model."""
+
+
+def _found(value: str, label: str, confidence: float) -> Detection:
+    """Build the native detection of value in the tech text."""
+    start = _TECH_TEXT.index(value)
+    span = Span(start, start + len(value))
+    return Detection(
+        span=span,
+        text=value,
+        label=label,
+        confidence=confidence,
+    )
+
+
+_TECH_RAW = [
+    _found("bge-reranker-v2-m3", "postal address", 0.87),
+    _found("Camille", "person", 0.70),
+    _found("12 rue des Lilas", "postal address", 0.99),
+]
+"""What the model returns on the tech text: a false address, a modest name, a real address."""
+
+REFUSED_THRESHOLDS: dict[str, Mapping[str, float]] = {
+    "a label the detector does not emit": {"ADRESS": 0.9, "PERSON": 0.6},
+    "a label left without __default": {"ADDRESS": 0.9},
+}
+"""Per-label thresholds refused against the tech labels, by case name."""
+
+
+class TestThresholdPerLabel:
+    async def test_each_label_meets_its_own_threshold(self) -> None:
+        """A per-label threshold keeps the modest name and drops the false address."""
+        threshold = {"PERSON": 0.6, "ADDRESS": 0.9}
+        detector = _FakeNERDetector(_TECH_RAW, _TECH_LABELS, threshold=threshold)
+        found = {d.text for d in await detector.detect(_TECH_TEXT)}
+        assert found == {"Camille", "12 rue des Lilas"}
+
+    async def test_default_covers_the_labels_left_out(self) -> None:
+        """__default is the threshold of every label the mapping does not name."""
+        threshold = {"__default": 0.6, "ADDRESS": 0.9}
+        detector = _FakeNERDetector(_TECH_RAW, _TECH_LABELS, threshold=threshold)
+        found = {d.text for d in await detector.detect(_TECH_TEXT)}
+        assert found == {"Camille", "12 rue des Lilas"}
+
+    def test_the_model_receives_the_lowest_threshold(self) -> None:
+        """A model filtering on one number keeps what any label could accept."""
+        threshold = {"__default": 0.6, "ADDRESS": 0.9}
+        detector = _FakeNERDetector([], _TECH_LABELS, threshold=threshold)
+        assert detector.model_threshold == 0.6
+
+    @pytest.mark.parametrize(
+        "threshold",
+        REFUSED_THRESHOLDS.values(),
+        ids=REFUSED_THRESHOLDS.keys(),
+    )
+    def test_a_mismatched_threshold_is_refused(
+        self, threshold: Mapping[str, float]
+    ) -> None:
+        """A threshold that misnames or leaves out a label fails at construction."""
+        with pytest.raises(ThresholdLabelsError):
+            _FakeNERDetector([], _TECH_LABELS, threshold=threshold)
+
+    def test_undeclared_labels_need_a_default(self) -> None:
+        """Without declared labels, a per-label threshold needs __default."""
+        with pytest.raises(ThresholdLabelsError):
+            _FakeNERDetector([], None, threshold={"PERSON": 0.6})
 
 
 class TestMaxChars:
