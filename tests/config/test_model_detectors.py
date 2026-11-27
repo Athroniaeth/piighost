@@ -71,6 +71,7 @@ class TestModelDetectorParsing:
         """A zero or negative max_chars is refused at parse time."""
         with pytest.raises(ValueError, match="max_chars"):
             Gliner2DetectorConfig.model_validate(
+                # pyrefly: ignore[bad-argument-type]
                 {"type": "gliner2", "model": "m", "labels": ["A"], "max_chars": 0}
             )
 

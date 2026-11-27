@@ -54,11 +54,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: uv export --locked --no-hashes --no-emit-project --all-extras --all-groups -o requirements-audit.txt
-      # nltk has no fixed release for this file-sandbox bypass. It arrives via
-      # llama-index-core and PIIGhost never reaches the affected parsers, so the
-      # advisory is acknowledged rather than blocking. Drop the ignore once nltk
-      # ships a fix.
-      - run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off --ignore-vuln PYSEC-2026-3740
+      - run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
 
   tests:
     name: Tests (Python ${{ matrix.python-version }})
