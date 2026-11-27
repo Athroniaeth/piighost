@@ -28,8 +28,10 @@ from piighost.exceptions import (
     PIIRemainingError,
     SpanError,
     SpanOrderingError,
+    StaleCorrectionError,
     TextError,
     TextTooLongError,
+    ThreadError,
 )
 
 # Each error mapped to its expected direct parent. The chain
@@ -57,6 +59,8 @@ EXCEPTION_HIERARCHY: dict[type[Exception], type[Exception]] = {
     TextTooLongError: DetectorError,
     BridgePayloadError: DetectorError,
     BridgeSpanRangeError: DetectorError,
+    ThreadError: PIIGhostError,
+    StaleCorrectionError: ThreadError,
 }
 
 

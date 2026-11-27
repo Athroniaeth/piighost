@@ -2,7 +2,7 @@
 
 import pytest
 
-from piighost.components.anonymizer import Anonymizer
+from piighost.components.anonymizer import Anonymization, Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
@@ -10,6 +10,7 @@ from piighost.components.placeholder import (
     PreservesLabeledIdentityOpaque,
 )
 from piighost.conversation_memory import InMemoryConversationMemory
+from piighost.exceptions import StaleCorrectionError
 from piighost.models import Detection, Span
 from piighost.pipeline import ThreadAnonymizationPipeline
 
@@ -143,3 +144,52 @@ class TestOverlappingCorrection:
         pipeline = _pipeline(ExactMatchDetector({}))
         result = await pipeline.anonymize_corrected(text, "t1", [sure, unsure])
         assert result.text == "Il y a <<PERSON:1>> dedans"
+
+
+_KAGGLE_DETECTOR = {"Kaggle": "PERSON", "Paul": "PERSON", "Marc": "PERSON"}
+"""A detector that takes the platform Kaggle for a person, as a NER does."""
+
+
+def _without_kaggle(
+    result: Anonymization[PreservesLabeledIdentityOpaque],
+) -> list[Detection]:
+    """Return the detections of an anonymization, minus the Kaggle false positive."""
+    return [
+        detection
+        for entity in result.tokens
+        for detection in entity.detections
+        if detection.text != "Kaggle"
+    ]
+
+
+class TestOnlyTheLatestMessage:
+    async def test_correcting_an_older_message_is_refused(self) -> None:
+        """A correction on a message followed by another raises and moves no token."""
+        pipeline = _pipeline(ExactMatchDetector(_KAGGLE_DETECTOR))
+        await pipeline.anonymize("Tu connais Kaggle ?", "t1")
+        second = await pipeline.anonymize("Paul et Marc arrivent.", "t1")
+        with pytest.raises(StaleCorrectionError):
+            await pipeline.anonymize_corrected("Tu connais Kaggle ?", "t1", [])
+        restored = await pipeline.deanonymize(second.text, "t1")
+        assert restored == "Paul et Marc arrivent."
+
+    async def test_an_interleaved_correction_is_refused(self) -> None:
+        """A correction landing after another message was anonymized raises."""
+        pipeline = _pipeline(ExactMatchDetector(_KAGGLE_DETECTOR))
+        await pipeline.anonymize("Paul demande", "t1")
+        first_tool = await pipeline.anonymize("vu sur Kaggle", "t1")
+        await pipeline.anonymize("Marc arrive", "t1")
+        kept = _without_kaggle(first_tool)
+        with pytest.raises(StaleCorrectionError):
+            await pipeline.anonymize_corrected("vu sur Kaggle", "t1", kept)
+
+    async def test_the_latest_message_can_be_corrected(self) -> None:
+        """Removing a false positive from the latest message renumbers nothing issued."""
+        pipeline = _pipeline(ExactMatchDetector(_KAGGLE_DETECTOR))
+        first = await pipeline.anonymize("Paul demande", "t1")
+        tool = await pipeline.anonymize("vu sur Kaggle", "t1")
+        corrected = await pipeline.anonymize_corrected(
+            "vu sur Kaggle", "t1", _without_kaggle(tool)
+        )
+        assert corrected.text == "vu sur Kaggle"
+        assert await pipeline.deanonymize(first.text, "t1") == "Paul demande"

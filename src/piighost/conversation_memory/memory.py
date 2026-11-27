@@ -112,6 +112,14 @@ class InMemoryConversationMemory:
             return {}
         return _first_occurrence_roles(thread.values())
 
+    async def is_latest(self, thread_id: str, message: str) -> bool:
+        """Return whether message is the last message first written to the thread."""
+        thread = self._live_thread(thread_id)
+        if thread is None:
+            return False
+        last = next(reversed(thread), None)
+        return last == message
+
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""
         thread = self._threads.pop(thread_id, {})

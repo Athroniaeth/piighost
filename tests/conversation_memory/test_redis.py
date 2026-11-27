@@ -214,3 +214,33 @@ class TestRedisPlaintext:
         client = fakeredis.aioredis.FakeRedis()
         with pytest.raises(ValueError):
             RedisConversationMemory(client, hasher=Sha256Hasher("pepper"))
+
+
+LATEST_CASES: dict[str, tuple[tuple[str, ...], str, bool]] = {
+    "the last new message": (("m1", "m2"), "m2", True),
+    "an earlier message": (("m1", "m2"), "m1", False),
+    "a rewritten earlier message": (("m1", "m2", "m1"), "m1", False),
+    "a message never written": (("m1",), "m9", False),
+}
+"""Messages written in order, the message probed, and whether it is the latest."""
+
+
+class TestIsLatest:
+    @pytest.mark.parametrize(
+        ("written", "probed", "latest"),
+        LATEST_CASES.values(),
+        ids=LATEST_CASES.keys(),
+    )
+    async def test_only_the_last_new_message_is_latest(
+        self, written: tuple[str, ...], probed: str, latest: bool
+    ) -> None:
+        """A message is the latest until another is first written after it."""
+        memory, _ = _make()
+        for message in written:
+            await memory.remember("t1", message, [_detection("Emma")])
+        assert await memory.is_latest("t1", probed) is latest
+
+    async def test_an_unknown_thread_has_no_latest_message(self) -> None:
+        """A thread never written to holds no latest message."""
+        memory, _ = _make()
+        assert await memory.is_latest("never", "m1") is False

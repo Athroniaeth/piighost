@@ -20,6 +20,7 @@ from piighost.conversation_memory.base import (
     MessageRole,
 )
 from piighost.conversation_memory.memory import InMemoryConversationMemory
+from piighost.exceptions import StaleCorrectionError
 from piighost.models import Detection, Entity
 from piighost.pipeline.base import BaseAnonymizationPipeline, PreservationT
 from piighost.text import value_key
@@ -195,8 +196,26 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         Server-side overrides are the one exception to the human's authority:
         the corrected set passes through the configured override before it is
         merged and stored, so the server's lists trump the correction.
+
+        Only the thread's latest message, or a message never anonymized, can be
+        corrected. Tokens are numbered over the whole thread, so a value removed
+        from or added to an older message would renumber the tokens of the
+        values after it, and a text the model already holds would restore to
+        another value.
+
+        Raises:
+            StaleCorrectionError: If the message was anonymized before and
+                another message was anonymized after it.
         """
-        automatic = await self.memory.get_detections(thread_id, text) or []
+        cached = await self.memory.get_detections(thread_id, text)
+        if cached is not None and not await self.memory.is_latest(thread_id, text):
+            raise StaleCorrectionError(
+                "Only the thread's latest message can be corrected: a later "
+                "message was anonymized after this one, and correcting it would "
+                "renumber tokens the model already holds."
+            )
+
+        automatic = cached or []
         human = frozenset(detections).difference(automatic)
         overridden = await self._override(text, detections)
         resolver = MergeOverlapResolver(preferred=human)

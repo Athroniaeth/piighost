@@ -279,6 +279,27 @@ class ConflictingOverrideError(OverrideError):
     """
 
 
+class ThreadError(PIIGhostError):
+    """Base class for errors raised by the thread pipeline.
+
+    Catch this to handle any thread failure at once, or catch one of its
+    subclasses to react to a specific violation.
+    """
+
+
+class StaleCorrectionError(ThreadError):
+    """Raised when a correction targets a message that is no longer the thread's last.
+
+    Tokens are numbered over the whole thread in order of first appearance. A
+    value removed from or added to an older message would renumber the tokens
+    of every later value, so a text already given to the model would restore
+    to another value. Correcting the latest message only touches the end of the
+    numbering. Two corrections running concurrently, such as two tool results
+    anonymized then corrected in parallel, raise it as well: serialize the
+    calls, or retry.
+    """
+
+
 class ClientError(PIIGhostError):
     """Base class for errors raised by the remote client.
 

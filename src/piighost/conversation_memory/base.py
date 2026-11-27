@@ -189,6 +189,22 @@ class AnyConversationMemory(Protocol):
         """
         ...
 
+    async def is_latest(self, thread_id: str, message: str) -> bool:
+        """Return whether message is the last message first written to the thread.
+
+        Rewriting a message, a resend or a correction, keeps its place, so only
+        a new message moves the end of the thread.
+
+        Args:
+            thread_id: The conversation to read.
+            message: The message to look up.
+
+        Returns:
+            True when no message was first written to the thread after this one,
+            False when one was, or when the message was never written.
+        """
+        ...
+
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how much was dropped.
 

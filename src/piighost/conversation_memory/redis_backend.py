@@ -182,6 +182,14 @@ class RedisConversationMemory:
         messages = ((role, detections) for _, role, detections in records)
         return _first_occurrence_roles(messages)
 
+    async def is_latest(self, thread_id: str, message: str) -> bool:
+        """Return whether message is the last message first written to the thread."""
+        last = await self._client.lindex(self._index_key(thread_id), -1)
+        if last is None:
+            return False
+        digest_message = message_digest(message, self._hasher)
+        return _as_bytes(last) == digest_message.encode()
+
     async def forget(self, thread_id: str) -> Forgotten:
         """Erase a thread and report how many messages and detections dropped."""
         records = await self._read_all(thread_id)

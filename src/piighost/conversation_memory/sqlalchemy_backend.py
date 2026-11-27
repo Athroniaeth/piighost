@@ -195,6 +195,20 @@ class SqlAlchemyConversationMemory:
         )
         return _first_occurrence_roles(messages)
 
+    async def is_latest(self, thread_id: str, message: str) -> bool:
+        """Return whether message is the last message first written to the thread."""
+        digest = message_digest(message, self._hasher)
+        table = self._table
+        query = (
+            select(table.c.message_digest)
+            .where(table.c.thread_id == thread_id)
+            .order_by(table.c.id.desc())
+            .limit(1)
+        )
+        async with self._engine.connect() as conn:
+            last = (await conn.execute(query)).scalar()
+        return last == digest
+
     async def _rows(self, thread_id: str) -> Sequence[Row[Any]]:
         """Read a thread's message rows, role and detections, in first-seen order."""
         table = self._table
