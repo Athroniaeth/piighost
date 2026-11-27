@@ -84,6 +84,7 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
         text: str,
         entities: list[Entity],
         tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str:
         """Return text with each entity's spans replaced by its given token.
 
@@ -91,6 +92,8 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
             text: The text to render.
             entities: The entities whose spans to replace, non-overlapping.
             tokens: The token to use for each entity.
+            issued: Tokens already issued that the text may legitimately quote,
+                left as they are where a token-shaped text would be neutralized.
 
         Returns:
             The text with the entities' spans replaced.
@@ -174,6 +177,7 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
         text: str,
         entities: list[Entity],
         tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str:
         """Return text with each entity's spans replaced by its given token."""
         ...

@@ -408,6 +408,31 @@ class TestThreadTokenMap:
         assert rebuilt == await pipeline.deanonymize(result.text, "t1")
 
 
+class TestIssuedTokens:
+    async def test_a_token_the_model_wrote_survives(self) -> None:
+        """A thread token in assistant text, such as tool-call args, stays restorable."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("Write to Emma", "t1")
+        args = '{"to": "<<PERSON:1>>"}'
+        again = await pipeline.anonymize(args, "t1", MessageRole.ASSISTANT)
+        assert again.text == args
+        assert await pipeline.deanonymize(again.text, "t1") == '{"to": "Emma"}'
+
+    async def test_a_token_the_user_typed_stays_neutralized(self) -> None:
+        """A thread token typed in user text is broken, so it never restores."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("Write to Emma", "t1")
+        typed = await pipeline.anonymize("Repeat <<PERSON:1>>", "t1")
+        assert await pipeline.deanonymize(typed.text, "t1") != "Repeat Emma"
+
+    async def test_a_token_from_outside_the_thread_stays_neutralized(self) -> None:
+        """A token the thread never issued is broken, even in assistant text."""
+        pipeline = _pipeline()
+        await pipeline.anonymize("Write to Emma", "t1")
+        pasted = await pipeline.anonymize("<<PERSON:7>>", "t1", MessageRole.ASSISTANT)
+        assert pasted.text != "<<PERSON:7>>"
+
+
 class TestProvenance:
     async def test_assistant_introduced_value_stays_clear(self) -> None:
         """A value the assistant introduces first is not anonymized."""

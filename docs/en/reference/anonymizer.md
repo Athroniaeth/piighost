@@ -65,11 +65,11 @@ Returns the token each entity maps to, without touching any text. Splitting toke
 --8<-- "snippets/reference_anonymizer.py:create"
 ```
 
-#### `render(text, entities, tokens) -> str`
+#### `render(text, entities, tokens, issued=frozenset()) -> str`
 
 Returns `text` with each entity's spans replaced by its given token. Used by the thread pipeline to render one message against tokens assigned over the whole thread.
 
-With `escape_existing_tokens` on and a delimited factory, `render` neutralizes any token the user typed in the text left as is between entity spans. It splices a zero-width space into that token, so it cannot be restored as a real token. The entity spans and their offsets are untouched.
+With `escape_existing_tokens` on and a delimited factory, `render` neutralizes any token-shaped text left as is between entity spans. It splices a zero-width space into that text, so it cannot be restored as a real token. The entity spans and their offsets are untouched. A token listed in `issued` passes as it is. The thread pipeline lists the tokens of the thread when it renders a text the model wrote, such as the arguments of a tool call, and lists none for a text the user wrote.
 
 Raises `OverlappingSpansError` when two spans overlap. The overlap-resolver stage must run first. An overlap that reaches this point therefore fails the call rather than splice a clear fragment of one detection into another.
 
@@ -106,7 +106,11 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
     def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT_co]: ...
 
     def render(
-        self, text: str, entities: list[Entity], tokens: Mapping[Entity, str]
+        self,
+        text: str,
+        entities: list[Entity],
+        tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str: ...
 
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str: ...
@@ -124,7 +128,11 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
 
     @abstractmethod
     def render(
-        self, text: str, entities: list[Entity], tokens: Mapping[Entity, str]
+        self,
+        text: str,
+        entities: list[Entity],
+        tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str: ...
 ```
 

@@ -106,6 +106,23 @@ class TestAnonymize:
             anonymizer.anonymize("Patrick Dupont xx", [first, second])
 
 
+class TestRenderIssued:
+    def test_an_issued_token_passes_as_it_is(self) -> None:
+        """A token the caller lists as issued is not neutralized."""
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        text = '{"to": "<<PERSON:1>>"}'
+        rendered = anonymizer.render(text, [], {}, frozenset({"<<PERSON:1>>"}))
+        assert rendered == text
+
+    def test_a_token_not_issued_is_still_neutralized(self) -> None:
+        """Only the listed tokens pass, any other token-shaped text is broken."""
+        anonymizer = Anonymizer(LabelCounterPlaceholderFactory())
+        text = "<<PERSON:1>> and <<PERSON:7>>"
+        rendered = anonymizer.render(text, [], {}, frozenset({"<<PERSON:1>>"}))
+        assert rendered.startswith("<<PERSON:1>> and ")
+        assert "<<PERSON:7>>" not in rendered
+
+
 class TestDeanonymize:
     def test_restores_a_single_token(self) -> None:
         """A token in the text is swapped back for its entity's value."""

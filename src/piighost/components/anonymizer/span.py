@@ -1,5 +1,6 @@
 """Span-replacement anonymizer built on a placeholder factory."""
 
+import re
 from collections.abc import Mapping
 
 from piighost.components.anonymizer.base import BaseAnonymizer, PreservationT
@@ -44,12 +45,15 @@ class Anonymizer(BaseAnonymizer[PreservationT]):
         text: str,
         entities: list[Entity],
         tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str:
         """Return text with each entity's spans replaced by its given token.
 
         Only the literal runs between entity spans are neutralized, never the
         tokens spliced in, and offsets are untouched, so the entity spans still
-        line up.
+        line up. A token listed in issued is a legitimate reference the caller
+        vouches for, such as a token the model wrote in a tool call, and passes
+        as it is.
 
         Raises:
             OverlappingSpansError: If two spans overlap. The one-pass rewrite
@@ -69,15 +73,15 @@ class Anonymizer(BaseAnonymizer[PreservationT]):
                     f"Overlapping spans at offset {span.start} (previous edit ended "
                     f"at {cursor}); the overlap-resolver stage must run first."
                 )
-            pieces.append(self._neutralize(text[cursor : span.start]))
+            pieces.append(self._neutralize(text[cursor : span.start], issued))
             pieces.append(token)
             cursor = span.end
 
-        pieces.append(self._neutralize(text[cursor:]))
+        pieces.append(self._neutralize(text[cursor:], issued))
         return "".join(pieces)
 
-    def _neutralize(self, run: str) -> str:
-        """Break any token the user typed in a literal run of the input.
+    def _neutralize(self, run: str, issued: frozenset[str]) -> str:
+        """Break any token-shaped text in a literal run, except the issued tokens.
 
         A zero-width space is spliced after the first character of each match, so
         the delimiters no longer line up and the run cannot be restored as a real
@@ -89,7 +93,12 @@ class Anonymizer(BaseAnonymizer[PreservationT]):
             factory, BaseDelimitedPlaceholderFactory
         ):
             return run
-        return factory.token_pattern.sub(
-            lambda match: match.group()[0] + _ZERO_WIDTH_SPACE + match.group()[1:],
-            run,
-        )
+
+        def break_unless_issued(match: re.Match[str]) -> str:
+            """Return an issued token as it is, any other one broken."""
+            token = match.group()
+            if token in issued:
+                return token
+            return token[0] + _ZERO_WIDTH_SPACE + token[1:]
+
+        return factory.token_pattern.sub(break_unless_issued, run)

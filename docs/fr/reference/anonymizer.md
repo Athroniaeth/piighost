@@ -65,11 +65,11 @@ Renvoie le jeton que chaque entité obtient, sans toucher au texte. Séparer l'a
 --8<-- "snippets/reference_anonymizer.py:create"
 ```
 
-#### `render(text, entities, tokens) -> str`
+#### `render(text, entities, tokens, issued=frozenset()) -> str`
 
 Renvoie `text` avec les spans de chaque entité remplacés par le jeton donné. Utilisé par le pipeline de conversation pour rendre un message contre des jetons assignés sur toute la conversation.
 
-Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout jeton que l'utilisateur a saisi dans le texte laissé tel quel entre les spans d'entités. Il y insère un espace de largeur nulle, pour que ce jeton ne puisse pas être restauré comme un vrai jeton. Les spans d'entités et leurs offsets restent intacts.
+Avec `escape_existing_tokens` actif et une factory à délimiteurs, `render` neutralise tout texte en forme de jeton laissé tel quel entre les spans d'entités. Il y insère un espace de largeur nulle, pour que ce texte ne puisse pas être restauré comme un vrai jeton. Les spans d'entités et leurs offsets restent intacts. Un jeton listé dans `issued` passe tel quel. Le pipeline de conversation y liste les jetons de la conversation quand il rend un texte écrit par le modèle, comme les arguments d'un appel d'outil, et n'en liste aucun pour un texte écrit par l'utilisateur.
 
 Lève `OverlappingSpansError` quand deux spans se chevauchent. L'étage de résolution des chevauchements doit s'exécuter avant. Un chevauchement qui arrive jusqu'ici fait donc échouer l'appel, plutôt que d'introduire un fragment en clair d'une détection dans une autre.
 
@@ -106,7 +106,11 @@ class AnyAnonymizer(Protocol[PreservationT_co]):
     def create(self, entities: list[Entity]) -> Mapping[Entity, PreservationT_co]: ...
 
     def render(
-        self, text: str, entities: list[Entity], tokens: Mapping[Entity, str]
+        self,
+        text: str,
+        entities: list[Entity],
+        tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str: ...
 
     def deanonymize(self, text: str, tokens: Mapping[Entity, str]) -> str: ...
@@ -124,7 +128,11 @@ class BaseAnonymizer(ABC, Generic[PreservationT]):
 
     @abstractmethod
     def render(
-        self, text: str, entities: list[Entity], tokens: Mapping[Entity, str]
+        self,
+        text: str,
+        entities: list[Entity],
+        tokens: Mapping[Entity, str],
+        issued: frozenset[str] = frozenset(),
     ) -> str: ...
 ```
 

@@ -157,9 +157,20 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
                 if entity.detections[0] not in token_of
             )
             anonymizable = list(message_tokens)
+            # The model only ever saw tokens, so a token it wrote, in a tool call
+            # the middleware de-identifies again, is a legitimate reference. Only
+            # user text keeps every token-shaped run neutralized: a user typing a
+            # token issued for a tool result must not get its value back.
+            issued = (
+                frozenset(thread_tokens.values())
+                if role is MessageRole.ASSISTANT
+                else frozenset()
+            )
 
             with self._tracer.span("piighost.render") as span:
-                rendered = self.anonymizer.render(text, anonymizable, message_tokens)
+                rendered = self.anonymizer.render(
+                    text, anonymizable, message_tokens, issued
+                )
                 span.set_attribute("tokens", len(message_tokens))
                 span.set_output(rendered)
 
