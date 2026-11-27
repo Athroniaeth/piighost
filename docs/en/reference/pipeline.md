@@ -116,9 +116,9 @@ In addition to every parameter of `AnonymizationPipeline`:
 
 #### `anonymize(text, thread_id, role=MessageRole.USER) -> Anonymization` *(async)*
 
-Detects the message's entities, records them in `thread_id`'s memory, then de-identifies using tokens assigned over the whole thread. The token of a value stays the same from one message to the next.
+Detects the message's entities, records them in `thread_id`'s memory, then de-identifies using tokens assigned over the whole thread. The token of a value stays the same from one message to the next. With an `expander`, a new message is also searched for every value the thread already holds a token for, with the expander's matching rule. A value marked earlier, by a detector or a human, is therefore masked in every later message, and it keeps its label when a detector names it otherwise.
 
-The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's confidential data. `role` marks who authored the values the message introduces. A value first introduced by the assistant is left in clear, since it is not the user's confidential data.
+The `thread_id` is required. There is no shared default, so two callers cannot fall into one thread and leak each other's confidential data. `role` marks who authored the values the message introduces. A value first introduced by the assistant is left in clear, since it is not the user's confidential data. In a text the assistant wrote, a token the thread issued passes as it is, so a tool call the middleware de-identifies again keeps its tokens. In a user text, every token-shaped text is neutralized.
 
 **Raises** `PIIRemainingError` when a configured guard flags confidential values left in the output.
 
@@ -131,6 +131,10 @@ The `thread_id` is required. There is no shared default, so two callers cannot f
 Re-de-identifies a user message with a human-corrected detection set. The corrected set replaces this message's detections in memory, then the message is de-identified with tokens consistent across the thread. Detection does not run again. This method applies only to a user's own messages, so the correction is recorded as a user message.
 
 The corrected set is the whole truth for the message. A detection it leaves out stays in clear, and no occurrence expansion runs on it. Its overlapping detections merge into the span they cover together, so no flagged character stays in clear. The human is always right, so the human's detection names the merged span whatever the detectors' confidence. A detection absent from the message's cached automatic set is the human's. On a message never de-identified before, the whole set counts as the human's, and the surest detection names each merged span. A configured `override` still applies first, so the server's lists trump the correction. See [When a human corrects a message](../conception.md#when-a-human-corrects-a-message).
+
+Only the thread's latest message, or a message never de-identified, can be corrected. Tokens are numbered over the whole thread, so a value removed from or added to an older message would renumber the tokens of the values after it, and a text the model already holds would restore to another value.
+
+**Raises** `StaleCorrectionError` when another message was de-identified after this one. Two tool results de-identified then corrected in parallel raise it too: serialize the corrections of a thread, or retry.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"

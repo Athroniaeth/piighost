@@ -29,6 +29,7 @@ L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'
     - `DetectorError`
         - `LabelMappingError`
         - `TextTooLongError`
+        - `ThresholdLabelsError`
         - `UnreadableOutputError`
         - `BridgePayloadError`
         - `BridgeSpanRangeError`
@@ -38,6 +39,8 @@ L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'
         - `OverlappingSpansError`
     - `OverrideError`
         - `ConflictingOverrideError`
+    - `ThreadError`
+        - `StaleCorrectionError`
     - `GuardError`
         - `PIIRemainingError`
     - `MiddlewareError`
@@ -55,7 +58,7 @@ L'arbre `PIIGhostError`, chaque classe de regroupement au-dessus des erreurs qu'
         - `ConfigFileError`
         - `ConfigValidationError`
 
-Sur les trente-six classes d'erreur, vingt-trois sont levées par un composant et treize n'existent que pour être attrapées. `ConfigError` compte des deux côtés, parce que c'est une classe de regroupement qui est aussi levée pour elle-même.
+Sur les trente-neuf classes d'erreur, vingt-cinq sont levées par un composant et quatorze n'existent que pour être attrapées. `ConfigError` compte des deux côtés, parce que c'est une classe de regroupement qui est aussi levée pour elle-même.
 
 ## Modèles de données
 
@@ -72,17 +75,18 @@ Les invariants que ces erreurs font respecter sont dans [Référence des modèle
 
 ## Détecteurs
 
-Module : `piighost.components.detector.ner`. `DetectorError` regroupe cinq défaillances. Deux appartiennent à `BaseNERDetector`, et ne touchent donc que les détecteurs à modèle. Une appartient à `LLMDetector`, et donc aussi à `LLMGuardRail`. Les deux dernières appartiennent à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
+Module : `piighost.components.detector.ner`. `DetectorError` regroupe six défaillances. Trois appartiennent à `BaseNERDetector`, et ne touchent donc que les détecteurs à modèle. Une appartient à `LLMDetector`, et donc aussi à `LLMGuardRail`. Les deux dernières appartiennent à `BridgeDetector`, qui contrôle chaque span que lui rend son runner au lieu de lui faire confiance. Un détecteur regex, exact-match, composite ou chunked n'en lève aucune.
 
 | Exception | Levée par | Levée quand |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | deux labels externes pointent vers un même label interne, ce qui rendrait la recherche inverse ambiguë |
 | `TextTooLongError` | `BaseNERDetector`, à la détection | un texte dépasse `max_chars` alors que `auto_chunk` est désactivé, plutôt que de n'analyser que le début du texte |
+| `ThresholdLabelsError` | `BaseNERDetector.__init__` | un seuil par label nomme un label que le détecteur n'émet pas, ou en laisse un sans seuil faute de clé `__default` |
 | `UnreadableOutputError` | `LLMDetector`, à la détection | le modèle rend une sortie que le détecteur ne sait pas lire, un JSON cassé ou un résultat sans son champ `entities`, alors que `fail_open` est désactivé |
 | `BridgePayloadError` | `BridgeDetector`, à la détection | le runner rend un span auquel il manque un champ, ou un décalage qui n'est pas un entier. Un flottant est refusé lui aussi |
 | `BridgeSpanRangeError` | `BridgeDetector`, à la détection | le runner rend un span vide ou inversé, qui dépasse le texte, ou, en unités UTF-16, qui coupe un caractère en deux |
 
-Les cinq sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent `TextTooLongError`, l'argument `fail_open` qui gouverne `UnreadableOutputError`, et l'`offset_unit` dans laquelle se lisent les décalages du bridge.
+Les six sont traitées dans [Détecteurs](detectors.md), avec les arguments `max_chars` et `auto_chunk` qui gouvernent `TextTooLongError`, le seuil par label qui gouverne `ThresholdLabelsError`, l'argument `fail_open` qui gouverne `UnreadableOutputError`, et l'`offset_unit` dans laquelle se lisent les décalages du bridge.
 
 ## Utilitaires de texte
 
@@ -113,6 +117,16 @@ Module : `piighost.components.override`. `OverrideError` regroupe les défaillan
 | `ConflictingOverrideError` | `DetectionOverride.apply` | un span de la liste à masquer chevauche un span de la liste à laisser en clair sous la stratégie de conflit `raise` |
 
 Les deux autres stratégies de conflit tranchent la collision au lieu de lever. Chaque clé `[override]` est dans la [référence de configuration](../configuration/toml.md).
+
+## Pipeline de conversation
+
+Module : `piighost.pipeline`. `ThreadError` regroupe les défaillances du pipeline de conversation et porte une sous-classe.
+
+| Exception | Levée par | Levée quand |
+|-----------|-----------|-------------|
+| `StaleCorrectionError` | `ThreadAnonymizationPipeline.anonymize_corrected` | le message corrigé a déjà été dé-identifié et un autre message l'a été après lui, donc la correction renumérotrait des jetons que le modèle détient |
+
+Seul le dernier message d'une conversation se corrige, comme décrit dans [Référence Pipeline](pipeline.md). `piighost-api` traduit cette erreur en `409 Conflict`.
 
 ## Garde-fous
 

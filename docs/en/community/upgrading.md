@@ -66,6 +66,26 @@ No name is deprecated in 2.0. The hub names of 1.x stay as plain aliases of the 
 
 Security fixes land on the latest minor only, on the stable and the experimental surface alike. An older minor receives no fix. Staying current is therefore part of the contract.
 
+## Upgrading to 2.2
+
+No code change is needed for a pipeline built from the built-in components. Tokens given to the model no longer change meaning within a thread, which changes five behaviours.
+
+- **A correction on an older message is refused.** `anonymize_corrected` raises `StaleCorrectionError` when another message was de-identified after the corrected one, since the correction would renumber tokens the model holds. `piighost-api` answers `409 Conflict`. Correct a message before the next one is de-identified, and serialize the corrections of a thread.
+- **A value keeps its first label in a thread.** `MergeEntityResolver` and `FuzzyEntityResolver` keep the detections in the order they arrived instead of sorting them by position. A later message holding a value at the start of its text no longer relabels it, nor shifts the tokens of the values after it.
+- **The expander searches the whole thread.** With an `expander`, each new message is also searched for the values the thread already holds a token for. A value a human marked, or a detector found earlier, is masked in every later message. Messages already sent are not rewritten.
+- **A Redis thread expires as a whole.** Every write sets the `ttl` again on every key of the thread, so a thread no longer loses its first messages before the others.
+- **A token the model wrote survives.** In a text the assistant wrote, such as tool-call arguments the middleware de-identifies again, a token the thread issued is no longer broken by a zero-width space. A user text is neutralized as before.
+
+A NER detector also takes one threshold per label, `threshold={"__default": 0.6, "ADDRESS": 0.9}`, see [Thresholds per label](../reference/detectors.md#thresholds-per-label).
+
+A component written outside `piighost` against a port gains one method or parameter.
+
+| Port | Added | Used for |
+|---|---|---|
+| `AnyConversationMemory` | `is_latest(thread_id, message)` | refusing a correction on an older message |
+| `AnyDetectionExpander` | `find(text, detection)`, implemented by `BaseDetectionExpander` | searching a new message for the thread's values |
+| `AnyAnonymizer` | the `issued` parameter of `render`, implemented by `Anonymizer` | letting the thread's tokens pass in a text the assistant wrote |
+
 ## Upgrading to 2.1
 
 No code change is needed. Four behaviours change.

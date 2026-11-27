@@ -214,6 +214,8 @@ max_chars = 2000
 
 Les détecteurs `gliner2` et `transformers` acceptent `max_chars`, le plus long texte qu'une inférence voit. Un texte plus long est découpé en morceaux qui se chevauchent. Chaque morceau est analysé séparément, puis les spans sont replacés dans le texte d'origine. Sans cette clé, le texte entier part au modèle en une fois. Un modèle à fenêtre courte tronque alors ce texte, et un long document peut épuiser la mémoire.
 
+`threshold` prend aussi un seuil par label, avec la clé `__default` pour les labels non nommés, comme `threshold = { __default = 0.6, ADDRESS = 0.9 }`. Voir [Un seuil par label](../reference/detectors.md#un-seuil-par-label).
+
 Le détecteur `transformers` passe `aggregation_strategy` à sa pipeline de classification de tokens, qui regroupe les sous-tokens en entités entières.
 
 Le détecteur `presidio` ne prend aucune clé `model`, car le chemin par configuration construit l'`AnalyzerEngine` anglais par défaut de Presidio avec ses reconnaisseurs par défaut. Une autre langue, un reconnaisseur sur mesure ou un moteur NLP sur mesure passent par le chemin programmatique, en construisant le moteur et en le passant à `PresidioDetector`.
@@ -293,6 +295,8 @@ Optionnel, et désactivé quand il est omis. Un seul expander existe, donc `type
 type = "word_boundary"
 case_sensitive = false
 ```
+
+Dans un pipeline de conversation, l'expander cherche aussi dans chaque nouveau message les valeurs auxquelles la conversation a déjà donné un jeton, avec la même règle. Une valeur marquée plus tôt reste donc masquée dans les messages suivants.
 
 ---
 
@@ -460,7 +464,7 @@ Un stockage persistant et multi-worker. En option, il indexe chaque message stoc
 |-----|------|--------|---------------|
 | `url` | `str` | | L'URL de connexion Redis (requis) |
 | `namespace` | `str` | `piighost` | Le préfixe de clé isolant les clés de cette librairie |
-| `ttl` | `int` | `None` | Secondes de vie d'un message stocké, ou omis pour garder jusqu'à l'éviction |
+| `ttl` | `int` | `None` | Secondes de vie d'une conversation après sa dernière écriture, renouvelées sur toutes ses clés à chaque écriture, ou omis pour garder jusqu'à l'éviction |
 | `[memory.hasher]` | hacheur | | Optionnel (les deux ou aucun). Le hacheur qui indexe chaque message |
 | `[memory.cipher]` | cipher | | Optionnel (les deux ou aucun). Le cipher qui chiffre chaque valeur |
 

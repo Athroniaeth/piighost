@@ -22,13 +22,14 @@ from piighost.conversation_memory import (
 
 ## Le port `AnyConversationMemory`
 
-Quatre méthodes async composent l'interface. Un backend les implémente toutes les quatre, quel que soit le support de stockage.
+Cinq méthodes async composent l'interface. Un backend les implémente toutes les cinq, quel que soit le support de stockage.
 
 | Méthode | Rôle |
 |---------|------|
 | `remember(thread_id, message, detections, role=MessageRole.USER)` | Met en cache les détections trouvées dans un message, en remplaçant toute entrée précédente. |
 | `get_detections(thread_id, message=None)` | Renvoie les détections d'une conversation pour un message. Quand `message` est omis, renvoie celles de toute la conversation, réunies dans l'ordre de première apparition. |
 | `get_provenance(thread_id)` | Renvoie, par valeur, le rôle de sa première apparition dans la conversation (clé de valeur → `MessageRole`). La clé de valeur ne tient compte ni des espaces ni de la casse. |
+| `is_latest(thread_id, message)` | Indique si aucun message n'a été écrit pour la première fois après celui-ci. Réécrire un message, un renvoi ou une correction, ne le déplace pas. Le pipeline s'en sert pour n'accepter une correction que sur le dernier message. |
 | `forget(thread_id)` | Efface une conversation et rapporte un compte `Forgotten` des messages et détections supprimés. |
 
 Le pipeline pilote ces méthodes pour vous. Vous appelez la mémoire directement dans deux cas seulement, pour pré-remplir ou inspecter une conversation, et pour appeler `create_schema()` sur le backend SQL au démarrage.
@@ -75,7 +76,7 @@ RedisConversationMemory(
 )
 ```
 
-Un stockage persistant et multi-worker. Chaque worker pointé vers le même Redis lit la même numérotation, donc les jetons restent cohérents derrière un load balancer. `namespace` préfixe chaque clé. `ttl` est le nombre de secondes de vie d'un message avant éviction. Omettez-le pour garder le message jusqu'à ce que Redis le supprime. Requiert `piighost[redis]`.
+Un stockage persistant et multi-worker. Chaque worker pointé vers le même Redis lit la même numérotation, donc les jetons restent cohérents derrière un load balancer. `namespace` préfixe chaque clé. `ttl` est la durée de vie d'une conversation, en secondes, depuis sa dernière écriture. Chaque écriture la remet sur toutes les clés de la conversation, donc une conversation expire d'un bloc. Une conversation à qui manqueraient ses premiers messages renumérotrait les jetons des autres. Omettez `ttl` pour garder la conversation jusqu'à ce que Redis la supprime. Requiert `piighost[redis]`.
 
 Passez à la fois un `hasher` et un `cipher` pour stocker de façon sécurisée (la clé est hachée sous un poivre, la valeur chiffrée), ou aucun des deux pour stocker en clair. En passer exactement un lève `ValueError`. Une configuration en clair sur un store en réseau émet un `PIIGhostSecurityWarning`.
 

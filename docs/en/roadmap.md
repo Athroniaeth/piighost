@@ -43,9 +43,9 @@ A human correction always wins today. Its detection names the span it overlaps, 
 
 Each one needs to tell the human's detections apart from the automatic ones. The comparison with the message's cached automatic set already does that.
 
-## Propagating a correction across the thread
+## ~~Propagating a correction across the thread~~
 
-A correction only covers the message it corrects. A value the human adds in one message stays in clear in the thread's other messages, earlier or later, because each message reads only its own detections. Covering them could go forward only, searching each new message for the values the thread already knows. It could also rewrite the history, at a cost. A rewritten message changes the prefix replayed to the model, which invalidates the provider's prompt cache from that message on, and the value was already sent in clear once.
+~~Shipped in 2.2, forward only. With an expander, each new message is searched for the values the thread already holds a token for, so a value the human adds is masked in later messages. Messages already sent are not rewritten. A rewritten message would change the prefix replayed to the model, which would invalidate the provider's prompt cache, and the value was already sent in clear once. See [When a human corrects a message](conception.md#when-a-human-corrects-a-message).~~
 
 ## Planned for version 3
 

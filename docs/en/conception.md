@@ -318,8 +318,17 @@ judges otherwise removes that detection from the set, and only `M. Wirth`{ .pii 
 hidden.
 
 The human being always right is one strategy among several, see
-[Roadmap](roadmap.md#human-feedback-strategy). A correction also stays local to its
-message for now, see [Propagating a correction across the thread](roadmap.md#propagating-a-correction-across-the-thread).
+[Roadmap](roadmap.md#human-feedback-strategy).
+
+Only the latest message of a thread can be corrected. Tokens are numbered over the whole
+thread, so removing a false positive from an older message would renumber the values
+after it, and a token the model holds would name another person. A correction on a
+message followed by another therefore raises `StaleCorrectionError`.
+
+With an expander, a value the human marks is also masked in later messages, with its
+token. The expander searches each new message for the values the thread already holds a
+token for. Messages already sent are not rewritten, which keeps the provider's prompt
+cache, see [Propagating a correction across the thread](roadmap.md#propagating-a-correction-across-the-thread).
 
 ---
 

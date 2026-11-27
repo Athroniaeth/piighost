@@ -333,8 +333,17 @@ humain qui en juge autrement retire cette détection de l'ensemble, et seul
 `M. Wirth`{ .pii } est caché.
 
 "L'humain a toujours raison" est une stratégie parmi d'autres, voir la
-[feuille de route](roadmap.md#strategie-de-retour-humain). Une correction reste aussi
-locale à son message pour l'instant, voir
+[feuille de route](roadmap.md#strategie-de-retour-humain).
+
+Seul le dernier message d'une conversation se corrige. Les jetons sont numérotés sur toute
+la conversation, donc retirer un faux positif d'un ancien message renumérotrait les
+valeurs suivantes, et un jeton que le modèle détient désignerait une autre personne. Une
+correction sur un message suivi d'un autre lève donc `StaleCorrectionError`.
+
+Avec un expander, une valeur que l'humain marque est aussi masquée dans les messages
+suivants, avec son jeton. L'expander cherche dans chaque nouveau message les valeurs
+auxquelles la conversation a déjà donné un jeton. Les messages déjà envoyés ne sont pas
+réécrits, ce qui garde le cache de prompt du fournisseur, voir
 [Propager une correction dans la conversation](roadmap.md#propager-une-correction-dans-la-conversation).
 
 ---

@@ -96,6 +96,8 @@ Subclass `BaseDetectionExpander`. It keeps the original detections. For each one
 
 The built-in `WordBoundaryExpander` does exactly this. The stage is optional.
 
+The thread pipeline also calls `find`, which `BaseDetectionExpander` implements with your `_find_occurrences`. It searches each new message for the values the thread already holds a token for. Your matching rule therefore covers the message and the thread. An expander that does not extend `BaseDetectionExpander` implements `find` itself.
+
 ## A custom entity linker
 
 A linker groups into entities the detections that refer to the same value. All occurrences of a value thus share one placeholder. The port:

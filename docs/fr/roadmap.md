@@ -43,9 +43,9 @@ Une correction humaine l'emporte toujours aujourd'hui. Sa détection nomme le sp
 
 Chacune doit distinguer les détections de l'humain des détections automatiques. La comparaison avec l'ensemble automatique du message en mémoire le fait déjà.
 
-## Propager une correction dans la conversation
+## ~~Propager une correction dans la conversation~~
 
-Une correction ne couvre que le message qu'elle corrige. Une valeur ajoutée par l'humain dans un message reste en clair dans les autres messages de la conversation, avant comme après, car chaque message ne lit que ses propres détections. Les couvrir pourrait se faire vers l'avant seulement, en cherchant dans chaque nouveau message les valeurs que la conversation connaît déjà. On pourrait aussi réécrire l'historique, avec un coût. Un message réécrit change le préfixe rejoué au modèle, ce qui invalide le cache de prompt du fournisseur à partir de ce message, et la valeur est de toute façon déjà partie une fois en clair.
+~~Livré en 2.2, vers l'avant seulement. Avec un expander, chaque nouveau message est fouillé pour les valeurs auxquelles la conversation a déjà donné un jeton, donc une valeur ajoutée par l'humain est masquée dans les messages suivants. Les messages déjà envoyés ne sont pas réécrits. Un message réécrit changerait le préfixe rejoué au modèle, ce qui invaliderait le cache de prompt du fournisseur, et la valeur est de toute façon déjà partie une fois en clair. Voir [Quand un humain corrige un message](conception.md#quand-un-humain-corrige-un-message).~~
 
 ## Prévu pour la version 3
 

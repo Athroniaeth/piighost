@@ -96,6 +96,8 @@ Sous-classez `BaseDetectionExpander`. Il conserve les détections d'origine. Pou
 
 Le `WordBoundaryExpander` intégré fait exactement cela. L'étape est optionnelle.
 
+Le pipeline de conversation appelle aussi `find`, que `BaseDetectionExpander` implémente avec votre `_find_occurrences`. Il y cherche, dans chaque nouveau message, les valeurs auxquelles la conversation a déjà donné un jeton. Votre règle de recherche couvre donc le message et la conversation. Un expander qui n'étend pas `BaseDetectionExpander` implémente `find` lui-même.
+
 ## Un linker d'entités personnalisé
 
 Un linker regroupe en entités les détections qui réfèrent à la même valeur. Toutes les occurrences d'une valeur partagent ainsi un placeholder. Le port :

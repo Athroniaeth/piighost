@@ -116,9 +116,9 @@ En plus de tous les paramètres de `AnonymizationPipeline` :
 
 #### `anonymize(text, thread_id, role=MessageRole.USER) -> Anonymization` *(async)*
 
-Détecte les entités du message, les enregistre dans la mémoire de `thread_id`, puis dé-identifie avec des jetons assignés sur toute la conversation. Le jeton d'une valeur reste le même d'un message à l'autre.
+Détecte les entités du message, les enregistre dans la mémoire de `thread_id`, puis dé-identifie avec des jetons assignés sur toute la conversation. Le jeton d'une valeur reste le même d'un message à l'autre. Avec un `expander`, un nouveau message est aussi fouillé pour chaque valeur à laquelle la conversation a déjà donné un jeton, avec la règle de recherche de l'expander. Une valeur marquée plus tôt, par un détecteur ou par un humain, est donc masquée dans chaque message suivant, et elle garde son label quand un détecteur la nomme autrement.
 
-Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants ne peuvent pas tomber dans une même conversation et laisser fuir mutuellement leurs données confidentielles. `role` marque l'auteur des valeurs que le message introduit. Une valeur introduite d'abord par l'assistant est laissée en clair, car ce n'est pas une donnée confidentielle de l'utilisateur.
+Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants ne peuvent pas tomber dans une même conversation et laisser fuir mutuellement leurs données confidentielles. `role` marque l'auteur des valeurs que le message introduit. Une valeur introduite d'abord par l'assistant est laissée en clair, car ce n'est pas une donnée confidentielle de l'utilisateur. Dans un texte écrit par l'assistant, un jeton émis par la conversation passe tel quel, donc un appel d'outil que le middleware dé-identifie à nouveau garde ses jetons. Dans un texte de l'utilisateur, tout texte en forme de jeton est neutralisé.
 
 **Lève** `PIIRemainingError` quand un guard configuré signale des valeurs confidentielles restées dans la sortie.
 
@@ -131,6 +131,10 @@ Le `thread_id` est requis. Il n'y a pas de défaut partagé, donc deux appelants
 Redé-identifie un message utilisateur avec un ensemble de détections corrigé par un humain. L'ensemble corrigé remplace les détections de ce message dans la mémoire, puis le message est dé-identifié avec des jetons cohérents sur la conversation. La détection ne relance pas. Cette méthode ne concerne que les propres messages d'un utilisateur. La correction est donc enregistrée comme un message utilisateur.
 
 L'ensemble corrigé est toute la vérité du message. Une détection qu'il omet reste en clair, et aucune recherche d'occurrences ne tourne dessus. Ses détections qui se chevauchent fusionnent en un span qui couvre leur union, donc aucun caractère signalé ne reste en clair. L'humain a toujours raison, donc sa détection nomme le span fusionné quelle que soit la confiance des détecteurs. Une détection absente de l'ensemble automatique du message en mémoire est celle de l'humain. Sur un message jamais dé-identifié auparavant, tout l'ensemble compte comme celui de l'humain, et la détection la plus sûre nomme chaque span fusionné. Un `override` configuré s'applique d'abord, donc les listes du serveur priment sur la correction. Voir [Quand un humain corrige un message](../conception.md#quand-un-humain-corrige-un-message).
+
+Seul le dernier message de la conversation, ou un message jamais dé-identifié, peut être corrigé. Les jetons sont numérotés sur toute la conversation, donc une valeur retirée d'un ancien message, ou ajoutée à lui, renumérotrait les jetons des valeurs suivantes, et un texte que le modèle détient déjà serait restauré vers une autre valeur.
+
+**Lève** `StaleCorrectionError` quand un autre message a été dé-identifié après celui-ci. Deux résultats d'outils dé-identifiés puis corrigés en parallèle la lèvent aussi. Sérialisez les corrections d'une conversation, ou réessayez.
 
 ```python
 --8<-- "snippets/reference_thread_pipeline.py:anonymize_corrected"

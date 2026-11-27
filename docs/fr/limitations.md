@@ -129,6 +129,22 @@ La mémoire est cloisonnée par `thread_id`. Deux conversations séparées ne pa
 
 **Parade** : propager un `thread_id` stable et par conversation. Appeler `forget_thread` pour purger une conversation de la mémoire quand elle n'a plus lieu d'être.
 
+## Un identifiant de conversation ne se réutilise pas
+
+Les jetons sont numérotés par conversation, à partir de un. `<<PERSON:1>>`{ .placeholder } n'a de sens que dans la conversation qui l'a émis. Un texte dé-identifié peut pourtant survivre ailleurs, dans l'historique d'un agent, un checkpoint, un log ou une trace. Restauré sous une nouvelle conversation qui porte le même `thread_id` après un `forget_thread` ou une expiration, ce texte désigne la personne qui détient ce numéro maintenant, sans aucune erreur.
+
+Les listes de l'override ont le même effet sur une conversation en cours. `piighost-api` les lit au démarrage, mais une mémoire Redis ou SQL survit au redémarrage. Une valeur ajoutée à la liste à masquer, ou retirée de la liste à laisser en clair, entre dans la numérotation des conversations existantes et décale leurs jetons.
+
+**Parade** : donner un identifiant neuf à chaque conversation, un UUID ou un identifiant qui porte un horodatage, ou effacer tous les textes de l'ancienne conversation avec elle. Après un changement des listes, démarrer de nouvelles conversations, ou vider la mémoire.
+
+## Deux homonymes partagent un jeton
+
+Une conversation donne un seul jeton à une chaîne, quel que soit le label que les détecteurs lui donnent. `Paris`{ .pii } la ville et `Paris`{ .pii } la personne reçoivent donc le même jeton, avec le label de la première détection de la conversation. Une correspondance exacte ne sait pas distinguer deux homonymes d'un désaccord entre deux détecteurs sur la même personne, le cas le plus fréquent.
+
+Le modèle peut ainsi lire une personne comme un lieu. La restauration reste juste, puisque le jeton revient à la même chaîne. Une détection ultérieure sous un autre label ne renomme pas le jeton, car le modèle le détient déjà.
+
+**Parade** : aucune côté `piighost`. Quand le contexte compte, une correction humaine sur le message où la valeur apparaît pour la première fois fixe son label.
+
 ## La latence ajoutée n'est pas encore mesurée
 
 Il n'existe pas de benchmark officiel de la latence ajoutée par le pipeline sur des charges typiques. Le surcoût dépend du détecteur (inférence du NER choisi), de la longueur du texte, et de la présence de valeurs déjà connues dans la mémoire de la conversation.

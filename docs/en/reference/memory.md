@@ -22,13 +22,14 @@ from piighost.conversation_memory import (
 
 ## The `AnyConversationMemory` port
 
-Four async methods make up the interface. A backend implements all four, whatever it stores them in.
+Five async methods make up the interface. A backend implements all five, whatever it stores them in.
 
 | Method | Purpose |
 |--------|---------|
 | `remember(thread_id, message, detections, role=MessageRole.USER)` | Cache the detections found in a message, replacing any prior entry. |
 | `get_detections(thread_id, message=None)` | Return a thread's detections for one message. When `message` is omitted, return those of the whole thread, merged in first-seen order. |
 | `get_provenance(thread_id)` | Return, per value, the role of its first occurrence in the thread (value key → `MessageRole`). The value key ignores spaces and case. |
+| `is_latest(thread_id, message)` | Tell whether no message was first written after this one. Rewriting a message, a resend or a correction, does not move it. The pipeline uses it to accept a correction on the latest message only. |
 | `forget(thread_id)` | Erase a thread and report a `Forgotten` count of the messages and detections dropped. |
 
 The pipeline drives these for you. You call the memory directly in two cases only, to pre-seed or inspect a thread, and to call `create_schema()` on the SQL backend at startup.
@@ -75,7 +76,7 @@ RedisConversationMemory(
 )
 ```
 
-A persistent, multi-worker store. Every worker pointed at the same Redis reads the same numbering, so tokens stay consistent behind a load balancer. `namespace` prefixes every key. `ttl` is the number of seconds a message lives before eviction. Omit it to keep the message until Redis drops it. Requires `piighost[redis]`.
+A persistent, multi-worker store. Every worker pointed at the same Redis reads the same numbering, so tokens stay consistent behind a load balancer. `namespace` prefixes every key. `ttl` is how long a thread lives after its last write, in seconds. Every write sets it again on every key of the thread, so a thread expires as a whole. A thread missing its first messages would renumber the tokens of the others. Omit `ttl` to keep the thread until Redis drops it. Requires `piighost[redis]`.
 
 Pass both a `hasher` and a `cipher` to store securely (the key is hashed under a pepper, the value encrypted), or neither to store in clear. Passing exactly one raises `ValueError`. A plaintext setup on a networked store emits a `PIIGhostSecurityWarning`.
 

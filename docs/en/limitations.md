@@ -129,6 +129,22 @@ Memory is partitioned by `thread_id`. Two separate conversations share no placeh
 
 **Mitigation**: propagate a stable per-conversation `thread_id`. Call `forget_thread` to purge a conversation from memory once it no longer has reason to exist.
 
+## A thread id is never reused
+
+Tokens are numbered per thread, from one. `<<PERSON:1>>`{ .placeholder } only means something inside the thread that issued it. A de-identified text can still live on elsewhere, in an agent's history, a checkpoint, a log or a trace. Restored under a new thread with the same `thread_id`, after a `forget_thread` or an expiry, that text names whoever holds that number now, without any error.
+
+The override lists have the same effect on a thread in progress. `piighost-api` reads them at startup, but a Redis or SQL memory outlives the restart. A value added to the deny list, or removed from the allow list, enters the numbering of existing threads and shifts their tokens.
+
+**Mitigation**: give every conversation a fresh id, a UUID or an id carrying a timestamp, or erase every text of the old conversation with it. After changing the lists, start new threads, or flush the memory.
+
+## Two homonyms share a token
+
+A thread gives one token to a string, whatever label the detectors give it. `Paris`{ .pii } the city and `Paris`{ .pii } the person therefore get the same token, with the label of the thread's first detection. An exact match cannot tell two homonyms apart from two detectors disagreeing about one person, the more common case.
+
+The model can thus read a person as a place. Restoration stays correct, since the token returns to the same string. A later detection under another label does not rename the token, since the model already holds it.
+
+**Mitigation**: none on the `piighost` side. When the context matters, a human correction on the message where the value first appears sets its label.
+
 ## Latency overhead is not yet benchmarked
 
 There is no official benchmark of the latency added by the pipeline on typical workloads. The overhead depends on the detector (NER inference), the text length, and whether values are already known in the thread's memory.

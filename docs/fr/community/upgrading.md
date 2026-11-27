@@ -66,6 +66,26 @@ Aucun nom n'est déprécié en 2.0. Les noms du hub de la 1.x restent de simples
 
 Les correctifs de sécurité n'atterrissent que sur la dernière version mineure, aussi bien sur la surface stable que sur l'expérimentale. Une version mineure antérieure ne reçoit aucun correctif. Rester à jour fait donc partie du contrat.
 
+## Passer à la 2.2
+
+Aucun changement de code n'est nécessaire pour un pipeline construit avec les composants intégrés. Un jeton donné au modèle ne change plus de sens au sein d'une conversation, ce qui change cinq comportements.
+
+- **Une correction sur un ancien message est refusée.** `anonymize_corrected` lève `StaleCorrectionError` quand un autre message a été dé-identifié après le message corrigé, car la correction renumérotrait des jetons que le modèle détient. `piighost-api` répond `409 Conflict`. Corrigez un message avant que le suivant soit dé-identifié, et sérialisez les corrections d'une conversation.
+- **Une valeur garde son premier label dans une conversation.** `MergeEntityResolver` et `FuzzyEntityResolver` gardent les détections dans leur ordre d'arrivée au lieu de les trier par position. Un message ultérieur qui place une valeur en tête de son texte ne la renomme plus, et ne décale plus les jetons des valeurs suivantes.
+- **L'expander fouille toute la conversation.** Avec un `expander`, chaque nouveau message est aussi fouillé pour les valeurs auxquelles la conversation a déjà donné un jeton. Une valeur marquée par un humain, ou trouvée plus tôt par un détecteur, est masquée dans chaque message suivant. Les messages déjà envoyés ne sont pas réécrits.
+- **Une conversation Redis expire d'un bloc.** Chaque écriture remet le `ttl` sur toutes les clés de la conversation, donc une conversation ne perd plus ses premiers messages avant les autres.
+- **Un jeton écrit par le modèle survit.** Dans un texte écrit par l'assistant, comme les arguments d'un appel d'outil que le middleware dé-identifie à nouveau, un jeton émis par la conversation n'est plus cassé par un espace de largeur nulle. Un texte de l'utilisateur est neutralisé comme avant.
+
+Un détecteur NER prend aussi un seuil par label, `threshold={"__default": 0.6, "ADDRESS": 0.9}`, voir [Un seuil par label](../reference/detectors.md#un-seuil-par-label).
+
+Un composant écrit hors de `piighost` contre un port gagne une méthode ou un paramètre.
+
+| Port | Ajout | Sert à |
+|---|---|---|
+| `AnyConversationMemory` | `is_latest(thread_id, message)` | refuser une correction sur un ancien message |
+| `AnyDetectionExpander` | `find(text, detection)`, implémenté par `BaseDetectionExpander` | fouiller un nouveau message pour les valeurs de la conversation |
+| `AnyAnonymizer` | le paramètre `issued` de `render`, implémenté par `Anonymizer` | laisser passer les jetons de la conversation dans un texte écrit par l'assistant |
+
 ## Passer à la 2.1
 
 Aucun changement de code n'est nécessaire. Quatre comportements changent.

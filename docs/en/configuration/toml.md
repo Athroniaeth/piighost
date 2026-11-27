@@ -214,6 +214,8 @@ max_chars = 2000
 
 The `gliner2` and `transformers` detectors take `max_chars`, the longest text one inference sees. A longer text is split into overlapping chunks. Each chunk is scanned separately, then the spans are mapped back. Without this key, the whole text goes to the model in one pass. A model with a short window then truncates the text, and a long document can exhaust memory.
 
+`threshold` also takes one threshold per label, with the `__default` key for the labels it does not name, as in `threshold = { __default = 0.6, ADDRESS = 0.9 }`. See [Thresholds per label](../reference/detectors.md#thresholds-per-label).
+
 The `transformers` detector passes `aggregation_strategy` to its token-classification pipeline, which groups sub-word tokens into whole entities.
 
 The `presidio` detector takes no `model` key, since the config path builds Presidio's default English `AnalyzerEngine` with its default recognizers. Another language, a custom recognizer, or a custom NLP engine is the programmatic path, constructing the engine and passing it to `PresidioDetector`.
@@ -293,6 +295,8 @@ Optional, and disabled when omitted. One expander exists, so `type` names it rat
 type = "word_boundary"
 case_sensitive = false
 ```
+
+In a thread pipeline, the expander also searches each new message for the values the thread already holds a token for, with the same rule. A value marked earlier therefore stays masked in later messages.
 
 ---
 
@@ -460,7 +464,7 @@ A persistent, multi-worker store. Optionally, it keys each stored message with a
 |-----|------|---------|---------|
 | `url` | `str` | | The Redis connection URL (required) |
 | `namespace` | `str` | `piighost` | The key prefix isolating this library's keys |
-| `ttl` | `int` | `None` | Seconds a stored message lives, or omitted to keep until eviction |
+| `ttl` | `int` | `None` | Seconds a thread lives after its last write, set again on all its keys at every write, or omitted to keep until eviction |
 | `[memory.hasher]` | hasher | | Optional (both or neither). The hasher keying each message |
 | `[memory.cipher]` | cipher | | Optional (both or neither). The cipher encrypting each value |
 

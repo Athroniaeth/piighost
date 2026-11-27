@@ -1,9 +1,9 @@
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Protocol
 
 from piighost.components.guard.base import GuardVerdict
 from piighost.components.placeholder.tags import PreservationT_co
-from piighost.models import Detection, Entity
+from piighost.models import Detection, Entity, Span
 
 
 # isort: split
@@ -29,6 +29,7 @@ class AnyOverlapResolver(Protocol):
 # --8<-- [start:expander]
 class AnyDetectionExpander(Protocol):
     def expand(self, text: str, detections: list[Detection]) -> list[Detection]: ...
+    def find(self, text: str, detection: Detection) -> Iterable[Span]: ...
 # --8<-- [end:expander]
 # fmt: on
 

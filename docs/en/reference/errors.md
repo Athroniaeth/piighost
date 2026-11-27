@@ -29,6 +29,7 @@ The `PIIGhostError` tree, each grouping class above the errors it covers.
     - `DetectorError`
         - `LabelMappingError`
         - `TextTooLongError`
+        - `ThresholdLabelsError`
         - `UnreadableOutputError`
         - `BridgePayloadError`
         - `BridgeSpanRangeError`
@@ -38,6 +39,8 @@ The `PIIGhostError` tree, each grouping class above the errors it covers.
         - `OverlappingSpansError`
     - `OverrideError`
         - `ConflictingOverrideError`
+    - `ThreadError`
+        - `StaleCorrectionError`
     - `GuardError`
         - `PIIRemainingError`
     - `MiddlewareError`
@@ -55,7 +58,7 @@ The `PIIGhostError` tree, each grouping class above the errors it covers.
         - `ConfigFileError`
         - `ConfigValidationError`
 
-Of the thirty-six error classes, twenty-three are raised by a component and thirteen exist only to be caught. `ConfigError` counts on both sides, because it is a grouping class that is also raised on its own.
+Of the thirty-nine error classes, twenty-five are raised by a component and fourteen exist only to be caught. `ConfigError` counts on both sides, because it is a grouping class that is also raised on its own.
 
 ## Data models
 
@@ -72,17 +75,18 @@ The invariants these errors enforce are in [Data models](models.md), and the por
 
 ## Detectors
 
-Module: `piighost.components.detector.ner`. `DetectorError` groups five failures. Two belong to `BaseNERDetector`, so they reach the model-backed detectors only. One belongs to `LLMDetector`, and so to `LLMGuardRail` too. The last two belong to `BridgeDetector`, which checks every span its runner returns rather than trusting it. A regex, exact-match, composite, or chunked detector raises none of them.
+Module: `piighost.components.detector.ner`. `DetectorError` groups six failures. Three belong to `BaseNERDetector`, so they reach the model-backed detectors only. One belongs to `LLMDetector`, and so to `LLMGuardRail` too. The last two belong to `BridgeDetector`, which checks every span its runner returns rather than trusting it. A regex, exact-match, composite, or chunked detector raises none of them.
 
 | Exception | Raised by | Raised when |
 |-----------|-----------|-------------|
 | `LabelMappingError` | `BaseNERDetector.__init__` | two external labels map to one internal label, which would make the reverse lookup ambiguous |
 | `TextTooLongError` | `BaseNERDetector`, on detection | a text exceeds `max_chars` while `auto_chunk` is off, rather than scanning only the start of the text |
+| `ThresholdLabelsError` | `BaseNERDetector.__init__` | a per-label threshold names a label the detector does not emit, or leaves one without a threshold and has no `__default` key |
 | `UnreadableOutputError` | `LLMDetector`, on detection | the model returns an output the detector cannot read, a broken JSON or a result without its `entities` field, while `fail_open` is off |
 | `BridgePayloadError` | `BridgeDetector`, on detection | the runner returns a span missing a field, or an offset that is not an integer. A float is refused too |
 | `BridgeSpanRangeError` | `BridgeDetector`, on detection | the runner returns an empty or inverted span, one that overruns the text, or, in UTF-16 units, one that cuts a character in two |
 
-All five are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern `TextTooLongError`, the `fail_open` argument that governs `UnreadableOutputError`, and the `offset_unit` that the bridge's offsets are read in.
+All six are covered in [Detectors](detectors.md), with the `max_chars` and `auto_chunk` arguments that govern `TextTooLongError`, the per-label threshold that governs `ThresholdLabelsError`, the `fail_open` argument that governs `UnreadableOutputError`, and the `offset_unit` that the bridge's offsets are read in.
 
 ## Text helpers
 
@@ -113,6 +117,16 @@ Module: `piighost.components.override`. `OverrideError` groups the failures of t
 | `ConflictingOverrideError` | `DetectionOverride.apply` | a span on the deny list overlaps one on the allow list under the `raise` conflict strategy |
 
 The other two conflict strategies resolve the collision instead of raising. Every `[override]` key is in the [configuration reference](../configuration/toml.md).
+
+## Thread pipeline
+
+Module: `piighost.pipeline`. `ThreadError` groups the thread pipeline's failures and carries one subclass.
+
+| Exception | Raised by | Raised when |
+|-----------|-----------|-------------|
+| `StaleCorrectionError` | `ThreadAnonymizationPipeline.anonymize_corrected` | the corrected message was de-identified before and another message was de-identified after it, so the correction would renumber tokens the model holds |
+
+Only the latest message of a thread can be corrected, as [Pipeline](pipeline.md) describes. `piighost-api` answers this error with `409 Conflict`.
 
 ## Guard rails
 
