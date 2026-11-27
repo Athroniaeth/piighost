@@ -66,6 +66,14 @@ class TestResolve:
         entity = Entity((a, b))
         assert MergeEntityResolver().resolve([entity]) == [entity]
 
+    def test_a_lone_entity_keeps_its_first_label(self) -> None:
+        """An entity spanning two messages keeps its detection order and first label."""
+        first_message = _detection(8, 13, text="Paris", label="PERSON")
+        later_message = _detection(0, 5, text="Paris", label="LOCATION")
+        entity = Entity((first_message, later_message))
+        resolved = MergeEntityResolver().resolve([entity])
+        assert resolved[0].label == "PERSON"
+
     def test_no_entities_yields_no_entities(self) -> None:
         """Resolving nothing returns no entities."""
         assert MergeEntityResolver().resolve([]) == []

@@ -47,9 +47,16 @@ class BaseEntityResolver(ABC):
         return [kept for group in groups for kept in self._reduce(group)]
 
     def _conflict_groups(self, entities: list[Entity]) -> list[list[Entity]]:
-        """Cluster entities so each shares a detection with another in its group."""
+        """Cluster entities so each shares a detection with another in its group.
+
+        Each group is in the input order of its entities, and the groups follow
+        their first entity, so the resolved entities keep the order in which
+        their values first appeared. That order numbers the tokens, so a group
+        formed by a later message never moves a value ahead of an earlier one.
+        """
         groups = connected_groups(entities, self._shares_detection)
-        return [[entities[index] for index in group] for group in groups]
+        ordered = sorted(sorted(group) for group in groups)
+        return [[entities[index] for index in group] for group in ordered]
 
     def _shares_detection(self, first: Entity, second: Entity) -> bool:
         """Whether the two entities have at least one detection in common."""

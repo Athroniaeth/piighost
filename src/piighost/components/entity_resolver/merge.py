@@ -9,12 +9,16 @@ class MergeEntityResolver(BaseEntityResolver):
 
     When entities share a detection they are one value split across passes, so
     combining them is the natural fix: A-B-C and C-D share C and become
-    A-B-C-D, its detections deduplicated and ordered by position.
+    A-B-C-D, its detections deduplicated in the order they arrived.
+
+    The order is never rebuilt from positions. In a thread, each detection's
+    span is an offset inside its own message, so positions from two messages
+    cannot be compared, and an entity takes the label of its first detection: a
+    sort by position would let a later message relabel a value whose token the
+    model already holds.
     """
 
     def _reduce(self, conflicting: list[Entity]) -> list[Entity]:
-        """Combine the group into a single entity."""
-        uniq = {detection for entity in conflicting for detection in entity.detections}
-        # a set has no order, so sort the detections back into position order
-        detections = tuple(sorted(uniq))
-        return [Entity(detections)]
+        """Combine the group into a single entity, first detections first."""
+        detections = (d for entity in conflicting for d in entity.detections)
+        return [Entity(tuple(dict.fromkeys(detections)))]

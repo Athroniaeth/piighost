@@ -37,7 +37,7 @@ class FuzzyEntityResolver(MergeEntityResolver):
     Two entities read as one value when they share a label and the value keys of
     their texts score at or above the threshold, by Jaro-Winkler unless another
     similarity is injected. The merge itself is inherited: a group combines into
-    one entity, its detections deduplicated and position-ordered.
+    one entity, its detections deduplicated in the order they arrived.
 
     Similarity is not transitive, so the clustering deviates from the base
     template's transitive closure: each entity is compared against the first

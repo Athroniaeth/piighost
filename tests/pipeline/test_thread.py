@@ -6,6 +6,7 @@ import pytest
 
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
+from piighost.components.entity_resolver import MergeEntityResolver
 from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
@@ -89,6 +90,40 @@ def _resolving_pipeline(
         Anonymizer(LabelCounterPlaceholderFactory()),
         InMemoryConversationMemory(),
         entity_resolver=resolver,
+    )
+
+
+class _ContextNer:
+    """A NER stand-in that reads Paris as a place where someone lives, a person otherwise."""
+
+    async def detect(self, text: str) -> list[Detection]:
+        """Find Paris, Paul and Marc, labelling Paris by its context."""
+        found = []
+        for value in ("Paris", "Paul", "Marc"):
+            start = text.find(value)
+            if start == -1:
+                continue
+            lives_there = value == "Paris" and "habite" in text
+            label = "LOCATION" if lives_there else "PERSON"
+            span = Span(start, start + len(value))
+            detection = Detection(
+                span=span,
+                text=value,
+                label=label,
+                confidence=0.9,
+            )
+            found.append(detection)
+        return found
+
+
+def _merging_pipeline() -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
+    """Build a thread pipeline over the context NER and the merge entity resolver."""
+    return ThreadAnonymizationPipeline(
+        _ContextNer(),
+        ExactEntityLinker(),
+        Anonymizer(LabelCounterPlaceholderFactory()),
+        InMemoryConversationMemory(),
+        entity_resolver=MergeEntityResolver(),
     )
 
 
@@ -177,6 +212,23 @@ class TestOneLabelPerValue:
         token_map = await pipeline.thread_token_map("t1")
         assert result.text == "Membre <<PERSON:1>>"
         assert token_map == {"<<PERSON:1>>": "yanis_42", "<<PERSON:2>>": "nora"}
+
+    async def test_a_resolver_keeps_the_first_label_across_messages(self) -> None:
+        """A later message placing the value earlier in its text renames no token."""
+        pipeline = _merging_pipeline()
+        first = await pipeline.anonymize("J'habite à Paris", "t1")
+        second = await pipeline.anonymize("Paris m'a écrit", "t1")
+        assert first.text == "J'habite à <<LOCATION:1>>"
+        assert second.text == "<<LOCATION:1>> m'a écrit"
+
+    async def test_a_relabel_shifts_no_other_token(self) -> None:
+        """A value detected under another label leaves the other tokens on their values."""
+        pipeline = _merging_pipeline()
+        await pipeline.anonymize("Bonjour Paris", "t1")
+        second = await pipeline.anonymize("Paul et Marc arrivent.", "t1")
+        await pipeline.anonymize("Paris : j'y habite", "t1")
+        restored = await pipeline.deanonymize(second.text, "t1")
+        assert restored == "Paul et Marc arrivent."
 
 
 class TestCache:

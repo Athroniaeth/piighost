@@ -71,13 +71,13 @@ class TestResolve:
         assert len(merged) == 1
         assert len(kept) == 2
 
-    def test_merged_detections_are_position_ordered(self) -> None:
-        """A merged entity's detections come back in position order."""
-        late = _entity("Patrik", start=20)
-        early = _entity("Patrick", start=0)
-        resolved = FuzzyEntityResolver().resolve([late, early])
+    def test_merged_detections_keep_their_arrival_order(self) -> None:
+        """A merged entity keeps the order its entities arrived in, never re-sorted."""
+        first_seen = _entity("Patrik", start=20)
+        later = _entity("Patrick", start=0)
+        resolved = FuzzyEntityResolver().resolve([first_seen, later])
         assert len(resolved) == 1
-        assert resolved[0].detections == early.detections + late.detections
+        assert resolved[0].detections == first_seen.detections + later.detections
 
 
 class TestAnchorClustering:
