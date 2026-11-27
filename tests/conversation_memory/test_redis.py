@@ -18,7 +18,7 @@ def _detection(text: str, label: str = "PERSON") -> Detection:
     return Detection(span=Span(0, len(text)), text=text, label=label, confidence=0.9)
 
 
-def _make() -> tuple[Any, Any]:
+def _make(ttl: int | None = None) -> tuple[Any, Any]:
     """Build a RedisConversationMemory over a fresh fake Redis client."""
     import fakeredis.aioredis as fakeredis
 
@@ -28,7 +28,10 @@ def _make() -> tuple[Any, Any]:
 
     client = fakeredis.FakeRedis()
     memory = RedisConversationMemory(
-        client, Sha256Hasher("pepper"), AesGcmCipher(_AES_KEY)
+        client,
+        Sha256Hasher("pepper"),
+        AesGcmCipher(_AES_KEY),
+        ttl=ttl,
     )
     return memory, client
 
@@ -71,6 +74,20 @@ class TestBatchingAndAtomicity:
         assert await memory.get_detections("t1") == [emma]
         index = await client.lrange("piighost:t1:index", 0, -1)
         assert len(index) == 1
+
+
+class TestThreadExpiry:
+    async def test_a_write_renews_every_message_of_the_thread(self) -> None:
+        """A new message gives the thread's earlier messages and index the full TTL again."""
+        memory, client = _make(ttl=100)
+        await memory.remember("t1", "m1", [_detection("Emma")])
+        (digest,) = await client.lrange("piighost:t1:index", 0, -1)
+        first_key = f"piighost:t1:msg:{digest.decode()}"
+        await client.expire(first_key, 5)
+        await client.expire("piighost:t1:index", 5)
+        await memory.remember("t1", "m2", [_detection("Liam")])
+        assert await client.ttl(first_key) > 5
+        assert await client.ttl("piighost:t1:index") > 5
 
 
 class TestGetDetections:

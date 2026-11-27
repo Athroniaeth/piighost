@@ -60,6 +60,11 @@ def _as_bytes(value: bytes | str) -> bytes:
     return value if isinstance(value, bytes) else value.encode()
 
 
+def _as_text(value: bytes | str) -> str:
+    """Coerce a Redis string reply to text, the form a digest takes in a key."""
+    return value.decode() if isinstance(value, bytes) else value
+
+
 def _loads(data: bytes) -> tuple[MessageRole, list[Detection]]:
     """Rebuild a message's role and detections from the bytes written by _dumps."""
     payload = json.loads(data)
@@ -74,8 +79,10 @@ class RedisConversationMemory:
     Pass both a hasher and a cipher to hash keys and encrypt values, so a
     Redis leak exposes neither the message nor the PII. Pass neither to store
     in clear (a PIIGhostSecurityWarning is emitted at construction). Passing
-    exactly one is a misuse and raises ValueError. An optional TTL expires
-    every written entry.
+    exactly one is a misuse and raises ValueError. An optional TTL expires a
+    thread as a whole: every write sets it again on every key of the thread, so
+    a thread is either complete or gone, never missing its first messages, which
+    would renumber the tokens of the others.
 
     Attributes:
         namespace: The key prefix isolating this application's keys.
@@ -132,7 +139,9 @@ class RedisConversationMemory:
         The write is atomic under a WATCH on the message key, so the digest is
         appended to the index only when the message is new, and two concurrent
         first writes of the same message cannot both append it. A concurrent
-        change to the key retries the transaction.
+        change to the key retries the transaction. With a TTL, the same
+        transaction sets it again on the index and on every message of the
+        thread, so the thread expires as a whole.
         """
         digest_message = message_digest(message, self._hasher)
         key = self._message_key(thread_id, digest_message)
@@ -144,12 +153,20 @@ class RedisConversationMemory:
                 try:
                     await pipe.watch(key)
                     is_new = not await pipe.exists(key)
+                    indexed = (
+                        await pipe.lrange(index_key, 0, -1)
+                        if self._ttl is not None
+                        else []
+                    )
                     pipe.multi()
                     pipe.set(key, blob, ex=self._ttl)
                     if is_new:
                         pipe.rpush(index_key, digest_message)
-                        if self._ttl is not None:
-                            pipe.expire(index_key, self._ttl)
+                    if self._ttl is not None:
+                        pipe.expire(index_key, self._ttl)
+                        for digest in indexed:
+                            sibling = self._message_key(thread_id, _as_text(digest))
+                            pipe.expire(sibling, self._ttl)
                     await pipe.execute()
                     return
                 except WatchError:
@@ -234,4 +251,4 @@ class RedisConversationMemory:
     async def _digests(self, thread_id: str) -> list[str]:
         """Return a thread's message hashes in first-seen order."""
         digests = await self._client.lrange(self._index_key(thread_id), 0, -1)
-        return [d.decode() if isinstance(d, bytes) else d for d in digests]
+        return [_as_text(digest) for digest in digests]
