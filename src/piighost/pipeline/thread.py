@@ -270,6 +270,7 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
         with self._stage_span("piighost.override", self.override):
             detections = await self._override(text, detections)
         detections = self.overlap_resolver.resolve(detections)
+        detections = await self._place_known_values(text, thread_id, detections)
         detections = self._expand(text, detections)
         await self.memory.remember(
             message=text,
@@ -278,6 +279,42 @@ class ThreadAnonymizationPipeline(BaseAnonymizationPipeline[PreservationT]):
             role=role,
         )
         return detections, False
+
+    async def _place_known_values(
+        self,
+        text: str,
+        thread_id: str,
+        detections: list[Detection],
+    ) -> list[Detection]:
+        """Add the values the thread already tokenized wherever they occur in text.
+
+        An earlier message, or a human correction, may have made a value
+        confidential that this message's detector misses or names otherwise. The
+        expander's matching rule finds each occurrence, so a message and its
+        thread are searched the same way, and no search runs without an expander.
+        A known value merges with a detection it overlaps, so no character either
+        flagged stays in clear, and it names the union: a value keeps the label,
+        hence the token, the model already holds. Only values that hold a token
+        are placed, so a value the assistant introduced stays in clear.
+        """
+        if self.expander is None:
+            return detections
+
+        known = [
+            Detection(
+                span=span,
+                text=span.extract(text),
+                label=entity.label,
+                confidence=1.0,
+            )
+            for entity in await self._thread_tokens(thread_id)
+            for span in self.expander.find(text, entity.detections[0])
+        ]
+        if not known:
+            return detections
+
+        resolver = MergeOverlapResolver(preferred=frozenset(known))
+        return resolver.resolve(known + detections)
 
     async def _thread_tokens(self, thread_id: str) -> Mapping[Entity, PreservationT]:
         """Assign a token to every anonymizable entity across the thread.

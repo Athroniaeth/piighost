@@ -7,6 +7,7 @@ import pytest
 from piighost.components.anonymizer import Anonymizer
 from piighost.components.detector import AnyDetector, ExactMatchDetector
 from piighost.components.entity_resolver import MergeEntityResolver
+from piighost.components.expander import WordBoundaryExpander
 from piighost.components.guard import DetectorGuardRail
 from piighost.components.linker import ExactEntityLinker
 from piighost.components.placeholder import (
@@ -229,6 +230,69 @@ class TestOneLabelPerValue:
         await pipeline.anonymize("Paris : j'y habite", "t1")
         restored = await pipeline.deanonymize(second.text, "t1")
         assert restored == "Paul et Marc arrivent."
+
+
+_TOWN_HISTORY = (
+    "Je vis à Paris",
+    "Paris est loin de Lyon",
+    "J'aime Paris au printemps",
+    "On part de Paris demain",
+)
+"""A thread in which no detector flags Paris until a human marks it in the last message."""
+
+
+def _expanding_pipeline(
+    detector: AnyDetector,
+) -> ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque]:
+    """Build a thread pipeline with a word-boundary expander."""
+    return ThreadAnonymizationPipeline(
+        detector,
+        ExactEntityLinker(),
+        Anonymizer(LabelCounterPlaceholderFactory()),
+        InMemoryConversationMemory(),
+        expander=WordBoundaryExpander(),
+    )
+
+
+async def _mark_paris_as_town(
+    pipeline: ThreadAnonymizationPipeline[PreservesLabeledIdentityOpaque],
+) -> None:
+    """Replay the town history, then have a human mark Paris in its last message."""
+    for message in _TOWN_HISTORY:
+        await pipeline.anonymize(message, "t1")
+    last = _TOWN_HISTORY[-1]
+    start = last.index("Paris")
+    span = Span(start, start + 5)
+    town = Detection(
+        span=span,
+        text="Paris",
+        label="TOWN",
+        confidence=1.0,
+    )
+    await pipeline.anonymize_corrected(last, "t1", [town])
+
+
+class TestKnownValues:
+    async def test_a_corrected_value_is_covered_in_later_messages(self) -> None:
+        """With an expander, a value a human marked is masked in every later message."""
+        pipeline = _expanding_pipeline(ExactMatchDetector({}))
+        await _mark_paris_as_town(pipeline)
+        later = await pipeline.anonymize("Il fait beau à Paris ?", "t1")
+        assert later.text == "Il fait beau à <<TOWN:1>> ?"
+
+    async def test_no_expander_searches_no_thread_value(self) -> None:
+        """Without an expander, a later message is read by its detector alone."""
+        pipeline = _pipeline(ExactMatchDetector({}))
+        await _mark_paris_as_town(pipeline)
+        later = await pipeline.anonymize("Il fait beau à Paris ?", "t1")
+        assert later.text == "Il fait beau à Paris ?"
+
+    async def test_a_known_value_names_a_later_detection(self) -> None:
+        """A value the thread knows keeps its label when a detector names it otherwise."""
+        pipeline = _expanding_pipeline(_ContextNer())
+        await pipeline.anonymize("Bonjour Paris", "t1")
+        later = await pipeline.anonymize("Paris : j'y habite", "t1")
+        assert later.text == "<<PERSON:1>> : j'y habite"
 
 
 class TestCache:

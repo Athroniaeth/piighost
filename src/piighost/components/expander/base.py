@@ -28,6 +28,23 @@ class AnyDetectionExpander(Protocol):
         """
         ...
 
+    def find(self, text: str, detection: Detection) -> Iterable[Span]:
+        """Return the spans in text where the detection's value occurs.
+
+        The thread pipeline calls it with a value an earlier message already
+        tokenized, to place that value on a new message, so the same matching
+        rule covers a message and its thread.
+
+        Args:
+            text: The text to search.
+            detection: A detection carrying the value to look for, its span
+                taken from another text and ignored.
+
+        Returns:
+            The span of every occurrence of the value in text.
+        """
+        ...
+
 
 class BaseDetectionExpander(ABC):
     """Add missed occurrences of detected values, one detection at a time.
@@ -69,6 +86,10 @@ class BaseDetectionExpander(ABC):
                 _cover(covered, span)
 
         return expanded
+
+    def find(self, text: str, detection: Detection) -> Iterable[Span]:
+        """Return the spans in text where the detection's value occurs."""
+        return self._find_occurrences(text, detection)
 
     @abstractmethod
     def _find_occurrences(self, text: str, detection: Detection) -> Iterable[Span]:
