@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.2.0 (2026-11-27)
+
+### Feat
+
+- **detector**: a NER detector takes one confidence threshold per label, with __default for the labels left out
+- **pipeline**: the expander also places the values a thread already tokenized on each new message, so a corrected value stays masked
+
+### Fix
+
+- **pipeline**: every spelling a thread grouped under a token is searched in a new message
+- **anonymizer**: a token the thread issued survives in a text the model wrote, so a tool call is never broken
+- **memory**: a Redis thread expires as a whole, so an expired first message never renumbers the others
+- **pipeline**: only a thread's latest message can be corrected, so a correction never renumbers tokens the model holds
+- **entity-resolver**: a resolved entity keeps the order its detections arrived in, so a later message never relabels a value
+- **deps**: the lock moves past every known advisory and takes the pending Dependabot bumps
+
 ## 2.1.1 (2026-10-16)
 
 ### Fix
