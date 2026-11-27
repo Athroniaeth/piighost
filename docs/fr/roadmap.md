@@ -47,6 +47,30 @@ Chacune doit distinguer les détections de l'humain des détections automatiques
 
 Une correction ne couvre que le message qu'elle corrige. Une valeur ajoutée par l'humain dans un message reste en clair dans les autres messages de la conversation, avant comme après, car chaque message ne lit que ses propres détections. Les couvrir pourrait se faire vers l'avant seulement, en cherchant dans chaque nouveau message les valeurs que la conversation connaît déjà. On pourrait aussi réécrire l'historique, avec un coût. Un message réécrit change le préfixe rejoué au modèle, ce qui invalide le cache de prompt du fournisseur à partir de ce message, et la valeur est de toute façon déjà partie une fois en clair.
 
+## Prévu pour la version 3
+
+Ces changements touchent un comportement ou un format sur lequel une application peut déjà s'appuyer. Ils attendent donc une version majeure.
+
+### Garder la table des jetons au lieu de la recalculer
+
+Le pipeline conversationnel recalcule la numérotation des jetons à chaque appel, à partir de toutes les détections de la conversation. Un jeton déjà donné au modèle dépend donc de tout ce qui arrive après lui. Une détection qui change de label, une correction sur un ancien message ou un message expiré peut renuméroter les jetons suivants, et le jeton de `Paul`{ .pii } désigne alors `Marc`{ .pii } sans aucune erreur.
+
+Stocker la table valeur vers jeton à côté des détections, en ajout seulement, supprime cette dépendance. Une nouvelle valeur prend le numéro libre suivant, une valeur déjà numérotée garde son jeton, et une valeur retirée laisse un numéro qui n'est jamais réattribué. Corriger un ancien message redevient alors possible.
+
+- Stockage : chaque mémoire (RAM, Redis, SQL) garde la table et l'efface avec la conversation.
+- Plusieurs workers : l'attribution d'un numéro doit être atomique, par exemple avec `HSETNX` et `INCR` dans Redis. Le recalcul actuel, déterministe, met les workers d'accord sans coordination.
+- Conversations en cours : la table se construit au premier appel avec le calcul actuel, qui donne les mêmes numéros.
+
+### Mode strict pour les conflits de label entre messages
+
+Une valeur garde le label de sa première détection dans la conversation. Une détection ultérieure sous un autre label est ignorée sans bruit, par exemple `Paris`{ .pii } vu comme `PERSON` puis comme `LOCATION`. Un mode strict lèverait une erreur à la place, pour signaler un détecteur qui hésite sur une valeur. Voir le ticket [#64](https://github.com/Athroniaeth/piighost/issues/64).
+
+### Une stratégie pour les jetons reçus en entrée
+
+Un texte qui a la forme d'un jeton sans avoir été émis par la conversation est neutralisé. Un espace sans largeur y est glissé, et il n'est jamais restauré. Une stratégie pourrait choisir entre neutraliser, refuser le message par une erreur, ou le laisser tel quel, comme `InventedPlaceholderStrategy` le fait déjà pour un jeton inventé par le modèle.
+
+Le réglage serait utile par origine. Un message de l'utilisateur pourrait être refusé, et un résultat d'outil neutralisé, puisqu'un outil lit souvent une doc ou une trace pleine de jetons. Le pipeline ne distingue pas encore ces deux origines. `MessageRole` ne connaît que `USER` et `ASSISTANT`, et un résultat d'outil est dé-identifié comme un message de l'utilisateur. Un rôle `TOOL` toucherait aussi la règle qui laisse en clair une valeur que l'assistant cite le premier.
+
 ## Hors périmètre
 
 Certaines capacités ont été envisagées puis écartées volontairement. Le raisonnement est consigné ici pour que la frontière soit explicite. Chacune pourrait être réexaminée si un besoin futur répond à la réserve qui l'a fait écarter.

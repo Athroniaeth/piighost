@@ -47,6 +47,30 @@ Each one needs to tell the human's detections apart from the automatic ones. The
 
 A correction only covers the message it corrects. A value the human adds in one message stays in clear in the thread's other messages, earlier or later, because each message reads only its own detections. Covering them could go forward only, searching each new message for the values the thread already knows. It could also rewrite the history, at a cost. A rewritten message changes the prefix replayed to the model, which invalidates the provider's prompt cache from that message on, and the value was already sent in clear once.
 
+## Planned for version 3
+
+These changes touch a behaviour or a format an application may already rely on. They wait for a major version.
+
+### Keep the token table instead of recomputing it
+
+The thread pipeline recomputes the token numbering on every call, from every detection of the thread. A token already given to the model therefore depends on everything that comes after it. A detection that changes label, a correction on an older message or an expired message can renumber the later tokens, and the token of `Paul`{ .pii } then names `Marc`{ .pii } without any error.
+
+Storing the value-to-token table next to the detections, append-only, removes that dependency. A new value takes the next free number, a value already numbered keeps its token, and a removed value leaves a number that is never reassigned. Correcting an older message then becomes possible again.
+
+- Storage: every memory (RAM, Redis, SQL) keeps the table and erases it with the thread.
+- Several workers: assigning a number must be atomic, for instance with `HSETNX` and `INCR` in Redis. The current recomputation, being deterministic, keeps workers in agreement without coordination.
+- Threads in progress: the table is built on the first call with the current computation, which gives the same numbers.
+
+### Strict mode for label conflicts across messages
+
+A value keeps the label of its first detection in the thread. A later detection under another label is silently ignored, for instance `Paris`{ .pii } seen as `PERSON` then as `LOCATION`. A strict mode would raise an error instead, to flag a detector that hesitates on a value. See issue [#64](https://github.com/Athroniaeth/piighost/issues/64).
+
+### A strategy for tokens received as input
+
+A text shaped like a token that the thread never issued is neutralized. A zero-width space is spliced into it, and it is never restored. A strategy could choose between neutralizing it, refusing the message with an error, or leaving it as is, as `InventedPlaceholderStrategy` already does for a token the model invents.
+
+The setting would be useful per origin. A user message could be refused, and a tool result neutralized, since a tool often reads documentation or a trace full of tokens. The pipeline does not tell these two origins apart yet. `MessageRole` only knows `USER` and `ASSISTANT`, and a tool result is de-identified as a user message. A `TOOL` role would also touch the rule that leaves in clear a value the assistant mentions first.
+
 ## Non-goals
 
 Some capabilities were considered and left out on purpose. The reasoning is recorded here so the boundary is explicit. Any of them could be revisited if a future need answers the reason it was left out.
